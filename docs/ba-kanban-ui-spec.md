@@ -31,7 +31,9 @@ The application uses a playful yet structured Bento Grid layout, where each colu
 
 ## 3. Views & Screens
 1.  **Board View**: The main dashboard where 4 fixed columns (`Backlog`, `To Do`, `In Progress`, `Done`) are laid out horizontally as bento tiles.
-2.  **Ticket Detail Modal**: Triggered by clicking a ticket card. Displays full ticket information, markdown description, and provides editing/deletion controls.
+2.  **Ticket Detail Modal**: Triggered by clicking a ticket card. Has two modes:
+    - **View mode** (default): Displays full ticket information in a readable layout — title (large, bold), ticket ID, priority badge, status badge, tags, markdown-rendered description, and timestamps (created/updated). Actions: Edit button, Delete button (with inline confirmation).
+    - **Edit mode**: Switched into by clicking the Edit button. Shows a form with all editable fields. Cancel returns to view mode.
 
 ## 4. User Stories
 
@@ -42,6 +44,7 @@ The application uses a playful yet structured Bento Grid layout, where each colu
 | US-03 | As a user, I want to drag and drop tickets between columns. | High | Smooth drag-and-drop using `dnd-kit`. Status updates automatically on drop. |
 | US-04 | As a user, I want to view and edit ticket details. | Medium | Clicking a card opens a modal. Edits can be made inline or via a form. |
 | US-05 | As a user, I want to search and filter tickets. | Medium | Filter by priority/tag using top bar chips. Search by title keyword. |
+| US-06 | As a user, I want to view full ticket details before editing. | High | Clicking a card opens a view modal with title, description (rendered markdown), priority, status, tags, and timestamps. An Edit button switches to form mode. |
 
 ## 5. Data Model (Ticket Schema)
 
@@ -68,6 +71,7 @@ erDiagram
 -   **Performance**: Smooth CSS animations for all state transitions (drags, modal transitions).
 -   **Tech Stack**: Vite + React + TypeScript + `dnd-kit`.
 -   **Responsiveness**: Optimized for Desktop (1280px+).
+-   **Markdown rendering**: Ticket descriptions support Markdown and are rendered using `react-markdown`.
 
 ## 8. Out of Scope (Phase 1)
 -   User authentication / Multi-user support.

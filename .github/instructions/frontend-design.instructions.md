@@ -6,7 +6,6 @@ applyTo: "ui/**"
 # Frontend Design — Kanban Board MCP
 
 When building UI for this project, always follow the Bento Grid design system defined below.
-Full token reference: `.github/skills/frontend-design/kanban-theme.md`
 
 ## Design System (Quick Reference)
 
