@@ -1,0 +1,158 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHeader {
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-dark);
+}
+
+.empty {
+  font-size: 13px;
+  font-style: italic;
+  color: #9CA3AF;
+}
+
+.entryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry {
+  background: white;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-left: 3px solid var(--color-dark);
+}
+
+.entryHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.roleBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+
+.author {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.timestamp {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin-left: auto;
+}
+
+.note {
+  font-size: 14px;
+  color: var(--color-dark);
+  line-height: 1.5;
+  word-break: break-word;
+  margin: 0;
+}
+
+.addArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(245, 239, 224, 0.5);
+  border-radius: 12px;
+  padding: 14px;
+  border: 2px dashed rgba(61, 12, 17, 0.2);
+}
+
+.addRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.input,
+.select,
+.textarea {
+  border: 2px solid var(--color-dark);
+  border-radius: 8px;
+  background: white;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-dark);
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--color-orange);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.submitRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.addBtn {
+  background: var(--color-dark);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-card);
+  padding: 8px 20px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.addBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.addBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

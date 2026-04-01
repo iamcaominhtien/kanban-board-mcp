@@ -20,6 +20,14 @@ export interface ActivityEntry {
   timestamp: string;
 }
 
+export interface WorkLogEntry {
+  id: string;
+  author: string;
+  role: 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
+  note: string;
+  logged_at: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
@@ -35,6 +43,7 @@ export interface Ticket {
   subTasks: SubTask[];
   estimate: number | null;
   activityLog: ActivityEntry[];
+  work_log?: WorkLogEntry[];
 }
 
 export interface Column {
