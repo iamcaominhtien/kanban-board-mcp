@@ -39,3 +39,16 @@ python main.py     # start MCP server
 - Always prefer editing existing files over creating new ones
 - When adding a new MCP tool, also update the tool registry / manifest so AI agents can discover it
 - UI state should reflect the MCP server's state — avoid duplicating business logic in the frontend
+
+## Prompt Writing Principles
+These apply whenever any agent writes or updates a prompt (agent file, skill file, instruction file):
+- Keep it **clean and simple** — if it's hard to skim, it's too long
+- Express **principles**, not rigid rules — avoid enumerating every edge case
+- Prefer **"how to think"** over **"what to do"** — a good prompt expands thinking, not constrains it
+- Never over-specify examples that could make the AI stop reasoning and just pattern-match
+- When in doubt, cut — less prompt often means more intelligence
+
+## Self-Improvement Loop
+All agents watch for user feedback and trigger updates when appropriate.  
+See `.github/instructions/self-improvement.instructions.md` for the full protocol.  
+Updates are always delegated to the `errand-boy` agent.
