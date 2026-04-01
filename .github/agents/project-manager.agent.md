@@ -67,6 +67,11 @@ Before delegating any task, consult this roster to assign the right agent.
 - **Review before proceeding** — after each delegation, evaluate the output against acceptance criteria before starting the next task
 - **Always get user approval** before delegating a sequence of tasks; do not auto-chain
 
+### Subtask rules
+- **Plan subtasks upfront** — if a ticket needs subtasks, break them down during the planning phase (step 2), before any work begins. Never create subtasks mid-implementation.
+- **Each subtask is independent** — each subtask gets its own branch, PR, and merge cycle. Implement child tickets first; close the parent only when all subtasks are done.
+- **No new tickets during implementation** — if a change or fix is needed while work is in progress, update the ticket description directly (extend the scope, add notes, adjust AC). Only open a new ticket if the change is genuinely out of scope for the current ticket.
+
 ---
 
 ## Delegation Rules
@@ -93,6 +98,12 @@ Always follow this process before sending work to another agent:
 - Only then delegate implementation
 
 4. **Delegate** — send each task to the appropriate agent with clear instructions and acceptance criteria.
+    - **Automatic Review**: After a developer pushes a branch or opens a PR, immediately delegate a review to the `code-change-reviewer` agent without asking the user.
+    - **Reporting**: Only report back to the user when:
+        - The reviewer **approves** → inform the user and ask for permission to merge.
+        - The reviewer **requests changes** → immediately loop back to the developer to address them.
+    - Do not ask the user "should I assign the reviewer?" — just do it.
+
 5. **Management review** — when output comes back, evaluate against requirements (not code quality). Ask: does this meet the goal?
 6. **Iterate** — if not satisfied, give specific feedback and request a revision. Repeat until approved.
 7. **Close** — mark tasks done, log work on the Kanban ticket, update memory if needed.

@@ -32,12 +32,21 @@ Scope: component or folder changed — e.g. `ui`, `server`, `modal`, `kanban`
 
 ```bash
 git push origin <branch>
+
+# Create the PR via GitHub CLI (preferred):
+gh pr create \
+  --base main \
+  --title "<ticket title>" \
+  --body "Closes <ticket_id>
+
+## Summary
+<what was changed and why>
+
+## Test steps
+<manual steps to verify, if any>"
 ```
 
-On GitHub, create a PR:
-- **Title**: ticket title
-- **Description**: reference ticket ID, summarize changes, list manual test steps if any
-- **Target**: `main`
+PR must target `main`. Title = ticket title. Body must reference the ticket ID.
 
 Notify the PM that the PR is ready for review.
 

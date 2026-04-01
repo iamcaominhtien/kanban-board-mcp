@@ -84,6 +84,7 @@ Based on research across Jira, Linear, Asana, GitHub Issues, and Notion, the fol
 | `linked_issues` | string[] (ticket IDs) | Blocked-by / depends-on relationships |
 | `milestone` | string (nullable) | Target version or release group |
 | `activity_log` | ActivityEntry[] | Chronological audit trail of all changes |
+| `work_log` | WorkLogEntry[] | Manual entries by any role (PM, Dev, BA, Tester) to trace work done on the ticket |
 
 ### Skipped for solo use
 
@@ -107,6 +108,23 @@ Two-region layout following Linear/GitHub pattern:
 │                            │  Milestone           │
 └────────────────────────────┴──────────────────────┘
 ```
+
+### Work Log Entry Schema
+
+Each `WorkLogEntry` contains:
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique entry ID |
+| `author` | string | Name of the person logging work |
+| `role` | string | Role: PM, Developer, BA, Tester, Designer, Other |
+| `note` | string | What was done and why (free text) |
+| `logged_at` | datetime | When the entry was created |
+
+**Behavior:**
+- Any role can add an entry at any time
+- Entries are append-only (no edit/delete) for traceability
+- Displayed in chronological order, most recent last
+- Separate from Comments (discussion) and Activity (auto-generated audit trail)
 
 ## 6. Business Rules
 1.  **Fixed Workflow**: The 4 columns are mandatory and cannot be renamed or deleted in Phase 1.
