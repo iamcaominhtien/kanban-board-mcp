@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
-import type { Comment, IssueType, Priority, Status, Ticket } from '../types';
+import type { Comment, IssueType, Priority, Status, Ticket, WorkLogEntry } from '../types';
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { SubTasksSection } from './SubTasksSection';
+import { WorkLogSection } from './WorkLogSection';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
@@ -112,6 +113,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         subTasks: [],
         estimate,
         activityLog: [],
+        workLog: [],
       });
     } else if (ticket) {
       onSave({ ...ticket, title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, updatedAt: now, estimate });
@@ -168,6 +170,15 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     onSave({ ...ticket, subTasks: ticket.subTasks.filter((s) => s.id !== id), updatedAt: new Date().toISOString() });
   }
 
+  function handleAddWorkLog(entry: Omit<WorkLogEntry, 'id'>) {
+    if (!ticket) return;
+    const id = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const newEntry: WorkLogEntry = { id, ...entry };
+    onSave({ ...ticket, workLog: [...(ticket.workLog ?? []), newEntry], updatedAt: new Date().toISOString() });
+  }
+
   function handleCancelEdit() {
     setTitle(ticket?.title ?? '');
     setDescription(ticket?.description ?? '');
@@ -210,74 +221,111 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           <div className={styles.body}>
             <h2 className={styles.viewTitle}>{ticket.title}</h2>
 
-            <div className={styles.metaRow}>
-              <span
-                className={styles.typeBadge}
-                style={{ backgroundColor: TYPE_CONFIG[ticket.type].bg, color: TYPE_CONFIG[ticket.type].color }}
-              >
-                {TYPE_CONFIG[ticket.type].icon} {TYPE_CONFIG[ticket.type].label}
-              </span>
-              <span
-                className={styles.priorityBadge}
-                style={{ backgroundColor: pc.bg, color: pc.color }}
-              >
-                ● {ticket.priority}
-              </span>
-              {ticket.estimate !== null && ticket.estimate !== undefined && (
-                <span className={styles.estimateBadge}>SP: {ticket.estimate}</span>
-              )}
-              <span className={styles.statusBadge}>{STATUS_LABELS[ticket.status]}</span>
-              {ticket.tags.map((tag, i) => (
-                <span key={`${tag}-${i}`} className={styles.chip}>{tag}</span>
-              ))}
+            <div className={styles.twoColLayout}>
+              {/* ── Left column: content ── */}
+              <div className={styles.mainCol}>
+                <div className={styles.descriptionBox}>
+                  <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{ticket.description || '*No description provided.*'}</ReactMarkdown>
+                </div>
+
+                <div className={styles.timestamps}>
+                  <span>Created: {formatDate(ticket.createdAt)}</span>
+                  <span>Updated: {formatDate(ticket.updatedAt)}</span>
+                </div>
+
+                <hr className={styles.divider} />
+
+                <SubTasksSection
+                  subTasks={ticket.subTasks ?? []}
+                  onAdd={handleAddSubTask}
+                  onToggle={handleToggleSubTask}
+                  onDelete={handleDeleteSubTask}
+                />
+
+                <hr className={styles.divider} />
+
+                <CommentsSection
+                  comments={ticket.comments ?? []}
+                  onAdd={handleAddComment}
+                  onDelete={handleDeleteComment}
+                />
+
+                <hr className={styles.divider} />
+
+                <ActivityLog entries={ticket.activityLog ?? []} />
+
+                <hr className={styles.divider} />
+
+                <WorkLogSection
+                  entries={ticket.workLog ?? []}
+                  onAdd={handleAddWorkLog}
+                />
+              </div>
+
+              {/* ── Right sidebar: metadata ── */}
+              <aside className={styles.sidebarCol}>
+                <div className={styles.sidebarCard}>
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Status</span>
+                    <span className={styles.statusBadge}>{STATUS_LABELS[ticket.status]}</span>
+                  </div>
+
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Priority</span>
+                    <span
+                      className={styles.priorityBadge}
+                      style={{ backgroundColor: pc.bg, color: pc.color }}
+                    >
+                      ● {ticket.priority}
+                    </span>
+                  </div>
+
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Type</span>
+                    <span
+                      className={styles.typeBadge}
+                      style={{ backgroundColor: TYPE_CONFIG[ticket.type].bg, color: TYPE_CONFIG[ticket.type].color }}
+                    >
+                      {TYPE_CONFIG[ticket.type].icon} {TYPE_CONFIG[ticket.type].label}
+                    </span>
+                  </div>
+
+                  {ticket.estimate !== null && ticket.estimate !== undefined && (
+                    <div className={styles.sidebarRow}>
+                      <span className={styles.sidebarLabel}>Story Points</span>
+                      <span className={styles.estimateBadge}>SP: {ticket.estimate}</span>
+                    </div>
+                  )}
+
+                  {ticket.dueDate && (() => {
+                    const due = new Date(ticket.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const overdue = due < today;
+                    const label = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    return (
+                      <div className={styles.sidebarRow}>
+                        <span className={styles.sidebarLabel}>Due Date</span>
+                        <span className={overdue ? styles.dueDateOverdue : styles.dueDateBadge}>
+                          {overdue ? '⚠️' : '📅'} {label}
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {ticket.tags.length > 0 && (
+                    <div className={styles.sidebarSection}>
+                      <span className={styles.sidebarLabel}>Tags</span>
+                      <div className={styles.tagChips}>
+                        {ticket.tags.map((tag, i) => (
+                          <span key={`${tag}-${i}`} className={styles.chip}>{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </aside>
             </div>
-
-            {ticket.dueDate && (() => {
-              const due = new Date(ticket.dueDate);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const overdue = due < today;
-              const label = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-              return (
-                <span className={overdue ? styles.dueDateOverdue : styles.dueDateBadge}>
-                  {overdue ? '⚠️' : '📅'} Due: {label}
-                </span>
-              );
-            })()}
-
-            <hr className={styles.divider} />
-
-            <div className={styles.descriptionBox}>
-              <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{ticket.description || '*No description provided.*'}</ReactMarkdown>
-            </div>
-
-            <hr className={styles.divider} />
-
-            <div className={styles.timestamps}>
-              <span>Created: {formatDate(ticket.createdAt)}</span>
-              <span>Updated: {formatDate(ticket.updatedAt)}</span>
-            </div>
-
-            <hr className={styles.divider} />
-
-            <SubTasksSection
-              subTasks={ticket.subTasks ?? []}
-              onAdd={handleAddSubTask}
-              onToggle={handleToggleSubTask}
-              onDelete={handleDeleteSubTask}
-            />
-
-            <hr className={styles.divider} />
-
-            <CommentsSection
-              comments={ticket.comments ?? []}
-              onAdd={handleAddComment}
-              onDelete={handleDeleteComment}
-            />
-
-            <hr className={styles.divider} />
-
-            <ActivityLog entries={ticket.activityLog ?? []} />
           </div>
 
           <div className={styles.footer}>
@@ -435,7 +483,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             />
             {tagsInput.trim() && (
               <div className={styles.tagChips}>
-                {tagsInput.split(',').map((t, i) => t.trim() && <span key={i} className={styles.chip}>{t.trim()}</span>)}
+                {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip}>{t.trim()}</span>)}
               </div>
             )}
           </div>

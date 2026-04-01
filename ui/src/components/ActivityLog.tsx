@@ -30,7 +30,7 @@ export function ActivityLog({ entries }: ActivityLogProps) {
         aria-expanded={expanded}
       >
         <span className={styles.headerLabel}>Activity ({entries.length})</span>
-        <span className={styles.chevron}>{expanded ? '▲' : '▼'}</span>
+        <span className={`${styles.chevron} ${!expanded ? styles.chevronCollapsed : ''}`}>▼</span>
       </button>
 
       {expanded && (

@@ -28,6 +28,12 @@
   box-shadow: 0 24px 64px rgba(61, 12, 17, 0.25);
 }
 
+@media (min-width: 768px) {
+  .panel {
+    max-width: 960px;
+  }
+}
+
 .panelVisible {
   transform: translateY(0);
 }
@@ -419,4 +425,72 @@
 
 .deleteOutlineBtn:hover {
   background: rgba(220, 38, 38, 0.06);
+}
+
+/* ── 2-column layout (view mode, md+) ── */
+
+.twoColLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mainCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.sidebarCol {
+  flex-shrink: 0;
+}
+
+.sidebarCard {
+  background: white;
+  border-radius: 16px;
+  border: 2px solid var(--color-dark);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+.sidebarRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sidebarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebarLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9CA3AF;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .twoColLayout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .sidebarCol {
+    position: sticky;
+    top: 0;
+  }
 }
