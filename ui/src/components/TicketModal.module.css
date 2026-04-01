@@ -454,6 +454,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  max-height: 80vh;
 }
 
 .sidebarRow {

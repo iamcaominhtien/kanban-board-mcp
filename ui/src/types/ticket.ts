@@ -25,7 +25,7 @@ export interface WorkLogEntry {
   author: string;
   role: 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
   note: string;
-  logged_at: string;
+  loggedAt: string;
 }
 
 export interface Ticket {
@@ -43,7 +43,7 @@ export interface Ticket {
   subTasks: SubTask[];
   estimate: number | null;
   activityLog: ActivityEntry[];
-  work_log?: WorkLogEntry[];
+  workLog?: WorkLogEntry[];
 }
 
 export interface Column {

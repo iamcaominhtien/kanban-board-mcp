@@ -113,6 +113,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         subTasks: [],
         estimate,
         activityLog: [],
+        workLog: [],
       });
     } else if (ticket) {
       onSave({ ...ticket, title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, updatedAt: now, estimate });
@@ -175,7 +176,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
       ? crypto.randomUUID()
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     const newEntry: WorkLogEntry = { id, ...entry };
-    onSave({ ...ticket, work_log: [...(ticket.work_log ?? []), newEntry], updatedAt: new Date().toISOString() });
+    onSave({ ...ticket, workLog: [...(ticket.workLog ?? []), newEntry], updatedAt: new Date().toISOString() });
   }
 
   function handleCancelEdit() {
@@ -244,7 +245,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <hr className={styles.divider} />
 
                 <WorkLogSection
-                  entries={ticket.work_log ?? []}
+                  entries={ticket.workLog ?? []}
                   onAdd={handleAddWorkLog}
                 />
 
@@ -482,7 +483,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             />
             {tagsInput.trim() && (
               <div className={styles.tagChips}>
-                {tagsInput.split(',').map((t, i) => t.trim() && <span key={i} className={styles.chip}>{t.trim()}</span>)}
+                {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip}>{t.trim()}</span>)}
               </div>
             )}
           </div>

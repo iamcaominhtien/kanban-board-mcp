@@ -82,27 +82,27 @@ export const INITIAL_TICKETS: Ticket[] = [
     ],
     estimate: 13,
     activityLog: [],
-    work_log: [
+    workLog: [
       {
         id: 'wl-4-1',
         author: 'Alice Chen',
         role: 'BA',
         note: 'Reviewed BA spec with stakeholders. Confirmed column layout and ticket card fields. Approved for implementation.',
-        logged_at: '2026-04-01T10:30:00Z',
+        loggedAt: '2026-04-01T10:30:00Z',
       },
       {
         id: 'wl-4-2',
         author: 'Bob Nakamura',
         role: 'Developer',
         note: 'Scaffolded Board and Column components. Integrated mock data. Basic layout is working.',
-        logged_at: '2026-04-01T14:00:00Z',
+        loggedAt: '2026-04-01T14:00:00Z',
       },
       {
         id: 'wl-4-3',
         author: 'Sam Rivera',
         role: 'Designer',
         note: 'Applied Bento Grid token system to Column headers. Reviewed spacing and typography — LGTM.',
-        logged_at: '2026-04-01T16:45:00Z',
+        loggedAt: '2026-04-01T16:45:00Z',
       },
     ],
   },
@@ -125,20 +125,20 @@ export const INITIAL_TICKETS: Ticket[] = [
     ],
     estimate: 8,
     activityLog: [],
-    work_log: [
+    workLog: [
       {
         id: 'wl-5-1',
         author: 'Bob Nakamura',
         role: 'Developer',
         note: 'Installed dnd-kit packages and wrapped the Board in DndContext. Columns now accept droppable zones.',
-        logged_at: '2026-04-01T11:00:00Z',
+        loggedAt: '2026-04-01T11:00:00Z',
       },
       {
         id: 'wl-5-2',
         author: 'Priya Mehta',
         role: 'Tester',
         note: 'Smoke-tested drag on Chrome and Firefox. Cards drag correctly between columns but drop animation flickers — opened bug note.',
-        logged_at: '2026-04-01T15:30:00Z',
+        loggedAt: '2026-04-01T15:30:00Z',
       },
     ],
   },
