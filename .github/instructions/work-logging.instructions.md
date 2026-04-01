@@ -13,10 +13,10 @@ After each meaningful step, append a `## Work Log` section to the ticket descrip
 ```
 ## Work Log
 
-- [YYYY-MM-DD] <agent>: <what was done and why>
+- [YYYY-MM-DD HH:MM] <agent>: <what was done and why>
 ```
 
-- Use ISO date format, identify the agent by name, 1–2 sentences per entry
+- Use ISO datetime format (date + 24h time, local timezone), identify the agent by name, 1–2 sentences per entry
 - Never overwrite existing entries
 - Delegate via: `Use the kanbander agent to update ticket #N description: append to Work Log — ...`
 

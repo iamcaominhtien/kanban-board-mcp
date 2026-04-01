@@ -62,6 +62,52 @@ erDiagram
     }
 ```
 
+## 5b. Enhanced Ticket Fields (v2 Roadmap)
+
+Based on research across Jira, Linear, Asana, GitHub Issues, and Notion, the following fields are recommended for a richer ticket experience. Fields are categorized by priority for a solo personal Kanban board.
+
+### Phase 2 — Essential additions
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | enum: `bug | feature | task | chore` | Issue type — affects triage logic |
+| `due_date` | ISO date string (nullable) | Target completion date |
+| `estimate` | number (nullable) | Story point / effort estimate |
+| `comments` | Comment[] | Threaded notes to self, decisions, blockers |
+
+### Phase 2 — Nice to have
+
+| Field | Type | Description |
+|---|---|---|
+| `start_date` | ISO date string (nullable) | When work begins |
+| `sub_tasks` | SubTask[] | Checklist of smaller steps |
+| `linked_issues` | string[] (ticket IDs) | Blocked-by / depends-on relationships |
+| `milestone` | string (nullable) | Target version or release group |
+| `activity_log` | ActivityEntry[] | Chronological audit trail of all changes |
+
+### Skipped for solo use
+
+- Assignee, Reporter display (always the solo user)
+- Sprint/Cycle (Kanban is flow-based)
+- Collaborators, Watchers, Reactions
+- Linked PRs / Commits (unless dev integration added)
+
+### Layout recommendation (v2)
+
+Two-region layout following Linear/GitHub pattern:
+
+```
+┌────────────────────────────┬──────────────────────┐
+│  Title (editable)          │  Status              │
+│  Description (markdown)    │  Priority            │
+│  Sub-tasks (checklist)     │  Type                │
+│  Comments section          │  Due Date            │
+│  Activity log              │  Estimate            │
+│                            │  Labels / Tags       │
+│                            │  Milestone           │
+└────────────────────────────┴──────────────────────┘
+```
+
 ## 6. Business Rules
 1.  **Fixed Workflow**: The 4 columns are mandatory and cannot be renamed or deleted in Phase 1.
 2.  **Priority Coloring**: Each priority level must have a corresponding semantic color (e.g., Critical = Red, Low = Gray).
@@ -77,3 +123,4 @@ erDiagram
 -   User authentication / Multi-user support.
 -   Direct Python MCP server integration (Mock data only).
 -   Real-time notifications.
+- Enhanced ticket fields (type, due date, estimate, comments, sub-tasks, activity log) — deferred to Phase 2 (see Section 5b).

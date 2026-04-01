@@ -51,3 +51,12 @@ For all other code quality rules (lazy imports, type hints, error handling, file
 3. Implement the change (or debug → confirm → implement)
 4. Run `ruff check --fix <file> && ruff format <file>` on modified files
 5. Flag anything that needs a migration, doc update, or ticket
+
+## Git & Commits
+
+After completing meaningful code changes, the developer should stage and commit those changes:
+- **Conventional Commits**: use `type(scope): short description` format
+  - Types: `feat`, `fix`, `refactor`, `style`, `chore`, `test`, `docs`
+  - Scopes: `ui`, `server`, `modal`, `kanban`, etc. (reflecting the changed area)
+- **Concise & Descriptive**: keep the subject line under 72 characters
+- **No force-push**: never force-push or amend published commits
