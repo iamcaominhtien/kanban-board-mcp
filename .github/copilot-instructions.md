@@ -35,6 +35,15 @@ python main.py     # start MCP server
 - Prefer local-first data (JSON file or SQLite) over external services — keep it simple and portable
 - Fancy UI is intentional: custom colors, animations, drag-and-drop are first-class goals, not polish afterthoughts
 
+## Git Conventions
+- **Branch per ticket**: always work on a branch, never commit directly to `main`
+- Branch naming: `feature/<ticket_id>`, `fix/<ticket_id>`, `chore/<ticket_id>`
+- **git worktree** for parallel work on a single machine: `git worktree add ../<project>-<ticket_id> <branch>`
+- Commit messages: Conventional Commits format — `type(scope): short description` (under 72 chars)
+- PRs target `main`; PR title = ticket title; description references ticket ID
+- Merge strategy: squash merge preferred for clean history
+- Delete remote branch after merge; remove worktree with `git worktree remove <path>`
+
 ## Agent Notes
 - Always prefer editing existing files over creating new ones
 - When adding a new MCP tool, also update the tool registry / manifest so AI agents can discover it
@@ -47,6 +56,7 @@ These apply whenever any agent writes or updates a prompt (agent file, skill fil
 - Prefer **"how to think"** over **"what to do"** — a good prompt expands thinking, not constrains it
 - Never over-specify examples that could make the AI stop reasoning and just pattern-match
 - When in doubt, cut — less prompt often means more intelligence
+- **Don't repeat what a skill already covers** — if a skill exists for a topic, agent prompts should reference the skill, not duplicate its content
 
 ## Self-Improvement Loop
 All agents watch for user feedback and trigger updates when appropriate.  

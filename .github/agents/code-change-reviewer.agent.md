@@ -21,25 +21,40 @@ The project enforces strict layer separation:
 | `prompts/` | LLM prompt constants/functions | Inline in service code |
 | `utils/` | Stateless helpers, external service wrappers | Business logic |
 
-## Review checklist
+## Review checklist (apply to all PRs)
 
 **Critical**
+- [ ] No secrets or credentials in code
+- [ ] No obvious security issues (OWASP Top 10 awareness)
 - [ ] Architecture violation? (wrong layer, e.g. business logic in route, SQL in service)
 - [ ] LLM prompts embedded in code instead of `app/prompts/`
-- [ ] Security issue (hardcoded secrets, unvalidated input, injection risk)
-- [ ] Data loss or breaking change risk
+- [ ] Data loss or breaking change risk without explicit approval
 
 **Major**
+- [ ] Logic is incorrect or edge cases are missing
+- [ ] Unnecessary complexity or over-engineering
 - [ ] Missing error handling
 - [ ] Performance / scalability issue
 - [ ] Top-level import of `langchain`, `docling`, `langgraph`, `playwright` (must be lazy)
 - [ ] Sync-blocking call not wrapped in `run_in_threadpool`
 
 **Minor / Nits**
+- [ ] Code doesn't follow project conventions (naming, structure, style)
 - [ ] Type hints missing on public functions
 - [ ] Unicode filename not using `encode_filename_for_content_disposition()`
 - [ ] New DB table missing Alembic migration
 - [ ] Ruff violations
+
+## Pull Request Review
+
+When asked to review a PR:
+1. Read the PR diff (or the branch changes via git) — focus on correctness, security, and design quality
+2. Check against the ticket's acceptance criteria (ask PM for them if not provided)
+3. Leave structured feedback:
+   - **Approve** — if changes are correct and meet acceptance criteria
+   - **Request changes** — list specific issues, grouped by severity (blocking vs. non-blocking)
+4. Never rubber-stamp a PR without actually reviewing the changes
+5. After approving, notify the PM so they can instruct the developer to merge
 
 ## Workflow
 
