@@ -16,7 +16,7 @@
   width: 100%;
 }
 
-.sectionToggle:hover .sectionHeader {
+.sectionToggle:hover {
   opacity: 0.75;
 }
 

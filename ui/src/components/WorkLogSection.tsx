@@ -51,7 +51,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
       >
         <span className={`${styles.chevron} ${isExpanded ? styles.chevronOpen : ''}`}>▶</span>
         <h3 className={styles.sectionHeader}>
-          Work Log{entries.length > 0 ? ` (${entries.length})` : ''}
+          {`Work Log (${entries.length})`}
         </h3>
       </button>
 
@@ -61,7 +61,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
             <p className={styles.empty}>No work logged yet.</p>
           ) : (
             <div className={styles.entryList}>
-              {[...entries].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)).map((entry) => (
+              {[...entries].sort((a, b) => b.loggedAt.localeCompare(a.loggedAt)).map((entry) => (
                 <div key={entry.id} className={styles.entry}>
                   <div className={styles.entryHeader}>
                     <span
