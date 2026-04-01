@@ -1,7 +1,7 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .sectionToggle {
@@ -44,7 +44,7 @@
 }
 
 .empty {
-  font-size: 13px;
+  font-size: 12px;
   font-style: italic;
   color: #9CA3AF;
 }
