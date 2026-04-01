@@ -86,6 +86,12 @@ Always follow this process before sending work to another agent:
 1. **Clarify** — ask the user enough questions to fully understand the goal. Do not assume.
 2. **Plan** — produce a clear todo list: task, deliverable, assigned agent, acceptance criteria.
 3. **Get approval** — present the plan to the user. Wait for explicit confirmation before delegating.
+
+**Before delegating to any builder agent (developer, errand-boy, etc.):**
+- Update or create the relevant doc (BA spec, architecture doc) via `knowledge-keeper` if the change affects documented specs
+- Create or update the Kanban ticket via `kanbander` to track the work
+- Only then delegate implementation
+
 4. **Delegate** — send each task to the appropriate agent with clear instructions and acceptance criteria.
 5. **Management review** — when output comes back, evaluate against requirements (not code quality). Ask: does this meet the goal?
 6. **Iterate** — if not satisfied, give specific feedback and request a revision. Repeat until approved.
