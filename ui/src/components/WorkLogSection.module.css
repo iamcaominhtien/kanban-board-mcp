@@ -7,13 +7,14 @@
 .sectionToggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   background: none;
   border: none;
-  padding: 0;
+  padding: 6px 0;
   cursor: pointer;
   text-align: left;
   width: 100%;
+  border-bottom: 1px solid rgba(61, 12, 17, 0.1);
 }
 
 .sectionToggle:hover {
@@ -23,13 +24,14 @@
 .chevron {
   font-size: 10px;
   color: var(--color-dark);
+  opacity: 0.5;
   transition: transform 0.2s ease;
   display: inline-block;
   flex-shrink: 0;
 }
 
-.chevronOpen {
-  transform: rotate(90deg);
+.chevronCollapsed {
+  transform: rotate(-90deg);
 }
 
 .sectionHeader {

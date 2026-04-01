@@ -49,10 +49,10 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
         onClick={() => setIsExpanded((v) => !v)}
         aria-expanded={isExpanded}
       >
-        <span className={`${styles.chevron} ${isExpanded ? styles.chevronOpen : ''}`}>▶</span>
         <h3 className={styles.sectionHeader}>
           {`Work Log (${entries.length})`}
         </h3>
+        <span className={`${styles.chevron} ${!isExpanded ? styles.chevronCollapsed : ''}`}>▼</span>
       </button>
 
       {isExpanded && (
