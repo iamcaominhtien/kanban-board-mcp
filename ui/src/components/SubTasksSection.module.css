@@ -1,0 +1,139 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHeader {
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-dark);
+}
+
+.empty {
+  font-size: 13px;
+  font-style: italic;
+  color: #9CA3AF;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(61, 12, 17, 0.08);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--color-dark);
+  cursor: pointer;
+}
+
+.text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-dark);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.textCompleted {
+  flex: 1;
+  font-size: 14px;
+  color: #9CA3AF;
+  line-height: 1.4;
+  text-decoration: line-through;
+  cursor: pointer;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #9CA3AF;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.deleteBtn:hover {
+  color: #DC2626;
+}
+
+.addArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.input {
+  border: 2px solid var(--color-dark);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-dark);
+  width: 100%;
+  outline: none;
+  background: white;
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  border-color: var(--color-orange);
+}
+
+.addRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.addBtn {
+  background: var(--color-dark);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-card);
+  padding: 8px 20px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.addBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.addBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

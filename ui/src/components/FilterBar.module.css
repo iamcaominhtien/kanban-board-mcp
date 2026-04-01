@@ -1,0 +1,57 @@
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  width: 240px;
+  border: 2px solid var(--color-dark);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: white;
+  color: var(--color-dark);
+  outline: none;
+  transition: box-shadow 0.15s ease;
+}
+
+.searchInput::placeholder {
+  color: #a0897a;
+}
+
+.searchInput:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-dark) 15%, transparent);
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: transparent;
+  border: 2px solid var(--color-dark);
+  color: var(--color-dark);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.chip:hover:not(.chipActive) {
+  background: color-mix(in srgb, var(--color-dark) 8%, transparent);
+}
+
+.chipActive {
+  background: var(--color-dark);
+  color: var(--color-bg);
+}
