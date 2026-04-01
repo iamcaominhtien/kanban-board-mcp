@@ -32,6 +32,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
   const [author, setAuthor] = useState('');
   const [role, setRole] = useState<WorkLogEntry['role']>('Developer');
   const [note, setNote] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   function handleAdd() {
     if (!author.trim() || !note.trim()) return;
@@ -42,74 +43,88 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
 
   return (
     <div className={styles.section}>
-      <h3 className={styles.sectionHeader}>Work Log ({entries.length})</h3>
+      <button
+        type="button"
+        className={styles.sectionToggle}
+        onClick={() => setIsExpanded((v) => !v)}
+        aria-expanded={isExpanded}
+      >
+        <span className={`${styles.chevron} ${isExpanded ? styles.chevronOpen : ''}`}>▶</span>
+        <h3 className={styles.sectionHeader}>
+          Work Log{entries.length > 0 ? ` (${entries.length})` : ''}
+        </h3>
+      </button>
 
-      {entries.length === 0 ? (
-        <p className={styles.empty}>No work logged yet.</p>
-      ) : (
-        <div className={styles.entryList}>
-          {[...entries].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)).map((entry) => (
-            <div key={entry.id} className={styles.entry}>
-              <div className={styles.entryHeader}>
-                <span
-                  className={styles.roleBadge}
-                  style={{ backgroundColor: ROLE_COLORS[entry.role].bg, color: ROLE_COLORS[entry.role].color }}
-                >
-                  {entry.role}
-                </span>
-                <span className={styles.author}>{entry.author}</span>
-                <span className={styles.timestamp}>{formatDateTime(entry.loggedAt)}</span>
-              </div>
-              <p className={styles.note}>{entry.note}</p>
+      {isExpanded && (
+        <>
+          {entries.length === 0 ? (
+            <p className={styles.empty}>No work logged yet.</p>
+          ) : (
+            <div className={styles.entryList}>
+              {[...entries].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)).map((entry) => (
+                <div key={entry.id} className={styles.entry}>
+                  <div className={styles.entryHeader}>
+                    <span
+                      className={styles.roleBadge}
+                      style={{ backgroundColor: ROLE_COLORS[entry.role].bg, color: ROLE_COLORS[entry.role].color }}
+                    >
+                      {entry.role}
+                    </span>
+                    <span className={styles.author}>{entry.author}</span>
+                    <span className={styles.timestamp}>{formatDateTime(entry.loggedAt)}</span>
+                  </div>
+                  <p className={styles.note}>{entry.note}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      <div className={styles.addArea}>
-        <div className={styles.addRow}>
-          <div className={styles.inputGroup}>
-            <label htmlFor="wl-author" className={styles.srOnly}>Author</label>
-            <input
-              id="wl-author"
-              className={styles.input}
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Your name..."
+          <div className={styles.addArea}>
+            <div className={styles.addRow}>
+              <div className={styles.inputGroup}>
+                <label htmlFor="wl-author" className={styles.srOnly}>Author</label>
+                <input
+                  id="wl-author"
+                  className={styles.input}
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  placeholder="Your name..."
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label htmlFor="wl-role" className={styles.srOnly}>Role</label>
+                <select
+                  id="wl-role"
+                  className={styles.select}
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as WorkLogEntry['role'])}
+                >
+                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            </div>
+            <label htmlFor="wl-note" className={styles.srOnly}>Note</label>
+            <textarea
+              id="wl-note"
+              className={styles.textarea}
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Describe the work done..."
             />
+            <div className={styles.submitRow}>
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={handleAdd}
+                disabled={!author.trim() || !note.trim()}
+              >
+                Log Work
+              </button>
+            </div>
           </div>
-          <div className={styles.inputGroup}>
-            <label htmlFor="wl-role" className={styles.srOnly}>Role</label>
-            <select
-              id="wl-role"
-              className={styles.select}
-              value={role}
-              onChange={(e) => setRole(e.target.value as WorkLogEntry['role'])}
-            >
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-        </div>
-        <label htmlFor="wl-note" className={styles.srOnly}>Note</label>
-        <textarea
-          id="wl-note"
-          className={styles.textarea}
-          rows={3}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Describe the work done..."
-        />
-        <div className={styles.submitRow}>
-          <button
-            type="button"
-            className={styles.addBtn}
-            onClick={handleAdd}
-            disabled={!author.trim() || !note.trim()}
-          >
-            Log Work
-          </button>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

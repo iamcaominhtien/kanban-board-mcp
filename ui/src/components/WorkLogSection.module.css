@@ -4,12 +4,41 @@
   gap: 10px;
 }
 
+.sectionToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.sectionToggle:hover .sectionHeader {
+  opacity: 0.75;
+}
+
+.chevron {
+  font-size: 10px;
+  color: var(--color-dark);
+  transition: transform 0.2s ease;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
 .sectionHeader {
   font-weight: 900;
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-dark);
+  margin: 0;
 }
 
 .empty {

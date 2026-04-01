@@ -244,13 +244,6 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
                 <hr className={styles.divider} />
 
-                <WorkLogSection
-                  entries={ticket.workLog ?? []}
-                  onAdd={handleAddWorkLog}
-                />
-
-                <hr className={styles.divider} />
-
                 <CommentsSection
                   comments={ticket.comments ?? []}
                   onAdd={handleAddComment}
@@ -260,6 +253,13 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <hr className={styles.divider} />
 
                 <ActivityLog entries={ticket.activityLog ?? []} />
+
+                <hr className={styles.divider} />
+
+                <WorkLogSection
+                  entries={ticket.workLog ?? []}
+                  onAdd={handleAddWorkLog}
+                />
               </div>
 
               {/* ── Right sidebar: metadata ── */}
