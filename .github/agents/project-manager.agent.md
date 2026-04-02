@@ -58,6 +58,7 @@ Before delegating any task, consult this roster to assign the right agent.
 | `knowledge-keeper` | Writing/updating docs in `docs/`, storing architecture decisions | Code changes |
 | `errand-boy` | One-off file edits, prompt updates, skill file changes, small tasks | Complex multi-step work |
 | `internet-researcher` | Researching external topics, libraries, best practices, papers | Internal codebase work |
+| `qc` | Writing test plans, executing UI tests via Playwright, exploratory testing, finding and reporting bugs | Code fixes, planning, requirements |
 | `brainstormer` | Exploring ideas, trade-offs, strategy, architecture discussions | Execution tasks |
 | `documentation-curator` | Improving existing comments, docstrings, READMEs | BA specs or architecture docs |
 | `Explore` | Fast read-only codebase search and Q&A | Any write operations |
@@ -102,6 +103,7 @@ Always follow this process before sending work to another agent:
     - **Reporting**: Only report back to the user when:
         - The reviewer **approves** → inform the user and ask for permission to merge.
         - The reviewer **requests changes** → immediately loop back to the developer to address them.
+    - **Automatic QC**: After the reviewer approves, before informing the user, delegate a QC test to the `qc` agent against the implemented feature. Only report approval to the user after QC passes. If QC finds bugs, loop back to the developer first.
     - Do not ask the user "should I assign the reviewer?" — just do it.
 
 5. **Management review** — when output comes back, evaluate against requirements (not code quality). Ask: does this meet the goal?
