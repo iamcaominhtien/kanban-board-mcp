@@ -1,0 +1,137 @@
+.viewArea {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-dark);
+  min-height: 60px;
+  max-height: 320px;
+  overflow-y: auto;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.viewArea:hover {
+  border-color: rgba(61, 12, 17, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.viewArea:focus {
+  outline: none;
+  border-color: var(--color-orange);
+}
+
+.viewArea p {
+  margin: 0 0 8px;
+}
+
+.viewArea p:last-child {
+  margin-bottom: 0;
+}
+
+.viewArea ul,
+.viewArea ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.viewArea code {
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 13px;
+}
+
+.viewArea pre {
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0 0 8px;
+}
+
+.viewArea h1,
+.viewArea h2,
+.viewArea h3 {
+  margin: 0 0 8px;
+  font-weight: 800;
+}
+
+.placeholder {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* ── Edit mode ── */
+
+.editContainer {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--color-orange, #e05c1a);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(61, 12, 17, 0.04);
+  border-bottom: 1px solid rgba(61, 12, 17, 0.12);
+}
+
+.toolbarBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.toolbarBtn:hover {
+  background: rgba(61, 12, 17, 0.1);
+  border-color: rgba(61, 12, 17, 0.2);
+}
+
+.toolbarBtn:active {
+  background: rgba(61, 12, 17, 0.16);
+}
+
+.bold {
+  font-weight: 900;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.textarea {
+  border: none;
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+  padding: 12px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-dark);
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.textarea::placeholder {
+  color: #9ca3af;
+}

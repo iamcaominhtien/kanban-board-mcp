@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import type { Comment, IssueType, Priority, Status, Ticket, WorkLogEntry } from '../types';
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
+import { MarkdownEditor } from './MarkdownEditor';
 import { SubTasksSection } from './SubTasksSection';
 import { WorkLogSection } from './WorkLogSection';
 import styles from './TicketModal.module.css';
@@ -224,9 +223,10 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             <div className={styles.twoColLayout}>
               {/* ── Left column: content ── */}
               <div className={styles.mainCol}>
-                <div className={styles.descriptionBox}>
-                  <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{ticket.description || '*No description provided.*'}</ReactMarkdown>
-                </div>
+                <MarkdownEditor
+                  value={description}
+                  onChange={setDescription}
+                />
 
                 <div className={styles.timestamps}>
                   <span>Created: {formatDate(ticket.createdAt)}</span>
@@ -394,12 +394,9 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
           <div className={styles.field}>
             <label className={styles.label}>Description</label>
-            <textarea
-              className={styles.textarea}
+            <MarkdownEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a description..."
-              rows={3}
+              onChange={setDescription}
             />
           </div>
 
