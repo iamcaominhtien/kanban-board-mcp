@@ -20,6 +20,12 @@ const STATUS_LABEL: Record<TestCaseStatus, string> = {
   fail: 'FAIL',
 };
 
+const STATUS_CLASS: Record<TestCaseStatus, string> = {
+  todo: styles.status_todo,
+  pass: styles.status_pass,
+  fail: styles.status_fail,
+};
+
 function genId() {
   return typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -38,8 +44,9 @@ function TestCaseRow({
   readOnly: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(tc.title === '');
   const [titleDraft, setTitleDraft] = useState(tc.title);
+  const [titleError, setTitleError] = useState(false);
 
   function cycleStatus() {
     if (readOnly) return;
@@ -47,16 +54,23 @@ function TestCaseRow({
   }
 
   function commitTitle() {
+    if (titleDraft.trim() === '') {
+      setTitleError(true);
+      return;
+    }
+    setTitleError(false);
     setEditingTitle(false);
     if (titleDraft.trim() !== tc.title) {
-      onUpdate({ ...tc, title: titleDraft.trim() || tc.title });
+      onUpdate({ ...tc, title: titleDraft.trim() });
     }
   }
 
   function handleTitleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') commitTitle();
     if (e.key === 'Escape') {
+      if (tc.title === '') return; // new row: keep open until a title is given
       setTitleDraft(tc.title);
+      setTitleError(false);
       setEditingTitle(false);
     }
   }
@@ -66,7 +80,7 @@ function TestCaseRow({
       <div className={styles.rowMain}>
         <button
           type="button"
-          className={`${styles.statusBadge} ${styles[`status_${tc.status}`]}`}
+          className={`${styles.statusBadge} ${STATUS_CLASS[tc.status]}`}
           onClick={cycleStatus}
           disabled={readOnly}
           aria-label={`Status: ${tc.status}. Click to cycle.`}
@@ -76,19 +90,22 @@ function TestCaseRow({
         </button>
 
         {editingTitle && !readOnly ? (
-          <input
-            className={styles.titleInput}
-            value={titleDraft}
-            autoFocus
-            onChange={(e) => setTitleDraft(e.target.value)}
-            onBlur={commitTitle}
-            onKeyDown={handleTitleKeyDown}
-            aria-label="Edit test case title"
-          />
+          <>
+            <input
+              className={`${styles.titleInput}${titleError ? ` ${styles.titleInputError}` : ''}`}
+              value={titleDraft}
+              autoFocus
+              onChange={(e) => { setTitleDraft(e.target.value); setTitleError(false); }}
+              onBlur={commitTitle}
+              onKeyDown={handleTitleKeyDown}
+              aria-label="Edit test case title"
+            />
+            {titleError && <span className={styles.titleErrorMsg}>Title is required</span>}
+          </>
         ) : (
           <span
             className={styles.title}
-            onClick={() => { if (!readOnly) { setEditingTitle(true); setTitleDraft(tc.title); } }}
+            onClick={() => { if (!readOnly) { setTitleDraft(tc.title); setEditingTitle(true); } }}
             title={readOnly ? undefined : 'Click to edit'}
           >
             {tc.title || <em className={styles.placeholder}>Untitled test case</em>}

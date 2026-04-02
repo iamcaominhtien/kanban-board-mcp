@@ -165,6 +165,17 @@
   min-width: 0;
 }
 
+.titleInputError {
+  border-color: #e53e3e;
+}
+
+.titleErrorMsg {
+  font-size: 11px;
+  color: #e53e3e;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .rowActions {
   display: flex;
   align-items: center;
