@@ -5,6 +5,7 @@ import type { Comment, IssueType, Priority, Status, Ticket, WorkLogEntry } from 
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { SubTasksSection } from './SubTasksSection';
+import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import styles from './TicketModal.module.css';
 
@@ -49,6 +50,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
+  const testCases = ticket?.testCases ?? [];
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -114,9 +116,10 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         estimate,
         activityLog: [],
         workLog: [],
+        testCases: [],
       });
     } else if (ticket) {
-      onSave({ ...ticket, title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, updatedAt: now, estimate });
+      onSave({ ...ticket, title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, updatedAt: now, estimate, testCases });
     }
     handleClose();
   }
@@ -259,6 +262,13 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <WorkLogSection
                   entries={ticket.workLog ?? []}
                   onAdd={handleAddWorkLog}
+                />
+
+                <hr className={styles.divider} />
+
+                <TestCasesSection
+                  testCases={ticket.testCases ?? []}
+                  onChange={(updated) => onSave({ ...ticket, testCases: updated, updatedAt: new Date().toISOString() })}
                 />
               </div>
 

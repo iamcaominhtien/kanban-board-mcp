@@ -26,6 +26,7 @@ export const INITIAL_TICKETS: Ticket[] = [
       { id: 'al-1-1', action: 'Status changed to In Progress', timestamp: '2026-03-22T10:00:00Z' },
       { id: 'al-1-2', action: 'Status changed to Done', timestamp: '2026-03-25T14:00:00Z' },
     ],
+    testCases: [],
   },
   {
     id: 'IAM-2',
@@ -44,6 +45,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     activityLog: [
       { id: 'al-2-1', action: 'Status changed to Done', timestamp: '2026-03-26T11:00:00Z' },
     ],
+    testCases: [],
   },
   {
     id: 'IAM-3',
@@ -60,6 +62,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: 2,
     activityLog: [],
+    testCases: [],
   },
   {
     id: 'IAM-4',
@@ -105,6 +108,7 @@ export const INITIAL_TICKETS: Ticket[] = [
         loggedAt: '2026-04-01T16:45:00Z',
       },
     ],
+    testCases: [],
   },
   {
     id: 'IAM-5',
@@ -141,6 +145,7 @@ export const INITIAL_TICKETS: Ticket[] = [
         loggedAt: '2026-04-01T15:30:00Z',
       },
     ],
+    testCases: [],
   },
   {
     id: 'IAM-6',
@@ -157,6 +162,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: 5,
     activityLog: [],
+    testCases: [],
   },
   {
     id: 'IAM-7',
@@ -173,6 +179,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: null,
     activityLog: [],
+    testCases: [],
   },
   {
     id: 'IAM-8',
@@ -189,6 +196,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: 8,
     activityLog: [],
+    testCases: [],
   },
   {
     id: 'IAM-9',
@@ -205,6 +213,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: 5,
     activityLog: [],
+    testCases: [],
   },
   {
     id: 'IAM-10',
@@ -221,6 +230,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: 13,
     activityLog: [],
+    testCases: [],
   },
   {
     id: 'IAM-11',
@@ -237,6 +247,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: 3,
     activityLog: [],
+    testCases: [],
   },
   {
     id: 'IAM-12',
@@ -253,5 +264,6 @@ export const INITIAL_TICKETS: Ticket[] = [
     subTasks: [],
     estimate: null,
     activityLog: [],
+    testCases: [],
   },
 ];
