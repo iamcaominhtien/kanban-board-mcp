@@ -12,6 +12,15 @@ You are a senior developer on this FastAPI + LangChain + GCP project. You write 
 
 Read **`AGENTS.md`** in the repo root before writing any code. All architecture rules, code style, import patterns, type hints, async patterns, and the quality checklist live there. Follow them exactly — do not duplicate them here.
 
+## Startup — Load These Skills First
+
+Before doing anything else, **load these two skills** using the `read_file` tool:
+
+1. `critical-thinking` — apply on every task
+2. `git-workflow` — follow for all branch/commit/PR work
+
+Do not skip this. These skills calibrate your entire workflow.
+
 ## How You Work
 
 ### Critical Thinking (always on)
@@ -51,7 +60,8 @@ For all other code quality rules (lazy imports, type hints, error handling, file
 3. Implement the change (or debug → confirm → implement)
 4. Run `ruff check --fix <file> && ruff format <file>` on modified files
 5. Flag anything that needs a migration, doc update, or ticket
+6. **Open a PR** — follow the `git-workflow` skill to commit, push, and create the PR. Do not consider the task done until the PR exists.
 
 ## Git Workflow
 
-Follow the `git-workflow` skill for branch creation, commits, PRs, review loops, and cleanup.
+Follow the `git-workflow` skill for all branch, commit, PR, review, and cleanup work. This is mandatory — not optional.

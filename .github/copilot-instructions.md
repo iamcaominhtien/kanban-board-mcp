@@ -36,13 +36,8 @@ python main.py     # start MCP server
 - Fancy UI is intentional: custom colors, animations, drag-and-drop are first-class goals, not polish afterthoughts
 
 ## Git Conventions
-- **Branch per ticket**: always work on a branch, never commit directly to `main`
-- Branch naming: `feature/<ticket_id>`, `fix/<ticket_id>`, `chore/<ticket_id>`
-- **git worktree** for parallel work on a single machine: `git worktree add ../<project>-<ticket_id> <branch>`
-- Commit messages: Conventional Commits format — `type(scope): short description` (under 72 chars)
-- PRs target `main`; PR title = ticket title; description references ticket ID
-- Merge strategy: squash merge preferred for clean history
-- Delete remote branch after merge; remove worktree with `git worktree remove <path>`
+
+Follow the `git-workflow` skill — it covers branching, commits, PRs, review loops, and cleanup.
 
 ## Agent Notes
 - Always prefer editing existing files over creating new ones

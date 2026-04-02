@@ -142,3 +142,66 @@ Each `WorkLogEntry` contains:
 -   Direct Python MCP server integration (Mock data only).
 -   Real-time notifications.
 - Enhanced ticket fields (type, due date, estimate, comments, sub-tasks, activity log) — deferred to Phase 2 (see Section 5b).
+
+---
+
+## Feature: Test Cases Section (IAM-19)
+
+### Overview
+A new "Test Cases" section inside the TicketModal allowing QC engineers (or any user) to write, track, and update test cases directly on a ticket.
+
+### Data Model
+```ts
+export interface TestCase {
+  id: string;
+  title: string;
+  status: 'todo' | 'pass' | 'fail';
+  proof: string;  // markdown text, can contain image URLs
+  note: string;
+  createdAt: string;
+}
+```
+`Ticket` gains an optional field: `testCases?: TestCase[]`
+
+### Component
+**`TestCasesSection`** (`ui/src/components/TestCasesSection.tsx`)
+
+| Element | Behaviour |
+|---|---|
+| Section header | "Test Cases" with count badge and "Add" button |
+| Test case row | Title (inline edit), status dropdown/badge, expand for proof + note |
+| Status badge | grey = todo, green = pass, red = fail |
+| Proof field | Textarea (markdown-friendly), can reference image URLs |
+| Note field | Freetext textarea |
+| Delete | Trash icon per test case |
+
+### Acceptance Criteria
+- Anyone can add/edit/delete test cases
+- Status changes are reflected immediately in badge color
+- Data persists via the existing onSave flow (in-memory)
+
+---
+
+## Feature: Inline Markdown Description Editor (IAM-20)
+
+### Overview
+Replace the plain-text description in TicketModal with a click-to-edit inline markdown editor featuring a formatting toolbar.
+
+### UX Flow
+1. **View mode** — description renders as styled markdown via ReactMarkdown
+2. **Edit mode** — triggered by clicking the description area
+   - Toolbar appears above a `<textarea>` with buttons: Bold, Italic, H1/H2/H3, Link, Code, Code Block, Unordered List, Ordered List, Blockquote, HR
+   - User can type raw markdown or click toolbar buttons (which insert syntax at cursor)
+   - Clicking outside or pressing Escape saves and returns to view mode
+
+### Technical Notes
+- No new markdown library needed — toolbar inserts markdown syntax into textarea programmatically
+- Use `selectionStart` / `selectionEnd` to wrap selected text with formatting
+- Continue using existing `ReactMarkdown` + `rehype-sanitize` for rendering
+
+### Acceptance Criteria
+- Click-to-edit on description area
+- Toolbar with all listed formatting options
+- Toolbar buttons work on selected text (wrap) and empty cursor (insert placeholder)
+- Escape or click-outside exits edit mode and saves to state
+- View mode renders full markdown

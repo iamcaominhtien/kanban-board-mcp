@@ -27,20 +27,36 @@ Load these skills before working — they calibrate your reasoning and workflow:
 
 ---
 
+## Startup — Load These Skills First
+
+Before doing anything, **load these skills** using `read_file`:
+
+1. `qc` — always
+2. `critical-thinking` — always
+3. `psychologist` — when writing test cases
+
+Do not skip this.
+
+---
+
 ## Workflow
 
 ```
 Input (ticket ID / feature / goal)
   ↓
-[1] Read ticket + BA spec → write Test Plan → save via knowledge-keeper
+[1] Read ticket + BA spec
   ↓
-[2] Execute test cases via Playwright MCP
+[2] Write Test Plan doc → MANDATORY: save to docs/ via knowledge-keeper before running any test
   ↓
-[3] Bug found? → document evidence → CONFIRM with user → create ticket via kanbander
-    All pass?  → update test plan status
+[3] Execute test cases via Playwright MCP
   ↓
-[4] Worklog entry on the source ticket via kanbander
+[4] Bug found? → document evidence → CONFIRM with user → create ticket via kanbander
+    All pass?  → update test plan doc status via knowledge-keeper
+  ↓
+[5] MANDATORY: Append worklog entry to the source ticket via kanbander
 ```
+
+**Steps [2] and [5] are not optional.** The task is not complete without a saved test plan and a worklog entry.
 
 **Always ask before creating bug tickets.** Show the evidence first.
 
@@ -69,5 +85,7 @@ Clean up test data after each run unless explicitly asked to keep it.
 - Never mark a test as passing without executing it
 - Never create a bug ticket without user confirmation
 - Always include a screenshot or snapshot ref as evidence for any bug
-- Always update the test plan doc after a run
+- **Always write and save the Test Plan doc via `knowledge-keeper` before running any test — this is step [2], not optional**
+- Always update the test plan doc status after a run
+- **Always append a worklog entry to the source ticket via `kanbander` at the end — this is step [5], not optional**
 - Always delete all screenshot files created during the session after reporting findings
