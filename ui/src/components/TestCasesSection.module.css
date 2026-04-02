@@ -1,0 +1,258 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.sectionHeader {
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-dark);
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--color-dark);
+  color: var(--color-cream);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chevron {
+  font-size: 10px;
+  color: var(--color-dark);
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.chevronCollapsed {
+  transform: rotate(-90deg);
+}
+
+.addBtn {
+  background: none;
+  border: 1.5px solid var(--color-dark);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-dark);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.addBtn:hover {
+  background: var(--color-dark);
+  color: var(--color-cream);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.empty {
+  font-size: 13px;
+  font-style: italic;
+  color: #9CA3AF;
+}
+
+/* ── Individual row ── */
+
+.row {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(61, 12, 17, 0.08);
+  padding-bottom: 6px;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.statusBadge {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.statusBadge:disabled {
+  cursor: default;
+}
+
+.statusBadge:not(:disabled):hover {
+  opacity: 0.75;
+}
+
+.status_todo {
+  background: #E5E7EB;
+  color: #6B7280;
+}
+
+.status_pass {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.status_fail {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.title {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-dark);
+  line-height: 1.4;
+  cursor: text;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.placeholder {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.titleInput {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-dark);
+  border: 2px solid var(--color-dark);
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  outline: none;
+  min-width: 0;
+}
+
+.titleInputError {
+  border-color: #e53e3e;
+}
+
+.titleErrorMsg {
+  font-size: 11px;
+  color: #e53e3e;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.expandBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  color: #9CA3AF;
+  padding: 2px 4px;
+  transition: color 0.15s, transform 0.2s;
+  display: inline-block;
+}
+
+.expandBtnOpen {
+  transform: rotate(0deg);
+  color: var(--color-dark);
+}
+
+.expandBtn:not(.expandBtnOpen) {
+  transform: rotate(-90deg);
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  color: #9CA3AF;
+  transition: color 0.15s;
+}
+
+.deleteBtn:hover {
+  color: #DC2626;
+}
+
+/* ── Expanded detail area ── */
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 4px 36px;
+}
+
+.detailLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9CA3AF;
+}
+
+.textarea {
+  border: 1.5px solid rgba(61, 12, 17, 0.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--color-dark);
+  background: rgba(61, 12, 17, 0.03);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.textarea:focus {
+  border-color: var(--color-dark);
+}
+
+.textarea:read-only {
+  cursor: default;
+  opacity: 0.7;
+}

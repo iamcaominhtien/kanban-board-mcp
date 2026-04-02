@@ -28,6 +28,17 @@ export interface WorkLogEntry {
   loggedAt: string;
 }
 
+export type TestCaseStatus = 'todo' | 'pass' | 'fail';
+
+export interface TestCase {
+  id: string;
+  title: string;
+  status: TestCaseStatus;
+  proof: string;
+  note: string;
+  createdAt: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
@@ -44,6 +55,7 @@ export interface Ticket {
   estimate: number | null;
   activityLog: ActivityEntry[];
   workLog?: WorkLogEntry[];
+  testCases?: TestCase[];
 }
 
 export interface Column {
