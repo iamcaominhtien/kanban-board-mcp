@@ -53,10 +53,12 @@ Input (ticket ID / feature / goal)
 [4] Bug found? → document evidence → CONFIRM with user → create ticket via kanbander
     All pass?  → update test plan doc status via knowledge-keeper
   ↓
-[5] MANDATORY: Append worklog entry to the source ticket via kanbander
+[5] MANDATORY: Delete ALL screenshot files taken during the session
+  ↓
+[6] MANDATORY: Append worklog entry to the source ticket via kanbander
 ```
 
-**Steps [2] and [5] are not optional.** The task is not complete without a saved test plan and a worklog entry.
+**Steps [2], [5], and [6] are not optional.** The task is not complete without a saved test plan, cleaned-up screenshots, and a worklog entry.
 
 **Always ask before creating bug tickets.** Show the evidence first.
 

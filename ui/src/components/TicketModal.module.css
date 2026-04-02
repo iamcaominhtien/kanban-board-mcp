@@ -8,6 +8,7 @@
   z-index: 100;
   opacity: 0;
   transition: opacity 0.2s ease;
+  cursor: pointer;
 }
 
 .overlayVisible {
@@ -26,6 +27,7 @@
   transform: translateY(24px);
   transition: transform 0.2s ease;
   box-shadow: 0 24px 64px rgba(61, 12, 17, 0.25);
+  cursor: default;
 }
 
 @media (min-width: 768px) {

@@ -21,7 +21,7 @@ export function FilterBar({ searchQuery, onSearchChange, activePriority, onPrior
     <div className={styles.filterBar}>
       <input
         className={styles.searchInput}
-        type="search"
+        type="text"
         aria-label="Search tickets"
         placeholder="Search tickets…"
         value={searchQuery}

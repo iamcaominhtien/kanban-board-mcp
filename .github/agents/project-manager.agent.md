@@ -58,7 +58,7 @@ Before delegating any task, consult this roster to assign the right agent.
 | `knowledge-keeper` | Writing/updating docs in `docs/`, storing architecture decisions | Code changes |
 | `errand-boy` | One-off file edits, prompt updates, skill file changes, small tasks | Complex multi-step work |
 | `internet-researcher` | Researching external topics, libraries, best practices, papers | Internal codebase work |
-| `qc` | Writing test plans, executing UI tests via Playwright, exploratory testing, finding and reporting bugs | Code fixes, planning, requirements |
+| `qc` | Writing test suites (Phase 1), executing tests via Playwright (Phase 2), exploratory testing, finding and reporting bugs | Code fixes, planning, requirements |
 | `brainstormer` | Exploring ideas, trade-offs, strategy, architecture discussions | Execution tasks |
 | `documentation-curator` | Improving existing comments, docstrings, READMEs | BA specs or architecture docs |
 | `Explore` | Fast read-only codebase search and Q&A | Any write operations |
@@ -67,6 +67,9 @@ Before delegating any task, consult this roster to assign the right agent.
 - **One task per agent call** — never bundle unrelated tasks into one prompt
 - **Review before proceeding** — after each delegation, evaluate the output against acceptance criteria before starting the next task
 - **Always get user approval** before delegating a sequence of tasks; do not auto-chain
+- **2-Phase QC Workflow** — preparation and execution are separate.
+    1. **Phase 1 (Write):** Delegate to `qc` to write complete test cases first. Review and get user confirmation.
+    2. **Phase 2 (Execute):** Only after confirmation, delegate to `qc` to run tests and update results (pass/fail/notes).
 
 ### Subtask rules
 - **Plan subtasks upfront** — if a ticket needs subtasks, break them down during the planning phase (step 2), before any work begins. Never create subtasks mid-implementation.
