@@ -1,6 +1,6 @@
 .viewArea {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-bg);
+  border-radius: 16px;
   padding: 16px;
   font-size: 14px;
   line-height: 1.6;
@@ -15,7 +15,7 @@
 
 .viewArea:hover {
   border-color: rgba(61, 12, 17, 0.25);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(245, 239, 224, 0.85);
 }
 
 .viewArea:focus {
@@ -71,9 +71,9 @@
   display: flex;
   flex-direction: column;
   border: 2px solid var(--color-orange, #e05c1a);
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  background: white;
+  background: var(--color-bg);
 }
 
 .toolbar {
@@ -127,11 +127,20 @@
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-dark);
-  background: white;
+  background: var(--color-bg);
   width: 100%;
   box-sizing: border-box;
 }
 
 .textarea::placeholder {
   color: #9ca3af;
+}
+
+.viewAreaReadOnly {
+  cursor: default;
+}
+
+.viewAreaReadOnly:hover {
+  border-color: transparent;
+  background: var(--color-bg);
 }

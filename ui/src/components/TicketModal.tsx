@@ -226,6 +226,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <MarkdownEditor
                   value={description}
                   onChange={setDescription}
+                  readOnly={true}
                 />
 
                 <div className={styles.timestamps}>

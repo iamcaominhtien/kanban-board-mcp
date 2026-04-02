@@ -28,9 +28,10 @@ const TOOLBAR: ToolbarButton[] = [
 interface Props {
   value: string;
   onChange: (value: string) => void;
+  readOnly?: boolean;
 }
 
-export function MarkdownEditor({ value, onChange }: Props) {
+export function MarkdownEditor({ value, onChange, readOnly = false }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,8 +45,15 @@ export function MarkdownEditor({ value, onChange }: Props) {
     onChange(newValue);
     requestAnimationFrame(() => {
       ta.focus();
-      const newCursor = start + before.length + selected.length + after.length;
-      ta.setSelectionRange(newCursor, newCursor);
+      const hadSelection = end > start;
+      if (hadSelection || !placeholder) {
+        const newCursor = start + before.length + selected.length + after.length;
+        ta.setSelectionRange(newCursor, newCursor);
+      } else {
+        // select the placeholder so the user can immediately type to replace it
+        const pStart = start + before.length;
+        ta.setSelectionRange(pStart, pStart + placeholder.length);
+      }
     });
   }
 
@@ -57,7 +65,7 @@ export function MarkdownEditor({ value, onChange }: Props) {
   }
 
   function handleBlur(e: React.FocusEvent) {
-    if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node)) {
+    if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node | null)) {
       setIsEditing(false);
     }
   }
@@ -65,14 +73,14 @@ export function MarkdownEditor({ value, onChange }: Props) {
   if (!isEditing) {
     return (
       <div
-        className={styles.viewArea}
-        onClick={() => setIsEditing(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
+        className={`${styles.viewArea}${readOnly ? ` ${styles.viewAreaReadOnly}` : ''}`}
+        onClick={readOnly ? undefined : () => setIsEditing(true)}
+        role={readOnly ? undefined : 'button'}
+        tabIndex={readOnly ? undefined : 0}
+        onKeyDown={readOnly ? undefined : (e) => {
           if (e.key === 'Enter' || e.key === ' ') setIsEditing(true);
         }}
-        aria-label="Edit description"
+        aria-label={readOnly ? undefined : 'Edit description'}
       >
         {value ? (
           <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{value}</ReactMarkdown>
