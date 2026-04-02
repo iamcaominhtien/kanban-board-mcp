@@ -16,8 +16,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
 
+  const q = searchQuery.toLowerCase();
   const filteredTickets = tickets.filter((t) => {
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
     const matchesPriority = activePriority === 'all' || t.priority === activePriority;
     return matchesSearch && matchesPriority;
   });
