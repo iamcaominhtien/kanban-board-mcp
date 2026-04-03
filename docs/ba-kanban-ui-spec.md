@@ -2,9 +2,9 @@
 title: "BA Spec: Kanban UI (Bento Grid Style)"
 type: ba
 status: draft
-version: 1.0.0
+version: 1.1.0
 created: 2026-04-01
-updated: 2026-04-01
+updated: 2026-04-03
 authors: [Knowledge Keeper]
 related: []
 ---
@@ -12,7 +12,7 @@ related: []
 # BA Spec: Kanban UI (Bento Grid Style)
 
 ## 1. Product Overview
-The Kanban Board MCP is a personal productivity tool designed to manage project tickets visually. It features a React frontend with a modern "Bento Grid" aesthetic and a Python MCP server backend. In Phase 1, the UI will focus on a polished, interactive experience using mock data, with AI agent integration and real backend connectivity deferred to Phase 2.
+The Kanban Board MCP is a personal productivity tool designed to manage project tickets visually. It features a React frontend with a modern "Bento Grid" aesthetic and a Python MCP server backend. The board supports multiple projects, each with its own set of tickets, a custom name, prefix, and accent color. In Phase 1, the UI will focus on a polished, interactive experience using mock data, with AI agent integration and real backend connectivity deferred to Phase 2.
 
 ## 2. Design System (Bento Grid Theme)
 The application uses a playful yet structured Bento Grid layout, where each column or card can have a distinct accent background to create a vibrant, organized feel.
@@ -30,8 +30,9 @@ The application uses a playful yet structured Bento Grid layout, where each colu
 | **Typography** | Bold/heavy weight display font (e.g., DM Sans) |
 
 ## 3. Views & Screens
-1.  **Board View**: The main dashboard where 4 fixed columns (`Backlog`, `To Do`, `In Progress`, `Done`) are laid out horizontally as bento tiles.
-2.  **Ticket Detail Modal**: Triggered by clicking a ticket card. Has two modes:
+1.  **Project Sidebar**: Collapsible left sidebar (52px collapsed, 220px expanded on hover/focus). Lists all projects with colored dot indicator, project name, and prefix badge. Active project is highlighted. Contains a "+" button to create a new project (inline form: Name, Prefix, Color). Each project has a delete button (hidden when only 1 project exists, requires confirmation).
+2.  **Board View**: The main dashboard where 4 fixed columns (`Backlog`, `To Do`, `In Progress`, `Done`) are laid out horizontally as bento tiles. Showing tickets for the active project.
+3.  **Ticket Detail Modal**: Triggered by clicking a ticket card. Has two modes:
     - **View mode** (default): Displays full ticket information in a readable layout — title (large, bold), ticket ID, priority badge, status badge, tags, markdown-rendered description, and timestamps (created/updated). Actions: Edit button, Delete button (with inline confirmation).
     - **Edit mode**: Switched into by clicking the Edit button. Shows a form with all editable fields. Cancel returns to view mode.
 
@@ -45,11 +46,22 @@ The application uses a playful yet structured Bento Grid layout, where each colu
 | US-04 | As a user, I want to view and edit ticket details. | Medium | Clicking a card opens a modal. Edits can be made inline or via a form. |
 | US-05 | As a user, I want to search and filter tickets. | Medium | Filter by priority/tag using top bar chips. Search by title keyword. |
 | US-06 | As a user, I want to view full ticket details before editing. | High | Clicking a card opens a view modal with title, description (rendered markdown), priority, status, tags, and timestamps. An Edit button switches to form mode. |
+| US-07 | As a user, I want to manage multiple projects on the same board. | High | A left sidebar lists all projects. Clicking a project switches the board to show that project's tickets only. |
+| US-08 | As a user, I want to create a new project with a custom name, prefix, and color. | High | "+" button in sidebar opens inline form. Prefix is auto-uppercased, max 6 chars. Duplicate prefix is rejected with an alert. |
+| US-09 | As a user, I want to delete a project. | Medium | Delete button per project in sidebar. Requires confirmation. Cannot delete the last remaining project. |
+| US-10 | As a user, I want new tickets to use the current project's prefix. | High | Ticket IDs follow the pattern `{PREFIX}-{N}`, where PREFIX belongs to the active project. |
 
-## 5. Data Model (Ticket Schema)
+## 5. Data Model (Schema)
 
 ```mermaid
 erDiagram
+    PROJECT ||--o{ TICKET : contains
+    PROJECT {
+        string id
+        string name
+        string prefix "e.g. IAM, SHOP — uppercase, max 6 chars, unique"
+        string color "hex accent color for sidebar indicator"
+    }
     TICKET {
         string id "e.g. IAM-4"
         string title
@@ -205,3 +217,23 @@ Replace the plain-text description in TicketModal with a click-to-edit inline ma
 - Toolbar buttons work on selected text (wrap) and empty cursor (insert placeholder)
 - Escape or click-outside exits edit mode and saves to state
 - View mode renders full markdown
+
+---
+
+## Feature: Multi-Project Support (IAM-25)
+
+### Overview
+The Kanban Board now supports multiple projects, enabling users to organize tickets by work domains (e.g., Personal, Work, Side Project) within the same interface.
+
+### Sidebar Behavior
+- **Collapsed**: 52px wide, showing only the project color indicators (dots).
+- **Expanded**: 220px wide, showing project names and prefix badges.
+- **Transitions**: CSS-only expansion triggered by `:hover` or `:focus-within` on the sidebar container.
+- **Form State**: The sidebar remains expanded (via an `.expanded` class) while the "New Project" inline form is active to prevent accidental collapse during typing.
+
+### Business Rules
+- **Prefix Uniqueness**: Project prefixes (e.g., `IAM`, `SHOP`) must be unique across all projects. Duplicate prefixes are rejected during project creation.
+- **Delete Protection**: A project cannot be deleted if it is the only project remaining in the system.
+- **Context Switching**: Switching to a different project resets the active search query and any column filters to ensure a "clean slate" for the new project view.
+- **Ticket ID Generation**: New tickets automatically inherit the prefix of the currently active project (e.g., if "Project A" has prefix `PA`, its first ticket is `PA-1`).
+

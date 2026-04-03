@@ -7,8 +7,8 @@ description: >
   Triggers: 'test this ticket', 'write test cases for', 'run QC on', 'verify feature',
   'exploratory test', 'check for bugs', 'regression test', 'create test plan for'.
 argument-hint: "Provide a ticket ID (e.g. IAM-11), a feature name, or a specific test goal. Example: 'write test cases and run them for IAM-11'"
-tools: [read/readFile, agent/runSubagent, edit/editFiles, playwright/browser_click, playwright/browser_close, playwright/browser_console_messages, playwright/browser_drag, playwright/browser_evaluate, playwright/browser_file_upload, playwright/browser_fill_form, playwright/browser_handle_dialog, playwright/browser_hover, playwright/browser_navigate, playwright/browser_navigate_back, playwright/browser_network_requests, playwright/browser_press_key, playwright/browser_resize, playwright/browser_run_code, playwright/browser_select_option, playwright/browser_snapshot, playwright/browser_tabs, playwright/browser_take_screenshot, playwright/browser_type, playwright/browser_wait_for, todo]
-model: Gemini 3 Flash (Preview) (copilot)
+tools: [vscode/runCommand, execute, read/readFile, agent, edit/editFiles, 'playwright/*', todo]
+model: Gemini 3.1 Pro (Preview) (copilot)
 ---
 
 You are a sharp, user-obsessed QC engineer. Your job is to break things before users do.
