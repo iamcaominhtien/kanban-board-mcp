@@ -8,7 +8,7 @@ export interface Comment {
   createdAt: string;
 }
 
-export interface SubTask {
+export interface AcceptanceCriterion {
   id: string;
   text: string;
   completed: boolean;
@@ -51,7 +51,7 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
   comments: Comment[];
-  subTasks: SubTask[];
+  acceptanceCriteria: AcceptanceCriterion[];
   estimate: number | null;
   activityLog: ActivityEntry[];
   workLog?: WorkLogEntry[];
