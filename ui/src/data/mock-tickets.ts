@@ -149,7 +149,11 @@ export const INITIAL_TICKETS: Ticket[] = [
         loggedAt: '2026-04-01T15:30:00Z',
       },
     ],
-    testCases: [],
+    testCases: [
+      { id: 'tc-5-1', title: 'Cards can be dragged to another column', status: 'pass', proof: '', note: '', createdAt: '2026-04-01T11:00:00Z' },
+      { id: 'tc-5-2', title: 'Drop animation completes without flicker', status: 'fail', proof: '', note: 'Flicker observed in Chrome 124', createdAt: '2026-04-01T11:30:00Z' },
+      { id: 'tc-5-3', title: 'Keyboard drag-and-drop is accessible', status: 'todo', proof: '', note: '', createdAt: '2026-04-01T12:00:00Z' },
+    ],
     parentId: 'IAM-4',
   },
   {
@@ -167,7 +171,10 @@ export const INITIAL_TICKETS: Ticket[] = [
     acceptanceCriteria: [],
     estimate: 5,
     activityLog: [],
-    testCases: [],
+    testCases: [
+      { id: 'tc-6-1', title: 'Modal opens on card click', status: 'pass', proof: '', note: '', createdAt: '2026-04-01T11:00:00Z' },
+      { id: 'tc-6-2', title: 'Markdown description renders correctly', status: 'todo', proof: '', note: '', createdAt: '2026-04-01T11:30:00Z' },
+    ],
     parentId: 'IAM-4',
   },
   {

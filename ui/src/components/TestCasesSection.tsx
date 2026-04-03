@@ -2,10 +2,17 @@ import { useState } from 'react';
 import type { TestCase, TestCaseStatus } from '../types';
 import styles from './TestCasesSection.module.css';
 
+interface ChildTestCaseSource {
+  ticketId: string;
+  ticketTitle: string;
+  testCases: TestCase[];
+}
+
 interface TestCasesSectionProps {
   testCases: TestCase[];
   onChange: (updated: TestCase[]) => void;
   readOnly?: boolean;
+  childTestCaseSources?: ChildTestCaseSource[];
 }
 
 const STATUS_CYCLE: Record<TestCaseStatus, TestCaseStatus> = {
@@ -37,11 +44,13 @@ function TestCaseRow({
   onUpdate,
   onDelete,
   readOnly,
+  sourceBadge,
 }: {
   tc: TestCase;
   onUpdate: (updated: TestCase) => void;
   onDelete: () => void;
   readOnly: boolean;
+  sourceBadge?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingTitle, setEditingTitle] = useState(tc.title === '');
@@ -112,6 +121,10 @@ function TestCaseRow({
           </span>
         )}
 
+        {sourceBadge && (
+          <span className={styles.sourceBadge}>{sourceBadge}</span>
+        )}
+
         <div className={styles.rowActions}>
           <button
             type="button"
@@ -163,8 +176,40 @@ function TestCaseRow({
   );
 }
 
-export function TestCasesSection({ testCases, onChange, readOnly = false }: TestCasesSectionProps) {
+export function TestCasesSection({ testCases, onChange, readOnly = false, childTestCaseSources }: TestCasesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+
+  const sourcesWithTCs = (childTestCaseSources ?? []).filter((s) => s.testCases.length > 0);
+  const isRollupMode = sourcesWithTCs.length > 0;
+
+  // Build display items based on current filter
+  const displayItems: { tc: TestCase; sourceBadge?: string; isReadOnly: boolean }[] = [];
+  if (!isRollupMode) {
+    testCases.forEach((tc) => displayItems.push({ tc, isReadOnly: readOnly }));
+  } else {
+    const showOwn = activeFilter === 'all' || activeFilter === 'own';
+    if (showOwn) {
+      testCases.forEach((tc) => displayItems.push({ tc, isReadOnly: false }));
+    }
+    if (activeFilter === 'all') {
+      sourcesWithTCs.forEach((source) => {
+        source.testCases.forEach((tc) =>
+          displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
+        );
+      });
+    } else if (activeFilter !== 'own') {
+      const source = sourcesWithTCs.find((s) => s.ticketId === activeFilter);
+      source?.testCases.forEach((tc) =>
+        displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
+      );
+    }
+  }
+
+  const passCount = displayItems.filter((i) => i.tc.status === 'pass').length;
+  const failCount = displayItems.filter((i) => i.tc.status === 'fail').length;
+  const todoCount = displayItems.filter((i) => i.tc.status === 'todo').length;
+  const totalCount = displayItems.length;
 
   function handleAdd() {
     const newCase: TestCase = {
@@ -197,8 +242,23 @@ export function TestCasesSection({ testCases, onChange, readOnly = false }: Test
           aria-expanded={isExpanded}
         >
           <span className={styles.sectionHeader}>Test Cases</span>
-          {testCases.length > 0 && (
-            <span className={styles.countBadge}>{testCases.length}</span>
+          {isRollupMode ? (
+            <span className={styles.statusSummary}>
+              {passCount > 0 && (
+                <span className={`${styles.statusCount} ${styles.statusCountPass}`}>{passCount} pass</span>
+              )}
+              {failCount > 0 && (
+                <span className={`${styles.statusCount} ${styles.statusCountFail}`}>{failCount} fail</span>
+              )}
+              {todoCount > 0 && (
+                <span className={`${styles.statusCount} ${styles.statusCountTodo}`}>{todoCount} todo</span>
+              )}
+              {totalCount === 0 && (
+                <span className={`${styles.statusCount} ${styles.statusCountTodo}`}>0</span>
+              )}
+            </span>
+          ) : (
+            totalCount > 0 && <span className={styles.countBadge}>{totalCount}</span>
           )}
           <span className={`${styles.chevron} ${!isExpanded ? styles.chevronCollapsed : ''}`}>▼</span>
         </button>
@@ -210,21 +270,52 @@ export function TestCasesSection({ testCases, onChange, readOnly = false }: Test
       </div>
 
       {isExpanded && (
-        <div className={styles.list}>
-          {testCases.length === 0 ? (
-            <p className={styles.empty}>No test cases yet.</p>
-          ) : (
-            testCases.map((tc) => (
-              <TestCaseRow
-                key={tc.id}
-                tc={tc}
-                onUpdate={handleUpdate}
-                onDelete={() => handleDelete(tc.id)}
-                readOnly={readOnly}
-              />
-            ))
+        <>
+          {isRollupMode && (
+            <div className={styles.filterBar}>
+              <button
+                type="button"
+                className={`${styles.filterBtn} ${activeFilter === 'all' ? styles.filterBtnActive : ''}`}
+                onClick={() => setActiveFilter('all')}
+              >
+                All ({totalCount})
+              </button>
+              <button
+                type="button"
+                className={`${styles.filterBtn} ${activeFilter === 'own' ? styles.filterBtnActive : ''}`}
+                onClick={() => setActiveFilter('own')}
+              >
+                Own ({testCases.length})
+              </button>
+              {sourcesWithTCs.map((source) => (
+                <button
+                  key={source.ticketId}
+                  type="button"
+                  className={`${styles.filterBtn} ${activeFilter === source.ticketId ? styles.filterBtnActive : ''}`}
+                  onClick={() => setActiveFilter(source.ticketId)}
+                >
+                  {source.ticketId} ({source.testCases.length})
+                </button>
+              ))}
+            </div>
           )}
-        </div>
+          <div className={styles.list}>
+            {displayItems.length === 0 ? (
+              <p className={styles.empty}>No test cases yet.</p>
+            ) : (
+              displayItems.map(({ tc, sourceBadge, isReadOnly }) => (
+                <TestCaseRow
+                  key={`${sourceBadge ?? 'own'}-${tc.id}`}
+                  tc={tc}
+                  onUpdate={handleUpdate}
+                  onDelete={() => handleDelete(tc.id)}
+                  readOnly={isReadOnly}
+                  sourceBadge={sourceBadge}
+                />
+              ))
+            )}
+          </div>
+        </>
       )}
     </div>
   );

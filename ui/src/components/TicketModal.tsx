@@ -323,6 +323,14 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <TestCasesSection
                   testCases={ticket.testCases ?? []}
                   onChange={(updated) => onSave({ ...ticket, testCases: updated, updatedAt: new Date().toISOString() })}
+                  childTestCaseSources={
+                    isRootTicket
+                      ? allTickets
+                          .filter((t) => t.parentId === ticket.id)
+                          .map((t) => ({ ticketId: t.id, ticketTitle: t.title, testCases: t.testCases ?? [] }))
+                          .filter((s) => s.testCases.length > 0)
+                      : undefined
+                  }
                 />
               </div>
 
