@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Board } from './components/Board';
+import { ProjectSidebar } from './components/ProjectSidebar';
 import { TicketModal } from './components/TicketModal';
-import { INITIAL_TICKETS } from './data/mock-tickets';
-import type { ActivityEntry, Priority, Status, Ticket } from './types';
+import { INITIAL_PROJECTS } from './data/mock-tickets';
+import type { ActivityEntry, Priority, Project, Status, Ticket } from './types';
 
 const STATUS_LABELS: Record<Status, string> = {
   backlog: 'Backlog',
@@ -12,9 +13,13 @@ const STATUS_LABELS: Record<Status, string> = {
 };
 
 export default function App() {
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
+  const [currentProjectId, setCurrentProjectId] = useState<string>(INITIAL_PROJECTS[0].id);
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
+
+  const currentProject = projects.find((p) => p.id === currentProjectId) ?? projects[0];
+  const tickets = currentProject.tickets;
 
   const q = searchQuery.toLowerCase();
   const filteredTickets = tickets.filter((t) => {
@@ -22,6 +27,7 @@ export default function App() {
     const matchesPriority = activePriority === 'all' || t.priority === activePriority;
     return matchesSearch && matchesPriority;
   });
+
   const [modalState, setModalState] = useState<
     | { mode: 'create' }
     | { mode: 'view'; ticket: Ticket }
@@ -29,13 +35,19 @@ export default function App() {
     | null
   >(null);
 
+  function updateCurrentProjectTickets(updater: (prev: Ticket[]) => Ticket[]) {
+    setProjects((prev) =>
+      prev.map((p) => p.id === currentProjectId ? { ...p, tickets: updater(p.tickets) } : p)
+    );
+  }
+
   function handleDragEnd(ticketId: string, newStatus: Status) {
     const entry: ActivityEntry = {
       id: `${Date.now()}`,
       action: `Status changed to ${STATUS_LABELS[newStatus]}`,
       timestamp: new Date().toISOString(),
     };
-    setTickets((prev) =>
+    updateCurrentProjectTickets((prev) =>
       prev.map((t) =>
         t.id === ticketId
           ? { ...t, status: newStatus, updatedAt: new Date().toISOString(), activityLog: [...(t.activityLog ?? []), entry] }
@@ -45,15 +57,16 @@ export default function App() {
   }
 
   function handleCreateTicket(data: Ticket) {
+    const prefix = currentProject.prefix;
     const maxN = tickets.reduce((max, t) => {
-      const n = parseInt(t.id.replace('IAM-', ''), 10);
+      const n = parseInt(t.id.replace(`${prefix}-`, ''), 10);
       return isNaN(n) ? max : Math.max(max, n);
     }, 0);
-    setTickets((prev) => [...prev, { ...data, id: `IAM-${maxN + 1}` }]);
+    updateCurrentProjectTickets((prev) => [...prev, { ...data, id: `${prefix}-${maxN + 1}` }]);
   }
 
   function handleEditTicket(data: Ticket) {
-    setTickets((prev) =>
+    updateCurrentProjectTickets((prev) =>
       prev.map((t) => {
         if (t.id !== data.id) return t;
         const newLog = [...(data.activityLog ?? [])];
@@ -82,7 +95,35 @@ export default function App() {
   }
 
   function handleDeleteTicket(id: string) {
-    setTickets((prev) => prev.filter((t) => t.id !== id));
+    updateCurrentProjectTickets((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function handleSelectProject(id: string) {
+    setCurrentProjectId(id);
+    setSearchQuery('');
+    setActivePriority('all');
+  }
+
+  function handleCreateProject(data: { name: string; prefix: string; color: string }) {
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
+      name: data.name,
+      prefix: data.prefix,
+      color: data.color,
+      tickets: [],
+    };
+    setProjects((prev) => [...prev, newProject]);
+    setCurrentProjectId(newProject.id);
+  }
+
+  function handleDeleteProject(id: string) {
+    setProjects((prev) => {
+      const remaining = prev.filter((p) => p.id !== id);
+      if (currentProjectId === id) {
+        setCurrentProjectId(remaining[0]?.id ?? '');
+      }
+      return remaining;
+    });
   }
 
   function handleOpenCreate() {
@@ -94,28 +135,38 @@ export default function App() {
   }
 
   return (
-    <>
-      <Board
-        tickets={filteredTickets}
-        allTickets={tickets}
-        onDragEnd={handleDragEnd}
-        onNewTicket={handleOpenCreate}
-        onCardClick={handleOpenView}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        activePriority={activePriority}
-        onPriorityChange={setActivePriority}
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <ProjectSidebar
+        projects={projects}
+        currentProjectId={currentProjectId}
+        onSelectProject={handleSelectProject}
+        onCreateProject={handleCreateProject}
+        onDeleteProject={handleDeleteProject}
       />
-      {modalState && (
-        <TicketModal
-          key={modalState.mode !== 'create' ? modalState.ticket.id : 'create'}
-          mode={modalState.mode}
-          ticket={modalState.mode !== 'create' ? modalState.ticket : undefined}
-          onSave={modalState.mode === 'create' ? handleCreateTicket : handleEditTicket}
-          onDelete={modalState.mode !== 'create' ? handleDeleteTicket : undefined}
-          onClose={() => setModalState(null)}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <Board
+          tickets={filteredTickets}
+          allTickets={tickets}
+          onDragEnd={handleDragEnd}
+          onNewTicket={handleOpenCreate}
+          onCardClick={handleOpenView}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activePriority={activePriority}
+          onPriorityChange={setActivePriority}
+          projectName={currentProject.name}
         />
-      )}
-    </>
+        {modalState && (
+          <TicketModal
+            key={modalState.mode !== 'create' ? modalState.ticket.id : 'create'}
+            mode={modalState.mode}
+            ticket={modalState.mode !== 'create' ? modalState.ticket : undefined}
+            onSave={modalState.mode === 'create' ? handleCreateTicket : handleEditTicket}
+            onDelete={modalState.mode !== 'create' ? handleDeleteTicket : undefined}
+            onClose={() => setModalState(null)}
+          />
+        )}
+      </div>
+    </div>
   );
 }

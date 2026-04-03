@@ -18,11 +18,12 @@ interface BoardProps {
   onSearchChange: (q: string) => void;
   activePriority: Priority | 'all';
   onPriorityChange: (p: Priority | 'all') => void;
+  projectName: string;
 }
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'done']);
 
-export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange }: BoardProps) {
+export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName }: BoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -47,7 +48,7 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={styles.board}>
         <div className={styles.topBar}>
-          <h1 className={styles.title}>Kanban Board</h1>
+          <h1 className={styles.title}>{projectName}</h1>
           <button type="button" className={styles.newButton} onClick={onNewTicket}>+ New Ticket</button>
         </div>
 
