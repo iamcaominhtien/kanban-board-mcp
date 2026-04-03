@@ -91,13 +91,13 @@
   color: #DC2626;
 }
 
-.acProgress {
+.subTasksProgress {
   font-size: 11px;
   font-weight: 500;
   color: #6B7280;
 }
 
-.acDone {
+.subTasksDone {
   font-size: 11px;
   font-weight: 700;
   color: #16A34A;

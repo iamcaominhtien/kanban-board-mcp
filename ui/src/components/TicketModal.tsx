@@ -3,7 +3,7 @@ import type { Comment, IssueType, Priority, Status, Ticket, WorkLogEntry } from 
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
-import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
+import { SubTasksSection } from './SubTasksSection';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import styles from './TicketModal.module.css';
@@ -111,7 +111,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         createdAt: now,
         updatedAt: now,
         comments: [],
-        acceptanceCriteria: [],
+        subTasks: [],
         estimate,
         activityLog: [],
         workLog: [],
@@ -154,22 +154,22 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     onSave({ ...ticket, comments: ticket.comments.filter((c) => c.id !== id), updatedAt: new Date().toISOString() });
   }
 
-  function handleAddAcceptanceCriterion(text: string) {
+  function handleAddSubTask(text: string) {
     if (!ticket) return;
     const id = typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    onSave({ ...ticket, acceptanceCriteria: [...ticket.acceptanceCriteria, { id, text, completed: false }], updatedAt: new Date().toISOString() });
+    onSave({ ...ticket, subTasks: [...ticket.subTasks, { id, text, completed: false }], updatedAt: new Date().toISOString() });
   }
 
-  function handleToggleAcceptanceCriterion(id: string) {
+  function handleToggleSubTask(id: string) {
     if (!ticket) return;
-    onSave({ ...ticket, acceptanceCriteria: ticket.acceptanceCriteria.map((s) => s.id === id ? { ...s, completed: !s.completed } : s), updatedAt: new Date().toISOString() });
+    onSave({ ...ticket, subTasks: ticket.subTasks.map((s) => s.id === id ? { ...s, completed: !s.completed } : s), updatedAt: new Date().toISOString() });
   }
 
-  function handleDeleteAcceptanceCriterion(id: string) {
+  function handleDeleteSubTask(id: string) {
     if (!ticket) return;
-    onSave({ ...ticket, acceptanceCriteria: ticket.acceptanceCriteria.filter((s) => s.id !== id), updatedAt: new Date().toISOString() });
+    onSave({ ...ticket, subTasks: ticket.subTasks.filter((s) => s.id !== id), updatedAt: new Date().toISOString() });
   }
 
   function handleAddWorkLog(entry: Omit<WorkLogEntry, 'id'>) {
@@ -193,6 +193,11 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     setConfirmDelete(false);
     setLocalMode('view');
   }
+
+  const tagChips = tagsInput
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
 
   if (localMode === 'view' && ticket) {
     const pc = PRIORITY_COLORS[ticket.priority];
@@ -234,11 +239,11 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
                 <hr className={styles.divider} />
 
-                <AcceptanceCriteriaSection
-                  acceptanceCriteria={ticket.acceptanceCriteria ?? []}
-                  onAdd={handleAddAcceptanceCriterion}
-                  onToggle={handleToggleAcceptanceCriterion}
-                  onDelete={handleDeleteAcceptanceCriterion}
+                <SubTasksSection
+                  subTasks={ticket.subTasks ?? []}
+                  onAdd={handleAddSubTask}
+                  onToggle={handleToggleSubTask}
+                  onDelete={handleDeleteSubTask}
                 />
 
                 <hr className={styles.divider} />

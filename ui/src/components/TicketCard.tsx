@@ -65,12 +65,12 @@ export function TicketCard({ ticket }: TicketCardProps) {
           {due.overdue ? '⚠️' : '📅'} {due.label}
         </span>
       )}
-      {ticket.acceptanceCriteria.length > 0 && (() => {
-        const completed = ticket.acceptanceCriteria.filter((s) => s.completed).length;
-        const total = ticket.acceptanceCriteria.length;
+      {ticket.subTasks.length > 0 && (() => {
+        const completed = ticket.subTasks.filter((s) => s.completed).length;
+        const total = ticket.subTasks.length;
         const allDone = completed === total;
         return (
-          <span className={allDone ? styles.acDone : styles.acProgress}>
+          <span className={allDone ? styles.subTasksDone : styles.subTasksProgress}>
             {allDone ? '✓' : '◻'} {completed}/{total}
           </span>
         );
