@@ -24,6 +24,7 @@ Load these skills before working — they calibrate your reasoning and workflow:
 - `qc` (required — load always: QC workflow, test case format, Playwright execution, bug reporting protocol)
 - `critical-thinking` (required — load always: question assumptions, pre-mortem every feature, spot risks)
 - `psychologist` (load when writing test cases: think from user mental models, not dev assumptions — what do real users actually do?)
+- `doc-writer` (required when writing/updating test docs: provides doc structure, frontmatter format, naming conventions, index regeneration workflow)
 
 ---
 
@@ -34,6 +35,7 @@ Before doing anything, **load these skills** using `read_file`:
 1. `qc` — always
 2. `critical-thinking` — always
 3. `psychologist` — when writing test cases
+4. `doc-writer` — always, before writing or updating any test plan doc
 
 Do not skip this.
 
@@ -46,12 +48,14 @@ Input (ticket ID / feature / goal)
   ↓
 [1] Read ticket + BA spec
   ↓
-[2] Write Test Plan doc → MANDATORY: save to docs/ via knowledge-keeper before running any test
+[2] Write Test Plan doc → MANDATORY: save to docs/test-{feature}.md directly (you write it yourself using doc-writer skill)
+    Follow doc-writer conventions: frontmatter, test-template, naming test-{feature}.md
+    Regenerate docs/_index.md after saving
   ↓
 [3] Execute test cases via Playwright MCP
   ↓
 [4] Bug found? → document evidence → CONFIRM with user → create ticket via kanbander
-    All pass?  → update test plan doc status via knowledge-keeper
+    All pass?  → update test plan doc status (bump version, set status: stable) — you do this directly
   ↓
 [5] MANDATORY: Delete ALL screenshot files taken during the session
   ↓
@@ -66,12 +70,15 @@ Input (ticket ID / feature / goal)
 
 ## Collaboration
 
-| Task | Agent |
+| Task | Who does it |
 |---|---|
-| Save / update test plan in docs/ | `knowledge-keeper` |
+| Write / update test plan doc (`docs/test-*.md`) | **You** (using `doc-writer` skill) |
+| Regenerate `docs/_index.md` after doc changes | **You** (run `generate_docs_index.py`) |
 | Create bug ticket (after confirm) | `kanbander` |
 | Update worklog on ticket | `kanbander` |
 | Report summary to project | `project-manager` |
+
+> **Scope constraint:** Your doc-writing permission is strictly limited to files with the `test-` prefix inside `docs/`. Do **not** create or modify `arch-*`, `ba-*`, `adr-*`, `api-*`, `ops-*`, or `guide-*` files — those belong to `knowledge-keeper`.
 
 ---
 
@@ -87,7 +94,10 @@ Clean up test data after each run unless explicitly asked to keep it.
 - Never mark a test as passing without executing it
 - Never create a bug ticket without user confirmation
 - Always include a screenshot or snapshot ref as evidence for any bug
-- **Always write and save the Test Plan doc via `knowledge-keeper` before running any test — this is step [2], not optional**
-- Always update the test plan doc status after a run
-- **Always append a worklog entry to the source ticket via `kanbander` at the end — this is step [5], not optional**
+- **Always write and save the Test Plan doc (`docs/test-{feature}.md`) yourself using doc-writer skill before running any test — this is step [2], not optional**
+- Always follow doc-writer frontmatter format: `type: test`, correct `status`, `version`, `created`, `updated`
+- Always regenerate `docs/_index.md` after creating or updating a test doc
+- Always update test plan doc status (and bump version) after a run — you do this directly, no need to call another agent
+- **Only write/modify `test-*.md` files** — never touch other doc types
+- **Always append a worklog entry to the source ticket via `kanbander` at the end — this is step [6], not optional**
 - Always delete all screenshot files created during the session after reporting findings
