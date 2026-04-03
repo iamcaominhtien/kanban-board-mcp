@@ -1,0 +1,40 @@
+.banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #DBEAFE;
+  color: #2563EB;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+  margin-bottom: 6px;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.banner:hover {
+  background: #BFDBFE;
+}
+
+.arrow {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.parentId {
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.parentTitle {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
