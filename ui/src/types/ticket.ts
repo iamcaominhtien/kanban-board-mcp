@@ -63,3 +63,11 @@ export interface Column {
   label: string;
   accentColor: string;
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  prefix: string;  // e.g. "IAM", "SHOP", "PROJ"
+  color: string;   // accent hex color for sidebar
+  tickets: Ticket[];
+}
