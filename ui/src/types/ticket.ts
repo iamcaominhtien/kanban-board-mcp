@@ -56,6 +56,7 @@ export interface Ticket {
   activityLog: ActivityEntry[];
   workLog?: WorkLogEntry[];
   testCases?: TestCase[];
+  parentId?: string | null;
 }
 
 export interface Column {

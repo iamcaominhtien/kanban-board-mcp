@@ -116,9 +116,10 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         activityLog: [],
         workLog: [],
         testCases: [],
+        parentId: null,
       });
     } else if (ticket) {
-      onSave({ ...ticket, title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, updatedAt: now, estimate, testCases });
+      onSave({ ...ticket, title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, updatedAt: now, estimate, testCases, parentId: ticket.parentId ?? null });
     }
     handleClose();
   }
