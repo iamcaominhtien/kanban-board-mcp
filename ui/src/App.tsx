@@ -163,6 +163,9 @@ export default function App() {
               mode="create"
               onSave={handleCreateTicket}
               onClose={() => setModalState(null)}
+              allTickets={tickets}
+              onOpenTicket={(t) => setModalState({ mode: 'view', ticket: t })}
+              onSaveOther={handleEditTicket}
             />
           ) : (
             <TicketModal
@@ -172,6 +175,9 @@ export default function App() {
               onSave={handleEditTicket}
               onDelete={handleDeleteTicket}
               onClose={() => setModalState(null)}
+              allTickets={tickets}
+              onOpenTicket={(t) => setModalState({ mode: 'view', ticket: t })}
+              onSaveOther={handleEditTicket}
             />
           )
         )}

@@ -6,6 +6,8 @@ import { MarkdownEditor } from './MarkdownEditor';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
+import { SubTicketsSection } from './SubTicketsSection';
+import { ParentBanner } from './ParentBanner';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
@@ -36,10 +38,10 @@ function formatDate(iso: string) {
 }
 
 type TicketModalProps =
-  | { mode: 'create'; ticket?: undefined; onSave: (t: Ticket) => void; onDelete?: undefined; onClose: () => void }
-  | { mode: 'view' | 'edit'; ticket: Ticket; onSave: (t: Ticket) => void; onDelete?: (id: string) => void; onClose: () => void };
+  | { mode: 'create'; ticket?: undefined; onSave: (t: Ticket) => void; onDelete?: undefined; onClose: () => void; allTickets?: Ticket[]; onOpenTicket?: (t: Ticket) => void; onSaveOther?: (t: Ticket) => void }
+  | { mode: 'view' | 'edit'; ticket: Ticket; onSave: (t: Ticket) => void; onDelete?: (id: string) => void; onClose: () => void; allTickets?: Ticket[]; onOpenTicket?: (t: Ticket) => void; onSaveOther?: (t: Ticket) => void };
 
-export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClose }: TicketModalProps) {
+export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClose, allTickets = [], onOpenTicket, onSaveOther }: TicketModalProps) {
   const [localMode, setLocalMode] = useState<'create' | 'view' | 'edit'>(initialMode);
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [description, setDescription] = useState(ticket?.description ?? '');
@@ -196,7 +198,42 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   }
 
   if (localMode === 'view' && ticket) {
-    const pc = PRIORITY_COLORS[ticket.priority];
+    const currentTicket = ticket;
+    const pc = PRIORITY_COLORS[currentTicket.priority];
+    const childTickets = allTickets.filter((t) => t.parentId === currentTicket.id);
+    const parentTicket = currentTicket.parentId ? allTickets.find((t) => t.id === currentTicket.parentId) : undefined;
+    const isChildTicket = !!currentTicket.parentId;
+    const isRootTicket = !isChildTicket;
+
+    function handleLinkChild(childId: string) {
+      const child = allTickets.find((t) => t.id === childId);
+      if (!child || !onSaveOther) return;
+      onSaveOther({ ...child, parentId: currentTicket.id, updatedAt: new Date().toISOString() });
+    }
+
+    function handleUnlinkChild(childId: string) {
+      const child = allTickets.find((t) => t.id === childId);
+      if (!child || !onSaveOther) return;
+      onSaveOther({ ...child, parentId: null, updatedAt: new Date().toISOString() });
+    }
+
+    function handleSetParent(parentId: string) {
+      onSave({ ...currentTicket, parentId, updatedAt: new Date().toISOString() });
+    }
+
+    function handleRemoveParent() {
+      onSave({ ...currentTicket, parentId: null, updatedAt: new Date().toISOString() });
+    }
+
+    // Eligible parents: not current ticket, parentId===null, no children of their own
+    const eligibleParents = allTickets.filter((t) => {
+      if (t.id === currentTicket.id) return false;
+      if (t.parentId != null) return false;
+      const hasChildren = allTickets.some((other) => other.parentId === t.id);
+      if (hasChildren) return false;
+      return true;
+    });
+
     return (
       <div
         className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`}
@@ -217,6 +254,12 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           </div>
 
           <div className={styles.body}>
+            {parentTicket && (
+              <ParentBanner
+                parentTicket={parentTicket}
+                onOpenParent={() => onOpenTicket && onOpenTicket(parentTicket)}
+              />
+            )}
             <h2 className={styles.viewTitle}>{ticket.title}</h2>
 
             <div className={styles.twoColLayout}>
@@ -241,6 +284,20 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                   onToggle={handleToggleAC}
                   onDelete={handleDeleteAC}
                 />
+
+                {isRootTicket && (
+                  <>
+                    <hr className={styles.divider} />
+                    <SubTicketsSection
+                      childTickets={childTickets}
+                      allTickets={allTickets}
+                      currentTicketId={ticket.id}
+                      onOpenTicket={(t) => onOpenTicket && onOpenTicket(t)}
+                      onLinkChild={handleLinkChild}
+                      onUnlinkChild={handleUnlinkChild}
+                    />
+                  </>
+                )}
 
                 <hr className={styles.divider} />
 
@@ -328,6 +385,35 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                           <span key={`${tag}-${i}`} className={styles.chip}>{tag}</span>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Parent selector — only for root tickets with no children */}
+                  {isRootTicket && childTickets.length === 0 && (
+                    <div className={styles.sidebarSection}>
+                      <span className={styles.sidebarLabel}>Parent ticket</span>
+                      {ticket.parentId ? (
+                        <button
+                          type="button"
+                          className={styles.chip}
+                          style={{ cursor: 'pointer', background: '#FEE2E2', color: '#DC2626' }}
+                          onClick={handleRemoveParent}
+                          title="Click to remove parent"
+                        >
+                          ✕ Remove parent
+                        </button>
+                      ) : (
+                        <select
+                          className={styles.select}
+                          defaultValue=""
+                          onChange={(e) => { if (e.target.value) handleSetParent(e.target.value); }}
+                        >
+                          <option value="">— set parent —</option>
+                          {eligibleParents.map((p) => (
+                            <option key={p.id} value={p.id}>{p.id}: {p.title}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   )}
                 </div>
