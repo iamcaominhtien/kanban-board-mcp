@@ -85,3 +85,19 @@
   gap: 8px;
   flex: 1;
 }
+
+.childIndent {
+  padding-left: 16px;
+  position: relative;
+}
+
+.childIndent::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 1px;
+}

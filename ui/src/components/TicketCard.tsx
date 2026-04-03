@@ -36,12 +36,17 @@ export function TicketCard({ ticket }: TicketCardProps) {
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <span className={styles.cardId}>{ticket.id}</span>
-        <span
-          className={styles.typeBadge}
-          style={{ backgroundColor: tc.bg, color: tc.color }}
-        >
-          {tc.icon} {tc.label}
-        </span>
+        <div className={styles.cardHeaderBadges}>
+          {ticket.parentId && (
+            <span className={styles.parentBadge}>⬆ {ticket.parentId}</span>
+          )}
+          <span
+            className={styles.typeBadge}
+            style={{ backgroundColor: tc.bg, color: tc.color }}
+          >
+            {tc.icon} {tc.label}
+          </span>
+        </div>
       </div>
       <span className={styles.cardTitle}>{ticket.title}</span>
       <div className={styles.cardFooter}>
