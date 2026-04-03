@@ -2,7 +2,7 @@
 title: "BA Spec: Kanban UI (Bento Grid Style)"
 type: ba
 status: draft
-version: 1.1.0
+version: 1.2.0
 created: 2026-04-01
 updated: 2026-04-03
 authors: [Knowledge Keeper]
@@ -50,6 +50,11 @@ The application uses a playful yet structured Bento Grid layout, where each colu
 | US-08 | As a user, I want to create a new project with a custom name, prefix, and color. | High | "+" button in sidebar opens inline form. Prefix is auto-uppercased, max 6 chars. Duplicate prefix is rejected with an alert. |
 | US-09 | As a user, I want to delete a project. | Medium | Delete button per project in sidebar. Requires confirmation. Cannot delete the last remaining project. |
 | US-10 | As a user, I want new tickets to use the current project's prefix. | High | Ticket IDs follow the pattern `{PREFIX}-{N}`, where PREFIX belongs to the active project. |
+| US-11 | As a user, I want Acceptance Criteria as a checklist on each ticket. | High | Ticket modal shows "Acceptance Criteria" checklist (replaces Sub-tasks). Progress shown as X/Y badge on card. |
+| US-12 | As a user, I want to create sub-tickets that are linked to a parent ticket. | High | A ticket can have child tickets. A child ticket shows "↑ Child of PARENT-ID" banner below the modal title. Ticket con cannot have its own children (no grandchildren). |
+| US-13 | As a user, I want to link/unlink a ticket to a parent via a dropdown search. | High | TicketModal shows a searchable parent selector. Tickets with children cannot be linked as a child. |
+| US-14 | As a user, I want to see parent-child relationships on the board. | Medium | Child cards show "⬆ PARENT-ID" badge. In the same column, child cards are grouped/indented under their parent. |
+| US-15 | As a user, I want to see all test cases (own + children's) when viewing a parent ticket. | Medium | Parent ticket test case section aggregates child TCs with source attribution and a filter dropdown per child. Child TCs are read-only in parent view. |
 
 ## 5. Data Model (Schema)
 
@@ -68,6 +73,7 @@ erDiagram
         string description "Markdown"
         string status "backlog | todo | in-progress | done"
         string priority "low | medium | high | critical"
+        string parentId "nullable — ID of parent ticket; null = root ticket"
         string-array tags
         datetime created_at
         datetime updated_at
@@ -92,11 +98,20 @@ Based on research across Jira, Linear, Asana, GitHub Issues, and Notion, the fol
 | Field | Type | Description |
 |---|---|---|
 | `start_date` | ISO date string (nullable) | When work begins |
-| `sub_tasks` | SubTask[] | Checklist of smaller steps |
+| `acceptance_criteria` | AcceptanceCriterion[] | Checklist of conditions that must be true for the ticket to be considered done (replaces sub_tasks) |
+| `parent_id` | string (nullable) | ID of the parent ticket. Null = root ticket. A ticket with children cannot become a child (no grandchildren). |
 | `linked_issues` | string[] (ticket IDs) | Blocked-by / depends-on relationships |
 | `milestone` | string (nullable) | Target version or release group |
 | `activity_log` | ActivityEntry[] | Chronological audit trail of all changes |
 | `work_log` | WorkLogEntry[] | Manual entries by any role (PM, Dev, BA, Tester) to trace work done on the ticket |
+
+### 5c. Parent-Child Business Rules
+
+- **1-to-many relationship**: One parent can have many children; each child has at most one parent.
+- **No grandchildren**: A ticket that already has children cannot be linked as a child of another ticket.
+- **Board display**: Child cards show a `⬆ PARENT-ID` badge. If parent and child are in the same column, child cards render indented below parent.
+- **Test case roll-up**: Parent ticket's test case section renders own TCs plus all children's TCs. Source is labeled per row. Child TCs are read-only in parent view. A filter dropdown allows scoping by child ticket.
+- **Acceptance Criteria**: Each ticket (parent or child) has its own independent acceptance criteria checklist.
 
 ### Skipped for solo use
 
@@ -142,6 +157,10 @@ Each `WorkLogEntry` contains:
 1.  **Fixed Workflow**: The 4 columns are mandatory and cannot be renamed or deleted in Phase 1.
 2.  **Priority Coloring**: Each priority level must have a corresponding semantic color (e.g., Critical = Red, Low = Gray).
 3.  **Local-First (Phase 1)**: All data persistence is simulated via hardcoded mock data or local state.
+4.  **Prefix Uniqueness**: Project prefixes (e.g., `IAM`, `SHOP`) must be unique across all projects.
+5.  **Delete Protection**: A project cannot be deleted if it is the only project remaining in the system.
+6.  Rule 7: A child ticket cannot have its own child tickets (max hierarchy depth = 2).
+7.  Rule 8: Acceptance Criteria replaces Sub-tasks as the standard checklist field on all tickets.
 
 ## 7. Non-Functional Requirements
 -   **Performance**: Smooth CSS animations for all state transitions (drags, modal transitions).

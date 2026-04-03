@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import type { SubTask } from '../types';
-import styles from './SubTasksSection.module.css';
+import type { AcceptanceCriterion } from '../types';
+import styles from './AcceptanceCriteriaSection.module.css';
 
-interface SubTasksSectionProps {
-  subTasks: SubTask[];
+interface AcceptanceCriteriaSectionProps {
+  acceptanceCriteria: AcceptanceCriterion[];
   onAdd: (text: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTasksSectionProps) {
+export function AcceptanceCriteriaSection({ acceptanceCriteria, onAdd, onToggle, onDelete }: AcceptanceCriteriaSectionProps) {
   const [text, setText] = useState('');
 
-  const completed = subTasks.filter((s) => s.completed).length;
-  const total = subTasks.length;
+  const completed = acceptanceCriteria.filter((s) => s.completed).length;
+  const total = acceptanceCriteria.length;
 
   function handleAdd() {
     if (!text.trim()) return;
@@ -28,25 +28,25 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
   return (
     <div className={styles.section}>
       <h3 className={styles.sectionHeader}>
-        Sub-tasks {total > 0 ? `(${completed}/${total})` : ''}
+        Acceptance Criteria {total > 0 ? `(${completed}/${total})` : ''}
       </h3>
 
       {total === 0 ? (
-        <p className={styles.empty}>No sub-tasks yet.</p>
+        <p className={styles.empty}>No acceptance criteria yet.</p>
       ) : (
         <div className={styles.list}>
-          {subTasks.map((s) => (
+          {acceptanceCriteria.map((s) => (
             <div key={s.id} className={styles.row}>
               <input
                 type="checkbox"
                 className={styles.checkbox}
                 checked={s.completed}
                 onChange={() => onToggle(s.id)}
-                id={`subtask-${s.id}`}
+                id={`ac-${s.id}`}
                 aria-label={s.text}
               />
               <label
-                htmlFor={`subtask-${s.id}`}
+                htmlFor={`ac-${s.id}`}
                 className={s.completed ? styles.textCompleted : styles.text}
               >
                 {s.text}
@@ -55,7 +55,7 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
                 type="button"
                 className={styles.deleteBtn}
                 onClick={() => onDelete(s.id)}
-                aria-label={`Delete sub-task: ${s.text}`}
+                aria-label={`Delete acceptance criterion: ${s.text}`}
               >
                 ×
               </button>
@@ -65,15 +65,15 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
       )}
 
       <div className={styles.addArea}>
-        <label htmlFor="subtask-input" className={styles.srOnly}>New sub-task</label>
+        <label htmlFor="ac-input" className={styles.srOnly}>New acceptance criterion</label>
         <input
-          id="subtask-input"
+          id="ac-input"
           type="text"
           className={styles.input}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Add a sub-task..."
+          placeholder="Add acceptance criterion..."
         />
         <div className={styles.addRow}>
           <button
