@@ -7,7 +7,6 @@ import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
-import { ParentBanner } from './ParentBanner';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
@@ -247,19 +246,23 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           aria-labelledby="modal-heading"
         >
           <div className={styles.header}>
-            <span id="modal-heading" className={styles.headerTitle}>{ticket.id}</span>
+            {isChildTicket && parentTicket ? (
+              <div className={styles.headerBreadcrumb}>
+                <button type="button" className={styles.headerParentId} onClick={() => onOpenTicket?.(parentTicket)}>
+                  {parentTicket.id}
+                </button>
+                <span className={styles.headerSep}>/</span>
+                <span id="modal-heading" className={styles.headerChildId}>{ticket.id}</span>
+              </div>
+            ) : (
+              <span id="modal-heading" className={styles.headerTitle}>{ticket.id}</span>
+            )}
             <button type="button" aria-label="Close modal" className={styles.closeBtn} onClick={handleClose} ref={firstFocusRef}>
               ×
             </button>
           </div>
 
           <div className={styles.body}>
-            {parentTicket && (
-              <ParentBanner
-                parentTicket={parentTicket}
-                onOpenParent={() => onOpenTicket && onOpenTicket(parentTicket)}
-              />
-            )}
             <h2 className={styles.viewTitle}>{ticket.title}</h2>
 
             <div className={styles.twoColLayout}>
