@@ -100,9 +100,10 @@ Always follow this process before sending work to another agent:
 - Update or create the relevant doc (BA spec, architecture doc) via `knowledge-keeper` if the change affects documented specs
 - Create or update the Kanban ticket via `kanbander` to track the work
 - Only then delegate implementation
+- Always instruct the developer to **create a PR** after pushing the branch — never merge directly to main
 
 4. **Delegate** — send each task to the appropriate agent with clear instructions and acceptance criteria.
-    - **Automatic Review**: After a developer pushes a branch or opens a PR, immediately delegate a review to the `code-change-reviewer` agent without asking the user.
+    - **Automatic Review**: After a developer opens a PR (remind the developer to open a PR if they only pushed a branch), immediately delegate a review to the `code-change-reviewer` agent without asking the user.
     - **Reporting**: Only report back to the user when:
         - The reviewer **approves** → inform the user and ask for permission to merge.
         - The reviewer **requests changes** → immediately loop back to the developer to address them.
