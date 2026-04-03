@@ -27,6 +27,7 @@ export const INITIAL_TICKETS: Ticket[] = [
       { id: 'al-1-2', action: 'Status changed to Done', timestamp: '2026-03-25T14:00:00Z' },
     ],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-2',
@@ -46,6 +47,7 @@ export const INITIAL_TICKETS: Ticket[] = [
       { id: 'al-2-1', action: 'Status changed to Done', timestamp: '2026-03-26T11:00:00Z' },
     ],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-3',
@@ -63,6 +65,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: 2,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-4',
@@ -109,6 +112,7 @@ export const INITIAL_TICKETS: Ticket[] = [
       },
     ],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-5',
@@ -146,6 +150,7 @@ export const INITIAL_TICKETS: Ticket[] = [
       },
     ],
     testCases: [],
+    parentId: 'IAM-4',
   },
   {
     id: 'IAM-6',
@@ -163,6 +168,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: 5,
     activityLog: [],
     testCases: [],
+    parentId: 'IAM-4',
   },
   {
     id: 'IAM-7',
@@ -180,6 +186,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: null,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-8',
@@ -197,6 +204,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: 8,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-9',
@@ -214,6 +222,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: 5,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-10',
@@ -231,6 +240,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: 13,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-11',
@@ -248,6 +258,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: 3,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'IAM-12',
@@ -265,6 +276,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     estimate: null,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
 ];
 
@@ -285,6 +297,7 @@ const SHOP_TICKETS: Ticket[] = [
     estimate: 8,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'SHOP-2',
@@ -302,6 +315,7 @@ const SHOP_TICKETS: Ticket[] = [
     estimate: 5,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'SHOP-3',
@@ -319,6 +333,7 @@ const SHOP_TICKETS: Ticket[] = [
     estimate: 13,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
 ];
 
@@ -339,6 +354,7 @@ const INFRA_TICKETS: Ticket[] = [
     estimate: 13,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'INFRA-2',
@@ -356,6 +372,7 @@ const INFRA_TICKETS: Ticket[] = [
     estimate: 5,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
   {
     id: 'INFRA-3',
@@ -373,6 +390,7 @@ const INFRA_TICKETS: Ticket[] = [
     estimate: 3,
     activityLog: [],
     testCases: [],
+    parentId: null,
   },
 ];
 
