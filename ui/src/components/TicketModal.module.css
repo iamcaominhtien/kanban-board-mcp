@@ -56,6 +56,44 @@
   color: var(--color-dark);
 }
 
+.headerBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerParentId {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(61, 12, 17, 0.45);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.headerParentId:hover {
+  color: var(--color-dark);
+}
+
+.headerSep {
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(61, 12, 17, 0.3);
+}
+
+.headerChildId {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-dark);
+}
+
 .closeBtn {
   background: none;
   border: none;
