@@ -388,32 +388,36 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     </div>
                   )}
 
-                  {/* Parent selector — only for root tickets with no children */}
+                  {/* Set parent — only for root tickets with no children */}
                   {isRootTicket && childTickets.length === 0 && (
                     <div className={styles.sidebarSection}>
                       <span className={styles.sidebarLabel}>Parent ticket</span>
-                      {ticket.parentId ? (
-                        <button
-                          type="button"
-                          className={styles.chip}
-                          style={{ cursor: 'pointer', background: '#FEE2E2', color: '#DC2626' }}
-                          onClick={handleRemoveParent}
-                          title="Click to remove parent"
-                        >
-                          ✕ Remove parent
-                        </button>
-                      ) : (
-                        <select
-                          className={styles.select}
-                          defaultValue=""
-                          onChange={(e) => { if (e.target.value) handleSetParent(e.target.value); }}
-                        >
-                          <option value="">— set parent —</option>
-                          {eligibleParents.map((p) => (
-                            <option key={p.id} value={p.id}>{p.id}: {p.title}</option>
-                          ))}
-                        </select>
-                      )}
+                      <select
+                        className={styles.select}
+                        defaultValue=""
+                        onChange={(e) => { if (e.target.value) handleSetParent(e.target.value); }}
+                      >
+                        <option value="">— set parent —</option>
+                        {eligibleParents.map((p) => (
+                          <option key={p.id} value={p.id}>{p.id}: {p.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Remove parent — only for child tickets (parentId is set) */}
+                  {ticket.parentId && (
+                    <div className={styles.sidebarSection}>
+                      <span className={styles.sidebarLabel}>Parent ticket</span>
+                      <button
+                        type="button"
+                        className={styles.chip}
+                        style={{ cursor: 'pointer', background: '#FEE2E2', color: '#DC2626' }}
+                        onClick={handleRemoveParent}
+                        title="Click to remove parent"
+                      >
+                        ✕ Remove parent
+                      </button>
                     </div>
                   )}
                 </div>
