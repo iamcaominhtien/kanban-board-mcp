@@ -15,7 +15,8 @@
 }
 
 .sidebar:hover,
-.sidebar.expanded {
+.sidebar.expanded,
+.sidebar:focus-within {
   width: 220px;
 }
 
