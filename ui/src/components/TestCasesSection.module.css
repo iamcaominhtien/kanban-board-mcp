@@ -256,3 +256,78 @@
   cursor: default;
   opacity: 0.7;
 }
+
+/* ── Roll-up: filter bar ── */
+
+.filterBar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+}
+
+.filterBtn {
+  background: none;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6B7280;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.filterBtn:hover {
+  border-color: var(--color-dark);
+  color: var(--color-dark);
+}
+
+.filterBtnActive {
+  background: var(--color-dark);
+  border-color: var(--color-dark);
+  color: var(--color-cream);
+}
+
+/* ── Roll-up: source badge on each row ── */
+
+.sourceBadge {
+  flex-shrink: 0;
+  background: #F3F4F6;
+  color: #6B7280;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* ── Roll-up: status summary in header ── */
+
+.statusSummary {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.statusCount {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.statusCountPass {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.statusCountFail {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.statusCountTodo {
+  background: #E5E7EB;
+  color: #6B7280;
+}
