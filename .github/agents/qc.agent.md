@@ -7,7 +7,7 @@ description: >
   Triggers: 'test this ticket', 'write test cases for', 'run QC on', 'verify feature',
   'exploratory test', 'check for bugs', 'regression test', 'create test plan for'.
 argument-hint: "Provide a ticket ID (e.g. IAM-11), a feature name, or a specific test goal. Example: 'write test cases and run them for IAM-11'"
-tools: [vscode/runCommand, execute, read/readFile, agent, edit/editFiles, 'playwright/*', todo]
+tools: [vscode/runCommand, execute, read, agent, edit, 'playwright/*', todo]
 model: Gemini 3.1 Pro (Preview) (copilot)
 ---
 
