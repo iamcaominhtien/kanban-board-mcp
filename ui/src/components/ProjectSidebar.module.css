@@ -75,14 +75,12 @@
   width: 100%;
   padding: 8px;
   border-radius: 10px;
-  border: none;
   background: transparent;
   color: rgba(245, 239, 224, 0.7);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  text-align: left;
   transition: background 0.12s ease, color 0.12s ease;
   position: relative;
 }

@@ -55,7 +55,12 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
             tabIndex={0}
             className={`${styles.projectItem} ${project.id === currentProjectId ? styles.active : ''}`}
             onClick={() => onSelectProject(project.id)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectProject(project.id); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectProject(project.id);
+              }
+            }}
           >
             <span className={styles.dot} style={{ backgroundColor: project.color }} />
             <span className={styles.projectName}>{project.name}</span>
