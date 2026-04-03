@@ -6,7 +6,6 @@ import styles from './Board.module.css';
 interface ColumnProps {
   column: ColumnType;
   tickets: Ticket[];
-  allTickets: Ticket[];
   onCardClick: (ticket: Ticket) => void;
 }
 
