@@ -49,11 +49,13 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
       <nav className={styles.projectList}>
         <p className={styles.sectionLabel}>Projects</p>
         {projects.map((project) => (
-          <button
+          <div
             key={project.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             className={`${styles.projectItem} ${project.id === currentProjectId ? styles.active : ''}`}
             onClick={() => onSelectProject(project.id)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectProject(project.id); }}
           >
             <span className={styles.dot} style={{ backgroundColor: project.color }} />
             <span className={styles.projectName}>{project.name}</span>
@@ -68,7 +70,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
                 ×
               </button>
             )}
-          </button>
+          </div>
         ))}
       </nav>
 
