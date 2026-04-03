@@ -1,6 +1,6 @@
 .sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 52px;
+  min-width: 52px;
   height: 100vh;
   position: sticky;
   top: 0;
@@ -10,6 +10,13 @@
   padding: 20px 12px;
   gap: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.25s ease, min-width 0.25s ease;
+}
+
+.sidebar:hover,
+.sidebar.expanded {
+  width: 220px;
 }
 
 .logo {
@@ -23,6 +30,15 @@
   font-weight: 900;
   letter-spacing: 0.15em;
   color: var(--color-bg);
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.15s ease 0.05s;
+}
+
+.sidebar:hover .logoText,
+.sidebar.expanded .logoText,
+.sidebar:focus-within .logoText {
+  opacity: 1;
 }
 
 .sectionLabel {
@@ -33,6 +49,15 @@
   color: rgba(245, 239, 224, 0.45);
   padding: 0 8px;
   margin-bottom: 6px;
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.15s ease 0.05s;
+}
+
+.sidebar:hover .sectionLabel,
+.sidebar.expanded .sectionLabel,
+.sidebar:focus-within .sectionLabel {
+  opacity: 1;
 }
 
 .projectList {
@@ -83,6 +108,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s ease 0.05s;
+}
+
+.sidebar:hover .projectName,
+.sidebar.expanded .projectName,
+.sidebar:focus-within .projectName {
+  opacity: 1;
 }
 
 .prefixBadge {
@@ -94,6 +127,15 @@
   border-radius: 4px;
   padding: 2px 5px;
   flex-shrink: 0;
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.15s ease 0.05s;
+}
+
+.sidebar:hover .prefixBadge,
+.sidebar.expanded .prefixBadge,
+.sidebar:focus-within .prefixBadge {
+  opacity: 1;
 }
 
 .deleteBtn {
@@ -141,11 +183,27 @@
   font-weight: 700;
   cursor: pointer;
   transition: border-color 0.12s ease, color 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .newProjectBtn:hover {
   border-color: rgba(245, 239, 224, 0.5);
   color: var(--color-bg);
+}
+
+.newProjectLabel {
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.15s ease 0.05s;
+}
+
+.sidebar:hover .newProjectLabel,
+.sidebar.expanded .newProjectLabel,
+.sidebar:focus-within .newProjectLabel {
+  opacity: 1;
 }
 
 /* New project form */
@@ -166,6 +224,7 @@
 
 .input {
   width: 100%;
+  box-sizing: border-box;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1.5px solid rgba(245, 239, 224, 0.2);

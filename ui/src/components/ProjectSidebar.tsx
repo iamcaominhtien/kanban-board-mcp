@@ -41,7 +41,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
   }
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${showForm ? styles.expanded : ''}`} aria-label="Project navigation">
       <div className={styles.logo}>
         <span className={styles.logoText}>KANBAN</span>
       </div>
@@ -111,7 +111,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
           </form>
         ) : (
           <button type="button" className={styles.newProjectBtn} onClick={() => setShowForm(true)}>
-            + New Project
+            +<span className={styles.newProjectLabel}> New Project</span>
           </button>
         )}
       </div>
