@@ -114,7 +114,8 @@
   transition: background 0.12s ease;
 }
 
-.projectItem:hover .deleteBtn {
+.projectItem:hover .deleteBtn,
+.projectItem:focus-within .deleteBtn {
   display: flex;
 }
 

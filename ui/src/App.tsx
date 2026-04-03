@@ -58,11 +58,13 @@ export default function App() {
 
   function handleCreateTicket(data: Ticket) {
     const prefix = currentProject.prefix;
-    const maxN = tickets.reduce((max, t) => {
-      const n = parseInt(t.id.replace(`${prefix}-`, ''), 10);
-      return isNaN(n) ? max : Math.max(max, n);
-    }, 0);
-    updateCurrentProjectTickets((prev) => [...prev, { ...data, id: `${prefix}-${maxN + 1}` }]);
+    updateCurrentProjectTickets((prev) => {
+      const maxN = prev.reduce((max, t) => {
+        const n = parseInt(t.id.replace(`${prefix}-`, ''), 10);
+        return isNaN(n) ? max : Math.max(max, n);
+      }, 0);
+      return [...prev, { ...data, id: `${prefix}-${maxN + 1}` }];
+    });
   }
 
   function handleEditTicket(data: Ticket) {
@@ -117,13 +119,11 @@ export default function App() {
   }
 
   function handleDeleteProject(id: string) {
-    setProjects((prev) => {
-      const remaining = prev.filter((p) => p.id !== id);
-      if (currentProjectId === id) {
-        setCurrentProjectId(remaining[0]?.id ?? '');
-      }
-      return remaining;
-    });
+    const remaining = projects.filter((p) => p.id !== id);
+    setProjects(remaining);
+    if (currentProjectId === id) {
+      setCurrentProjectId(remaining[0]?.id ?? '');
+    }
   }
 
   function handleOpenCreate() {
@@ -157,14 +157,23 @@ export default function App() {
           projectName={currentProject.name}
         />
         {modalState && (
-          <TicketModal
-            key={modalState.mode !== 'create' ? modalState.ticket.id : 'create'}
-            mode={modalState.mode}
-            ticket={modalState.mode !== 'create' ? modalState.ticket : undefined}
-            onSave={modalState.mode === 'create' ? handleCreateTicket : handleEditTicket}
-            onDelete={modalState.mode !== 'create' ? handleDeleteTicket : undefined}
-            onClose={() => setModalState(null)}
-          />
+          modalState.mode === 'create' ? (
+            <TicketModal
+              key="create"
+              mode="create"
+              onSave={handleCreateTicket}
+              onClose={() => setModalState(null)}
+            />
+          ) : (
+            <TicketModal
+              key={modalState.ticket.id}
+              mode={modalState.mode}
+              ticket={modalState.ticket}
+              onSave={handleEditTicket}
+              onDelete={handleDeleteTicket}
+              onClose={() => setModalState(null)}
+            />
+          )
         )}
       </div>
     </div>

@@ -21,7 +21,12 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formName.trim() || !formPrefix.trim()) return;
-    onCreateProject({ name: formName.trim(), prefix: formPrefix.trim().toUpperCase(), color: formColor });
+    const upperPrefix = formPrefix.trim().toUpperCase();
+    if (projects.some((p) => p.prefix.toUpperCase() === upperPrefix)) {
+      window.alert('A project with this prefix already exists.');
+      return;
+    }
+    onCreateProject({ name: formName.trim(), prefix: upperPrefix, color: formColor });
     setFormName('');
     setFormPrefix('');
     setFormColor(PRESET_COLORS[0]);
