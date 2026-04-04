@@ -1,3 +1,4 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { Project } from '../types/ticket';
 
@@ -32,8 +33,6 @@ export async function deleteProject(id: string): Promise<void> {
   await client.delete(`/projects/${id}`);
 }
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
 export const projectKeys = {
   all: ['projects'] as const,
   detail: (id: string) => ['projects', id] as const,
@@ -57,8 +56,7 @@ export function useProject(id: string) {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; prefix: string; color: string }) =>
-      createProject(data),
+    mutationFn: createProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
@@ -81,8 +79,9 @@ export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteProject(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      queryClient.removeQueries({ queryKey: projectKeys.detail(id) });
     },
   });
 }
