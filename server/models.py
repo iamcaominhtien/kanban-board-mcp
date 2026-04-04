@@ -68,7 +68,6 @@ class ProjectCreate(SQLModel):
 class ProjectUpdate(SQLModel):
     name: Optional[str] = None
     color: Optional[str] = None
-    ticket_counter: Optional[int] = None
 
 
 class ProjectRead(SQLModel):
