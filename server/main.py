@@ -1,8 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.fastmcp import FastMCP
 
-app = FastAPI(title="Kanban Board MCP")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from database import init_db
+
+    await init_db()
+    yield
+
+
+app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
 
 # origins: extend via CORS_ORIGINS env var for production
 app.add_middleware(
