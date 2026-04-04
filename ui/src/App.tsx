@@ -1,18 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Board } from './components/Board';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { TicketModal } from './components/TicketModal';
-import { INITIAL_PROJECTS, type ProjectWithTickets } from './data/mock-tickets';
+import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import type { ActivityEntry, Priority, Status, Ticket } from './types';
 
 export default function App() {
-  const [projects, setProjects] = useState<ProjectWithTickets[]>(INITIAL_PROJECTS);
-  const [currentProjectId, setCurrentProjectId] = useState<string>(INITIAL_PROJECTS[0].id);
+  const { data: apiProjects = [], isLoading: projectsLoading } = useProjects();
+  const createProjectMutation = useCreateProject();
+  const deleteProjectMutation = useDeleteProject();
+
+  const [currentProjectId, setCurrentProjectId] = useState<string>('');
+  const [ticketsMap, setTicketsMap] = useState<Record<string, Ticket[]>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
 
-  const currentProject = projects.find((p) => p.id === currentProjectId) ?? projects[0];
-  const tickets = currentProject.tickets;
+  useEffect(() => {
+    if (apiProjects.length > 0 && !apiProjects.find((p) => p.id === currentProjectId)) {
+      setCurrentProjectId(apiProjects[0].id);
+    }
+  }, [apiProjects, currentProjectId]);
+
+  const currentProject = apiProjects.find((p) => p.id === currentProjectId);
+  const tickets = currentProject ? (ticketsMap[currentProject.id] ?? []) : [];
 
   const q = searchQuery.toLowerCase();
   const filteredTickets = tickets.filter((t) => {
@@ -29,9 +39,11 @@ export default function App() {
   >(null);
 
   function updateCurrentProjectTickets(updater: (prev: Ticket[]) => Ticket[]) {
-    setProjects((prev) =>
-      prev.map((p) => p.id === currentProjectId ? { ...p, tickets: updater(p.tickets) } : p)
-    );
+    if (!currentProject) return;
+    setTicketsMap((prev) => ({
+      ...prev,
+      [currentProject.id]: updater(prev[currentProject.id] ?? []),
+    }));
   }
 
   function handleDragEnd(ticketId: string, newStatus: Status) {
@@ -51,6 +63,7 @@ export default function App() {
   }
 
   function handleCreateTicket(data: Ticket) {
+    if (!currentProject) return;
     const prefix = currentProject.prefix;
     updateCurrentProjectTickets((prev) => {
       const maxN = prev.reduce((max, t) => {
@@ -103,24 +116,23 @@ export default function App() {
     setModalState(null);
   }
 
-  function handleCreateProject(data: { name: string; prefix: string; color: string }) {
-    const newProject: ProjectWithTickets = {
-      id: `proj-${Date.now()}`,
-      name: data.name,
-      prefix: data.prefix,
-      color: data.color,
-      ticketCounter: 0,
-      tickets: [],
-    };
-    setProjects((prev) => [...prev, newProject]);
-    setCurrentProjectId(newProject.id);
+  async function handleCreateProject(data: { name: string; prefix: string; color: string }) {
+    try {
+      const newProject = await createProjectMutation.mutateAsync(data);
+      setCurrentProjectId(newProject.id);
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      window.alert('Failed to create project. Please try again.');
+    }
   }
 
-  function handleDeleteProject(id: string) {
-    const remaining = projects.filter((p) => p.id !== id);
-    setProjects(remaining);
-    if (currentProjectId === id) {
-      setCurrentProjectId(remaining[0]?.id ?? '');
+  async function handleDeleteProject(id: string) {
+    try {
+      await deleteProjectMutation.mutateAsync(id);
+      // useEffect handles selecting the next project when apiProjects updates
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      window.alert('Failed to delete project. Please try again.');
     }
   }
 
@@ -135,49 +147,57 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <ProjectSidebar
-        projects={projects}
+        projects={apiProjects}
         currentProjectId={currentProjectId}
         onSelectProject={handleSelectProject}
         onCreateProject={handleCreateProject}
         onDeleteProject={handleDeleteProject}
       />
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <Board
-          tickets={filteredTickets}
-          allTickets={tickets}
-          onDragEnd={handleDragEnd}
-          onNewTicket={handleOpenCreate}
-          onCardClick={handleOpenView}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          activePriority={activePriority}
-          onPriorityChange={setActivePriority}
-          projectName={currentProject.name}
-        />
-        {modalState && (
-          modalState.mode === 'create' ? (
-            <TicketModal
-              key="create"
-              mode="create"
-              onSave={handleCreateTicket}
-              onClose={() => setModalState(null)}
+        {projectsLoading && apiProjects.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
+            Loading projects…
+          </div>
+        ) : (
+          <>
+            <Board
+              tickets={filteredTickets}
               allTickets={tickets}
-              onOpenTicket={(t) => setModalState({ mode: 'view', ticket: t })}
-              onSaveOther={handleEditTicket}
+              onDragEnd={handleDragEnd}
+              onNewTicket={handleOpenCreate}
+              onCardClick={handleOpenView}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              activePriority={activePriority}
+              onPriorityChange={setActivePriority}
+              projectName={currentProject?.name ?? ''}
             />
-          ) : (
-            <TicketModal
-              key={modalState.ticket.id}
-              mode={modalState.mode}
-              ticket={modalState.ticket}
-              onSave={handleEditTicket}
-              onDelete={handleDeleteTicket}
-              onClose={() => setModalState(null)}
-              allTickets={tickets}
-              onOpenTicket={(t) => setModalState({ mode: 'view', ticket: t })}
-              onSaveOther={handleEditTicket}
-            />
-          )
+            {modalState && (
+              modalState.mode === 'create' ? (
+                <TicketModal
+                  key="create"
+                  mode="create"
+                  onSave={handleCreateTicket}
+                  onClose={() => setModalState(null)}
+                  allTickets={tickets}
+                  onOpenTicket={(t) => setModalState({ mode: 'view', ticket: t })}
+                  onSaveOther={handleEditTicket}
+                />
+              ) : (
+                <TicketModal
+                  key={modalState.ticket.id}
+                  mode={modalState.mode}
+                  ticket={modalState.ticket}
+                  onSave={handleEditTicket}
+                  onDelete={handleDeleteTicket}
+                  onClose={() => setModalState(null)}
+                  allTickets={tickets}
+                  onOpenTicket={(t) => setModalState({ mode: 'view', ticket: t })}
+                  onSaveOther={handleEditTicket}
+                />
+              )
+            )}
+          </>
         )}
       </div>
     </div>
