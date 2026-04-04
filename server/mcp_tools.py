@@ -1,3 +1,4 @@
+import json
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -133,6 +134,144 @@ async def update_ticket_status(
         raise ValueError(str(exc)) from exc
 
 
+async def update_ticket(
+    ticket_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    type: Literal["bug", "feature", "task", "chore"] | None = None,
+    priority: Literal["low", "medium", "high", "critical"] | None = None,
+    status: Literal["backlog", "todo", "in-progress", "done"] | None = None,
+    estimate: float | None = None,
+    due_date: str | None = None,
+    parent_id: str | None = None,
+    tags: list[str] | None = None,
+) -> dict | None:
+    """Update one or more core fields on a ticket. Only provided (non-None) fields are updated.
+    Returns the updated ticket dict, or None if not found.
+
+    Note: nullable fields (estimate, due_date, parent_id) cannot be cleared to None via this tool — passing None is treated as 'do not update'.
+    """
+    fields = {
+        "title": title,
+        "description": description,
+        "type": type,
+        "priority": priority,
+        "status": status,
+        "estimate": estimate,
+        "due_date": due_date,
+        "parent_id": parent_id,
+        "tags": tags,
+    }
+    update_data = {k: v for k, v in fields.items() if v is not None}
+    try:
+        async with async_session() as session:
+            ticket = await svc_tickets.update_ticket(
+                session, ticket_id, TicketUpdate(**update_data)
+            )
+            if ticket is None:
+                return None
+            return TicketRead.from_ticket(ticket).model_dump()
+    except ValidationError as exc:
+        raise ValueError(str(exc)) from exc
+
+
+async def add_comment(ticket_id: str, text: str, author: str) -> dict | None:
+    """Add a comment to a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.add_comment(
+            session, ticket_id, text=text, author=author
+        )
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
+
+
+async def add_work_log(
+    ticket_id: str,
+    author: str,
+    role: Literal["PM", "Developer", "BA", "Tester", "Designer", "Other"],
+    note: str,
+) -> dict | None:
+    """Log work done on a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.add_work_log(
+            session, ticket_id, author=author, role=role, note=note
+        )
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
+
+
+async def add_test_case(
+    ticket_id: str,
+    title: str,
+    status: Literal["pending", "pass", "fail"] = "pending",
+    proof: str | None = None,
+    note: str | None = None,
+) -> dict | None:
+    """Add a test case to a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.add_test_case(
+            session, ticket_id, title=title, status=status, proof=proof, note=note
+        )
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
+
+
+async def update_test_case(
+    ticket_id: str,
+    test_case_id: str,
+    status: Literal["pending", "pass", "fail"] | None = None,
+    proof: str | None = None,
+    note: str | None = None,
+) -> dict | None:
+    """Update a test case's status, proof, or note. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.get_ticket(session, ticket_id)
+        if ticket is None:
+            return None
+        tcs = json.loads(ticket.test_cases) if ticket.test_cases else []
+        current = next((tc for tc in tcs if tc.get("id") == test_case_id), None)
+        if current is None:
+            return None
+        if status is None:
+            status = current["status"]
+        updated = await svc_tickets.update_test_case(
+            session, ticket_id, test_case_id, status=status, proof=proof, note=note
+        )
+        if updated is None:
+            return None
+        return TicketRead.from_ticket(updated).model_dump()
+
+
+async def create_child_ticket(
+    parent_ticket_id: str,
+    title: str,
+    type: Literal["bug", "feature", "task", "chore"] = "task",
+    priority: Literal["low", "medium", "high", "critical"] = "medium",
+    description: str = "",
+) -> dict | None:
+    """Create a child ticket under an existing ticket. Returns the new ticket dict, or None if parent not found."""
+    try:
+        async with async_session() as session:
+            parent = await svc_tickets.get_ticket(session, parent_ticket_id)
+            if parent is None:
+                return None
+            ticket = await svc_tickets.create_ticket(
+                session,
+                project_id=parent.project_id,
+                parent_id=parent_ticket_id,
+                title=title,
+                type=type,
+                priority=priority,
+                description=description,
+            )
+            return TicketRead.from_ticket(ticket).model_dump()
+    except (NoResultFound, ValueError):
+        return None
+
+
 def register(mcp: FastMCP) -> None:
     """Register all Kanban MCP tools with the given FastMCP instance."""
     mcp.tool()(list_projects)
@@ -141,3 +280,9 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(create_ticket)
     mcp.tool()(get_ticket)
     mcp.tool()(update_ticket_status)
+    mcp.tool()(update_ticket)
+    mcp.tool()(add_comment)
+    mcp.tool()(add_work_log)
+    mcp.tool()(add_test_case)
+    mcp.tool()(update_test_case)
+    mcp.tool()(create_child_ticket)
