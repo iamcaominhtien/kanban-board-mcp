@@ -18,9 +18,9 @@ export async function createTicket(
     priority?: Priority;
     status?: Status;
     estimate?: number | null;
-    due_date?: string | null;
+    dueDate?: string | null;
     tags?: string[];
-    parent_id?: string | null;
+    parentId?: string | null;
   },
 ): Promise<Ticket> {
   const res = await client.post<Ticket>(`/projects/${projectId}/tickets`, data);
@@ -41,9 +41,9 @@ export async function updateTicket(
     status?: Status;
     priority?: Priority;
     estimate?: number | null;
-    due_date?: string | null;
+    dueDate?: string | null;
     tags?: string[];
-    parent_id?: string | null;
+    parentId?: string | null;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);

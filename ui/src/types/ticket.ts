@@ -22,10 +22,12 @@ export interface ActivityEntry {
   at: string; // ISO datetime
 }
 
+export type WorkLogRole = 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
+
 export interface WorkLogEntry {
   id: string;
   author: string;
-  role: string;
+  role: WorkLogRole;
   note: string;
   at: string; // ISO datetime
 }
