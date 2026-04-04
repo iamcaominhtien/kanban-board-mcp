@@ -30,7 +30,7 @@ async def setup_db():
         await conn.run_sync(SQLModel.metadata.create_all)
     app.dependency_overrides[get_session] = override_get_session
     yield
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_session, None)
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
@@ -73,8 +73,7 @@ async def test_create_duplicate_prefix_returns_error(client: httpx.AsyncClient):
     async with client as c:
         await c.post("/projects", json=payload)
         response = await c.post("/projects", json=payload)
-    # DB unique constraint → 500 from integrity error, or 400 from explicit check
-    assert response.status_code in (400, 422, 500)
+    assert response.status_code == 400
 
 
 async def test_get_nonexistent_returns_404(client: httpx.AsyncClient):
