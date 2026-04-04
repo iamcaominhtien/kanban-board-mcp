@@ -1,3 +1,4 @@
+import json
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -146,7 +147,10 @@ async def update_ticket(
     tags: list[str] | None = None,
 ) -> dict | None:
     """Update one or more core fields on a ticket. Only provided (non-None) fields are updated.
-    Returns the updated ticket dict, or None if not found."""
+    Returns the updated ticket dict, or None if not found.
+
+    Note: nullable fields (estimate, due_date, parent_id) cannot be cleared to None via this tool — passing None is treated as 'do not update'.
+    """
     fields = {
         "title": title,
         "description": description,
@@ -227,13 +231,11 @@ async def update_test_case(
         ticket = await svc_tickets.get_ticket(session, ticket_id)
         if ticket is None:
             return None
+        tcs = json.loads(ticket.test_cases) if ticket.test_cases else []
+        current = next((tc for tc in tcs if tc.get("id") == test_case_id), None)
+        if current is None:
+            return None
         if status is None:
-            import json as _json
-
-            tcs = _json.loads(ticket.test_cases) if ticket.test_cases else []
-            current = next((tc for tc in tcs if tc.get("id") == test_case_id), None)
-            if current is None:
-                return None
             status = current["status"]
         updated = await svc_tickets.update_test_case(
             session, ticket_id, test_case_id, status=status, proof=proof, note=note
@@ -266,7 +268,7 @@ async def create_child_ticket(
                 description=description,
             )
             return TicketRead.from_ticket(ticket).model_dump()
-    except NoResultFound:
+    except (NoResultFound, ValueError):
         return None
 
 

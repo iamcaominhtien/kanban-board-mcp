@@ -331,3 +331,34 @@ async def test_create_child_ticket_unknown_parent_returns_none():
         parent_ticket_id="MISSING-9999", title="orphan"
     )
     assert result is None
+
+
+async def test_create_child_ticket_depth_violation_returns_none():
+    project = await _seed_project(prefix="DEEP")
+    parent = await mcp_tools.create_ticket(project_id=project["id"], title="Parent")
+    child = await mcp_tools.create_child_ticket(
+        parent_ticket_id=parent["id"], title="Child"
+    )
+    assert child is not None
+    result = await mcp_tools.create_child_ticket(
+        parent_ticket_id=child["id"], title="Grandchild"
+    )
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# update_test_case — unknown test_case_id
+# ---------------------------------------------------------------------------
+
+
+async def test_update_test_case_unknown_id_returns_none():
+    project = await _seed_project(prefix="UTCU")
+    ticket = await mcp_tools.create_ticket(
+        project_id=project["id"], title="TC unknown id"
+    )
+    result = await mcp_tools.update_test_case(
+        ticket_id=ticket["id"],
+        test_case_id=str(uuid.uuid4()),
+        status="pass",
+    )
+    assert result is None
