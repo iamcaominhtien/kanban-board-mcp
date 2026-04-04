@@ -4,11 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.fastmcp import FastMCP
 
+from database import init_db
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from database import init_db
-
     await init_db()
     yield
 
