@@ -38,11 +38,11 @@ export function ActivityLog({ entries }: ActivityLogProps) {
           {entries.length === 0 ? (
             <p className={styles.empty}>No activity yet.</p>
           ) : (
-            [...entries].reverse().map((entry) => (
-              <div key={entry.id} className={styles.entry}>
+            [...entries].reverse().map((entry, i) => (
+              <div key={`${entry.at}-${i}`} className={styles.entry}>
                 <span className={styles.icon}>🕐</span>
-                <span className={styles.action}>{entry.action}</span>
-                <span className={styles.timestamp}>{formatRelative(entry.timestamp)}</span>
+                <span className={styles.action}>{entry.field}: {entry.from ?? '–'} → {entry.to ?? '–'}</span>
+                <span className={styles.timestamp}>{formatRelative(entry.at)}</span>
               </div>
             ))
           )}

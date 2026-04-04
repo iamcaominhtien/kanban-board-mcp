@@ -16,19 +16,19 @@ interface TestCasesSectionProps {
 }
 
 const STATUS_CYCLE: Record<TestCaseStatus, TestCaseStatus> = {
-  todo: 'pass',
+  pending: 'pass',
   pass: 'fail',
-  fail: 'todo',
+  fail: 'pending',
 };
 
 const STATUS_LABEL: Record<TestCaseStatus, string> = {
-  todo: 'TODO',
+  pending: 'PENDING',
   pass: 'PASS',
   fail: 'FAIL',
 };
 
 const STATUS_CLASS: Record<TestCaseStatus, string> = {
-  todo: styles.status_todo,
+  pending: styles.status_todo,
   pass: styles.status_pass,
   fail: styles.status_fail,
 };
@@ -155,7 +155,7 @@ function TestCaseRow({
             id={`proof-${tc.id}`}
             className={styles.textarea}
             rows={2}
-            value={tc.proof}
+            value={tc.proof ?? ''}
             readOnly={readOnly}
             onChange={(e) => onUpdate({ ...tc, proof: e.target.value })}
             placeholder="Screenshot URL, test run ID, or any proof..."
@@ -165,7 +165,7 @@ function TestCaseRow({
             id={`note-${tc.id}`}
             className={styles.textarea}
             rows={2}
-            value={tc.note}
+            value={tc.note ?? ''}
             readOnly={readOnly}
             onChange={(e) => onUpdate({ ...tc, note: e.target.value })}
             placeholder="Additional notes..."
@@ -208,17 +208,16 @@ export function TestCasesSection({ testCases, onChange, readOnly = false, childT
 
   const passCount = displayItems.filter((i) => i.tc.status === 'pass').length;
   const failCount = displayItems.filter((i) => i.tc.status === 'fail').length;
-  const todoCount = displayItems.filter((i) => i.tc.status === 'todo').length;
+  const todoCount = displayItems.filter((i) => i.tc.status === 'pending').length;
   const totalCount = displayItems.length;
 
   function handleAdd() {
     const newCase: TestCase = {
       id: genId(),
       title: '',
-      status: 'todo',
-      proof: '',
-      note: '',
-      createdAt: new Date().toISOString(),
+      status: 'pending',
+      proof: null,
+      note: null,
     };
     onChange([...testCases, newCase]);
     setIsExpanded(true);

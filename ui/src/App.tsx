@@ -2,18 +2,11 @@ import { useState } from 'react';
 import { Board } from './components/Board';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { TicketModal } from './components/TicketModal';
-import { INITIAL_PROJECTS } from './data/mock-tickets';
-import type { ActivityEntry, Priority, Project, Status, Ticket } from './types';
-
-const STATUS_LABELS: Record<Status, string> = {
-  backlog: 'Backlog',
-  todo: 'To Do',
-  'in-progress': 'In Progress',
-  done: 'Done',
-};
+import { INITIAL_PROJECTS, type ProjectWithTickets } from './data/mock-tickets';
+import type { ActivityEntry, Priority, Status, Ticket } from './types';
 
 export default function App() {
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
+  const [projects, setProjects] = useState<ProjectWithTickets[]>(INITIAL_PROJECTS);
   const [currentProjectId, setCurrentProjectId] = useState<string>(INITIAL_PROJECTS[0].id);
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
@@ -43,9 +36,10 @@ export default function App() {
 
   function handleDragEnd(ticketId: string, newStatus: Status) {
     const entry: ActivityEntry = {
-      id: `${Date.now()}`,
-      action: `Status changed to ${STATUS_LABELS[newStatus]}`,
-      timestamp: new Date().toISOString(),
+      field: 'status',
+      from: null,
+      to: newStatus,
+      at: new Date().toISOString(),
     };
     updateCurrentProjectTickets((prev) =>
       prev.map((t) =>
@@ -74,16 +68,18 @@ export default function App() {
         const newLog = [...(data.activityLog ?? [])];
         if (t.status !== data.status) {
           newLog.push({
-            id: `${Date.now()}`,
-            action: `Status changed to ${STATUS_LABELS[data.status]}`,
-            timestamp: new Date().toISOString(),
+            field: 'status',
+            from: t.status,
+            to: data.status,
+            at: new Date().toISOString(),
           });
         }
         if (t.title !== data.title) {
           newLog.push({
-            id: `${Date.now() + 1}`,
-            action: 'Title updated',
-            timestamp: new Date().toISOString(),
+            field: 'title',
+            from: t.title,
+            to: data.title,
+            at: new Date().toISOString(),
           });
         }
         return { ...data, activityLog: newLog };
@@ -108,11 +104,12 @@ export default function App() {
   }
 
   function handleCreateProject(data: { name: string; prefix: string; color: string }) {
-    const newProject: Project = {
+    const newProject: ProjectWithTickets = {
       id: `proj-${Date.now()}`,
       name: data.name,
       prefix: data.prefix,
       color: data.color,
+      ticketCounter: 0,
       tickets: [],
     };
     setProjects((prev) => [...prev, newProject]);

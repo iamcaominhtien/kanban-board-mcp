@@ -36,7 +36,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
 
   function handleAdd() {
     if (!author.trim() || !note.trim()) return;
-    onAdd({ author: author.trim(), role, note: note.trim(), loggedAt: new Date().toISOString() });
+    onAdd({ author: author.trim(), role, note: note.trim(), at: new Date().toISOString() });
     setNote('');
     setAuthor('');
   }
@@ -61,7 +61,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
             <p className={styles.empty}>No work logged yet.</p>
           ) : (
             <div className={styles.entryList}>
-              {[...entries].sort((a, b) => b.loggedAt.localeCompare(a.loggedAt)).map((entry) => (
+              {[...entries].sort((a, b) => b.at.localeCompare(a.at)).map((entry) => (
                 <div key={entry.id} className={styles.entry}>
                   <div className={styles.entryHeader}>
                     <span
@@ -71,7 +71,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
                       {entry.role}
                     </span>
                     <span className={styles.author}>{entry.author}</span>
-                    <span className={styles.timestamp}>{formatDateTime(entry.loggedAt)}</span>
+                    <span className={styles.timestamp}>{formatDateTime(entry.at)}</span>
                   </div>
                   <p className={styles.note}>{entry.note}</p>
                 </div>

@@ -71,7 +71,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
         </span>
       )}
       {(ticket.acceptanceCriteria ?? []).length > 0 && (() => {
-        const completed = (ticket.acceptanceCriteria ?? []).filter((s) => s.completed).length;
+        const completed = (ticket.acceptanceCriteria ?? []).filter((s) => s.done).length;
         const total = (ticket.acceptanceCriteria ?? []).length;
         const allDone = completed === total;
         return (

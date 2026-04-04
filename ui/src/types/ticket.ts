@@ -5,70 +5,74 @@ export type IssueType = 'bug' | 'feature' | 'task' | 'chore';
 export interface Comment {
   id: string;
   text: string;
-  createdAt: string;
+  author: string;
+  at: string; // ISO datetime
 }
 
 export interface AcceptanceCriterion {
   id: string;
   text: string;
-  completed: boolean;
+  done: boolean;
 }
 
 export interface ActivityEntry {
-  id: string;
-  action: string;
-  timestamp: string;
+  field: string;
+  from: string | null;
+  to: string | null;
+  at: string; // ISO datetime
 }
+
+export type WorkLogRole = 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
 
 export interface WorkLogEntry {
   id: string;
   author: string;
-  role: 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
+  role: WorkLogRole;
   note: string;
-  loggedAt: string;
+  at: string; // ISO datetime
 }
 
-export type TestCaseStatus = 'todo' | 'pass' | 'fail';
+export type TestCaseStatus = 'pending' | 'pass' | 'fail';
 
 export interface TestCase {
   id: string;
   title: string;
   status: TestCaseStatus;
-  proof: string;
-  note: string;
-  createdAt: string;
+  proof: string | null;
+  note: string | null;
 }
 
 export interface Ticket {
   id: string;
+  projectId: string;
   title: string;
   description: string;
   type: IssueType;
   status: Status;
   priority: Priority;
-  tags: string[];
+  estimate: number | null;
   dueDate: string | null;
-  createdAt: string;
-  updatedAt: string;
+  tags: string[];
+  parentId: string | null;
   comments: Comment[];
   acceptanceCriteria: AcceptanceCriterion[];
-  estimate: number | null;
   activityLog: ActivityEntry[];
-  workLog?: WorkLogEntry[];
-  testCases?: TestCase[];
-  parentId?: string | null;
+  workLog: WorkLogEntry[];
+  testCases: TestCase[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  prefix: string;
+  color: string;
+  ticketCounter: number;
 }
 
 export interface Column {
   id: Status;
   label: string;
   accentColor: string;
-}
-
-export interface Project {
-  id: string;
-  name: string;
-  prefix: string;  // e.g. "IAM", "SHOP", "PROJ"
-  color: string;   // accent hex color for sidebar
-  tickets: Ticket[];
 }

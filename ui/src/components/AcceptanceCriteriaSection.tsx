@@ -12,7 +12,7 @@ interface AcceptanceCriteriaSectionProps {
 export function AcceptanceCriteriaSection({ acceptanceCriteria, onAdd, onToggle, onDelete }: AcceptanceCriteriaSectionProps) {
   const [text, setText] = useState('');
 
-  const completed = acceptanceCriteria.filter((s) => s.completed).length;
+  const completed = acceptanceCriteria.filter((s) => s.done).length;
   const total = acceptanceCriteria.length;
 
   function handleAdd() {
@@ -40,14 +40,14 @@ export function AcceptanceCriteriaSection({ acceptanceCriteria, onAdd, onToggle,
               <input
                 type="checkbox"
                 className={styles.checkbox}
-                checked={s.completed}
+                checked={s.done}
                 onChange={() => onToggle(s.id)}
                 id={`ac-${s.id}`}
                 aria-label={s.text}
               />
               <label
                 htmlFor={`ac-${s.id}`}
-                className={s.completed ? styles.textCompleted : styles.text}
+                className={s.done ? styles.textCompleted : styles.text}
               >
                 {s.text}
               </label>
