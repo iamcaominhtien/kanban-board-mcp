@@ -13,7 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-mcp = FastMCP("kanban-mcp", stateless_http=True)
+mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
 
 app.mount("/mcp", mcp.streamable_http_app())
 
