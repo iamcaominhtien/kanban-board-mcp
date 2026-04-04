@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.fastmcp import FastMCP
 
+from api.projects import router as projects_router
 from database import init_db
 
 
@@ -27,6 +28,8 @@ app.add_middleware(
 mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
 
 app.mount("/mcp", mcp.streamable_http_app())
+
+app.include_router(projects_router)
 
 
 @app.get("/health")
