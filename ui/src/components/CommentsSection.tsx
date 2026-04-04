@@ -5,7 +5,6 @@ import styles from './CommentsSection.module.css';
 interface CommentsSectionProps {
   comments: Comment[];
   onAdd: (text: string) => void;
-  onDelete?: (id: string) => void;
 }
 
 function formatDate(iso: string) {
