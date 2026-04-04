@@ -3,6 +3,12 @@ _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/gen
 
 _Last updated: 2026-04-04_
 
+## Architecture
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [backend-architecture.md](backend-architecture.md) | Backend Architecture & Implementation Plan | approved | 1.0.0 | 2026-04-04 |
+
 ## Business Analysis
 
 | File | Title | Status | Version | Updated |
@@ -14,10 +20,7 @@ _Last updated: 2026-04-04_
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
 | [test-T0.md](test-T0.md) | Test Plan: Kanban Board MCP Server (T0) | draft | 1.0.0 | 2026-04-04 |
-
-## Test-Plan
-
-| File | Title | Status | Version | Updated |
-|---|---|---|---|---|
 | [test-plan-iam-22.md](test-plan-iam-22.md) | Test Plan: UI Bug & UX Fixes (IAM-22) | complete | 1.0.0 | 2026-04-02 |
+| [test-plans/regression-round-1.md](test-plans/regression-round-1.md) | Regression Test Suite — Round 1 | complete | 1.1.0 | 2026-04-04 |
+
 

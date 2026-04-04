@@ -48,22 +48,6 @@
   word-break: break-word;
 }
 
-.deleteBtn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  color: #9CA3AF;
-  padding: 0 2px;
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
-
-.deleteBtn:hover {
-  color: #DC2626;
-}
-
 .timestamp {
   font-size: 11px;
   color: #9CA3AF;

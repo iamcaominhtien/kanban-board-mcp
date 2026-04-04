@@ -151,11 +151,6 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     onSave({ ...ticket, comments: [...ticket.comments, newComment], updatedAt: new Date().toISOString() });
   }
 
-  function handleDeleteComment(id: string) {
-    if (!ticket) return;
-    onSave({ ...ticket, comments: ticket.comments.filter((c) => c.id !== id), updatedAt: new Date().toISOString() });
-  }
-
   function handleAddAC(text: string) {
     if (!ticket) return;
     const id = typeof crypto.randomUUID === 'function'
@@ -307,7 +302,6 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <CommentsSection
                   comments={ticket.comments ?? []}
                   onAdd={handleAddComment}
-                  onDelete={handleDeleteComment}
                 />
 
                 <hr className={styles.divider} />

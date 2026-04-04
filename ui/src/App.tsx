@@ -104,6 +104,7 @@ export default function App() {
     setCurrentProjectId(id);
     setSearchQuery('');
     setActivePriority('all');
+    setModalState(null);
   }
 
   function handleCreateProject(data: { name: string; prefix: string; color: string }) {

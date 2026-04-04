@@ -5,14 +5,13 @@ import styles from './CommentsSection.module.css';
 interface CommentsSectionProps {
   comments: Comment[];
   onAdd: (text: string) => void;
-  onDelete: (id: string) => void;
 }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function CommentsSection({ comments, onAdd, onDelete }: CommentsSectionProps) {
+export function CommentsSection({ comments, onAdd }: CommentsSectionProps) {
   const [text, setText] = useState('');
 
   function handleAdd() {
@@ -33,14 +32,6 @@ export function CommentsSection({ comments, onAdd, onDelete }: CommentsSectionPr
             <div key={c.id} className={styles.comment}>
               <div className={styles.commentTop}>
                 <p className={styles.commentText}>{c.text}</p>
-                <button
-                  type="button"
-                  className={styles.deleteBtn}
-                  onClick={() => onDelete(c.id)}
-                  aria-label={`Delete comment: ${c.text.slice(0, 40)}`}
-                >
-                  ×
-                </button>
               </div>
               <span className={styles.timestamp}>{formatDate(c.createdAt)}</span>
             </div>

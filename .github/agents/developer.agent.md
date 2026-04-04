@@ -26,6 +26,9 @@ Do not skip this. These skills calibrate your entire workflow.
 ### Critical Thinking (always on)
 Apply the `critical-thinking` skill on every task. Follow the skill's full instructions when loaded.
 
+### Writing Tests (use the `unit-testing` skill — optional)
+Use the `unit-testing` skill when writing unit tests, component tests. Follow its full instructions when loaded.
+
 ### Debugging (use the `debugger` skill — optional)
 Use the `debugger` skill when investigating bugs. Follow its full instructions when loaded.
 
