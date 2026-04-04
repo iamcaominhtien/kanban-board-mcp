@@ -3,6 +3,12 @@ _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/gen
 
 _Last updated: 2026-04-04_
 
+## Architecture
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [backend-architecture.md](backend-architecture.md) | Backend Architecture & Implementation Plan | approved | 1.0.0 | 2026-04-04 |
+
 ## Business Analysis
 
 | File | Title | Status | Version | Updated |
