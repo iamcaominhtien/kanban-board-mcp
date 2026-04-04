@@ -102,6 +102,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     if (localMode === 'create') {
       onSave({
         id: '',
+        projectId: '',
         title: title.trim(),
         description,
         type,
@@ -146,7 +147,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     const newComment: Comment = {
       id,
       text,
-      createdAt: new Date().toISOString(),
+      author: 'user',
+      at: new Date().toISOString(),
     };
     onSave({ ...ticket, comments: [...ticket.comments, newComment], updatedAt: new Date().toISOString() });
   }
@@ -156,12 +158,12 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     const id = typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    onSave({ ...ticket, acceptanceCriteria: [...(ticket.acceptanceCriteria ?? []), { id, text, completed: false }], updatedAt: new Date().toISOString() });
+    onSave({ ...ticket, acceptanceCriteria: [...(ticket.acceptanceCriteria ?? []), { id, text, done: false }], updatedAt: new Date().toISOString() });
   }
 
   function handleToggleAC(id: string) {
     if (!ticket) return;
-    onSave({ ...ticket, acceptanceCriteria: (ticket.acceptanceCriteria ?? []).map((s) => s.id === id ? { ...s, completed: !s.completed } : s), updatedAt: new Date().toISOString() });
+    onSave({ ...ticket, acceptanceCriteria: (ticket.acceptanceCriteria ?? []).map((s) => s.id === id ? { ...s, done: !s.done } : s), updatedAt: new Date().toISOString() });
   }
 
   function handleDeleteAC(id: string) {

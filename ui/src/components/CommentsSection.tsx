@@ -33,7 +33,7 @@ export function CommentsSection({ comments, onAdd }: CommentsSectionProps) {
               <div className={styles.commentTop}>
                 <p className={styles.commentText}>{c.text}</p>
               </div>
-              <span className={styles.timestamp}>{formatDate(c.createdAt)}</span>
+              <span className={styles.timestamp}>{formatDate(c.at)}</span>
             </div>
           ))}
         </div>
