@@ -1,4 +1,4 @@
-from typing import Annotated, NoReturn, Optional
+from typing import Annotated, Literal, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -112,7 +112,7 @@ async def del_ticket(ticket_id: str, session: Session) -> None:
 
 
 class StatusBody(BaseModel):
-    status: str
+    status: Literal["backlog", "todo", "in-progress", "done"]
 
 
 @router.patch("/tickets/{ticket_id}/status", response_model=TicketRead)
@@ -228,13 +228,13 @@ async def del_work_log(ticket_id: str, log_id: str, session: Session) -> TicketR
 
 class TestCaseCreateBody(BaseModel):
     title: str
-    status: str = "pending"
+    status: Literal["pending", "pass", "fail"] = "pending"
     proof: Optional[str] = None
     note: Optional[str] = None
 
 
 class TestCaseUpdateBody(BaseModel):
-    status: str
+    status: Literal["pending", "pass", "fail"]
     proof: Optional[str] = None
     note: Optional[str] = None
 

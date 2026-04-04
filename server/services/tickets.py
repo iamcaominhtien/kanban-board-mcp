@@ -120,14 +120,7 @@ async def update_ticket(
                 }
             )
         # JSON list fields need serialization
-        if field in (
-            "tags",
-            "comments",
-            "acceptance_criteria",
-            "activity_log",
-            "work_log",
-            "test_cases",
-        ):
+        if field == "tags":
             setattr(ticket, field, _dumps(new_val))
         else:
             setattr(ticket, field, new_val)

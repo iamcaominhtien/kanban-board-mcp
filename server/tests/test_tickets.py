@@ -269,11 +269,11 @@ async def test_add_update_delete_test_case(client: httpx.AsyncClient):
 
         r_upd = await c.patch(
             f"/tickets/{ticket['id']}/test-cases/{tc_id}",
-            json={"status": "passed", "proof": "screenshot.png"},
+            json={"status": "pass", "proof": "screenshot.png"},
         )
         assert r_upd.status_code == 200
         tc_after = r_upd.json()["test_cases"][0]
-        assert tc_after["status"] == "passed"
+        assert tc_after["status"] == "pass"
         assert tc_after["proof"] == "screenshot.png"
 
         r_del = await c.delete(f"/tickets/{ticket['id']}/test-cases/{tc_id}")
