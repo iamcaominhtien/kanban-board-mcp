@@ -70,6 +70,7 @@ Before delegating any task, consult this roster to assign the right agent.
 - **2-Phase QC Workflow** — preparation and execution are separate.
     1. **Phase 1 (Write):** Delegate to `qc` to write complete test cases first. Review and get user confirmation.
     2. **Phase 2 (Execute):** Only after confirmation, delegate to `qc` to run tests and update results (pass/fail/notes).
+    3. **Test Documentation:** The `qc` agent produces test plan markdown files but cannot commit to git. You must instruct the `developer` to include these QC test docs in their PR branch before merging.
 
 ### Subtask rules
 - **Plan subtasks upfront** — if a ticket needs subtasks, break them down during the planning phase (step 2), before any work begins. Never create subtasks mid-implementation.

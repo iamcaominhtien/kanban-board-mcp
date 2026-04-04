@@ -50,6 +50,16 @@ PR must target `main`. Title = ticket title. Body must reference the ticket ID.
 
 Notify the PM that the PR is ready for review.
 
+## QC Test Docs
+
+QC writes test plans and results as markdown files (e.g. `docs/test-plans/`), but QC does not commit or push code directly.
+
+**Developer responsibility**: after QC hands over a test plan doc, the developer must:
+1. Copy the doc into the repo (typically `docs/test-plans/<ticket-id>.md`)
+2. Include it in the PR before merging
+
+This keeps test artifacts tracked in git alongside the code they cover.
+
 ## Handling Review Feedback
 
 Apply fixes on the same branch, push — the PR updates automatically. Notify PM when ready for re-review.
