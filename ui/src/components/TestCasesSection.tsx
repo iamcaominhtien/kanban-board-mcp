@@ -12,6 +12,7 @@ interface TestCasesSectionProps {
   testCases: TestCase[];
   onChange: (updated: TestCase[]) => void;
   readOnly?: boolean;
+  disabled?: boolean;
   childTestCaseSources?: ChildTestCaseSource[];
 }
 
@@ -176,7 +177,7 @@ function TestCaseRow({
   );
 }
 
-export function TestCasesSection({ testCases, onChange, readOnly = false, childTestCaseSources }: TestCasesSectionProps) {
+export function TestCasesSection({ testCases, onChange, readOnly = false, disabled = false, childTestCaseSources }: TestCasesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
 
@@ -262,7 +263,7 @@ export function TestCasesSection({ testCases, onChange, readOnly = false, childT
           <span className={`${styles.chevron} ${!isExpanded ? styles.chevronCollapsed : ''}`}>▼</span>
         </button>
         {!readOnly && (
-          <button type="button" className={styles.addBtn} onClick={handleAdd}>
+          <button type="button" className={styles.addBtn} onClick={handleAdd} disabled={disabled}>
             ＋ Add
           </button>
         )}

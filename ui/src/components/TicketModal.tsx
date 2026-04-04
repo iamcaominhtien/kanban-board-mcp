@@ -143,7 +143,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     const tags = [...new Set(tagsInput.split(',').map((t) => t.trim()).filter(Boolean))];
 
     if (localMode === 'create') {
-      onSave!({
+      if (onSave) onSave({
         title: title.trim(),
         description,
         type,
@@ -158,7 +158,10 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     } else if (ticket) {
       updateTicketMutation.mutate(
         { ticketId: ticket.id, data: { title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, estimate } },
-        { onSuccess: () => handleClose() },
+        {
+          onSuccess: () => handleClose(),
+          onError: (err) => { console.error('Failed to save ticket:', err); window.alert('Failed to save ticket. Please try again.'); },
+        },
       );
     }
   }
@@ -178,27 +181,42 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
   function handleAddComment(text: string) {
     if (!ticket) return;
-    addCommentMutation.mutate({ ticketId: ticket.id, text, author: 'user' });
+    addCommentMutation.mutate(
+      { ticketId: ticket.id, text, author: 'user' },
+      { onError: (err) => { console.error('Failed to add comment:', err); window.alert('Failed to add comment. Please try again.'); } },
+    );
   }
 
   function handleAddAC(text: string) {
     if (!ticket) return;
-    addACMutation.mutate({ ticketId: ticket.id, text });
+    addACMutation.mutate(
+      { ticketId: ticket.id, text },
+      { onError: (err) => { console.error('Failed to add acceptance criterion:', err); window.alert('Failed to add acceptance criterion. Please try again.'); } },
+    );
   }
 
   function handleToggleAC(id: string) {
     if (!ticket) return;
-    toggleACMutation.mutate({ ticketId: ticket.id, criterionId: id });
+    toggleACMutation.mutate(
+      { ticketId: ticket.id, criterionId: id },
+      { onError: (err) => { console.error('Failed to toggle acceptance criterion:', err); window.alert('Failed to toggle acceptance criterion. Please try again.'); } },
+    );
   }
 
   function handleDeleteAC(id: string) {
     if (!ticket) return;
-    deleteACMutation.mutate({ ticketId: ticket.id, criterionId: id });
+    deleteACMutation.mutate(
+      { ticketId: ticket.id, criterionId: id },
+      { onError: (err) => { console.error('Failed to delete acceptance criterion:', err); window.alert('Failed to delete acceptance criterion. Please try again.'); } },
+    );
   }
 
   function handleAddWorkLog(entry: Omit<WorkLogEntry, 'id'>) {
     if (!ticket) return;
-    addWorkLogMutation.mutate({ ticketId: ticket.id, data: { author: entry.author, role: entry.role, note: entry.note } });
+    addWorkLogMutation.mutate(
+      { ticketId: ticket.id, data: { author: entry.author, role: entry.role, note: entry.note } },
+      { onError: (err) => { console.error('Failed to add work log:', err); window.alert('Failed to add work log entry. Please try again.'); } },
+    );
   }
 
   function handleCancelEdit() {
@@ -223,19 +241,31 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     const isRootTicket = !isChildTicket;
 
     function handleLinkChild(childId: string) {
-      updateTicketMutation.mutate({ ticketId: childId, data: { parentId: currentTicket.id } });
+      updateTicketMutation.mutate(
+        { ticketId: childId, data: { parentId: currentTicket.id } },
+        { onError: (err) => { console.error('Failed to link child ticket:', err); window.alert('Failed to link child ticket. Please try again.'); } },
+      );
     }
 
     function handleUnlinkChild(childId: string) {
-      updateTicketMutation.mutate({ ticketId: childId, data: { parentId: null } });
+      updateTicketMutation.mutate(
+        { ticketId: childId, data: { parentId: null } },
+        { onError: (err) => { console.error('Failed to unlink child ticket:', err); window.alert('Failed to unlink child ticket. Please try again.'); } },
+      );
     }
 
     function handleSetParent(parentId: string) {
-      updateTicketMutation.mutate({ ticketId: currentTicket.id, data: { parentId } });
+      updateTicketMutation.mutate(
+        { ticketId: currentTicket.id, data: { parentId } },
+        { onError: (err) => { console.error('Failed to set parent:', err); window.alert('Failed to set parent ticket. Please try again.'); } },
+      );
     }
 
     function handleRemoveParent() {
-      updateTicketMutation.mutate({ ticketId: currentTicket.id, data: { parentId: null } });
+      updateTicketMutation.mutate(
+        { ticketId: currentTicket.id, data: { parentId: null } },
+        { onError: (err) => { console.error('Failed to remove parent:', err); window.alert('Failed to remove parent ticket. Please try again.'); } },
+      );
     }
 
     // Eligible parents: not current ticket, parentId===null, no children of their own
@@ -338,6 +368,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
                 <TestCasesSection
                   testCases={ticket.testCases ?? []}
+                  disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
                   onChange={(updated) => {
                     const old = ticket.testCases ?? [];
                     // Detect added (client-side ID not in server list, title must be non-empty)
@@ -354,17 +385,26 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       return o && JSON.stringify(o) !== JSON.stringify(u);
                     });
                     addedItems.forEach((tc) =>
-                      addTestCaseMutation.mutate({ ticketId: ticket.id, title: tc.title }),
+                      addTestCaseMutation.mutate(
+                        { ticketId: ticket.id, title: tc.title },
+                        { onError: (err) => { console.error('Failed to add test case:', err); window.alert('Failed to add test case. Please try again.'); } },
+                      ),
                     );
                     deletedIds.forEach((id) =>
-                      deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id }),
+                      deleteTestCaseMutation.mutate(
+                        { ticketId: ticket.id, testCaseId: id },
+                        { onError: (err) => { console.error('Failed to delete test case:', err); window.alert('Failed to delete test case. Please try again.'); } },
+                      ),
                     );
                     changedItems.forEach((tc) =>
-                      updateTestCaseMutation.mutate({
-                        ticketId: ticket.id,
-                        testCaseId: tc.id,
-                        data: { title: tc.title, status: tc.status, proof: tc.proof ?? null, note: tc.note ?? null },
-                      }),
+                      updateTestCaseMutation.mutate(
+                        {
+                          ticketId: ticket.id,
+                          testCaseId: tc.id,
+                          data: { title: tc.title, status: tc.status, proof: tc.proof ?? null, note: tc.note ?? null },
+                        },
+                        { onError: (err) => { console.error('Failed to update test case:', err); window.alert('Failed to update test case. Please try again.'); } },
+                      ),
                     );
                   }}
                   childTestCaseSources={

@@ -38,7 +38,6 @@ export default function App() {
   const [modalState, setModalState] = useState<
     | { mode: 'create' }
     | { mode: 'view'; ticketId: string }
-    | { mode: 'edit'; ticketId: string }
     | null
   >(null);
 
@@ -158,7 +157,7 @@ export default function App() {
               ) : modalTicket ? (
                 <TicketModal
                   key={modalTicket.id}
-                  mode={modalState.mode}
+                  mode="view"
                   ticket={modalTicket}
                   onDelete={handleDeleteTicket}
                   onClose={() => setModalState(null)}
