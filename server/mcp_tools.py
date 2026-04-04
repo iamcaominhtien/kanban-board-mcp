@@ -1,4 +1,8 @@
+from typing import Literal
+
 from mcp.server.fastmcp import FastMCP
+from pydantic import ValidationError
+from sqlalchemy.exc import NoResultFound
 
 import services.projects as svc_projects
 import services.tickets as svc_tickets
@@ -51,15 +55,15 @@ async def list_tickets(
 async def create_ticket(
     project_id: str,
     title: str,
-    type: str = "task",
-    priority: str = "medium",
-    status: str = "backlog",
+    type: Literal["task", "bug", "story", "epic"] = "task",
+    priority: Literal["low", "medium", "high", "critical"] = "medium",
+    status: Literal["backlog", "todo", "in-progress", "done"] = "backlog",
     description: str = "",
     parent_id: str | None = None,
     estimate: float | None = None,
     due_date: str | None = None,
     tags: list[str] | None = None,
-) -> dict:
+) -> dict | None:
     """Create a new ticket in a project. The ticket ID is auto-generated as PREFIX-N (e.g. IAM-5).
 
     Args:
@@ -76,21 +80,24 @@ async def create_ticket(
 
     Returns the created ticket.
     """
-    async with async_session() as session:
-        ticket = await svc_tickets.create_ticket(
-            session,
-            project_id=project_id,
-            title=title,
-            type=type,
-            priority=priority,
-            status=status,
-            description=description,
-            parent_id=parent_id,
-            estimate=estimate,
-            due_date=due_date,
-            tags=tags or [],
-        )
-        return TicketRead.from_ticket(ticket).model_dump()
+    try:
+        async with async_session() as session:
+            ticket = await svc_tickets.create_ticket(
+                session,
+                project_id=project_id,
+                title=title,
+                type=type,
+                priority=priority,
+                status=status,
+                description=description,
+                parent_id=parent_id,
+                estimate=estimate,
+                due_date=due_date,
+                tags=tags or [],
+            )
+            return TicketRead.from_ticket(ticket).model_dump()
+    except NoResultFound:
+        raise ValueError(f"Project not found: {project_id}")
 
 
 async def get_ticket(ticket_id: str) -> dict | None:
@@ -105,19 +112,25 @@ async def get_ticket(ticket_id: str) -> dict | None:
         return TicketRead.from_ticket(ticket).model_dump()
 
 
-async def update_ticket_status(ticket_id: str, status: str) -> dict | None:
+async def update_ticket_status(
+    ticket_id: str,
+    status: Literal["backlog", "todo", "in-progress", "done"],
+) -> dict | None:
     """Update the status of a ticket. Valid statuses: backlog, todo, in-progress, done.
 
     Automatically appends a status change entry to the ticket's activity log.
     Returns the updated ticket or None if not found.
     """
-    async with async_session() as session:
-        ticket = await svc_tickets.update_ticket(
-            session, ticket_id, TicketUpdate(status=status)
-        )
-        if ticket is None:
-            return None
-        return TicketRead.from_ticket(ticket).model_dump()
+    try:
+        async with async_session() as session:
+            ticket = await svc_tickets.update_ticket(
+                session, ticket_id, TicketUpdate(status=status)
+            )
+            if ticket is None:
+                return None
+            return TicketRead.from_ticket(ticket).model_dump()
+    except ValidationError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def register(mcp: FastMCP) -> None:

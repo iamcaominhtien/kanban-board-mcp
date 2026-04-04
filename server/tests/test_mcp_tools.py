@@ -34,7 +34,8 @@ async def setup_db(monkeypatch):
 
 
 async def _seed_project(name: str = "Test", prefix: str | None = None) -> dict:
-    prefix = prefix or f"T{str(uuid.uuid4())[:4].upper()}"
+    # uuid4 hex without hyphens guarantees alphanumeric chars
+    prefix = prefix or ("T" + "".join(c for c in str(uuid.uuid4()).replace("-", "") if c.isalnum())[:3]).upper()
     return await mcp_tools.create_project(name=name, prefix=prefix, color="#aabbcc")
 
 
