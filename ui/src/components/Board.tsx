@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { COLUMNS } from '../data/mock-tickets';
-import type { Priority, Status, Ticket } from '../types';
+import type { Column as ColumnType, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
+
+const COLUMNS: ColumnType[] = [
+  { id: 'backlog',     label: 'Backlog',      accentColor: '#F5C518' },
+  { id: 'todo',        label: 'To Do',        accentColor: '#E8441A' },
+  { id: 'in-progress', label: 'In Progress',  accentColor: '#AACC2E' },
+  { id: 'done',        label: 'Done',         accentColor: '#F472B6' },
+];
 
 interface BoardProps {
   tickets: Ticket[];
