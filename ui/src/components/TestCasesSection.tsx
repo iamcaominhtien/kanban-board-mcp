@@ -12,6 +12,7 @@ interface TestCasesSectionProps {
   testCases: TestCase[];
   onChange: (updated: TestCase[]) => void;
   readOnly?: boolean;
+  disabled?: boolean;
   childTestCaseSources?: ChildTestCaseSource[];
 }
 
@@ -44,12 +45,14 @@ function TestCaseRow({
   onUpdate,
   onDelete,
   readOnly,
+  disabled,
   sourceBadge,
 }: {
   tc: TestCase;
   onUpdate: (updated: TestCase) => void;
   onDelete: () => void;
   readOnly: boolean;
+  disabled?: boolean;
   sourceBadge?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -104,6 +107,7 @@ function TestCaseRow({
               className={`${styles.titleInput}${titleError ? ` ${styles.titleInputError}` : ''}`}
               value={titleDraft}
               autoFocus
+              disabled={disabled}
               onChange={(e) => { setTitleDraft(e.target.value); setTitleError(false); }}
               onBlur={commitTitle}
               onKeyDown={handleTitleKeyDown}
@@ -140,6 +144,7 @@ function TestCaseRow({
               type="button"
               className={styles.deleteBtn}
               onClick={onDelete}
+              disabled={disabled}
               aria-label={`Delete test case: ${tc.title}`}
             >
               🗑
@@ -176,7 +181,7 @@ function TestCaseRow({
   );
 }
 
-export function TestCasesSection({ testCases, onChange, readOnly = false, childTestCaseSources }: TestCasesSectionProps) {
+export function TestCasesSection({ testCases, onChange, readOnly = false, disabled = false, childTestCaseSources }: TestCasesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
 
@@ -262,7 +267,7 @@ export function TestCasesSection({ testCases, onChange, readOnly = false, childT
           <span className={`${styles.chevron} ${!isExpanded ? styles.chevronCollapsed : ''}`}>▼</span>
         </button>
         {!readOnly && (
-          <button type="button" className={styles.addBtn} onClick={handleAdd}>
+          <button type="button" className={styles.addBtn} onClick={handleAdd} disabled={disabled}>
             ＋ Add
           </button>
         )}
@@ -309,6 +314,7 @@ export function TestCasesSection({ testCases, onChange, readOnly = false, childT
                   onUpdate={handleUpdate}
                   onDelete={() => handleDelete(tc.id)}
                   readOnly={isReadOnly}
+                  disabled={disabled}
                   sourceBadge={sourceBadge}
                 />
               ))

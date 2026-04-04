@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Comment, IssueType, Priority, Status, Ticket, WorkLogEntry } from '../types';
+import type { IssueType, Priority, Status, Ticket, WorkLogEntry } from '../types';
+import {
+  useUpdateTicket,
+  useAddComment,
+  useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
+  useAddWorkLog,
+  useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+} from '../api/tickets';
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
@@ -36,11 +43,39 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-type TicketModalProps =
-  | { mode: 'create'; ticket?: undefined; onSave: (t: Ticket) => void; onDelete?: undefined; onClose: () => void; allTickets?: Ticket[]; onOpenTicket?: (t: Ticket) => void; onSaveOther?: (t: Ticket) => void }
-  | { mode: 'view' | 'edit'; ticket: Ticket; onSave: (t: Ticket) => void; onDelete?: (id: string) => void; onClose: () => void; allTickets?: Ticket[]; onOpenTicket?: (t: Ticket) => void; onSaveOther?: (t: Ticket) => void };
+type CreateTicketData = {
+  title: string;
+  description: string;
+  type: IssueType;
+  priority: Priority;
+  status: Status;
+  tags: string[];
+  dueDate: string | null;
+  estimate: number | null;
+  parentId: string | null;
+};
 
-export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClose, allTickets = [], onOpenTicket, onSaveOther }: TicketModalProps) {
+type TicketModalProps =
+  | {
+      mode: 'create';
+      ticket?: undefined;
+      onSave: (data: CreateTicketData) => void;
+      onDelete?: undefined;
+      onClose: () => void;
+      allTickets?: Ticket[];
+      onOpenTicket?: (t: Ticket) => void;
+    }
+  | {
+      mode: 'view' | 'edit';
+      ticket: Ticket;
+      onSave?: undefined;
+      onDelete?: (id: string) => void;
+      onClose: () => void;
+      allTickets?: Ticket[];
+      onOpenTicket?: (t: Ticket) => void;
+    };
+
+export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClose, allTickets = [], onOpenTicket }: TicketModalProps) {
   const [localMode, setLocalMode] = useState<'create' | 'view' | 'edit'>(initialMode);
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [description, setDescription] = useState(ticket?.description ?? '');
@@ -50,8 +85,17 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
-  const testCases = ticket?.testCases ?? [];
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const updateTicketMutation = useUpdateTicket();
+  const addCommentMutation = useAddComment();
+  const addACMutation = useAddAcceptanceCriterion();
+  const toggleACMutation = useToggleAcceptanceCriterion();
+  const deleteACMutation = useDeleteAcceptanceCriterion();
+  const addWorkLogMutation = useAddWorkLog();
+  const addTestCaseMutation = useAddTestCase();
+  const updateTestCaseMutation = useUpdateTestCase();
+  const deleteTestCaseMutation = useDeleteTestCase();
   const [visible, setVisible] = useState(false);
 
   // Fix 1: keep onClose ref fresh to avoid stale closure in Escape handler
@@ -96,13 +140,10 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
   function handleSave() {
     if (!title.trim()) return;
-    const now = new Date().toISOString();
     const tags = [...new Set(tagsInput.split(',').map((t) => t.trim()).filter(Boolean))];
 
     if (localMode === 'create') {
-      onSave({
-        id: '',
-        projectId: '',
+      if (onSave) onSave({
         title: title.trim(),
         description,
         type,
@@ -110,20 +151,19 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         priority,
         tags,
         dueDate: dueDate || null,
-        createdAt: now,
-        updatedAt: now,
-        comments: [],
-        acceptanceCriteria: [],
         estimate,
-        activityLog: [],
-        workLog: [],
-        testCases: [],
         parentId: null,
       });
+      // parent closes the modal after successful creation
     } else if (ticket) {
-      onSave({ ...ticket, title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, updatedAt: now, estimate, testCases, parentId: ticket.parentId ?? null });
+      updateTicketMutation.mutate(
+        { ticketId: ticket.id, data: { title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, estimate } },
+        {
+          onSuccess: () => handleClose(),
+          onError: (err) => { console.error('Failed to save ticket:', err); window.alert('Failed to save ticket. Please try again.'); },
+        },
+      );
     }
-    handleClose();
   }
 
   function handleDelete() {
@@ -141,43 +181,42 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
   function handleAddComment(text: string) {
     if (!ticket) return;
-    const id = typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    const newComment: Comment = {
-      id,
-      text,
-      author: 'user',
-      at: new Date().toISOString(),
-    };
-    onSave({ ...ticket, comments: [...ticket.comments, newComment], updatedAt: new Date().toISOString() });
+    addCommentMutation.mutate(
+      { ticketId: ticket.id, text, author: 'user' },
+      { onError: (err) => { console.error('Failed to add comment:', err); window.alert('Failed to add comment. Please try again.'); } },
+    );
   }
 
   function handleAddAC(text: string) {
     if (!ticket) return;
-    const id = typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    onSave({ ...ticket, acceptanceCriteria: [...(ticket.acceptanceCriteria ?? []), { id, text, done: false }], updatedAt: new Date().toISOString() });
+    addACMutation.mutate(
+      { ticketId: ticket.id, text },
+      { onError: (err) => { console.error('Failed to add acceptance criterion:', err); window.alert('Failed to add acceptance criterion. Please try again.'); } },
+    );
   }
 
   function handleToggleAC(id: string) {
     if (!ticket) return;
-    onSave({ ...ticket, acceptanceCriteria: (ticket.acceptanceCriteria ?? []).map((s) => s.id === id ? { ...s, done: !s.done } : s), updatedAt: new Date().toISOString() });
+    toggleACMutation.mutate(
+      { ticketId: ticket.id, criterionId: id },
+      { onError: (err) => { console.error('Failed to toggle acceptance criterion:', err); window.alert('Failed to toggle acceptance criterion. Please try again.'); } },
+    );
   }
 
   function handleDeleteAC(id: string) {
     if (!ticket) return;
-    onSave({ ...ticket, acceptanceCriteria: (ticket.acceptanceCriteria ?? []).filter((s) => s.id !== id), updatedAt: new Date().toISOString() });
+    deleteACMutation.mutate(
+      { ticketId: ticket.id, criterionId: id },
+      { onError: (err) => { console.error('Failed to delete acceptance criterion:', err); window.alert('Failed to delete acceptance criterion. Please try again.'); } },
+    );
   }
 
   function handleAddWorkLog(entry: Omit<WorkLogEntry, 'id'>) {
     if (!ticket) return;
-    const id = typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    const newEntry: WorkLogEntry = { id, ...entry };
-    onSave({ ...ticket, workLog: [...(ticket.workLog ?? []), newEntry], updatedAt: new Date().toISOString() });
+    addWorkLogMutation.mutate(
+      { ticketId: ticket.id, data: { author: entry.author, role: entry.role, note: entry.note } },
+      { onError: (err) => { console.error('Failed to add work log:', err); window.alert('Failed to add work log entry. Please try again.'); } },
+    );
   }
 
   function handleCancelEdit() {
@@ -202,23 +241,31 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     const isRootTicket = !isChildTicket;
 
     function handleLinkChild(childId: string) {
-      const child = allTickets.find((t) => t.id === childId);
-      if (!child || !onSaveOther) return;
-      onSaveOther({ ...child, parentId: currentTicket.id, updatedAt: new Date().toISOString() });
+      updateTicketMutation.mutate(
+        { ticketId: childId, data: { parentId: currentTicket.id } },
+        { onError: (err) => { console.error('Failed to link child ticket:', err); window.alert('Failed to link child ticket. Please try again.'); } },
+      );
     }
 
     function handleUnlinkChild(childId: string) {
-      const child = allTickets.find((t) => t.id === childId);
-      if (!child || !onSaveOther) return;
-      onSaveOther({ ...child, parentId: null, updatedAt: new Date().toISOString() });
+      updateTicketMutation.mutate(
+        { ticketId: childId, data: { parentId: null } },
+        { onError: (err) => { console.error('Failed to unlink child ticket:', err); window.alert('Failed to unlink child ticket. Please try again.'); } },
+      );
     }
 
     function handleSetParent(parentId: string) {
-      onSave({ ...currentTicket, parentId, updatedAt: new Date().toISOString() });
+      updateTicketMutation.mutate(
+        { ticketId: currentTicket.id, data: { parentId } },
+        { onError: (err) => { console.error('Failed to set parent:', err); window.alert('Failed to set parent ticket. Please try again.'); } },
+      );
     }
 
     function handleRemoveParent() {
-      onSave({ ...currentTicket, parentId: null, updatedAt: new Date().toISOString() });
+      updateTicketMutation.mutate(
+        { ticketId: currentTicket.id, data: { parentId: null } },
+        { onError: (err) => { console.error('Failed to remove parent:', err); window.alert('Failed to remove parent ticket. Please try again.'); } },
+      );
     }
 
     // Eligible parents: not current ticket, parentId===null, no children of their own
@@ -321,7 +368,45 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
                 <TestCasesSection
                   testCases={ticket.testCases ?? []}
-                  onChange={(updated) => onSave({ ...ticket, testCases: updated, updatedAt: new Date().toISOString() })}
+                  disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
+                  onChange={(updated) => {
+                    const old = ticket.testCases ?? [];
+                    // Detect added (client-side ID not in server list, title must be non-empty)
+                    const addedItems = updated.filter(
+                      (u) => !old.some((o) => o.id === u.id) && u.title.trim(),
+                    );
+                    // Detect deleted
+                    const deletedIds = old
+                      .filter((o) => !updated.some((u) => u.id === o.id))
+                      .map((o) => o.id);
+                    // Detect updated (matching server ID but content changed)
+                    const changedItems = updated.filter((u) => {
+                      const o = old.find((o) => o.id === u.id);
+                      return o && JSON.stringify(o) !== JSON.stringify(u);
+                    });
+                    addedItems.forEach((tc) =>
+                      addTestCaseMutation.mutate(
+                        { ticketId: ticket.id, title: tc.title },
+                        { onError: (err) => { console.error('Failed to add test case:', err); window.alert('Failed to add test case. Please try again.'); } },
+                      ),
+                    );
+                    deletedIds.forEach((id) =>
+                      deleteTestCaseMutation.mutate(
+                        { ticketId: ticket.id, testCaseId: id },
+                        { onError: (err) => { console.error('Failed to delete test case:', err); window.alert('Failed to delete test case. Please try again.'); } },
+                      ),
+                    );
+                    changedItems.forEach((tc) =>
+                      updateTestCaseMutation.mutate(
+                        {
+                          ticketId: ticket.id,
+                          testCaseId: tc.id,
+                          data: { title: tc.title, status: tc.status, proof: tc.proof ?? null, note: tc.note ?? null },
+                        },
+                        { onError: (err) => { console.error('Failed to update test case:', err); window.alert('Failed to update test case. Please try again.'); } },
+                      ),
+                    );
+                  }}
                   childTestCaseSources={
                     isRootTicket
                       ? allTickets
