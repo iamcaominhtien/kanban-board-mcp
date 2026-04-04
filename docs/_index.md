@@ -8,6 +8,7 @@ _Last updated: 2026-04-04_
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
 | [backend-architecture.md](backend-architecture.md) | Backend Architecture & Implementation Plan | approved | 1.0.0 | 2026-04-04 |
+| [api-contract.md](api-contract.md) | API Contract | approved | 1.0.0 | 2026-04-04 |
 
 ## Business Analysis
 

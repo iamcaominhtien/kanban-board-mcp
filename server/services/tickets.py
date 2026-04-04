@@ -34,7 +34,8 @@ async def list_tickets(
     if priority is not None:
         stmt = stmt.where(Ticket.priority == priority)
     if q is not None:
-        stmt = stmt.where(Ticket.title.contains(q))
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(Ticket.title.ilike(f"%{escaped}%", escape="\\"))
     result = await session.exec(stmt)
     return list(result.all())
 

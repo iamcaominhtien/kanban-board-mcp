@@ -28,6 +28,10 @@ app.add_middleware(
 
 mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
 
+import mcp_tools as _mcp_tools  # noqa: E402
+
+_mcp_tools.register(mcp)
+
 app.mount("/mcp", mcp.streamable_http_app())
 
 app.include_router(projects_router)
