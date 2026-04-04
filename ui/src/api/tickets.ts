@@ -1,5 +1,5 @@
 import { client } from './client';
-import type { IssueType, Priority, Status, Ticket } from '../types/ticket';
+import type { IssueType, Priority, Status, Ticket, WorkLogRole } from '../types/ticket';
 
 export async function listTickets(
   projectId: string,
@@ -112,7 +112,7 @@ export async function deleteAcceptanceCriterion(
 // Work log
 export async function addWorkLog(
   ticketId: string,
-  data: { author: string; role: string; note: string },
+  data: { author: string; role: WorkLogRole; note: string },
 ): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/work-log`, data);
   return res.data;
