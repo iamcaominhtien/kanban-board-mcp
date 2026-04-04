@@ -21,7 +21,7 @@ export default function App() {
     }
   }, [apiProjects, currentProjectId]);
 
-  const currentProject = apiProjects.find((p) => p.id === currentProjectId) ?? apiProjects[0];
+  const currentProject = apiProjects.find((p) => p.id === currentProjectId);
   const tickets = currentProject ? (ticketsMap[currentProject.id] ?? []) : [];
 
   const q = searchQuery.toLowerCase();
@@ -117,15 +117,22 @@ export default function App() {
   }
 
   async function handleCreateProject(data: { name: string; prefix: string; color: string }) {
-    const newProject = await createProjectMutation.mutateAsync(data);
-    setCurrentProjectId(newProject.id);
+    try {
+      const newProject = await createProjectMutation.mutateAsync(data);
+      setCurrentProjectId(newProject.id);
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      window.alert('Failed to create project. Please try again.');
+    }
   }
 
   async function handleDeleteProject(id: string) {
-    await deleteProjectMutation.mutateAsync(id);
-    if (currentProjectId === id) {
-      const remaining = apiProjects.filter((p) => p.id !== id);
-      setCurrentProjectId(remaining[0]?.id ?? '');
+    try {
+      await deleteProjectMutation.mutateAsync(id);
+      // useEffect handles selecting the next project when apiProjects updates
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      window.alert('Failed to delete project. Please try again.');
     }
   }
 
