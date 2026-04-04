@@ -232,6 +232,21 @@ async def test_add_work_log(client: httpx.AsyncClient):
     assert wl[0]["note"] == "Did stuff"
 
 
+async def test_delete_work_log(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        r_add = await c.post(
+            f"/tickets/{ticket['id']}/work-log",
+            json={"author": "alice", "role": "qa", "note": "Reviewed"},
+        )
+        assert r_add.status_code == 200
+        log_id = r_add.json()["work_log"][0]["id"]
+        r_del = await c.delete(f"/tickets/{ticket['id']}/work-log/{log_id}")
+    assert r_del.status_code == 200
+    assert r_del.json()["work_log"] == []
+
+
 # ---------------------------------------------------------------------------
 # Test cases
 # ---------------------------------------------------------------------------

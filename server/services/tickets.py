@@ -49,6 +49,7 @@ async def create_ticket(
     title: str,
     type: str = "task",
     priority: str = "medium",
+    status: str = "backlog",
     description: str = "",
     parent_id: str | None = None,
     estimate: float | None = None,
@@ -81,6 +82,7 @@ async def create_ticket(
         title=title,
         type=type,
         priority=priority,
+        status=status,
         description=description,
         parent_id=parent_id,
         estimate=estimate,
@@ -268,6 +270,21 @@ async def add_work_log(
         }
     )
     ticket.work_log = _dumps(logs)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def delete_work_log(
+    session: AsyncSession, ticket_id: str, log_id: str
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    logs = _loads(ticket.work_log)
+    ticket.work_log = _dumps([lg for lg in logs if lg.get("id") != log_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
     await session.commit()

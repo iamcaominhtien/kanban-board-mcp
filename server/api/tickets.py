@@ -1,11 +1,11 @@
-from typing import Annotated, Any, Optional
+from typing import Annotated, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database import get_session
-from models import TicketRead, TicketUpdate
+from models import TicketCreateBody, TicketRead, TicketUpdate
 from services.tickets import (
     add_acceptance_criterion,
     add_comment,
@@ -16,6 +16,7 @@ from services.tickets import (
     delete_comment,
     delete_test_case,
     delete_ticket,
+    delete_work_log,
     get_ticket,
     list_tickets,
     toggle_acceptance_criterion,
@@ -32,7 +33,7 @@ def _read(ticket) -> TicketRead:
     return TicketRead.from_ticket(ticket)
 
 
-def _404(detail: str = "Ticket not found"):
+def _404(detail: str = "Ticket not found") -> NoReturn:
     raise HTTPException(status_code=404, detail=detail)
 
 
@@ -55,17 +56,6 @@ async def get_tickets(
     return [_read(t) for t in tickets]
 
 
-class TicketCreateBody(BaseModel):
-    title: str
-    type: str = "task"
-    priority: str = "medium"
-    description: str = ""
-    parent_id: Optional[str] = None
-    estimate: Optional[float] = None
-    due_date: Optional[str] = None
-    tags: list[Any] = []
-
-
 @router.post(
     "/projects/{project_id}/tickets", response_model=TicketRead, status_code=201
 )
@@ -79,6 +69,7 @@ async def post_ticket(
             title=body.title,
             type=body.type,
             priority=body.priority,
+            status=body.status,
             description=body.description,
             parent_id=body.parent_id,
             estimate=body.estimate,
@@ -217,6 +208,14 @@ async def post_work_log(
     ticket_id: str, body: WorkLogBody, session: Session
 ) -> TicketRead:
     ticket = await add_work_log(session, ticket_id, body.author, body.role, body.note)
+    if ticket is None:
+        _404()
+    return _read(ticket)
+
+
+@router.delete("/tickets/{ticket_id}/work-log/{log_id}", response_model=TicketRead)
+async def del_work_log(ticket_id: str, log_id: str, session: Session) -> TicketRead:
+    ticket = await delete_work_log(session, ticket_id, log_id)
     if ticket is None:
         _404()
     return _read(ticket)
