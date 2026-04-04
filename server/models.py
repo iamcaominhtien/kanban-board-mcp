@@ -1,7 +1,7 @@
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from sqlmodel import Field, SQLModel
 
@@ -97,21 +97,28 @@ class TicketCreate(SQLModel):
     test_cases: list[Any] = []
 
 
+class TicketCreateBody(SQLModel):
+    title: str
+    description: str = ""
+    type: Literal["bug", "feature", "task", "chore"] = "task"
+    priority: Literal["low", "medium", "high", "critical"] = "medium"
+    status: Literal["backlog", "todo", "in-progress", "done"] = "backlog"
+    estimate: Optional[float] = None
+    due_date: Optional[str] = None
+    tags: list[Any] = []
+    parent_id: Optional[str] = None
+
+
 class TicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    type: Optional[str] = None
-    status: Optional[str] = None
-    priority: Optional[str] = None
+    type: Optional[Literal["bug", "feature", "task", "chore"]] = None
+    status: Optional[Literal["backlog", "todo", "in-progress", "done"]] = None
+    priority: Optional[Literal["low", "medium", "high", "critical"]] = None
     estimate: Optional[float] = None
     due_date: Optional[str] = None
     tags: Optional[list[Any]] = None
     parent_id: Optional[str] = None
-    comments: Optional[list[Any]] = None
-    acceptance_criteria: Optional[list[Any]] = None
-    activity_log: Optional[list[Any]] = None
-    work_log: Optional[list[Any]] = None
-    test_cases: Optional[list[Any]] = None
 
 
 class TicketRead(SQLModel):
