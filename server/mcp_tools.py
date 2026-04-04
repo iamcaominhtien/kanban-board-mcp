@@ -55,7 +55,7 @@ async def list_tickets(
 async def create_ticket(
     project_id: str,
     title: str,
-    type: Literal["task", "bug", "story", "epic"] = "task",
+    type: Literal["bug", "feature", "task", "chore"] = "task",
     priority: Literal["low", "medium", "high", "critical"] = "medium",
     status: Literal["backlog", "todo", "in-progress", "done"] = "backlog",
     description: str = "",

@@ -153,3 +153,33 @@ async def test_update_ticket_status_changes_status():
 async def test_update_ticket_status_returns_none_for_missing():
     result = await mcp_tools.update_ticket_status("MISSING-0", "done")
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# create_ticket — unknown project
+# ---------------------------------------------------------------------------
+
+
+async def test_create_ticket_unknown_project_raises():
+    with pytest.raises(ValueError, match="Project not found"):
+        await mcp_tools.create_ticket(project_id=str(uuid.uuid4()), title="x")
+
+
+# ---------------------------------------------------------------------------
+# list_tickets — wildcard escaping
+# ---------------------------------------------------------------------------
+
+
+async def test_list_tickets_percent_is_literal_not_wildcard():
+    """q='%' should only match tickets whose title contains '%', not all tickets."""
+    project = await _seed_project(prefix="PCT")
+    await mcp_tools.create_ticket(
+        project_id=project["id"], title="50% done"
+    )
+    await mcp_tools.create_ticket(
+        project_id=project["id"], title="no percent here"
+    )
+
+    results = await mcp_tools.list_tickets(project_id=project["id"], q="%")
+    assert len(results) == 1
+    assert "%" in results[0]["title"]
