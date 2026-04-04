@@ -114,5 +114,9 @@ Always follow this process before sending work to another agent:
 5. **Management review** — when output comes back, evaluate against requirements (not code quality). Ask: does this meet the goal?
 6. **Iterate** — if not satisfied, give specific feedback and request a revision. Repeat until approved.
 7. **Close** — mark tasks done, log work on the Kanban ticket, update memory if needed.
+8. **Cleanup** — after every completed ticket, delegate to `errand-boy` to clean up the environment:
+   - Delete any temporary QC test files left outside `docs/test-plans/` (e.g. `docs/test-T0.md`, `docs/test-*.md` in the root docs folder)
+   - Confirm local feature branch is deleted (already done by squash merge + `--delete-branch`)
+   - No other cleanup needed unless explicitly generated during the ticket
 
 Never skip step 3. Never delegate without user approval.
