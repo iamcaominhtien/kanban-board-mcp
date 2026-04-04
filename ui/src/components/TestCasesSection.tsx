@@ -45,12 +45,14 @@ function TestCaseRow({
   onUpdate,
   onDelete,
   readOnly,
+  disabled,
   sourceBadge,
 }: {
   tc: TestCase;
   onUpdate: (updated: TestCase) => void;
   onDelete: () => void;
   readOnly: boolean;
+  disabled?: boolean;
   sourceBadge?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -105,6 +107,7 @@ function TestCaseRow({
               className={`${styles.titleInput}${titleError ? ` ${styles.titleInputError}` : ''}`}
               value={titleDraft}
               autoFocus
+              disabled={disabled}
               onChange={(e) => { setTitleDraft(e.target.value); setTitleError(false); }}
               onBlur={commitTitle}
               onKeyDown={handleTitleKeyDown}
@@ -141,6 +144,7 @@ function TestCaseRow({
               type="button"
               className={styles.deleteBtn}
               onClick={onDelete}
+              disabled={disabled}
               aria-label={`Delete test case: ${tc.title}`}
             >
               🗑
@@ -310,6 +314,7 @@ export function TestCasesSection({ testCases, onChange, readOnly = false, disabl
                   onUpdate={handleUpdate}
                   onDelete={() => handleDelete(tc.id)}
                   readOnly={isReadOnly}
+                  disabled={disabled}
                   sourceBadge={sourceBadge}
                 />
               ))
