@@ -39,17 +39,15 @@ uv run pytest
 
 ## Code Quality
 
-> **Note:** `ruff` is not yet configured in `pyproject.toml`. Add it to `[dependency-groups].dev` to enable the commands below.
-
 ```bash
-# Format
-uv run ruff format .
-
 # Lint
 uv run ruff check .
 
 # Auto-fix lint
 uv run ruff check --fix .
+
+# Format
+uv run ruff format .
 ```
 
 ## Connecting to Claude Desktop (MCP)
