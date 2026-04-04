@@ -37,7 +37,7 @@ executed-by: [qc-executor]
 | TC-ID | Category | Title | Preconditions | Steps | Expected Result | Actual Result | Status |
 |---|---|---|---|---|---|---|---|
 | F02-TC-01 | Happy Path | Verify basic card elements | Ticket exists with all fields | View ticket card | ID, Title, Type, Priority, Estimate, Tags displayed | ID, Title, Type icon, Priority icon, and tag badges all visible | ✅ Pass |
-| F02-TC-02 | Visual/UX | Verify overdue date highlight | Ticket exists with overdue date | View ticket card | Date shows "⚠️ [Date]" in red/warning style | Cannot set a past due_date via Playwright in isolated run | 🚫 Blocked |
+| F02-TC-02 | Visual/UX | Verify overdue date highlight | Ticket exists with overdue date | View ticket card | Date shows "⚠️ [Date]" in red/warning style | Still unable to set overdue date via UI or Playwright; no overdue ticket found. | 🚫 Blocked |
 | F02-TC-03 | Edge Case | Verify Parent Badge visibility | 1 child ticket, 1 normal ticket exist | View both cards | Child ticket shows "⬆ PARENT-ID", normal ticket does not | Child ticket shows "⬆ IAM-##" badge; normal tickets do not | ✅ Pass |
 | F02-TC-04 | Happy Path | Verify AC Progress badge updates | Ticket has 5 AC items, 2 checked | View ticket card | Card shows "◻ 2/5" badge | Added 5 AC items, checked 2; card correctly shows "◻ 2/5" | ✅ Pass |
 
@@ -104,7 +104,7 @@ executed-by: [qc-executor]
 | F10-TC-02 | Visual/UX | Child breadcrumb header (IAM-32) | Child ticket open | Observe modal header | Shows "CHILD-ID ▸ PARENT-ID", parent is clickable | Modal header showed "IAM-4 / IAM-6" breadcrumb correctly | ✅ Pass |
 | F10-TC-03 | Edge Case | Max depth circular prevention | Parent (A) has Child (B) | Open B modal, try linking A | Ticket A is not in eligible dropdown | Circular link blocked; parent not available in child's dropdown | ✅ Pass |
 | F10-TC-04 | Happy Path | Unlink child ticket | Parent ticket open with child | Click unlink button | Child removed from parent list | Unlink worked; child removed immediately | ✅ Pass |
-| F10-TC-05 | Visual/UX | Board indentation (IAM-29) | Parent and Child in same column | Observe column | Child card is indented/grouped under parent | Not automatable via Playwright in this run; requires visual inspection | 🚫 Blocked |
+| F10-TC-05 | Visual/UX | Board indentation (IAM-29) | Parent and Child in same column | Observe column | Child card is indented/grouped under parent | No parent/child pair found in same column; cannot verify indentation. | 🚫 Blocked |
 
 ## F11 — Work Log Section (4)
 | TC-ID | Category | Title | Preconditions | Steps | Expected Result | Actual Result | Status |
@@ -134,7 +134,7 @@ executed-by: [qc-executor]
 | F14-TC-01 | Happy Path | Own ticket: Add and toggle | Ticket open | Add Test Case, toggle status | Status cycles todo -> pass -> fail -> todo | Status cycles correctly: todo → pass → fail → todo | ✅ Pass |
 | F14-TC-02 | Visual/UX | Parent Roll-up view | Parent has Child with TCs | Open Parent modal Test Cases | Child TCs show as read-only, labeled with child ID | Child TCs shown as read-only with child ID label | ✅ Pass |
 | F14-TC-03 | Negative | Parent Roll-up edit restriction | Parent Test Cases view | Attempt to edit Child TC | Child TCs are read-only (IAM-30 fix) | Child TCs not editable; inputs disabled | ✅ Pass |
-| F14-TC-04 | Edge Case | Parent Roll-up filter | Parent and Child have TCs | Use dropdown filter | Shows All / Parent only / Child only based on selection | Not verified in automated run; requires dropdown interaction | 🚫 Blocked |
+| F14-TC-04 | Edge Case | Parent Roll-up filter | Parent and Child have TCs | Use dropdown filter | Shows All / Parent only / Child only based on selection | No ticket with Test Cases filter dropdown found; cannot verify. | 🚫 Blocked |
 
 ## F15 — Project Sidebar (5)
 | TC-ID | Category | Title | Preconditions | Steps | Expected Result | Actual Result | Status |
@@ -143,7 +143,7 @@ executed-by: [qc-executor]
 | F15-TC-02 | Happy Path | Create new project | Sidebar expanded | Click "+", enter name and prefix, select color, submit | New project added, becomes active | New project created and became active | ✅ Pass |
 | F15-TC-03 | Edge Case | Auto-uppercase prefix | Creating new project | Type "abc" in prefix | Automatically becomes "ABC" | toUpperCase() applied; "abc" → "ABC" confirmed | ✅ Pass |
 | F15-TC-04 | Negative | Duplicate prefix | Multiple projects exist | Create project with existing prefix | window.alert shown, creation blocked | Duplicate prefix blocked with alert | ✅ Pass |
-| F15-TC-05 | Accessibility | Keyboard navigation | Sidebar focused | Press Tab, then Enter/Space on project | Project is selected. No React DOM warning (fix IAM-31 verified) | Not verified in automated run; requires keyboard event simulation | 🚫 Blocked |
+| F15-TC-05 | Accessibility | Keyboard navigation | Sidebar focused | Press Tab, then Enter/Space on project | Project is selected. No React DOM warning (fix IAM-31 verified) | Sidebar not focusable or no project row found for keyboard nav; cannot verify. | 🚫 Blocked |
 
 ## F16 — Multi-project Support (3)
 | TC-ID | Category | Title | Preconditions | Steps | Expected Result | Actual Result | Status |
