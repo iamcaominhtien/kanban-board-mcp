@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { IssueType, Priority, Status, Ticket, WorkLogRole } from '../types/ticket';
 
@@ -153,4 +154,182 @@ export async function deleteTestCase(
 ): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`);
   return res.data;
+}
+
+// ---------------------------------------------------------------------------
+// Query key factory
+// ---------------------------------------------------------------------------
+
+export const ticketKeys = {
+  all: (projectId: string) => ['tickets', projectId] as const,
+  detail: (ticketId: string) => ['ticket', ticketId] as const,
+};
+
+// ---------------------------------------------------------------------------
+// Queries
+// ---------------------------------------------------------------------------
+
+export function useTickets(
+  projectId: string,
+  params?: { status?: string; priority?: string; q?: string },
+) {
+  return useQuery({
+    queryKey: [...ticketKeys.all(projectId), params],
+    queryFn: () => listTickets(projectId, params),
+    enabled: !!projectId,
+  });
+}
+
+export function useTicket(ticketId: string) {
+  return useQuery({
+    queryKey: ticketKeys.detail(ticketId),
+    queryFn: () => getTicket(ticketId),
+    enabled: !!ticketId,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
+export function useCreateTicket(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<typeof createTicket>[1]) => createTicket(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
+    },
+  });
+}
+
+export function useUpdateTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      data,
+    }: {
+      ticketId: string;
+      data: Parameters<typeof updateTicket>[1];
+    }) => updateTicket(ticketId, data),
+    onSuccess: (ticket) => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
+      queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+    },
+  });
+}
+
+export function useUpdateTicketStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticketId, status }: { ticketId: string; status: Status }) =>
+      updateTicketStatus(ticketId, status),
+    onSuccess: (ticket) => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
+      queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+    },
+  });
+}
+
+export function useDeleteTicket(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: string) => deleteTicket(ticketId),
+    onSuccess: (_, ticketId) => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
+      queryClient.removeQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Sub-entity mutations (all return updated ticket, update cache)
+// ---------------------------------------------------------------------------
+
+function useTicketSubMutation<T>(mutationFn: (arg: T) => Promise<Ticket>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (ticket) => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
+      queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+    },
+  });
+}
+
+export function useAddComment() {
+  return useTicketSubMutation(
+    ({ ticketId, text, author }: { ticketId: string; text: string; author?: string }) =>
+      addComment(ticketId, text, author),
+  );
+}
+
+export function useDeleteComment() {
+  return useTicketSubMutation(
+    ({ ticketId, commentId }: { ticketId: string; commentId: string }) =>
+      deleteComment(ticketId, commentId),
+  );
+}
+
+export function useAddAcceptanceCriterion() {
+  return useTicketSubMutation(
+    ({ ticketId, text }: { ticketId: string; text: string }) =>
+      addAcceptanceCriterion(ticketId, text),
+  );
+}
+
+export function useToggleAcceptanceCriterion() {
+  return useTicketSubMutation(
+    ({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
+      toggleAcceptanceCriterion(ticketId, criterionId),
+  );
+}
+
+export function useDeleteAcceptanceCriterion() {
+  return useTicketSubMutation(
+    ({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
+      deleteAcceptanceCriterion(ticketId, criterionId),
+  );
+}
+
+export function useAddWorkLog() {
+  return useTicketSubMutation(
+    ({ ticketId, data }: { ticketId: string; data: Parameters<typeof addWorkLog>[1] }) =>
+      addWorkLog(ticketId, data),
+  );
+}
+
+export function useDeleteWorkLog() {
+  return useTicketSubMutation(
+    ({ ticketId, entryId }: { ticketId: string; entryId: string }) =>
+      deleteWorkLog(ticketId, entryId),
+  );
+}
+
+export function useAddTestCase() {
+  return useTicketSubMutation(
+    ({ ticketId, title }: { ticketId: string; title: string }) =>
+      addTestCase(ticketId, title),
+  );
+}
+
+export function useUpdateTestCase() {
+  return useTicketSubMutation(
+    ({
+      ticketId,
+      testCaseId,
+      data,
+    }: {
+      ticketId: string;
+      testCaseId: string;
+      data: Parameters<typeof updateTestCase>[2];
+    }) => updateTestCase(ticketId, testCaseId, data),
+  );
+}
+
+export function useDeleteTestCase() {
+  return useTicketSubMutation(
+    ({ ticketId, testCaseId }: { ticketId: string; testCaseId: string }) =>
+      deleteTestCase(ticketId, testCaseId),
+  );
 }
