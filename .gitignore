@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+
+# Database
+kanban.db
+server/kanban.db
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
