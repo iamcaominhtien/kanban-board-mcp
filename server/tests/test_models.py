@@ -82,3 +82,22 @@ async def test_ticket_read_parses_json_fields(session: AsyncSession):
     assert read.comments == [{"author": "alice", "text": "hello"}]
     assert read.acceptance_criteria == []
     assert read.work_log == []
+
+
+# ---------------------------------------------------------------------------
+# _parse_json_list edge cases
+# ---------------------------------------------------------------------------
+
+from models import _parse_json_list  # noqa: E402
+
+
+def test_parse_json_list_empty_string():
+    assert _parse_json_list("") == []
+
+
+def test_parse_json_list_null_string():
+    assert _parse_json_list("null") == []
+
+
+def test_parse_json_list_valid_array():
+    assert _parse_json_list('["a", "b"]') == ["a", "b"]

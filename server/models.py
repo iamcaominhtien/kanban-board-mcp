@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlmodel import Field, SQLModel
@@ -36,8 +36,12 @@ class Ticket(SQLModel, table=True):
     activity_log: str = Field(default="[]")  # JSON array
     work_log: str = Field(default="[]")  # JSON array
     test_cases: str = Field(default="[]")  # JSON array
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +52,10 @@ class Ticket(SQLModel, table=True):
 def _parse_json_list(v: Any) -> list:
     """Parse a JSON string to a list, or pass through if already a list."""
     if isinstance(v, str):
-        return json.loads(v)
+        if not v:
+            return []
+        parsed = json.loads(v)
+        return parsed if isinstance(parsed, list) else []
     return v if v is not None else []
 
 
