@@ -9,6 +9,12 @@ __pycache__/
 kanban.db
 server/kanban.db
 
+# SQLite WAL/shm files
+kanban.db-shm
+kanban.db-wal
+server/kanban.db-shm
+server/kanban.db-wal
+
 # Environment
 .env
 .env.local
