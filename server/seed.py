@@ -1,4 +1,5 @@
-"""Idempotent seed script — run with: uv run python seed.py"""
+"""Idempotent seed script — requires migrations to be applied first.
+Run: uv run alembic upgrade head && uv run python seed.py"""
 
 import asyncio
 
