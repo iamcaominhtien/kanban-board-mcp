@@ -254,6 +254,13 @@
   background: rgba(61, 12, 17, 0.06);
 }
 
+.errorText {
+  color: #DC2626;
+  font-size: 12px;
+  margin: 0 8px;
+  align-self: center;
+}
+
 .saveBtn {
   background: var(--color-dark);
   color: var(--color-bg);

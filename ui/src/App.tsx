@@ -68,13 +68,8 @@ export default function App() {
     data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases'>,
   ) {
     if (!currentProjectId) return;
-    try {
-      await createTicketMutation.mutateAsync(data);
-      setModalState(null);
-    } catch (err) {
-      console.error('Failed to create ticket:', err);
-      window.alert('Failed to create ticket. Please try again.');
-    }
+    await createTicketMutation.mutateAsync(data);
+    setModalState(null);
   }
 
   async function handleDeleteTicket(id: string) {
@@ -83,7 +78,6 @@ export default function App() {
       setModalState(null);
     } catch (err) {
       console.error('Failed to delete ticket:', err);
-      window.alert('Failed to delete ticket. Please try again.');
     }
   }
 
@@ -95,13 +89,8 @@ export default function App() {
   }
 
   async function handleCreateProject(data: { name: string; prefix: string; color: string }) {
-    try {
-      const newProject = await createProjectMutation.mutateAsync(data);
-      setCurrentProjectId(newProject.id);
-    } catch (err) {
-      console.error('Failed to create project:', err);
-      window.alert('Failed to create project. Please try again.');
-    }
+    const newProject = await createProjectMutation.mutateAsync(data);
+    setCurrentProjectId(newProject.id);
   }
 
   async function handleDeleteProject(id: string) {
@@ -110,7 +99,6 @@ export default function App() {
       // useEffect handles selecting the next project when apiProjects updates
     } catch (err) {
       console.error('Failed to delete project:', err);
-      window.alert('Failed to delete project. Please try again.');
     }
   }
 
