@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TestCase, TestCaseStatus } from '../types';
 import styles from './TestCasesSection.module.css';
 
@@ -11,6 +11,7 @@ interface ChildTestCaseSource {
 interface TestCasesSectionProps {
   testCases: TestCase[];
   onChange: (updated: TestCase[]) => void;
+  onAdd?: (title: string) => Promise<void>;
   readOnly?: boolean;
   disabled?: boolean;
   childTestCaseSources?: ChildTestCaseSource[];
@@ -181,9 +182,18 @@ function TestCaseRow({
   );
 }
 
-export function TestCasesSection({ testCases, onChange, readOnly = false, disabled = false, childTestCaseSources }: TestCasesSectionProps) {
+export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false, disabled = false, childTestCaseSources }: TestCasesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addTitle, setAddTitle] = useState('');
+  const [addPending, setAddPending] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const addTitleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showAddForm) addTitleRef.current?.focus();
+  }, [showAddForm]);
 
   const sourcesWithTCs = (childTestCaseSources ?? []).filter((s) => s.testCases.length > 0);
   const isRollupMode = sourcesWithTCs.length > 0;
@@ -217,15 +227,45 @@ export function TestCasesSection({ testCases, onChange, readOnly = false, disabl
   const totalCount = displayItems.length;
 
   function handleAdd() {
-    const newCase: TestCase = {
-      id: genId(),
-      title: '',
-      status: 'pending',
-      proof: null,
-      note: null,
-    };
-    onChange([...testCases, newCase]);
-    setIsExpanded(true);
+    if (onAdd) {
+      setShowAddForm(true);
+      setAddTitle('');
+      setAddError(null);
+      setIsExpanded(true);
+    } else {
+      const newCase: TestCase = {
+        id: genId(),
+        title: '',
+        status: 'pending',
+        proof: null,
+        note: null,
+      };
+      onChange([...testCases, newCase]);
+      setIsExpanded(true);
+    }
+  }
+
+  function handleCancelAdd() {
+    setShowAddForm(false);
+    setAddTitle('');
+    setAddError(null);
+  }
+
+  async function handleSubmitAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = addTitle.trim();
+    if (!trimmed || !onAdd) return;
+    setAddPending(true);
+    setAddError(null);
+    try {
+      await onAdd(trimmed);
+      setShowAddForm(false);
+      setAddTitle('');
+    } catch {
+      setAddError('Failed to add test case. Please try again.');
+    } finally {
+      setAddPending(false);
+    }
   }
 
   function handleUpdate(updated: TestCase) {
@@ -272,6 +312,38 @@ export function TestCasesSection({ testCases, onChange, readOnly = false, disabl
           </button>
         )}
       </div>
+
+      {showAddForm && onAdd && (
+        <form className={styles.addForm} onSubmit={handleSubmitAdd}>
+          <input
+            ref={addTitleRef}
+            className={styles.addFormInput}
+            value={addTitle}
+            onChange={(e) => { setAddTitle(e.target.value); setAddError(null); }}
+            placeholder="Test case title…"
+            disabled={addPending}
+            aria-label="New test case title"
+          />
+          {addError && <p className={styles.addFormError}>{addError}</p>}
+          <div className={styles.addFormActions}>
+            <button
+              type="submit"
+              className={styles.addFormSubmit}
+              disabled={addPending || !addTitle.trim()}
+            >
+              {addPending ? 'Adding…' : 'Add'}
+            </button>
+            <button
+              type="button"
+              className={styles.addFormCancel}
+              onClick={handleCancelAdd}
+              disabled={addPending}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       {isExpanded && (
         <>

@@ -331,3 +331,76 @@
   background: #E5E7EB;
   color: #6B7280;
 }
+
+/* ── Inline add form ── */
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-bg);
+  border: 2px solid var(--color-dark);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.addFormInput {
+  font-size: 14px;
+  color: var(--color-dark);
+  border: 1.5px solid rgba(61, 12, 17, 0.3);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.addFormInput:focus {
+  border-color: var(--color-dark);
+}
+
+.addFormError {
+  font-size: 12px;
+  color: #DC2626;
+  margin: 0;
+}
+
+.addFormActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addFormSubmit {
+  background: var(--color-dark);
+  color: var(--color-cream);
+  border: none;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.addFormSubmit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.addFormCancel {
+  background: none;
+  border: 1.5px solid rgba(61, 12, 17, 0.3);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.addFormCancel:hover {
+  border-color: var(--color-dark);
+}
