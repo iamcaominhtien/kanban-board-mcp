@@ -11,9 +11,19 @@ export default function App() {
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
 
-  const [currentProjectId, setCurrentProjectId] = useState<string>('');
+  const [currentProjectId, setCurrentProjectId] = useState<string>(
+    () => localStorage.getItem('activeProjectId') ?? ''
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
+
+  useEffect(() => {
+    if (currentProjectId) {
+      localStorage.setItem('activeProjectId', currentProjectId);
+    } else {
+      localStorage.removeItem('activeProjectId');
+    }
+  }, [currentProjectId]);
 
   useEffect(() => {
     if (apiProjects.length > 0 && !apiProjects.find((p) => p.id === currentProjectId)) {
