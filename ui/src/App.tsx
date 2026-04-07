@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Board } from './components/Board';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { TicketModal } from './components/TicketModal';
@@ -58,6 +58,34 @@ export default function App() {
     | null
   >(null);
 
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current || tickets.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const ticketId = params.get('ticket');
+    if (ticketId) {
+      deepLinkHandled.current = true;
+      const found = tickets.find((t) => t.id.toLowerCase() === ticketId.toLowerCase());
+      if (found) {
+        setModalState({ mode: 'view', ticketId: found.id });
+      }
+    }
+  }, [tickets]);
+
+  function openTicketModal(ticketId: string) {
+    setModalState({ mode: 'view', ticketId });
+    const url = new URL(window.location.href);
+    url.searchParams.set('ticket', ticketId);
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  function closeModal() {
+    setModalState(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ticket');
+    window.history.replaceState({}, '', url.toString());
+  }
+
   const modalTicket =
     modalState && modalState.mode !== 'create'
       ? tickets.find((t) => t.id === modalState.ticketId)
@@ -76,13 +104,13 @@ export default function App() {
   ) {
     if (!currentProjectId) return;
     await createTicketMutation.mutateAsync(data);
-    setModalState(null);
+    closeModal();
   }
 
   async function handleDeleteTicket(id: string) {
     try {
       await deleteTicketMutation.mutateAsync(id);
-      setModalState(null);
+      closeModal();
     } catch (err) {
       console.error('Failed to delete ticket:', err);
       setGlobalError('Failed to delete ticket. Please try again.');
@@ -93,7 +121,7 @@ export default function App() {
     setCurrentProjectId(id);
     setSearchQuery('');
     setActivePriority('all');
-    setModalState(null);
+    closeModal();
   }
 
   async function handleCreateProject(data: { name: string; prefix: string; color: string }) {
@@ -113,10 +141,13 @@ export default function App() {
 
   function handleOpenCreate() {
     setModalState({ mode: 'create' });
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ticket');
+    window.history.replaceState({}, '', url.toString());
   }
 
   function handleOpenView(ticket: Ticket) {
-    setModalState({ mode: 'view', ticketId: ticket.id });
+    openTicketModal(ticket.id);
   }
 
   return (
@@ -163,9 +194,9 @@ export default function App() {
                   key="create"
                   mode="create"
                   onSave={handleCreateTicket}
-                  onClose={() => setModalState(null)}
+                  onClose={closeModal}
                   allTickets={tickets}
-                  onOpenTicket={(t) => setModalState({ mode: 'view', ticketId: t.id })}
+                  onOpenTicket={(t) => openTicketModal(t.id)}
                 />
               ) : modalTicket ? (
                 <TicketModal
@@ -173,9 +204,9 @@ export default function App() {
                   mode="view"
                   ticket={modalTicket}
                   onDelete={handleDeleteTicket}
-                  onClose={() => setModalState(null)}
+                  onClose={closeModal}
                   allTickets={tickets}
-                  onOpenTicket={(t) => setModalState({ mode: 'view', ticketId: t.id })}
+                  onOpenTicket={(t) => openTicketModal(t.id)}
                 />
               ) : null
             )}
