@@ -6,7 +6,7 @@ interface ProjectSidebarProps {
   projects: Project[];
   currentProjectId: string;
   onSelectProject: (id: string) => void;
-  onCreateProject: (data: { name: string; prefix: string; color: string }) => void;
+  onCreateProject: (data: { name: string; prefix: string; color: string }) => Promise<void>;
   onDeleteProject: (id: string) => void;
 }
 
@@ -17,20 +17,26 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
+  const [prefixError, setPrefixError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formName.trim() || !formPrefix.trim()) return;
     const upperPrefix = formPrefix.trim().toUpperCase();
+    setPrefixError(null);
     if (projects.some((p) => p.prefix.toUpperCase() === upperPrefix)) {
-      window.alert('A project with this prefix already exists.');
+      setPrefixError('A project with this prefix already exists.');
       return;
     }
-    onCreateProject({ name: formName.trim(), prefix: upperPrefix, color: formColor });
-    setFormName('');
-    setFormPrefix('');
-    setFormColor(PRESET_COLORS[0]);
-    setShowForm(false);
+    try {
+      await onCreateProject({ name: formName.trim(), prefix: upperPrefix, color: formColor });
+      setFormName('');
+      setFormPrefix('');
+      setFormColor(PRESET_COLORS[0]);
+      setShowForm(false);
+    } catch {
+      setPrefixError('Failed to create project. Please try again.');
+    }
   }
 
   function handleDelete(e: React.MouseEvent, id: string) {
@@ -97,8 +103,9 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
               placeholder="Prefix (e.g. PROJ)"
               value={formPrefix}
               maxLength={6}
-              onChange={(e) => setFormPrefix(e.target.value.toUpperCase())}
+              onChange={(e) => { setFormPrefix(e.target.value.toUpperCase()); setPrefixError(null); }}
             />
+            {prefixError && <p className={styles.errorText}>{prefixError}</p>}
             <div className={styles.colorSwatches}>
               {PRESET_COLORS.map((color) => (
                 <button
@@ -113,7 +120,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
             </div>
             <div className={styles.formActions}>
               <button type="submit" className={styles.submitBtn}>Create</button>
-              <button type="button" className={styles.cancelBtn} onClick={() => setShowForm(false)}>Cancel</button>
+              <button type="button" className={styles.cancelBtn} onClick={() => { setShowForm(false); setPrefixError(null); }}>Cancel</button>
             </div>
           </form>
         ) : (
