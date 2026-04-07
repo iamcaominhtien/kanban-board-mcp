@@ -61,13 +61,13 @@ export default function App() {
   const deepLinkHandled = useRef(false);
   useEffect(() => {
     if (deepLinkHandled.current || tickets.length === 0) return;
+    deepLinkHandled.current = true; // always mark handled after first run
     const params = new URLSearchParams(window.location.search);
     const ticketId = params.get('ticket');
     if (ticketId) {
-      deepLinkHandled.current = true;
       const found = tickets.find((t) => t.id.toLowerCase() === ticketId.toLowerCase());
       if (found) {
-        setModalState({ mode: 'view', ticketId: found.id });
+        setModalState({ mode: 'view', ticketId: found.id }); // URL already has the param — openTicketModal would double-replaceState
       }
     }
   }, [tickets]);
