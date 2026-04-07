@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Status, Ticket } from '../types';
 import { useCreateTicket } from '../api/tickets';
 import styles from './SubTicketsSection.module.css';
@@ -33,6 +33,7 @@ export function SubTicketsSection({
   const [search, setSearch] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [createError, setCreateError] = useState<string | null>(null);
   const createTicketMutation = useCreateTicket(projectId);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,21 +65,28 @@ export function SubTicketsSection({
     setSearch('');
   }
 
+  useEffect(() => {
+    if (showCreateForm) {
+      titleInputRef.current?.focus();
+    }
+  }, [showCreateForm]);
+
   function handleOpenCreateForm() {
     setShowCreateForm(true);
     setNewTitle('');
-    setTimeout(() => titleInputRef.current?.focus(), 0);
   }
 
   function handleCancelCreate() {
     setShowCreateForm(false);
     setNewTitle('');
+    setCreateError(null);
   }
 
   function handleSubmitCreate(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = newTitle.trim();
     if (!trimmed) return;
+    setCreateError(null);
     createTicketMutation.mutate(
       { title: trimmed, type: 'task', priority: 'medium', status: 'backlog', parentId: currentTicketId },
       {
@@ -86,9 +94,8 @@ export function SubTicketsSection({
           setShowCreateForm(false);
           setNewTitle('');
         },
-        onError: (err) => {
-          console.error('Failed to create child ticket:', err);
-          window.alert('Failed to create child ticket. Please try again.');
+        onError: () => {
+          setCreateError('Failed to create child ticket. Please try again.');
         },
       },
     );
@@ -152,6 +159,7 @@ export function SubTicketsSection({
               onChange={(e) => setNewTitle(e.target.value)}
               disabled={createTicketMutation.isPending}
             />
+            {createError && <p className={styles.errorText}>{createError}</p>}
             <div className={styles.createFormActions}>
               <button
                 type="submit"
