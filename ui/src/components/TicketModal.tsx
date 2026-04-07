@@ -339,6 +339,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       childTickets={childTickets}
                       allTickets={allTickets}
                       currentTicketId={ticket.id}
+                      projectId={ticket.projectId}
                       onOpenTicket={(t) => onOpenTicket && onOpenTicket(t)}
                       onLinkChild={handleLinkChild}
                       onUnlinkChild={handleUnlinkChild}
