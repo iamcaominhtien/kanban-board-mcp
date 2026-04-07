@@ -600,6 +600,14 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             <MarkdownEditor
               value={description}
               onChange={setDescription}
+              onBlur={(newDesc) => {
+                if (ticket && newDesc !== ticket.description) {
+                  updateTicketMutation.mutate(
+                    { ticketId: ticket.id, data: { description: newDesc } },
+                    { onError: (err) => setSaveError(err instanceof Error ? err.message : 'Failed to save description') },
+                  );
+                }
+              }}
             />
           </div>
 

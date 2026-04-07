@@ -28,10 +28,11 @@ const TOOLBAR: ToolbarButton[] = [
 interface Props {
   value: string;
   onChange: (value: string) => void;
+  onBlur?: (value: string) => void;
   readOnly?: boolean;
 }
 
-export function MarkdownEditor({ value, onChange, readOnly = false }: Props) {
+export function MarkdownEditor({ value, onChange, onBlur, readOnly = false }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +68,7 @@ export function MarkdownEditor({ value, onChange, readOnly = false }: Props) {
   function handleBlur(e: React.FocusEvent) {
     if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node | null)) {
       setIsEditing(false);
+      onBlur?.(value);
     }
   }
 
