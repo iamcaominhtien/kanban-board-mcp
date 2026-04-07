@@ -158,6 +158,16 @@ export function SubTicketsSection({
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               disabled={createTicketMutation.isPending}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  handleCancelCreate();
+                }
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmitCreate(e as unknown as React.FormEvent);
+                }
+              }}
             />
             {createError && <p className={styles.errorText}>{createError}</p>}
             <div className={styles.createFormActions}>
