@@ -16,6 +16,13 @@ export default function App() {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
+  const [globalError, setGlobalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!globalError) return;
+    const timer = setTimeout(() => setGlobalError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [globalError]);
 
   useEffect(() => {
     if (currentProjectId) {
@@ -78,6 +85,7 @@ export default function App() {
       setModalState(null);
     } catch (err) {
       console.error('Failed to delete ticket:', err);
+      setGlobalError('Failed to delete ticket. Please try again.');
     }
   }
 
@@ -99,6 +107,7 @@ export default function App() {
       // useEffect handles selecting the next project when apiProjects updates
     } catch (err) {
       console.error('Failed to delete project:', err);
+      setGlobalError('Failed to delete project. Please try again.');
     }
   }
 
@@ -120,6 +129,12 @@ export default function App() {
         onDeleteProject={handleDeleteProject}
       />
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {globalError && (
+          <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span>{globalError}</span>
+            <button type="button" onClick={() => setGlobalError(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 4px' }}>×</button>
+          </div>
+        )}
         {projectsLoading && apiProjects.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
             Loading projects…

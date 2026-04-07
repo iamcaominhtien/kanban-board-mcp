@@ -193,7 +193,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     if (!ticket) return;
     addCommentMutation.mutate(
       { ticketId: ticket.id, text, author: 'user' },
-      { onError: (err) => { console.error('Failed to add comment:', err); setViewError('Failed to add comment. Please try again.'); } },
+      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add comment:', err); setViewError('Failed to add comment. Please try again.'); } },
     );
   }
 
@@ -201,7 +201,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     if (!ticket) return;
     addACMutation.mutate(
       { ticketId: ticket.id, text },
-      { onError: (err) => { console.error('Failed to add acceptance criterion:', err); setViewError('Failed to add acceptance criterion. Please try again.'); } },
+      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add acceptance criterion:', err); setViewError('Failed to add acceptance criterion. Please try again.'); } },
     );
   }
 
@@ -209,7 +209,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     if (!ticket) return;
     toggleACMutation.mutate(
       { ticketId: ticket.id, criterionId: id },
-      { onError: (err) => { console.error('Failed to toggle acceptance criterion:', err); setViewError('Failed to toggle acceptance criterion. Please try again.'); } },
+      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to toggle acceptance criterion:', err); setViewError('Failed to toggle acceptance criterion. Please try again.'); } },
     );
   }
 
@@ -217,7 +217,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     if (!ticket) return;
     deleteACMutation.mutate(
       { ticketId: ticket.id, criterionId: id },
-      { onError: (err) => { console.error('Failed to delete acceptance criterion:', err); setViewError('Failed to delete acceptance criterion. Please try again.'); } },
+      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to delete acceptance criterion:', err); setViewError('Failed to delete acceptance criterion. Please try again.'); } },
     );
   }
 
@@ -225,7 +225,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     if (!ticket) return;
     addWorkLogMutation.mutate(
       { ticketId: ticket.id, data: { author: entry.author, role: entry.role, note: entry.note } },
-      { onError: (err) => { console.error('Failed to add work log:', err); setViewError('Failed to add work log entry. Please try again.'); } },
+      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add work log:', err); setViewError('Failed to add work log entry. Please try again.'); } },
     );
   }
 
@@ -239,6 +239,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     setDueDate(ticket?.dueDate ?? null);
     setEstimate(ticket?.estimate ?? null);
     setConfirmDelete(false);
+    setSaveError(null);
     setLocalMode('view');
   }
 
@@ -253,28 +254,28 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     function handleLinkChild(childId: string) {
       updateTicketMutation.mutate(
         { ticketId: childId, data: { parentId: currentTicket.id } },
-        { onError: (err) => { console.error('Failed to link child ticket:', err); setViewError('Failed to link child ticket. Please try again.'); } },
+        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to link child ticket:', err); setViewError('Failed to link child ticket. Please try again.'); } },
       );
     }
 
     function handleUnlinkChild(childId: string) {
       updateTicketMutation.mutate(
         { ticketId: childId, data: { parentId: null } },
-        { onError: (err) => { console.error('Failed to unlink child ticket:', err); setViewError('Failed to unlink child ticket. Please try again.'); } },
+        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to unlink child ticket:', err); setViewError('Failed to unlink child ticket. Please try again.'); } },
       );
     }
 
     function handleSetParent(parentId: string) {
       updateTicketMutation.mutate(
         { ticketId: currentTicket.id, data: { parentId } },
-        { onError: (err) => { console.error('Failed to set parent:', err); setViewError('Failed to set parent ticket. Please try again.'); } },
+        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to set parent:', err); setViewError('Failed to set parent ticket. Please try again.'); } },
       );
     }
 
     function handleRemoveParent() {
       updateTicketMutation.mutate(
         { ticketId: currentTicket.id, data: { parentId: null } },
-        { onError: (err) => { console.error('Failed to remove parent:', err); setViewError('Failed to remove parent ticket. Please try again.'); } },
+        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to remove parent:', err); setViewError('Failed to remove parent ticket. Please try again.'); } },
       );
     }
 
@@ -398,13 +399,13 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     addedItems.forEach((tc) =>
                       addTestCaseMutation.mutate(
                         { ticketId: ticket.id, title: tc.title },
-                        { onError: (err) => { console.error('Failed to add test case:', err); setViewError('Failed to add test case. Please try again.'); } },
+                        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add test case:', err); setViewError('Failed to add test case. Please try again.'); } },
                       ),
                     );
                     deletedIds.forEach((id) =>
                       deleteTestCaseMutation.mutate(
                         { ticketId: ticket.id, testCaseId: id },
-                        { onError: (err) => { console.error('Failed to delete test case:', err); setViewError('Failed to delete test case. Please try again.'); } },
+                        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to delete test case:', err); setViewError('Failed to delete test case. Please try again.'); } },
                       ),
                     );
                     changedItems.forEach((tc) =>
@@ -414,7 +415,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                           testCaseId: tc.id,
                           data: { title: tc.title, status: tc.status, proof: tc.proof ?? null, note: tc.note ?? null },
                         },
-                        { onError: (err) => { console.error('Failed to update test case:', err); setViewError('Failed to update test case. Please try again.'); } },
+                        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to update test case:', err); setViewError('Failed to update test case. Please try again.'); } },
                       ),
                     );
                   }}
