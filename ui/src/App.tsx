@@ -20,6 +20,8 @@ export default function App() {
   useEffect(() => {
     if (currentProjectId) {
       localStorage.setItem('activeProjectId', currentProjectId);
+    } else {
+      localStorage.removeItem('activeProjectId');
     }
   }, [currentProjectId]);
 
