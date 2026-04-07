@@ -282,7 +282,14 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
         <button
           type="button"
           className={styles.sectionToggle}
-          onClick={() => setIsExpanded((v) => !v)}
+          onClick={() => {
+            if (isExpanded) {
+              setShowAddForm(false);
+              setAddTitle('');
+              setAddError(null);
+            }
+            setIsExpanded((v) => !v);
+          }}
           aria-expanded={isExpanded}
         >
           <span className={styles.sectionHeader}>Test Cases</span>
@@ -337,7 +344,6 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
               type="button"
               className={styles.addFormCancel}
               onClick={handleCancelAdd}
-              disabled={addPending}
             >
               Cancel
             </button>
