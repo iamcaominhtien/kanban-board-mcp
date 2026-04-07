@@ -381,12 +381,19 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <TestCasesSection
                   testCases={ticket.testCases ?? []}
                   disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
+                  onAdd={(title) =>
+                    new Promise<void>((resolve, reject) =>
+                      addTestCaseMutation.mutate(
+                        { ticketId: ticket.id, title },
+                        {
+                          onSuccess: () => { setViewError(null); resolve(); },
+                          onError: (err) => { console.error('Failed to add test case:', err); reject(err); },
+                        },
+                      ),
+                    )
+                  }
                   onChange={(updated) => {
                     const old = ticket.testCases ?? [];
-                    // Detect added (client-side ID not in server list, title must be non-empty)
-                    const addedItems = updated.filter(
-                      (u) => !old.some((o) => o.id === u.id) && u.title.trim(),
-                    );
                     // Detect deleted
                     const deletedIds = old
                       .filter((o) => !updated.some((u) => u.id === o.id))
@@ -396,12 +403,6 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       const o = old.find((o) => o.id === u.id);
                       return o && JSON.stringify(o) !== JSON.stringify(u);
                     });
-                    addedItems.forEach((tc) =>
-                      addTestCaseMutation.mutate(
-                        { ticketId: ticket.id, title: tc.title },
-                        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add test case:', err); setViewError('Failed to add test case. Please try again.'); } },
-                      ),
-                    );
                     deletedIds.forEach((id) =>
                       deleteTestCaseMutation.mutate(
                         { ticketId: ticket.id, testCaseId: id },
