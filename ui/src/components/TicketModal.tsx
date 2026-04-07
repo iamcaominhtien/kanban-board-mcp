@@ -601,10 +601,13 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
               value={description}
               onChange={setDescription}
               onBlur={(newDesc) => {
-                if (ticket && newDesc !== ticket.description) {
+                if (ticket && newDesc !== ticket.description && !updateTicketMutation.isPending) {
                   updateTicketMutation.mutate(
                     { ticketId: ticket.id, data: { description: newDesc } },
-                    { onError: (err) => setSaveError(err instanceof Error ? err.message : 'Failed to save description') },
+                    {
+                      onSuccess: () => setSaveError(null),
+                      onError: () => setSaveError('Failed to save description. Please try again.'),
+                    },
                   );
                 }
               }}
