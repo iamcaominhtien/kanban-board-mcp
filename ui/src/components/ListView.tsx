@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Priority, Status, Ticket } from '../types';
 import styles from './ListView.module.css';
 
@@ -17,11 +17,11 @@ const STATUS_LABELS: Record<Status, string> = {
   'in-progress': 'In Progress',
   done: 'Done',
 };
-const STATUS_COLORS: Record<Status, string> = {
-  backlog: '#F5C518',
-  todo: '#E8441A',
-  'in-progress': '#AACC2E',
-  done: '#F472B6',
+const STATUS_CHIP_CLASS: Record<Status, string> = {
+  backlog: 'chipBacklog',
+  todo: 'chipTodo',
+  'in-progress': 'chipInProgress',
+  done: 'chipDone',
 };
 
 const PRIORITY_ORDER: Priority[] = ['critical', 'high', 'medium', 'low'];
@@ -31,11 +31,11 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   medium: 'Medium',
   low: 'Low',
 };
-const PRIORITY_COLORS: Record<Priority, string> = {
-  critical: '#E8441A',
-  high: '#F5C518',
-  medium: '#5BB8F5',
-  low: '#AACC2E',
+const PRIORITY_CHIP_CLASS: Record<Priority, string> = {
+  critical: 'chipCritical',
+  high: 'chipHigh',
+  medium: 'chipMedium',
+  low: 'chipLow',
 };
 
 function sortTickets(tickets: Ticket[], sortBy: SortBy): Ticket[] {
@@ -53,7 +53,7 @@ function sortTickets(tickets: Ticket[], sortBy: SortBy): Ticket[] {
 interface GroupData {
   key: string;
   label: string;
-  color: string;
+  chipClass: string;
   tickets: Ticket[];
 }
 
@@ -62,7 +62,7 @@ function buildGroups(tickets: Ticket[], groupBy: GroupBy, sortBy: SortBy): Group
     return STATUS_ORDER.map((status) => ({
       key: status,
       label: STATUS_LABELS[status],
-      color: STATUS_COLORS[status],
+      chipClass: STATUS_CHIP_CLASS[status],
       tickets: sortTickets(
         tickets.filter((t) => t.status === status),
         sortBy,
@@ -74,7 +74,7 @@ function buildGroups(tickets: Ticket[], groupBy: GroupBy, sortBy: SortBy): Group
     return PRIORITY_ORDER.map((priority) => ({
       key: priority,
       label: PRIORITY_LABELS[priority],
-      color: PRIORITY_COLORS[priority],
+      chipClass: PRIORITY_CHIP_CLASS[priority],
       tickets: sortTickets(
         tickets.filter((t) => t.priority === priority),
         sortBy,
@@ -82,17 +82,16 @@ function buildGroups(tickets: Ticket[], groupBy: GroupBy, sortBy: SortBy): Group
     })).filter((g) => g.tickets.length > 0);
   }
 
-  // By Tag
+  // By Tag — each ticket placed in first-tag group only to avoid duplication
   const tagMap = new Map<string, Ticket[]>();
   const untagged: Ticket[] = [];
   for (const ticket of tickets) {
     if (!ticket.tags || ticket.tags.length === 0) {
       untagged.push(ticket);
     } else {
-      for (const tag of ticket.tags) {
-        if (!tagMap.has(tag)) tagMap.set(tag, []);
-        tagMap.get(tag)!.push(ticket);
-      }
+      const firstTag = ticket.tags[0];
+      if (!tagMap.has(firstTag)) tagMap.set(firstTag, []);
+      tagMap.get(firstTag)!.push(ticket);
     }
   }
   const tagGroups: GroupData[] = Array.from(tagMap.entries())
@@ -100,14 +99,14 @@ function buildGroups(tickets: Ticket[], groupBy: GroupBy, sortBy: SortBy): Group
     .map(([tag, tagTickets]) => ({
       key: tag,
       label: tag,
-      color: '#5BB8F5',
+      chipClass: 'chipTag',
       tickets: sortTickets(tagTickets, sortBy),
     }));
   if (untagged.length > 0) {
     tagGroups.push({
-      key: '__untagged__',
+      key: '\x00untagged',
       label: 'Untagged',
-      color: '#9CA3AF',
+      chipClass: 'chipUntagged',
       tickets: sortTickets(untagged, sortBy),
     });
   }
@@ -131,7 +130,7 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
   return (
     <div className={styles.group}>
       <button type="button" className={styles.groupHeader} onClick={onToggle}>
-        <span className={styles.groupDot} style={{ background: group.color }} />
+        <span className={`${styles.groupDot} ${styles[group.chipClass]}`} />
         <span className={styles.groupChevron}>{collapsed ? '▶' : '▼'}</span>
         <span className={styles.groupLabel}>{group.label}</span>
         <span className={styles.groupBadge}>{group.tickets.length}</span>
@@ -147,17 +146,11 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
             >
               <span className={styles.rowId}>{ticket.id}</span>
               <span className={styles.rowTitle}>{ticket.title}</span>
-              <span
-                className={styles.chip}
-                style={{ background: PRIORITY_COLORS[ticket.priority] }}
-              >
+              <span className={`${styles.chip} ${styles[PRIORITY_CHIP_CLASS[ticket.priority]]}`}>
                 {PRIORITY_LABELS[ticket.priority]}
               </span>
               <span className={styles.rowDue}>{formatDate(ticket.dueDate)}</span>
-              <span
-                className={styles.chip}
-                style={{ background: STATUS_COLORS[ticket.status] }}
-              >
+              <span className={`${styles.chip} ${styles[STATUS_CHIP_CLASS[ticket.status]]}`}>
                 {STATUS_LABELS[ticket.status]}
               </span>
             </button>
@@ -172,6 +165,8 @@ export function ListView({ tickets, onCardClick }: ListViewProps) {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [sortBy, setSortBy] = useState<SortBy>('dueDate');
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => { setCollapsedKeys(new Set()); }, [groupBy]);
 
   const groups = useMemo(
     () => buildGroups(tickets, groupBy, sortBy),
