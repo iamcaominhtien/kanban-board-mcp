@@ -98,6 +98,17 @@ Clean up test data after each run unless explicitly asked to keep it.
 - Always follow doc-writer frontmatter format: `type: test`, correct `status`, `version`, `created`, `updated`
 - Always regenerate `docs/_index.md` after creating or updating a test doc
 - Always update test plan doc status (and bump version) after a run — you do this directly, no need to call another agent
+
+---
+
+## Visual Design QC
+
+**For any UI feature that renders visual components (charts, panels, modals, lists):**
+1. Always take a screenshot after the feature loads — do not just verify DOM elements exist
+2. For any chart/Gantt/graph feature: set up realistic test data (tickets with meaningful date ranges spanning at least 7–14 days) before verifying — single-day or null-date tickets give misleading results
+3. Verify visual quality: are labels readable? are items appropriately sized? does the layout look intentional?
+4. Check language/copy consistency: if a component's title is in English, all its text (empty states, labels) should be in English too
+5. After verifying visuals, restore all test data to the original state
 - **Only write/modify `test-*.md` files** — never touch other doc types
 - **Always append a worklog entry to the source ticket via `kanbander` at the end — this is step [6], not optional**
 - Always delete all screenshot files created during the session after reporting findings
