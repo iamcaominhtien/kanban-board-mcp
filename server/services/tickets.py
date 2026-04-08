@@ -58,6 +58,7 @@ async def create_ticket(
     parent_id: str | None = None,
     estimate: float | None = None,
     due_date: str | None = None,
+    start_date: str | None = None,
     tags: list | None = None,
     created_by: str | None = None,
     assignee: str | None = None,
@@ -108,6 +109,7 @@ async def create_ticket(
         parent_id=parent_id,
         estimate=estimate,
         due_date=due_date,
+        start_date=start_date,
         tags=_dumps(tags),
         created_by=created_by,
         assignee=assignee,
@@ -118,7 +120,15 @@ async def create_ticket(
     return ticket
 
 
-_AUDITABLE = ("title", "status", "priority", "type", "estimate", "due_date")
+_AUDITABLE = (
+    "title",
+    "status",
+    "priority",
+    "type",
+    "estimate",
+    "due_date",
+    "start_date",
+)
 
 
 async def update_ticket(

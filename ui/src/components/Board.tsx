@@ -5,6 +5,7 @@ import type { Column as ColumnType, Member, Priority, Status, Ticket } from '../
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
+import { TimelineView } from './TimelineView';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 
@@ -26,8 +27,9 @@ interface BoardProps {
   activePriority: Priority | 'all';
   onPriorityChange: (p: Priority | 'all') => void;
   projectName: string;
-  viewMode: 'board' | 'list';
-  onViewModeChange: (v: 'board' | 'list') => void;
+  projectId?: string;
+  viewMode: 'board' | 'list' | 'timeline';
+  onViewModeChange: (v: 'board' | 'list' | 'timeline') => void;
   members?: Member[];
   activeAssignee?: string | 'all';
   onAssigneeChange?: (id: string | 'all') => void;
@@ -35,7 +37,7 @@ interface BoardProps {
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'done']);
 
-export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, viewMode, onViewModeChange, members = [], activeAssignee = 'all', onAssigneeChange }: BoardProps) {
+export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, projectId, viewMode, onViewModeChange, members = [], activeAssignee = 'all', onAssigneeChange }: BoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -78,6 +80,13 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
               >
                 List
               </button>
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${viewMode === 'timeline' ? styles.viewBtnActive : ''}`}
+                onClick={() => onViewModeChange('timeline')}
+              >
+                Timeline
+              </button>
             </div>
             <button type="button" className={styles.newButton} onClick={onNewTicket}>+ New Ticket</button>
           </div>
@@ -95,6 +104,8 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
 
         {viewMode === 'list' ? (
           <ListView tickets={tickets} onCardClick={onCardClick} />
+        ) : viewMode === 'timeline' ? (
+          <TimelineView tickets={allTickets} projectId={projectId ?? ''} onCardClick={onCardClick} />
         ) : (
           <div className={styles.columns}>
             {COLUMNS.map((col) => {

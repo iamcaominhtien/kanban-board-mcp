@@ -80,6 +80,7 @@ async def post_ticket(
             parent_id=body.parent_id,
             estimate=body.estimate,
             due_date=body.due_date,
+            start_date=body.start_date,
             tags=body.tags,
             assignee=body.assignee,
         )
@@ -279,3 +280,50 @@ async def del_test_case(ticket_id: str, tc_id: str, session: Session) -> TicketR
     if ticket is None:
         _404()
     return _read(ticket)
+
+
+# ---------------------------------------------------------------------------
+# Project activities (for event timeline)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/projects/{project_id}/activities")
+async def get_project_activities(
+    project_id: str, session: Session, limit: int = 200
+) -> list[dict]:
+    tickets = await list_tickets(session, project_id, include_wont_do=True)
+    events: list[dict] = []
+    for ticket in tickets:
+        events.append(
+            {
+                "ticket_id": ticket.id,
+                "ticket_title": ticket.title,
+                "event_type": "created",
+                "at": ticket.created_at,
+                "detail": None,
+            }
+        )
+        from models import _parse_json_list as _pjl
+
+        for entry in _pjl(ticket.activity_log):
+            events.append(
+                {
+                    "ticket_id": ticket.id,
+                    "ticket_title": ticket.title,
+                    "event_type": f"changed:{entry.get('field', '')}",
+                    "at": entry.get("at", ticket.created_at),
+                    "detail": f"{entry.get('from')} → {entry.get('to')}",
+                }
+            )
+        for comment in _pjl(ticket.comments):
+            events.append(
+                {
+                    "ticket_id": ticket.id,
+                    "ticket_title": ticket.title,
+                    "event_type": "commented",
+                    "at": comment.get("at", ticket.created_at),
+                    "detail": comment.get("text", ""),
+                }
+            )
+    events.sort(key=lambda e: e["at"], reverse=True)
+    return events[:limit]

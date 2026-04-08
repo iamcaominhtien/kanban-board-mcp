@@ -60,6 +60,7 @@ export interface Ticket {
   priority: Priority;
   estimate: number | null;
   dueDate: string | null;
+  startDate: string | null;
   tags: string[];
   parentId: string | null;
   comments: Comment[];

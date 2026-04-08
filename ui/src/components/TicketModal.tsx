@@ -53,6 +53,7 @@ type CreateTicketData = {
   status: Status;
   tags: string[];
   dueDate: string | null;
+  startDate: string | null;
   estimate: number | null;
   parentId: string | null;
   wontDoReason?: string | null;
@@ -91,6 +92,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [tagsInput, setTagsInput] = useState(ticket?.tags.join(', ') ?? '');
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
+  const [startDate, setStartDate] = useState<string | null>(ticket?.startDate ?? null);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
   const [assignee, setAssignee] = useState<string | null>(ticket?.assignee ?? null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -167,6 +169,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           priority,
           tags,
           dueDate: dueDate || null,
+          startDate: startDate || null,
           estimate,
           parentId: null,
           assignee,
@@ -196,6 +199,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             priority,
             tags,
             dueDate: dueDate || null,
+            startDate: startDate || null,
             estimate,
             assignee,
             ...(status === 'wont_do' ? { wontDoReason: wontDoReason.trim() } : {}),
@@ -271,6 +275,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     setTagsInput(ticket?.tags.join(', ') ?? '');
     setType(ticket?.type ?? 'task');
     setDueDate(ticket?.dueDate ?? null);
+    setStartDate(ticket?.startDate ?? null);
     setEstimate(ticket?.estimate ?? null);
     setAssignee(ticket?.assignee ?? null);
     setConfirmDelete(false);
@@ -519,6 +524,15 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     );
                   })()}
 
+                  {ticket.startDate && (
+                    <div className={styles.sidebarRow}>
+                      <span className={styles.sidebarLabel}>Start Date</span>
+                      <span className={styles.dueDateBadge}>
+                        🗓 {new Date(ticket.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
+
                   {ticket.tags.length > 0 && (
                     <div className={styles.sidebarSection}>
                       <span className={styles.sidebarLabel}>Tags</span>
@@ -749,6 +763,16 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <option value="critical">Critical</option>
               </select>
             </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Start Date</label>
+            <input
+              type="date"
+              className={styles.input}
+              value={startDate ?? ''}
+              onChange={(e) => setStartDate(e.target.value || null)}
+            />
           </div>
 
           <div className={styles.field}>
