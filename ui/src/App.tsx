@@ -108,6 +108,13 @@ export default function App() {
       : undefined;
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
+    if (newStatus === 'in-progress') {
+      const dragged = tickets.find((t) => t.id === ticketId);
+      if (dragged && (dragged.blockedBy ?? []).length > 0) {
+        const confirmed = window.confirm('⚠️ This ticket is blocked. Move to In Progress anyway?');
+        if (!confirmed) return;
+      }
+    }
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
     } catch (err) {
@@ -116,7 +123,7 @@ export default function App() {
   }
 
   async function handleCreateTicket(
-    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason'>,
+    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy'>,
   ) {
     if (!currentProjectId) return;
     await createTicketMutation.mutateAsync(data);

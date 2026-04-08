@@ -173,7 +173,7 @@ async def update_ticket(
                 }
             )
         # JSON list fields need serialization
-        if field == "tags":
+        if field in ("tags", "blocks", "blocked_by"):
             setattr(ticket, field, _dumps(new_val))
         else:
             setattr(ticket, field, new_val)
@@ -452,3 +452,62 @@ async def get_project_activities(
             )
     events.sort(key=lambda e: e.at, reverse=True)
     return events[:limit]
+
+
+# ---------------------------------------------------------------------------
+# Block / Blocked-by relationships
+# ---------------------------------------------------------------------------
+
+
+async def link_block(
+    session: AsyncSession, blocker_id: str, blocked_id: str
+) -> tuple[Ticket, Ticket] | None:
+    """Make blocker_id block blocked_id. Updates both tickets."""
+    blocker = await session.get(Ticket, blocker_id)
+    blocked = await session.get(Ticket, blocked_id)
+    if blocker is None or blocked is None:
+        return None
+
+    blocker_blocks = _loads(blocker.blocks)
+    if blocked_id not in blocker_blocks:
+        blocker_blocks.append(blocked_id)
+    blocker.blocks = _dumps(blocker_blocks)
+    blocker.updated_at = datetime.now(UTC).isoformat()
+
+    blocked_by_list = _loads(blocked.blocked_by)
+    if blocker_id not in blocked_by_list:
+        blocked_by_list.append(blocker_id)
+    blocked.blocked_by = _dumps(blocked_by_list)
+    blocked.updated_at = datetime.now(UTC).isoformat()
+
+    session.add(blocker)
+    session.add(blocked)
+    await session.commit()
+    await session.refresh(blocker)
+    await session.refresh(blocked)
+    return blocker, blocked
+
+
+async def unlink_block(
+    session: AsyncSession, blocker_id: str, blocked_id: str
+) -> tuple[Ticket, Ticket] | None:
+    """Remove block relationship between the two tickets."""
+    blocker = await session.get(Ticket, blocker_id)
+    blocked = await session.get(Ticket, blocked_id)
+    if blocker is None or blocked is None:
+        return None
+
+    blocker_blocks = _loads(blocker.blocks)
+    blocker.blocks = _dumps([x for x in blocker_blocks if x != blocked_id])
+    blocker.updated_at = datetime.now(UTC).isoformat()
+
+    blocked_by_list = _loads(blocked.blocked_by)
+    blocked.blocked_by = _dumps([x for x in blocked_by_list if x != blocker_id])
+    blocked.updated_at = datetime.now(UTC).isoformat()
+
+    session.add(blocker)
+    session.add(blocked)
+    await session.commit()
+    await session.refresh(blocker)
+    await session.refresh(blocked)
+    return blocker, blocked

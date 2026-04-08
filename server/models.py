@@ -50,6 +50,10 @@ class Ticket(SQLModel, table=True):
     wont_do_reason: Optional[str] = Field(default=None)
     created_by: Optional[str] = Field(default=None, foreign_key="member.id")
     assignee: Optional[str] = Field(default=None, foreign_key="member.id")
+    blocks: str = Field(default="[]")  # JSON array of ticket IDs this ticket blocks
+    blocked_by: str = Field(
+        default="[]"
+    )  # JSON array of ticket IDs blocking this ticket
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -164,6 +168,8 @@ class TicketUpdate(SQLModel):
     parent_id: Optional[str] = None
     wont_do_reason: Optional[str] = None
     assignee: Optional[str] = None
+    blocks: Optional[list[Any]] = None
+    blocked_by: Optional[list[Any]] = None
 
 
 class TicketRead(SQLModel):
@@ -187,6 +193,8 @@ class TicketRead(SQLModel):
     wont_do_reason: Optional[str] = None
     created_by: Optional[str] = None
     assignee: Optional[str] = None
+    blocks: list[Any] = []
+    blocked_by: list[Any] = []
     created_at: str
     updated_at: str
 
@@ -213,6 +221,8 @@ class TicketRead(SQLModel):
             wont_do_reason=ticket.wont_do_reason,
             created_by=ticket.created_by,
             assignee=ticket.assignee,
+            blocks=_parse_json_list(ticket.blocks),
+            blocked_by=_parse_json_list(ticket.blocked_by),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

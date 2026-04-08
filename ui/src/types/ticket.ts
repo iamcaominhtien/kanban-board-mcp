@@ -71,6 +71,8 @@ export interface Ticket {
   wontDoReason: string | null;
   createdBy: string | null;
   assignee: string | null;
+  blocks: string[];
+  blockedBy: string[];
   createdAt: string;
   updatedAt: string;
 }
