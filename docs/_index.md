@@ -3,6 +3,13 @@ _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/gen
 
 _Last updated: 2026-04-08_
 
+## Architecture
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [backend-architecture.md](backend-architecture.md) | Backend Architecture & Implementation Plan | approved | 1.0.0 | 2026-04-04 |
+| [api-contract.md](api-contract.md) | API Contract | approved | 1.0.0 | 2026-04-04 |
+
 ## Business Analysis
 
 | File | Title | Status | Version | Updated |
@@ -16,6 +23,7 @@ _Last updated: 2026-04-08_
 | [test-iam-35-comments.md](test-iam-35-comments.md) | Test Plan: Comments Cleanup (IAM-35) | stable | 1.0.1 | 2026-04-04 |
 | [test-iam-39-members.md](test-iam-39-members.md) | Test Plan: Assignee, Created By, and Project Members (IAM-39) | stable | 1.0.1 | 2026-04-08 |
 | [test-iam-40-timeline-view.md](test-iam-40-timeline-view.md) | Test Plan: Project Timeline View (IAM-40) | review | 1.0.2 | 2026-04-08 |
+| [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 
 ## Developer Guides

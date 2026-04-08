@@ -19,8 +19,10 @@ from services.tickets import (
     delete_work_log,
     get_project_activities,
     get_ticket,
+    link_block,
     list_tickets,
     toggle_acceptance_criterion,
+    unlink_block,
     update_test_case,
     update_ticket,
 )
@@ -295,3 +297,36 @@ async def get_project_activities_handler(
     limit: int = Query(default=200, ge=1, le=1000),
 ) -> list[ActivityEventRead]:
     return await get_project_activities(session, project_id, limit)
+
+
+# ---------------------------------------------------------------------------
+# Block / Blocked-by relationships
+# ---------------------------------------------------------------------------
+
+
+class BlockPairRead(BaseModel):
+    blocker: TicketRead
+    blocked: TicketRead
+
+
+@router.post("/tickets/{ticket_id}/blocks/{target_id}", response_model=BlockPairRead)
+async def post_block(ticket_id: str, target_id: str, session: Session) -> BlockPairRead:
+    try:
+        result = await link_block(session, ticket_id, target_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if result is None:
+        _404("One or both tickets not found")
+    blocker, blocked = result
+    return BlockPairRead(blocker=_read(blocker), blocked=_read(blocked))
+
+
+@router.delete("/tickets/{ticket_id}/blocks/{target_id}", response_model=BlockPairRead)
+async def delete_block(
+    ticket_id: str, target_id: str, session: Session
+) -> BlockPairRead:
+    result = await unlink_block(session, ticket_id, target_id)
+    if result is None:
+        _404("One or both tickets not found")
+    blocker, blocked = result
+    return BlockPairRead(blocker=_read(blocker), blocked=_read(blocked))

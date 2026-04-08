@@ -367,6 +367,60 @@ export function useRestoreTicket(projectId: string) {
   });
 }
 
+// Block / Blocked-by relationships
+
+export async function linkBlock(
+  ticketId: string,
+  targetId: string,
+): Promise<{ blocker: Ticket; blocked: Ticket }> {
+  const res = await client.post<{ blocker: Ticket; blocked: Ticket }>(
+    `/tickets/${ticketId}/blocks/${targetId}`,
+  );
+  return res.data;
+}
+
+export async function unlinkBlock(
+  ticketId: string,
+  targetId: string,
+): Promise<{ blocker: Ticket; blocked: Ticket }> {
+  const res = await client.delete<{ blocker: Ticket; blocked: Ticket }>(
+    `/tickets/${ticketId}/blocks/${targetId}`,
+  );
+  return res.data;
+}
+
+export function useLinkBlock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
+      linkBlock(blockerId, blockedId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocker.projectId) });
+      if (data.blocked.projectId !== data.blocker.projectId) {
+        queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocked.projectId) });
+      }
+      queryClient.setQueryData(ticketKeys.detail(data.blocker.id), data.blocker);
+      queryClient.setQueryData(ticketKeys.detail(data.blocked.id), data.blocked);
+    },
+  });
+}
+
+export function useUnlinkBlock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
+      unlinkBlock(blockerId, blockedId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocker.projectId) });
+      if (data.blocked.projectId !== data.blocker.projectId) {
+        queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocked.projectId) });
+      }
+      queryClient.setQueryData(ticketKeys.detail(data.blocker.id), data.blocker);
+      queryClient.setQueryData(ticketKeys.detail(data.blocked.id), data.blocked);
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Project activities (for event timeline)
 // ---------------------------------------------------------------------------

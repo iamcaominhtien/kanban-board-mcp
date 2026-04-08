@@ -24,6 +24,7 @@ export default function App() {
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
+  const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
 
   const { data: members = [] } = useMembers(currentProjectId ?? '');
 
@@ -108,6 +109,24 @@ export default function App() {
       : undefined;
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
+    if (newStatus === 'in-progress') {
+      const dragged = tickets.find((t) => t.id === ticketId);
+      if (dragged && (dragged.blockedBy ?? []).length > 0) {
+        setBlockedDragPending({ ticketId, newStatus });
+        return;
+      }
+    }
+    try {
+      await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    }
+  }
+
+  async function proceedBlockedDrag() {
+    if (!blockedDragPending) return;
+    const { ticketId, newStatus } = blockedDragPending;
+    setBlockedDragPending(null);
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
     } catch (err) {
@@ -116,7 +135,7 @@ export default function App() {
   }
 
   async function handleCreateTicket(
-    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason'>,
+    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy'>,
   ) {
     if (!currentProjectId) return;
     await createTicketMutation.mutateAsync(data);
@@ -184,6 +203,13 @@ export default function App() {
           <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span>{globalError}</span>
             <button type="button" onClick={() => setGlobalError(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 4px' }}>×</button>
+          </div>
+        )}
+        {blockedDragPending && (
+          <div style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#FEF3C7', border: '1.5px solid #F5C518', color: 'var(--color-dark)', padding: '12px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+            <span>⚠️ This ticket is blocked. Move to In Progress anyway?</span>
+            <button type="button" onClick={proceedBlockedDrag} style={{ background: '#F5C518', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, color: 'var(--color-dark)' }}>Move Anyway</button>
+            <button type="button" onClick={() => setBlockedDragPending(null)} style={{ background: 'transparent', border: '1.5px solid #F5C518', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, color: 'var(--color-dark)' }}>Cancel</button>
           </div>
         )}
         {projectsLoading && apiProjects.length === 0 ? (

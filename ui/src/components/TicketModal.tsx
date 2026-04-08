@@ -6,12 +6,14 @@ import {
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
   useAddWorkLog,
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+  useLinkBlock, useUnlinkBlock,
 } from '../api/tickets';
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { MemberAvatar } from './MemberAvatar';
+import { RelationsSection } from './RelationsSection';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
@@ -110,6 +112,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const addTestCaseMutation = useAddTestCase();
   const updateTestCaseMutation = useUpdateTestCase();
   const deleteTestCaseMutation = useDeleteTestCase();
+  const linkBlockMutation = useLinkBlock();
+  const unlinkBlockMutation = useUnlinkBlock();
   const [visible, setVisible] = useState(false);
 
   // Fix 1: keep onClose ref fresh to avoid stale closure in Escape handler
@@ -396,6 +400,29 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       onOpenTicket={(t) => onOpenTicket && onOpenTicket(t)}
                       onLinkChild={handleLinkChild}
                       onUnlinkChild={handleUnlinkChild}
+                    />
+                    <hr className={styles.divider} />
+                    <RelationsSection
+                      ticket={ticket}
+                      allTickets={allTickets}
+                      onLinkBlock={(blockerId, blockedId) =>
+                        linkBlockMutation.mutate(
+                          { blockerId, blockedId },
+                          {
+                            onSuccess: () => setViewError(null),
+                            onError: (err) => { console.error('Failed to link block:', err); setViewError('Failed to add relation. Please try again.'); },
+                          },
+                        )
+                      }
+                      onUnlinkBlock={(blockerId, blockedId) =>
+                        unlinkBlockMutation.mutate(
+                          { blockerId, blockedId },
+                          {
+                            onSuccess: () => setViewError(null),
+                            onError: (err) => { console.error('Failed to unlink block:', err); setViewError('Failed to remove relation. Please try again.'); },
+                          },
+                        )
+                      }
                     />
                   </>
                 )}
