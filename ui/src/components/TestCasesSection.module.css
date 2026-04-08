@@ -219,9 +219,8 @@
 }
 
 .hasMetaIndicator {
-  flex-shrink: 0;
   font-size: 12px;
-  opacity: 0.5;
+  flex-shrink: 0;
   cursor: default;
 }
 
