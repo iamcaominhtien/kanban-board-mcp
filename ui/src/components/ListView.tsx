@@ -41,12 +41,14 @@ const PRIORITY_CHIP_CLASS: Record<Priority, string> = {
 function sortTickets(tickets: Ticket[], sortBy: SortBy): Ticket[] {
   return [...tickets].sort((a, b) => {
     if (sortBy === 'dueDate') {
-      if (!a.dueDate && !b.dueDate) return 0;
-      if (!a.dueDate) return 1;
-      if (!b.dueDate) return -1;
-      return a.dueDate.localeCompare(b.dueDate);
+      if (a.dueDate == null && b.dueDate == null) return 0;
+      if (a.dueDate == null) return 1;   // nulls last
+      if (b.dueDate == null) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     }
-    return a.createdAt.localeCompare(b.createdAt);
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return aTime - bTime;
   });
 }
 
