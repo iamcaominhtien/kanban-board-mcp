@@ -46,10 +46,17 @@ function categorizeEvent(type: string): EventCategory {
 }
 
 const EVENT_COLORS: Record<EventCategory, string> = {
-  created: '#16a34a',
-  status_changed: '#92400e',
-  commented: '#3d0c11',
-  other: '#9ca3af',
+  created: '#AACC2E',
+  status_changed: '#E8441A',
+  commented: '#5BB8F5',
+  other: 'rgba(61,12,17,0.2)',
+};
+
+const EVENT_ICONS: Record<EventCategory, string> = {
+  created: '✦',
+  status_changed: '⟳',
+  commented: '◎',
+  other: '·',
 };
 
 function friendlyEventType(type: string): string {
@@ -291,41 +298,41 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
             {group.events.map((ev, idx) => {
               const ticket = ticketMap.get(ev.ticketId);
               const category = categorizeEvent(ev.eventType);
-              const dotColor = EVENT_COLORS[category];
+              const badgeColor = EVENT_COLORS[category];
+              const icon = EVENT_ICONS[category];
               const time = new Date(ev.at).toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
               });
               return (
                 <div key={`${ev.ticketId}-${ev.at}-${idx}`} className={styles.eventItem}>
-                  <div className={styles.eventDotWrap}>
-                    <div className={styles.eventDot} style={{ background: dotColor }} />
+                  <div
+                    className={styles.eventBadgeCircle}
+                    style={{ background: badgeColor }}
+                  >
+                    {icon}
                   </div>
                   <div className={styles.eventContent}>
-                    <div className={styles.eventMeta}>
-                      <span
-                        className={styles.eventBadge}
-                        style={{
-                          background: `${dotColor}33`,
-                          color: dotColor,
-                        }}
-                      >
-                        {friendlyEventType(ev.eventType)}
-                      </span>
+                    <div className={styles.eventRow1}>
                       <button
                         type="button"
-                        className={styles.eventTicketLink}
+                        className={styles.eventTicketChip}
                         onClick={() => ticket && onCardClick(ticket)}
                         disabled={!ticket}
                       >
                         {ev.ticketId}
                       </button>
-                      <span className={styles.eventTitle}>{ev.ticketTitle}</span>
+                      <span className={styles.eventTicketTitle}>{ev.ticketTitle}</span>
                       <span className={styles.eventTime}>{time}</span>
                     </div>
-                    {ev.detail && ev.eventType !== 'created' && (
-                      <div className={styles.eventDetail}>{ev.detail}</div>
-                    )}
+                    <div className={styles.eventRow2}>
+                      <span className={styles.eventTypeLabel}>
+                        {friendlyEventType(ev.eventType)}
+                      </span>
+                      {ev.detail && ev.eventType !== 'created' && (
+                        <span className={styles.eventDetailText}>{ev.detail}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

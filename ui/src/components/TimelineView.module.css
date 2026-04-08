@@ -235,85 +235,86 @@
 /* ─── Event Timeline ─────────────────────────────────────────────────────── */
 
 .eventTimeline {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 24px 32px;
+  padding: 8px 0;
 }
 
 .eventGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  margin-bottom: 28px;
 }
 
+/* Date separator with horizontal rule break */
 .eventGroupDate {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6b7280;
-  padding: 0 0 10px 36px;
-}
-
-/* Rail wrapper: vertical line + events stacked */
-.eventRail {
-  display: flex;
-  flex-direction: column;
   position: relative;
-  padding-left: 36px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(61, 12, 17, 0.5);
+  margin-bottom: 4px;
+  padding: 4px 0;
 }
 
+.eventGroupDate::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: rgba(61, 12, 17, 0.1);
+}
+
+/* Rail: left 64px gutter with vertical line, content fills remainder */
+.eventRail {
+  position: relative;
+  padding-left: 64px;
+}
+
+/* Vertical rail line — centered at 32px (badge center) */
 .eventRail::before {
   content: '';
   position: absolute;
-  left: 8px;
+  left: 31px;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #e5e7eb;
+  background: rgba(61, 12, 17, 0.15);
   border-radius: 1px;
 }
 
 .eventItem {
-  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 8px 10px 8px 0;
-  border-radius: var(--radius-card);
+  padding: 8px 0;
+  border-radius: 8px;
   transition: background 0.12s ease;
-  margin-left: -8px;
-  padding-left: 8px;
 }
 
 .eventItem:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(61, 12, 17, 0.04);
+  margin: 0 -8px;
+  padding: 8px;
 }
 
-/* Dot sits on the rail */
-.eventDotWrap {
-  position: absolute;
-  left: -28px;
-  top: 12px;
-  width: 16px;
-  height: 16px;
+/* Badge circle that straddles the rail */
+.eventBadgeCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--color-bg);
+  flex-shrink: 0;
+  /* Badge left = 64 - 48 = 16px; center = 32px — sits on the rail */
+  margin-left: -48px;
+  margin-right: 12px;
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
-  border-radius: 50%;
-  z-index: 1;
-}
-
-.eventDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: #fff;
 }
 
 .eventContent {
@@ -321,54 +322,49 @@
   min-width: 0;
 }
 
-.eventMeta {
+/* Row 1: ticket chip + title + timestamp */
+.eventRow1 {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
-/* Colored pill badge for event type */
-.eventBadge {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 99px;
-  padding: 2px 8px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.eventTicketLink {
+.eventTicketChip {
   font-family: var(--font-mono, monospace);
   font-size: 12px;
   font-weight: 700;
-  color: #9a3412;
+  color: var(--color-orange);
   background: none;
-  border: none;
+  border: 1px solid var(--color-orange);
+  border-radius: 4px;
+  padding: 0 5px;
+  line-height: 1.7;
   cursor: pointer;
-  padding: 0;
-  letter-spacing: 0.02em;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  white-space: nowrap;
   flex-shrink: 0;
+  transition: background 0.1s;
 }
 
-.eventTicketLink:disabled {
+.eventTicketChip:hover:not(:disabled) {
+  background: rgba(232, 68, 26, 0.1);
+}
+
+.eventTicketChip:disabled {
   cursor: default;
-  text-decoration: none;
-  color: var(--color-dark);
-  opacity: 0.45;
+  color: rgba(61, 12, 17, 0.35);
+  border-color: rgba(61, 12, 17, 0.2);
 }
 
-.eventTitle {
+.eventTicketTitle {
   font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--color-dark);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 1;
   min-width: 0;
 }
@@ -376,18 +372,34 @@
 .eventTime {
   font-family: var(--font-body);
   font-size: 12px;
-  color: #9ca3af;
+  color: rgba(61, 12, 17, 0.4);
   margin-left: auto;
   white-space: nowrap;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-.eventDetail {
+/* Row 2: event type label + detail */
+.eventRow2 {
+  display: flex;
+  align-items: center;
+  margin-top: 3px;
+}
+
+.eventTypeLabel {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(61, 12, 17, 0.5);
+}
+
+.eventDetailText {
   font-family: var(--font-body);
   font-size: 12px;
-  color: #6b7280;
-  font-style: italic;
-  margin-top: 3px;
+  color: rgba(61, 12, 17, 0.6);
+  margin-left: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
