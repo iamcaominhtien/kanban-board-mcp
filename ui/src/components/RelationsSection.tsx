@@ -7,6 +7,7 @@ const STATUS_COLORS: Record<Status, { bg: string; color: string }> = {
   todo: { bg: '#FED7AA', color: '#9A3412' },
   'in-progress': { bg: '#D9F99D', color: '#3F6212' },
   done: { bg: '#FCE7F3', color: '#9D174D' },
+  wont_do: { bg: '#F3F4F6', color: '#6B7280' },
 };
 
 const STATUS_LABELS: Record<Status, string> = {
@@ -14,6 +15,7 @@ const STATUS_LABELS: Record<Status, string> = {
   todo: 'To Do',
   'in-progress': 'In Progress',
   done: 'Done',
+  wont_do: "Won't Do",
 };
 
 interface RelationsSectionProps {
