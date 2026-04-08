@@ -298,3 +298,99 @@ async def test_list_tickets_with_status_filter(client: httpx.AsyncClient):
     results = r.json()
     assert len(results) == 1
     assert results[0]["status"] == "done"
+
+
+# ---------------------------------------------------------------------------
+# Wont Do status
+# ---------------------------------------------------------------------------
+
+
+async def test_set_wont_do_requires_reason(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        r = await c.patch(f"/tickets/{ticket['id']}", json={"status": "wont_do"})
+    assert r.status_code == 400
+    assert "wont_do_reason" in r.json()["detail"]
+
+
+async def test_set_wont_do_with_reason(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        r = await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"status": "wont_do", "wont_do_reason": "Out of scope"},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "wont_do"
+    assert body["wont_do_reason"] == "Out of scope"
+
+
+async def test_wont_do_tickets_excluded_by_default(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        t1 = await _create_ticket(c, project["id"], "Normal ticket")
+        t2 = await _create_ticket(c, project["id"], "Wont do ticket")
+        await c.patch(
+            f"/tickets/{t2['id']}",
+            json={"status": "wont_do", "wont_do_reason": "Not needed"},
+        )
+        r_default = await c.get(f"/projects/{project['id']}/tickets")
+        r_include = await c.get(
+            f"/projects/{project['id']}/tickets", params={"include_wont_do": "true"}
+        )
+    assert r_default.status_code == 200
+    default_ids = [t["id"] for t in r_default.json()]
+    assert t1["id"] in default_ids
+    assert t2["id"] not in default_ids
+
+    all_ids = [t["id"] for t in r_include.json()]
+    assert t1["id"] in all_ids
+    assert t2["id"] in all_ids
+
+
+async def test_set_wont_do_with_null_reason_returns_400(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        r = await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"status": "wont_do", "wont_do_reason": None},
+        )
+    assert r.status_code == 400
+    assert "wont_do_reason" in r.json()["detail"]
+
+
+async def test_child_ticket_cannot_be_set_to_wont_do(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        parent = await _create_ticket(c, project["id"], "Parent ticket")
+        child = await _create_ticket(
+            c, project["id"], "Child ticket", parent_id=parent["id"]
+        )
+        r = await c.patch(
+            f"/tickets/{child['id']}",
+            json={"status": "wont_do", "wont_do_reason": "Not needed"},
+        )
+    assert r.status_code == 400
+    assert "Child" in r.json()["detail"] or "wont_do" in r.json()["detail"]
+
+
+async def test_restore_ticket_clears_wont_do_reason(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"status": "wont_do", "wont_do_reason": "Out of scope"},
+        )
+        r = await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"status": "backlog"},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "backlog"
+    assert body["wont_do_reason"] is None

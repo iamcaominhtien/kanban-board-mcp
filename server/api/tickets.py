@@ -49,9 +49,15 @@ async def get_tickets(
     status: Optional[str] = None,
     priority: Optional[str] = None,
     q: Optional[str] = None,
+    include_wont_do: bool = False,
 ) -> list[TicketRead]:
     tickets = await list_tickets(
-        session, project_id, status=status, priority=priority, q=q
+        session,
+        project_id,
+        status=status,
+        priority=priority,
+        q=q,
+        include_wont_do=include_wont_do,
     )
     return [_read(t) for t in tickets]
 
@@ -93,7 +99,10 @@ async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
 async def patch_ticket(
     ticket_id: str, data: TicketUpdate, session: Session
 ) -> TicketRead:
-    ticket = await update_ticket(session, ticket_id, data)
+    try:
+        ticket = await update_ticket(session, ticket_id, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     return _read(ticket)

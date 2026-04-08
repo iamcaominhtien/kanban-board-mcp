@@ -27,10 +27,13 @@ async def list_tickets(
     status: str | None = None,
     priority: str | None = None,
     q: str | None = None,
+    include_wont_do: bool = False,
 ) -> list[Ticket]:
     stmt = select(Ticket).where(Ticket.project_id == project_id)
     if status is not None:
         stmt = stmt.where(Ticket.status == status)
+    elif not include_wont_do:
+        stmt = stmt.where(Ticket.status != "wont_do")
     if priority is not None:
         stmt = stmt.where(Ticket.priority == priority)
     if q is not None:
@@ -106,8 +109,22 @@ async def update_ticket(
     if ticket is None:
         return None
 
+    update_data = data.model_dump(exclude_unset=True)
+
+    if (
+        update_data.get("status") == "wont_do"
+        and not (update_data.get("wont_do_reason") or "").strip()
+    ):
+        raise ValueError("wont_do_reason is required when status is wont_do")
+
+    if update_data.get("status") == "wont_do" and ticket.parent_id is not None:
+        raise ValueError("Child tickets cannot be set to wont_do")
+
+    # Clear wont_do_reason when transitioning away from wont_do
+    if "status" in update_data and update_data["status"] != "wont_do":
+        update_data.setdefault("wont_do_reason", None)
+
     activity = _loads(ticket.activity_log)
-    update_data = data.model_dump(exclude_none=True)
 
     for field, new_val in update_data.items():
         old_val = getattr(ticket, field)
