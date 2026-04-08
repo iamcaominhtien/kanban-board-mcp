@@ -237,15 +237,15 @@
 .chipInProgress{ background: var(--color-lime,   #AACC2E); }
 .chipDone      { background: var(--color-pink,   #F472B6); }
 
-/* Priority chip colors */
-.chipCritical  { background: var(--color-orange, #E8441A); }
-.chipHigh      { background: var(--color-blue,   #5BB8F5); }
+/* Priority chip colors — must match PRIORITY_COLORS in TicketCard.tsx */
+.chipCritical  { background: #DC2626; }
+.chipHigh      { background: var(--color-orange, #E8441A); }
 .chipMedium    { background: var(--color-yellow, #F5C518); }
-.chipLow       { background: var(--color-lime,   #AACC2E); }
+.chipLow       { background: #9CA3AF; }
 
 /* Tag group dot colors */
 .chipTag       { background: var(--color-blue,   #5BB8F5); }
-.chipUntagged  { background: #9CA3AF; }
+.chipUntagged  { background: var(--color-gray, #9CA3AF); }
 
 .rowDue {
   font-size: 12px;

@@ -104,7 +104,7 @@ function buildGroups(tickets: Ticket[], groupBy: GroupBy, sortBy: SortBy): Group
     }));
   if (untagged.length > 0) {
     tagGroups.push({
-      key: '\x00untagged',
+      key: '\x00untagged', // '\x00' prefix ensures this key cannot collide with any real user-entered tag
       label: 'Untagged',
       chipClass: 'chipUntagged',
       tickets: sortTickets(untagged, sortBy),
