@@ -89,43 +89,36 @@ The server exposes 15 tools for AI agents over MCP:
 
 ## Connecting AI Agents
 
-The server exposes MCP over streamable HTTP. Start it first:
+### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 
+The server launches as a subprocess — no manual startup needed.
+
+**First-time setup** (run once to create the database schema):
 ```bash
-cd server
-uv run uvicorn main:app --port 8000
+cd server && uv run alembic upgrade head
 ```
 
-Then connect any MCP-compatible client to `http://localhost:8000/mcp`.
-
-### VS Code (Copilot)
-
-Add to your VS Code MCP config (`~/.vscode/mcp.json` or user `mcp.json`):
-
+Add to VS Code `mcp.json` or Claude Desktop config:
 ```json
 {
   "servers": {
     "kanban": {
-      "url": "http://localhost:8000/mcp",
-      "type": "http"
+      "type": "stdio",
+      "command": "uv",
+      "args": ["--directory", "/path/to/kanban-board-mcp/server", "run", "mcp_stdio.py"]
     }
   }
 }
 ```
 
-### Claude Desktop
+### Option 2 — HTTP (when running the full server)
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "kanban": {
-      "url": "http://localhost:8000/mcp"
-    }
-  }
-}
+Start the server first:
+```bash
+cd server && uv run uvicorn main:app --port 8000
 ```
+
+Then connect any MCP-compatible client to `http://localhost:8000/mcp`.
 
 ## More Docs
 - [Server README](server/README.md)

@@ -52,18 +52,28 @@ uv run ruff format .
 
 ## Connecting AI Agents (MCP)
 
-The server exposes MCP over **streamable HTTP** at `http://localhost:8000/mcp`. Start the server first, then connect any MCP-compatible client.
+### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 
-### VS Code / Claude Desktop
+Uses `mcp_stdio.py` — the server launches as a subprocess, no manual startup needed.
+
+**First-time setup** (run once):
+```bash
+uv run alembic upgrade head
+```
 
 ```json
 {
   "servers": {
     "kanban": {
-      "url": "http://localhost:8000/mcp",
-      "type": "http"
+      "type": "stdio",
+      "command": "uv",
+      "args": ["--directory", "/path/to/kanban-board-mcp/server", "run", "mcp_stdio.py"]
     }
   }
 }
 ```
+
+### Option 2 — HTTP
+
+Start the server, then connect any MCP client to `http://localhost:8000/mcp`.
 
