@@ -20,10 +20,10 @@ app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
 # origins: extend via CORS_ORIGINS env var for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
 )
 
 mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")

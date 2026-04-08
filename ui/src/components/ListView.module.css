@@ -1,0 +1,259 @@
+.listView {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Toolbar ──────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(61, 12, 17, 0.04);
+  border-radius: 16px;
+}
+
+.toolbarLeft,
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbarLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-dark);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.select {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-dark);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-dark);
+  border-radius: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%233D0C11' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.select:focus {
+  border-color: var(--color-orange, #E8441A);
+}
+
+/* Sort toggle */
+.toggleGroup {
+  display: flex;
+  border: 1.5px solid var(--color-dark);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.toggleBtn {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark);
+  background: transparent;
+  border: none;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.toggleBtn + .toggleBtn {
+  border-left: 1.5px solid var(--color-dark);
+}
+
+.toggleBtnActive {
+  background: var(--color-dark);
+  color: var(--color-bg);
+}
+
+/* Expand/Collapse All */
+.expandBtn {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark);
+  background: transparent;
+  border: 1.5px solid var(--color-dark);
+  border-radius: 10px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.expandBtn:hover {
+  background: var(--color-dark);
+  color: var(--color-bg);
+}
+
+/* ── Groups ───────────────────────────────── */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-dark);
+  opacity: 0.5;
+  font-size: 14px;
+  padding: 40px 0;
+}
+
+/* ── Group ────────────────────────────────── */
+.group {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1.5px solid rgba(61, 12, 17, 0.1);
+}
+
+.groupHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(61, 12, 17, 0.05);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.12s ease;
+}
+
+.groupHeader:hover {
+  background: rgba(61, 12, 17, 0.09);
+}
+
+.groupDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.groupChevron {
+  font-size: 11px;
+  color: var(--color-dark);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.groupLabel {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-dark);
+  flex: 1;
+}
+
+.groupBadge {
+  background: var(--color-dark);
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* ── Rows ─────────────────────────────────── */
+.groupRows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.12s ease;
+}
+
+.row:hover {
+  background: rgba(61, 12, 17, 0.06);
+}
+
+.rowId {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark);
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 72px;
+}
+
+.rowTitle {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-dark);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Status chip colors */
+.chipBacklog   { background: var(--color-yellow, #F5C518); }
+.chipTodo      { background: var(--color-orange, #E8441A); }
+.chipInProgress{ background: var(--color-lime,   #AACC2E); }
+.chipDone      { background: var(--color-pink,   #F472B6); }
+
+/* Priority chip colors — must match PRIORITY_COLORS in TicketCard.tsx */
+.chipCritical  { background: #DC2626; }
+.chipHigh      { background: var(--color-orange, #E8441A); }
+.chipMedium    { background: var(--color-yellow, #F5C518); }
+.chipLow       { background: #9CA3AF; }
+
+/* Tag group dot colors */
+.chipTag       { background: var(--color-blue,   #5BB8F5); }
+.chipUntagged  { background: var(--color-gray, #9CA3AF); }
+
+.rowDue {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-dark);
+  opacity: 0.55;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 100px;
+  text-align: right;
+}

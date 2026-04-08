@@ -1,10 +1,12 @@
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-DATABASE_URL = "sqlite+aiosqlite:///./kanban.db"
+_DB_PATH = Path(__file__).parent / "kanban.db"
+DATABASE_URL = f"sqlite+aiosqlite:///{_DB_PATH}"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 
