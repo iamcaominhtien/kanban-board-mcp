@@ -16,12 +16,14 @@ const STATUS_LABELS: Record<Status, string> = {
   todo: 'To Do',
   'in-progress': 'In Progress',
   done: 'Done',
+  wont_do: 'Không làm',
 };
 const STATUS_CHIP_CLASS: Record<Status, string> = {
   backlog: 'chipBacklog',
   todo: 'chipTodo',
   'in-progress': 'chipInProgress',
   done: 'chipDone',
+  wont_do: 'chipDone',
 };
 
 const PRIORITY_ORDER: Priority[] = ['critical', 'high', 'medium', 'low'];

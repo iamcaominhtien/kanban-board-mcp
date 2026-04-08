@@ -36,6 +36,7 @@ class Ticket(SQLModel, table=True):
     activity_log: str = Field(default="[]")  # JSON array
     work_log: str = Field(default="[]")  # JSON array
     test_cases: str = Field(default="[]")  # JSON array
+    wont_do_reason: Optional[str] = Field(default=None)
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -102,7 +103,7 @@ class TicketCreateBody(SQLModel):
     description: str = ""
     type: Literal["bug", "feature", "task", "chore"] = "task"
     priority: Literal["low", "medium", "high", "critical"] = "medium"
-    status: Literal["backlog", "todo", "in-progress", "done"] = "backlog"
+    status: Literal["backlog", "todo", "in-progress", "done", "wont_do"] = "backlog"
     estimate: Optional[float] = None
     due_date: Optional[str] = None
     tags: list[Any] = []
@@ -113,12 +114,15 @@ class TicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
     type: Optional[Literal["bug", "feature", "task", "chore"]] = None
-    status: Optional[Literal["backlog", "todo", "in-progress", "done"]] = None
+    status: Optional[Literal["backlog", "todo", "in-progress", "done", "wont_do"]] = (
+        None
+    )
     priority: Optional[Literal["low", "medium", "high", "critical"]] = None
     estimate: Optional[float] = None
     due_date: Optional[str] = None
     tags: Optional[list[Any]] = None
     parent_id: Optional[str] = None
+    wont_do_reason: Optional[str] = None
 
 
 class TicketRead(SQLModel):
@@ -138,6 +142,7 @@ class TicketRead(SQLModel):
     activity_log: list[Any] = []
     work_log: list[Any] = []
     test_cases: list[Any] = []
+    wont_do_reason: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -160,6 +165,7 @@ class TicketRead(SQLModel):
             activity_log=_parse_json_list(ticket.activity_log),
             work_log=_parse_json_list(ticket.work_log),
             test_cases=_parse_json_list(ticket.test_cases),
+            wont_do_reason=ticket.wont_do_reason,
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

@@ -541,3 +541,32 @@
     top: 0;
   }
 }
+
+.wontDoDialog {
+  margin-top: 8px;
+  padding: 12px;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wontDoTextarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(61, 12, 17, 0.18);
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-dark);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.wontDoTextarea:focus {
+  outline: none;
+  border-color: #DC2626;
+}

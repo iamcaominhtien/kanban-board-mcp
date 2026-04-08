@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Board } from './components/Board';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { TicketModal } from './components/TicketModal';
+import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
-import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus } from './api/tickets';
+import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, useWontDoTickets, useRestoreTicket } from './api/tickets';
 import type { Priority, Status, Ticket } from './types';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [recycleBinOpen, setRecycleBinOpen] = useState(false);
 
   useEffect(() => {
     if (!globalError) return;
@@ -42,16 +44,20 @@ export default function App() {
   const currentProject = apiProjects.find((p) => p.id === currentProjectId);
 
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(currentProjectId ?? '');
+  const { data: wontDoTickets = [] } = useWontDoTickets(currentProjectId ?? '');
   const createTicketMutation = useCreateTicket(currentProjectId ?? '');
   const deleteTicketMutation = useDeleteTicket(currentProjectId ?? '');
   const updateStatusMutation = useUpdateTicketStatus();
+  const restoreTicketMutation = useRestoreTicket(currentProjectId ?? '');
 
   const q = searchQuery.toLowerCase();
-  const filteredTickets = tickets.filter((t) => {
-    const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
-    const matchesPriority = activePriority === 'all' || t.priority === activePriority;
-    return matchesSearch && matchesPriority;
-  });
+  const filteredTickets = tickets
+    .filter((t) => t.status !== 'wont_do')
+    .filter((t) => {
+      const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
+      const matchesPriority = activePriority === 'all' || t.priority === activePriority;
+      return matchesSearch && matchesPriority;
+    });
 
   const [modalState, setModalState] = useState<
     | { mode: 'create' }
@@ -101,7 +107,7 @@ export default function App() {
   }
 
   async function handleCreateTicket(
-    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases'>,
+    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason'>,
   ) {
     if (!currentProjectId) return;
     await createTicketMutation.mutateAsync(data);
@@ -159,6 +165,8 @@ export default function App() {
         onSelectProject={handleSelectProject}
         onCreateProject={handleCreateProject}
         onDeleteProject={handleDeleteProject}
+        onOpenRecycleBin={() => setRecycleBinOpen(true)}
+        wontDoCount={wontDoTickets.length}
       />
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {globalError && (
@@ -212,6 +220,13 @@ export default function App() {
                   onOpenTicket={(t) => openTicketModal(t.id)}
                 />
               ) : null
+            )}
+            {recycleBinOpen && (
+              <RecycleBin
+                tickets={wontDoTickets}
+                onRestore={(id) => restoreTicketMutation.mutate(id)}
+                onClose={() => setRecycleBinOpen(false)}
+              />
             )}
           </>
         )}

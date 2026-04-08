@@ -8,6 +8,7 @@ const STATUS_LABELS: Record<Status, string> = {
   todo: 'To Do',
   'in-progress': 'In Progress',
   done: 'Done',
+  wont_do: 'Không làm',
 };
 
 interface SubTicketsSectionProps {

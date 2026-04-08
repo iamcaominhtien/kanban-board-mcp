@@ -37,6 +37,7 @@ const STATUS_LABELS: Record<Status, string> = {
   todo:        'To Do',
   'in-progress': 'In Progress',
   done:        'Done',
+  wont_do:     'Không làm',
 };
 
 function formatDate(iso: string) {
@@ -53,6 +54,7 @@ type CreateTicketData = {
   dueDate: string | null;
   estimate: number | null;
   parentId: string | null;
+  wontDoReason?: string | null;
 };
 
 type TicketModalProps =
@@ -88,6 +90,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [viewError, setViewError] = useState<string | null>(null);
+  const [wontDoDialogPending, setWontDoDialogPending] = useState(false);
+  const [wontDoReason, setWontDoReason] = useState('');
 
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
@@ -165,8 +169,29 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         setSaveError('Failed to create ticket. Please try again.');
       }
     } else if (ticket) {
+      if (status === 'wont_do' && !wontDoDialogPending) {
+        setWontDoDialogPending(true);
+        return;
+      }
+      if (status === 'wont_do' && !wontDoReason.trim()) {
+        setSaveError('Please provide a reason for marking this ticket as "Không làm".');
+        return;
+      }
       updateTicketMutation.mutate(
-        { ticketId: ticket.id, data: { title: title.trim(), description, type, status, priority, tags, dueDate: dueDate || null, estimate } },
+        {
+          ticketId: ticket.id,
+          data: {
+            title: title.trim(),
+            description,
+            type,
+            status,
+            priority,
+            tags,
+            dueDate: dueDate || null,
+            estimate,
+            ...(status === 'wont_do' ? { wontDoReason: wontDoReason.trim() } : {}),
+          },
+        },
         {
           onSuccess: () => handleClose(),
           onError: (err) => { console.error('Failed to save ticket:', err); setSaveError('Failed to save ticket. Please try again.'); },
@@ -240,6 +265,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     setEstimate(ticket?.estimate ?? null);
     setConfirmDelete(false);
     setSaveError(null);
+    setWontDoDialogPending(false);
+    setWontDoReason('');
     setLocalMode('view');
   }
 
@@ -634,13 +661,37 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
               <select
                 className={styles.select}
                 value={status}
-                onChange={(e) => setStatus(e.target.value as Status)}
+                onChange={(e) => {
+                  const val = e.target.value as Status;
+                  if (val === 'wont_do') {
+                    setStatus(val);
+                    setWontDoDialogPending(true);
+                  } else {
+                    setStatus(val);
+                    setWontDoDialogPending(false);
+                    setWontDoReason('');
+                  }
+                }}
               >
                 <option value="backlog">Backlog</option>
                 <option value="todo">To Do</option>
                 <option value="in-progress">In Progress</option>
                 <option value="done">Done</option>
+                {!ticket?.parentId && <option value="wont_do">Không làm</option>}
               </select>
+              {wontDoDialogPending && (
+                <div className={styles.wontDoDialog}>
+                  <label className={styles.label}>Lý do không làm *</label>
+                  <textarea
+                    className={styles.wontDoTextarea}
+                    value={wontDoReason}
+                    onChange={(e) => setWontDoReason(e.target.value)}
+                    placeholder="Nhập lý do..."
+                    rows={3}
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
 
             <div className={styles.field}>

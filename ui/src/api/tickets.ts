@@ -45,6 +45,7 @@ export async function updateTicket(
     dueDate?: string | null;
     tags?: string[];
     parentId?: string | null;
+    wontDoReason?: string | null;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);
@@ -61,6 +62,13 @@ export async function updateTicketStatus(
 
 export async function deleteTicket(ticketId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}`);
+}
+
+export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
+  const res = await client.get<Ticket[]>(`/projects/${projectId}/tickets`, {
+    params: { include_wont_do: true, status: 'wont_do' },
+  });
+  return res.data;
 }
 
 // Comments
@@ -332,4 +340,24 @@ export function useDeleteTestCase() {
     ({ ticketId, testCaseId }: { ticketId: string; testCaseId: string }) =>
       deleteTestCase(ticketId, testCaseId),
   );
+}
+
+export function useWontDoTickets(projectId: string) {
+  return useQuery({
+    queryKey: ['wont_do_tickets', projectId],
+    queryFn: () => listWontDoTickets(projectId),
+    enabled: !!projectId,
+  });
+}
+
+export function useRestoreTicket(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: string) =>
+      updateTicket(ticketId, { status: 'backlog', wontDoReason: null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
+      queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', projectId] });
+    },
+  });
 }
