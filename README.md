@@ -1,6 +1,25 @@
-# Kanban Board MCP
+<p align="center">
+  <img src="docs/assets/logo.svg" width="100" alt="Kanban Board MCP" />
+</p>
 
-A personal Kanban board with a polished React UI and a Python MCP server — built for AI agent integration.
+<h1 align="center">Kanban Board MCP</h1>
+
+<p align="center">
+  A personal Kanban board with a polished React UI and a Python MCP server — built for AI agent integration.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-0.135-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/MCP-1.27-FF6B35?style=flat-square" alt="MCP" />
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
+</p>
+
+---
 
 ## What's Inside
 
@@ -90,4 +109,5 @@ Or point any MCP-compatible client at `http://localhost:8000/mcp` (streamable HT
 - [Server README](server/README.md)
 - [UI README](ui/README.md)
 - [Architecture](docs/backend-architecture.md)
+- [Changelog](CHANGELOG.md)
 
