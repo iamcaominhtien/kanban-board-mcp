@@ -12,6 +12,41 @@
   justify-content: space-between;
 }
 
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.viewSwitcher {
+  display: flex;
+  border: 1.5px solid var(--color-dark);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.viewBtn {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dark);
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.viewBtn + .viewBtn {
+  border-left: 1.5px solid var(--color-dark);
+}
+
+.viewBtnActive {
+  background: var(--color-dark);
+  color: var(--color-bg);
+}
+
 .title {
   font-size: 28px;
   font-weight: 900;

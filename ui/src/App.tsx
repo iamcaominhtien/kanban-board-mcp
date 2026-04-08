@@ -16,6 +16,7 @@ export default function App() {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [globalError, setGlobalError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -187,6 +188,8 @@ export default function App() {
               activePriority={activePriority}
               onPriorityChange={setActivePriority}
               projectName={currentProject?.name ?? ''}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
             />
             {modalState && (
               modalState.mode === 'create' ? (
