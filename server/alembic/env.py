@@ -41,6 +41,7 @@ def do_run_migrations(connection) -> None:
 
 
 async def run_async_migrations() -> None:
+    """CLI path: create own engine and run migrations."""
     connectable = create_async_engine(
         config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
@@ -51,6 +52,15 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
+    # Programmatic path: a sync connection is injected via config.attributes.
+    # We must NOT call asyncio.run() here — we are already inside a running loop
+    # (invoked via AsyncConnection.run_sync from database.py).
+    injected_conn = config.attributes.get("connection", None)
+    if injected_conn is not None:
+        do_run_migrations(injected_conn)
+        return
+
+    # CLI path: no injected connection, spin up our own async engine.
     asyncio.run(run_async_migrations())
 
 
