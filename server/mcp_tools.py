@@ -300,7 +300,7 @@ async def remove_member(project_id: str, member_id: str) -> dict:
 
     Cannot remove if member created any tickets.
     Tickets assigned to the member will be unassigned first.
-    Returns True if removed, False if not found.
+    Returns a dict {"ok": bool}.
     """
     async with async_session() as session:
         try:

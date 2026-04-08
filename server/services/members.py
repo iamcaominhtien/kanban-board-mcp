@@ -31,6 +31,8 @@ async def create_member(
     project_id: str,
     name: str,
     color: str | None = None,
+    *,
+    commit: bool = True,
 ) -> Member:
     if not color:
         existing = await list_members(session, project_id)
@@ -42,8 +44,12 @@ async def create_member(
         color=color,
     )
     session.add(member)
-    await session.commit()
-    await session.refresh(member)
+    if commit:
+        await session.commit()
+        await session.refresh(member)
+    else:
+        await session.flush()
+        await session.refresh(member)
     return member
 
 
