@@ -240,6 +240,7 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
   const failCount = displayItems.filter((i) => i.tc.status === 'fail').length;
   const todoCount = displayItems.filter((i) => i.tc.status === 'pending').length;
   const totalCount = displayItems.length;
+  const totalAllCount = testCases.length + sourcesWithTCs.reduce((sum, s) => sum + s.testCases.length, 0);
 
   function handleAdd() {
     if (onAdd) {
@@ -376,7 +377,7 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
                 onChange={(e) => setActiveFilter(e.target.value)}
                 aria-label="Filter test cases"
               >
-                <option value="all">All ({totalCount})</option>
+                <option value="all">All ({totalAllCount})</option>
                 <option value="parent">Parent only ({testCases.length})</option>
                 {sourcesWithTCs.length === 1 ? (
                   <option value="child">Child only ({sourcesWithTCs[0].testCases.length})</option>
