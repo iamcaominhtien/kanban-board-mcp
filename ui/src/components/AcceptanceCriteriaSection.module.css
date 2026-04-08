@@ -66,7 +66,7 @@
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
-  color: #9CA3AF;
+  color: rgba(61, 12, 17, 0.45);
   padding: 0 2px;
   flex-shrink: 0;
   transition: color 0.15s;
