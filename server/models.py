@@ -46,6 +46,7 @@ class Ticket(SQLModel, table=True):
     activity_log: str = Field(default="[]")  # JSON array
     work_log: str = Field(default="[]")  # JSON array
     test_cases: str = Field(default="[]")  # JSON array
+    start_date: Optional[str] = Field(default=None)  # ISO date string
     wont_do_reason: Optional[str] = Field(default=None)
     created_by: Optional[str] = Field(default=None, foreign_key="member.id")
     assignee: Optional[str] = Field(default=None, foreign_key="member.id")
@@ -70,6 +71,14 @@ def _parse_json_list(v: Any) -> list:
         parsed = json.loads(v)
         return parsed if isinstance(parsed, list) else []
     return v if v is not None else []
+
+
+class ActivityEventRead(SQLModel):
+    ticketId: str
+    ticketTitle: str
+    event_type: str
+    at: str
+    detail: str | None = None
 
 
 class ProjectCreate(SQLModel):
@@ -114,6 +123,7 @@ class TicketCreate(SQLModel):
     priority: str = "medium"
     estimate: Optional[float] = None
     due_date: Optional[str] = None
+    start_date: Optional[str] = None
     tags: list[Any] = []
     parent_id: Optional[str] = None
     comments: list[Any] = []
@@ -133,6 +143,7 @@ class TicketCreateBody(SQLModel):
     status: Literal["backlog", "todo", "in-progress", "done", "wont_do"] = "backlog"
     estimate: Optional[float] = None
     due_date: Optional[str] = None
+    start_date: Optional[str] = None
     tags: list[Any] = []
     parent_id: Optional[str] = None
     assignee: Optional[str] = None
@@ -148,6 +159,7 @@ class TicketUpdate(SQLModel):
     priority: Optional[Literal["low", "medium", "high", "critical"]] = None
     estimate: Optional[float] = None
     due_date: Optional[str] = None
+    start_date: Optional[str] = None
     tags: Optional[list[Any]] = None
     parent_id: Optional[str] = None
     wont_do_reason: Optional[str] = None
@@ -164,6 +176,7 @@ class TicketRead(SQLModel):
     priority: str
     estimate: Optional[float]
     due_date: Optional[str]
+    start_date: Optional[str] = None
     tags: list[Any] = []
     parent_id: Optional[str]
     comments: list[Any] = []
@@ -189,6 +202,7 @@ class TicketRead(SQLModel):
             priority=ticket.priority,
             estimate=ticket.estimate,
             due_date=ticket.due_date,
+            start_date=ticket.start_date,
             tags=_parse_json_list(ticket.tags),
             parent_id=ticket.parent_id,
             comments=_parse_json_list(ticket.comments),

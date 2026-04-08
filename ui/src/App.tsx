@@ -19,7 +19,7 @@ export default function App() {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
@@ -207,6 +207,7 @@ export default function App() {
               activePriority={activePriority}
               onPriorityChange={setActivePriority}
               projectName={currentProject?.name ?? ''}
+              projectId={currentProjectId ?? ''}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               members={members}

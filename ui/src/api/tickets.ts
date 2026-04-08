@@ -20,6 +20,7 @@ export async function createTicket(
     status?: Status;
     estimate?: number | null;
     dueDate?: string | null;
+    startDate?: string | null;
     tags?: string[];
     parentId?: string | null;
   },
@@ -43,6 +44,7 @@ export async function updateTicket(
     priority?: Priority;
     estimate?: number | null;
     dueDate?: string | null;
+    startDate?: string | null;
     tags?: string[];
     parentId?: string | null;
     wontDoReason?: string | null;
@@ -362,5 +364,30 @@ export function useRestoreTicket(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
       queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', projectId] });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Project activities (for event timeline)
+// ---------------------------------------------------------------------------
+
+export interface ActivityEvent {
+  ticketId: string;
+  ticketTitle: string;
+  eventType: string;
+  at: string;
+  detail: string | null;
+}
+
+export async function listProjectActivities(projectId: string): Promise<ActivityEvent[]> {
+  const res = await client.get<ActivityEvent[]>(`/projects/${projectId}/activities`);
+  return res.data;
+}
+
+export function useProjectActivities(projectId: string) {
+  return useQuery({
+    queryKey: ['project_activities', projectId],
+    queryFn: () => listProjectActivities(projectId),
+    enabled: !!projectId,
   });
 }

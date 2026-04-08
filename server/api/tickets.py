@@ -1,11 +1,11 @@
 from typing import Annotated, Literal, NoReturn, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database import get_session
-from models import TicketCreateBody, TicketRead, TicketUpdate
+from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
 from services.tickets import (
     add_acceptance_criterion,
     add_comment,
@@ -17,6 +17,7 @@ from services.tickets import (
     delete_test_case,
     delete_ticket,
     delete_work_log,
+    get_project_activities,
     get_ticket,
     list_tickets,
     toggle_acceptance_criterion,
@@ -80,6 +81,7 @@ async def post_ticket(
             parent_id=body.parent_id,
             estimate=body.estimate,
             due_date=body.due_date,
+            start_date=body.start_date,
             tags=body.tags,
             assignee=body.assignee,
         )
@@ -279,3 +281,17 @@ async def del_test_case(ticket_id: str, tc_id: str, session: Session) -> TicketR
     if ticket is None:
         _404()
     return _read(ticket)
+
+
+# ---------------------------------------------------------------------------
+# Project activities (for event timeline)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/projects/{project_id}/activities", response_model=list[ActivityEventRead])
+async def get_project_activities_handler(
+    project_id: str,
+    session: Session,
+    limit: int = Query(default=200, ge=1, le=1000),
+) -> list[ActivityEventRead]:
+    return await get_project_activities(session, project_id, limit)
