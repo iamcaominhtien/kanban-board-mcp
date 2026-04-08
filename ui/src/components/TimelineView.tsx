@@ -142,7 +142,15 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
       {/* Header row */}
       <div className={styles.ganttHeaderRow} style={{ height: ROW_HEIGHT - 8 }}>
         <div className={styles.ganttLabelSticky} style={{ height: ROW_HEIGHT - 8 }} />
-        <div className={styles.ganttBarArea} style={{ width: chartWidth, height: ROW_HEIGHT - 8 }}>
+        <div className={styles.ganttBarArea} style={{ width: chartWidth, height: ROW_HEIGHT - 8, position: 'relative' }}>
+          {todayOffset >= 0 && todayOffset < totalDays && (
+            <span
+              className={styles.ganttTodayLabel}
+              style={{ left: todayOffset * DAY_WIDTH }}
+            >
+              Today
+            </span>
+          )}
           {headerTicks.map((t) => (
             <div
               key={t.day}
