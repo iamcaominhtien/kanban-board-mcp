@@ -218,6 +218,12 @@
   color: #DC2626;
 }
 
+.hasMetaIndicator {
+  font-size: 12px;
+  flex-shrink: 0;
+  cursor: default;
+}
+
 /* ── Expanded detail area ── */
 
 .details {

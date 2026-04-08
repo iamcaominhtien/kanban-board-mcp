@@ -56,7 +56,10 @@ function TestCaseRow({
   disabled?: boolean;
   sourceBadge?: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(() => !!(tc.proof || tc.note));
+  useEffect(() => {
+    if (tc.proof || tc.note) setExpanded(true);
+  }, [tc.proof, tc.note]);
   const [editingTitle, setEditingTitle] = useState(tc.title === '');
   const [titleDraft, setTitleDraft] = useState(tc.title);
   const [titleError, setTitleError] = useState(false);
@@ -128,6 +131,12 @@ function TestCaseRow({
 
         {sourceBadge && (
           <span className={styles.sourceBadge}>{sourceBadge}</span>
+        )}
+
+        {!expanded && (tc.proof || tc.note) && (
+          <span className={styles.hasMetaIndicator} title="Has proof or note — click ▼ to view">
+            📎
+          </span>
         )}
 
         <div className={styles.rowActions}>
