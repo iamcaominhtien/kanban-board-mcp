@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import Member, Ticket, TicketUpdate
+from models import ActivityEventRead, Member, Ticket, TicketUpdate
 
 UTC = timezone.utc
 
@@ -413,3 +413,42 @@ async def delete_test_case(
     await session.commit()
     await session.refresh(ticket)
     return ticket
+
+
+async def get_project_activities(
+    session: AsyncSession, project_id: str, limit: int = 200
+) -> list[ActivityEventRead]:
+    tickets = await list_tickets(session, project_id, include_wont_do=True)
+    events: list[ActivityEventRead] = []
+    for ticket in tickets:
+        events.append(
+            ActivityEventRead(
+                ticketId=ticket.id,
+                ticketTitle=ticket.title,
+                event_type="created",
+                at=ticket.created_at,
+                detail=None,
+            )
+        )
+        for entry in _loads(ticket.activity_log):
+            events.append(
+                ActivityEventRead(
+                    ticketId=ticket.id,
+                    ticketTitle=ticket.title,
+                    event_type=f"changed:{entry.get('field', '')}",
+                    at=entry.get("at", ticket.created_at),
+                    detail=f"{entry.get('from')} \u2192 {entry.get('to')}",
+                )
+            )
+        for comment in _loads(ticket.comments):
+            events.append(
+                ActivityEventRead(
+                    ticketId=ticket.id,
+                    ticketTitle=ticket.title,
+                    event_type="commented",
+                    at=comment.get("at", ticket.created_at),
+                    detail=comment.get("text", ""),
+                )
+            )
+    events.sort(key=lambda e: e.at, reverse=True)
+    return events[:limit]

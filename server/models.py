@@ -73,6 +73,14 @@ def _parse_json_list(v: Any) -> list:
     return v if v is not None else []
 
 
+class ActivityEventRead(SQLModel):
+    ticketId: str
+    ticketTitle: str
+    event_type: str
+    at: str
+    detail: str | None = None
+
+
 class ProjectCreate(SQLModel):
     name: str
     prefix: str

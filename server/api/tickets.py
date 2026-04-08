@@ -1,11 +1,11 @@
 from typing import Annotated, Literal, NoReturn, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database import get_session
-from models import TicketCreateBody, TicketRead, TicketUpdate
+from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
 from services.tickets import (
     add_acceptance_criterion,
     add_comment,
@@ -17,6 +17,7 @@ from services.tickets import (
     delete_test_case,
     delete_ticket,
     delete_work_log,
+    get_project_activities,
     get_ticket,
     list_tickets,
     toggle_acceptance_criterion,
@@ -287,43 +288,10 @@ async def del_test_case(ticket_id: str, tc_id: str, session: Session) -> TicketR
 # ---------------------------------------------------------------------------
 
 
-@router.get("/projects/{project_id}/activities")
-async def get_project_activities(
-    project_id: str, session: Session, limit: int = 200
-) -> list[dict]:
-    tickets = await list_tickets(session, project_id, include_wont_do=True)
-    events: list[dict] = []
-    for ticket in tickets:
-        events.append(
-            {
-                "ticket_id": ticket.id,
-                "ticket_title": ticket.title,
-                "event_type": "created",
-                "at": ticket.created_at,
-                "detail": None,
-            }
-        )
-        from models import _parse_json_list as _pjl
-
-        for entry in _pjl(ticket.activity_log):
-            events.append(
-                {
-                    "ticket_id": ticket.id,
-                    "ticket_title": ticket.title,
-                    "event_type": f"changed:{entry.get('field', '')}",
-                    "at": entry.get("at", ticket.created_at),
-                    "detail": f"{entry.get('from')} → {entry.get('to')}",
-                }
-            )
-        for comment in _pjl(ticket.comments):
-            events.append(
-                {
-                    "ticket_id": ticket.id,
-                    "ticket_title": ticket.title,
-                    "event_type": "commented",
-                    "at": comment.get("at", ticket.created_at),
-                    "detail": comment.get("text", ""),
-                }
-            )
-    events.sort(key=lambda e: e["at"], reverse=True)
-    return events[:limit]
+@router.get("/projects/{project_id}/activities", response_model=list[ActivityEventRead])
+async def get_project_activities_handler(
+    project_id: str,
+    session: Session,
+    limit: int = Query(default=200, ge=1, le=1000),
+) -> list[ActivityEventRead]:
+    return await get_project_activities(session, project_id, limit)

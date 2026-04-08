@@ -105,7 +105,7 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
         {viewMode === 'list' ? (
           <ListView tickets={tickets} onCardClick={onCardClick} />
         ) : viewMode === 'timeline' ? (
-          <TimelineView tickets={allTickets} projectId={projectId ?? ''} onCardClick={onCardClick} />
+          <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} />
         ) : (
           <div className={styles.columns}>
             {COLUMNS.map((col) => {
