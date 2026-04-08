@@ -51,73 +51,96 @@
 
 /* ─── Gantt ──────────────────────────────────────────────────────────────── */
 
-.ganttOuter {
-  overflow-x: auto;
-  overflow-y: visible;
-  padding-bottom: 8px;
-}
-
-.ganttHeaderRow {
+.ganttWrapper {
   display: flex;
-  align-items: flex-end;
-  position: sticky;
-  top: 0;
-  z-index: 6;
-  background: var(--color-bg);
-}
-
-.ganttRow {
-  display: flex;
-  align-items: center;
-  border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--color-dark) 4%, transparent);
-  margin-bottom: 3px;
-}
-
-.ganttRow:hover {
-  background: color-mix(in srgb, var(--color-dark) 9%, transparent);
-}
-
-/* Sticky left label column */
-.ganttLabelSticky {
-  width: 200px;
-  min-width: 200px;
-  flex-shrink: 0;
-  position: sticky;
-  left: 0;
-  z-index: 5;
-  background: inherit;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 10px 0 4px;
-  gap: 2px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   overflow: hidden;
 }
 
-/* Header label col: plain bg so it covers scrolled content */
-.ganttHeaderRow .ganttLabelSticky {
-  background: var(--color-bg);
+.ganttLabelCol {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
+  background: var(--color-bg, #faf8f5);
+  z-index: 2;
+}
+
+.ganttLabelHeader {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  border-bottom: 1px solid #e5e7eb;
+  font-family: var(--font-body);
+}
+
+.ganttLabelRow {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 12px;
+  gap: 2px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.ganttLabelRow:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ganttTicketId {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+}
+
+.ganttTicketTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-body);
 }
 
 .ganttBarArea {
-  flex-shrink: 0;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.ganttDateHeader {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
   position: relative;
 }
 
-.ganttTick {
+.ganttDateTick {
   position: absolute;
-  bottom: 4px;
-  transform: translateX(-50%);
-  font-size: 10px;
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  top: 50%;
+  transform: translateY(-50%);
   font-family: var(--font-body);
   font-weight: 600;
-  color: var(--color-dark);
-  opacity: 0.55;
-  white-space: nowrap;
   pointer-events: none;
-  min-width: 60px;
-  text-align: center;
+}
+
+.ganttBarRow {
+  position: relative;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .ganttTodayLine {
@@ -125,51 +148,30 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--color-orange);
-  opacity: 0.8;
-  z-index: 3;
+  background: #f97316;
+  z-index: 1;
   pointer-events: none;
 }
 
 .ganttTodayLabel {
   position: absolute;
-  top: 2px;
-  font-size: 9px;
+  top: 6px;
+  font-size: 10px;
   font-weight: 700;
-  font-family: var(--font-body);
-  color: var(--color-orange);
-  white-space: nowrap;
+  color: #f97316;
   transform: translateX(4px);
   pointer-events: none;
-  z-index: 4;
-}
-
-.ganttTicketId {
   font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 900;
-  color: var(--color-dark);
-  opacity: 0.55;
   white-space: nowrap;
-}
-
-.ganttTicketTitle {
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-dark);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  z-index: 2;
 }
 
 .ganttBar {
   position: absolute;
-  border-radius: 6px;
-  background: var(--color-blue);
+  border-radius: 99px;
   border: none;
   cursor: pointer;
-  transition: opacity 0.12s ease, filter 0.12s ease;
+  transition: opacity 0.15s;
   display: flex;
   align-items: center;
   padding: 0 6px;
@@ -179,30 +181,32 @@
 }
 
 .ganttBar:hover {
-  opacity: 0.85;
-  filter: brightness(1.08);
+  opacity: 0.8;
+}
+
+.ganttBarNormal {
+  background: #93c5fd;
 }
 
 .ganttBarOverdue {
-  background: var(--color-orange);
+  background: #f97316;
 }
 
 .ganttBarLabel {
-  font-family: var(--font-body);
   font-size: 9px;
   font-weight: 900;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--font-body);
 }
 
 .ganttLegend {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 12px;
-  padding-left: 200px;
+  padding-top: 10px;
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
@@ -223,7 +227,7 @@
   display: inline-block;
   width: 16px;
   height: 2px;
-  background: var(--color-orange);
+  background: #f97316;
   margin-right: 4px;
   vertical-align: middle;
 }

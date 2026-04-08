@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Ticket } from '../types';
 import { useProjectActivities } from '../api/tickets';
 import type { ActivityEvent } from '../api/tickets';
@@ -15,10 +15,10 @@ interface TimelineViewProps {
 // ─── Gantt helpers ───────────────────────────────────────────────────────────
 
 const DAY_WIDTH = 18; // px per day
-const MIN_DAYS = 60;
+const WINDOW_DAYS = 60;
 const ROW_HEIGHT = 48;
 const BAR_HEIGHT = 14;
-const MIN_BAR_WIDTH = 12;
+const MIN_BAR_PX = 12;
 
 function parseDate(s: string | null | undefined): Date | null {
   if (!s) return null;
@@ -84,166 +84,185 @@ interface GanttProps {
 }
 
 function GanttChart({ tickets, onCardClick }: GanttProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
 
-  const ganttTickets = useMemo(
-    () => tickets.filter((t) => parseDate(t.startDate) || parseDate(t.dueDate)),
-    [tickets],
-  );
+  // Fixed 60-day window: today - 7 to today + 53
+  const rangeStart = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 7);
+    return d;
+  }, [today]);
 
-  const { rangeStart, totalDays } = useMemo(() => {
-    // Minimum window: today - 7 days to today + 38 days (45-day default)
-    const windowStart = new Date(today);
-    windowStart.setDate(windowStart.getDate() - 7);
-    const windowEnd = new Date(today);
-    windowEnd.setDate(windowEnd.getDate() + 38);
+  const rangeEnd = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + 53);
+    return d;
+  }, [today]);
 
-    if (ganttTickets.length === 0) return { rangeStart: windowStart, totalDays: MIN_DAYS };
+  const chartWidth = WINDOW_DAYS * DAY_WIDTH; // 1080px
+  const todayLeftPx = 7 * DAY_WIDTH; // 126px — fixed!
 
-    const dates: Date[] = [windowStart, windowEnd];
-    for (const t of ganttTickets) {
-      const s = parseDate(t.startDate);
-      const e = parseDate(t.dueDate);
-      if (s) dates.push(s);
-      if (e) dates.push(e);
+  const ganttTickets = useMemo(() => {
+    return tickets
+      .filter((t) => parseDate(t.startDate) || parseDate(t.dueDate))
+      .filter((t) => {
+        // Skip tickets completely outside the window
+        const rawStart = parseDate(t.startDate);
+        const rawEnd = parseDate(t.dueDate);
+        let ticketStart: Date;
+        let ticketEnd: Date;
+        if (rawStart && rawEnd) {
+          ticketStart = rawStart <= rawEnd ? rawStart : rawEnd;
+          ticketEnd = rawStart <= rawEnd ? rawEnd : rawStart;
+        } else if (rawStart) {
+          ticketStart = rawStart;
+          ticketEnd = new Date(rawStart);
+          ticketEnd.setDate(ticketEnd.getDate() + 1);
+        } else {
+          ticketEnd = rawEnd!;
+          ticketStart = new Date(rawEnd!);
+          ticketStart.setDate(ticketStart.getDate() - 1);
+        }
+        // Keep only if overlaps the window
+        return ticketStart <= rangeEnd && ticketEnd >= rangeStart;
+      });
+  }, [tickets, rangeStart, rangeEnd]);
+
+  // Weekly header ticks
+  const headerTicks = useMemo(() => {
+    const ticks: { day: number; label: string }[] = [];
+    for (let i = 0; i < WINDOW_DAYS; i += 7) {
+      const d = new Date(rangeStart);
+      d.setDate(d.getDate() + i);
+      ticks.push({
+        day: i,
+        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      });
     }
-    const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
-    const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
-    const span = daysBetween(minDate, maxDate) + 1;
-    return { rangeStart: minDate, totalDays: Math.max(span, MIN_DAYS) };
-  }, [ganttTickets, today]);
-
-  const todayOffset = daysBetween(rangeStart, today);
-
-  useEffect(() => {
-    if (scrollRef.current && todayOffset > 0) {
-      scrollRef.current.scrollLeft = Math.max(0, todayOffset * DAY_WIDTH - 100);
-    }
-  }, [todayOffset]);
+    return ticks;
+  }, [rangeStart]);
 
   if (ganttTickets.length === 0) {
     return (
       <div className={styles.emptyState}>
-        No tickets have start or due dates. Add dates to tickets to see the Gantt chart.
+        No tickets have start or due dates set.
       </div>
     );
   }
 
-  const chartWidth = totalDays * DAY_WIDTH;
-
-  // Weekly header ticks
-  const headerTicks: { day: number; label: string }[] = [];
-  for (let i = 0; i < totalDays; i += 7) {
-    const d = new Date(rangeStart);
-    d.setDate(d.getDate() + i);
-    headerTicks.push({
-      day: i,
-      label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    });
-  }
-
   return (
-    <div className={styles.ganttOuter} ref={scrollRef}>
-      {/* Header row */}
-      <div className={styles.ganttHeaderRow} style={{ height: ROW_HEIGHT - 8 }}>
-        <div className={styles.ganttLabelSticky} style={{ height: ROW_HEIGHT - 8 }} />
-        <div className={styles.ganttBarArea} style={{ width: chartWidth, height: ROW_HEIGHT - 8, position: 'relative' }}>
-          {todayOffset >= 0 && todayOffset < totalDays && (
-            <span
-              className={styles.ganttTodayLabel}
-              style={{ left: todayOffset * DAY_WIDTH }}
-            >
-              Today
-            </span>
-          )}
-          {headerTicks.map((t) => (
+    <>
+      <div className={styles.ganttWrapper}>
+        {/* LEFT: Fixed label column */}
+        <div className={styles.ganttLabelCol}>
+          <div className={styles.ganttLabelHeader}>Ticket</div>
+          {ganttTickets.map((ticket) => (
             <div
-              key={t.day}
-              className={styles.ganttTick}
-              style={{ left: t.day * DAY_WIDTH }}
+              key={ticket.id}
+              className={styles.ganttLabelRow}
+              style={{ height: ROW_HEIGHT }}
+              onClick={() => onCardClick(ticket)}
             >
-              {t.label}
+              <span className={styles.ganttTicketId}>{ticket.id}</span>
+              <span className={styles.ganttTicketTitle} title={ticket.title}>
+                {ticket.title}
+              </span>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Data rows */}
-      {ganttTickets.map((ticket) => {
-        const rawStart = parseDate(ticket.startDate);
-        const rawEnd = parseDate(ticket.dueDate);
-        // If only one date is set, make a 1-day bar
-        let effectiveStart: Date;
-        let effectiveEnd: Date;
-        if (rawStart && rawEnd) {
-          effectiveStart = rawStart <= rawEnd ? rawStart : rawEnd;
-          effectiveEnd = rawStart <= rawEnd ? rawEnd : rawStart;
-        } else if (rawStart) {
-          effectiveStart = rawStart;
-          effectiveEnd = new Date(rawStart);
-          effectiveEnd.setDate(effectiveEnd.getDate() + 1);
-        } else {
-          // only dueDate
-          effectiveEnd = rawEnd!;
-          effectiveStart = new Date(rawEnd!);
-          effectiveStart.setDate(effectiveStart.getDate() - 1);
-        }
-
-        const offsetDays = daysBetween(rangeStart, effectiveStart);
-        const durationDays = Math.max(daysBetween(effectiveStart, effectiveEnd), 1);
-        const leftPx = offsetDays * DAY_WIDTH;
-        const widthPx = Math.max(durationDays * DAY_WIDTH, MIN_BAR_WIDTH);
-
-        const isOverdue =
-          parseDate(ticket.dueDate) !== null &&
-          parseDate(ticket.dueDate)! < today &&
-          ticket.status !== 'done' &&
-          ticket.status !== 'wont_do';
-
-        return (
-          <div key={ticket.id} className={styles.ganttRow} style={{ height: ROW_HEIGHT }}>
-            <div className={styles.ganttLabelSticky} style={{ height: ROW_HEIGHT }}>
-              <span className={styles.ganttTicketId}>{ticket.id}</span>
-              <span className={styles.ganttTicketTitle} title={ticket.title}>{ticket.title}</span>
+        {/* RIGHT: Scrollable bar area */}
+        <div className={styles.ganttBarArea}>
+          {/* Date header */}
+          <div className={styles.ganttDateHeader} style={{ width: chartWidth }}>
+            <div className={styles.ganttTodayLabel} style={{ left: todayLeftPx }}>
+              Today
             </div>
-            <div className={styles.ganttBarArea} style={{ width: chartWidth, height: ROW_HEIGHT }}>
-              {todayOffset >= 0 && todayOffset < totalDays && (
+            {headerTicks.map((t) => (
+              <div
+                key={t.day}
+                className={styles.ganttDateTick}
+                style={{ left: t.day * DAY_WIDTH }}
+              >
+                {t.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Bar rows */}
+          {ganttTickets.map((ticket) => {
+            const rawStart = parseDate(ticket.startDate);
+            const rawEnd = parseDate(ticket.dueDate);
+
+            let ticketStart: Date;
+            let ticketEnd: Date;
+            if (rawStart && rawEnd) {
+              ticketStart = rawStart <= rawEnd ? rawStart : rawEnd;
+              ticketEnd = rawStart <= rawEnd ? rawEnd : rawStart;
+            } else if (rawStart) {
+              ticketStart = rawStart;
+              ticketEnd = new Date(rawStart);
+              ticketEnd.setDate(ticketEnd.getDate() + 1);
+            } else {
+              ticketEnd = rawEnd!;
+              ticketStart = new Date(rawEnd!);
+              ticketStart.setDate(ticketStart.getDate() - 1);
+            }
+
+            // Clamp to window
+            const effectiveStart = ticketStart < rangeStart ? rangeStart : ticketStart;
+            const effectiveEnd = ticketEnd > rangeEnd ? rangeEnd : ticketEnd;
+
+            const leftPx = daysBetween(rangeStart, effectiveStart) * DAY_WIDTH;
+            const rawWidthPx = Math.max(daysBetween(effectiveStart, effectiveEnd), 1) * DAY_WIDTH;
+            const widthPx = Math.max(rawWidthPx, MIN_BAR_PX);
+
+            const isOverdue =
+              parseDate(ticket.dueDate) !== null &&
+              parseDate(ticket.dueDate)! < today &&
+              ticket.status !== 'done' &&
+              ticket.status !== 'wont_do';
+
+            return (
+              <div
+                key={ticket.id}
+                className={styles.ganttBarRow}
+                style={{ width: chartWidth, height: ROW_HEIGHT }}
+              >
                 <div
                   className={styles.ganttTodayLine}
-                  style={{ left: todayOffset * DAY_WIDTH }}
+                  style={{ left: todayLeftPx }}
                 />
-              )}
-              <button
-                type="button"
-                className={`${styles.ganttBar} ${isOverdue ? styles.ganttBarOverdue : ''}`}
-                style={{
-                  left: leftPx,
-                  width: widthPx,
-                  height: BAR_HEIGHT,
-                  top: `calc(50% - ${BAR_HEIGHT / 2}px)`,
-                }}
-                onClick={() => onCardClick(ticket)}
-                title={`${ticket.title}\n${ticket.startDate ? formatShortDate(ticket.startDate) : '?'} → ${ticket.dueDate ? formatShortDate(ticket.dueDate) : '?'}`}
-              >
-                <span className={styles.ganttBarLabel}>{ticket.id}</span>
-              </button>
-            </div>
-          </div>
-        );
-      })}
+                <button
+                  type="button"
+                  className={`${styles.ganttBar} ${isOverdue ? styles.ganttBarOverdue : styles.ganttBarNormal}`}
+                  style={{
+                    left: leftPx,
+                    width: widthPx,
+                    height: BAR_HEIGHT,
+                    top: `calc(50% - ${BAR_HEIGHT / 2}px)`,
+                  }}
+                  onClick={() => onCardClick(ticket)}
+                  title={`${ticket.title}\n${ticket.startDate ? formatShortDate(ticket.startDate) : '?'} → ${ticket.dueDate ? formatShortDate(ticket.dueDate) : '?'}`}
+                >
+                  <span className={styles.ganttBarLabel}>{ticket.id}</span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className={styles.ganttLegend}>
-        <span className={styles.legendDot} style={{ background: '#5BB8F5' }} /> Normal
-        <span className={styles.legendDot} style={{ background: '#E8441A' }} /> Overdue
+        <span className={styles.legendDot} style={{ background: '#93c5fd' }} /> Normal
+        <span className={styles.legendDot} style={{ background: '#f97316' }} /> Overdue
         <span className={styles.legendLine} /> Today
       </div>
-    </div>
+    </>
   );
 }
 
