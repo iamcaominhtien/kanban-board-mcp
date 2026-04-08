@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Ticket } from '../types';
 import { useProjectActivities } from '../api/tickets';
 import type { ActivityEvent } from '../api/tickets';
@@ -84,6 +84,8 @@ interface GanttProps {
 }
 
 function GanttChart({ tickets, onCardClick }: GanttProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -96,24 +98,34 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
   );
 
   const { rangeStart, totalDays } = useMemo(() => {
-    if (ganttTickets.length === 0) return { rangeStart: today, totalDays: MIN_DAYS };
-    const dates: Date[] = [];
+    // Minimum window: today - 7 days to today + 38 days (45-day default)
+    const windowStart = new Date(today);
+    windowStart.setDate(windowStart.getDate() - 7);
+    const windowEnd = new Date(today);
+    windowEnd.setDate(windowEnd.getDate() + 38);
+
+    if (ganttTickets.length === 0) return { rangeStart: windowStart, totalDays: MIN_DAYS };
+
+    const dates: Date[] = [windowStart, windowEnd];
     for (const t of ganttTickets) {
       const s = parseDate(t.startDate);
       const e = parseDate(t.dueDate);
       if (s) dates.push(s);
       if (e) dates.push(e);
     }
-    dates.push(today);
     const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
     const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
-    // Add 3-day padding on each side
-    minDate.setDate(minDate.getDate() - 3);
-    maxDate.setDate(maxDate.getDate() + 3);
     const span = daysBetween(minDate, maxDate) + 1;
-    // Always render at least MIN_DAYS to prevent squishing
     return { rangeStart: minDate, totalDays: Math.max(span, MIN_DAYS) };
   }, [ganttTickets, today]);
+
+  const todayOffset = daysBetween(rangeStart, today);
+
+  useEffect(() => {
+    if (scrollRef.current && todayOffset > 0) {
+      scrollRef.current.scrollLeft = Math.max(0, todayOffset * DAY_WIDTH - 100);
+    }
+  }, [todayOffset]);
 
   if (ganttTickets.length === 0) {
     return (
@@ -124,7 +136,6 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
   }
 
   const chartWidth = totalDays * DAY_WIDTH;
-  const todayOffset = daysBetween(rangeStart, today);
 
   // Weekly header ticks
   const headerTicks: { day: number; label: string }[] = [];
@@ -138,7 +149,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
   }
 
   return (
-    <div className={styles.ganttOuter}>
+    <div className={styles.ganttOuter} ref={scrollRef}>
       {/* Header row */}
       <div className={styles.ganttHeaderRow} style={{ height: ROW_HEIGHT - 8 }}>
         <div className={styles.ganttLabelSticky} style={{ height: ROW_HEIGHT - 8 }} />
@@ -165,10 +176,24 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
 
       {/* Data rows */}
       {ganttTickets.map((ticket) => {
-        const start = parseDate(ticket.startDate) ?? parseDate(ticket.dueDate)!;
-        const end = parseDate(ticket.dueDate) ?? parseDate(ticket.startDate)!;
-        const effectiveStart = start <= end ? start : end;
-        const effectiveEnd = start <= end ? end : start;
+        const rawStart = parseDate(ticket.startDate);
+        const rawEnd = parseDate(ticket.dueDate);
+        // If only one date is set, make a 1-day bar
+        let effectiveStart: Date;
+        let effectiveEnd: Date;
+        if (rawStart && rawEnd) {
+          effectiveStart = rawStart <= rawEnd ? rawStart : rawEnd;
+          effectiveEnd = rawStart <= rawEnd ? rawEnd : rawStart;
+        } else if (rawStart) {
+          effectiveStart = rawStart;
+          effectiveEnd = new Date(rawStart);
+          effectiveEnd.setDate(effectiveEnd.getDate() + 1);
+        } else {
+          // only dueDate
+          effectiveEnd = rawEnd!;
+          effectiveStart = new Date(rawEnd!);
+          effectiveStart.setDate(effectiveStart.getDate() - 1);
+        }
 
         const offsetDays = daysBetween(rangeStart, effectiveStart);
         const durationDays = Math.max(daysBetween(effectiveStart, effectiveEnd), 1);
