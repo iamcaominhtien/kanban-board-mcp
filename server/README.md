@@ -54,12 +54,7 @@ uv run ruff format .
 
 ### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 
-Uses `mcp_stdio.py` — the server launches as a subprocess, no manual startup needed.
-
-**First-time setup** (run once):
-```bash
-uv run alembic upgrade head
-```
+Uses `mcp_stdio.py` — the server launches as a subprocess. The database schema is created automatically on first run.
 
 ```json
 {

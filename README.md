@@ -91,12 +91,7 @@ The server exposes 15 tools for AI agents over MCP:
 
 ### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 
-The server launches as a subprocess — no manual startup needed.
-
-**First-time setup** (run once to create the database schema):
-```bash
-cd server && uv run alembic upgrade head
-```
+The server launches as a subprocess — no manual startup needed. The database schema is created automatically on first run.
 
 Add to VS Code `mcp.json` or Claude Desktop config:
 ```json
