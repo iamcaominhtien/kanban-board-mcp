@@ -196,6 +196,11 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
   }, [showAddForm]);
 
   const sourcesWithTCs = (childTestCaseSources ?? []).filter((s) => s.testCases.length > 0);
+
+  useEffect(() => {
+    setActiveFilter('all');
+  }, [sourcesWithTCs.length]);
+
   const isRollupMode = sourcesWithTCs.length > 0;
 
   // Build display items based on current filter

@@ -266,29 +266,6 @@
   padding: 2px 0 4px;
 }
 
-.filterBtn {
-  background: none;
-  border: 1px solid #E5E7EB;
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #6B7280;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.filterBtn:hover {
-  border-color: var(--color-dark);
-  color: var(--color-dark);
-}
-
-.filterBtnActive {
-  background: var(--color-dark);
-  border-color: var(--color-dark);
-  color: var(--color-cream);
-}
-
 .filterSelect {
   appearance: none;
   background: var(--color-dark);
@@ -304,6 +281,7 @@
   background-repeat: no-repeat;
   background-position: right 8px center;
 }
+
 .filterSelect:focus {
   outline: 2px solid var(--color-bg);
   outline-offset: 1px;
