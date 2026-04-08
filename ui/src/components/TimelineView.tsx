@@ -46,9 +46,9 @@ function categorizeEvent(type: string): EventCategory {
 }
 
 const EVENT_COLORS: Record<EventCategory, string> = {
-  created: '#22c55e',
-  status_changed: '#3b82f6',
-  commented: '#a855f7',
+  created: '#16a34a',
+  status_changed: '#92400e',
+  commented: '#3d0c11',
   other: '#9ca3af',
 };
 
@@ -134,17 +134,18 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
 
   // Weekly header ticks
   const headerTicks = useMemo(() => {
-    const ticks: { day: number; label: string }[] = [];
+    const ticks: { day: number; label: string; isToday: boolean }[] = [];
     for (let i = 0; i < WINDOW_DAYS; i += 7) {
       const d = new Date(rangeStart);
       d.setDate(d.getDate() + i);
       ticks.push({
         day: i,
         label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        isToday: d.toDateString() === today.toDateString(),
       });
     }
     return ticks;
-  }, [rangeStart]);
+  }, [rangeStart, today]);
 
   if (ganttTickets.length === 0) {
     return (
@@ -179,13 +180,10 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
         <div className={styles.ganttBarArea}>
           {/* Date header */}
           <div className={styles.ganttDateHeader} style={{ width: chartWidth }}>
-            <div className={styles.ganttTodayLabel} style={{ left: todayLeftPx }}>
-              Today
-            </div>
             {headerTicks.map((t) => (
               <div
                 key={t.day}
-                className={styles.ganttDateTick}
+                className={`${styles.ganttDateTick}${t.isToday ? ` ${styles.ganttDateTickToday}` : ''}`}
                 style={{ left: t.day * DAY_WIDTH }}
               >
                 {t.label}
