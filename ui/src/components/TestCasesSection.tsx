@@ -203,7 +203,7 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
   if (!isRollupMode) {
     testCases.forEach((tc) => displayItems.push({ tc, isReadOnly: readOnly }));
   } else {
-    const showOwn = activeFilter === 'all' || activeFilter === 'own';
+    const showOwn = activeFilter === 'all' || activeFilter === 'parent';
     if (showOwn) {
       testCases.forEach((tc) => displayItems.push({ tc, isReadOnly: false }));
     }
@@ -213,12 +213,22 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
           displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
         );
       });
-    } else if (activeFilter !== 'own') {
-      const source = sourcesWithTCs.find((s) => s.ticketId === activeFilter);
+    } else if (activeFilter === 'child') {
+      // single child: show all its TCs
+      sourcesWithTCs.forEach((source) => {
+        source.testCases.forEach((tc) =>
+          displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
+        );
+      });
+    } else if (activeFilter.startsWith('child:')) {
+      // multi-child: show specific child
+      const targetId = activeFilter.slice(6);
+      const source = sourcesWithTCs.find((s) => s.ticketId === targetId);
       source?.testCases.forEach((tc) =>
         displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
       );
     }
+    // 'parent' only shows own TCs (already pushed above)
   }
 
   const passCount = displayItems.filter((i) => i.tc.status === 'pass').length;
@@ -355,30 +365,24 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
         <>
           {isRollupMode && (
             <div className={styles.filterBar}>
-              <button
-                type="button"
-                className={`${styles.filterBtn} ${activeFilter === 'all' ? styles.filterBtnActive : ''}`}
-                onClick={() => setActiveFilter('all')}
+              <select
+                className={styles.filterSelect}
+                value={activeFilter}
+                onChange={(e) => setActiveFilter(e.target.value)}
+                aria-label="Filter test cases"
               >
-                All ({totalCount})
-              </button>
-              <button
-                type="button"
-                className={`${styles.filterBtn} ${activeFilter === 'own' ? styles.filterBtnActive : ''}`}
-                onClick={() => setActiveFilter('own')}
-              >
-                Own ({testCases.length})
-              </button>
-              {sourcesWithTCs.map((source) => (
-                <button
-                  key={source.ticketId}
-                  type="button"
-                  className={`${styles.filterBtn} ${activeFilter === source.ticketId ? styles.filterBtnActive : ''}`}
-                  onClick={() => setActiveFilter(source.ticketId)}
-                >
-                  {source.ticketId} ({source.testCases.length})
-                </button>
-              ))}
+                <option value="all">All ({totalCount})</option>
+                <option value="parent">Parent only ({testCases.length})</option>
+                {sourcesWithTCs.length === 1 ? (
+                  <option value="child">Child only ({sourcesWithTCs[0].testCases.length})</option>
+                ) : (
+                  sourcesWithTCs.map((source) => (
+                    <option key={source.ticketId} value={`child:${source.ticketId}`}>
+                      Child: {source.ticketId} ({source.testCases.length})
+                    </option>
+                  ))
+                )}
+              </select>
             </div>
           )}
           <div className={styles.list}>
