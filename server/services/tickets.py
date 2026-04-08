@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import Ticket, TicketUpdate
+from models import Member, Ticket, TicketUpdate
 
 UTC = timezone.utc
 
@@ -59,6 +59,8 @@ async def create_ticket(
     estimate: float | None = None,
     due_date: str | None = None,
     tags: list | None = None,
+    created_by: str | None = None,
+    assignee: str | None = None,
 ) -> Ticket:
     if tags is None:
         tags = []
@@ -69,6 +71,21 @@ async def create_ticket(
             raise ValueError(f"Parent ticket '{parent_id}' not found")
         if parent.parent_id is not None:
             raise ValueError("Cannot nest tickets more than 1 level deep")
+
+    # Validate assignee belongs to this project
+    if assignee is not None:
+        assignee_member = await session.get(Member, assignee)
+        if assignee_member is None or assignee_member.project_id != project_id:
+            raise ValueError("Assignee must be a member of this project")
+
+    # Auto-assign created_by to first available member if not provided
+    if created_by is None:
+        first_member = await session.exec(
+            select(Member).where(Member.project_id == project_id).limit(1)
+        )
+        m = first_member.first()
+        if m is not None:
+            created_by = m.id
 
     result = await session.execute(
         text(
@@ -92,6 +109,8 @@ async def create_ticket(
         estimate=estimate,
         due_date=due_date,
         tags=_dumps(tags),
+        created_by=created_by,
+        assignee=assignee,
     )
     session.add(ticket)
     await session.commit()
@@ -119,6 +138,12 @@ async def update_ticket(
 
     if update_data.get("status") == "wont_do" and ticket.parent_id is not None:
         raise ValueError("Child tickets cannot be set to wont_do")
+
+    # Validate assignee belongs to the ticket's project
+    if "assignee" in update_data and update_data["assignee"] is not None:
+        assignee_member = await session.get(Member, update_data["assignee"])
+        if assignee_member is None or assignee_member.project_id != ticket.project_id:
+            raise ValueError("Assignee must be a member of this project")
 
     # Clear wont_do_reason when transitioning away from wont_do
     if "status" in update_data and update_data["status"] != "wont_do":

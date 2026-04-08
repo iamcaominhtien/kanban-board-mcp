@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
-import type { Column as ColumnType, Ticket } from '../types';
+import type { Column as ColumnType, Member, Ticket } from '../types';
 import { DraggableTicketCard } from './DraggableTicketCard';
 import styles from './Board.module.css';
 
@@ -7,9 +7,10 @@ interface ColumnProps {
   column: ColumnType;
   tickets: Ticket[];
   onCardClick: (ticket: Ticket) => void;
+  memberMap?: Map<string, Member>;
 }
 
-export function Column({ column, tickets, onCardClick }: ColumnProps) {
+export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -58,10 +59,10 @@ export function Column({ column, tickets, onCardClick }: ColumnProps) {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
           return indented ? (
             <div key={ticket.id} className={styles.childIndent}>
-              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} />
+              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
             </div>
           ) : (
-            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} />
+            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
           );
         })}
       </div>

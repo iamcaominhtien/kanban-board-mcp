@@ -5,10 +5,11 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import ValidationError
 from sqlalchemy.exc import NoResultFound
 
+import services.members as svc_members
 import services.projects as svc_projects
 import services.tickets as svc_tickets
 from database import async_session
-from models import ProjectCreate, ProjectRead, TicketRead, TicketUpdate
+from models import MemberRead, ProjectCreate, ProjectRead, TicketRead, TicketUpdate
 
 
 async def list_projects() -> list[dict]:
@@ -272,6 +273,43 @@ async def create_child_ticket(
         return None
 
 
+async def list_members(project_id: str) -> list[dict]:
+    """List all members of a project. Returns id, name, color, project_id, created_at."""
+    async with async_session() as session:
+        members = await svc_members.list_members(session, project_id)
+        return [MemberRead.model_validate(m).model_dump() for m in members]
+
+
+async def add_member(project_id: str, name: str, color: str | None = None) -> dict:
+    """Add a member to a project.
+
+    Args:
+        project_id: The project UUID
+        name: Member's display name
+        color: Optional hex color for avatar background (auto-assigned if not provided)
+
+    Returns the created member.
+    """
+    async with async_session() as session:
+        member = await svc_members.create_member(session, project_id, name, color)
+        return MemberRead.model_validate(member).model_dump()
+
+
+async def remove_member(project_id: str, member_id: str) -> dict:
+    """Remove a member from a project.
+
+    Cannot remove if member created any tickets.
+    Tickets assigned to the member will be unassigned first.
+    Returns a dict {"ok": bool}.
+    """
+    async with async_session() as session:
+        try:
+            removed = await svc_members.remove_member(session, project_id, member_id)
+        except ValueError as exc:
+            return {"ok": False, "error": str(exc)}
+        return {"ok": removed}
+
+
 def register(mcp: FastMCP) -> None:
     """Register all Kanban MCP tools with the given FastMCP instance."""
     mcp.tool()(list_projects)
@@ -286,3 +324,6 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(add_test_case)
     mcp.tool()(update_test_case)
     mcp.tool()(create_child_ticket)
+    mcp.tool()(list_members)
+    mcp.tool()(add_member)
+    mcp.tool()(remove_member)

@@ -1,4 +1,5 @@
-import type { IssueType, Priority, Ticket } from '../types';
+import type { IssueType, Member, Priority, Ticket } from '../types';
+import { MemberAvatar } from './MemberAvatar';
 import styles from './TicketCard.module.css';
 
 const PRIORITY_COLORS: Record<Priority, string> = {
@@ -27,11 +28,13 @@ function getDueDateDisplay(dueDate: string | null): { label: string; overdue: bo
 
 interface TicketCardProps {
   ticket: Ticket;
+  memberMap?: Map<string, Member>;
 }
 
-export function TicketCard({ ticket }: TicketCardProps) {
+export function TicketCard({ ticket, memberMap }: TicketCardProps) {
   const tc = TYPE_CONFIG[ticket.type];
   const due = getDueDateDisplay(ticket.dueDate);
+  const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
@@ -80,6 +83,12 @@ export function TicketCard({ ticket }: TicketCardProps) {
           </span>
         );
       })()}
+      {assigneeMember && (
+        <div className={styles.assigneeRow}>
+          <MemberAvatar member={assigneeMember} size={20} />
+          <span className={styles.assigneeName}>{assigneeMember.name}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,12 +9,13 @@ interface ProjectSidebarProps {
   onCreateProject: (data: { name: string; prefix: string; color: string }) => Promise<void>;
   onDeleteProject: (id: string) => void;
   onOpenRecycleBin: () => void;
+  onOpenMembers: () => void;
   wontDoCount: number;
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
 
-export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, wontDoCount }: ProjectSidebarProps) {
+export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, wontDoCount }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
@@ -88,6 +89,15 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
       </nav>
 
       <div className={styles.bottomSection}>
+        <button
+          type="button"
+          className={styles.recycleBinBtn}
+          onClick={onOpenMembers}
+          title="Project Members"
+        >
+          <span className={styles.recycleBinIcon}>👥</span>
+          <span className={styles.recycleBinLabel}>Members</span>
+        </button>
         <button
           type="button"
           className={styles.recycleBinBtn}

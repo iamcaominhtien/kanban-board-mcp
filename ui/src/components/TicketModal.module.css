@@ -570,3 +570,19 @@
   outline: none;
   border-color: #DC2626;
 }
+
+.memberChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--color-dark);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.unassignedBadge {
+  font-size: 0.8rem;
+  color: #9CA3AF;
+  font-family: 'DM Sans', sans-serif;
+  font-style: italic;
+}

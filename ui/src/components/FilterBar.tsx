@@ -1,4 +1,4 @@
-import type { Priority } from '../types';
+import type { Member, Priority } from '../types';
 import styles from './FilterBar.module.css';
 
 interface FilterBarProps {
@@ -6,6 +6,9 @@ interface FilterBarProps {
   onSearchChange: (q: string) => void;
   activePriority: Priority | 'all';
   onPriorityChange: (p: Priority | 'all') => void;
+  members?: Member[];
+  activeAssignee?: string | 'all';
+  onAssigneeChange?: (id: string | 'all') => void;
 }
 
 const PRIORITY_CHIPS: { label: string; value: Priority | 'all' }[] = [
@@ -16,7 +19,7 @@ const PRIORITY_CHIPS: { label: string; value: Priority | 'all' }[] = [
   { label: 'Low', value: 'low' },
 ];
 
-export function FilterBar({ searchQuery, onSearchChange, activePriority, onPriorityChange }: FilterBarProps) {
+export function FilterBar({ searchQuery, onSearchChange, activePriority, onPriorityChange, members = [], activeAssignee = 'all', onAssigneeChange }: FilterBarProps) {
   return (
     <div className={styles.filterBar}>
       <input
@@ -40,6 +43,36 @@ export function FilterBar({ searchQuery, onSearchChange, activePriority, onPrior
           </button>
         ))}
       </div>
+
+      {members.length > 0 && (
+        <div className={styles.chips}>
+          <button
+            type="button"
+            className={`${styles.chip} ${activeAssignee === 'all' ? styles.chipActive : ''}`}
+            onClick={() => onAssigneeChange?.('all')}
+          >
+            All Assignees
+          </button>
+          <button
+            type="button"
+            className={`${styles.chip} ${activeAssignee === 'unassigned' ? styles.chipActive : ''}`}
+            onClick={() => onAssigneeChange?.('unassigned')}
+          >
+            Unassigned
+          </button>
+          {members.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className={`${styles.chip} ${activeAssignee === m.id ? styles.chipActive : ''}`}
+              onClick={() => onAssigneeChange?.(m.id)}
+              style={activeAssignee === m.id ? { borderColor: m.color, background: m.color, color: '#fff' } : {}}
+            >
+              {m.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
