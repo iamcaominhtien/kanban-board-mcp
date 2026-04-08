@@ -50,20 +50,20 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
-## Connecting to Claude Desktop (MCP)
+## Connecting AI Agents (MCP)
 
-Add this to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+The server exposes MCP over **streamable HTTP** at `http://localhost:8000/mcp`. Start the server first, then connect any MCP-compatible client.
+
+### VS Code / Claude Desktop
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "kanban": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "mcp", "run", "main.py"],
-      "cwd": "/path/to/kanban-board-mcp/server"
+      "url": "http://localhost:8000/mcp",
+      "type": "http"
     }
   }
 }
 ```
 
-Or point any MCP-compatible client at `http://localhost:8000/mcp` (streamable HTTP transport).
