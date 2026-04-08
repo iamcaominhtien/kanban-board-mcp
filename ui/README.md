@@ -38,5 +38,3 @@ The UI uses a custom "Bento Grid" layout with a specific color palette:
   - Orange: `#E8441A`
   - Blue: `#5BB8F5`
 
-## Development Note (Phase 1)
-Currently, in **Phase 1**, the UI uses **mock data only**. No connection to the MCP server is required to run the frontend in this stage.
