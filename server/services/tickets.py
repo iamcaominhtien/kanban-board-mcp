@@ -113,9 +113,16 @@ async def update_ticket(
 
     if (
         update_data.get("status") == "wont_do"
-        and not update_data.get("wont_do_reason", "").strip()
+        and not (update_data.get("wont_do_reason") or "").strip()
     ):
         raise ValueError("wont_do_reason is required when status is wont_do")
+
+    if update_data.get("status") == "wont_do" and ticket.parent_id is not None:
+        raise ValueError("Child tickets cannot be set to wont_do")
+
+    # Clear wont_do_reason when transitioning away from wont_do
+    if "status" in update_data and update_data["status"] != "wont_do":
+        update_data.setdefault("wont_do_reason", None)
 
     activity = _loads(ticket.activity_log)
 

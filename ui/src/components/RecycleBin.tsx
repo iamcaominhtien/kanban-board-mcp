@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Ticket } from '../types';
 import styles from './RecycleBin.module.css';
 
@@ -20,23 +20,23 @@ export function RecycleBin({ tickets, onRestore, onClose }: RecycleBinProps) {
     closeBtnRef.current?.focus();
   }, []);
 
+  const handleClose = useCallback(() => {
+    setVisible(false);
+    setTimeout(onClose, 200);
+  }, [onClose]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [handleClose]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
-
-  function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 200);
-  }
 
   return (
     <div
@@ -68,7 +68,7 @@ export function RecycleBin({ tickets, onRestore, onClose }: RecycleBinProps) {
 
         <div className={styles.body}>
           {tickets.length === 0 ? (
-            <p className={styles.empty}>No tickets marked as "Không làm".</p>
+            <p className={styles.empty}>Không có ticket nào được đánh dấu 'Không làm'.</p>
           ) : (
             <ul className={styles.list}>
               {tickets.map((ticket) => (
