@@ -47,6 +47,7 @@ function RelationList({
 
   const eligible = allTickets.filter((t) => {
     if (excludeIds.has(t.id)) return false;
+    if (t.parentId !== null) return false;  // sub-tickets not selectable
     if (!search) return true;
     return (
       t.id.toLowerCase().includes(search.toLowerCase()) ||

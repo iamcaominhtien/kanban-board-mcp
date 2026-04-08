@@ -311,7 +311,10 @@ class BlockPairRead(BaseModel):
 
 @router.post("/tickets/{ticket_id}/blocks/{target_id}", response_model=BlockPairRead)
 async def post_block(ticket_id: str, target_id: str, session: Session) -> BlockPairRead:
-    result = await link_block(session, ticket_id, target_id)
+    try:
+        result = await link_block(session, ticket_id, target_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if result is None:
         _404("One or both tickets not found")
     blocker, blocked = result

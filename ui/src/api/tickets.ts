@@ -396,6 +396,9 @@ export function useLinkBlock() {
       linkBlock(blockerId, blockedId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocker.projectId) });
+      if (data.blocked.projectId !== data.blocker.projectId) {
+        queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocked.projectId) });
+      }
       queryClient.setQueryData(ticketKeys.detail(data.blocker.id), data.blocker);
       queryClient.setQueryData(ticketKeys.detail(data.blocked.id), data.blocked);
     },
@@ -409,6 +412,9 @@ export function useUnlinkBlock() {
       unlinkBlock(blockerId, blockedId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocker.projectId) });
+      if (data.blocked.projectId !== data.blocker.projectId) {
+        queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocked.projectId) });
+      }
       queryClient.setQueryData(ticketKeys.detail(data.blocker.id), data.blocker);
       queryClient.setQueryData(ticketKeys.detail(data.blocked.id), data.blocked);
     },

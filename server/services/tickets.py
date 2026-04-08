@@ -173,7 +173,7 @@ async def update_ticket(
                 }
             )
         # JSON list fields need serialization
-        if field in ("tags", "blocks", "blocked_by"):
+        if field == "tags":
             setattr(ticket, field, _dumps(new_val))
         else:
             setattr(ticket, field, new_val)
@@ -463,6 +463,8 @@ async def link_block(
     session: AsyncSession, blocker_id: str, blocked_id: str
 ) -> tuple[Ticket, Ticket] | None:
     """Make blocker_id block blocked_id. Updates both tickets."""
+    if blocker_id == blocked_id:
+        raise ValueError("A ticket cannot block itself")
     blocker = await session.get(Ticket, blocker_id)
     blocked = await session.get(Ticket, blocked_id)
     if blocker is None or blocked is None:

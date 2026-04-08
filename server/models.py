@@ -168,8 +168,6 @@ class TicketUpdate(SQLModel):
     parent_id: Optional[str] = None
     wont_do_reason: Optional[str] = None
     assignee: Optional[str] = None
-    blocks: Optional[list[Any]] = None
-    blocked_by: Optional[list[Any]] = None
 
 
 class TicketRead(SQLModel):
