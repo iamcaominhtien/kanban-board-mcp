@@ -51,54 +51,79 @@
 
 /* ─── Gantt ──────────────────────────────────────────────────────────────── */
 
-.gantt {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.ganttOuter {
   overflow-x: auto;
-  padding-bottom: 12px;
+  overflow-y: visible;
+  padding-bottom: 8px;
 }
 
-.ganttHeader {
+.ganttHeaderRow {
   display: flex;
   align-items: flex-end;
-  height: 28px;
-  margin-bottom: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--color-bg);
 }
 
-.ganttLabelCol {
+.ganttRow {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-dark) 4%, transparent);
+  margin-bottom: 3px;
+}
+
+.ganttRow:hover {
+  background: color-mix(in srgb, var(--color-dark) 9%, transparent);
+}
+
+/* Sticky left label column */
+.ganttLabelSticky {
+  width: 200px;
+  min-width: 200px;
   flex-shrink: 0;
-  width: 220px;
-  min-width: 140px;
-  padding-right: 12px;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: inherit;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: center;
+  padding: 0 10px 0 4px;
+  gap: 2px;
+  overflow: hidden;
 }
 
-.ganttTrackArea {
-  flex: 1;
+/* Header label col: plain bg so it covers scrolled content */
+.ganttHeaderRow .ganttLabelSticky {
+  background: var(--color-bg);
+}
+
+.ganttBarArea {
+  flex-shrink: 0;
   position: relative;
-  min-width: 0;
 }
 
 .ganttTick {
   position: absolute;
-  top: 2px;
+  bottom: 4px;
   transform: translateX(-50%);
   font-size: 10px;
   font-family: var(--font-body);
   font-weight: 600;
   color: var(--color-dark);
-  opacity: 0.5;
+  opacity: 0.55;
   white-space: nowrap;
   pointer-events: none;
+  min-width: 60px;
+  text-align: center;
 }
 
 .ganttTodayLine {
   position: absolute;
-  top: -4px;
-  bottom: -4px;
+  top: 0;
+  bottom: 0;
   width: 2px;
   background: var(--color-orange);
   opacity: 0.8;
@@ -109,7 +134,7 @@
 .ganttTodayLine::before {
   content: 'Today';
   position: absolute;
-  top: -18px;
+  top: 4px;
   left: 4px;
   font-size: 9px;
   font-weight: 700;
@@ -118,24 +143,12 @@
   white-space: nowrap;
 }
 
-.ganttRow {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--color-dark) 5%, transparent);
-}
-
-.ganttRow:hover {
-  background: color-mix(in srgb, var(--color-dark) 10%, transparent);
-}
-
 .ganttTicketId {
   font-family: var(--font-body);
   font-size: 10px;
   font-weight: 900;
   color: var(--color-dark);
-  opacity: 0.6;
+  opacity: 0.55;
   white-space: nowrap;
 }
 
@@ -149,22 +162,8 @@
   text-overflow: ellipsis;
 }
 
-.ganttTodayLineRow {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  background: var(--color-orange);
-  opacity: 0.7;
-  z-index: 3;
-  pointer-events: none;
-}
-
 .ganttBar {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 22px;
   border-radius: 6px;
   background: var(--color-blue);
   border: none;
@@ -172,8 +171,8 @@
   transition: opacity 0.12s ease, filter 0.12s ease;
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  min-width: 8px;
+  padding: 0 6px;
+  min-width: 12px;
   z-index: 2;
   overflow: hidden;
 }
@@ -189,9 +188,9 @@
 
 .ganttBarLabel {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
-  color: var(--color-dark);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -201,8 +200,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 16px;
-  padding-left: 220px;
+  padding-top: 12px;
+  padding-left: 204px;
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
@@ -212,8 +211,8 @@
 
 .legendDot {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 3px;
   margin-right: 4px;
   vertical-align: middle;
@@ -233,49 +232,81 @@
 .eventTimeline {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 760px;
+  gap: 28px;
+  max-width: 800px;
 }
 
 .eventGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
 .eventGroupDate {
   font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-dark);
-  opacity: 0.45;
-  padding-bottom: 4px;
-  border-bottom: 1.5px solid color-mix(in srgb, var(--color-dark) 12%, transparent);
+  color: #6b7280;
+  padding: 0 0 10px 36px;
+}
+
+/* Rail wrapper: vertical line + events stacked */
+.eventRail {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 36px;
+}
+
+.eventRail::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e5e7eb;
+  border-radius: 1px;
 }
 
 .eventItem {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 8px 10px 8px 0;
   border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--color-dark) 5%, transparent);
   transition: background 0.12s ease;
+  margin-left: -8px;
+  padding-left: 8px;
 }
 
 .eventItem:hover {
-  background: color-mix(in srgb, var(--color-dark) 9%, transparent);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Dot sits on the rail */
+.eventDotWrap {
+  position: absolute;
+  left: -28px;
+  top: 12px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border-radius: 50%;
+  z-index: 1;
 }
 
 .eventDot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--color-blue);
-  margin-top: 6px;
+  flex-shrink: 0;
 }
 
 .eventContent {
@@ -288,64 +319,68 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 2px;
+}
+
+/* Colored pill badge for event type */
+.eventBadge {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .eventTicketLink {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 900;
-  color: var(--color-blue);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b82f6;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-decoration: underline;
   text-underline-offset: 2px;
+  flex-shrink: 0;
 }
 
 .eventTicketLink:disabled {
   cursor: default;
   text-decoration: none;
   color: var(--color-dark);
-  opacity: 0.5;
-}
-
-.eventType {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-dark);
-  background: color-mix(in srgb, var(--color-dark) 10%, transparent);
-  border-radius: 4px;
-  padding: 1px 6px;
-}
-
-.eventTime {
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--color-dark);
   opacity: 0.45;
-  margin-left: auto;
 }
 
 .eventTitle {
   font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--color-dark);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.eventTime {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .eventDetail {
   font-family: var(--font-body);
   font-size: 12px;
-  color: var(--color-dark);
-  opacity: 0.55;
-  margin-top: 2px;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

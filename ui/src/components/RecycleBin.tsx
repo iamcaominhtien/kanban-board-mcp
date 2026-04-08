@@ -68,7 +68,7 @@ export function RecycleBin({ tickets, onRestore, onClose }: RecycleBinProps) {
 
         <div className={styles.body}>
           {tickets.length === 0 ? (
-            <p className={styles.empty}>Không có ticket nào được đánh dấu 'Không làm'.</p>
+            <p className={styles.empty}>No tickets marked as "Won't Do".</p>
           ) : (
             <ul className={styles.list}>
               {tickets.map((ticket) => (

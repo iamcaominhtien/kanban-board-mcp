@@ -14,6 +14,12 @@ interface TimelineViewProps {
 
 // ─── Gantt helpers ───────────────────────────────────────────────────────────
 
+const DAY_WIDTH = 18; // px per day
+const MIN_DAYS = 60;
+const ROW_HEIGHT = 48;
+const BAR_HEIGHT = 14;
+const MIN_BAR_WIDTH = 12;
+
 function parseDate(s: string | null | undefined): Date | null {
   if (!s) return null;
   const d = new Date(s);
@@ -30,11 +36,27 @@ function formatShortDate(iso: string): string {
 
 // ─── Event helpers ────────────────────────────────────────────────────────────
 
+type EventCategory = 'created' | 'status_changed' | 'commented' | 'other';
+
+function categorizeEvent(type: string): EventCategory {
+  if (type === 'created') return 'created';
+  if (type === 'commented') return 'commented';
+  if (type.startsWith('changed:status')) return 'status_changed';
+  return 'other';
+}
+
+const EVENT_COLORS: Record<EventCategory, string> = {
+  created: '#22c55e',
+  status_changed: '#3b82f6',
+  commented: '#a855f7',
+  other: '#9ca3af',
+};
+
 function friendlyEventType(type: string): string {
   if (type === 'created') return 'Created';
   if (type === 'commented') return 'Commented';
   if (type.startsWith('changed:')) {
-    const field = type.replace('changed:', '').replace('_', ' ');
+    const field = type.replace('changed:', '').replace(/_/g, ' ');
     return `Changed ${field}`;
   }
   return type;
@@ -74,7 +96,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
   );
 
   const { rangeStart, totalDays } = useMemo(() => {
-    if (ganttTickets.length === 0) return { rangeStart: today, totalDays: 30 };
+    if (ganttTickets.length === 0) return { rangeStart: today, totalDays: MIN_DAYS };
     const dates: Date[] = [];
     for (const t of ganttTickets) {
       const s = parseDate(t.startDate);
@@ -88,7 +110,9 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
     // Add 3-day padding on each side
     minDate.setDate(minDate.getDate() - 3);
     maxDate.setDate(maxDate.getDate() + 3);
-    return { rangeStart: minDate, totalDays: daysBetween(minDate, maxDate) + 1 };
+    const span = daysBetween(minDate, maxDate) + 1;
+    // Always render at least MIN_DAYS to prevent squishing
+    return { rangeStart: minDate, totalDays: Math.max(span, MIN_DAYS) };
   }, [ganttTickets, today]);
 
   if (ganttTickets.length === 0) {
@@ -99,9 +123,10 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
     );
   }
 
+  const chartWidth = totalDays * DAY_WIDTH;
   const todayOffset = daysBetween(rangeStart, today);
 
-  // Build header ticks — show a label every ~7 days
+  // Weekly header ticks
   const headerTicks: { day: number; label: string }[] = [];
   for (let i = 0; i < totalDays; i += 7) {
     const d = new Date(rangeStart);
@@ -113,41 +138,34 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
   }
 
   return (
-    <div className={styles.gantt}>
-      {/* Header row with date ticks */}
-      <div className={styles.ganttHeader}>
-        <div className={styles.ganttLabelCol} />
-        <div className={styles.ganttTrackArea}>
+    <div className={styles.ganttOuter}>
+      {/* Header row */}
+      <div className={styles.ganttHeaderRow} style={{ height: ROW_HEIGHT - 8 }}>
+        <div className={styles.ganttLabelSticky} style={{ height: ROW_HEIGHT - 8 }} />
+        <div className={styles.ganttBarArea} style={{ width: chartWidth, height: ROW_HEIGHT - 8 }}>
           {headerTicks.map((t) => (
             <div
               key={t.day}
               className={styles.ganttTick}
-              style={{ left: `${(t.day / totalDays) * 100}%` }}
+              style={{ left: t.day * DAY_WIDTH }}
             >
               {t.label}
             </div>
           ))}
-          {todayOffset >= 0 && todayOffset < totalDays && (
-            <div
-              className={styles.ganttTodayLine}
-              style={{ left: `${(todayOffset / totalDays) * 100}%` }}
-              title="Today"
-            />
-          )}
         </div>
       </div>
 
-      {/* Rows */}
+      {/* Data rows */}
       {ganttTickets.map((ticket) => {
         const start = parseDate(ticket.startDate) ?? parseDate(ticket.dueDate)!;
         const end = parseDate(ticket.dueDate) ?? parseDate(ticket.startDate)!;
-        const effectiveStart = start < end ? start : end;
-        const effectiveEnd = start < end ? end : start;
+        const effectiveStart = start <= end ? start : end;
+        const effectiveEnd = start <= end ? end : start;
 
         const offsetDays = daysBetween(rangeStart, effectiveStart);
         const durationDays = Math.max(daysBetween(effectiveStart, effectiveEnd), 1);
-        const leftPct = (offsetDays / totalDays) * 100;
-        const widthPct = (durationDays / totalDays) * 100;
+        const leftPx = offsetDays * DAY_WIDTH;
+        const widthPx = Math.max(durationDays * DAY_WIDTH, MIN_BAR_WIDTH);
 
         const isOverdue =
           parseDate(ticket.dueDate) !== null &&
@@ -156,22 +174,27 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
           ticket.status !== 'wont_do';
 
         return (
-          <div key={ticket.id} className={styles.ganttRow}>
-            <div className={styles.ganttLabelCol} title={ticket.title}>
+          <div key={ticket.id} className={styles.ganttRow} style={{ height: ROW_HEIGHT }}>
+            <div className={styles.ganttLabelSticky} style={{ height: ROW_HEIGHT }}>
               <span className={styles.ganttTicketId}>{ticket.id}</span>
-              <span className={styles.ganttTicketTitle}>{ticket.title}</span>
+              <span className={styles.ganttTicketTitle} title={ticket.title}>{ticket.title}</span>
             </div>
-            <div className={styles.ganttTrackArea}>
+            <div className={styles.ganttBarArea} style={{ width: chartWidth, height: ROW_HEIGHT }}>
               {todayOffset >= 0 && todayOffset < totalDays && (
                 <div
-                  className={styles.ganttTodayLineRow}
-                  style={{ left: `${(todayOffset / totalDays) * 100}%` }}
+                  className={styles.ganttTodayLine}
+                  style={{ left: todayOffset * DAY_WIDTH }}
                 />
               )}
               <button
                 type="button"
                 className={`${styles.ganttBar} ${isOverdue ? styles.ganttBarOverdue : ''}`}
-                style={{ left: `${leftPct}%`, width: `${Math.max(widthPct, 0.5)}%` }}
+                style={{
+                  left: leftPx,
+                  width: widthPx,
+                  height: BAR_HEIGHT,
+                  top: `calc(50% - ${BAR_HEIGHT / 2}px)`,
+                }}
                 onClick={() => onCardClick(ticket)}
                 title={`${ticket.title}\n${ticket.startDate ? formatShortDate(ticket.startDate) : '?'} → ${ticket.dueDate ? formatShortDate(ticket.dueDate) : '?'}`}
               >
@@ -214,36 +237,50 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
       {groups.map((group) => (
         <div key={group.date} className={styles.eventGroup}>
           <div className={styles.eventGroupDate}>{group.date}</div>
-          {group.events.map((ev, idx) => {
-            const ticket = ticketMap.get(ev.ticketId);
-            const time = new Date(ev.at).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
-            return (
-              <div key={`${ev.ticketId}-${ev.at}-${idx}`} className={styles.eventItem}>
-                <div className={styles.eventDot} />
-                <div className={styles.eventContent}>
-                  <div className={styles.eventMeta}>
-                    <button
-                      type="button"
-                      className={styles.eventTicketLink}
-                      onClick={() => ticket && onCardClick(ticket)}
-                      disabled={!ticket}
-                    >
-                      {ev.ticketId}
-                    </button>
-                    <span className={styles.eventType}>{friendlyEventType(ev.eventType)}</span>
-                    <span className={styles.eventTime}>{time}</span>
+          <div className={styles.eventRail}>
+            {group.events.map((ev, idx) => {
+              const ticket = ticketMap.get(ev.ticketId);
+              const category = categorizeEvent(ev.eventType);
+              const dotColor = EVENT_COLORS[category];
+              const time = new Date(ev.at).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              return (
+                <div key={`${ev.ticketId}-${ev.at}-${idx}`} className={styles.eventItem}>
+                  <div className={styles.eventDotWrap}>
+                    <div className={styles.eventDot} style={{ background: dotColor }} />
                   </div>
-                  <div className={styles.eventTitle}>{ev.ticketTitle}</div>
-                  {ev.detail && ev.eventType !== 'created' && (
-                    <div className={styles.eventDetail}>{ev.detail}</div>
-                  )}
+                  <div className={styles.eventContent}>
+                    <div className={styles.eventMeta}>
+                      <span
+                        className={styles.eventBadge}
+                        style={{
+                          background: `${dotColor}33`,
+                          color: dotColor,
+                        }}
+                      >
+                        {friendlyEventType(ev.eventType)}
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.eventTicketLink}
+                        onClick={() => ticket && onCardClick(ticket)}
+                        disabled={!ticket}
+                      >
+                        {ev.ticketId}
+                      </button>
+                      <span className={styles.eventTitle}>{ev.ticketTitle}</span>
+                      <span className={styles.eventTime}>{time}</span>
+                    </div>
+                    {ev.detail && ev.eventType !== 'created' && (
+                      <div className={styles.eventDetail}>{ev.detail}</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       ))}
     </div>
