@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [v1.0.0] — 2026-04-09
+
+Stable release — promoted from v1.0.0-beta after full end-to-end QC verification (IAM-71).
+
+### Fixed
+
+- **Test Cases UI**: `proof` and `note` fields were not rendered in the ticket modal after `update_test_case` MCP tool updated them. Rows now auto-expand on mount when data is present, and also re-expand when live prop updates arrive while the modal is open. A 📎 indicator is shown in collapsed rows that have proof/note data. (IAM-72)
+
+---
+
 ## [v1.0.0-beta] — 2026-04-08
 
 First public beta release. The core Kanban board experience is complete — full MCP server, a polished React UI, and AI agent integration.
