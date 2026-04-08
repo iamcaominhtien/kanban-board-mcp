@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import Project, ProjectCreate, ProjectUpdate, Ticket
+from models import Member, Project, ProjectCreate, ProjectUpdate, Ticket
 from services.members import create_member as _create_member
 
 
@@ -69,6 +69,11 @@ async def delete_project(session: AsyncSession, project_id: str) -> bool:
     if ticket_result.first() is not None:
         raise ValueError("Project has tickets — cannot delete")
 
+    member_result = await session.exec(
+        select(Member).where(Member.project_id == project_id)
+    )
+    for m in member_result.all():
+        await session.delete(m)
     await session.delete(project)
     await session.commit()
     return True

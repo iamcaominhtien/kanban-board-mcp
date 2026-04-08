@@ -295,7 +295,7 @@ async def add_member(project_id: str, name: str, color: str | None = None) -> di
         return MemberRead.model_validate(member).model_dump()
 
 
-async def remove_member(project_id: str, member_id: str) -> bool:
+async def remove_member(project_id: str, member_id: str) -> dict:
     """Remove a member from a project.
 
     Cannot remove if member created any tickets.
