@@ -1,7 +1,7 @@
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncConnection
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -42,6 +42,9 @@ async def init_db() -> None:
 
     alembic_cfg = Config(str(_ALEMBIC_INI))
 
-    async with engine.begin() as conn:
+    async with engine.connect() as conn:
         await conn.execute(text("PRAGMA journal_mode=WAL"))
+        await conn.commit()
+
+    async with engine.begin() as conn:
         await conn.run_sync(_run_upgrade, alembic_cfg)
