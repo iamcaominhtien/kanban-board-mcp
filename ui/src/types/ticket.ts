@@ -2,6 +2,14 @@ export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type Status = 'backlog' | 'todo' | 'in-progress' | 'done' | 'wont_do';
 export type IssueType = 'bug' | 'feature' | 'task' | 'chore';
 
+export interface Member {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
 export interface Comment {
   id: string;
   text: string;
@@ -60,6 +68,8 @@ export interface Ticket {
   workLog: WorkLogEntry[];
   testCases: TestCase[];
   wontDoReason: string | null;
+  createdBy: string | null;
+  assignee: string | null;
   createdAt: string;
   updatedAt: string;
 }

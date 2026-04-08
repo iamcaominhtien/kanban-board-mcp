@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import type { Column as ColumnType, Priority, Status, Ticket } from '../types';
+import type { Column as ColumnType, Member, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -28,16 +28,20 @@ interface BoardProps {
   projectName: string;
   viewMode: 'board' | 'list';
   onViewModeChange: (v: 'board' | 'list') => void;
+  members?: Member[];
+  activeAssignee?: string | 'all';
+  onAssigneeChange?: (id: string | 'all') => void;
 }
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'done']);
 
-export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, viewMode, onViewModeChange }: BoardProps) {
+export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, viewMode, onViewModeChange, members = [], activeAssignee = 'all', onAssigneeChange }: BoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
+  const memberMap = new Map(members.map((m) => [m.id, m]));
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(event.active.id as string);
@@ -84,6 +88,9 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
           onSearchChange={onSearchChange}
           activePriority={activePriority}
           onPriorityChange={onPriorityChange}
+          members={members}
+          activeAssignee={activeAssignee}
+          onAssigneeChange={onAssigneeChange ?? (() => {})}
         />
 
         {viewMode === 'list' ? (
@@ -92,7 +99,7 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
           <div className={styles.columns}>
             {COLUMNS.map((col) => {
               const colTickets = tickets.filter((t) => t.status === col.id);
-              return <Column key={col.id} column={col} tickets={colTickets} onCardClick={onCardClick} />;
+              return <Column key={col.id} column={col} tickets={colTickets} onCardClick={onCardClick} memberMap={memberMap} />;
             })}
           </div>
         )}
@@ -101,7 +108,7 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
       <DragOverlay>
         {activeTicket ? (
           <div style={{ transform: 'scale(1.03) rotate(2deg)', pointerEvents: 'none' }}>
-            <TicketCard ticket={activeTicket} />
+            <TicketCard ticket={activeTicket} memberMap={memberMap} />
           </div>
         ) : null}
       </DragOverlay>

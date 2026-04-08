@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './components/Board';
+import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { TicketModal } from './components/TicketModal';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
+import { useMembers } from './api/members';
 import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, useWontDoTickets, useRestoreTicket } from './api/tickets';
 import type { Priority, Status, Ticket } from './types';
 
@@ -20,6 +22,10 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
+  const [membersPanelOpen, setMembersPanelOpen] = useState(false);
+  const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
+
+  const { data: members = [] } = useMembers(currentProjectId ?? '');
 
   useEffect(() => {
     if (!globalError) return;
@@ -56,7 +62,10 @@ export default function App() {
     .filter((t) => {
       const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
-      return matchesSearch && matchesPriority;
+      const matchesAssignee =
+        activeAssignee === 'all' ||
+        (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
+      return matchesSearch && matchesPriority && matchesAssignee;
     });
 
   const [modalState, setModalState] = useState<
@@ -128,6 +137,7 @@ export default function App() {
     setCurrentProjectId(id);
     setSearchQuery('');
     setActivePriority('all');
+    setActiveAssignee('all');
     closeModal();
   }
 
@@ -166,6 +176,7 @@ export default function App() {
         onCreateProject={handleCreateProject}
         onDeleteProject={handleDeleteProject}
         onOpenRecycleBin={() => setRecycleBinOpen(true)}
+        onOpenMembers={() => setMembersPanelOpen(true)}
         wontDoCount={wontDoTickets.length}
       />
       <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -198,6 +209,9 @@ export default function App() {
               projectName={currentProject?.name ?? ''}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              members={members}
+              activeAssignee={activeAssignee}
+              onAssigneeChange={setActiveAssignee}
             />
             {modalState && (
               modalState.mode === 'create' ? (
@@ -208,6 +222,7 @@ export default function App() {
                   onClose={closeModal}
                   allTickets={tickets}
                   onOpenTicket={(t) => openTicketModal(t.id)}
+                  members={members}
                 />
               ) : modalTicket ? (
                 <TicketModal
@@ -218,6 +233,7 @@ export default function App() {
                   onClose={closeModal}
                   allTickets={tickets}
                   onOpenTicket={(t) => openTicketModal(t.id)}
+                  members={members}
                 />
               ) : null
             )}
@@ -226,6 +242,13 @@ export default function App() {
                 tickets={wontDoTickets}
                 onRestore={(id) => restoreTicketMutation.mutate(id)}
                 onClose={() => setRecycleBinOpen(false)}
+              />
+            )}
+            {membersPanelOpen && currentProjectId && (
+              <MembersPanel
+                projectId={currentProjectId}
+                members={members}
+                onClose={() => setMembersPanelOpen(false)}
               />
             )}
           </>

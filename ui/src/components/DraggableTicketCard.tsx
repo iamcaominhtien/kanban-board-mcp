@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import type { Ticket } from '../types';
+import type { Member, Ticket } from '../types';
 import { TicketCard } from './TicketCard';
 
 interface DraggableTicketCardProps {
   ticket: Ticket;
   onCardClick?: (ticket: Ticket) => void;
+  memberMap?: Map<string, Member>;
 }
 
-export function DraggableTicketCard({ ticket, onCardClick }: DraggableTicketCardProps) {
+export function DraggableTicketCard({ ticket, onCardClick, memberMap }: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,
   });
@@ -38,7 +39,7 @@ export function DraggableTicketCard({ ticket, onCardClick }: DraggableTicketCard
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={handleClick}>
-      <TicketCard ticket={ticket} />
+      <TicketCard ticket={ticket} memberMap={memberMap} />
     </div>
   );
 }

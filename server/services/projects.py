@@ -5,6 +5,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Project, ProjectCreate, ProjectUpdate, Ticket
+from services.members import create_member as _create_member
 
 
 async def list_projects(session: AsyncSession) -> list[Project]:
@@ -35,6 +36,8 @@ async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
     except IntegrityError as exc:
         await session.rollback()
         raise ValueError("A project with this prefix already exists") from exc
+
+    await _create_member(session, project.id, "Quản trị viên", "#3B82F6")
     return project
 
 

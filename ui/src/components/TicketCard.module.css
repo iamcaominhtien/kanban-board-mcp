@@ -119,3 +119,16 @@
   font-weight: 700;
   color: #16A34A;
 }
+
+.assigneeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.assigneeName {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(245, 239, 224, 0.75);
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { IssueType, Priority, Status, Ticket, WorkLogEntry } from '../types';
+import type { IssueType, Member, Priority, Status, Ticket, WorkLogEntry } from '../types';
 import {
   useUpdateTicket,
   useAddComment,
@@ -11,6 +11,7 @@ import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
+import { MemberAvatar } from './MemberAvatar';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
@@ -55,6 +56,8 @@ type CreateTicketData = {
   estimate: number | null;
   parentId: string | null;
   wontDoReason?: string | null;
+  assignee: string | null;
+  createdBy: string | null;
 };
 
 type TicketModalProps =
@@ -66,6 +69,7 @@ type TicketModalProps =
       onClose: () => void;
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
+      members?: Member[];
     }
   | {
       mode: 'view' | 'edit';
@@ -75,9 +79,10 @@ type TicketModalProps =
       onClose: () => void;
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
+      members?: Member[];
     };
 
-export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClose, allTickets = [], onOpenTicket }: TicketModalProps) {
+export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClose, allTickets = [], onOpenTicket, members = [] }: TicketModalProps) {
   const [localMode, setLocalMode] = useState<'create' | 'view' | 'edit'>(initialMode);
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [description, setDescription] = useState(ticket?.description ?? '');
@@ -87,6 +92,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
+  const [assignee, setAssignee] = useState<string | null>(ticket?.assignee ?? null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [viewError, setViewError] = useState<string | null>(null);
@@ -163,6 +169,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           dueDate: dueDate || null,
           estimate,
           parentId: null,
+          assignee,
+          createdBy: null,
         });
         // parent closes the modal after successful creation
       } catch {
@@ -189,6 +197,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             tags,
             dueDate: dueDate || null,
             estimate,
+            assignee,
             ...(status === 'wont_do' ? { wontDoReason: wontDoReason.trim() } : {}),
           },
         },
@@ -263,6 +272,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     setType(ticket?.type ?? 'task');
     setDueDate(ticket?.dueDate ?? null);
     setEstimate(ticket?.estimate ?? null);
+    setAssignee(ticket?.assignee ?? null);
     setConfirmDelete(false);
     setSaveError(null);
     setWontDoDialogPending(false);
@@ -552,6 +562,38 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       </button>
                     </div>
                   )}
+
+                  {/* Created by */}
+                  {ticket.createdBy && (() => {
+                    const creator = members.find((m) => m.id === ticket.createdBy);
+                    return creator ? (
+                      <div className={styles.sidebarRow}>
+                        <span className={styles.sidebarLabel}>Created by</span>
+                        <span className={styles.memberChip}>
+                          <MemberAvatar member={creator} size={20} />
+                          <span>{creator.name}</span>
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* Assignee */}
+                  {(() => {
+                    const assigneeMember = ticket.assignee ? members.find((m) => m.id === ticket.assignee) : null;
+                    return (
+                      <div className={styles.sidebarRow}>
+                        <span className={styles.sidebarLabel}>Assignee</span>
+                        {assigneeMember ? (
+                          <span className={styles.memberChip}>
+                            <MemberAvatar member={assigneeMember} size={20} />
+                            <span>{assigneeMember.name}</span>
+                          </span>
+                        ) : (
+                          <span className={styles.unassignedBadge}>Unassigned</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </aside>
             </div>
@@ -749,6 +791,22 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
               </div>
             )}
           </div>
+
+          {members.length > 0 && (
+            <div className={styles.field}>
+              <label className={styles.label}>Assignee</label>
+              <select
+                className={styles.select}
+                value={assignee ?? ''}
+                onChange={(e) => setAssignee(e.target.value || null)}
+              >
+                <option value="">Unassigned</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className={styles.footer}>

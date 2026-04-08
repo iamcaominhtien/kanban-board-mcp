@@ -19,6 +19,16 @@ class Project(SQLModel, table=True):
     ticket_counter: int = Field(default=0)
 
 
+class Member(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    name: str
+    color: str  # hex color for avatar background
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
 class Ticket(SQLModel, table=True):
     id: str = Field(primary_key=True)  # e.g. "IAM-1"
     project_id: str = Field(foreign_key="project.id")
@@ -37,6 +47,8 @@ class Ticket(SQLModel, table=True):
     work_log: str = Field(default="[]")  # JSON array
     test_cases: str = Field(default="[]")  # JSON array
     wont_do_reason: Optional[str] = Field(default=None)
+    created_by: Optional[str] = Field(default=None, foreign_key="member.id")
+    assignee: Optional[str] = Field(default=None, foreign_key="member.id")
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -79,6 +91,19 @@ class ProjectRead(SQLModel):
     ticket_counter: int
 
 
+class MemberCreate(SQLModel):
+    name: str
+    color: Optional[str] = None
+
+
+class MemberRead(SQLModel):
+    id: str
+    project_id: str
+    name: str
+    color: str
+    created_at: str
+
+
 class TicketCreate(SQLModel):
     id: str
     project_id: str
@@ -96,6 +121,8 @@ class TicketCreate(SQLModel):
     activity_log: list[Any] = []
     work_log: list[Any] = []
     test_cases: list[Any] = []
+    created_by: Optional[str] = None
+    assignee: Optional[str] = None
 
 
 class TicketCreateBody(SQLModel):
@@ -108,6 +135,7 @@ class TicketCreateBody(SQLModel):
     due_date: Optional[str] = None
     tags: list[Any] = []
     parent_id: Optional[str] = None
+    created_by: Optional[str] = None
 
 
 class TicketUpdate(SQLModel):
@@ -123,6 +151,7 @@ class TicketUpdate(SQLModel):
     tags: Optional[list[Any]] = None
     parent_id: Optional[str] = None
     wont_do_reason: Optional[str] = None
+    assignee: Optional[str] = None
 
 
 class TicketRead(SQLModel):
@@ -143,6 +172,8 @@ class TicketRead(SQLModel):
     work_log: list[Any] = []
     test_cases: list[Any] = []
     wont_do_reason: Optional[str] = None
+    created_by: Optional[str] = None
+    assignee: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -166,6 +197,8 @@ class TicketRead(SQLModel):
             work_log=_parse_json_list(ticket.work_log),
             test_cases=_parse_json_list(ticket.test_cases),
             wont_do_reason=ticket.wont_do_reason,
+            created_by=ticket.created_by,
+            assignee=ticket.assignee,
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )
