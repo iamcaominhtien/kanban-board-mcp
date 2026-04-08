@@ -51,158 +51,162 @@
 
 /* ─── Gantt ──────────────────────────────────────────────────────────────── */
 
-.gantt {
+.ganttWrapper {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-x: auto;
-  padding-bottom: 12px;
-}
-
-.ganttHeader {
-  display: flex;
-  align-items: flex-end;
-  height: 28px;
-  margin-bottom: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .ganttLabelCol {
+  width: 200px;
   flex-shrink: 0;
-  width: 220px;
-  min-width: 140px;
-  padding-right: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  border-right: 1px solid #e5e7eb;
+  background: var(--color-bg, #faf8f5);
+  z-index: 2;
 }
 
-.ganttTrackArea {
-  flex: 1;
-  position: relative;
-  min-width: 0;
-}
-
-.ganttTick {
-  position: absolute;
-  top: 2px;
-  transform: translateX(-50%);
-  font-size: 10px;
-  font-family: var(--font-body);
-  font-weight: 600;
-  color: var(--color-dark);
-  opacity: 0.5;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.ganttTodayLine {
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  background: var(--color-orange);
-  opacity: 0.8;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.ganttTodayLine::before {
-  content: 'Today';
-  position: absolute;
-  top: -18px;
-  left: 4px;
-  font-size: 9px;
-  font-weight: 700;
-  font-family: var(--font-body);
-  color: var(--color-orange);
-  white-space: nowrap;
-}
-
-.ganttRow {
+.ganttLabelHeader {
+  height: 40px;
   display: flex;
   align-items: center;
-  height: 36px;
-  border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--color-dark) 5%, transparent);
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  border-bottom: 1px solid #e5e7eb;
+  font-family: var(--font-body);
 }
 
-.ganttRow:hover {
-  background: color-mix(in srgb, var(--color-dark) 10%, transparent);
+.ganttLabelRow {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 12px;
+  gap: 2px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.ganttLabelRow:hover {
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .ganttTicketId {
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 900;
-  color: var(--color-dark);
-  opacity: 0.6;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
   white-space: nowrap;
 }
 
 .ganttTicketTitle {
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-dark);
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--font-body);
 }
 
-.ganttTodayLineRow {
+.ganttBarArea {
+  flex: 1;
+  overflow-x: auto;
+}
+
+.ganttDateHeader {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+}
+
+.ganttDateTick {
   position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  background: var(--color-orange);
-  opacity: 0.7;
-  z-index: 3;
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-body);
+  font-weight: 600;
   pointer-events: none;
+}
+
+.ganttBarRow {
+  position: relative;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ganttTodayLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #f97316;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ganttTodayLabel {
+  position: absolute;
+  top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #f97316;
+  transform: translateX(4px);
+  pointer-events: none;
+  font-family: var(--font-body);
+  white-space: nowrap;
+  z-index: 2;
 }
 
 .ganttBar {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 22px;
-  border-radius: 6px;
-  background: var(--color-blue);
+  border-radius: 99px;
   border: none;
   cursor: pointer;
-  transition: opacity 0.12s ease, filter 0.12s ease;
+  transition: opacity 0.15s;
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  min-width: 8px;
+  padding: 0 6px;
+  min-width: 12px;
   z-index: 2;
   overflow: hidden;
 }
 
 .ganttBar:hover {
-  opacity: 0.85;
-  filter: brightness(1.08);
+  opacity: 0.8;
+}
+
+.ganttBarNormal {
+  background: #93c5fd;
 }
 
 .ganttBarOverdue {
-  background: var(--color-orange);
+  background: #f97316;
 }
 
 .ganttBarLabel {
-  font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
-  color: var(--color-dark);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--font-body);
 }
 
 .ganttLegend {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 16px;
-  padding-left: 220px;
+  padding-top: 10px;
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
@@ -212,8 +216,8 @@
 
 .legendDot {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 3px;
   margin-right: 4px;
   vertical-align: middle;
@@ -223,7 +227,7 @@
   display: inline-block;
   width: 16px;
   height: 2px;
-  background: var(--color-orange);
+  background: #f97316;
   margin-right: 4px;
   vertical-align: middle;
 }
@@ -233,49 +237,81 @@
 .eventTimeline {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 760px;
+  gap: 28px;
+  max-width: 800px;
 }
 
 .eventGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
 .eventGroupDate {
   font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-dark);
-  opacity: 0.45;
-  padding-bottom: 4px;
-  border-bottom: 1.5px solid color-mix(in srgb, var(--color-dark) 12%, transparent);
+  color: #6b7280;
+  padding: 0 0 10px 36px;
+}
+
+/* Rail wrapper: vertical line + events stacked */
+.eventRail {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 36px;
+}
+
+.eventRail::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e5e7eb;
+  border-radius: 1px;
 }
 
 .eventItem {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 8px 10px 8px 0;
   border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--color-dark) 5%, transparent);
   transition: background 0.12s ease;
+  margin-left: -8px;
+  padding-left: 8px;
 }
 
 .eventItem:hover {
-  background: color-mix(in srgb, var(--color-dark) 9%, transparent);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Dot sits on the rail */
+.eventDotWrap {
+  position: absolute;
+  left: -28px;
+  top: 12px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border-radius: 50%;
+  z-index: 1;
 }
 
 .eventDot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--color-blue);
-  margin-top: 6px;
+  flex-shrink: 0;
 }
 
 .eventContent {
@@ -288,64 +324,68 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 2px;
+}
+
+/* Colored pill badge for event type */
+.eventBadge {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .eventTicketLink {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 900;
-  color: var(--color-blue);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b82f6;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-decoration: underline;
   text-underline-offset: 2px;
+  flex-shrink: 0;
 }
 
 .eventTicketLink:disabled {
   cursor: default;
   text-decoration: none;
   color: var(--color-dark);
-  opacity: 0.5;
-}
-
-.eventType {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-dark);
-  background: color-mix(in srgb, var(--color-dark) 10%, transparent);
-  border-radius: 4px;
-  padding: 1px 6px;
-}
-
-.eventTime {
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--color-dark);
   opacity: 0.45;
-  margin-left: auto;
 }
 
 .eventTitle {
   font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--color-dark);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.eventTime {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .eventDetail {
   font-family: var(--font-body);
   font-size: 12px;
-  color: var(--color-dark);
-  opacity: 0.55;
-  margin-top: 2px;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
