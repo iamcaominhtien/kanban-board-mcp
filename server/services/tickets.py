@@ -72,6 +72,12 @@ async def create_ticket(
         if parent.parent_id is not None:
             raise ValueError("Cannot nest tickets more than 1 level deep")
 
+    # Validate assignee belongs to this project
+    if assignee is not None:
+        assignee_member = await session.get(Member, assignee)
+        if assignee_member is None or assignee_member.project_id != project_id:
+            raise ValueError("Assignee must be a member of this project")
+
     # Auto-assign created_by to first available member if not provided
     if created_by is None:
         first_member = await session.exec(
@@ -132,6 +138,12 @@ async def update_ticket(
 
     if update_data.get("status") == "wont_do" and ticket.parent_id is not None:
         raise ValueError("Child tickets cannot be set to wont_do")
+
+    # Validate assignee belongs to the ticket's project
+    if "assignee" in update_data and update_data["assignee"] is not None:
+        assignee_member = await session.get(Member, update_data["assignee"])
+        if assignee_member is None or assignee_member.project_id != ticket.project_id:
+            raise ValueError("Assignee must be a member of this project")
 
     # Clear wont_do_reason when transitioning away from wont_do
     if "status" in update_data and update_data["status"] != "wont_do":

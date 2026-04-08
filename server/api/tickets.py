@@ -81,7 +81,7 @@ async def post_ticket(
             estimate=body.estimate,
             due_date=body.due_date,
             tags=body.tags,
-            created_by=body.created_by,
+            assignee=body.assignee,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

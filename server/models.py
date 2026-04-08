@@ -135,7 +135,7 @@ class TicketCreateBody(SQLModel):
     due_date: Optional[str] = None
     tags: list[Any] = []
     parent_id: Optional[str] = None
-    created_by: Optional[str] = None
+    assignee: Optional[str] = None
 
 
 class TicketUpdate(SQLModel):

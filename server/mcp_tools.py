@@ -303,7 +303,11 @@ async def remove_member(project_id: str, member_id: str) -> bool:
     Returns True if removed, False if not found.
     """
     async with async_session() as session:
-        return await svc_members.remove_member(session, project_id, member_id)
+        try:
+            removed = await svc_members.remove_member(session, project_id, member_id)
+        except ValueError as exc:
+            return {"ok": False, "error": str(exc)}
+        return {"ok": removed}
 
 
 def register(mcp: FastMCP) -> None:

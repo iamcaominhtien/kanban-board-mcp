@@ -34,10 +34,14 @@ def upgrade() -> None:
         batch_op.add_column(
             sa.Column("assignee", sqlmodel.sql.sqltypes.AutoString(), nullable=True)
         )
+        batch_op.create_foreign_key("fk_ticket_created_by", "member", ["created_by"], ["id"])
+        batch_op.create_foreign_key("fk_ticket_assignee", "member", ["assignee"], ["id"])
 
 
 def downgrade() -> None:
     with op.batch_alter_table("ticket") as batch_op:
+        batch_op.drop_constraint("fk_ticket_assignee", type_="foreignkey")
+        batch_op.drop_constraint("fk_ticket_created_by", type_="foreignkey")
         batch_op.drop_column("assignee")
         batch_op.drop_column("created_by")
     op.drop_table("member")

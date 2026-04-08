@@ -31,13 +31,13 @@ async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
     )
     try:
         session.add(project)
+        await session.flush()
+        await _create_member(session, project.id, "Quản trị viên", "#3B82F6")
         await session.commit()
         await session.refresh(project)
     except IntegrityError as exc:
         await session.rollback()
         raise ValueError("A project with this prefix already exists") from exc
-
-    await _create_member(session, project.id, "Quản trị viên", "#3B82F6")
     return project
 
 

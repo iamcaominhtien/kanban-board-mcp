@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { AxiosError } from 'axios';
 import type { Member } from '../types/ticket';
 import { useAddMember, useRemoveMember } from '../api/members';
 import styles from './MembersPanel.module.css';
@@ -22,6 +23,7 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#3B82F6');
   const [addError, setAddError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const addMemberMutation = useAddMember(projectId);
   const removeMemberMutation = useRemoveMember(projectId);
@@ -40,11 +42,12 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
   }
 
   async function handleRemove(memberId: string) {
+    setRemoveError(null);
     try {
       await removeMemberMutation.mutateAsync(memberId);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to remove member';
-      setAddError(msg);
+      const detail = (err as AxiosError<{ detail: string }>)?.response?.data?.detail;
+      setRemoveError(detail ?? 'Failed to remove member');
     }
   }
 
@@ -77,6 +80,7 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
             <li className={styles.empty}>No members yet.</li>
           )}
         </ul>
+        {removeError && <p className={styles.errorText}>{removeError}</p>}
 
         <form className={styles.addForm} onSubmit={handleAdd}>
           <input
