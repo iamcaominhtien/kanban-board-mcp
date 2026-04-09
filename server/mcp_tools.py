@@ -277,7 +277,7 @@ async def add_acceptance_criterion(ticket_id: str, description: str) -> dict | N
     """Add a new acceptance criterion to a ticket. Returns the updated ticket."""
     async with async_session() as session:
         ticket = await svc_tickets.add_acceptance_criterion(
-            session, ticket_id, description
+            session, ticket_id, text=description
         )
         if ticket is None:
             return None
