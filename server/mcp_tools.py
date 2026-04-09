@@ -273,6 +273,39 @@ async def create_child_ticket(
         return None
 
 
+async def add_acceptance_criterion(ticket_id: str, description: str) -> dict | None:
+    """Add a new acceptance criterion to a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.add_acceptance_criterion(
+            session, ticket_id, description
+        )
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
+
+
+async def toggle_acceptance_criterion(ticket_id: str, criterion_id: str) -> dict | None:
+    """Toggle the done/not-done state of an acceptance criterion. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.toggle_acceptance_criterion(
+            session, ticket_id, criterion_id
+        )
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
+
+
+async def delete_acceptance_criterion(ticket_id: str, criterion_id: str) -> dict | None:
+    """Remove an acceptance criterion from a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.delete_acceptance_criterion(
+            session, ticket_id, criterion_id
+        )
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
+
+
 async def list_members(project_id: str) -> list[dict]:
     """List all members of a project. Returns id, name, color, project_id, created_at."""
     async with async_session() as session:
@@ -324,6 +357,9 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(add_test_case)
     mcp.tool()(update_test_case)
     mcp.tool()(create_child_ticket)
+    mcp.tool()(add_acceptance_criterion)
+    mcp.tool()(toggle_acceptance_criterion)
+    mcp.tool()(delete_acceptance_criterion)
     mcp.tool()(list_members)
     mcp.tool()(add_member)
     mcp.tool()(remove_member)
