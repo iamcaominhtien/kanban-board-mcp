@@ -48,9 +48,10 @@ async def init_db() -> None:
     On a fresh database this creates all tables and stamps the version.
     """
     from sqlalchemy import text
-    from alembic.config import Config
+from alembic.config import Config
 
     alembic_cfg = Config(str(_ALEMBIC_INI))
+    alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
 
     async with engine.connect() as conn:
         await conn.execute(text("PRAGMA journal_mode=WAL"))
