@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const { registerMcpServer } = require('./vscode-setup');
 
 let mainWindow = null;
 let backendPort = null;
@@ -124,6 +125,18 @@ function createWindow(port) {
   });
 }
 
+function getMcpStdioBinaryPath() {
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, `kanban-mcp-stdio${ext}`);
+  } else {
+    // Dev mode: points to the raw Python script.
+    // VS Code MCP registration will NOT work in dev mode (no Python interpreter configured).
+    // This is intentional — only test MCP registration with a packaged build.
+    return path.join(__dirname, '..', 'server', 'mcp_stdio.py');
+  }
+}
+
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
 
@@ -132,7 +145,19 @@ app.whenReady().then(async () => {
     await startBackend();
   } catch (err) {
     console.error('Failed to start backend:', err);
-    // Still show the window — it will show an error state
+  }
+
+  // One-time VS Code MCP setup — only runs in packaged builds
+  const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
+  if (app.isPackaged && !fs.existsSync(setupFlag)) {
+    const result = registerMcpServer(getMcpStdioBinaryPath());
+    const doneResults = ['registered', 'already-registered'];
+
+    if (doneResults.includes(result)) {
+      try {
+        fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
+      } catch { /* non-fatal */ }
+    }
   }
 
   createWindow(backendPort);
