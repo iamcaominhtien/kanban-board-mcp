@@ -17,24 +17,24 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing = {col["name"] for col in inspector.get_columns("ticket")}
+
     with op.batch_alter_table("ticket") as batch_op:
-        try:
+        if "blocks" not in existing:
             batch_op.add_column(sa.Column("blocks", sa.String(), nullable=False, server_default="[]"))
-        except Exception:
-            pass
-        try:
+        if "blocked_by" not in existing:
             batch_op.add_column(sa.Column("blocked_by", sa.String(), nullable=False, server_default="[]"))
-        except Exception:
-            pass
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing = {col["name"] for col in inspector.get_columns("ticket")}
+
     with op.batch_alter_table("ticket") as batch_op:
-        try:
+        if "blocked_by" in existing:
             batch_op.drop_column("blocked_by")
-        except Exception:
-            pass
-        try:
+        if "blocks" in existing:
             batch_op.drop_column("blocks")
-        except Exception:
-            pass
