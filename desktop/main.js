@@ -40,6 +40,7 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
+          // TODO(IAM-77): narrow connect-src to the actual backend port once Python process is wired up
           "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:*; img-src 'self' data: blob:"
         ]
       }
