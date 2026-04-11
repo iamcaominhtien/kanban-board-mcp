@@ -6,6 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "ELECTRON_DEV=1 electron .",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
     "dist": "electron-builder"
   },
   "devDependencies": {
@@ -21,7 +23,8 @@
     },
     "files": [
       "main.js",
-      "preload.js"
+      "preload.js",
+      "vscode-setup.js"
     ],
     "extraResources": [
       {
@@ -33,6 +36,10 @@
     "mac": {
       "category": "public.app-category.productivity",
       "target": [{"target": "dmg", "arch": ["x64", "arm64"]}],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "extraResources": [
         {"from": "../dist-python/kanban-server",    "to": "kanban-server"},
         {"from": "../dist-python/kanban-mcp-stdio", "to": "kanban-mcp-stdio"}
@@ -44,6 +51,12 @@
         {"from": "../dist-python/kanban-server.exe",    "to": "kanban-server.exe"},
         {"from": "../dist-python/kanban-mcp-stdio.exe", "to": "kanban-mcp-stdio.exe"}
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
   }
 }
