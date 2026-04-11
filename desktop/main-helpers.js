@@ -22,7 +22,16 @@ function buildBackendLaunchSpec({
     return {
       command: binaryPath,
       args: [],
-      options: { env, stdio },
+      options: {
+        env: {
+          ...env,
+          PYTHONUNBUFFERED: '1',       // force unbuffered stdout so READY signal is not held in Python's internal buffer
+          PYTHONDONTWRITEBYTECODE: '1', // minor: skip .pyc writes in packaged binary
+          KANBAN_UI_DIST: path.join(resourcesPath, 'ui', 'dist'),
+        },
+        stdio,
+        cwd: resourcesPath,            // explicit CWD so binary doesn't inherit Electron's CWD
+      },
       dbPath,
     };
   }

@@ -1,13 +1,16 @@
 import asyncio
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from mcp.server.fastmcp import FastMCP
 
 import events as board_events
 
+import mcp_tools as _mcp_tools
 from api.projects import router as projects_router
 from api.tickets import router as tickets_router
 from api.members import router as members_router
@@ -24,8 +27,8 @@ app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
         "Content-Type",
@@ -37,8 +40,6 @@ app.add_middleware(
 )
 
 mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
-
-import mcp_tools as _mcp_tools  # noqa: E402
 
 _mcp_tools.register(mcp)
 
@@ -52,6 +53,102 @@ app.include_router(members_router)
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/events")
+async def sse_events() -> StreamingResponse:
+    async def generator():
+        q = board_events.subscribe()
+        try:
+            yield ": connected\n\n"
+            while True:
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=30.0)
+                    yield f"data: {event}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+        finally:
+            board_events.unsubscribe(q)
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Static UI serving (used by packaged Electron builds)
+# ---------------------------------------------------------------------------
+
+_ui_dist_dir: Path | None = None
+
+
+def _get_ui_dist() -> Path | None:
+    global _ui_dist_dir
+    if _ui_dist_dir is not None:
+        return _ui_dist_dir
+
+    env_val = os.environ.get("KANBAN_UI_DIST")
+    if env_val:
+        candidate = Path(env_val)
+        if candidate.is_dir():
+            _ui_dist_dir = candidate.resolve()
+            return _ui_dist_dir
+
+    candidate = Path(__file__).resolve().parent.parent / "ui" / "dist"
+    if candidate.is_dir():
+        _ui_dist_dir = candidate.resolve()
+        return _ui_dist_dir
+
+    return None
+
+
+@app.get("/")
+async def serve_root():
+    dist = _get_ui_dist()
+    if dist:
+        index = dist / "index.html"
+        if index.is_file():
+            return FileResponse(index, media_type="text/html")
+    raise HTTPException(status_code=404, detail="UI not built")
+
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    dist = _get_ui_dist()
+    if not dist:
+        raise HTTPException(status_code=404, detail="UI not built")
+
+    # Canonicalize and enforce that requested path stays within the UI dist directory
+    dist_resolved = dist.resolve()
+
+    path_obj = Path(full_path)
+    if path_obj.is_absolute():
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    safe_parts = [part for part in path_obj.parts if part not in ("", ".")]
+    if any(part == ".." for part in safe_parts):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    requested = dist_resolved.joinpath(*safe_parts).resolve()
+
+    try:
+        requested.relative_to(dist_resolved)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    if requested.is_file():
+        return FileResponse(requested)
+
+    index = dist / "index.html"
+    if index.is_file():
+        return FileResponse(index, media_type="text/html")
+
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 if __name__ == "__main__":
@@ -82,28 +179,3 @@ if __name__ == "__main__":
         config = uvicorn.Config(app, host="127.0.0.1", log_level="warning")
         server = SignalServer(config, port)
         server.run(sockets=[sock])
-
-
-@app.get("/events")
-async def sse_events() -> StreamingResponse:
-    async def generator():
-        q = board_events.subscribe()
-        try:
-            yield ": connected\n\n"
-            while True:
-                try:
-                    event = await asyncio.wait_for(q.get(), timeout=30.0)
-                    yield f"data: {event}\n\n"
-                except asyncio.TimeoutError:
-                    yield ": ping\n\n"
-        finally:
-            board_events.unsubscribe(q)
-
-    return StreamingResponse(
-        generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
-    )
