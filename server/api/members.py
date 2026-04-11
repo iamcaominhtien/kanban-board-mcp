@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import events as board_events
 from database import get_session
 from models import MemberCreate, MemberRead
 from services.members import create_member, list_members, remove_member
@@ -25,6 +26,7 @@ async def post_member(
     project_id: str, data: MemberCreate, session: Session
 ) -> MemberRead:
     member = await create_member(session, project_id, data.name, data.color)
+    await board_events.publish("invalidate")
     return MemberRead.model_validate(member)
 
 
@@ -36,3 +38,4 @@ async def del_member(project_id: str, member_id: str, session: Session) -> None:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not found:
         raise HTTPException(status_code=404, detail="Member not found")
+    await board_events.publish("invalidate")
