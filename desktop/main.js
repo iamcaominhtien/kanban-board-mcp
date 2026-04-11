@@ -130,7 +130,9 @@ function getMcpStdioBinaryPath() {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, `kanban-mcp-stdio${ext}`);
   } else {
-    // Dev mode: point to the Python script (for testing purposes)
+    // Dev mode: points to the raw Python script.
+    // VS Code MCP registration will NOT work in dev mode (no Python interpreter configured).
+    // This is intentional — only test MCP registration with a packaged build.
     return path.join(__dirname, '..', 'server', 'mcp_stdio.py');
   }
 }
@@ -143,24 +145,18 @@ app.whenReady().then(async () => {
     await startBackend();
   } catch (err) {
     console.error('Failed to start backend:', err);
-    // Still show the window — it will show an error state
   }
 
   // One-time VS Code MCP setup
   const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
-  const mcpBinaryPath = getMcpStdioBinaryPath();
-  const shouldRunSetup = !fs.existsSync(setupFlag);
+  if (!fs.existsSync(setupFlag)) {
+    const result = registerMcpServer(getMcpStdioBinaryPath());
+    const doneResults = ['registered', 'already-registered'];
 
-  if (shouldRunSetup) {
-    const result = registerMcpServer(mcpBinaryPath);
-    if (result === 'registered' || result === 'vscode-not-found' || result === 'already-registered') {
-      // Mark setup as complete
+    if (doneResults.includes(result)) {
       try {
-        fs.mkdirSync(path.dirname(setupFlag), { recursive: true });
         fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
-      } catch {
-        // Non-fatal — setup will retry next launch
-      }
+      } catch { /* non-fatal */ }
     }
   }
 
