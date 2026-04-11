@@ -22,6 +22,51 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.2.2] - 2026-04-11
+
+### Changed
+- Dependency upgrades: Electron 34 → 39, electron-builder 25 → 26, Vite 5 → 8, axios 1.14 → 1.15, cryptography 46.06 → 46.0.7.
+
+---
+
+## [1.2.1] - 2026-04-11
+
+### Fixed
+- Fixed blank/white screen on Electron app launch (UI now served from backend HTTP, not `file://`).
+- Fixed CORS and Chromium Private Network Access issues in packaged mode.
+- Fixed Alembic migration: `blocks` and `blocked_by` missing columns causing 500 errors.
+- API base URL routing fix for packaged builds using `window.location.origin`.
+- SSE event source memory leak guard added for packaged Electron mode.
+- Hardened path traversal protection in static file serving.
+- Backend startup script now exits cleanly instead of blank window on failure.
+
+---
+
+## [1.2.0] - 2026-04-11
+
+### Added
+- First native installable desktop application release via Electron.
+- No manual setup required — installs and runs immediately.
+- React UI served from bundled static files via Electron.
+- Python FastAPI backend bundled as a PyInstaller binary; spawned automatically on launch.
+- MCP stdio binary bundled for VS Code integration.
+- VS Code auto-setup: on first launch, automatically registers the `kanban-board` MCP server in VS Code's `mcp.json`.
+- SQLite database stored in platform user data directory (persists across updates).
+- Clean app quit (Python child process terminated gracefully).
+
+---
+
+## [1.1.0] - 2026-04-10
+
+### Added
+- ✨ SSE Auto-refresh: The UI now automatically refreshes when AI agents use MCP tools to create, update, or delete tickets — no manual page reload required.
+- Added `GET /events` SSE endpoint to FastAPI backend.
+- MCP mutation tools and REST API routes now publish `invalidate` events on a shared async event bus (`server/events.py`).
+- React frontend connects via EventSource and calls `queryClient.invalidateQueries()` on events.
+- Auto-reconnects after 3s on connection drop.
+
+---
+
 ## [v1.0.0] — 2026-04-09
 
 Stable release — promoted from v1.0.0-beta after full end-to-end QC verification (IAM-71).
