@@ -1,7 +1,7 @@
 # Documentation Index
 _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/generate_docs_index.py` to refresh._
 
-_Last updated: 2026-04-09_
+_Last updated: 2026-04-11_
 
 ## Business Analysis
 
@@ -19,6 +19,7 @@ _Last updated: 2026-04-09_
 | [test-logs/iam-40-timeline-view.md](test-logs/iam-40-timeline-view.md) | Test Plan: Project Timeline View (IAM-40) | review | 1.0.2 | 2026-04-08 |
 | [test-logs/iam-71-mcp-e2e.md](test-logs/iam-71-mcp-e2e.md) | Test Plan: IAM-71 MCP End-to-End Verification | stable | 1.1.0 | 2026-04-09 |
 | [test-logs/iam-72-proof-note.md](test-logs/iam-72-proof-note.md) | Test Plan: IAM-72 Test Case Proof and Note Rendering | stable | 1.0.1 | 2026-04-09 |
+| [test-plans/753a6a27-sse-auto-refresh.md](test-plans/753a6a27-sse-auto-refresh.md) | Test Plan: SSE Auto-Refresh for MCP Mutations (753a6a27) | stable | 1.2.0 | 2026-04-11 |
 | [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
