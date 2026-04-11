@@ -147,9 +147,9 @@ app.whenReady().then(async () => {
     console.error('Failed to start backend:', err);
   }
 
-  // One-time VS Code MCP setup
+  // One-time VS Code MCP setup — only runs in packaged builds
   const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
-  if (!fs.existsSync(setupFlag)) {
+  if (app.isPackaged && !fs.existsSync(setupFlag)) {
     const result = registerMcpServer(getMcpStdioBinaryPath());
     const doneResults = ['registered', 'already-registered'];
 

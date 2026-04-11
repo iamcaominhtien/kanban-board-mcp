@@ -37,7 +37,12 @@ function readJsonSafe(filePath) {
  * Register the kanban-board MCP server in VS Code's mcp.json.
  * - Safe merge: never overwrites existing server entries.
  * - Only writes if the entry doesn't already exist or the path has changed.
- * - Returns 'registered', 'already-registered', or 'vscode-not-found'.
+ * - Returns one of:
+ *   'registered'         — entry was created or updated successfully
+ *   'already-registered' — entry already exists with the same path
+ *   'vscode-not-found'   — VS Code user config directory not found
+ *   'parse-error'        — mcp.json exists but could not be parsed
+ *   'write-error'        — atomic write to disk failed
  */
 function registerMcpServer(mcpStdioBinaryPath) {
   const mcpConfigPath = getVSCodeMcpConfigPath();
@@ -74,6 +79,7 @@ function registerMcpServer(mcpStdioBinaryPath) {
     console.log(`[vscode-setup] Registered kanban-board MCP server at ${mcpConfigPath}`);
     return 'registered';
   } catch (err) {
+    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
     console.error('[vscode-setup] Failed to write mcp.json:', err.message);
     return 'write-error';
   }
