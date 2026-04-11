@@ -57,7 +57,8 @@ test('mergeMcpConfig preserves unrelated servers during safe merge', () => {
         existing: { type: 'stdio', command: '/bin/existing' },
       },
     },
-    '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio'
+    '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio',
+    '/Users/test/Library/Application Support/kanban-board/kanban.db'
   );
 
   assert.equal(merged.result, 'registered');
@@ -68,6 +69,9 @@ test('mergeMcpConfig preserves unrelated servers during safe merge', () => {
   assert.deepEqual(merged.config.servers['kanban-board'], {
     type: 'stdio',
     command: '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio',
+    env: {
+      KANBAN_DB_PATH: '/Users/test/Library/Application Support/kanban-board/kanban.db'
+    }
   });
 });
 
@@ -82,6 +86,9 @@ test('registerMcpServer returns already-registered when path matches existing co
           'kanban-board': {
             type: 'stdio',
             command: '/tmp/kanban-mcp-stdio',
+            env: {
+              KANBAN_DB_PATH: '/tmp/kanban.db'
+            }
           },
         },
       },
@@ -91,7 +98,7 @@ test('registerMcpServer returns already-registered when path matches existing co
     'utf8'
   );
 
-  const result = registerMcpServer('/tmp/kanban-mcp-stdio', {
+  const result = registerMcpServer('/tmp/kanban-mcp-stdio', '/tmp/kanban.db', {
     getConfigPath: () => jsonPath,
   });
 
@@ -100,6 +107,7 @@ test('registerMcpServer returns already-registered when path matches existing co
     'kanban-board': {
       type: 'stdio',
       command: '/tmp/kanban-mcp-stdio',
+      env: { KANBAN_DB_PATH: '/tmp/kanban.db' }
     },
   });
 
@@ -123,7 +131,7 @@ test('registerMcpServer writes a merged config atomically when VS Code exists', 
     'utf8'
   );
 
-  const result = registerMcpServer('/tmp/kanban-mcp-stdio', {
+  const result = registerMcpServer('/tmp/kanban-mcp-stdio', '/tmp/kanban.db', {
     getConfigPath: () => jsonPath,
   });
 
@@ -133,6 +141,7 @@ test('registerMcpServer writes a merged config atomically when VS Code exists', 
   assert.deepEqual(config.servers['kanban-board'], {
     type: 'stdio',
     command: '/tmp/kanban-mcp-stdio',
+    env: { KANBAN_DB_PATH: '/tmp/kanban.db' }
   });
   assert.equal(fs.existsSync(`${jsonPath}.tmp`), false);
 
@@ -144,7 +153,7 @@ test('registerMcpServer returns parse-error when mcp.json is corrupt', () => {
   const jsonPath = path.join(tempDir, 'mcp.json');
   fs.writeFileSync(jsonPath, 'not-json', 'utf8');
 
-  const result = registerMcpServer('/tmp/kanban-mcp-stdio', {
+  const result = registerMcpServer('/tmp/kanban-mcp-stdio', '/tmp/kanban.db', {
     getConfigPath: () => jsonPath,
   });
 
@@ -155,7 +164,7 @@ test('registerMcpServer returns parse-error when mcp.json is corrupt', () => {
 });
 
 test('registerMcpServer returns vscode-not-found when config path cannot be resolved', () => {
-  const result = registerMcpServer('/tmp/kanban-mcp-stdio', {
+  const result = registerMcpServer('/tmp/kanban-mcp-stdio', '/tmp/kanban.db', {
     getConfigPath: () => null,
   });
 
@@ -168,7 +177,7 @@ test('registerMcpServer returns write-error and removes temp file when atomic wr
   const written = [];
   const removed = [];
 
-  const result = registerMcpServer('/tmp/kanban-mcp-stdio', {
+  const result = registerMcpServer('/tmp/kanban-mcp-stdio', '/tmp/kanban.db', {
     getConfigPath: () => jsonPath,
     existsSync: () => false,
     readFileSync: fs.readFileSync,
