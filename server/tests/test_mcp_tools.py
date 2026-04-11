@@ -362,3 +362,79 @@ async def test_update_test_case_unknown_id_returns_none():
         status="pass",
     )
     assert result is None
+
+
+# --- SSE publish tests ---
+
+from unittest.mock import AsyncMock, patch  # noqa: E402
+
+
+@pytest.mark.asyncio
+async def test_update_ticket_description_publishes_sse():
+    project = await _seed_project(prefix="SSE1")
+    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="SSE ticket")
+
+    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+        result = await mcp_tools.update_ticket(ticket["id"], description="Updated desc")
+
+    assert result is not None
+    mock_publish.assert_called_once_with("invalidate")
+
+
+@pytest.mark.asyncio
+async def test_add_acceptance_criterion_publishes_sse():
+    project = await _seed_project(prefix="SSE2")
+    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="AC ticket")
+
+    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+        result = await mcp_tools.add_acceptance_criterion(ticket["id"], description="Must work")
+
+    assert result is not None
+    mock_publish.assert_called_once_with("invalidate")
+
+
+@pytest.mark.asyncio
+async def test_add_test_case_publishes_sse():
+    project = await _seed_project(prefix="SSE3")
+    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="TC ticket")
+
+    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+        result = await mcp_tools.add_test_case(ticket["id"], title="Login works")
+
+    assert result is not None
+    mock_publish.assert_called_once_with("invalidate")
+
+
+@pytest.mark.asyncio
+async def test_add_work_log_publishes_sse():
+    project = await _seed_project(prefix="SSE4")
+    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="WL ticket")
+
+    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+        result = await mcp_tools.add_work_log(
+            ticket["id"], author="dev", role="Developer", note="Did the thing"
+        )
+
+    assert result is not None
+    mock_publish.assert_called_once_with("invalidate")
+
+
+@pytest.mark.asyncio
+async def test_add_comment_publishes_sse():
+    project = await _seed_project(prefix="SSE5")
+    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="Cmt ticket")
+
+    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+        result = await mcp_tools.add_comment(ticket["id"], text="Nice work", author="alice")
+
+    assert result is not None
+    mock_publish.assert_called_once_with("invalidate")
+
+
+@pytest.mark.asyncio
+async def test_update_ticket_nonexistent_does_not_publish_sse():
+    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+        result = await mcp_tools.update_ticket("MISSING-9999", description="ghost")
+
+    assert result is None
+    mock_publish.assert_not_called()
