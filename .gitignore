@@ -27,3 +27,7 @@ ui/dist/
 
 # Desktop build output
 dist-desktop/
+
+# Python binary build output
+dist-python/
+desktop/build/
