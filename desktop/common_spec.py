@@ -1,5 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files, copy_metadata
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_WORKSPACE_ROOT = os.path.dirname(_HERE)
 
 def get_base_analysis_args(entry_point, app_name):
     # Common hidden imports for both binaries
@@ -18,8 +23,8 @@ def get_base_analysis_args(entry_point, app_name):
     # Common data files (Alembic)
     alembic_data = collect_data_files('alembic')
     alembic_data += [
-        ('server/alembic', 'alembic'),
-        ('server/alembic.ini', '.'),
+        (os.path.join(_WORKSPACE_ROOT, 'server', 'alembic'), 'alembic'),
+        (os.path.join(_WORKSPACE_ROOT, 'server', 'alembic.ini'), '.'),
     ]
 
     hidden_imports = (
@@ -29,8 +34,8 @@ def get_base_analysis_args(entry_point, app_name):
     )
 
     return {
-        'scripts': [entry_point],
-        'pathex': ['.'],
+        'scripts': [os.path.join(_WORKSPACE_ROOT, entry_point)],
+        'pathex': [_WORKSPACE_ROOT, os.path.join(_WORKSPACE_ROOT, 'server')],
         'datas': alembic_data + pydantic_meta,
         'hiddenimports': hidden_imports,
     }
