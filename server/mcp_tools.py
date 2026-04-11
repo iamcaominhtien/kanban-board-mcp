@@ -20,7 +20,8 @@ def notify_on_success(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         result = await func(*args, **kwargs)
-        await board_events.publish("invalidate")
+        if result is not None:
+            await board_events.publish("invalidate")
         return result
 
     return wrapper

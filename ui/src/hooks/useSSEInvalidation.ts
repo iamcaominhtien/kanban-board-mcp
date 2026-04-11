@@ -12,6 +12,7 @@ export function useSSEInvalidation() {
 
     function connect() {
       es = new EventSource(SSE_URL);
+      queryClient.invalidateQueries();
 
       es.onmessage = (event) => {
         queryClient.invalidateQueries();

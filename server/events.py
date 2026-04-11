@@ -5,7 +5,7 @@ _subscribers: set[asyncio.Queue] = set()
 
 
 def subscribe() -> asyncio.Queue:
-    q: asyncio.Queue = asyncio.Queue()
+    q: asyncio.Queue = asyncio.Queue(maxsize=100)
     _subscribers.add(q)
     return q
 
