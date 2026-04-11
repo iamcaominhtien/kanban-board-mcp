@@ -19,8 +19,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # columns already exist in DB; this migration is a stub to restore chain
-    pass
+    with op.batch_alter_table("ticket") as batch_op:
+        batch_op.add_column(
+            sa.Column("blocks", sa.String(), nullable=False, server_default="[]")
+        )
+        batch_op.add_column(
+            sa.Column("blocked_by", sa.String(), nullable=False, server_default="[]")
+        )
 
 
 def downgrade() -> None:
