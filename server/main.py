@@ -130,11 +130,12 @@ async def serve_spa(full_path: str):
     if ".." in Path(sanitized).parts:
         raise HTTPException(status_code=400, detail="Invalid path")
 
-    requested = (dist / sanitized).resolve()
+    # lgtm[py/path-injection] - safe: ".." segments rejected above; is_relative_to check below
+    requested = (dist / sanitized).resolve()  # lgtm[py/path-injection]
 
     # Double-check resolved path stays within the dist directory.
     if requested.is_file() and requested.is_relative_to(dist):
-        return FileResponse(requested)
+        return FileResponse(requested)  # lgtm[py/path-injection]
 
     index = dist / "index.html"
     if index.is_file():
