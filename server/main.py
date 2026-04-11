@@ -123,14 +123,15 @@ async def serve_spa(full_path: str):
     if not dist:
         raise HTTPException(status_code=404, detail="UI not built")
 
-    # Secure path resolution recognized by static analysis (CodeQL)
-    dist_abs = os.path.abspath(str(dist))
-    requested_abs = os.path.abspath(os.path.join(dist_abs, full_path.lstrip("/")))
+    # Canonicalize and enforce that requested path stays within the UI dist directory
+    dist_resolved = dist.resolve()
+    requested = (dist_resolved / full_path.lstrip("/")).resolve()
 
-    if os.path.commonpath([dist_abs, requested_abs]) != dist_abs:
+    try:
+        requested.relative_to(dist_resolved)
+    except ValueError:
         raise HTTPException(status_code=400, detail="Invalid path")
 
-    requested = Path(requested_abs)
     if requested.is_file():
         return FileResponse(requested)
 
