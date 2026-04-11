@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
@@ -5,8 +6,17 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-_DB_PATH = Path(__file__).parent / "kanban.db"
 _ALEMBIC_INI = Path(__file__).parent / "alembic.ini"
+
+_db_path_env = os.environ.get("KANBAN_DB_PATH", "")
+if _db_path_env:
+    _db_path_dir = os.path.dirname(_db_path_env)
+    if _db_path_dir:
+        os.makedirs(_db_path_dir, exist_ok=True)
+    _DB_PATH = Path(_db_path_env)
+else:
+    _DB_PATH = Path(__file__).parent / "kanban.db"
+
 DATABASE_URL = f"sqlite+aiosqlite:///{_DB_PATH}"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
