@@ -1,6 +1,7 @@
 import json
 from typing import Literal
 
+import events as board_events
 from mcp.server.fastmcp import FastMCP
 from pydantic import ValidationError
 from sqlalchemy.exc import NoResultFound
@@ -32,7 +33,9 @@ async def create_project(name: str, prefix: str, color: str = "#6366f1") -> dict
     async with async_session() as session:
         data = ProjectCreate(name=name, prefix=prefix.upper(), color=color)
         project = await svc_projects.create_project(session, data)
-        return ProjectRead.model_validate(project).model_dump()
+        result = ProjectRead.model_validate(project).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def list_tickets(
@@ -97,9 +100,11 @@ async def create_ticket(
                 due_date=due_date,
                 tags=tags or [],
             )
-            return TicketRead.from_ticket(ticket).model_dump()
+            result = TicketRead.from_ticket(ticket).model_dump()
     except NoResultFound:
         raise ValueError(f"Project not found: {project_id}")
+    await board_events.publish("invalidate")
+    return result
 
 
 async def get_ticket(ticket_id: str) -> dict | None:
@@ -130,9 +135,11 @@ async def update_ticket_status(
             )
             if ticket is None:
                 return None
-            return TicketRead.from_ticket(ticket).model_dump()
+            result = TicketRead.from_ticket(ticket).model_dump()
     except ValidationError as exc:
         raise ValueError(str(exc)) from exc
+    await board_events.publish("invalidate")
+    return result
 
 
 async def update_ticket(
@@ -171,9 +178,11 @@ async def update_ticket(
             )
             if ticket is None:
                 return None
-            return TicketRead.from_ticket(ticket).model_dump()
+            result = TicketRead.from_ticket(ticket).model_dump()
     except ValidationError as exc:
         raise ValueError(str(exc)) from exc
+    await board_events.publish("invalidate")
+    return result
 
 
 async def add_comment(ticket_id: str, text: str, author: str) -> dict | None:
@@ -184,7 +193,9 @@ async def add_comment(ticket_id: str, text: str, author: str) -> dict | None:
         )
         if ticket is None:
             return None
-        return TicketRead.from_ticket(ticket).model_dump()
+        result = TicketRead.from_ticket(ticket).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def add_work_log(
@@ -200,7 +211,9 @@ async def add_work_log(
         )
         if ticket is None:
             return None
-        return TicketRead.from_ticket(ticket).model_dump()
+        result = TicketRead.from_ticket(ticket).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def add_test_case(
@@ -217,7 +230,9 @@ async def add_test_case(
         )
         if ticket is None:
             return None
-        return TicketRead.from_ticket(ticket).model_dump()
+        result = TicketRead.from_ticket(ticket).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def update_test_case(
@@ -243,7 +258,9 @@ async def update_test_case(
         )
         if updated is None:
             return None
-        return TicketRead.from_ticket(updated).model_dump()
+        result = TicketRead.from_ticket(updated).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def create_child_ticket(
@@ -268,9 +285,11 @@ async def create_child_ticket(
                 priority=priority,
                 description=description,
             )
-            return TicketRead.from_ticket(ticket).model_dump()
+            result = TicketRead.from_ticket(ticket).model_dump()
     except (NoResultFound, ValueError):
         return None
+    await board_events.publish("invalidate")
+    return result
 
 
 async def add_acceptance_criterion(ticket_id: str, description: str) -> dict | None:
@@ -281,7 +300,9 @@ async def add_acceptance_criterion(ticket_id: str, description: str) -> dict | N
         )
         if ticket is None:
             return None
-        return TicketRead.from_ticket(ticket).model_dump()
+        result = TicketRead.from_ticket(ticket).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def toggle_acceptance_criterion(ticket_id: str, criterion_id: str) -> dict | None:
@@ -292,7 +313,9 @@ async def toggle_acceptance_criterion(ticket_id: str, criterion_id: str) -> dict
         )
         if ticket is None:
             return None
-        return TicketRead.from_ticket(ticket).model_dump()
+        result = TicketRead.from_ticket(ticket).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def delete_acceptance_criterion(ticket_id: str, criterion_id: str) -> dict | None:
@@ -303,7 +326,9 @@ async def delete_acceptance_criterion(ticket_id: str, criterion_id: str) -> dict
         )
         if ticket is None:
             return None
-        return TicketRead.from_ticket(ticket).model_dump()
+        result = TicketRead.from_ticket(ticket).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def list_members(project_id: str) -> list[dict]:
@@ -325,7 +350,9 @@ async def add_member(project_id: str, name: str, color: str | None = None) -> di
     """
     async with async_session() as session:
         member = await svc_members.create_member(session, project_id, name, color)
-        return MemberRead.model_validate(member).model_dump()
+        result = MemberRead.model_validate(member).model_dump()
+    await board_events.publish("invalidate")
+    return result
 
 
 async def remove_member(project_id: str, member_id: str) -> dict:
@@ -340,7 +367,9 @@ async def remove_member(project_id: str, member_id: str) -> dict:
             removed = await svc_members.remove_member(session, project_id, member_id)
         except ValueError as exc:
             return {"ok": False, "error": str(exc)}
-        return {"ok": removed}
+        result = {"ok": removed}
+    await board_events.publish("invalidate")
+    return result
 
 
 def register(mcp: FastMCP) -> None:

@@ -7,9 +7,11 @@ import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
 import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, useWontDoTickets, useRestoreTicket } from './api/tickets';
+import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import type { Priority, Status, Ticket } from './types';
 
 export default function App() {
+  useSSEInvalidation();
   const { data: apiProjects = [], isLoading: projectsLoading } = useProjects();
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
