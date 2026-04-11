@@ -10,10 +10,8 @@ _ALEMBIC_INI = Path(__file__).parent / "alembic.ini"
 
 _db_path_env = os.environ.get("KANBAN_DB_PATH", "")
 if _db_path_env:
-    _db_path_dir = os.path.dirname(_db_path_env)
-    if _db_path_dir:
-        os.makedirs(_db_path_dir, exist_ok=True)
-    _DB_PATH = Path(_db_path_env)
+    _DB_PATH = Path(_db_path_env).resolve()
+    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 else:
     _DB_PATH = Path(__file__).parent / "kanban.db"
 
@@ -48,7 +46,7 @@ async def init_db() -> None:
     On a fresh database this creates all tables and stamps the version.
     """
     from sqlalchemy import text
-from alembic.config import Config
+    from alembic.config import Config
 
     alembic_cfg = Config(str(_ALEMBIC_INI))
     alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
