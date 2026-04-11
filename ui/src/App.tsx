@@ -7,9 +7,12 @@ import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
 import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, useWontDoTickets, useRestoreTicket } from './api/tickets';
+import { useSSEInvalidation } from './hooks/useSSEInvalidation';
+import { extractError } from './api/extractError';
 import type { Priority, Status, Ticket } from './types';
 
 export default function App() {
+  useSSEInvalidation();
   const { data: apiProjects = [], isLoading: projectsLoading } = useProjects();
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
@@ -138,8 +141,12 @@ export default function App() {
     data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy'>,
   ) {
     if (!currentProjectId) return;
-    await createTicketMutation.mutateAsync(data);
-    closeModal();
+    try {
+      await createTicketMutation.mutateAsync(data);
+      closeModal();
+    } catch (err) {
+      setGlobalError(`Create ticket failed: ${extractError(err)}`);
+    }
   }
 
   async function handleDeleteTicket(id: string) {
@@ -161,8 +168,12 @@ export default function App() {
   }
 
   async function handleCreateProject(data: { name: string; prefix: string; color: string }) {
-    const newProject = await createProjectMutation.mutateAsync(data);
-    setCurrentProjectId(newProject.id);
+    try {
+      const newProject = await createProjectMutation.mutateAsync(data);
+      setCurrentProjectId(newProject.id);
+    } catch (err) {
+      setGlobalError(`Create project failed: ${extractError(err)}`);
+    }
   }
 
   async function handleDeleteProject(id: string) {

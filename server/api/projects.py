@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import events as board_events
 from database import get_session
 from models import ProjectCreate, ProjectRead, ProjectUpdate
 from services.projects import (
@@ -30,6 +31,7 @@ async def post_project(data: ProjectCreate, session: Session) -> ProjectRead:
         project = await create_project(session, data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
     return ProjectRead.model_validate(project)
 
 
@@ -48,6 +50,7 @@ async def patch_project(
     project = await update_project(session, project_id, data)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+    await board_events.publish("invalidate")
     return ProjectRead.model_validate(project)
 
 
@@ -59,3 +62,4 @@ async def del_project(project_id: str, session: Session) -> None:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not found:
         raise HTTPException(status_code=404, detail="Project not found")
+    await board_events.publish("invalidate")

@@ -1,0 +1,64 @@
+{
+  "name": "kanban-board-desktop",
+  "version": "1.2.1",
+  "description": "Kanban Board MCP Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "ELECTRON_DEV=1 electron .",
+    "test": "node --test tests/*.test.js",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.kanbanboard.app",
+    "productName": "Kanban Board",
+    "directories": {
+      "buildResources": "build",
+      "output": "../dist-desktop"
+    },
+    "files": [
+      "main.js",
+      "main-helpers.js",
+      "preload.js",
+      "vscode-setup.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../ui/dist",
+        "to": "ui/dist",
+        "filter": ["**/*", "!**/*.map"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [{"target": "dmg", "arch": ["x64", "arm64"]}],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extraResources": [
+        {"from": "../dist-python/kanban-server",    "to": "kanban-server"},
+        {"from": "../dist-python/kanban-mcp-stdio", "to": "kanban-mcp-stdio"}
+      ]
+    },
+    "win": {
+      "target": [{"target": "nsis", "arch": ["x64"]}],
+      "extraResources": [
+        {"from": "../dist-python/kanban-server.exe",    "to": "kanban-server.exe"},
+        {"from": "../dist-python/kanban-mcp-stdio.exe", "to": "kanban-mcp-stdio.exe"}
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

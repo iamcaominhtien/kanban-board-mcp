@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
@@ -5,8 +6,15 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-_DB_PATH = Path(__file__).parent / "kanban.db"
 _ALEMBIC_INI = Path(__file__).parent / "alembic.ini"
+
+_db_path_env = os.environ.get("KANBAN_DB_PATH", "")
+if _db_path_env:
+    _DB_PATH = Path(_db_path_env).resolve()
+    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+else:
+    _DB_PATH = Path(__file__).parent / "kanban.db"
+
 DATABASE_URL = f"sqlite+aiosqlite:///{_DB_PATH}"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
@@ -41,6 +49,7 @@ async def init_db() -> None:
     from alembic.config import Config
 
     alembic_cfg = Config(str(_ALEMBIC_INI))
+    alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
 
     async with engine.connect() as conn:
         await conn.execute(text("PRAGMA journal_mode=WAL"))

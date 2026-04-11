@@ -1,4 +1,12 @@
 import httpx
+import os
+import select
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
 from httpx import ASGITransport
 
 from main import app
@@ -24,3 +32,58 @@ async def test_mcp_endpoint_is_reachable() -> None:
     assert response.status_code != 404, (
         f"/mcp returned 404 — mount path misconfigured. Got: {response.status_code}"
     )
+
+
+def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:
+    server_dir = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    env["KANBAN_DB_PATH"] = str(tmp_path / "desktop-app" / "kanban.db")
+
+    process = subprocess.Popen(
+        [sys.executable, "main.py"],
+        cwd=server_dir,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    )
+
+    try:
+        deadline = time.time() + 20
+        port = None
+
+        while time.time() < deadline:
+            ready, _, _ = select.select([process.stdout], [], [], 0.5)
+            if ready:
+                line = process.stdout.readline()
+                if not line:
+                    break
+                if line.startswith("READY port="):
+                    port = int(line.strip().split("=", 1)[1])
+                    break
+
+            if process.poll() is not None:
+                break
+
+        if port is None:
+            if process.poll() is None:
+                process.send_signal(signal.SIGTERM)
+                process.wait(timeout=10)
+            stderr_output = process.stderr.read()
+            raise AssertionError(
+                "main.py never emitted READY port=<N> within 20s. "
+                f"exit={process.poll()} stderr={stderr_output}"
+            )
+
+        response = httpx.get(f"http://127.0.0.1:{port}/health", timeout=5.0)
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+    finally:
+        if process.poll() is None:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)

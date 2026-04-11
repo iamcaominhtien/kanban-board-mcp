@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import events as board_events
 from database import get_session
 from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
 from services.tickets import (
@@ -89,6 +90,7 @@ async def post_ticket(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -110,6 +112,7 @@ async def patch_ticket(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -118,6 +121,7 @@ async def del_ticket(ticket_id: str, session: Session) -> None:
     found = await delete_ticket(session, ticket_id)
     if not found:
         _404()
+    await board_events.publish("invalidate")
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +140,7 @@ async def patch_status(
     ticket = await update_ticket(session, ticket_id, TicketUpdate(status=body.status))
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -156,6 +161,7 @@ async def post_comment(
     ticket = await add_comment(session, ticket_id, body.text, body.author)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -164,6 +170,7 @@ async def del_comment(ticket_id: str, comment_id: str, session: Session) -> Tick
     ticket = await delete_comment(session, ticket_id, comment_id)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -181,6 +188,7 @@ async def post_ac(ticket_id: str, body: ACBody, session: Session) -> TicketRead:
     ticket = await add_acceptance_criterion(session, ticket_id, body.text)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -192,6 +200,7 @@ async def toggle_ac(ticket_id: str, criterion_id: str, session: Session) -> Tick
     ticket = await toggle_acceptance_criterion(session, ticket_id, criterion_id)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -203,6 +212,7 @@ async def del_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketR
     ticket = await delete_acceptance_criterion(session, ticket_id, criterion_id)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -224,6 +234,7 @@ async def post_work_log(
     ticket = await add_work_log(session, ticket_id, body.author, body.role, body.note)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -232,6 +243,7 @@ async def del_work_log(ticket_id: str, log_id: str, session: Session) -> TicketR
     ticket = await delete_work_log(session, ticket_id, log_id)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -262,6 +274,7 @@ async def post_test_case(
     )
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -274,6 +287,7 @@ async def patch_test_case(
     )
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -282,6 +296,7 @@ async def del_test_case(ticket_id: str, tc_id: str, session: Session) -> TicketR
     ticket = await delete_test_case(session, ticket_id, tc_id)
     if ticket is None:
         _404()
+    await board_events.publish("invalidate")
     return _read(ticket)
 
 
@@ -318,6 +333,7 @@ async def post_block(ticket_id: str, target_id: str, session: Session) -> BlockP
     if result is None:
         _404("One or both tickets not found")
     blocker, blocked = result
+    await board_events.publish("invalidate")
     return BlockPairRead(blocker=_read(blocker), blocked=_read(blocked))
 
 
@@ -329,4 +345,5 @@ async def delete_block(
     if result is None:
         _404("One or both tickets not found")
     blocker, blocked = result
+    await board_events.publish("invalidate")
     return BlockPairRead(blocker=_read(blocker), blocked=_read(blocked))

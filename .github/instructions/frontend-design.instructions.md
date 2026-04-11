@@ -3,6 +3,10 @@ description: Apply when building, editing, or reviewing any frontend UI code for
 applyTo: "ui/**"
 ---
 
+# Required Skills
+
+Always load the skill `frontend-design` before proceeding.
+
 # Frontend Design — Kanban Board MCP
 
 When building UI for this project, always follow the Bento Grid design system defined below.

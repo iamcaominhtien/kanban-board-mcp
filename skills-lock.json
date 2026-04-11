@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "hand-drawn-diagrams": {
+      "source": "muthuishere/hand-drawn-diagrams",
+      "sourceType": "github",
+      "computedHash": "89fe2bdc9e92b2f9fa8554aafeaa9b10073b7389d3a6cdd87101a83a4e533a6b"
+    }
+  }
+}
