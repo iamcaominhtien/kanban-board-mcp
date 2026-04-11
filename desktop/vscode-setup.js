@@ -46,17 +46,18 @@ function readJsonSafe(
   }
 }
 
-function mergeMcpConfig(config, mcpStdioBinaryPath) {
+function mergeMcpConfig(config, mcpStdioBinaryPath, dbPath) {
   const nextConfig = { ...config, servers: { ...(config.servers || {}) } };
   const existing = nextConfig.servers['kanban-board'];
 
-  if (existing?.command === mcpStdioBinaryPath) {
+  if (existing?.command === mcpStdioBinaryPath && existing?.env?.KANBAN_DB_PATH === dbPath) {
     return { result: 'already-registered', config: nextConfig };
   }
 
   nextConfig.servers['kanban-board'] = {
     type: 'stdio',
     command: mcpStdioBinaryPath,
+    ...(dbPath ? { env: { KANBAN_DB_PATH: dbPath } } : {})
   };
 
   return { result: 'registered', config: nextConfig };
@@ -95,6 +96,7 @@ function writeJsonAtomic(
  */
 function registerMcpServer(
   mcpStdioBinaryPath,
+  dbPath,
   {
     getConfigPath = getVSCodeMcpConfigPath,
     existsSync = fs.existsSync,
@@ -117,7 +119,7 @@ function registerMcpServer(
     return 'parse-error';
   }
 
-  const mergeResult = mergeMcpConfig(config, mcpStdioBinaryPath);
+  const mergeResult = mergeMcpConfig(config, mcpStdioBinaryPath, dbPath);
   if (mergeResult.result === 'already-registered') {
     console.log('[vscode-setup] kanban-board MCP server already registered');
     return 'already-registered';

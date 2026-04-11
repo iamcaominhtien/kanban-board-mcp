@@ -181,13 +181,15 @@ app.whenReady().then(async () => {
   // One-time VS Code MCP setup — only runs in packaged builds
   const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
   if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists: fs.existsSync(setupFlag) })) {
+    const dbPath = path.join(app.getPath('userData'), 'kanban.db');
     const result = registerMcpServer(
       getMcpStdioBinaryPath({
         isPackaged: app.isPackaged,
         platform: process.platform,
         resourcesPath: process.resourcesPath,
         desktopDir: __dirname,
-      })
+      }),
+      dbPath
     );
 
     if (shouldWriteSetupFlag(result)) {
