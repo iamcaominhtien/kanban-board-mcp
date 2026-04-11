@@ -21,3 +21,16 @@ server/kanban.db-wal
 
 # OS
 .DS_Store
+
+# UI build output
+ui/dist/
+
+# Desktop build output
+dist-desktop/
+
+# Python binary build output
+dist-python/
+desktop/build/*.icns
+desktop/build/*.ico
+desktop/build/*.png
+desktop/build/icons/

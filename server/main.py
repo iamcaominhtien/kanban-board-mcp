@@ -54,6 +54,36 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+if __name__ == "__main__":
+    import multiprocessing
+
+    multiprocessing.freeze_support()
+
+    import socket
+    import sys
+
+    import uvicorn
+
+    class SignalServer(uvicorn.Server):
+        def __init__(self, config, port):
+            super().__init__(config)
+            self._signal_port = port
+
+        async def startup(self, sockets=None):
+            await super().startup(sockets)
+            print(f"READY port={self._signal_port}", flush=True)
+            sys.stdout.flush()
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+
+        config = uvicorn.Config(app, host="127.0.0.1", log_level="warning")
+        server = SignalServer(config, port)
+        server.run(sockets=[sock])
+
+
 @app.get("/events")
 async def sse_events() -> StreamingResponse:
     async def generator():
