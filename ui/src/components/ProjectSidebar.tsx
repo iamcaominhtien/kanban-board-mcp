@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Project } from '../types';
 import styles from './ProjectSidebar.module.css';
+import { extractError } from '../api/extractError';
 
 interface ProjectSidebarProps {
   projects: Project[];
@@ -37,8 +38,8 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
       setFormPrefix('');
       setFormColor(PRESET_COLORS[0]);
       setShowForm(false);
-    } catch {
-      setPrefixError('Failed to create project. Please try again.');
+    } catch (err) {
+      setPrefixError(`Error: ${extractError(err)}`);
     }
   }
 

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, globalShortcut } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -28,7 +28,26 @@ function startBackend() {
       devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
     });
 
-    const child = spawn(spec.command, spec.args, spec.options);
+    // Strip macOS quarantine attribute from packaged binary so it can be spawned
+    if (process.platform === 'darwin' && app.isPackaged) {
+      try {
+        const { execFileSync } = require('child_process');
+        execFileSync('xattr', ['-d', 'com.apple.quarantine', spec.command], { stdio: 'ignore' });
+      } catch { /* attribute may not exist — non-fatal */ }
+    }
+
+    // Ensure binary is executable (electron-builder may drop +x bit on some builds)
+    if (process.platform !== 'win32' && app.isPackaged) {
+      try { fs.chmodSync(spec.command, 0o755); } catch { /* non-fatal */ }
+    }
+
+    let stderrOutput = '';
+    let child;
+    try {
+      child = spawn(spec.command, spec.args, spec.options);
+    } catch (spawnErr) {
+      return reject(new Error(`spawn failed: ${spawnErr.code} — path: ${spec.command}`));
+    }
 
     backendProcess = child;
     let output = '';
@@ -47,26 +66,37 @@ function startBackend() {
     });
 
     child.stderr.on('data', (data) => {
-      console.error('[backend]', data.toString());
+      const text = data.toString();
+      stderrOutput += text;
+      console.error('[backend]', text);
     });
 
-    child.on('exit', (code) => {
-      console.log(`Backend exited with code ${code}`);
+    child.on('error', (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(new Error(`spawn error: ${err.code} (${err.message}) — path: ${spec.command}`));
+      }
+    });
+
+    child.on('exit', (code, signal) => {
+      console.log(`Backend exited with code ${code} signal ${signal}`);
       backendProcess = null;
       backendPort = null;
       if (!settled) {
         settled = true;
         clearTimeout(timeoutId);
-        reject(new Error(`Backend exited before READY signal (code ${code})`));
+        const detail = stderrOutput ? `\nStderr: ${stderrOutput.slice(0, 500)}` : '';
+        reject(new Error(`Backend exited before READY signal (code ${code}, signal ${signal}) — path: ${spec.command}${detail}`));
       }
     });
 
     timeoutId = setTimeout(() => {
       if (!settled) {
         settled = true;
-        reject(new Error('Backend startup timeout (30s)'));
+        reject(new Error(`Backend startup timeout (120s) — path: ${spec.command}\nStderr so far: ${stderrOutput.slice(0, 500)}`));
       }
-    }, 30000);
+    }, 120000);
   });
 }
 
@@ -86,17 +116,23 @@ function createWindow(port) {
     show: false,
   });
 
-  // Load the React static build
-  const uiPath = path.join(
-    app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'),
-    'ui', 'dist', 'index.html'
-  );
-  mainWindow.loadFile(uiPath);
+  // Load the React UI
+  if (app.isPackaged && port) {
+    // Packaged: serve UI from the FastAPI backend to avoid file:// → loopback blocks
+    mainWindow.loadURL(`http://127.0.0.1:${port}`);
+  } else {
+    const uiPath = path.join(
+      app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'),
+      'ui', 'dist', 'index.html'
+    );
+    mainWindow.loadFile(uiPath);
+  }
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('file://')) {
+    const allowed = url.startsWith('file://') || (port && url.startsWith(`http://127.0.0.1:${port}`));
+    if (!allowed) {
       event.preventDefault();
     }
   });
@@ -133,6 +169,13 @@ app.whenReady().then(async () => {
     await startBackend();
   } catch (err) {
     console.error('Failed to start backend:', err);
+    // Show error to user so they're not left wondering why the app is empty
+    dialog.showErrorBox(
+      'Backend failed to start',
+      err.message
+    );
+    app.quit();
+    return;
   }
 
   // One-time VS Code MCP setup — only runs in packaged builds
@@ -155,6 +198,11 @@ app.whenReady().then(async () => {
   }
 
   createWindow(backendPort);
+
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    const focused = BrowserWindow.getFocusedWindow();
+    if (focused) focused.webContents.toggleDevTools();
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow(backendPort);

@@ -1,32 +1,41 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-
-const SSE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000') + '/events';
+import { resolveOrigin } from '../api/resolveOrigin';
 
 export function useSSEInvalidation() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    let es: EventSource;
+    let es: EventSource | undefined;
     let retryTimeout: ReturnType<typeof setTimeout>;
+    let mounted = true;
 
-    function connect() {
-      es = new EventSource(SSE_URL);
-      queryClient.invalidateQueries();
+    async function init() {
+      const origin = await resolveOrigin();
+      if (!mounted) return;
 
-      es.onmessage = () => {
+      function connect() {
+        if (!mounted) return;
+        es = new EventSource(`${origin}/events`);
         queryClient.invalidateQueries();
-      };
 
-      es.onerror = () => {
-        es.close();
-        retryTimeout = setTimeout(connect, 3000);
-      };
+        es.onmessage = () => {
+          queryClient.invalidateQueries();
+        };
+
+        es.onerror = () => {
+          if (es) es.close();
+          retryTimeout = setTimeout(connect, 3000);
+        };
+      }
+
+      connect();
     }
 
-    connect();
+    init();
 
     return () => {
+      mounted = false;
       clearTimeout(retryTimeout);
       if (es) {
         es.close();
