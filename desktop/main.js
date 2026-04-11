@@ -1,8 +1,59 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
+const fs = require('fs');
 
 let mainWindow = null;
-let backendPort = null; // will be set by IAM-77 (Python child process)
+let backendPort = null;
+let backendProcess = null;
+
+function startBackend() {
+  return new Promise((resolve, reject) => {
+    const userData = app.getPath('userData');
+    const dbPath = path.join(userData, 'kanban.db');
+    const env = { ...process.env, KANBAN_DB_PATH: dbPath };
+
+    let child;
+    if (app.isPackaged) {
+      const ext = process.platform === 'win32' ? '.exe' : '';
+      const binaryPath = path.join(process.resourcesPath, `kanban-server${ext}`);
+      child = spawn(binaryPath, [], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    } else {
+      const serverDir = path.join(__dirname, '..', 'server');
+      const pythonPath = path.join(serverDir, '.venv', 'bin', 'python');
+      const python = fs.existsSync(pythonPath) ? pythonPath : 'python3';
+      child = spawn(python, [path.join(serverDir, 'main.py')], {
+        env,
+        cwd: serverDir,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    }
+
+    backendProcess = child;
+    let output = '';
+
+    child.stdout.on('data', (data) => {
+      output += data.toString();
+      const match = output.match(/READY port=(\d+)/);
+      if (match) {
+        backendPort = parseInt(match[1], 10);
+        resolve(backendPort);
+      }
+    });
+
+    child.stderr.on('data', (data) => {
+      console.error('[backend]', data.toString());
+    });
+
+    child.on('exit', (code) => {
+      console.log(`Backend exited with code ${code}`);
+      backendProcess = null;
+      backendPort = null;
+    });
+
+    setTimeout(() => reject(new Error('Backend startup timeout')), 30000);
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -63,7 +114,14 @@ function createWindow() {
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try {
+    await startBackend();
+  } catch (err) {
+    console.error('Failed to start backend:', err);
+    // Still show the window — it will show an error state
+  }
+
   createWindow();
 
   app.on('activate', () => {
@@ -73,4 +131,11 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  if (backendProcess) {
+    backendProcess.kill();
+    backendProcess = null;
+  }
 });
