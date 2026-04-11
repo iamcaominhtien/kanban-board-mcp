@@ -123,7 +123,16 @@ async def serve_spa(full_path: str):
     if not dist:
         raise HTTPException(status_code=404, detail="UI not built")
 
-    requested = (dist / full_path).resolve()
+    # Sanitize user-controlled path segment to prevent path traversal.
+    # Strip leading slashes so Path() treats it as relative, and reject
+    # any segment containing ".." before filesystem resolution.
+    sanitized = full_path.lstrip("/")
+    if ".." in Path(sanitized).parts:
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    requested = (dist / sanitized).resolve()
+
+    # Double-check resolved path stays within the dist directory.
     if requested.is_file() and requested.is_relative_to(dist):
         return FileResponse(requested)
 
