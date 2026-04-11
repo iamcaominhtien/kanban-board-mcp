@@ -28,22 +28,22 @@
         "from": "../ui/dist",
         "to": "ui/dist",
         "filter": ["**/*", "!**/*.map"]
-      },
-      {
-        "from": "../dist-python/kanban-server",
-        "to": "kanban-server"
-      },
-      {
-        "from": "../dist-python/kanban-mcp-stdio",
-        "to": "kanban-mcp-stdio"
       }
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": [{"target": "dmg", "arch": ["x64", "arm64"]}]
+      "target": [{"target": "dmg", "arch": ["x64", "arm64"]}],
+      "extraResources": [
+        {"from": "../dist-python/kanban-server",    "to": "kanban-server"},
+        {"from": "../dist-python/kanban-mcp-stdio", "to": "kanban-mcp-stdio"}
+      ]
     },
     "win": {
-      "target": [{"target": "nsis", "arch": ["x64"]}]
+      "target": [{"target": "nsis", "arch": ["x64"]}],
+      "extraResources": [
+        {"from": "../dist-python/kanban-server.exe",    "to": "kanban-server.exe"},
+        {"from": "../dist-python/kanban-mcp-stdio.exe", "to": "kanban-mcp-stdio.exe"}
+      ]
     }
   }
 }

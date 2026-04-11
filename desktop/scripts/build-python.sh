@@ -6,6 +6,9 @@ DESKTOP_DIR="$WORKSPACE_ROOT/desktop"
 SERVER_DIR="$WORKSPACE_ROOT/server"
 OUTPUT_DIR="$WORKSPACE_ROOT/dist-python"
 
+# Must run from workspace root so relative paths in spec files resolve correctly
+cd "$WORKSPACE_ROOT"
+
 echo "=== Building Python binaries for Kanban Board Desktop App ==="
 echo "Workspace: $WORKSPACE_ROOT"
 
@@ -18,7 +21,7 @@ if [ ! -f "$VENV_PYTHON" ]; then
 fi
 
 # Install pyinstaller in the venv if not present
-"$VENV_PYTHON" -m pip install pyinstaller --quiet
+"$VENV_PYTHON" -c "import PyInstaller" 2>/dev/null || "$VENV_PYTHON" -m pip install pyinstaller --quiet
 
 mkdir -p "$OUTPUT_DIR"
 

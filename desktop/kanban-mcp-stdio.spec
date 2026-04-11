@@ -1,33 +1,24 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_submodules, collect_data_files, copy_metadata
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(SPEC)))
+
+from PyInstaller.utils.hooks import collect_submodules, copy_metadata
+from common_spec import get_base_analysis_args
 
 block_cipher = None
 
+# MCP-specific extras
 mcp_hidden = collect_submodules('mcp')
-sqlmodel_hidden = collect_submodules('sqlmodel')
-anyio_hidden = collect_submodules('anyio')
+extra_meta = copy_metadata('mcp')
 
-pydantic_meta = copy_metadata('pydantic')
-pydantic_meta += copy_metadata('pydantic_core')
-pydantic_meta += copy_metadata('mcp')
-pydantic_meta += copy_metadata('sqlmodel')
-pydantic_meta += copy_metadata('anyio')
-
-alembic_data = collect_data_files('alembic')
-alembic_data += [
-    ('server/alembic', 'alembic'),
-    ('server/alembic.ini', '.'),
-]
+base = get_base_analysis_args('server/mcp_stdio.py', 'kanban-mcp-stdio')
 
 a = Analysis(
-    ['server/mcp_stdio.py'],
-    pathex=['.'],
+    base['scripts'],
+    pathex=base['pathex'],
     binaries=[],
-    datas=alembic_data + pydantic_meta,
-    hiddenimports=(
-        mcp_hidden + sqlmodel_hidden + anyio_hidden +
-        ['aiosqlite', 'sqlalchemy.dialects.sqlite', 'multiprocessing.freeze_support']
-    ),
+    datas=base['datas'] + extra_meta,
+    hiddenimports=base['hiddenimports'] + mcp_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

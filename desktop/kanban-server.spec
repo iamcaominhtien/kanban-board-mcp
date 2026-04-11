@@ -1,41 +1,32 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_submodules, collect_data_files, copy_metadata
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(SPEC)))
+
+from PyInstaller.utils.hooks import collect_submodules, copy_metadata
+from common_spec import get_base_analysis_args
 
 block_cipher = None
 
-# Collect all uvicorn submodules and data files
+# Server-specific extras
 uvicorn_hidden = collect_submodules('uvicorn')
 fastapi_hidden = collect_submodules('fastapi')
-sqlmodel_hidden = collect_submodules('sqlmodel')
-anyio_hidden = collect_submodules('anyio')
 starlette_hidden = collect_submodules('starlette')
 
-# Collect metadata required by pydantic v2 and others
-pydantic_meta = copy_metadata('pydantic')
-pydantic_meta += copy_metadata('pydantic_core')
-pydantic_meta += copy_metadata('fastapi')
-pydantic_meta += copy_metadata('starlette')
-pydantic_meta += copy_metadata('uvicorn')
-pydantic_meta += copy_metadata('sqlmodel')
-pydantic_meta += copy_metadata('anyio')
+# Metadata for server-specific packages only (sqlmodel/anyio already in common_spec)
+extra_meta = (
+    copy_metadata('fastapi') +
+    copy_metadata('starlette') +
+    copy_metadata('uvicorn')
+)
 
-# Alembic needs its migration scripts as data files
-alembic_data = collect_data_files('alembic')
-alembic_data += [
-    ('server/alembic', 'alembic'),
-    ('server/alembic.ini', '.'),
-]
+base = get_base_analysis_args('server/main.py', 'kanban-server')
 
 a = Analysis(
-    ['server/main.py'],
-    pathex=['.'],
+    base['scripts'],
+    pathex=base['pathex'],
     binaries=[],
-    datas=alembic_data + pydantic_meta,
-    hiddenimports=(
-        uvicorn_hidden + fastapi_hidden + sqlmodel_hidden +
-        anyio_hidden + starlette_hidden +
-        ['aiosqlite', 'sqlalchemy.dialects.sqlite', 'multiprocessing.freeze_support']
-    ),
+    datas=base['datas'] + extra_meta,
+    hiddenimports=base['hiddenimports'] + uvicorn_hidden + fastapi_hidden + starlette_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
