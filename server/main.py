@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from mcp.server.fastmcp import FastMCP
@@ -114,14 +114,14 @@ async def serve_root():
         index = dist / "index.html"
         if index.is_file():
             return FileResponse(index, media_type="text/html")
-    return {"detail": "UI not built"}
+    raise HTTPException(status_code=404, detail="UI not built")
 
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
     dist = _get_ui_dist()
     if not dist:
-        return {"detail": "UI not built"}
+        raise HTTPException(status_code=404, detail="UI not built")
 
     requested = (dist / full_path).resolve()
     if requested.is_file() and requested.is_relative_to(dist):
@@ -131,7 +131,7 @@ async def serve_spa(full_path: str):
     if index.is_file():
         return FileResponse(index, media_type="text/html")
 
-    return {"detail": "Not found"}
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 if __name__ == "__main__":

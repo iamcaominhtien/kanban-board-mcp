@@ -174,6 +174,8 @@ app.whenReady().then(async () => {
       'Backend failed to start',
       err.message
     );
+    app.quit();
+    return;
   }
 
   // One-time VS Code MCP setup — only runs in packaged builds

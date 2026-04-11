@@ -19,16 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("ticket") as batch_op:
-        batch_op.add_column(
-            sa.Column("blocks", sa.String(), nullable=False, server_default="[]")
-        )
-        batch_op.add_column(
-            sa.Column("blocked_by", sa.String(), nullable=False, server_default="[]")
-        )
+    pass  # columns added by 9a4b5c6d7e8f
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("ticket") as batch_op:
-        batch_op.drop_column("blocked_by")
-        batch_op.drop_column("blocks")
+    pass
