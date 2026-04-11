@@ -28,6 +28,14 @@
         "from": "../ui/dist",
         "to": "ui/dist",
         "filter": ["**/*", "!**/*.map"]
+      },
+      {
+        "from": "../dist-python/kanban-server",
+        "to": "kanban-server"
+      },
+      {
+        "from": "../dist-python/kanban-mcp-stdio",
+        "to": "kanban-mcp-stdio"
       }
     ],
     "mac": {
