@@ -125,7 +125,16 @@ async def serve_spa(full_path: str):
 
     # Canonicalize and enforce that requested path stays within the UI dist directory
     dist_resolved = dist.resolve()
-    requested = (dist_resolved / full_path.lstrip("/")).resolve()
+
+    path_obj = Path(full_path)
+    if path_obj.is_absolute():
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    safe_parts = [part for part in path_obj.parts if part not in ("", ".")]
+    if any(part == ".." for part in safe_parts):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    requested = dist_resolved.joinpath(*safe_parts).resolve()
 
     try:
         requested.relative_to(dist_resolved)
