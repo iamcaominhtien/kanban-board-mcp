@@ -12,7 +12,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const sharp = require('sharp');
 const pngToIco = require('png-to-ico');
 
@@ -37,16 +37,14 @@ async function main() {
     const iconsetDir = path.join(BUILD_DIR, 'icon.iconset');
     fs.mkdirSync(iconsetDir, { recursive: true });
 
-    const sizes = [16, 32, 64, 128, 256, 512];
-    for (const size of sizes) {
-      const file1x = path.join(iconsetDir, `icon_${size}x${size}.png`);
-      await sharp(SRC_SVG).resize(size, size).png().toFile(file1x);
+    await Promise.all(
+      [16, 32, 64, 128, 256, 512].flatMap(size => [
+        sharp(SRC_SVG).resize(size, size).png().toFile(path.join(iconsetDir, `icon_${size}x${size}.png`)),
+        sharp(SRC_SVG).resize(size * 2, size * 2).png().toFile(path.join(iconsetDir, `icon_${size}x${size}@2x.png`))
+      ])
+    );
 
-      const file2x = path.join(iconsetDir, `icon_${size}x${size}@2x.png`);
-      await sharp(SRC_SVG).resize(size * 2, size * 2).png().toFile(file2x);
-    }
-
-    execSync(`iconutil -c icns "${iconsetDir}" -o "${ICON_ICNS}"`);
+    execFileSync('iconutil', ['-c', 'icns', iconsetDir, '-o', ICON_ICNS]);
     fs.rmSync(iconsetDir, { recursive: true, force: true });
     console.log(`  ✓ ${ICON_ICNS}`);
   } else {
