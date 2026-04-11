@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.2.4] - 2026-04-11
+
+### Changed
+- Desktop app now uses the project's Kanban logo instead of the default Electron icon
+- Web UI favicon updated to use the repo logo (SVG)
+- Added `desktop/scripts/generate-icons.js` to regenerate icons from SVG source
+
+---
+
 ## [v1.0.0] — 2026-04-09
 
 Stable release — promoted from v1.0.0-beta after full end-to-end QC verification (IAM-71).
