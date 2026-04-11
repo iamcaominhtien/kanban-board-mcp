@@ -1,0 +1,41 @@
+{
+  "name": "kanban-board-desktop",
+  "version": "0.1.0",
+  "description": "Kanban Board MCP Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.kanbanboard.app",
+    "productName": "Kanban Board",
+    "directories": {
+      "buildResources": "build",
+      "output": "../dist-desktop"
+    },
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../ui/dist",
+        "to": "ui/dist",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [{"target": "dmg", "arch": ["x64", "arm64"]}]
+    },
+    "win": {
+      "target": [{"target": "nsis", "arch": ["x64"]}]
+    }
+  }
+}
