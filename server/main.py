@@ -59,30 +59,29 @@ if __name__ == "__main__":
 
     multiprocessing.freeze_support()
 
-    import asyncio
     import socket
     import sys
 
     import uvicorn
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("127.0.0.1", 0))
-    port = s.getsockname()[1]
-    s.close()
+    class SignalServer(uvicorn.Server):
+        def __init__(self, config, port):
+            super().__init__(config)
+            self._signal_port = port
 
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, workers=1, log_level="warning")
-    server = uvicorn.Server(config)
+        async def startup(self, sockets=None):
+            await super().startup(sockets)
+            print(f"READY port={self._signal_port}", flush=True)
+            sys.stdout.flush()
 
-    _original_startup = server.startup
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
 
-    async def _startup_with_signal(*args, **kwargs):
-        await _original_startup(*args, **kwargs)
-        print(f"READY port={port}", flush=True)
-        sys.stdout.flush()
-
-    server.startup = _startup_with_signal
-
-    asyncio.run(server.serve())
+        config = uvicorn.Config(app, host="127.0.0.1", log_level="warning")
+        server = SignalServer(config, port)
+        server.run(sockets=[sock])
 
 
 @app.get("/events")

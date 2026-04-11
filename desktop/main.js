@@ -31,11 +31,15 @@ function startBackend() {
 
     backendProcess = child;
     let output = '';
+    let settled = false;
+    let timeoutId;
 
     child.stdout.on('data', (data) => {
       output += data.toString();
       const match = output.match(/READY port=(\d+)/);
-      if (match) {
+      if (match && !settled) {
+        settled = true;
+        clearTimeout(timeoutId);
         backendPort = parseInt(match[1], 10);
         resolve(backendPort);
       }
@@ -49,13 +53,23 @@ function startBackend() {
       console.log(`Backend exited with code ${code}`);
       backendProcess = null;
       backendPort = null;
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(new Error(`Backend exited before READY signal (code ${code})`));
+      }
     });
 
-    setTimeout(() => reject(new Error('Backend startup timeout')), 30000);
+    timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error('Backend startup timeout (30s)'));
+      }
+    }, 30000);
   });
 }
 
-function createWindow() {
+function createWindow(port) {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -91,8 +105,7 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          // TODO(IAM-77): narrow connect-src to the actual backend port once Python process is wired up
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:*; img-src 'self' data: blob:"
+          `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ${port ? `http://127.0.0.1:${port}` : 'http://127.0.0.1:*'}; img-src 'self' data: blob: base-uri 'self'; object-src 'none'`
         ]
       }
     });
@@ -122,10 +135,10 @@ app.whenReady().then(async () => {
     // Still show the window — it will show an error state
   }
 
-  createWindow();
+  createWindow(backendPort);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) createWindow(backendPort);
   });
 });
 
