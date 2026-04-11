@@ -30,7 +30,4 @@ dist-desktop/
 
 # Python binary build output
 dist-python/
-desktop/build/*.icns
-desktop/build/*.ico
-desktop/build/*.png
-desktop/build/icons/
+desktop/build/
