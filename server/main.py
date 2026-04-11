@@ -60,13 +60,13 @@ async def sse_events() -> StreamingResponse:
     async def generator():
         q = board_events.subscribe()
         try:
-            yield "data: ping\n\n"
+            yield ": connected\n\n"
             while True:
                 try:
                     event = await asyncio.wait_for(q.get(), timeout=30.0)
                     yield f"data: {event}\n\n"
                 except asyncio.TimeoutError:
-                    yield "data: ping\n\n"
+                    yield ": ping\n\n"
         finally:
             board_events.unsubscribe(q)
 

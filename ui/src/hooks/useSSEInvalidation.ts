@@ -14,7 +14,6 @@ export function useSSEInvalidation() {
       es = new EventSource(SSE_URL);
 
       es.onmessage = (event) => {
-        if (event.data === 'ping') return;
         queryClient.invalidateQueries();
       };
 
@@ -28,7 +27,11 @@ export function useSSEInvalidation() {
 
     return () => {
       clearTimeout(retryTimeout);
-      es?.close();
+      if (es) {
+        es.close();
+        // @ts-expect-error: intentionally nulling to prevent late callbacks
+        es = null;
+      }
     };
   }, [queryClient]);
 }
