@@ -115,6 +115,18 @@ cd server && uv run uvicorn main:app --port 8000
 
 Then connect any MCP-compatible client to `http://localhost:8000/mcp`.
 
+## Desktop App Release Status
+
+The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) into a single installable application via Electron.
+
+| Platform | Status | Artifact |
+|---|---|---|
+| **macOS** (x64 + arm64) | Available | DMG — see [v0.2.0 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v0.2.0) |
+| **Windows** (NSIS) | Not yet uploaded | Build from source: `./build-desktop.sh` |
+| **Linux** | Not yet supported | — |
+
+> **macOS note:** the app is not notarized — right-click → Open on first launch.
+
 ## More Docs
 - [Server README](server/README.md)
 - [UI README](ui/README.md)
