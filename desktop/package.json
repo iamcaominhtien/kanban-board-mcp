@@ -13,7 +13,9 @@
   },
   "devDependencies": {
     "electron": "^39.8.5",
-    "electron-builder": "^26.8.1"
+    "electron-builder": "^26.8.1",
+    "sharp": "^0.33.5",
+    "png-to-ico": "^2.1.8"
   },
   "build": {
     "appId": "com.kanbanboard.app",

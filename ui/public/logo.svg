@@ -1,0 +1,23 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rounded square - deep burgundy -->
+  <rect width="120" height="120" rx="22" fill="#3D0C11"/>
+
+  <!-- Column 1: Backlog (Yellow) -->
+  <rect x="12" y="16" width="28" height="88" rx="6" fill="#F5C518"/>
+  <rect x="16" y="24" width="20" height="11" rx="3" fill="#3D0C11" opacity="0.4"/>
+  <rect x="16" y="39" width="20" height="11" rx="3" fill="#3D0C11" opacity="0.4"/>
+  <rect x="16" y="54" width="20" height="11" rx="3" fill="#3D0C11" opacity="0.4"/>
+  <rect x="16" y="69" width="14" height="11" rx="3" fill="#3D0C11" opacity="0.25"/>
+
+  <!-- Column 2: In Progress (Orange) -->
+  <rect x="46" y="16" width="28" height="88" rx="6" fill="#E8441A"/>
+  <rect x="50" y="24" width="20" height="11" rx="3" fill="#3D0C11" opacity="0.4"/>
+  <rect x="50" y="39" width="20" height="11" rx="3" fill="#3D0C11" opacity="0.4"/>
+
+  <!-- Column 3: Done (Lime) -->
+  <rect x="80" y="16" width="28" height="88" rx="6" fill="#AACC2E"/>
+  <rect x="84" y="24" width="20" height="11" rx="3" fill="#3D0C11" opacity="0.4"/>
+
+  <!-- Checkmark on last card (done indicator) -->
+  <polyline points="87,28 90,32 97,26" stroke="#3D0C11" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/>
+</svg>
