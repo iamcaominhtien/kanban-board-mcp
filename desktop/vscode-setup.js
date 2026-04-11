@@ -5,18 +5,28 @@ const os = require('os');
 /**
  * Returns the path to VS Code's user-level mcp.json, or null if VS Code is not installed.
  */
-function getVSCodeMcpConfigPath() {
+function getVSCodeUserConfigDir({
+  platform = process.platform,
+  homeDir = os.homedir(),
+  appData = process.env.APPDATA,
+  existsSync = fs.existsSync,
+} = {}) {
   const platforms = {
-    win32: () => process.env.APPDATA ? path.join(process.env.APPDATA, 'Code', 'User') : null,
-    darwin: () => path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User'),
-    linux: () => path.join(os.homedir(), '.config', 'Code', 'User')
+    win32: () => appData ? path.join(appData, 'Code', 'User') : null,
+    darwin: () => path.join(homeDir, 'Library', 'Application Support', 'Code', 'User'),
+    linux: () => path.join(homeDir, '.config', 'Code', 'User')
   };
 
-  const getDir = platforms[process.platform] || platforms.linux;
+  const getDir = platforms[platform] || platforms.linux;
   const configDir = getDir();
   if (!configDir) return null;
 
-  return fs.existsSync(configDir) ? path.join(configDir, 'mcp.json') : null;
+  return existsSync(configDir) ? configDir : null;
+}
+
+function getVSCodeMcpConfigPath(options = {}) {
+  const configDir = getVSCodeUserConfigDir(options);
+  return configDir ? path.join(configDir, 'mcp.json') : null;
 }
 
 /**
@@ -24,12 +34,51 @@ function getVSCodeMcpConfigPath() {
  * Returns {} if the file does not exist.
  * Returns null if the file exists but is corrupt — caller must not overwrite.
  */
-function readJsonSafe(filePath) {
-  if (!fs.existsSync(filePath)) return {};
+function readJsonSafe(
+  filePath,
+  { existsSync = fs.existsSync, readFileSync = fs.readFileSync } = {}
+) {
+  if (!existsSync(filePath)) return {};
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return JSON.parse(readFileSync(filePath, 'utf8'));
   } catch {
     return null; // file exists but is corrupt — caller must not overwrite
+  }
+}
+
+function mergeMcpConfig(config, mcpStdioBinaryPath) {
+  const nextConfig = { ...config, servers: { ...(config.servers || {}) } };
+  const existing = nextConfig.servers['kanban-board'];
+
+  if (existing?.command === mcpStdioBinaryPath) {
+    return { result: 'already-registered', config: nextConfig };
+  }
+
+  nextConfig.servers['kanban-board'] = {
+    type: 'stdio',
+    command: mcpStdioBinaryPath,
+  };
+
+  return { result: 'registered', config: nextConfig };
+}
+
+function writeJsonAtomic(
+  filePath,
+  payload,
+  {
+    writeFileSync = fs.writeFileSync,
+    renameSync = fs.renameSync,
+    unlinkSync = fs.unlinkSync,
+  } = {}
+) {
+  const tmpPath = filePath + '.tmp';
+  try {
+    writeFileSync(tmpPath, JSON.stringify(payload, null, 2), 'utf8');
+    renameSync(tmpPath, filePath);
+    return true;
+  } catch {
+    try { unlinkSync(tmpPath); } catch { /* ignore */ }
+    return false;
   }
 }
 
@@ -44,45 +93,56 @@ function readJsonSafe(filePath) {
  *   'parse-error'        — mcp.json exists but could not be parsed
  *   'write-error'        — atomic write to disk failed
  */
-function registerMcpServer(mcpStdioBinaryPath) {
-  const mcpConfigPath = getVSCodeMcpConfigPath();
+function registerMcpServer(
+  mcpStdioBinaryPath,
+  {
+    getConfigPath = getVSCodeMcpConfigPath,
+    existsSync = fs.existsSync,
+    readFileSync = fs.readFileSync,
+    writeFileSync = fs.writeFileSync,
+    renameSync = fs.renameSync,
+    unlinkSync = fs.unlinkSync,
+  } = {}
+) {
+  const mcpConfigPath = getConfigPath();
 
   if (!mcpConfigPath) {
     console.log('[vscode-setup] VS Code not found — skipping MCP registration');
     return 'vscode-not-found';
   }
 
-  const config = readJsonSafe(mcpConfigPath);
+  const config = readJsonSafe(mcpConfigPath, { existsSync, readFileSync });
   if (config === null) {
     console.error('[vscode-setup] mcp.json is corrupt — skipping to avoid data loss');
     return 'parse-error';
   }
-  config.servers = config.servers || {};
 
-  // Check if already registered with the same path
-  const existing = config.servers['kanban-board'];
-  if (existing?.command === mcpStdioBinaryPath) {
+  const mergeResult = mergeMcpConfig(config, mcpStdioBinaryPath);
+  if (mergeResult.result === 'already-registered') {
     console.log('[vscode-setup] kanban-board MCP server already registered');
     return 'already-registered';
   }
 
-  // Register or update the entry
-  config.servers['kanban-board'] = {
-    type: 'stdio',
-    command: mcpStdioBinaryPath,
-  };
-
-  try {
-    const tmpPath = mcpConfigPath + '.tmp';
-    fs.writeFileSync(tmpPath, JSON.stringify(config, null, 2), 'utf8');
-    fs.renameSync(tmpPath, mcpConfigPath);
+  if (
+    writeJsonAtomic(mcpConfigPath, mergeResult.config, {
+      writeFileSync,
+      renameSync,
+      unlinkSync,
+    })
+  ) {
     console.log(`[vscode-setup] Registered kanban-board MCP server at ${mcpConfigPath}`);
     return 'registered';
-  } catch (err) {
-    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
-    console.error('[vscode-setup] Failed to write mcp.json:', err.message);
-    return 'write-error';
   }
+
+  console.error('[vscode-setup] Failed to write mcp.json');
+  return 'write-error';
 }
 
-module.exports = { registerMcpServer, getVSCodeMcpConfigPath };
+module.exports = {
+  getVSCodeMcpConfigPath,
+  getVSCodeUserConfigDir,
+  mergeMcpConfig,
+  readJsonSafe,
+  registerMcpServer,
+  writeJsonAtomic,
+};

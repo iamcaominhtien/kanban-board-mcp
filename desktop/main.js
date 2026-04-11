@@ -3,6 +3,14 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
+const {
+  buildBackendLaunchSpec,
+  getMcpStdioBinaryPath,
+  parseReadyPort,
+  shouldRunVscodeSetup,
+  shouldWriteSetupFlag,
+  terminateBackendProcess,
+} = require('./main-helpers');
 
 let mainWindow = null;
 let backendPort = null;
@@ -10,25 +18,17 @@ let backendProcess = null;
 
 function startBackend() {
   return new Promise((resolve, reject) => {
-    const userData = app.getPath('userData');
-    const dbPath = path.join(userData, 'kanban.db');
-    const env = { ...process.env, KANBAN_DB_PATH: dbPath };
+    const spec = buildBackendLaunchSpec({
+      isPackaged: app.isPackaged,
+      platform: process.platform,
+      resourcesPath: process.resourcesPath,
+      userDataPath: app.getPath('userData'),
+      desktopDir: __dirname,
+      baseEnv: process.env,
+      devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
+    });
 
-    let child;
-    if (app.isPackaged) {
-      const ext = process.platform === 'win32' ? '.exe' : '';
-      const binaryPath = path.join(process.resourcesPath, `kanban-server${ext}`);
-      child = spawn(binaryPath, [], { env, stdio: ['ignore', 'pipe', 'pipe'] });
-    } else {
-      const serverDir = path.join(__dirname, '..', 'server');
-      const pythonPath = path.join(serverDir, '.venv', 'bin', 'python');
-      const python = fs.existsSync(pythonPath) ? pythonPath : 'python3';
-      child = spawn(python, [path.join(serverDir, 'main.py')], {
-        env,
-        cwd: serverDir,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    }
+    const child = spawn(spec.command, spec.args, spec.options);
 
     backendProcess = child;
     let output = '';
@@ -37,11 +37,11 @@ function startBackend() {
 
     child.stdout.on('data', (data) => {
       output += data.toString();
-      const match = output.match(/READY port=(\d+)/);
-      if (match && !settled) {
+      const port = parseReadyPort(output);
+      if (port && !settled) {
         settled = true;
         clearTimeout(timeoutId);
-        backendPort = parseInt(match[1], 10);
+        backendPort = port;
         resolve(backendPort);
       }
     });
@@ -125,18 +125,6 @@ function createWindow(port) {
   });
 }
 
-function getMcpStdioBinaryPath() {
-  const ext = process.platform === 'win32' ? '.exe' : '';
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, `kanban-mcp-stdio${ext}`);
-  } else {
-    // Dev mode: points to the raw Python script.
-    // VS Code MCP registration will NOT work in dev mode (no Python interpreter configured).
-    // This is intentional — only test MCP registration with a packaged build.
-    return path.join(__dirname, '..', 'server', 'mcp_stdio.py');
-  }
-}
-
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
 
@@ -149,11 +137,17 @@ app.whenReady().then(async () => {
 
   // One-time VS Code MCP setup — only runs in packaged builds
   const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
-  if (app.isPackaged && !fs.existsSync(setupFlag)) {
-    const result = registerMcpServer(getMcpStdioBinaryPath());
-    const doneResults = ['registered', 'already-registered'];
+  if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists: fs.existsSync(setupFlag) })) {
+    const result = registerMcpServer(
+      getMcpStdioBinaryPath({
+        isPackaged: app.isPackaged,
+        platform: process.platform,
+        resourcesPath: process.resourcesPath,
+        desktopDir: __dirname,
+      })
+    );
 
-    if (doneResults.includes(result)) {
+    if (shouldWriteSetupFlag(result)) {
       try {
         fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
       } catch { /* non-fatal */ }
@@ -172,8 +166,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  if (backendProcess) {
-    backendProcess.kill();
+  if (terminateBackendProcess(backendProcess)) {
     backendProcess = null;
   }
 });
