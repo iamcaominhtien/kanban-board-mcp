@@ -123,19 +123,16 @@ async def serve_spa(full_path: str):
     if not dist:
         raise HTTPException(status_code=404, detail="UI not built")
 
-    # Sanitize user-controlled path segment to prevent path traversal.
-    # Strip leading slashes so Path() treats it as relative, and reject
-    # any segment containing ".." before filesystem resolution.
-    sanitized = full_path.lstrip("/")
-    if ".." in Path(sanitized).parts:
+    # Secure path resolution recognized by static analysis (CodeQL)
+    dist_abs = os.path.abspath(str(dist))
+    requested_abs = os.path.abspath(os.path.join(dist_abs, full_path.lstrip("/")))
+
+    if os.path.commonpath([dist_abs, requested_abs]) != dist_abs:
         raise HTTPException(status_code=400, detail="Invalid path")
 
-    # lgtm[py/path-injection] - safe: ".." segments rejected above; is_relative_to check below
-    requested = (dist / sanitized).resolve()  # lgtm[py/path-injection]
-
-    # Double-check resolved path stays within the dist directory.
-    if requested.is_file() and requested.is_relative_to(dist):
-        return FileResponse(requested)  # lgtm[py/path-injection]
+    requested = Path(requested_abs)
+    if requested.is_file():
+        return FileResponse(requested)
 
     index = dist / "index.html"
     if index.is_file():
