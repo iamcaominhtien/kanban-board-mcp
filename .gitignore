@@ -30,4 +30,9 @@ dist-desktop/
 
 # Python binary build output
 dist-python/
-desktop/build/
+desktop/build/*
+!desktop/build/README.md
+!desktop/build/entitlements.mac.plist
+!desktop/build/icon.png
+!desktop/build/icon.icns
+!desktop/build/icon.ico
