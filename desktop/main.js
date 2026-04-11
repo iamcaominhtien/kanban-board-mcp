@@ -14,6 +14,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     show: false,
@@ -26,9 +27,32 @@ function createWindow() {
   );
   mainWindow.loadFile(uiPath);
 
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault();
+    }
+  });
+
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:*; img-src 'self' data: blob:"
+        ]
+      }
+    });
+  });
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
+
+  if (process.env.ELECTRON_DEV === '1') {
+    mainWindow.webContents.openDevTools();
+  }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
