@@ -2,6 +2,10 @@
   "name": "kanban-board-desktop",
   "version": "1.2.5",
   "description": "Kanban Board MCP Desktop App",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iamcaominhtien/kanban-board-mcp.git"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",

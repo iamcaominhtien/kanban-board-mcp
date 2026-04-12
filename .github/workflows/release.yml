@@ -94,18 +94,11 @@ jobs:
           DEBUG: electron-builder
         run: |
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            npm run dist:mac > ../build-log-${{ matrix.os }}.txt 2>&1
+            npm run dist:mac
           else
-            npm run dist:win > ../build-log-${{ matrix.os }}.txt 2>&1
+            npm run dist:win
           fi
         shell: bash
-
-      - name: Upload Logs on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs-${{ matrix.os }}
-          path: build-log-${{ matrix.os }}.txt
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
