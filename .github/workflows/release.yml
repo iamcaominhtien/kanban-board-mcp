@@ -37,7 +37,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-path: "server/uv.lock"
 
       - name: Install UI dependencies
         working-directory: ui
@@ -50,23 +56,22 @@ jobs:
       - name: Install Python dependencies
         working-directory: server
         run: |
-          python -m pip install --upgrade pip
-          pip install -e '.[dev]'
-          pip install pyinstaller
+          uv sync --group dev
+          uv pip install pyinstaller
 
       - name: Build Python binaries (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           mkdir -p dist-python
-          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
-          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
+          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
+          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
 
       - name: Build Python binaries (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           mkdir -p dist-python
-          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
-          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
+          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
+          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
 
       - name: Install Desktop dependencies
         working-directory: desktop
