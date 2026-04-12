@@ -83,8 +83,10 @@ jobs:
         working-directory: desktop
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: "" # Disable code signing
+          CSC_LINK: ""
           CSC_KEY_PASSWORD: ""
+          CSC_IDENTITY_AUTODISCOVERY: false
+          DEBUG: electron-builder
         run: |
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
             npm run dist:mac

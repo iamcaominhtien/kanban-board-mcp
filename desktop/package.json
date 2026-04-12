@@ -39,7 +39,7 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": [{"target": "dmg", "arch": ["x64", "arm64"]}],
+      "target": ["dmg"],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
@@ -50,7 +50,7 @@
       ]
     },
     "win": {
-      "target": [{"target": "nsis", "arch": ["x64"]}],
+      "target": ["nsis"],
       "extraResources": [
         {"from": "../dist-python/kanban-server.exe",    "to": "kanban-server.exe"},
         {"from": "../dist-python/kanban-mcp-stdio.exe", "to": "kanban-mcp-stdio.exe"}
