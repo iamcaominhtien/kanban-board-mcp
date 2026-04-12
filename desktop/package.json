@@ -24,6 +24,11 @@
   "build": {
     "appId": "com.kanbanboard.app",
     "productName": "Kanban Board",
+    "publish": {
+      "provider": "github",
+      "owner": "iamcaominhtien",
+      "repo": "kanban-board-mcp"
+    },
     "directories": {
       "buildResources": "build",
       "output": "../dist-desktop"

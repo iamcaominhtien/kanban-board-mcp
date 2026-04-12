@@ -85,6 +85,7 @@ jobs:
           ls -R ui/dist || true
 
       - name: Package Desktop App
+        working-directory: desktop
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ""
@@ -93,9 +94,9 @@ jobs:
           DEBUG: electron-builder
         run: |
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            npx electron-builder --mac --project desktop
+            npm run dist:mac
           else
-            npx electron-builder --win --project desktop
+            npm run dist:win
           fi
         shell: bash
 
