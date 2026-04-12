@@ -42,8 +42,8 @@
       "target": [{"target": "dmg", "arch": ["x64", "arm64"]}],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "entitlements": "/Users/iamcaominhtien/coder/kanban-board-mcp/desktop/build/entitlements.mac.plist",
-      "entitlementsInherit": "/Users/iamcaominhtien/coder/kanban-board-mcp/desktop/build/entitlements.mac.plist",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "extraResources": [
         {"from": "../dist-python/kanban-server",    "to": "kanban-server"},
         {"from": "../dist-python/kanban-mcp-stdio", "to": "kanban-mcp-stdio"}
