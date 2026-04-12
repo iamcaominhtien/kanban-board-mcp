@@ -61,17 +61,19 @@ jobs:
 
       - name: Build Python binaries (macOS)
         if: matrix.os == 'macos-latest'
+        working-directory: server
         run: |
-          mkdir -p dist-python
-          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
-          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
+          mkdir -p ../dist-python
+          uv run python -m PyInstaller --distpath ../dist-python --workpath ../desktop/build/pyinstaller-work --noconfirm ../desktop/kanban-server.spec
+          uv run python -m PyInstaller --distpath ../dist-python --workpath ../desktop/build/pyinstaller-work --noconfirm ../desktop/kanban-mcp-stdio.spec
 
       - name: Build Python binaries (Windows)
         if: matrix.os == 'windows-latest'
+        working-directory: server
         run: |
-          mkdir -p dist-python
-          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
-          uv run python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
+          mkdir -p ../dist-python
+          uv run python -m PyInstaller --distpath ../dist-python --workpath ../desktop/build/pyinstaller-work --noconfirm ../desktop/kanban-server.spec
+          uv run python -m PyInstaller --distpath ../dist-python --workpath ../desktop/build/pyinstaller-work --noconfirm ../desktop/kanban-mcp-stdio.spec
 
       - name: Install Desktop dependencies
         working-directory: desktop
