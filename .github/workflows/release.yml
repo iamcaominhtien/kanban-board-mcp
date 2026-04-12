@@ -79,6 +79,11 @@ jobs:
         working-directory: desktop
         run: npm install
 
+      - name: Debug - List Files
+        run: |
+          ls -R dist-python || true
+          ls -R ui/dist || true
+
       - name: Package Desktop App
         working-directory: desktop
         env:
