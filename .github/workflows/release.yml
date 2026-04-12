@@ -1,0 +1,115 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - vk/cicd-pipeline
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            ui/package-lock.json
+            desktop/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Build UI
+        working-directory: ui
+        run: npm run build
+
+      - name: Install Python dependencies
+        working-directory: server
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install pyinstaller
+
+      - name: Build Python binaries (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p dist-python
+          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
+          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
+
+      - name: Build Python binaries (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir -p dist-python
+          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-server.spec
+          python -m PyInstaller --distpath dist-python --workpath desktop/build/pyinstaller-work --noconfirm desktop/kanban-mcp-stdio.spec
+
+      - name: Install Desktop dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Package Desktop App
+        working-directory: desktop
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: "" # Disable code signing
+          CSC_KEY_PASSWORD: ""
+        run: |
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then
+            npm run dist:mac
+          else
+            npm run dist:win
+          fi
+        shell: bash
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-artifacts-${{ matrix.os }}
+          path: |
+            dist-desktop/*.dmg
+            dist-desktop/*.exe
+            dist-desktop/*.zip
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/app-artifacts-macos-latest/*.dmg
+            artifacts/app-artifacts-windows-latest/*.exe
+          generate_release_notes: true
