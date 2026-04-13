@@ -59,6 +59,12 @@
   font-weight: 800;
 }
 
+.viewArea img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
 .placeholder {
   color: #9ca3af;
   font-style: italic;
