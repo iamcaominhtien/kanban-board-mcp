@@ -10,7 +10,7 @@ description: >
   'prioritize', 'estimate stories', 'draw a flow', 'create tickets'.
 argument-hint: "Describe the task — e.g. 'plan this feature', 'write a status report for X', 'break this epic into tickets', 'run a project health check'."
 tools: [vscode/askQuestions, read, agent, 'memory/*', 'playwright/*', todo]
-model: GPT-5.4 (copilot)
+model: Claude Sonnet 4.6 (copilot)
 agents: ["*"]
 ---
 

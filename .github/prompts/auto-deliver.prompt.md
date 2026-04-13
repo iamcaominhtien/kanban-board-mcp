@@ -44,7 +44,13 @@ Otherwise, auto-approve and proceed immediately to the next phase.
 1. **Branch & Implement**:
    Instruct the `developer` agent to branch off `main` (`git checkout -b feature/<ticket_id>`) and implement the code according to the plan. Request them to open a PR.
 
-2. **Simplify & Review**:
+2. **Verify Production Build**:
+   Before proceeding to review, require the `developer` to run and verify a production build of the affected apps/services.
+   - For UI: `npm run build`
+   - For Server: any compilation or lockfile checks.
+   *If the build fails, the developer must fix it before opening or updating the PR.*
+
+3. **Simplify & Review**:
    - Delegate to `code-simplifier` to analyze the PR diff and apply improvements.
    - Delegate to `code-change-reviewer` for a cybersecurity and technical-lead lens review.
    
@@ -81,18 +87,20 @@ Otherwise, auto-approve and proceed immediately to the next phase.
    gh pr merge <PR_number> --squash --delete-branch
    ```
 
-3. **Create Release**:
-   ```bash
-   gh release create v<X.Y.Z> \
-     --title "v<X.Y.Z> — <short feature title>" \
-     --notes "<what was shipped and why>"
-   ```
-   *(Increment appropriately: patch, minor, or major)*
+3. **Create Release & Artifacts**:
+   - Package or collect any natural release artifacts (e.g. UI `dist/` or `build/` outputs).
+   - If no artifact is produced, clearly state "No distributable artifact produced for this release." in the work log.
+   - Create the release and attach artifacts (where appropriate):
+     ```bash
+     gh release create v<X.Y.Z> <artifact_paths> \
+       --title "v<X.Y.Z> — <short feature title>" \
+       --notes "<what was shipped and why>"
+     ```
 
 4. **Close & Log**:
    - Delegate to the `kanbander` agent to mark the ticket and subtasks as **Done**.
    - Log work via `kanbander`:
-     `[DATE] project-manager: Delivery complete. PR #N merged. Release vX.Y.Z created. All ACs verified by QC. Auto-shipped.`
+     `[DATE] project-manager: Delivery complete. PR #N merged. Release vX.Y.Z created. All ACs verified. Build: [STATUS]. Artifacts: [STATUS/TYPE]. Auto-shipped.`
 
 5. **Cleanup & Memory**:
    - Store the delivery outcome and architectural choices in the knowledge graph.
