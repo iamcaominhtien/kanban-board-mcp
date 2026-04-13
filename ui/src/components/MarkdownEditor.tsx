@@ -65,6 +65,7 @@ export function MarkdownEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const latestValueRef = useRef(value);
   const pendingUploadPlaceholdersRef = useRef(new Map<string, string>());
+  const isFilePickerOpenRef = useRef(false);
 
   useEffect(() => {
     latestValueRef.current = value;
@@ -137,7 +138,8 @@ export function MarkdownEditor({
     }
 
     const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const displayName = file.name.replace(/\.[^.]+$/, '') || 'image';
+    const displayName = (file.name.replace(/\.[^.]+$/, '') || 'image')
+      .replace(/[[\]()!]/g, '');
     const placeholder = `![Uploading ${displayName}...](uploading:${uploadId})`;
     pendingUploadPlaceholdersRef.current.set(uploadId, placeholder);
     const inserted = insertTextAtCursor(placeholder);
@@ -186,6 +188,7 @@ export function MarkdownEditor({
   }
 
   function handleFilePickerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    isFilePickerOpenRef.current = false;
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) {
@@ -202,6 +205,9 @@ export function MarkdownEditor({
   }
 
   function handleBlur(e: React.FocusEvent) {
+    if (isFilePickerOpenRef.current) {
+      return;
+    }
     if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node | null)) {
       setIsEditing(false);
       onBlur?.(getPersistableValue());
@@ -254,6 +260,11 @@ export function MarkdownEditor({
               disabled={isUploading}
               onMouseDown={(e) => {
                 e.preventDefault();
+                if (isFilePickerOpenRef.current) return; // prevent double-registration
+                isFilePickerOpenRef.current = true;
+                window.addEventListener('focus', () => {
+                  isFilePickerOpenRef.current = false;
+                }, { once: true });
                 fileInputRef.current?.click();
               }}
             >
