@@ -138,7 +138,8 @@ export function MarkdownEditor({
     }
 
     const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const displayName = file.name.replace(/\.[^.]+$/, '') || 'image';
+    const displayName = (file.name.replace(/\.[^.]+$/, '') || 'image')
+      .replace(/[[\]()!]/g, '');
     const placeholder = `![Uploading ${displayName}...](uploading:${uploadId})`;
     pendingUploadPlaceholdersRef.current.set(uploadId, placeholder);
     const inserted = insertTextAtCursor(placeholder);
@@ -259,11 +260,11 @@ export function MarkdownEditor({
               disabled={isUploading}
               onMouseDown={(e) => {
                 e.preventDefault();
+                if (isFilePickerOpenRef.current) return; // prevent double-registration
                 isFilePickerOpenRef.current = true;
-                const resetPickerFlag = () => {
+                window.addEventListener('focus', () => {
                   isFilePickerOpenRef.current = false;
-                };
-                window.addEventListener('focus', resetPickerFlag, { once: true });
+                }, { once: true });
                 fileInputRef.current?.click();
               }}
             >
