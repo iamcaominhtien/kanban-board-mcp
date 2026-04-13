@@ -19,17 +19,18 @@ SUPPORTED_IMAGE_EXTENSIONS = tuple(MIME_BY_EXTENSION.keys())
 SUPPORTED_IMAGE_MIME_TYPES = tuple(sorted(set(MIME_BY_EXTENSION.values())))
 
 
-def get_uploads_dir() -> Path:
+def get_uploads_dir(*, create: bool = True) -> Path:
     env_value = os.environ.get(UPLOADS_DIR_ENV_VAR)
     candidate = (
         Path(env_value) if env_value else Path(__file__).resolve().parent / "uploads"
     )
-    candidate.mkdir(parents=True, exist_ok=True)
+    if create:
+        candidate.mkdir(parents=True, exist_ok=True)
     return candidate.resolve()
 
 
 def resolve_upload_path(file_path: str) -> Path | None:
-    uploads_dir = get_uploads_dir()
+    uploads_dir = get_uploads_dir(create=False)
     path_obj = Path(file_path)
     if path_obj.is_absolute():
         return None

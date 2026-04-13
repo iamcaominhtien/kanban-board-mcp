@@ -3,6 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import styles from './MarkdownEditor.module.css';
 
+const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const FILE_INPUT_ACCEPT = SUPPORTED_UPLOAD_IMAGE_TYPES.join(',');
+
 interface ToolbarButton {
   label: string;
   before: string;
@@ -41,6 +44,10 @@ const MARKDOWN_SCHEMA = {
     ...(defaultSchema.attributes ?? {}),
     img: ['src', 'alt', 'title'],
   },
+  protocols: {
+    ...(defaultSchema.protocols ?? {}),
+    src: ['http', 'https'],
+  },
 };
 
 export function MarkdownEditor({
@@ -57,6 +64,7 @@ export function MarkdownEditor({
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const latestValueRef = useRef(value);
+  const pendingUploadPlaceholdersRef = useRef(new Map<string, string>());
 
   useEffect(() => {
     latestValueRef.current = value;
@@ -110,6 +118,19 @@ export function MarkdownEditor({
     updateValue(newValue, placeholderStart, placeholderStart + placeholder.length);
   }
 
+  function getPersistableValue() {
+    let nextValue = latestValueRef.current;
+    pendingUploadPlaceholdersRef.current.forEach((placeholder) => {
+      nextValue = nextValue.replace(placeholder, '');
+    });
+    return nextValue;
+  }
+
+  function handleTextareaChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    latestValueRef.current = e.target.value;
+    onChange(e.target.value);
+  }
+
   async function handleImageUpload(file: File) {
     if (!onUploadImage || isUploading) {
       return;
@@ -118,14 +139,17 @@ export function MarkdownEditor({
     const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const displayName = file.name.replace(/\.[^.]+$/, '') || 'image';
     const placeholder = `![Uploading ${displayName}...](uploading:${uploadId})`;
+    pendingUploadPlaceholdersRef.current.set(uploadId, placeholder);
     const inserted = insertTextAtCursor(placeholder);
     if (!inserted) {
+      pendingUploadPlaceholdersRef.current.delete(uploadId);
       return;
     }
 
     setIsUploading(true);
     try {
       const result = await onUploadImage(file);
+      pendingUploadPlaceholdersRef.current.delete(uploadId);
       const updatedValue = latestValueRef.current.replace(placeholder, result.markdown);
       if (updatedValue !== latestValueRef.current) {
         const cursor = inserted.start + result.markdown.length;
@@ -133,6 +157,7 @@ export function MarkdownEditor({
         onUploadComplete?.(updatedValue);
       }
     } catch {
+      pendingUploadPlaceholdersRef.current.delete(uploadId);
       const revertedValue = latestValueRef.current.replace(placeholder, '');
       if (revertedValue !== latestValueRef.current) {
         updateValue(revertedValue, inserted.start, inserted.start);
@@ -149,7 +174,7 @@ export function MarkdownEditor({
     }
 
     const imageFile = Array.from(e.clipboardData.items)
-      .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .find((item) => item.kind === 'file' && SUPPORTED_UPLOAD_IMAGE_TYPES.includes(item.type.toLowerCase()))
       ?.getAsFile();
 
     if (!imageFile) {
@@ -179,7 +204,7 @@ export function MarkdownEditor({
   function handleBlur(e: React.FocusEvent) {
     if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node | null)) {
       setIsEditing(false);
-      onBlur?.(value);
+      onBlur?.(getPersistableValue());
     }
   }
 
@@ -237,7 +262,7 @@ export function MarkdownEditor({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
+              accept={FILE_INPUT_ACCEPT}
               className={styles.fileInput}
               onChange={handleFilePickerChange}
             />
@@ -249,7 +274,7 @@ export function MarkdownEditor({
         ref={textareaRef}
         className={styles.textarea}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleTextareaChange}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
         autoFocus

@@ -11,7 +11,7 @@ import pytest
 from httpx import ASGITransport
 
 from main import app
-from uploads import MAX_DESCRIPTION_IMAGE_BYTES
+from uploads import MAX_DESCRIPTION_IMAGE_BYTES, resolve_upload_path
 
 SMALL_PNG_BYTES = b"fake-png-bytes"
 
@@ -63,6 +63,19 @@ async def test_upload_image_returns_markdown_and_serves_file(
 
     assert file_response.status_code == 200
     assert file_response.content == SMALL_PNG_BYTES
+    assert file_response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_resolve_upload_path_does_not_create_uploads_dir_on_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    uploads_dir = tmp_path / "uploads"
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(uploads_dir))
+
+    resolved = resolve_upload_path("nested/example.png")
+
+    assert resolved == uploads_dir.resolve() / "nested" / "example.png"
+    assert not uploads_dir.exists()
 
 
 async def test_upload_image_rejects_unsupported_type(
