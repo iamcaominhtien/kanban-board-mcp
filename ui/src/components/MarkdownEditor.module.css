@@ -101,6 +101,11 @@
   line-height: 1.4;
 }
 
+.toolbarBtn:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
 .toolbarBtn:hover {
   background: rgba(61, 12, 17, 0.1);
   border-color: rgba(61, 12, 17, 0.2);
@@ -136,6 +141,17 @@
 
 .textarea::placeholder {
   color: #9ca3af;
+}
+
+.uploadStatus {
+  padding: 8px 16px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(61, 12, 17, 0.72);
+}
+
+.fileInput {
+  display: none;
 }
 
 .viewAreaReadOnly {
