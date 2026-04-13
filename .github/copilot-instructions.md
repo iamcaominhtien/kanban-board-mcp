@@ -38,6 +38,7 @@ python main.py     # start MCP server
 ## Git Conventions
 
 Follow the `git-workflow` skill — it covers branching, commits, PRs, review loops, and cleanup.
+Release and versioning tasks must follow the `release-process` instruction.
 
 ## Agent Notes
 - Always prefer editing existing files over creating new ones
