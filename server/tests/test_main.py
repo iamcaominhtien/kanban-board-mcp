@@ -7,9 +7,13 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
 from httpx import ASGITransport
 
 from main import app
+from uploads import MAX_DESCRIPTION_IMAGE_BYTES, resolve_upload_path
+
+SMALL_PNG_BYTES = b"fake-png-bytes"
 
 
 async def test_health_returns_ok() -> None:
@@ -32,6 +36,86 @@ async def test_mcp_endpoint_is_reachable() -> None:
     assert response.status_code != 404, (
         f"/mcp returned 404 — mount path misconfigured. Got: {response.status_code}"
     )
+
+
+async def test_upload_image_returns_markdown_and_serves_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(tmp_path))
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        upload_response = await client.post(
+            "/uploads/images",
+            files={"file": ("diagram.png", SMALL_PNG_BYTES, "image/png")},
+        )
+
+        assert upload_response.status_code == 201
+        body = upload_response.json()
+        assert body["url"].startswith("/uploads/diagram-")
+        assert body["url"].endswith(".png")
+        assert body["markdown"] == f"![diagram]({body['url']})"
+        assert body["content_type"] == "image/png"
+        assert body["size"] == len(SMALL_PNG_BYTES)
+
+        file_response = await client.get(body["url"])
+
+    assert file_response.status_code == 200
+    assert file_response.content == SMALL_PNG_BYTES
+    assert file_response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_resolve_upload_path_does_not_create_uploads_dir_on_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    uploads_dir = tmp_path / "uploads"
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(uploads_dir))
+
+    resolved = resolve_upload_path("nested/example.png")
+
+    assert resolved == uploads_dir.resolve() / "nested" / "example.png"
+    assert not uploads_dir.exists()
+
+
+async def test_upload_image_rejects_unsupported_type(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(tmp_path))
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/uploads/images",
+            files={"file": ("notes.txt", b"hello", "text/plain")},
+        )
+
+    assert response.status_code == 400
+    assert "Unsupported image type" in response.json()["detail"]
+
+
+async def test_upload_image_rejects_files_over_size_limit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(tmp_path))
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/uploads/images",
+            files={
+                "file": (
+                    "oversized.png",
+                    b"x" * (MAX_DESCRIPTION_IMAGE_BYTES + 1),
+                    "image/png",
+                )
+            },
+        )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "Image exceeds the 5MB upload limit."
 
 
 def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:

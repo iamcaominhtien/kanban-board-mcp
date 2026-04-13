@@ -2,6 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { IssueType, Priority, Status, Ticket, WorkLogRole } from '../types/ticket';
 
+export interface DescriptionImageUpload {
+  url: string;
+  markdown: string;
+  filename: string;
+  contentType: string;
+  size: number;
+}
+
 export async function listTickets(
   projectId: string,
   params?: { status?: string; priority?: string; q?: string },
@@ -65,6 +73,13 @@ export async function updateTicketStatus(
 
 export async function deleteTicket(ticketId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}`);
+}
+
+export async function uploadDescriptionImage(file: File): Promise<DescriptionImageUpload> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await client.post<DescriptionImageUpload>('/uploads/images', formData);
+  return res.data;
 }
 
 export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {

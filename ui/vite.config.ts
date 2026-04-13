@@ -12,6 +12,7 @@ export default defineConfig({
       '/members': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
       '/mcp': 'http://localhost:8000',
+      '/uploads': 'http://localhost:8000',
     },
   },
 })

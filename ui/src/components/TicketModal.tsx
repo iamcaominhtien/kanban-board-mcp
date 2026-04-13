@@ -6,8 +6,10 @@ import {
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
   useAddWorkLog,
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+  uploadDescriptionImage,
   useLinkBlock, useUnlinkBlock,
 } from '../api/tickets';
+import { extractError } from '../api/extractError';
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
@@ -115,10 +117,17 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const linkBlockMutation = useLinkBlock();
   const unlinkBlockMutation = useUnlinkBlock();
   const [visible, setVisible] = useState(false);
+  const persistedDescriptionRef = useRef(ticket?.description ?? '');
+  const queuedDescriptionRef = useRef<string | null>(null);
+  const descriptionSavePromiseRef = useRef<Promise<void> | null>(null);
 
   // Fix 1: keep onClose ref fresh to avoid stale closure in Escape handler
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    persistedDescriptionRef.current = ticket?.description ?? '';
+  }, [ticket?.description, ticket?.id]);
 
   // Fix 3 & 4: focusable element refs
   const firstFocusRef = useRef<HTMLButtonElement>(null);
@@ -269,6 +278,50 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
       { ticketId: ticket.id, data: { author: entry.author, role: entry.role, note: entry.note } },
       { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add work log:', err); setViewError('Failed to add work log entry. Please try again.'); } },
     );
+  }
+
+  async function persistDescription(nextDescription: string) {
+    if (!ticket || nextDescription === persistedDescriptionRef.current) {
+      return;
+    }
+
+    if (descriptionSavePromiseRef.current) {
+      queuedDescriptionRef.current = nextDescription;
+      return;
+    }
+
+    const savePromise = updateTicketMutation
+      .mutateAsync({ ticketId: ticket.id, data: { description: nextDescription } })
+      .then((updatedTicket) => {
+        persistedDescriptionRef.current = updatedTicket.description;
+        setSaveError(null);
+      })
+      .catch(() => {
+        setSaveError('Failed to save description. Please try again.');
+      })
+      .finally(async () => {
+        descriptionSavePromiseRef.current = null;
+        const queuedDescription = queuedDescriptionRef.current;
+        if (queuedDescription && queuedDescription !== persistedDescriptionRef.current) {
+          queuedDescriptionRef.current = null;
+          await persistDescription(queuedDescription);
+        }
+      });
+
+    descriptionSavePromiseRef.current = savePromise;
+    await savePromise;
+  }
+
+  async function handleDescriptionImageUpload(file: File) {
+    try {
+      const result = await uploadDescriptionImage(file);
+      setSaveError(null);
+      return result;
+    } catch (err) {
+      const message = extractError(err);
+      setSaveError(`Failed to upload image: ${message}`);
+      throw err;
+    }
   }
 
   function handleCancelEdit() {
@@ -710,16 +763,12 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             <MarkdownEditor
               value={description}
               onChange={setDescription}
+              onUploadImage={handleDescriptionImageUpload}
+              onUploadComplete={(nextDescription) => {
+                void persistDescription(nextDescription);
+              }}
               onBlur={(newDesc) => {
-                if (ticket && newDesc !== ticket.description && !updateTicketMutation.isPending) {
-                  updateTicketMutation.mutate(
-                    { ticketId: ticket.id, data: { description: newDesc } },
-                    {
-                      onSuccess: () => setSaveError(null),
-                      onError: () => setSaveError('Failed to save description. Please try again.'),
-                    },
-                  );
-                }
+                void persistDescription(newDesc);
               }}
             />
           </div>
