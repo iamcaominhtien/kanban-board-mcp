@@ -102,6 +102,35 @@ def _validate_upload(file: UploadFile) -> tuple[str, str]:
     return filename, content_type
 
 
+@router.post(
+    "/uploads/images", response_model=DescriptionImageUploadResponse, status_code=201
+)
+async def upload_description_image(
+    file: UploadFile = File(...),
+) -> DescriptionImageUploadResponse:
+    filename, content_type = _validate_upload(file)
+
+    try:
+        payload = await _read_upload_bytes(file)
+    finally:
+        await file.close()
+
+    stored_filename = build_upload_filename(filename)
+    destination = get_uploads_dir() / stored_filename
+    destination.write_bytes(payload)
+
+    url = f"/uploads/{stored_filename}"
+    alt_text = build_markdown_alt_text(filename)
+
+    return DescriptionImageUploadResponse(
+        url=url,
+        markdown=f"![{alt_text}]({url})",
+        filename=stored_filename,
+        content_type=content_type,
+        size=len(payload),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Core CRUD
 # ---------------------------------------------------------------------------
@@ -183,35 +212,6 @@ async def del_ticket(ticket_id: str, session: Session) -> None:
     if not found:
         _404()
     await board_events.publish("invalidate")
-
-
-@router.post(
-    "/uploads/images", response_model=DescriptionImageUploadResponse, status_code=201
-)
-async def upload_description_image(
-    file: UploadFile = File(...),
-) -> DescriptionImageUploadResponse:
-    filename, content_type = _validate_upload(file)
-
-    try:
-        payload = await _read_upload_bytes(file)
-    finally:
-        await file.close()
-
-    stored_filename = build_upload_filename(filename)
-    destination = get_uploads_dir() / stored_filename
-    destination.write_bytes(payload)
-
-    url = f"/uploads/{stored_filename}"
-    alt_text = build_markdown_alt_text(filename)
-
-    return DescriptionImageUploadResponse(
-        url=url,
-        markdown=f"![{alt_text}]({url})",
-        filename=stored_filename,
-        content_type=content_type,
-        size=len(payload),
-    )
 
 
 # ---------------------------------------------------------------------------
