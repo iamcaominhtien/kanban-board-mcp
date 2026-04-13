@@ -1,12 +1,22 @@
+from pathlib import Path
 from typing import Annotated, Literal, NoReturn, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
 from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
+from uploads import (
+    MAX_DESCRIPTION_IMAGE_BYTES,
+    MIME_BY_EXTENSION,
+    SUPPORTED_IMAGE_EXTENSIONS,
+    SUPPORTED_IMAGE_MIME_TYPES,
+    build_markdown_alt_text,
+    build_upload_filename,
+    get_uploads_dir,
+)
 from services.tickets import (
     add_acceptance_criterion,
     add_comment,
@@ -39,6 +49,86 @@ def _read(ticket) -> TicketRead:
 
 def _404(detail: str = "Ticket not found") -> NoReturn:
     raise HTTPException(status_code=404, detail=detail)
+
+
+class DescriptionImageUploadResponse(BaseModel):
+    url: str
+    markdown: str
+    filename: str
+    content_type: str
+    size: int
+
+
+async def _read_upload_bytes(file: UploadFile) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > MAX_DESCRIPTION_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="Image exceeds the 5MB upload limit.",
+            )
+        chunks.append(chunk)
+
+    return b"".join(chunks)
+
+
+def _validate_upload(file: UploadFile) -> tuple[str, str]:
+    filename = file.filename or ""
+    extension = Path(filename).suffix.lower()
+    content_type = (file.content_type or "").lower()
+
+    if extension not in SUPPORTED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported image type. Use png, jpg, jpeg, gif, or webp.",
+        )
+
+    expected_content_type = MIME_BY_EXTENSION[extension]
+    if (
+        content_type not in SUPPORTED_IMAGE_MIME_TYPES
+        or content_type != expected_content_type
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported image type. Use png, jpg, jpeg, gif, or webp.",
+        )
+
+    return filename, content_type
+
+
+@router.post(
+    "/uploads/images", response_model=DescriptionImageUploadResponse, status_code=201
+)
+async def upload_description_image(
+    file: UploadFile = File(...),
+) -> DescriptionImageUploadResponse:
+    filename, content_type = _validate_upload(file)
+
+    try:
+        payload = await _read_upload_bytes(file)
+    finally:
+        await file.close()
+
+    stored_filename = build_upload_filename(filename)
+    destination = get_uploads_dir() / stored_filename
+    destination.write_bytes(payload)
+
+    url = f"/uploads/{stored_filename}"
+    alt_text = build_markdown_alt_text(filename)
+
+    return DescriptionImageUploadResponse(
+        url=url,
+        markdown=f"![{alt_text}]({url})",
+        filename=stored_filename,
+        content_type=content_type,
+        size=len(payload),
+    )
 
 
 # ---------------------------------------------------------------------------

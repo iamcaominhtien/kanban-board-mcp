@@ -2,8 +2,9 @@
  * Resolves the backend base URL at runtime.
  *
  * Priority:
- *  1. http:  context  → use current page origin (works for both Vite dev-proxy and
- *                        production where the backend itself serves the frontend).
+ *  1. http:  context  → use current page origin. In Vite dev/QC this relies on the
+ *                        dev proxy covering every backend route the UI calls,
+ *                        including /uploads. In production the backend serves the UI.
  *  2. file:  context  → Electron desktop app: ask the preload bridge for the backend port.
  *  3. fallback        → VITE_API_URL env var, or http://127.0.0.1:8000.
  */
