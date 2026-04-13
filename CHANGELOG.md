@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.2.7] - 2026-04-14
+
+### Fixed
+- Fixed image file upload in ticket description editor — OS file picker no longer causes the editor to collapse and abort the upload.
+- Fixed pasted images overflowing horizontally in the description view — images now scale to fit the container width.
+- Added rapid-click guard on image upload button to prevent multiple focus listeners from accumulating.
+- Sanitized image filenames in Markdown alt text to prevent malformed Markdown output.
+
+---
+
 ## [1.2.6] - 2026-04-13
 
 ### Added
