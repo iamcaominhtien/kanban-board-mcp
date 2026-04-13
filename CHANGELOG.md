@@ -6,6 +6,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.2.6] - 2026-04-13
+
+### Fixed
+- Corrected desktop release versioning after an incorrect `v1.3.0` release attempt.
+- Rebuilt desktop installers and uploaded release artifacts properly.
+
+### Changed
+- Added explicit release-process guidance to prevent releasing before build/artifact verification.
+
+---
+
 ## [1.2.5] - 2026-04-11
 
 ### Fixed

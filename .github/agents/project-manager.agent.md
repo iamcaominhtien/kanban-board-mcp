@@ -10,7 +10,7 @@ description: >
   'prioritize', 'estimate stories', 'draw a flow', 'create tickets'.
 argument-hint: "Describe the task — e.g. 'plan this feature', 'write a status report for X', 'break this epic into tickets', 'run a project health check'."
 tools: [vscode/askQuestions, read, agent, 'memory/*', 'playwright/*', todo]
-model: Claude Sonnet 4.6 (copilot)
+model: GPT-5.4 (copilot)
 agents: ["*"]
 ---
 
@@ -78,6 +78,9 @@ Before delegating any task, consult this roster to assign the right agent.
 - **Plan subtasks upfront** — if a ticket needs subtasks, break them down during the planning phase (step 2), before any work begins. Never create subtasks mid-implementation.
 - **Each subtask is independent** — each subtask gets its own branch, PR, and merge cycle. Implement child tickets first; close the parent only when all subtasks are done.
 - **No new tickets during implementation** — if a change or fix is needed while work is in progress, update the ticket description directly (extend the scope, add notes, adjust AC). Only open a new ticket if the change is genuinely out of scope for the current ticket.
+
+### Release & Versioning
+When managing a release, version bump, or build-artifact task, you must follow the `release-process` instruction before delegating execution steps.
 
 ---
 
