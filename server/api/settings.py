@@ -19,7 +19,7 @@ class DataPathRequest(BaseModel):
 @router.get("")
 async def get_settings():
     """Return current data folder and uploads folder paths."""
-    db_path = Path(db.DATABASE_URL.replace("sqlite+aiosqlite:///", ""))
+    db_path = db.get_db_path()
     uploads_dir = uploads_module.get_uploads_dir(create=False)
     return {
         "db_path": str(db_path),
@@ -38,45 +38,70 @@ async def set_data_path(req: DataPathRequest):
     4. Persist new folder to config.
     5. Reinit DB engine.
     """
-    new_folder = Path(req.path).resolve()
-    # Security: reject obviously relative paths before resolve
-    if not new_folder.is_absolute():
-        from fastapi import HTTPException
+    from fastapi import HTTPException
 
+    raw = req.path.strip()
+    if not raw or not Path(raw).is_absolute():
         raise HTTPException(status_code=400, detail="Path must be absolute")
+    new_folder = Path(raw).resolve()
 
     new_folder.mkdir(parents=True, exist_ok=True)
 
-    current_db = Path(db.DATABASE_URL.replace("sqlite+aiosqlite:///", ""))
-    current_uploads = uploads_module.get_uploads_dir(create=False)
+    old_db_path = db.get_db_path()
+    old_uploads = uploads_module.get_uploads_dir(create=False)
+    old_config_folder = app_config.get_data_folder()
+
+    current_db = old_db_path
+    current_uploads = old_uploads
 
     new_db = new_folder / "kanban.db"
     new_uploads = new_folder / "uploads"
 
-    # Move DB file
-    if current_db.exists() and current_db != new_db:
-        shutil.move(str(current_db), str(new_db))
+    try:
+        # Move DB file
+        if current_db.exists() and current_db != new_db:
+            shutil.move(str(current_db), str(new_db))
 
-    # Move uploads dir
-    if current_uploads.exists() and current_uploads != new_uploads:
-        if new_uploads.exists():
-            for item in current_uploads.iterdir():
-                shutil.move(str(item), str(new_uploads / item.name))
-            current_uploads.rmdir()
-        else:
-            shutil.move(str(current_uploads), str(new_uploads))
+        # Move uploads dir
+        if current_uploads.exists() and current_uploads != new_uploads:
+            if new_uploads.exists():
+                for item in current_uploads.iterdir():
+                    shutil.move(str(item), str(new_uploads / item.name))
+                shutil.rmtree(str(current_uploads), ignore_errors=True)
+            else:
+                shutil.move(str(current_uploads), str(new_uploads))
 
-    # Update KANBAN_UPLOADS_DIR env var in process
-    os.environ[uploads_module.UPLOADS_DIR_ENV_VAR] = str(new_uploads)
+        # Update KANBAN_UPLOADS_DIR env var in process
+        os.environ[uploads_module.UPLOADS_DIR_ENV_VAR] = str(new_uploads)
 
-    # Persist config
-    app_config.set_data_folder(new_folder)
+        # Persist config
+        app_config.set_data_folder(new_folder)
 
-    # Reinit DB to point to new location
-    await db.reinit_db(new_db)
+        # Reinit DB to point to new location
+        await db.reinit_db(new_db)
+
+    except Exception:
+        # Best-effort rollback
+        try:
+            if new_db.exists() and not old_db_path.exists():
+                shutil.move(str(new_db), str(old_db_path))
+            if new_uploads.exists() and not old_uploads.exists():
+                shutil.move(str(new_uploads), str(old_uploads))
+            if old_config_folder:
+                app_config.set_data_folder(old_config_folder)
+            os.environ[uploads_module.UPLOADS_DIR_ENV_VAR] = str(old_uploads)
+            await db.reinit_db(old_db_path)
+        except Exception:
+            pass  # best-effort rollback — log but continue
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=500, detail="Failed to move data folder. Attempted rollback."
+        )
 
     return {
         "db_path": str(new_db),
         "data_folder": str(new_folder),
         "uploads_dir": str(new_uploads),
+        "warning": "If you use VS Code MCP integration, restart the MCP server to pick up the new data path.",
     }

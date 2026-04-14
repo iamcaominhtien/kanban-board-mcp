@@ -14,6 +14,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const [folderInput, setFolderInput] = useState('');
   const [folderStatus, setFolderStatus] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   const isElectron = !!(window as any).electronAPI?.selectFolder;
@@ -28,8 +29,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     if (!path) return;
     setFolderStatus(null);
     try {
-      await setDataPath.mutateAsync(path);
-      setFolderStatus('✓ Data folder updated successfully.');
+      const result = await setDataPath.mutateAsync(path);
+      let msg = '✓ Data folder updated successfully.';
+      if ((result as any)?.warning) {
+        msg += ` ⚠️ ${(result as any).warning}`;
+      }
+      setFolderStatus(msg);
       setFolderInput('');
     } catch (e: any) {
       setFolderStatus(`Error: ${e?.response?.data?.detail ?? e?.message ?? 'Failed'}`);
@@ -37,13 +42,27 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   }
 
   async function handleExport() {
-    const origin = await resolveOrigin();
-    const a = document.createElement('a');
-    a.href = `${origin}/data/export`;
-    a.download = 'kanban-export.zip';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    setExportStatus(null);
+    try {
+      const origin = await resolveOrigin();
+      const res = await fetch(`${origin}/data/export`);
+      if (!res.ok) {
+        const msg = await res.text();
+        setExportStatus(`Export error: ${msg}`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'kanban-export.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setExportStatus(`Export failed: ${e?.message ?? 'Unknown error'}`);
+    }
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -100,7 +119,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               type="text"
               placeholder="New folder path (e.g. /Users/you/kanban-data)"
               value={folderInput}
-              onChange={(e) => setFolderInput(e.target.value)}
+              onChange={(e) => { setFolderInput(e.target.value); setFolderStatus(null); }}
             />
             {isElectron && (
               <button type="button" className={styles.browseBtn} onClick={handleBrowse}>
@@ -140,6 +159,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </button>
             <input ref={importRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handleImport} />
           </div>
+          {exportStatus && (
+            <p className={`${styles.status} ${exportStatus.startsWith('✓') ? styles.statusSuccess : styles.statusError}`}>
+              {exportStatus}
+            </p>
+          )}
           {importStatus && (
             <p className={`${styles.status} ${importStatus.startsWith('✓') ? styles.statusSuccess : importStatus === 'Importing...' ? styles.statusInfo : styles.statusError}`}>
               {importStatus}

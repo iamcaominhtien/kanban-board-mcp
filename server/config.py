@@ -13,7 +13,14 @@ _CONFIG_FILE = _CONFIG_DIR / "config.json"
 def _load() -> dict:
     try:
         return json.loads(_CONFIG_FILE.read_text())
+    except FileNotFoundError:
+        return {}
     except Exception:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Corrupted config file at %s — using defaults", _CONFIG_FILE
+        )
         return {}
 
 

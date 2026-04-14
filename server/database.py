@@ -30,6 +30,13 @@ engine = create_async_engine(DATABASE_URL, echo=False)
 
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+_DB_PATH: Path = Path(DATABASE_URL.replace("sqlite+aiosqlite:///", ""))
+
+
+def get_db_path() -> Path:
+    """Return the absolute path to the current SQLite database file."""
+    return _DB_PATH
+
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
@@ -76,10 +83,11 @@ async def reinit_db(new_db_path: Path) -> None:
     use the new database.  In-flight requests that already have an open
     session will continue on the old engine until they complete.
     """
-    global engine, async_session, DATABASE_URL  # noqa: PLW0603
+    global engine, async_session, DATABASE_URL, _DB_PATH  # noqa: PLW0603
 
     await engine.dispose()
 
+    _DB_PATH = new_db_path
     DATABASE_URL = f"sqlite+aiosqlite:///{new_db_path}"
     engine = create_async_engine(DATABASE_URL, echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

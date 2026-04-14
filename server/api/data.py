@@ -1,7 +1,6 @@
 import io
 import shutil
 import zipfile
-from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -17,7 +16,7 @@ async def export_data():
     """
     Stream a ZIP file containing kanban.db and the uploads/ directory.
     """
-    db_path = Path(db.DATABASE_URL.replace("sqlite+aiosqlite:///", ""))
+    db_path = db.get_db_path()
     uploads_dir = uploads_module.get_uploads_dir(create=False)
 
     def generate_zip():
@@ -49,7 +48,13 @@ async def import_data(file: UploadFile = File(...)):
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Only .zip files are accepted")
 
-    content = await file.read()
+    MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB raw cap
+    MAX_FILES = 50_000
+    MAX_UNCOMPRESSED = 2 * 1024 * 1024 * 1024  # 2 GB total uncompressed
+
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 500 MB)")
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="Empty file")
 
@@ -58,23 +63,30 @@ async def import_data(file: UploadFile = File(...)):
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
+    if len(zf.namelist()) > MAX_FILES:
+        raise HTTPException(status_code=400, detail="Too many files in ZIP")
+    total_uncompressed = sum(i.file_size for i in zf.infolist())
+    if total_uncompressed > MAX_UNCOMPRESSED:
+        raise HTTPException(status_code=400, detail="ZIP content too large (max 2 GB)")
+
     names = zf.namelist()
     if "kanban.db" not in names:
         raise HTTPException(status_code=400, detail="ZIP must contain kanban.db")
 
-    db_path = Path(db.DATABASE_URL.replace("sqlite+aiosqlite:///", ""))
+    db_path = db.get_db_path()
     uploads_dir = uploads_module.get_uploads_dir(create=True)
 
     # Dispose current engine before replacing the DB file
     await db.engine.dispose()
 
-    # Replace DB
+    # Replace DB — kanban.db entry maps to exactly db_path (no traversal possible)
     db_path.write_bytes(zf.read("kanban.db"))
 
     # Replace uploads
     upload_files = [
         n for n in names if n.startswith("uploads/") and not n.endswith("/")
     ]
+    resolved_uploads_dir = uploads_dir.resolve()
     if upload_files:
         if uploads_dir.exists():
             shutil.rmtree(str(uploads_dir))
@@ -83,7 +95,10 @@ async def import_data(file: UploadFile = File(...)):
             rel = name[len("uploads/") :]
             if not rel:
                 continue
-            dest = uploads_dir / rel
+            # ZIP Slip protection: resolve and assert containment
+            dest = (uploads_dir / rel).resolve()
+            if not dest.is_relative_to(resolved_uploads_dir):
+                continue  # skip malicious entries silently
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(zf.read(name))
 
