@@ -62,7 +62,8 @@ async def import_data(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Empty file")
 
     try:
-        zipfile.ZipFile(io.BytesIO(content)).close()
+        with zipfile.ZipFile(io.BytesIO(content)):
+            pass
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
@@ -139,11 +140,11 @@ async def import_data(file: UploadFile = File(...)):
                     shutil.copy2(str(backup_db), str(db_path))
                     backup_db.unlink(missing_ok=True)
                 except Exception:
-                    pass
+                    logger.exception("Failed to restore DB backup after import error")
             try:
                 await db.reinit_db(db_path)
             except Exception:
-                pass
+                logger.exception("Failed to reinit DB after import rollback")
             if isinstance(exc, HTTPException):
                 raise
             raise HTTPException(
