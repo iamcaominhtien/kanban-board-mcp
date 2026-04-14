@@ -34,6 +34,7 @@ export function useSetDataPath() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
+      queryClient.refetchQueries({ queryKey: ['settings'] });
     },
   });
 }
