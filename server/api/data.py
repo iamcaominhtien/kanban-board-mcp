@@ -2,6 +2,7 @@ import io
 import logging
 import shutil
 import zipfile
+from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -112,8 +113,14 @@ async def import_data(file: UploadFile = File(...)):
                     rel = name[len("uploads/") :]
                     if not rel:
                         continue
+                    # Use basename only — strips any directory components from the
+                    # user-supplied ZIP entry name, preventing path traversal.
+                    safe_name = Path(rel).name
+                    if not safe_name or safe_name in (".", ".."):
+                        logger.warning("Skipped invalid ZIP entry: %s", name)
+                        continue
                     # ZIP Slip protection: resolve and assert containment
-                    dest = (uploads_dir / rel).resolve()
+                    dest = (uploads_dir / safe_name).resolve()
                     if not dest.is_relative_to(resolved_uploads_dir):
                         logger.warning("Skipped malicious ZIP entry: %s", name)
                         continue

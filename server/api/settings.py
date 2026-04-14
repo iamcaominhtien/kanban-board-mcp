@@ -48,6 +48,14 @@ async def set_data_path(req: DataPathRequest):
         raise HTTPException(status_code=400, detail="Path must be absolute")
     new_folder = Path(raw).resolve()
 
+    # Restrict to within the user's home directory to prevent path traversal
+    home = Path.home().resolve()
+    if not new_folder.is_relative_to(home):
+        raise HTTPException(
+            status_code=400,
+            detail="Data folder must be within your home directory",
+        )
+
     new_folder.mkdir(parents=True, exist_ok=True)
 
     old_db_path = db.get_db_path()
