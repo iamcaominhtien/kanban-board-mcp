@@ -59,6 +59,17 @@ async def set_data_path(req: DataPathRequest):
     new_folder.mkdir(parents=True, exist_ok=True)
 
     old_db_path = db.get_db_path()
+    new_db_check = new_folder / "kanban.db"
+    current_db_check = old_db_path
+    if (
+        new_db_check.exists()
+        and new_db_check.stat().st_size > 0
+        and current_db_check != new_db_check
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=f"A database already exists at {new_db_check}. Remove it first or choose a different folder.",
+        )
     old_uploads = uploads_module.get_uploads_dir(create=False)
     old_config_folder = app_config.get_data_folder()
 
