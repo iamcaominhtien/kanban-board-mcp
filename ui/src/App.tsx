@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Board } from './components/Board';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
+import { SettingsPanel } from './components/SettingsPanel';
 import { TicketModal } from './components/TicketModal';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
@@ -26,6 +27,7 @@ export default function App() {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
 
@@ -207,6 +209,7 @@ export default function App() {
         onDeleteProject={handleDeleteProject}
         onOpenRecycleBin={() => setRecycleBinOpen(true)}
         onOpenMembers={() => setMembersPanelOpen(true)}
+        onOpenSettings={() => setSettingsPanelOpen(true)}
         wontDoCount={wontDoTickets.length}
       />
       <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -288,6 +291,9 @@ export default function App() {
                 members={members}
                 onClose={() => setMembersPanelOpen(false)}
               />
+            )}
+            {settingsPanelOpen && (
+              <SettingsPanel onClose={() => setSettingsPanelOpen(false)} />
             )}
           </>
         )}
