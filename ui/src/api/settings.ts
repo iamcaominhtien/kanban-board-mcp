@@ -9,9 +9,9 @@ export interface SettingsData {
 
 function mapSettings(raw: Record<string, string>): SettingsData {
   return {
-    dbPath: raw.db_path,
-    dataFolder: raw.data_folder,
-    uploadsDir: raw.uploads_dir,
+    dbPath: raw.dbPath,
+    dataFolder: raw.dataFolder,
+    uploadsDir: raw.uploadsDir,
   };
 }
 
