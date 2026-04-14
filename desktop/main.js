@@ -164,6 +164,15 @@ function createWindow(port) {
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
 
+// IPC: renderer asks to open a folder picker dialog
+ipcMain.handle('select-folder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory', 'createDirectory'],
+    title: 'Select Data Folder',
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
 app.whenReady().then(async () => {
   try {
     await startBackend();

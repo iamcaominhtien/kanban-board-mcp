@@ -14,6 +14,8 @@ import mcp_tools as _mcp_tools
 from api.projects import router as projects_router
 from api.tickets import router as tickets_router
 from api.members import router as members_router
+from api.settings import router as settings_router
+from api.data import router as data_router
 from database import init_db
 from uploads import resolve_upload_path
 
@@ -49,6 +51,8 @@ app.mount("/mcp", mcp.streamable_http_app())
 app.include_router(projects_router)
 app.include_router(tickets_router)
 app.include_router(members_router)
+app.include_router(settings_router)
+app.include_router(data_router)
 
 
 @app.get("/health")

@@ -6,16 +6,25 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import config as app_config
+
 _ALEMBIC_INI = Path(__file__).parent / "alembic.ini"
 
-_db_path_env = os.environ.get("KANBAN_DB_PATH", "")
-if _db_path_env:
-    _DB_PATH = Path(_db_path_env).resolve()
-    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-else:
-    _DB_PATH = Path(__file__).parent / "kanban.db"
 
-DATABASE_URL = f"sqlite+aiosqlite:///{_DB_PATH}"
+def _resolve_db_path() -> Path:
+    configured = app_config.get_data_folder()
+    if configured:
+        configured.mkdir(parents=True, exist_ok=True)
+        return configured / "kanban.db"
+    _db_path_env = os.environ.get("KANBAN_DB_PATH", "")
+    if _db_path_env:
+        p = Path(_db_path_env).resolve()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return p
+    return Path(__file__).parent / "kanban.db"
+
+
+DATABASE_URL = f"sqlite+aiosqlite:///{_resolve_db_path()}"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 
@@ -57,3 +66,22 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(_run_upgrade, alembic_cfg)
+
+
+async def reinit_db(new_db_path: Path) -> None:
+    """Point the DB engine at a new path, then run migrations.
+
+    Updates the module-level ``engine``, ``async_session``, and
+    ``DATABASE_URL`` globals so all subsequent ``get_session()`` calls
+    use the new database.  In-flight requests that already have an open
+    session will continue on the old engine until they complete.
+    """
+    global engine, async_session, DATABASE_URL  # noqa: PLW0603
+
+    await engine.dispose()
+
+    DATABASE_URL = f"sqlite+aiosqlite:///{new_db_path}"
+    engine = create_async_engine(DATABASE_URL, echo=False)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    await init_db()
