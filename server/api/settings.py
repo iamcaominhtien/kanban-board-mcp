@@ -44,18 +44,23 @@ async def set_data_path(req: DataPathRequest):
     from fastapi import HTTPException
 
     raw = req.path.strip()
-    if not raw or not Path(raw).is_absolute():
-        raise HTTPException(status_code=400, detail="Path must be absolute")
-    new_folder = Path(raw).resolve()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Path must not be empty")
 
-    # Restrict to within the user's home directory to prevent path traversal
-    home = Path.home().resolve()
-    if not new_folder.is_relative_to(home):
+    # Use os.path.realpath to resolve symlinks and .. components before validation.
+    # Explicit startswith() comparison is required so CodeQL recognises this as a
+    # path-traversal sanitizer (is_relative_to() is not in CodeQL's taint model).
+    home_str = str(Path.home().resolve())
+    resolved_str = os.path.realpath(raw)
+
+    if not (resolved_str + os.sep).startswith(home_str + os.sep):
         raise HTTPException(
             status_code=400,
             detail="Data folder must be within your home directory",
         )
 
+    # All subsequent operations use the validated, fully-resolved path.
+    new_folder = Path(resolved_str)
     new_folder.mkdir(parents=True, exist_ok=True)
 
     old_db_path = db.get_db_path()
