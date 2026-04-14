@@ -6,6 +6,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.0] - 2026-04-14
+
+### Added
+- Settings panel (⚙️ in sidebar) to change the data folder at any time — moves kanban.db and uploads to the new location, persists across restarts.
+- Export all data as a ZIP file (database + attachments) from the Settings panel.
+- Import a previously exported ZIP to fully replace all data.
+- Electron desktop: native folder picker dialog for data folder selection.
+
+### Security
+- ZIP Slip protection on import (path traversal via crafted archive entries is blocked).
+- ZIP bomb protection on import (500 MB upload cap, 50k file limit, 2 GB uncompressed limit enforced during extraction).
+- Data folder path restricted to within the user's home directory.
+- Conflict guard prevents overwriting an existing database when changing the data folder.
+
+---
+
 ## [1.2.7] - 2026-04-14
 
 ### Fixed
