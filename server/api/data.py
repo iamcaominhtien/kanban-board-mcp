@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from sqlalchemy import text
 
 import database as db
 import uploads as uploads_module
@@ -22,6 +23,13 @@ async def export_data():
     """
     db_path = db.get_db_path()
     uploads_dir = uploads_module.get_uploads_dir(create=False)
+
+    # Flush all WAL data into the main DB file before reading it.
+    # In WAL mode recent commits live in kanban.db-wal, not in kanban.db itself.
+    # Without this checkpoint the exported ZIP contains a stale snapshot.
+    async with db.engine.connect() as conn:
+        await conn.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+        await conn.commit()
 
     def generate_zip():
         buf = io.BytesIO()
