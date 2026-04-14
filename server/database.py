@@ -24,13 +24,12 @@ def _resolve_db_path() -> Path:
     return Path(__file__).parent / "kanban.db"
 
 
-DATABASE_URL = f"sqlite+aiosqlite:///{_resolve_db_path()}"
+_DB_PATH: Path = _resolve_db_path()
+DATABASE_URL = f"sqlite+aiosqlite:///{_DB_PATH}"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-_DB_PATH: Path = Path(DATABASE_URL.replace("sqlite+aiosqlite:///", ""))
 
 
 def get_db_path() -> Path:

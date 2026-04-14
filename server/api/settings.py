@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -8,6 +9,8 @@ from pydantic import BaseModel
 import config as app_config
 import database as db
 import uploads as uploads_module
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -92,7 +95,7 @@ async def set_data_path(req: DataPathRequest):
             os.environ[uploads_module.UPLOADS_DIR_ENV_VAR] = str(old_uploads)
             await db.reinit_db(old_db_path)
         except Exception:
-            pass  # best-effort rollback — log but continue
+            logger.exception("Rollback failed during data folder move")
         from fastapi import HTTPException
 
         raise HTTPException(

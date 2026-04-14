@@ -1,4 +1,5 @@
 import io
+import logging
 import shutil
 import zipfile
 
@@ -7,6 +8,8 @@ from fastapi.responses import StreamingResponse
 
 import database as db
 import uploads as uploads_module
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -59,50 +62,93 @@ async def import_data(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Empty file")
 
     try:
-        zf = zipfile.ZipFile(io.BytesIO(content))
+        zipfile.ZipFile(io.BytesIO(content)).close()
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
-    if len(zf.namelist()) > MAX_FILES:
-        raise HTTPException(status_code=400, detail="Too many files in ZIP")
-    total_uncompressed = sum(i.file_size for i in zf.infolist())
-    if total_uncompressed > MAX_UNCOMPRESSED:
-        raise HTTPException(status_code=400, detail="ZIP content too large (max 2 GB)")
+    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+        if len(zf.namelist()) > MAX_FILES:
+            raise HTTPException(status_code=400, detail="Too many files in ZIP")
 
-    names = zf.namelist()
-    if "kanban.db" not in names:
-        raise HTTPException(status_code=400, detail="ZIP must contain kanban.db")
+        names = zf.namelist()
+        if "kanban.db" not in names:
+            raise HTTPException(status_code=400, detail="ZIP must contain kanban.db")
 
-    db_path = db.get_db_path()
-    uploads_dir = uploads_module.get_uploads_dir(create=True)
+        db_path = db.get_db_path()
+        uploads_dir = uploads_module.get_uploads_dir(create=True)
 
-    # Dispose current engine before replacing the DB file
-    await db.engine.dispose()
+        # Backup DB before any destructive operation
+        backup_db = db_path.with_suffix(".bak")
+        if db_path.exists():
+            shutil.copy2(str(db_path), str(backup_db))
 
-    # Replace DB — kanban.db entry maps to exactly db_path (no traversal possible)
-    db_path.write_bytes(zf.read("kanban.db"))
+        import_count = 0
+        try:
+            # Dispose current engine before replacing the DB file
+            await db.engine.dispose()
 
-    # Replace uploads
-    upload_files = [
-        n for n in names if n.startswith("uploads/") and not n.endswith("/")
-    ]
-    resolved_uploads_dir = uploads_dir.resolve()
-    if upload_files:
-        if uploads_dir.exists():
-            shutil.rmtree(str(uploads_dir))
-        uploads_dir.mkdir(parents=True, exist_ok=True)
-        for name in upload_files:
-            rel = name[len("uploads/") :]
-            if not rel:
-                continue
-            # ZIP Slip protection: resolve and assert containment
-            dest = (uploads_dir / rel).resolve()
-            if not dest.is_relative_to(resolved_uploads_dir):
-                continue  # skip malicious entries silently
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(zf.read(name))
+            # Write kanban.db, tracking actual bytes extracted to enforce the limit
+            total_written = 0
+            with zf.open("kanban.db") as src:
+                db_data = src.read(MAX_UNCOMPRESSED - total_written + 1)
+                if total_written + len(db_data) > MAX_UNCOMPRESSED:
+                    raise HTTPException(
+                        status_code=400, detail="ZIP content too large (max 2 GB)"
+                    )
+                total_written += len(db_data)
+                db_path.write_bytes(db_data)
 
-    # Reinit DB with same path
-    await db.reinit_db(db_path)
+            # Replace uploads
+            upload_files = [
+                n for n in names if n.startswith("uploads/") and not n.endswith("/")
+            ]
+            resolved_uploads_dir = uploads_dir.resolve()
+            if upload_files:
+                if uploads_dir.exists():
+                    shutil.rmtree(str(uploads_dir))
+                uploads_dir.mkdir(parents=True, exist_ok=True)
+                for name in upload_files:
+                    rel = name[len("uploads/") :]
+                    if not rel:
+                        continue
+                    # ZIP Slip protection: resolve and assert containment
+                    dest = (uploads_dir / rel).resolve()
+                    if not dest.is_relative_to(resolved_uploads_dir):
+                        logger.warning("Skipped malicious ZIP entry: %s", name)
+                        continue
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(name) as src:
+                        data = src.read(MAX_UNCOMPRESSED - total_written + 1)
+                        if total_written + len(data) > MAX_UNCOMPRESSED:
+                            raise HTTPException(
+                                status_code=400,
+                                detail="ZIP content too large (max 2 GB)",
+                            )
+                        total_written += len(data)
+                        dest.write_bytes(data)
+                    import_count += 1
 
-    return {"status": "ok", "imported_uploads": len(upload_files)}
+            # Reinit DB with same path
+            await db.reinit_db(db_path)
+            backup_db.unlink(missing_ok=True)
+
+        except Exception as exc:
+            # Restore DB from backup
+            if backup_db.exists():
+                try:
+                    shutil.copy2(str(backup_db), str(db_path))
+                    backup_db.unlink(missing_ok=True)
+                except Exception:
+                    pass
+            try:
+                await db.reinit_db(db_path)
+            except Exception:
+                pass
+            if isinstance(exc, HTTPException):
+                raise
+            raise HTTPException(
+                status_code=500,
+                detail=f"Import failed: {exc}. Previous data restored.",
+            )
+
+    return {"status": "ok", "imported_uploads": import_count}
