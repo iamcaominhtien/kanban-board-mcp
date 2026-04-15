@@ -1,7 +1,7 @@
 # Documentation Index
 _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/generate_docs_index.py` to refresh._
 
-_Last updated: 2026-04-14_
+_Last updated: 2026-04-15_
 
 ## Business Analysis
 
@@ -21,6 +21,7 @@ _Last updated: 2026-04-14_
 | [test-logs/iam-40-timeline-view.md](test-logs/iam-40-timeline-view.md) | Test Plan: Project Timeline View (IAM-40) | review | 1.0.2 | 2026-04-08 |
 | [test-logs/iam-71-mcp-e2e.md](test-logs/iam-71-mcp-e2e.md) | Test Plan: IAM-71 MCP End-to-End Verification | stable | 1.1.0 | 2026-04-09 |
 | [test-logs/iam-72-proof-note.md](test-logs/iam-72-proof-note.md) | Test Plan: IAM-72 Test Case Proof and Note Rendering | stable | 1.0.1 | 2026-04-09 |
+| [test-markdown-table-rendering.md](test-markdown-table-rendering.md) | Test Plan: Markdown Table Rendering in Ticket Descriptions | review | 1.2.0 | 2026-04-15 |
 | [test-plans/753a6a27-sse-auto-refresh.md](test-plans/753a6a27-sse-auto-refresh.md) | Test Plan: SSE Auto-Refresh for MCP Mutations (753a6a27) | stable | 1.3.0 | 2026-04-11 |
 | [test-plans/IAM-74.md](test-plans/IAM-74.md) | Test Plan: IAM-74 Desktop App (Electron + PyInstaller + VS Code MCP Auto-Setup) | stable | 1.0.0 | 2026-04-11 |
 | [test-plans/IAM-85.md](test-plans/IAM-85.md) | Test Plan: IAM-85 Use Repo Logo in Desktop App and Web UI | stable | 1.0.1 | 2026-04-11 |

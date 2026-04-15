@@ -1,0 +1,379 @@
+- generic [ref=e3]:
+  - complementary "Project navigation" [ref=e4]:
+    - generic [ref=e5]: KANBAN
+    - navigation [ref=e6]:
+      - paragraph [ref=e7]: Projects
+      - button "SBFF Agent AI Workspace SBFF" [ref=e22] [cursor=pointer]:
+        - generic: SBFF Agent AI Workspace
+        - generic [ref=e24]: SBFF
+    - generic [ref=e8]:
+      - button "⚙️ Settings" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: ⚙️
+        - generic [ref=e11]: Settings
+      - button "👥 Members" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: 👥
+        - generic [ref=e14]: Members
+      - button "🗑 Recycle Bin 1" [ref=e25] [cursor=pointer]:
+        - generic [ref=e16]: 🗑
+        - generic [ref=e17]: Recycle Bin
+        - generic [ref=e26]: "1"
+      - button "+ New Project" [ref=e18] [cursor=pointer]:
+        - text: +
+        - generic [ref=e19]: New Project
+  - generic [ref=e20]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - heading "SBFF Agent AI Workspace" [level=1] [ref=e29]
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - button "Board" [ref=e32] [cursor=pointer]
+            - button "List" [ref=e33] [cursor=pointer]
+            - button "Timeline" [ref=e34] [cursor=pointer]
+          - button "+ New Ticket" [ref=e35] [cursor=pointer]
+      - generic [ref=e36]:
+        - textbox "Search tickets" [ref=e37]:
+          - /placeholder: Search tickets…
+        - generic [ref=e38]:
+          - button "All" [ref=e39] [cursor=pointer]
+          - button "Critical" [ref=e40] [cursor=pointer]
+          - button "High" [ref=e41] [cursor=pointer]
+          - button "Medium" [ref=e42] [cursor=pointer]
+          - button "Low" [ref=e43] [cursor=pointer]
+        - generic [ref=e44]:
+          - button "All Assignees" [ref=e45] [cursor=pointer]
+          - button "Unassigned" [ref=e46] [cursor=pointer]
+          - button "Quản trị viên" [ref=e47] [cursor=pointer]
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]: Backlog
+            - generic [ref=e52]: "4"
+          - generic [ref=e53]:
+            - 'button "SBFF-4 🐛 Bug Guard: TODO placeholder for unreferenced-source DDs in code gen medium ◻ 0/5" [ref=e54]':
+              - generic [ref=e55] [cursor=pointer]:
+                - generic [ref=e56]:
+                  - generic [ref=e57]: SBFF-4
+                  - generic [ref=e59]: 🐛 Bug
+                - generic [ref=e60]: "Guard: TODO placeholder for unreferenced-source DDs in code gen"
+                - generic [ref=e62]: medium
+                - generic [ref=e63]: ◻ 0/5
+            - 'button "SBFF-5 🐛 Bug Guard: TODO placeholder for undefined message constants in code gen medium ◻ 0/5" [ref=e64]':
+              - generic [ref=e65] [cursor=pointer]:
+                - generic [ref=e66]:
+                  - generic [ref=e67]: SBFF-5
+                  - generic [ref=e69]: 🐛 Bug
+                - generic [ref=e70]: "Guard: TODO placeholder for undefined message constants in code gen"
+                - generic [ref=e72]: medium
+                - generic [ref=e73]: ◻ 0/5
+            - 'button "SBFF-11 🐛 Bug Fix parse-dd type inference: ファイルパス fields always string high 24 ◻ 0/5" [ref=e74]':
+              - generic [ref=e75] [cursor=pointer]:
+                - generic [ref=e76]:
+                  - generic [ref=e77]: SBFF-11
+                  - generic [ref=e79]: 🐛 Bug
+                - generic [ref=e80]: "Fix parse-dd type inference: ファイルパス fields always string"
+                - generic [ref=e81]:
+                  - generic [ref=e82]: high
+                  - generic [ref=e83]: "24"
+                - generic [ref=e84]: ◻ 0/5
+            - button "SBFF-24 📋 Task [TEST] Markdown table rendering verification medium test markdown-table" [ref=e665]:
+              - generic [ref=e496] [cursor=pointer]:
+                - generic [ref=e497]:
+                  - generic [ref=e498]: SBFF-24
+                  - generic [ref=e500]: 📋 Task
+                - generic [ref=e501]: "[TEST] Markdown table rendering verification"
+                - generic [ref=e502]:
+                  - generic [ref=e503]: medium
+                  - generic [ref=e666]: test
+                  - generic [ref=e505]: markdown-table
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: To Do
+            - generic [ref=e88]: "1"
+          - button "SBFF-18 🐛 Bug Fix exact-length validation gen for optional fields high 40 ◻ 0/3" [ref=e90]:
+            - generic [ref=e91] [cursor=pointer]:
+              - generic [ref=e92]:
+                - generic [ref=e93]: SBFF-18
+                - generic [ref=e95]: 🐛 Bug
+              - generic [ref=e96]: Fix exact-length validation gen for optional fields
+              - generic [ref=e97]:
+                - generic [ref=e98]: high
+                - generic [ref=e99]: "40"
+              - generic [ref=e100]: ◻ 0/3
+        - generic [ref=e102]:
+          - generic [ref=e103]: In Progress
+          - generic [ref=e104]: "0"
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: Done
+            - generic [ref=e109]: "17"
+          - generic [ref=e110]:
+            - button "SBFF-1 🐛 Bug Fix jimnai /repository skill to always use Koseki.Api.Wrapper medium" [ref=e111]:
+              - generic [ref=e112] [cursor=pointer]:
+                - generic [ref=e113]:
+                  - generic [ref=e114]: SBFF-1
+                  - generic [ref=e116]: 🐛 Bug
+                - generic [ref=e117]: Fix jimnai /repository skill to always use Koseki.Api.Wrapper
+                - generic [ref=e119]: medium
+            - button "SBFF-2 🐛 Bug Fix Jimnai agent generating Hanyo namespace in C# files medium" [ref=e120]:
+              - generic [ref=e121] [cursor=pointer]:
+                - generic [ref=e122]:
+                  - generic [ref=e123]: SBFF-2
+                  - generic [ref=e125]: 🐛 Bug
+                - generic [ref=e126]: Fix Jimnai agent generating Hanyo namespace in C# files
+                - generic [ref=e128]: medium
+            - button "SBFF-3 🐛 Bug Fix jimnai job/pipeline folder path to flat structure medium" [ref=e129]:
+              - generic [ref=e130] [cursor=pointer]:
+                - generic [ref=e131]:
+                  - generic [ref=e132]: SBFF-3
+                  - generic [ref=e134]: 🐛 Bug
+                - generic [ref=e135]: Fix jimnai job/pipeline folder path to flat structure
+                - generic [ref=e137]: medium
+            - button "SBFF-6 🐛 Bug Fix CsvModel output path — flat Models/CsvModels/ not per-DD subfolder medium 37 ✓ 5/5" [ref=e138]:
+              - generic [ref=e139] [cursor=pointer]:
+                - generic [ref=e140]:
+                  - generic [ref=e141]: SBFF-6
+                  - generic [ref=e143]: 🐛 Bug
+                - generic [ref=e144]: Fix CsvModel output path — flat Models/CsvModels/ not per-DD subfolder
+                - generic [ref=e145]:
+                  - generic [ref=e146]: medium
+                  - generic [ref=e147]: "37"
+                - generic [ref=e148]: ✓ 5/5
+            - 'button "SBFF-7 🐛 Bug Fix Koseki constant routing: VLB_ to KongLabelConst, _LEN to KongLengthConst medium 38 ✓ 4/4" [ref=e149]':
+              - generic [ref=e150] [cursor=pointer]:
+                - generic [ref=e151]:
+                  - generic [ref=e152]: SBFF-7
+                  - generic [ref=e154]: 🐛 Bug
+                - generic [ref=e155]: "Fix Koseki constant routing: VLB_ to KongLabelConst, _LEN to KongLengthConst"
+                - generic [ref=e156]:
+                  - generic [ref=e157]: medium
+                  - generic [ref=e158]: "38"
+                - generic [ref=e159]: ✓ 4/4
+            - 'button "SBFF-8 🐛 Bug Fix batchjob model skill: remove wrong CsvField pattern for Hanyo.App medium 39" [ref=e160]':
+              - generic [ref=e161] [cursor=pointer]:
+                - generic [ref=e162]:
+                  - generic [ref=e163]: SBFF-8
+                  - generic [ref=e165]: 🐛 Bug
+                - generic [ref=e166]: "Fix batchjob model skill: remove wrong CsvField pattern for Hanyo.App"
+                - generic [ref=e167]:
+                  - generic [ref=e168]: medium
+                  - generic [ref=e169]: "39"
+            - 'button "SBFF-9 🐛 Bug [BUG] api-coding: 4 generation bugs on multi-table INSERT APIs critical 45 ◻ 0/8" [ref=e170]':
+              - generic [ref=e171] [cursor=pointer]:
+                - generic [ref=e172]:
+                  - generic [ref=e173]: SBFF-9
+                  - generic [ref=e175]: 🐛 Bug
+                - generic [ref=e176]: "[BUG] api-coding: 4 generation bugs on multi-table INSERT APIs"
+                - generic [ref=e177]:
+                  - generic [ref=e178]: critical
+                  - generic [ref=e179]: "45"
+                - generic [ref=e180]: ◻ 0/8
+            - 'button "SBFF-12 🐛 Bug [BUG] api-coding: large DD code gen failures (KBKSK9001002A06) critical" [ref=e181]':
+              - generic [ref=e182] [cursor=pointer]:
+                - generic [ref=e183]:
+                  - generic [ref=e184]: SBFF-12
+                  - generic [ref=e186]: 🐛 Bug
+                - generic [ref=e187]: "[BUG] api-coding: large DD code gen failures (KBKSK9001002A06)"
+                - generic [ref=e189]: critical
+            - 'button "SBFF-13 ⬆ SBFF-12 🐛 Bug [BUG] api-coding: validation copied from prior API, /review blind spot critical ◻ 0/3" [ref=e191]':
+              - generic [ref=e192] [cursor=pointer]:
+                - generic [ref=e193]:
+                  - generic [ref=e194]: SBFF-13
+                  - generic [ref=e195]
+                - generic [ref=e198]: "[BUG] api-coding: validation copied from prior API, /review blind spot"
+                - generic [ref=e200]: critical
+                - generic [ref=e201]: ◻ 0/3
+            - 'button "SBFF-14 ⬆ SBFF-12 🐛 Bug [BUG] api-coding: generated DTO properties not fully used in DB insert critical ◻ 0/2" [ref=e203]':
+              - generic [ref=e204] [cursor=pointer]:
+                - generic [ref=e205]:
+                  - generic [ref=e206]: SBFF-14
+                  - generic [ref=e207]
+                - generic [ref=e210]: "[BUG] api-coding: generated DTO properties not fully used in DB insert"
+                - generic [ref=e212]: critical
+                - generic [ref=e213]: ◻ 0/2
+            - 'button "SBFF-15 ⬆ SBFF-12 🐛 Bug [BUG] api-coding: table names resolved by fuzzy match, wrong table used critical ◻ 1/2" [ref=e215]':
+              - generic [ref=e216] [cursor=pointer]:
+                - generic [ref=e217]:
+                  - generic [ref=e218]: SBFF-15
+                  - generic [ref=e219]
+                - generic [ref=e222]: "[BUG] api-coding: table names resolved by fuzzy match, wrong table used"
+                - generic [ref=e224]: critical
+                - generic [ref=e225]: ◻ 1/2
+            - 'button "SBFF-16 ⬆ SBFF-12 🐛 Bug [BUG] api-coding: multi-table inserts collapsed into one repository function critical ◻ 2/3" [ref=e227]':
+              - generic [ref=e228] [cursor=pointer]:
+                - generic [ref=e229]:
+                  - generic [ref=e230]: SBFF-16
+                  - generic [ref=e231]
+                - generic [ref=e234]: "[BUG] api-coding: multi-table inserts collapsed into one repository function"
+                - generic [ref=e236]: critical
+                - generic [ref=e237]: ◻ 2/3
+            - button "SBFF-17 📋 Task [IMPROVEMENT] Define lightweight test protocol for skill fix sub-tickets medium ◻ 0/2" [ref=e238]:
+              - generic [ref=e239] [cursor=pointer]:
+                - generic [ref=e240]:
+                  - generic [ref=e241]: SBFF-17
+                  - generic [ref=e243]: 📋 Task
+                - generic [ref=e244]: "[IMPROVEMENT] Define lightweight test protocol for skill fix sub-tickets"
+                - generic [ref=e246]: medium
+                - generic [ref=e247]: ◻ 0/2
+            - button "SBFF-19 📋 Task Stabilize whitebox-utc imports and cascade medium improvement 43 ✓ 5/5" [ref=e248]:
+              - generic [ref=e249] [cursor=pointer]:
+                - generic [ref=e250]:
+                  - generic [ref=e251]: SBFF-19
+                  - generic [ref=e253]: 📋 Task
+                - generic [ref=e254]: Stabilize whitebox-utc imports and cascade
+                - generic [ref=e255]:
+                  - generic [ref=e256]: medium
+                  - generic [ref=e257]: improvement
+                  - generic [ref=e258]: "43"
+                - generic [ref=e259]: ✓ 5/5
+            - button "SBFF-20 🐛 Bug [BUG] Coverage tool guidance inconsistent across whitebox-utc agents — Kong Web references missing script medium ◻ 0/4" [ref=e260]:
+              - generic [ref=e261] [cursor=pointer]:
+                - generic [ref=e262]:
+                  - generic [ref=e263]: SBFF-20
+                  - generic [ref=e265]: 🐛 Bug
+                - generic [ref=e266]: "[BUG] Coverage tool guidance inconsistent across whitebox-utc agents — Kong Web references missing script"
+                - generic [ref=e268]: medium
+                - generic [ref=e269]: ◻ 0/4
+            - 'button "SBFF-21 🐛 Bug [BUG] parse-dd: Missing table 送付分届書等一覧 from DDInfo YAML (SBFF-12 regression) critical parse-dd ddinfo regression SBFF-12 ◻ 0/1" [ref=e270]':
+              - generic [ref=e271] [cursor=pointer]:
+                - generic [ref=e272]:
+                  - generic [ref=e273]: SBFF-21
+                  - generic [ref=e275]: 🐛 Bug
+                - generic [ref=e276]: "[BUG] parse-dd: Missing table 送付分届書等一覧 from DDInfo YAML (SBFF-12 regression)"
+                - generic [ref=e277]:
+                  - generic [ref=e278]: critical
+                  - generic [ref=e279]: parse-dd
+                  - generic [ref=e280]: ddinfo
+                  - generic [ref=e281]: regression
+                  - generic [ref=e282]: SBFF-12
+                - generic [ref=e283]: ◻ 0/1
+            - 'button "SBFF-22 🐛 Bug [FIX] whitebox-utc coverage: use Git Bash on Windows + report per-file coverage alongside full suite high whitebox-utc coverage windows git-bash ✓ 2/2" [ref=e284]':
+              - generic [ref=e285] [cursor=pointer]:
+                - generic [ref=e286]:
+                  - generic [ref=e287]: SBFF-22
+                  - generic [ref=e289]: 🐛 Bug
+                - generic [ref=e290]: "[FIX] whitebox-utc coverage: use Git Bash on Windows + report per-file coverage alongside full suite"
+                - generic [ref=e291]:
+                  - generic [ref=e292]: high
+                  - generic [ref=e293]: whitebox-utc
+                  - generic [ref=e294]: coverage
+                  - generic [ref=e295]: windows
+                  - generic [ref=e296]: git-bash
+                - generic [ref=e297]: ✓ 2/2
+    - status [ref=e298]
+    - dialog "SBFF-24" [ref=e668]:
+      - generic [ref=e669]:
+        - generic [ref=e670]: SBFF-24
+        - button "Close modal" [active] [ref=e671] [cursor=pointer]: ×
+      - generic [ref=e672]:
+        - heading "[TEST] Markdown table rendering verification" [level=2] [ref=e673]
+        - generic [ref=e674]:
+          - generic [ref=e675]:
+            - table [ref=e677]:
+              - rowgroup [ref=e678]:
+                - row "Column A Column B" [ref=e679]:
+                  - columnheader "Column A" [ref=e680]
+                  - columnheader "Column B" [ref=e681]
+              - rowgroup [ref=e682]:
+                - row "Value 1 Value 2" [ref=e683]:
+                  - cell "Value 1" [ref=e684]
+                  - cell "Value 2" [ref=e685]
+            - generic [ref=e686]:
+              - generic [ref=e687]: "Created: Apr 15, 2026"
+              - generic [ref=e688]: "Updated: Apr 15, 2026"
+            - separator [ref=e689]
+            - generic [ref=e690]:
+              - heading "Acceptance Criteria" [level=3] [ref=e691]
+              - paragraph [ref=e692]: No acceptance criteria yet.
+              - generic [ref=e693]:
+                - generic [ref=e694]: New acceptance criterion
+                - textbox "New acceptance criterion" [ref=e695]:
+                  - /placeholder: Add acceptance criterion...
+                - button "Add" [disabled] [ref=e697]
+            - separator [ref=e698]
+            - generic [ref=e699]:
+              - generic [ref=e700]: Sub-tickets
+              - generic [ref=e701]: No sub-tickets yet.
+              - generic [ref=e703]:
+                - button "＋ Link ticket as child" [ref=e704] [cursor=pointer]
+                - button "＋ New child ticket" [ref=e705] [cursor=pointer]
+            - separator [ref=e706]
+            - generic [ref=e707]:
+              - generic [ref=e708]: Relations
+              - generic [ref=e709]:
+                - generic [ref=e710]: Blocks
+                - generic [ref=e711]: None
+                - button "＋ Add" [ref=e713] [cursor=pointer]
+              - generic [ref=e714]:
+                - generic [ref=e715]: Blocked by
+                - generic [ref=e716]: None
+                - button "＋ Add" [ref=e718] [cursor=pointer]
+            - separator [ref=e719]
+            - generic [ref=e720]:
+              - heading "Comments (0)" [level=3] [ref=e721]
+              - paragraph [ref=e722]: No comments yet.
+              - generic [ref=e723]:
+                - generic [ref=e724]: New comment
+                - textbox "New comment" [ref=e725]:
+                  - /placeholder: Add a comment...
+                - button "Add Comment" [disabled] [ref=e727]
+            - separator [ref=e728]
+            - button "Activity (0) ▼" [ref=e730] [cursor=pointer]:
+              - generic [ref=e731]: Activity (0)
+              - generic [ref=e732]: ▼
+            - separator [ref=e733]
+            - button "Work Log (0) ▼" [ref=e735] [cursor=pointer]:
+              - generic [ref=e736]: Work Log (0)
+              - generic [ref=e737]: ▼
+            - separator [ref=e738]
+            - generic [ref=e740]:
+              - button "Test Cases ▼" [ref=e741] [cursor=pointer]:
+                - generic [ref=e742]: Test Cases
+                - generic [ref=e743]: ▼
+              - button "＋ Add" [ref=e744] [cursor=pointer]
+          - complementary [ref=e745]:
+            - generic [ref=e746]:
+              - generic [ref=e747]:
+                - generic [ref=e748]: Status
+                - generic [ref=e749]: Backlog
+              - generic [ref=e750]:
+                - generic [ref=e751]: Priority
+                - generic [ref=e752]: ● medium
+              - generic [ref=e753]:
+                - generic [ref=e754]: Type
+                - generic [ref=e755]: 📋 Task
+              - generic [ref=e756]:
+                - generic [ref=e757]: Tags
+                - generic [ref=e758]:
+                  - generic [ref=e759]: test
+                  - generic [ref=e760]: markdown-table
+              - generic [ref=e761]:
+                - generic [ref=e762]: Parent ticket
+                - combobox [ref=e763]:
+                  - option "— set parent —" [selected]
+                  - 'option "SBFF-1: Fix jimnai /repository skill to always use Koseki.Api.Wrapper"'
+                  - 'option "SBFF-2: Fix Jimnai agent generating Hanyo namespace in C# files"'
+                  - 'option "SBFF-3: Fix jimnai job/pipeline folder path to flat structure"'
+                  - 'option "SBFF-4: Guard: TODO placeholder for unreferenced-source DDs in code gen"'
+                  - 'option "SBFF-5: Guard: TODO placeholder for undefined message constants in code gen"'
+                  - 'option "SBFF-6: Fix CsvModel output path — flat Models/CsvModels/ not per-DD subfolder"'
+                  - 'option "SBFF-7: Fix Koseki constant routing: VLB_ to KongLabelConst, _LEN to KongLengthConst"'
+                  - 'option "SBFF-8: Fix batchjob model skill: remove wrong CsvField pattern for Hanyo.App"'
+                  - 'option "SBFF-9: [BUG] api-coding: 4 generation bugs on multi-table INSERT APIs"'
+                  - 'option "SBFF-11: Fix parse-dd type inference: ファイルパス fields always string"'
+                  - 'option "SBFF-17: [IMPROVEMENT] Define lightweight test protocol for skill fix sub-tickets"'
+                  - 'option "SBFF-18: Fix exact-length validation gen for optional fields"'
+                  - 'option "SBFF-19: Stabilize whitebox-utc imports and cascade"'
+                  - 'option "SBFF-20: [BUG] Coverage tool guidance inconsistent across whitebox-utc agents — Kong Web references missing script"'
+                  - 'option "SBFF-21: [BUG] parse-dd: Missing table 送付分届書等一覧 from DDInfo YAML (SBFF-12 regression)"'
+                  - 'option "SBFF-22: [FIX] whitebox-utc coverage: use Git Bash on Windows + report per-file coverage alongside full suite"'
+              - generic [ref=e764]:
+                - generic [ref=e765]: Created by
+                - generic [ref=e766]:
+                  - generic "Quản trị viên" [ref=e767]: QT
+                  - generic [ref=e768]: Quản trị viên
+              - generic [ref=e769]:
+                - generic [ref=e770]: Assignee
+                - generic [ref=e771]: Unassigned
+      - generic [ref=e772]:
+        - button "Delete" [ref=e774] [cursor=pointer]
+        - button "Edit" [ref=e775] [cursor=pointer]
