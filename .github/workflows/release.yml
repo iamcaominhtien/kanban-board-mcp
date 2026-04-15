@@ -119,6 +119,7 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     needs: [build, check-conditions]
+    if: needs.check-conditions.outputs.should_release == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -133,14 +134,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_NOTES: ${{ needs.check-conditions.outputs.release_notes }}
+          RELEASE_VERSION: ${{ needs.check-conditions.outputs.version }}
         run: |
-          VERSION="${{ needs.check-conditions.outputs.version }}"
+          VERSION="$RELEASE_VERSION"
           # Write notes via env var to avoid shell injection from CHANGELOG content
           printf '%s' "$RELEASE_NOTES" > /tmp/release_notes.md
-          # Collect artifacts explicitly to avoid glob expansion issues
-          ARTIFACTS=$(find release-artifacts/ -name "*.dmg" -o -name "*.exe")
-          # shellcheck disable=SC2086
-          gh release create "v$VERSION" $ARTIFACTS \
+          # Use bash array to handle filenames with spaces (e.g. "Kanban Board 1.3.3.dmg")
+          mapfile -t ARTIFACTS < <(find release-artifacts/ \( -name "*.dmg" -o -name "*.exe" \) -type f)
+          gh release create "v$VERSION" "${ARTIFACTS[@]}" \
             --title "v$VERSION" \
             --notes-file /tmp/release_notes.md
 
