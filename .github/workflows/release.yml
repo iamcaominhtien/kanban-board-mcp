@@ -116,7 +116,7 @@ jobs:
           # Write notes via env var to avoid shell injection from CHANGELOG content
           printf '%s' "$RELEASE_NOTES" > /tmp/release_notes.md
           # Use bash array to handle filenames with spaces (e.g. "Kanban Board 1.3.3.dmg")
-          mapfile -t ARTIFACTS < <(find release-artifacts/ \( -name "*.dmg" -o -name "*.exe" \) -type f)
+          mapfile -t ARTIFACTS < <(find release-artifacts/ \( -name "*.dmg" -o -name "*Setup*.exe" \) -type f)
           gh release create "v$VERSION" "${ARTIFACTS[@]}" \
             --title "v$VERSION" \
             --notes-file /tmp/release_notes.md
