@@ -84,7 +84,7 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
-          cd server && uv sync --no-dev
+          cd server && uv sync --no-dev && uv pip install pyinstaller
           cd .. && bash build-desktop.sh
 
       - uses: actions/upload-artifact@v4
