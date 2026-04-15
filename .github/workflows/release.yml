@@ -76,18 +76,15 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install uv
+        run: pip install uv
+
       - name: Build desktop app
         shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
-          cd server && python -m venv .venv
-          # Use the venv's own pip for cross-platform compatibility
-          if [ -f .venv/Scripts/pip ]; then
-            .venv/Scripts/pip install -e ".[dev]"
-          else
-            .venv/bin/pip install -e ".[dev]"
-          fi
+          cd server && uv sync --no-dev
           cd .. && bash build-desktop.sh
 
       - uses: actions/upload-artifact@v4
