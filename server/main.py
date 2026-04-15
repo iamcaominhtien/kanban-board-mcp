@@ -190,15 +190,10 @@ if __name__ == "__main__":
     _startup_mark("uvicorn-imported")
 
     class SignalServer(uvicorn.Server):
-        def __init__(self, config, port):
-            super().__init__(config)
-            self._signal_port = port
-
         async def startup(self, sockets=None):
             await super().startup(sockets)
             _startup_mark("uvicorn-startup-done")
-            print(f"READY port={self._signal_port}", flush=True)
-            sys.stdout.flush()
+            print(f"READY port={self.config.port}", flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -206,6 +201,6 @@ if __name__ == "__main__":
         port = sock.getsockname()[1]
         _startup_mark(f"socket-bound-port={port}")
 
-        config = uvicorn.Config(app, host="127.0.0.1", log_level="warning")
-        server = SignalServer(config, port)
+        config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+        server = SignalServer(config)
         server.run(sockets=[sock])

@@ -31,15 +31,6 @@ export function useBackendStatus(): { status: BackendStatus; errorMessage: strin
     const api = (window as any).electronAPI;
     if (!api?.onBackendReady) return;
 
-    // Check if the backend port is already available (race: backend was fast)
-    api.getBackendPort().then((port: number | null) => {
-      if (port) {
-        setBackendPort(port);
-        setStatus('ready');
-        queryClient.invalidateQueries();
-      }
-    });
-
     api.onBackendReady((port: number) => {
       setBackendPort(port);
       setStatus('ready');

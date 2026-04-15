@@ -185,15 +185,12 @@ ipcMain.handle('select-folder', async () => {
 
 app.whenReady().then(() => {
   profiler.mark('app-ready');
-
-  // Create the window immediately — do NOT wait for the backend.
-  // The renderer shows a "Connecting…" overlay until it receives backend-ready.
   createWindow();
 
-  // Start the Python backend in parallel.  Results are pushed to the renderer
-  // via IPC so the window never blocks on backend boot time.
   startBackend()
     .then((port) => {
+      backendPort = port; // Set the global port immediately for any future lookups
+
       // VS Code MCP setup — one-time, packaged builds only
       const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
       if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists: fs.existsSync(setupFlag) })) {

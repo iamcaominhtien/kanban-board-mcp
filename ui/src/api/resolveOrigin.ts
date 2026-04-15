@@ -13,25 +13,23 @@
  * server is available without performing a full page reload.
  */
 
-let _cache: Promise<string> | null = null;
+let _cache: string | null = null;
 
 /** Called by the backend-ready IPC handler to wire in the confirmed port. */
 export function setBackendPort(port: number): void {
-  _cache = Promise.resolve(`http://127.0.0.1:${port}`);
+  _cache = `http://127.0.0.1:${port}`;
 }
 
-export function resolveOrigin(): Promise<string> {
-  if (!_cache) {
-    _cache = (async () => {
-      if (typeof window !== 'undefined' && window.location.protocol === 'http:') {
-        return window.location.origin;
-      }
-      if (typeof window !== 'undefined' && (window as any).electronAPI?.getBackendPort) {
-        const port = await (window as any).electronAPI.getBackendPort();
-        if (port) return `http://127.0.0.1:${port}`;
-      }
-      return import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
-    })();
+export function resolveOrigin(): string {
+  if (_cache) return _cache;
+
+  if (typeof window !== 'undefined') {
+    if (window.location.protocol === 'http:') {
+      _cache = window.location.origin;
+      return _cache;
+    }
   }
-  return _cache;
+
+  const fallback = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
+  return fallback;
 }
