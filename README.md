@@ -121,7 +121,7 @@ The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) 
 
 | Platform | Status | Artifact |
 |---|---|---|
-| **macOS** (x64 + arm64) | Available | DMG — see [v1.3.1 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v1.3.1) |
+| **macOS** (x64 + arm64) | Available | DMG — see [v1.3.2 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v1.3.2) |
 | **Windows** (NSIS) | Not yet uploaded | Build from source: `./build-desktop.sh` |
 | **Linux** | Not yet supported | — |
 

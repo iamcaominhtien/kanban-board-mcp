@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.2] - 2026-04-15
+
+### Fixed
+- Markdown tables now render correctly in ticket descriptions (added `remark-gfm` GFM support)
+
+---
+
 ## [1.3.1] - 2026-04-14
 
 ### Fixed
