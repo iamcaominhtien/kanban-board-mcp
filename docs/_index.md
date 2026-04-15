@@ -27,6 +27,7 @@ _Last updated: 2026-04-15_
 | [test-plans/IAM-85.md](test-plans/IAM-85.md) | Test Plan: IAM-85 Use Repo Logo in Desktop App and Web UI | stable | 1.0.1 | 2026-04-11 |
 | [test-plans/IAM-87-test-plan.md](test-plans/IAM-87-test-plan.md) | Test Plan: IAM-87 Fix Image Upload and Paste Overflow in MarkdownEditor | review | 1.0.1 | 2026-04-14 |
 | [test-plans/IAM-87.md](test-plans/IAM-87.md) | Test Plan: IAM-87 Description Image Paste and Upload | stable | 1.1.0 | 2026-04-13 |
+| [test-plans/IAM-93.md](test-plans/IAM-93.md) | Test Plan: IAM-93 CI/CD Auto Release Pipeline | stable | 1.0.1 | 2026-04-15 |
 | [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
@@ -37,6 +38,7 @@ _Last updated: 2026-04-15_
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
 | [README.md](README.md) | README | — | — | — |
+| [specs/IAM-93-cicd-auto-release.md](specs/IAM-93-cicd-auto-release.md) | IAM-93-cicd-auto-release | — | — | — |
 | [specs/api-contract.md](specs/api-contract.md) | api-contract | — | — | — |
 | [specs/desktop-app.md](specs/desktop-app.md) | desktop-app | — | — | — |
 | [test-logs/iam-38-recycle-bin.md](test-logs/iam-38-recycle-bin.md) | iam-38-recycle-bin | — | — | — |

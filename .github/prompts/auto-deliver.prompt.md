@@ -88,14 +88,9 @@ Otherwise, auto-approve and proceed immediately to the next phase.
    ```
 
 3. **Create Release & Artifacts**:
-   - Package or collect any natural release artifacts (e.g. UI `dist/` or `build/` outputs).
-   - If no artifact is produced, clearly state "No distributable artifact produced for this release." in the work log.
-   - Create the release and attach artifacts (where appropriate):
-     ```bash
-     gh release create v<X.Y.Z> <artifact_paths> \
-       --title "v<X.Y.Z> — <short feature title>" \
-       --notes "<what was shipped and why>"
-     ```
+   - For **desktop app changes** (any change that warrants a version bump): the CI/CD pipeline handles the release automatically after merge — no manual action needed. See `release-process` instructions for the pre-merge checklist (version bump + CHANGELOG entry).
+   - For **non-desktop changes** (server logic, workflow files, docs, etc.): no release artifact is produced. Clearly state "No distributable artifact produced for this release." in the work log.
+   - Only create a release manually (via `gh release create`) if the auto pipeline is broken or unavailable.
 
 4. **Close & Log**:
    - Delegate to the `kanbander` agent to mark the ticket and subtasks as **Done**.
