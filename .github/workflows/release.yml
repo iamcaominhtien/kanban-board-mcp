@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
 jobs:
   check-conditions:
     runs-on: ubuntu-latest
@@ -41,7 +45,8 @@ jobs:
 
           # Extract release notes block (from ## [VERSION] to the next ## [ line, exclusive)
           if [ "$SHOULD_RELEASE" = "true" ]; then
-            NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+            # Using sed for cleaner multi-line extraction
+            NOTES=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
             echo "release_notes<<EOF" >> "$GITHUB_OUTPUT"
             echo "$NOTES" >> "$GITHUB_OUTPUT"
             echo "EOF" >> "$GITHUB_OUTPUT"
@@ -53,34 +58,28 @@ jobs:
     if: needs.check-conditions.outputs.should_release == 'true'
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Update README version references
         run: |
           VERSION="${{ needs.check-conditions.outputs.version }}"
-          OLD_VERSION=$(grep -oP 'v\d+\.\d+\.\d+' README.md | sort -V | tail -1 | sed 's/v//')
+          # Simpler update logic: replace all vX.Y.Z with the current version
+          # Assuming README version references are prefix with 'v'
+          sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/v$VERSION/g" README.md
 
-          if [ "$OLD_VERSION" != "$VERSION" ]; then
-            echo "Updating README from v$OLD_VERSION to v$VERSION"
-            sed -i "s/v$OLD_VERSION/v$VERSION/g" README.md
-          else
-            echo "README already references v$VERSION — no update needed"
-          fi
-
-      - name: Commit and push README update
-        run: |
-          VERSION="${{ needs.check-conditions.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
           git commit -m "chore: update README to v$VERSION [skip ci]" || echo "No changes to commit"
           git push
 
-  build-macos:
-    runs-on: macos-latest
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     needs: [check-conditions, update-readme]
     if: needs.check-conditions.outputs.should_release == 'true'
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,82 +87,40 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
-      - name: Setup Python venv
-        run: |
-          cd server
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
-
-      - name: Build desktop app
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: bash build-desktop.sh
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-artifacts
-          path: dist-desktop/
-
-  build-windows:
-    runs-on: windows-latest
-    needs: [check-conditions, update-readme]
-    if: needs.check-conditions.outputs.should_release == 'true'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Setup Python venv
-        shell: bash
-        run: |
-          cd server
-          python -m venv .venv
-          source .venv/Scripts/activate
-          pip install -r requirements.txt
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Build desktop app
         shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: bash build-desktop.sh
+        run: |
+          cd server && python -m venv .venv
+          # Cross-platform activation
+          [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]] && source .venv/Scripts/activate || source .venv/bin/activate
+          pip install -r requirements.txt
+          cd .. && bash build-desktop.sh
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-artifacts
+          name: artifacts-${{ matrix.os }}
           path: dist-desktop/
 
   create-release:
     runs-on: ubuntu-latest
-    needs: [build-macos, build-windows]
+    needs: [build, check-conditions]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download macOS artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macos-artifacts
           path: release-artifacts/
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-artifacts
-          path: release-artifacts/
+          pattern: artifacts-*
+          merge-multiple: true
 
       - name: Create GitHub Release
         env:
@@ -173,3 +130,4 @@ jobs:
           gh release create "v$VERSION" release-artifacts/**/*.dmg release-artifacts/**/*.exe \
             --title "v$VERSION" \
             --notes "${{ needs.check-conditions.outputs.release_notes }}"
+
