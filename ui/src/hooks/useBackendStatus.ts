@@ -34,7 +34,7 @@ export function useBackendStatus(): { status: BackendStatus; errorMessage: strin
 
     const unsubReady = api.onBackendReady((port: number) => {
       if (cancelled) return;
-      setBackendPort(String(port));
+      setBackendPort(port);
       setStatus('ready');
       queryClient.invalidateQueries();
     });
