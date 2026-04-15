@@ -1,5 +1,30 @@
 const path = require('path');
 
+/**
+ * StartupProfiler — records timestamps for key startup stages.
+ * Usage: profiler.mark('stage-name') at each milestone.
+ * Call profiler.summary() to get a human-readable report.
+ */
+class StartupProfiler {
+  constructor() {
+    this._t0 = Date.now();
+    this._marks = [{ stage: 'process-start', ts: this._t0, delta: 0 }];
+  }
+
+  mark(stage) {
+    const now = Date.now();
+    this._marks.push({ stage, ts: now, delta: now - this._t0 });
+    console.log(`[startup] ${stage} +${now - this._t0}ms`);
+  }
+
+  summary() {
+    return this._marks.map((m) => ({
+      stage: m.stage,
+      offsetMs: m.delta,
+    }));
+  }
+}
+
 function getBinaryExtension(platform) {
   return platform === 'win32' ? '.exe' : '';
 }
@@ -83,6 +108,7 @@ function terminateBackendProcess(processRef) {
 }
 
 module.exports = {
+  StartupProfiler,
   buildBackendLaunchSpec,
   getBinaryExtension,
   getMcpStdioBinaryPath,

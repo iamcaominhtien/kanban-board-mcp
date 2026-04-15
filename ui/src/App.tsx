@@ -9,11 +9,13 @@ import { useProjects, useCreateProject, useDeleteProject } from './api/projects'
 import { useMembers } from './api/members';
 import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, useWontDoTickets, useRestoreTicket } from './api/tickets';
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
+import { useBackendStatus } from './hooks/useBackendStatus';
 import { extractError } from './api/extractError';
 import type { Priority, Status, Ticket } from './types';
 
 export default function App() {
   useSSEInvalidation();
+  const { status: backendStatus, errorMessage: backendError } = useBackendStatus();
   const { data: apiProjects = [], isLoading: projectsLoading } = useProjects();
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
@@ -201,6 +203,46 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      {/* Backend connecting / error overlay — only shown in Electron before Python is ready */}
+      {backendStatus !== 'ready' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'var(--color-bg)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: '20px',
+        }}>
+          {backendStatus === 'connecting' ? (
+            <>
+              <div style={{
+                width: 40, height: 40,
+                border: '4px solid var(--color-dark)',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }} />
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', color: 'var(--color-dark)', fontWeight: 500 }}>
+                Starting backend…
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '1.1rem', color: '#DC2626', fontWeight: 700 }}>
+                Backend failed to start
+              </p>
+              {backendError && (
+                <pre style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-dark)', maxWidth: 520, whiteSpace: 'pre-wrap', textAlign: 'left', background: '#eee', padding: '12px', borderRadius: 8 }}>
+                  {backendError}
+                </pre>
+              )}
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', color: 'var(--color-dark)' }}>
+                Please restart the app. If the problem persists, check the logs.
+              </p>
+            </>
+          )}
+        </div>
+      )}
       <ProjectSidebar
         projects={apiProjects}
         currentProjectId={currentProjectId}

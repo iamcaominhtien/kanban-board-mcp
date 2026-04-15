@@ -171,13 +171,23 @@ async def serve_spa(full_path: str):
 
 if __name__ == "__main__":
     import multiprocessing
+    import time as _time
+
+    _t0 = _time.monotonic()
+
+    def _startup_mark(stage: str) -> None:
+        elapsed_ms = int((_time.monotonic() - _t0) * 1000)
+        print(f"[startup] {stage} +{elapsed_ms}ms", flush=True)
 
     multiprocessing.freeze_support()
+    _startup_mark("freeze-support-done")
 
     import socket
     import sys
 
     import uvicorn
+
+    _startup_mark("uvicorn-imported")
 
     class SignalServer(uvicorn.Server):
         def __init__(self, config, port):
@@ -186,6 +196,7 @@ if __name__ == "__main__":
 
         async def startup(self, sockets=None):
             await super().startup(sockets)
+            _startup_mark("uvicorn-startup-done")
             print(f"READY port={self._signal_port}", flush=True)
             sys.stdout.flush()
 
@@ -193,6 +204,7 @@ if __name__ == "__main__":
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
+        _startup_mark(f"socket-bound-port={port}")
 
         config = uvicorn.Config(app, host="127.0.0.1", log_level="warning")
         server = SignalServer(config, port)
