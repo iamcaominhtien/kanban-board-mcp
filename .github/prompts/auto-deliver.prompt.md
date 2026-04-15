@@ -81,15 +81,26 @@ Otherwise, auto-approve and proceed immediately to the next phase.
 1. **Finalize PR**:
    Instruct the `developer` agent to copy the test plan document into the PR branch and push before merging.
 
+   **Determine release type before merging:**
+   - **App change** — any change to `desktop/`, `ui/`, or `server/` that affects what users run → requires version bump + CHANGELOG entry before merge
+   - **Non-app change** — docs, CI/CD workflows, GitHub config only → no version bump needed, no release produced
+
+   **For app changes, complete this checklist BEFORE merging — no exceptions:**
+   - Bump version in `desktop/package.json` AND `desktop/package-lock.json` to the next patch (or minor/major if justified)
+   - Add `## [X.Y.Z] - YYYY-MM-DD` entry to `CHANGELOG.md` summarizing what changed
+   - Only after both are committed and pushed, instruct the developer to merge
+
+   *Skipping this causes CI/CD guard conditions to fail silently and no release is produced.*
+
 2. **Merge PR**:
    Squash merge via GitHub CLI (preferred for clean history):
    ```bash
    gh pr merge <PR_number> --squash --delete-branch
    ```
 
-3. **Create Release & Artifacts**:
-   - For **desktop app changes** (any change that warrants a version bump): the CI/CD pipeline handles the release automatically after merge — no manual action needed. See `release-process` instructions for the pre-merge checklist (version bump + CHANGELOG entry).
-   - For **non-desktop changes** (server logic, workflow files, docs, etc.): no release artifact is produced. Clearly state "No distributable artifact produced for this release." in the work log.
+3. **Post-merge**:
+   - **App change**: CI/CD pipeline automatically builds macOS DMG + Windows NSIS and publishes the GitHub Release — no manual action needed.
+   - **Non-app change**: No release artifact is produced. State "No distributable artifact produced for this release." in the work log.
    - Only create a release manually (via `gh release create`) if the auto pipeline is broken or unavailable.
 
 4. **Close & Log**:
