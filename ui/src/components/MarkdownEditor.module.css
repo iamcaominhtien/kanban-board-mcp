@@ -71,6 +71,29 @@
   font-size: 14px;
 }
 
+.viewArea table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  overflow-x: auto;
+}
+
+.viewArea th,
+.viewArea td {
+  border: 1px solid rgba(61, 12, 17, 0.25);
+  padding: 6px 12px;
+  text-align: left;
+}
+
+.viewArea thead tr {
+  background-color: rgba(61, 12, 17, 0.06);
+}
+
+.viewArea tbody tr:nth-child(even) {
+  background-color: rgba(61, 12, 17, 0.05);
+}
+
 /* ── Edit mode ── */
 
 .editContainer {
