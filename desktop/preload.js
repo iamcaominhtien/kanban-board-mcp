@@ -5,9 +5,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // May return null if called before the backend is ready.
   getBackendPort: () => ipcRenderer.invoke('get-backend-port'),
 
-  // Subscribe to backend events.
-  onBackendReady: (callback) => ipcRenderer.on('backend-ready', (_event, port) => callback(port)),
-  onBackendError: (callback) => ipcRenderer.on('backend-error', (_event, message) => callback(message)),
+  // Subscribe to backend events (one-shot lifecycle events — use once to prevent duplicate listeners).
+  onBackendReady: (callback) => ipcRenderer.once('backend-ready', (_event, port) => callback(port)),
+  onBackendError: (callback) => ipcRenderer.once('backend-error', (_event, message) => callback(message)),
 
   // Opens a native folder picker; returns the selected path or null
   selectFolder: () => ipcRenderer.invoke('select-folder'),

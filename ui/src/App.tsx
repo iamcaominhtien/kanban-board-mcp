@@ -221,7 +221,6 @@ export default function App() {
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
               }} />
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               <p style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', color: 'var(--color-dark)', fontWeight: 500 }}>
                 Starting backend…
               </p>

@@ -26,6 +26,10 @@ html, body, #root {
   height: 100%;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 body {
   background-color: var(--color-bg);
   font-family: var(--font-body);

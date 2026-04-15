@@ -77,8 +77,12 @@ function buildBackendLaunchSpec({
 }
 
 function parseReadyPort(output) {
-  const match = output.match(/READY port=(\d+)/);
-  return match ? parseInt(match[1], 10) : null;
+  // Split on newlines so we match individual log lines, not the full accumulated buffer.
+  for (const line of output.split('\n')) {
+    const match = line.match(/READY port=(\d+)/);
+    if (match) return parseInt(match[1], 10);
+  }
+  return null;
 }
 
 function getMcpStdioBinaryPath({ isPackaged, platform, resourcesPath, desktopDir }) {
