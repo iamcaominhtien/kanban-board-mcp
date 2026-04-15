@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.4] - 2026-04-15
+
+### Changed
+- CI/CD: automated release pipeline via GitHub Actions
+
+---
+
 ## [1.3.3] - 2026-04-15
 
 ### Fixed
