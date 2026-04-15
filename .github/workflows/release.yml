@@ -9,7 +9,7 @@ permissions:
 
 env:
   NODE_VERSION: '20'
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.12'
 
 jobs:
   check-conditions:
@@ -82,13 +82,12 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           cd server && python -m venv .venv
-          # Cross-platform venv activation
-          if [ -f .venv/Scripts/activate ]; then
-            source .venv/Scripts/activate
+          # Use the venv's own pip for cross-platform compatibility
+          if [ -f .venv/Scripts/pip ]; then
+            .venv/Scripts/pip install -e ".[dev]"
           else
-            source .venv/bin/activate
+            .venv/bin/pip install -e ".[dev]"
           fi
-          pip install -r requirements.txt
           cd .. && bash build-desktop.sh
 
       - uses: actions/upload-artifact@v4
