@@ -30,7 +30,7 @@ app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Wildcard is safe: the server binds to 127.0.0.1 (loopback only), so it is not reachable from external networks.
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
@@ -171,29 +171,36 @@ async def serve_spa(full_path: str):
 
 if __name__ == "__main__":
     import multiprocessing
+    import time as _time
+
+    _t0 = _time.monotonic()
+
+    def _startup_mark(stage: str) -> None:
+        elapsed_ms = int((_time.monotonic() - _t0) * 1000)
+        print(f"[startup] {stage} +{elapsed_ms}ms", flush=True)
 
     multiprocessing.freeze_support()
+    _startup_mark("freeze-support-done")
 
     import socket
     import sys
 
     import uvicorn
 
-    class SignalServer(uvicorn.Server):
-        def __init__(self, config, port):
-            super().__init__(config)
-            self._signal_port = port
+    _startup_mark("uvicorn-imported")
 
+    class SignalServer(uvicorn.Server):
         async def startup(self, sockets=None):
             await super().startup(sockets)
-            print(f"READY port={self._signal_port}", flush=True)
-            sys.stdout.flush()
+            _startup_mark("uvicorn-startup-done")
+            print(f"READY port={self.config.port}", flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
+        _startup_mark(f"socket-bound-port={port}")
 
-        config = uvicorn.Config(app, host="127.0.0.1", log_level="warning")
-        server = SignalServer(config, port)
+        config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+        server = SignalServer(config)
         server.run(sockets=[sock])

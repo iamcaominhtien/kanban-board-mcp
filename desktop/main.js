@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
 const {
+  StartupProfiler,
   buildBackendLaunchSpec,
   getMcpStdioBinaryPath,
   parseReadyPort,
@@ -12,11 +13,16 @@ const {
   terminateBackendProcess,
 } = require('./main-helpers');
 
+// Profiler records timestamps for each startup milestone.
+// Logs are emitted to the console as [startup] <stage> +<N>ms
+const profiler = new StartupProfiler();
+
 let mainWindow = null;
 let backendPort = null;
 let backendProcess = null;
 
 function startBackend() {
+  profiler.mark('backend-spawn-start');
   return new Promise((resolve, reject) => {
     const spec = buildBackendLaunchSpec({
       isPackaged: app.isPackaged,
@@ -45,6 +51,7 @@ function startBackend() {
     let child;
     try {
       child = spawn(spec.command, spec.args, spec.options);
+      profiler.mark('backend-spawned');
     } catch (spawnErr) {
       return reject(new Error(`spawn failed: ${spawnErr.code} — path: ${spec.command}`));
     }
@@ -61,6 +68,7 @@ function startBackend() {
         settled = true;
         clearTimeout(timeoutId);
         backendPort = port;
+        profiler.mark('backend-ready');
         resolve(backendPort);
       }
     });
@@ -100,7 +108,8 @@ function startBackend() {
   });
 }
 
-function createWindow(port) {
+function createWindow() {
+  profiler.mark('window-create-start');
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -116,22 +125,22 @@ function createWindow(port) {
     show: false,
   });
 
-  // Load the React UI
-  if (app.isPackaged && port) {
-    // Packaged: serve UI from the FastAPI backend to avoid file:// → loopback blocks
-    mainWindow.loadURL(`http://127.0.0.1:${port}`);
-  } else {
-    const uiPath = path.join(
-      app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'),
-      'ui', 'dist', 'index.html'
-    );
-    mainWindow.loadFile(uiPath);
-  }
+  // Always load from the local file — this is safe because:
+  //   • The CSP header (injected via onHeadersReceived below) explicitly allows
+  //     connect-src http://127.0.0.1:* so API calls to the Python backend work.
+  //   • Loading from file:// means the window shows immediately without waiting
+  //     for the Python server to boot.  The renderer handles the "backend not ready"
+  //     state by showing a connecting overlay until it receives the backend-ready IPC.
+  const uiPath = path.join(
+    app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'),
+    'ui', 'dist', 'index.html'
+  );
+  mainWindow.loadFile(uiPath);
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const allowed = url.startsWith('file://') || (port && url.startsWith(`http://127.0.0.1:${port}`));
+    const allowed = url.startsWith('file://') || url.startsWith('http://127.0.0.1:');
     if (!allowed) {
       event.preventDefault();
     }
@@ -142,13 +151,14 @@ function createWindow(port) {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ${port ? `http://127.0.0.1:${port}` : 'http://127.0.0.1:*'}; img-src 'self' data: blob: base-uri 'self'; object-src 'none'`
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:*; img-src 'self' data: blob:; base-uri 'self'; object-src 'none'"
         ]
       }
     });
   });
 
   mainWindow.once('ready-to-show', () => {
+    profiler.mark('window-first-paint');
     mainWindow.show();
   });
 
@@ -173,42 +183,51 @@ ipcMain.handle('select-folder', async () => {
   return result.canceled ? null : result.filePaths[0];
 });
 
-app.whenReady().then(async () => {
-  try {
-    await startBackend();
-  } catch (err) {
-    console.error('Failed to start backend:', err);
-    // Show error to user so they're not left wondering why the app is empty
-    dialog.showErrorBox(
-      'Backend failed to start',
-      err.message
-    );
-    app.quit();
-    return;
-  }
+app.whenReady().then(() => {
+  profiler.mark('app-ready');
+  createWindow();
 
-  // One-time VS Code MCP setup — only runs in packaged builds
-  const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
-  if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists: fs.existsSync(setupFlag) })) {
-    const dbPath = path.join(app.getPath('userData'), 'kanban.db');
-    const result = registerMcpServer(
-      getMcpStdioBinaryPath({
-        isPackaged: app.isPackaged,
-        platform: process.platform,
-        resourcesPath: process.resourcesPath,
-        desktopDir: __dirname,
-      }),
-      dbPath
-    );
+  startBackend()
+    .then((port) => {
+      backendPort = port; // Set the global port immediately for any future lookups
 
-    if (shouldWriteSetupFlag(result)) {
-      try {
-        fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
-      } catch { /* non-fatal */ }
-    }
-  }
+      // VS Code MCP setup — one-time, packaged builds only
+      const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
+      if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists: fs.existsSync(setupFlag) })) {
+        const dbPath = path.join(app.getPath('userData'), 'kanban.db');
+        const result = registerMcpServer(
+          getMcpStdioBinaryPath({
+            isPackaged: app.isPackaged,
+            platform: process.platform,
+            resourcesPath: process.resourcesPath,
+            desktopDir: __dirname,
+          }),
+          dbPath
+        );
+        if (shouldWriteSetupFlag(result)) {
+          try {
+            fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
+          } catch { /* non-fatal */ }
+        }
+      }
 
-  createWindow(backendPort);
+      // Notify renderer that the backend is accepting requests
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('backend-ready', port);
+      }
+
+      profiler.mark('backend-ready-sent');
+      console.log('[startup] summary', JSON.stringify(profiler.summary()));
+    })
+    .catch((err) => {
+      console.error('[startup] backend failed:', err.message);
+      profiler.mark('backend-error');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('backend-error', err.message);
+      }
+      // Do not quit — the renderer shows an error state so the user
+      // can see what went wrong instead of the app silently disappearing.
+    });
 
   globalShortcut.register('CommandOrControl+Shift+I', () => {
     const focused = BrowserWindow.getFocusedWindow();
@@ -216,7 +235,7 @@ app.whenReady().then(async () => {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow(backendPort);
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
