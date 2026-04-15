@@ -76,6 +76,7 @@
   width: 100%;
   margin-bottom: 8px;
   font-size: 0.9em;
+  overflow-x: auto;
 }
 
 .viewArea th,
@@ -87,11 +88,10 @@
 
 .viewArea thead tr {
   background-color: rgba(61, 12, 17, 0.06);
-  font-weight: 700;
 }
 
 .viewArea tbody tr:nth-child(even) {
-  background-color: rgba(61, 12, 17, 0.03);
+  background-color: rgba(61, 12, 17, 0.05);
 }
 
 /* ── Edit mode ── */
