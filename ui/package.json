@@ -19,6 +19,7 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
     "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "snakecase-keys": "^9.0.2"
   },
   "devDependencies": {

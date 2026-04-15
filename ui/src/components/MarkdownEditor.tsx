@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import remarkGfm from 'remark-gfm';
 import styles from './MarkdownEditor.module.css';
 
 const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -227,7 +228,7 @@ export function MarkdownEditor({
         aria-label={readOnly ? undefined : 'Edit description'}
       >
         {value ? (
-          <ReactMarkdown rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}>{value}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}>{value}</ReactMarkdown>
         ) : (
           <span className={styles.placeholder}>Click to add a description...</span>
         )}
