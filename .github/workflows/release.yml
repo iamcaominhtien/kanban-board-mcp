@@ -1,0 +1,149 @@
+name: Auto Release on PR Merge
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write  # needed for git push (README update) and gh release create
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  check-conditions:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.check.outputs.version }}
+      release_notes: ${{ steps.check.outputs.release_notes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check release conditions
+        id: check
+        run: |
+          VERSION=$(node -e "console.log(require('./desktop/package-lock.json').version)")
+          echo "Detected version: $VERSION"
+
+          SHOULD_RELEASE=true
+
+          # Guard 1: tag must not exist yet
+          if [ -n "$(git tag --list "v$VERSION")" ]; then
+            echo "Tag v$VERSION already exists — skipping release"
+            SHOULD_RELEASE=false
+          fi
+
+          # Guard 2: CHANGELOG must contain an entry for this version
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "No CHANGELOG entry for $VERSION — skipping release"
+            SHOULD_RELEASE=false
+          fi
+
+          echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # Extract release notes block (from ## [VERSION] to the next ## [ line, exclusive)
+          if [ "$SHOULD_RELEASE" = "true" ]; then
+            # Using sed for cleaner multi-line extraction
+            NOTES=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
+            echo "release_notes<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$NOTES" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+  update-readme:
+    runs-on: ubuntu-latest
+    needs: check-conditions
+    if: needs.check-conditions.outputs.should_release == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update README version references
+        env:
+          RELEASE_VERSION: ${{ needs.check-conditions.outputs.version }}
+        run: |
+          VERSION="$RELEASE_VERSION"
+          # Simpler update logic: replace all vX.Y.Z with the current version
+          # Assuming README version references are prefix with 'v'
+          sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/v$VERSION/g" README.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: update README to v$VERSION [skip ci]" || echo "No changes to commit"
+          git push
+
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [check-conditions, update-readme]
+    if: needs.check-conditions.outputs.should_release == 'true'
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build desktop app
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: |
+          cd server && python -m venv .venv
+          # Cross-platform venv activation
+          if [ -f .venv/Scripts/activate ]; then
+            source .venv/Scripts/activate
+          else
+            source .venv/bin/activate
+          fi
+          pip install -r requirements.txt
+          cd .. && bash build-desktop.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.os }}
+          path: dist-desktop/
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build, check-conditions]
+    if: needs.check-conditions.outputs.should_release == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts/
+          pattern: artifacts-*
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NOTES: ${{ needs.check-conditions.outputs.release_notes }}
+          RELEASE_VERSION: ${{ needs.check-conditions.outputs.version }}
+        run: |
+          VERSION="$RELEASE_VERSION"
+          # Write notes via env var to avoid shell injection from CHANGELOG content
+          printf '%s' "$RELEASE_NOTES" > /tmp/release_notes.md
+          # Use bash array to handle filenames with spaces (e.g. "Kanban Board 1.3.3.dmg")
+          mapfile -t ARTIFACTS < <(find release-artifacts/ \( -name "*.dmg" -o -name "*.exe" \) -type f)
+          gh release create "v$VERSION" "${ARTIFACTS[@]}" \
+            --title "v$VERSION" \
+            --notes-file /tmp/release_notes.md
+
