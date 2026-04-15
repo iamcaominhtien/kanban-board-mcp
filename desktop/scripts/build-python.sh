@@ -12,11 +12,14 @@ cd "$WORKSPACE_ROOT"
 echo "=== Building Python binaries for Kanban Board Desktop App ==="
 echo "Workspace: $WORKSPACE_ROOT"
 
-# Activate Python venv
-VENV_PYTHON="$SERVER_DIR/.venv/bin/python"
-if [ ! -f "$VENV_PYTHON" ]; then
+# Activate Python venv (Windows uses Scripts/, Unix uses bin/)
+if [ -f "$SERVER_DIR/.venv/Scripts/python.exe" ]; then
+    VENV_PYTHON="$SERVER_DIR/.venv/Scripts/python.exe"
+elif [ -f "$SERVER_DIR/.venv/bin/python" ]; then
+    VENV_PYTHON="$SERVER_DIR/.venv/bin/python"
+else
     echo "ERROR: Python venv not found at $SERVER_DIR/.venv"
-    echo "Run: cd server && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'"
+    echo "Run: cd server && uv sync --no-dev && uv pip install pyinstaller"
     exit 1
 fi
 
