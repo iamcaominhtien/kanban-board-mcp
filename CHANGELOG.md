@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.3] - 2026-04-15
+
+### Fixed
+- Markdown tables in ticket descriptions now display with borders, header background, and alternating row colors
+
+---
+
 ## [1.3.2] - 2026-04-15
 
 ### Fixed
