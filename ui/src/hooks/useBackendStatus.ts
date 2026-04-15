@@ -28,26 +28,27 @@ export function useBackendStatus(): { status: BackendStatus; errorMessage: strin
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const api = (window as any).electronAPI;
     if (!api?.onBackendReady) return;
 
-    // Guard against stale callbacks from React Strict Mode double-invoke.
-    let cancelled = false;
-
-    api.onBackendReady((port: number) => {
+    const unsubReady = api.onBackendReady((port: number) => {
       if (cancelled) return;
-      setBackendPort(port);
+      setBackendPort(String(port));
       setStatus('ready');
       queryClient.invalidateQueries();
     });
-
-    api.onBackendError?.((message: string) => {
+    const unsubError = api.onBackendError?.((msg: string) => {
       if (cancelled) return;
-      setErrorMessage(message);
       setStatus('error');
+      setErrorMessage(msg);
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      unsubReady?.();
+      unsubError?.();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
