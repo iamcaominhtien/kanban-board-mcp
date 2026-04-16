@@ -220,7 +220,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         },
         {
           onSuccess: () => handleClose(),
-          onError: (err) => { console.error('Failed to save ticket:', err); setSaveError('Failed to save ticket. Please try again.'); },
+          onError: (err) => { console.error('Failed to save ticket:', err); setSaveError(extractError(err) || 'Failed to save ticket. Please try again.'); },
         },
       );
     }
@@ -378,17 +378,16 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
       );
     }
 
-    function handleToggleBlockDoneAcs() {
+    function handleToggleBlockGuard(field: 'blockDoneIfAcsIncomplete' | 'blockDoneIfTcsIncomplete') {
       updateTicketMutation.mutate(
-        { ticketId: currentTicket.id, data: { blockDoneIfAcsIncomplete: !currentTicket.blockDoneIfAcsIncomplete } },
-        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to update block guard:', err); setViewError('Failed to update setting. Please try again.'); } },
-      );
-    }
-
-    function handleToggleBlockDoneTcs() {
-      updateTicketMutation.mutate(
-        { ticketId: currentTicket.id, data: { blockDoneIfTcsIncomplete: !currentTicket.blockDoneIfTcsIncomplete } },
-        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to update block guard:', err); setViewError('Failed to update setting. Please try again.'); } },
+        { ticketId: currentTicket.id, data: { [field]: !currentTicket[field] } },
+        {
+          onSuccess: () => setViewError(null),
+          onError: (err) => {
+            console.error('Failed to update block guard:', err);
+            setViewError('Failed to update setting. Please try again.');
+          },
+        },
       );
     }
 
@@ -461,7 +460,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     <input
                       type="checkbox"
                       checked={ticket.blockDoneIfAcsIncomplete}
-                      onChange={handleToggleBlockDoneAcs}
+                      onChange={() => handleToggleBlockGuard('blockDoneIfAcsIncomplete')}
                       className={styles.blockGuardCheckbox}
                     />
                     Block Done if ACs not all passed
@@ -583,7 +582,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     <input
                       type="checkbox"
                       checked={ticket.blockDoneIfTcsIncomplete}
-                      onChange={handleToggleBlockDoneTcs}
+                      onChange={() => handleToggleBlockGuard('blockDoneIfTcsIncomplete')}
                       className={styles.blockGuardCheckbox}
                     />
                     Block Done if TCs missing or not all passed

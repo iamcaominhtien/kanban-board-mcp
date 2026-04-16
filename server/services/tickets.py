@@ -157,14 +157,17 @@ async def update_ticket(
         effective_block_tcs = update_data.get(
             "block_done_if_tcs_incomplete", ticket.block_done_if_tcs_incomplete
         )
+        violations = []
         if effective_block_acs:
             acs = _loads(ticket.acceptance_criteria)
             if not acs or any(not ac.get("done") for ac in acs):
-                raise ValueError("Cannot move to Done: not all Acceptance Criteria are passed.")
+                violations.append("not all Acceptance Criteria are passed")
         if effective_block_tcs:
             tcs = _loads(ticket.test_cases)
             if not tcs or any(tc.get("status") != "pass" for tc in tcs):
-                raise ValueError("Cannot move to Done: Test Cases are missing or not all passed.")
+                violations.append("Test Cases are missing or not all passed")
+        if violations:
+            raise ValueError(f"Cannot move to Done: {' and '.join(violations)}.")
 
     # Validate assignee belongs to the ticket's project
     if "assignee" in update_data and update_data["assignee"] is not None:
