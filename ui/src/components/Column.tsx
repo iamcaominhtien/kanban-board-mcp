@@ -15,11 +15,16 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
 
+  // Sort by createdAt descending (newest first) before applying hierarchy
+  const sorted = [...tickets].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
   // Build ordered list: parents first, then their children immediately after
   const ordered: Ticket[] = [];
   const placed = new Set<string>();
 
-  for (const ticket of tickets) {
+  for (const ticket of sorted) {
     if (placed.has(ticket.id)) continue;
     // Only place as root if it's not a child of another ticket in this column
     const isChildInColumn = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
@@ -27,7 +32,7 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
     ordered.push(ticket);
     placed.add(ticket.id);
     // Place direct children immediately after
-    for (const child of tickets) {
+    for (const child of sorted) {
       if (child.parentId === ticket.id && !placed.has(child.id)) {
         ordered.push(child);
         placed.add(child.id);
@@ -35,7 +40,7 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
     }
   }
   // Any remaining (shouldn't happen, but safety net)
-  for (const ticket of tickets) {
+  for (const ticket of sorted) {
     if (!placed.has(ticket.id)) ordered.push(ticket);
   }
 

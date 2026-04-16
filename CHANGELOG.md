@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.6] - 2026-04-16
+
+### Improved
+- Rename default project member from 'Quản trị viên' to 'Admin'
+- Board columns now sort tickets newest-first so new tickets appear at the top; parent-child hierarchy is preserved
+
+---
+
 ## [1.3.5] - 2026-04-16
 
 ### Improved
