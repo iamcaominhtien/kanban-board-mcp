@@ -126,7 +126,7 @@ export default function App() {
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
     } catch (err) {
-      console.error('Failed to update status:', err);
+      setGlobalError(extractError(err));
     }
   }
 
@@ -137,12 +137,12 @@ export default function App() {
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
     } catch (err) {
-      console.error('Failed to update status:', err);
+      setGlobalError(extractError(err));
     }
   }
 
   async function handleCreateTicket(
-    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy'>,
+    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy' | 'blockDoneIfAcsIncomplete' | 'blockDoneIfTcsIncomplete'>,
   ) {
     if (!currentProjectId) return;
     try {

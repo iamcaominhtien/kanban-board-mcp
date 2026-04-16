@@ -149,6 +149,17 @@ async def update_ticket(
     if update_data.get("status") == "wont_do" and ticket.parent_id is not None:
         raise ValueError("Child tickets cannot be set to wont_do")
 
+    # When transitioning to "done", enforce block guards
+    if update_data.get("status") == "done":
+        if ticket.block_done_if_acs_incomplete:
+            acs = json.loads(ticket.acceptance_criteria or "[]")
+            if any(not ac.get("done", False) for ac in acs):
+                raise ValueError("Cannot move to Done: not all Acceptance Criteria are passed.")
+        if ticket.block_done_if_tcs_incomplete:
+            tcs = json.loads(ticket.test_cases or "[]")
+            if not tcs or any(tc.get("status") != "pass" for tc in tcs):
+                raise ValueError("Cannot move to Done: Test Cases are missing or not all passed.")
+
     # Validate assignee belongs to the ticket's project
     if "assignee" in update_data and update_data["assignee"] is not None:
         assignee_member = await session.get(Member, update_data["assignee"])

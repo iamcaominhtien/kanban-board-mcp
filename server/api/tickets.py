@@ -227,7 +227,10 @@ class StatusBody(BaseModel):
 async def patch_status(
     ticket_id: str, body: StatusBody, session: Session
 ) -> TicketRead:
-    ticket = await update_ticket(session, ticket_id, TicketUpdate(status=body.status))
+    try:
+        ticket = await update_ticket(session, ticket_id, TicketUpdate(status=body.status))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
