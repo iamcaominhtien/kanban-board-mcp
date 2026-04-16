@@ -17,7 +17,7 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
 
   // Sort by createdAt descending (newest first) before applying hierarchy
   const sorted = [...tickets].sort(
-    (a, b) => b.createdAt.localeCompare(a.createdAt),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   // Build ordered list: parents first, then their children immediately after
