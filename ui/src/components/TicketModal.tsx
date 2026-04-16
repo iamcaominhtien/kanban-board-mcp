@@ -220,7 +220,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         },
         {
           onSuccess: () => handleClose(),
-          onError: (err) => { console.error('Failed to save ticket:', err); setSaveError('Failed to save ticket. Please try again.'); },
+          onError: (err) => { console.error('Failed to save ticket:', err); setSaveError(extractError(err) || 'Failed to save ticket. Please try again.'); },
         },
       );
     }
@@ -378,6 +378,19 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
       );
     }
 
+    function handleToggleBlockGuard(field: 'blockDoneIfAcsIncomplete' | 'blockDoneIfTcsIncomplete') {
+      updateTicketMutation.mutate(
+        { ticketId: currentTicket.id, data: { [field]: !currentTicket[field] } },
+        {
+          onSuccess: () => setViewError(null),
+          onError: (err) => {
+            console.error('Failed to update block guard:', err);
+            setViewError('Failed to update setting. Please try again.');
+          },
+        },
+      );
+    }
+
     // Eligible parents: not current ticket, parentId===null, no children of their own
     const eligibleParents = allTickets.filter((t) => {
       if (t.id === currentTicket.id) return false;
@@ -441,6 +454,18 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                   onToggle={handleToggleAC}
                   onDelete={handleDeleteAC}
                 />
+
+                <div className={styles.blockGuardRow}>
+                  <label className={styles.blockGuardLabel}>
+                    <input
+                      type="checkbox"
+                      checked={ticket.blockDoneIfAcsIncomplete}
+                      onChange={() => handleToggleBlockGuard('blockDoneIfAcsIncomplete')}
+                      className={styles.blockGuardCheckbox}
+                    />
+                    Block Done if ACs not all passed
+                  </label>
+                </div>
 
                 {isRootTicket && (
                   <>
@@ -551,6 +576,18 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       : undefined
                   }
                 />
+
+                <div className={styles.blockGuardRow}>
+                  <label className={styles.blockGuardLabel}>
+                    <input
+                      type="checkbox"
+                      checked={ticket.blockDoneIfTcsIncomplete}
+                      onChange={() => handleToggleBlockGuard('blockDoneIfTcsIncomplete')}
+                      className={styles.blockGuardCheckbox}
+                    />
+                    Block Done if TCs missing or not all passed
+                  </label>
+                </div>
               </div>
 
               {/* ── Right sidebar: metadata ── */}

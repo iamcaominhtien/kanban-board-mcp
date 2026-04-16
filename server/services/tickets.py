@@ -149,6 +149,26 @@ async def update_ticket(
     if update_data.get("status") == "wont_do" and ticket.parent_id is not None:
         raise ValueError("Child tickets cannot be set to wont_do")
 
+    # When transitioning to "done", enforce block guards
+    if update_data.get("status") == "done":
+        effective_block_acs = update_data.get(
+            "block_done_if_acs_incomplete", ticket.block_done_if_acs_incomplete
+        )
+        effective_block_tcs = update_data.get(
+            "block_done_if_tcs_incomplete", ticket.block_done_if_tcs_incomplete
+        )
+        violations = []
+        if effective_block_acs:
+            acs = _loads(ticket.acceptance_criteria)
+            if not acs or any(not ac.get("done") for ac in acs):
+                violations.append("not all Acceptance Criteria are passed")
+        if effective_block_tcs:
+            tcs = _loads(ticket.test_cases)
+            if not tcs or any(tc.get("status") != "pass" for tc in tcs):
+                violations.append("Test Cases are missing or not all passed")
+        if violations:
+            raise ValueError(f"Cannot move to Done: {' and '.join(violations)}.")
+
     # Validate assignee belongs to the ticket's project
     if "assignee" in update_data and update_data["assignee"] is not None:
         assignee_member = await session.get(Member, update_data["assignee"])

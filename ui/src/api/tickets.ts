@@ -57,6 +57,8 @@ export async function updateTicket(
     parentId?: string | null;
     wontDoReason?: string | null;
     assignee?: string | null;
+    blockDoneIfAcsIncomplete?: boolean;
+    blockDoneIfTcsIncomplete?: boolean;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);

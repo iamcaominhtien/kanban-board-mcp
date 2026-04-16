@@ -73,6 +73,8 @@ export interface Ticket {
   assignee: string | null;
   blocks: string[];
   blockedBy: string[];
+  blockDoneIfAcsIncomplete: boolean;
+  blockDoneIfTcsIncomplete: boolean;
   createdAt: string;
   updatedAt: string;
 }
