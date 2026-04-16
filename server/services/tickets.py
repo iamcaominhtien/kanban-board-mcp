@@ -151,12 +151,18 @@ async def update_ticket(
 
     # When transitioning to "done", enforce block guards
     if update_data.get("status") == "done":
-        if ticket.block_done_if_acs_incomplete:
-            acs = json.loads(ticket.acceptance_criteria or "[]")
-            if any(not ac.get("done", False) for ac in acs):
+        effective_block_acs = update_data.get(
+            "block_done_if_acs_incomplete", ticket.block_done_if_acs_incomplete
+        )
+        effective_block_tcs = update_data.get(
+            "block_done_if_tcs_incomplete", ticket.block_done_if_tcs_incomplete
+        )
+        if effective_block_acs:
+            acs = _loads(ticket.acceptance_criteria)
+            if not acs or any(not ac.get("done") for ac in acs):
                 raise ValueError("Cannot move to Done: not all Acceptance Criteria are passed.")
-        if ticket.block_done_if_tcs_incomplete:
-            tcs = json.loads(ticket.test_cases or "[]")
+        if effective_block_tcs:
+            tcs = _loads(ticket.test_cases)
             if not tcs or any(tc.get("status") != "pass" for tc in tcs):
                 raise ValueError("Cannot move to Done: Test Cases are missing or not all passed.")
 
