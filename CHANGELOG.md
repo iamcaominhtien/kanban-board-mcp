@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.7] - 2026-04-17
+
+### Added
+- Per-ticket toggles to block Done transition when ACs or TCs are not fully passed (`block_done_if_acs_incomplete`, `block_done_if_tcs_incomplete`)
+- Server-side validation returns combined error message when multiple guards fail
+- UI toggle switches in ticket detail view for both guards
+- Specific backend error messages surfaced in ticket modal (no more generic errors)
+
+---
+
 ## [1.3.6] - 2026-04-16
 
 ### Improved
