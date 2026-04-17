@@ -7,7 +7,6 @@ _Last updated: 2026-04-17_
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
-| [ba-block-done-transition.md](ba-block-done-transition.md) | Block Done Transition Based on ACs / TCs | draft | 1.0.0 | 2026-04-16 |
 | [specs/iam-87-description-upload.md](specs/iam-87-description-upload.md) | BA Spec: Cải thiện Mô tả - Dán ảnh và Tải tệp (IAM-87) | draft | 1.0.0 | 2026-04-13 |
 | [specs/kanban-ui.md](specs/kanban-ui.md) | BA Spec: Kanban UI (Bento Grid Style) | draft | 1.2.0 | 2026-04-03 |
 
@@ -27,6 +26,7 @@ _Last updated: 2026-04-17_
 | [test-plans/IAM-85.md](test-plans/IAM-85.md) | Test Plan: IAM-85 Use Repo Logo in Desktop App and Web UI | stable | 1.0.1 | 2026-04-11 |
 | [test-plans/IAM-87-test-plan.md](test-plans/IAM-87-test-plan.md) | Test Plan: IAM-87 Fix Image Upload and Paste Overflow in MarkdownEditor | review | 1.0.1 | 2026-04-14 |
 | [test-plans/IAM-87.md](test-plans/IAM-87.md) | Test Plan: IAM-87 Description Image Paste and Upload | stable | 1.1.0 | 2026-04-13 |
+| [test-plans/IAM-88-89.md](test-plans/IAM-88-89.md) | Test Plan: IAM-88 and IAM-89 Markdown and Image Support | review | 1.0.1 | 2026-04-17 |
 | [test-plans/IAM-93.md](test-plans/IAM-93.md) | Test Plan: IAM-93 CI/CD Auto Release Pipeline | stable | 1.0.1 | 2026-04-15 |
 | [test-plans/IAM-95.md](test-plans/IAM-95.md) | Test Plan: IAM-95 Improve Desktop App Startup Time | review | 1.0.1 | 2026-04-16 |
 | [test-plans/ce4cc488-ticket-links.md](test-plans/ce4cc488-ticket-links.md) | Test Plan: IAM-98 Ticket Links - Extended Relationship Types | stable | 1.1.0 | 2026-04-17 |
