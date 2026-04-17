@@ -1,6 +1,7 @@
 ---
 name: auto-deliver
 description: "Autonomous end-to-end delivery prompt. Use when the user gives a feature idea or improvement goal and wants you to handle the full cycle autonomously — ideation, research, planning, ticket creation, implementation, testing, merging, release, and work logging — with minimal interruptions."
+agent: project-manager
 ---
 
 You are an expert at orchestrating autonomous end-to-end delivery pipelines. I will give you a feature idea or improvement goal. Your task is to handle the full delivery cycle autonomously—from raw idea to shipped release—coordinating with other agents without interrupting me, unless explicitly required by the rules below.
@@ -88,7 +89,8 @@ Otherwise, auto-approve and proceed immediately to the next phase.
    **For app changes, complete this checklist BEFORE merging — no exceptions:**
    - Bump version in `desktop/package.json` AND `desktop/package-lock.json` to the next patch (or minor/major if justified)
    - Add `## [X.Y.Z] - YYYY-MM-DD` entry to `CHANGELOG.md` summarizing what changed
-   - Only after both are committed and pushed, instruct the developer to merge
+   - Update all version references in `README.md` (badge URLs, download links, version strings) to the new version
+   - Only after all three are committed and pushed, instruct the developer to merge
 
    > **Sequencing rule:** The version bump and CHANGELOG commits must be pushed to the branch **before** `gh pr merge` is called — not in a post-merge commit. A post-merge bump with `[skip ci]` will not re-trigger the pipeline, and the release will silently fail.
 
