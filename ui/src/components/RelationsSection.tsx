@@ -176,7 +176,8 @@ export function RelationsSection({
   }
 
   return (
-    <div className={styles.content}>
+    <div className={styles.section}>
+      <div className={styles.sectionHeader}>Relations</div>
       <RelationList
         label="Blocks"
         items={getRelationItems(blocks)}

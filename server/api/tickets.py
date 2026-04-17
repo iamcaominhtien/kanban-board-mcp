@@ -461,7 +461,7 @@ class TicketLinkBody(BaseModel):
 class TicketLinkRead(BaseModel):
     id: str
     target_id: str
-    relation_type: str
+    relation_type: Literal["relates_to", "causes", "caused_by", "duplicates", "duplicated_by"]
 
 
 @router.post(
