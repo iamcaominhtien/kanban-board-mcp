@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.10] - 2026-04-18
+
+### Changed
+- Redesigned Relations section in ticket detail: replaced 7 separate labeled sections with a compact unified list and single inline "Add relation" form with dropdown type selector and ticket search
+
+---
+
 ## [1.3.9] - 2026-04-17
 
 ### Added
