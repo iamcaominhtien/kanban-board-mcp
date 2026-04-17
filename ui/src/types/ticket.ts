@@ -1,6 +1,13 @@
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type Status = 'backlog' | 'todo' | 'in-progress' | 'done' | 'wont_do';
 export type IssueType = 'bug' | 'feature' | 'task' | 'chore';
+export type RelationType = 'relates_to' | 'causes' | 'caused_by' | 'duplicates' | 'duplicated_by';
+
+export interface TicketLink {
+  id: string;
+  targetId: string;
+  relationType: RelationType;
+}
 
 export interface Member {
   id: string;
@@ -75,6 +82,7 @@ export interface Ticket {
   blockedBy: string[];
   blockDoneIfAcsIncomplete: boolean;
   blockDoneIfTcsIncomplete: boolean;
+  links: TicketLink[];  // extended relationship links
   createdAt: string;
   updatedAt: string;
 }

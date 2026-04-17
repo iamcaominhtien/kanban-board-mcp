@@ -56,6 +56,7 @@ class Ticket(SQLModel, table=True):
     )  # JSON array of ticket IDs blocking this ticket
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
+    links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -199,6 +200,7 @@ class TicketRead(SQLModel):
     blocked_by: list[Any] = []
     block_done_if_acs_incomplete: bool = False
     block_done_if_tcs_incomplete: bool = False
+    links: list[Any] = []
     created_at: str
     updated_at: str
 
@@ -229,6 +231,7 @@ class TicketRead(SQLModel):
             blocked_by=_parse_json_list(ticket.blocked_by),
             block_done_if_acs_incomplete=ticket.block_done_if_acs_incomplete,
             block_done_if_tcs_incomplete=ticket.block_done_if_tcs_incomplete,
+            links=_parse_json_list(ticket.links),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

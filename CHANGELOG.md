@@ -6,6 +6,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.8] - 2026-04-17
+
+### Added
+- Extended ticket relationship types: `relates_to`, `causes`/`caused_by`, `duplicates`/`duplicated_by`
+- Bidirectional link management — adding a link auto-creates the inverse on the target ticket
+- New API endpoints: POST/DELETE /tickets/{id}/links
+- RelationsSection UI shows all relationship types with human-readable labels
+- Cross-project links and self-links are blocked server-side
+
+---
+
 ## [1.3.7] - 2026-04-17
 
 ### Added

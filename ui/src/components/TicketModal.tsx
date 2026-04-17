@@ -8,6 +8,7 @@ import {
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
   uploadDescriptionImage,
   useLinkBlock, useUnlinkBlock,
+  useAddTicketLink, useRemoveTicketLink,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { ActivityLog } from './ActivityLog';
@@ -116,6 +117,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const deleteTestCaseMutation = useDeleteTestCase();
   const linkBlockMutation = useLinkBlock();
   const unlinkBlockMutation = useUnlinkBlock();
+  const addTicketLinkMutation = useAddTicketLink(ticket?.projectId ?? '');
+  const removeTicketLinkMutation = useRemoveTicketLink(ticket?.projectId ?? '');
   const [visible, setVisible] = useState(false);
   const persistedDescriptionRef = useRef(ticket?.description ?? '');
   const queuedDescriptionRef = useRef<string | null>(null);
@@ -498,6 +501,24 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                           {
                             onSuccess: () => setViewError(null),
                             onError: (err) => { console.error('Failed to unlink block:', err); setViewError('Failed to remove relation. Please try again.'); },
+                          },
+                        )
+                      }
+                      onAddLink={(ticketId, targetId, relationType) =>
+                        addTicketLinkMutation.mutate(
+                          { ticketId, targetId, relationType },
+                          {
+                            onSuccess: () => setViewError(null),
+                            onError: (err) => { console.error('Failed to add link:', err); setViewError('Failed to add link. Please try again.'); },
+                          },
+                        )
+                      }
+                      onRemoveLink={(ticketId, linkId) =>
+                        removeTicketLinkMutation.mutate(
+                          { ticketId, linkId },
+                          {
+                            onSuccess: () => setViewError(null),
+                            onError: (err) => { console.error('Failed to remove link:', err); setViewError('Failed to remove link. Please try again.'); },
                           },
                         )
                       }
