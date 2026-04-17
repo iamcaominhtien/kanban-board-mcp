@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.9] - 2026-04-17
+
+### Added
+- **WorkLog (IAM-88)**: Markdown editing and image support for work log notes — supports bold, italic, lists, links, image paste (Ctrl+V), and image file upload
+- **Test Case Proof (IAM-89)**: Markdown editing and image support for test case proof field — same capabilities as WorkLog
+- Extracted shared `MarkdownRenderer` component for consistent markdown sanitization
+
+---
+
 ## [1.3.8] - 2026-04-17
 
 ### Added
