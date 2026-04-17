@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { RelationType, Status, Ticket } from '../types';
 import styles from './RelationsSection.module.css';
 
@@ -63,41 +63,45 @@ export function RelationsSection({
   const links = ticket.links ?? [];
 
   // Build unified relation rows
-  const relations: RelationRow[] = [
-    ...blocks.map((targetId) => ({
-      type: 'blocks' as const,
-      targetId,
-      ticket: allTickets.find((t) => t.id === targetId)!,
-    })),
-    ...blockedBy.map((targetId) => ({
-      type: 'blockedBy' as const,
-      targetId,
-      ticket: allTickets.find((t) => t.id === targetId)!,
-    })),
-    ...links.map((link) => ({
-      type: link.relationType,
-      targetId: link.targetId,
-      ticket: allTickets.find((t) => t.id === link.targetId)!,
-      linkId: link.id,
-    })),
-  ].filter((rel) => !!rel.ticket);
+  const relations: RelationRow[] = useMemo(() => {
+    const rows: RelationRow[] = [];
+    
+    (ticket.blocks ?? []).forEach((targetId) => {
+      const t = allTickets.find((t) => t.id === targetId);
+      if (t) rows.push({ type: 'blocks', targetId, ticket: t });
+    });
 
-  // Get already-linked IDs for the current selection
-  const getExcludeIds = (): Set<string> => {
+    (ticket.blockedBy ?? []).forEach((targetId) => {
+      const t = allTickets.find((t) => t.id === targetId);
+      if (t) rows.push({ type: 'blockedBy', targetId, ticket: t });
+    });
+
+    (ticket.links ?? []).forEach((link) => {
+      const t = allTickets.find((t) => t.id === link.targetId);
+      if (t) rows.push({ type: link.relationType, targetId: link.targetId, ticket: t, linkId: link.id });
+    });
+
+    return rows;
+  }, [ticket.blocks, ticket.blockedBy, ticket.links, allTickets]);
+
+  const excludeIds = useMemo(() => {
     const ids = new Set([ticket.id]);
     relations.forEach((rel) => ids.add(rel.targetId));
     return ids;
-  };
+  }, [ticket.id, relations]);
 
-  const eligible = allTickets.filter((t) => {
-    if (getExcludeIds().has(t.id)) return false;
-    if (t.parentId !== null) return false;
-    if (!search) return true;
-    return (
-      t.id.toLowerCase().includes(search.toLowerCase()) ||
-      t.title.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  const eligible = useMemo(() => {
+    const searchLower = search.toLowerCase();
+    return allTickets.filter((t) => {
+      if (excludeIds.has(t.id)) return false;
+      if (t.parentId !== null) return false;
+      if (!searchLower) return true;
+      return (
+        t.id.toLowerCase().includes(searchLower) ||
+        t.title.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [allTickets, excludeIds, search]);
 
   const handleRemove = (rel: RelationRow) => {
     if (rel.type === 'blocks') {
