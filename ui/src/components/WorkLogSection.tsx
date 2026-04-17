@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import type { WorkLogEntry } from '../types';
+import { uploadDescriptionImage } from '../api/tickets';
+import { MarkdownEditor } from './MarkdownEditor';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import styles from './WorkLogSection.module.css';
 
 const ROLES: WorkLogEntry['role'][] = ['PM', 'Developer', 'BA', 'Tester', 'Designer', 'Other'];
@@ -73,7 +76,9 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
                     <span className={styles.author}>{entry.author}</span>
                     <span className={styles.timestamp}>{formatDateTime(entry.at)}</span>
                   </div>
-                  <p className={styles.note}>{entry.note}</p>
+                  <div className={styles.note}>
+                    <MarkdownRenderer>{entry.note}</MarkdownRenderer>
+                  </div>
                 </div>
               ))}
             </div>
@@ -104,13 +109,15 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
               </div>
             </div>
             <label htmlFor="wl-note" className={styles.srOnly}>Note</label>
-            <textarea
-              id="wl-note"
-              className={styles.textarea}
-              rows={3}
+            <MarkdownEditor
               value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Describe the work done..."
+              onChange={setNote}
+              onBlur={setNote}
+              onUploadImage={async (file) => {
+                const result = await uploadDescriptionImage(file);
+                return { markdown: result.markdown };
+              }}
+              onUploadComplete={setNote}
             />
             <div className={styles.submitRow}>
               <button

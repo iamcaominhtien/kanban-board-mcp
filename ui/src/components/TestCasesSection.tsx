@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TestCase, TestCaseStatus } from '../types';
+import { uploadDescriptionImage } from '../api/tickets';
+import { MarkdownEditor } from './MarkdownEditor';
 import styles from './TestCasesSection.module.css';
 
 interface ChildTestCaseSource {
@@ -165,15 +167,17 @@ function TestCaseRow({
 
       {expanded && (
         <div className={styles.details}>
-          <label className={styles.detailLabel} htmlFor={`proof-${tc.id}`}>Proof</label>
-          <textarea
-            id={`proof-${tc.id}`}
-            className={styles.textarea}
-            rows={2}
+          <label className={styles.detailLabel}>Proof</label>
+          <MarkdownEditor
             value={tc.proof ?? ''}
+            onChange={(value) => onUpdate({ ...tc, proof: value })}
+            onBlur={(value) => onUpdate({ ...tc, proof: value })}
+            onUploadImage={async (file) => {
+              const result = await uploadDescriptionImage(file);
+              return { markdown: result.markdown };
+            }}
+            onUploadComplete={(value) => onUpdate({ ...tc, proof: value })}
             readOnly={readOnly}
-            onChange={(e) => onUpdate({ ...tc, proof: e.target.value })}
-            placeholder="Screenshot URL, test run ID, or any proof..."
           />
           <label className={styles.detailLabel} htmlFor={`note-${tc.id}`}>Note</label>
           <textarea
