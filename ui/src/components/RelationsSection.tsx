@@ -58,10 +58,6 @@ export function RelationsSection({
   const [selectedType, setSelectedType] = useState<RelationTypeKey>('blocks');
   const [search, setSearch] = useState('');
 
-  const blocks = ticket.blocks ?? [];
-  const blockedBy = ticket.blockedBy ?? [];
-  const links = ticket.links ?? [];
-
   // Build unified relation rows
   const relations: RelationRow[] = useMemo(() => {
     const rows: RelationRow[] = [];
@@ -109,7 +105,11 @@ export function RelationsSection({
     } else if (rel.type === 'blockedBy') {
       onUnlinkBlock(rel.targetId, ticket.id);
     } else {
-      onRemoveLink?.(ticket.id, rel.linkId!);
+      if (rel.linkId) {
+        onRemoveLink?.(ticket.id, rel.linkId);
+      } else {
+        console.warn('RelationsSection: tried to remove a link with no linkId', rel);
+      }
     }
   };
 
@@ -135,10 +135,11 @@ export function RelationsSection({
 
       {relations.length > 0 && (
         <div className={styles.list}>
-          {relations.map((rel, idx) => {
+          {relations.map((rel) => {
             const sc = STATUS_COLORS[rel.ticket.status as Status] ?? STATUS_COLORS.backlog;
+            const canRemove = rel.type === 'blocks' || rel.type === 'blockedBy' || !!onRemoveLink;
             return (
-              <div key={`${rel.type}-${rel.targetId}-${idx}`} className={styles.row}>
+              <div key={`${rel.type}-${rel.targetId}`} className={styles.row}>
                 <span className={styles.typeBadge}>{RELATION_TYPE_LABELS[rel.type]}</span>
                 <span className={styles.ticketId}>#{rel.targetId}</span>
                 <span className={styles.ticketTitle}>{rel.ticket.title}</span>
@@ -148,14 +149,17 @@ export function RelationsSection({
                 >
                   {STATUS_LABELS[rel.ticket.status as Status] ?? rel.ticket.status}
                 </span>
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => handleRemove(rel)}
-                  title="Remove relation"
-                >
-                  ×
-                </button>
+                {canRemove && (
+                  <button
+                    type="button"
+                    className={styles.removeBtn}
+                    onClick={() => handleRemove(rel)}
+                    aria-label="Remove relation"
+                    title="Remove relation"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             );
           })}
@@ -177,6 +181,7 @@ export function RelationsSection({
               className={styles.typeSelect}
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as RelationTypeKey)}
+              aria-label="Relation type"
             >
               <option value="blocks">Blocks</option>
               <option value="blockedBy">Blocked by</option>
@@ -192,6 +197,7 @@ export function RelationsSection({
               placeholder="Search tickets…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search tickets"
             />
             <button
               type="button"
@@ -200,6 +206,7 @@ export function RelationsSection({
                 setShowAddForm(false);
                 setSearch('');
               }}
+              aria-label="Close"
               title="Close"
             >
               ✕
