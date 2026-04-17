@@ -59,9 +59,6 @@ function TestCaseRow({
   sourceBadge?: string;
 }) {
   const [expanded, setExpanded] = useState(() => !!(tc.proof || tc.note));
-  useEffect(() => {
-    if (tc.proof || tc.note) setExpanded(true);
-  }, [tc.proof, tc.note]);
   const [editingTitle, setEditingTitle] = useState(tc.title === '');
   const [titleDraft, setTitleDraft] = useState(tc.title);
   const [titleError, setTitleError] = useState(false);

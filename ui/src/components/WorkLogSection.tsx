@@ -21,16 +21,6 @@ interface WorkLogSectionProps {
   onAdd: (entry: Omit<WorkLogEntry, 'id'>) => void;
 }
 
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
   const [author, setAuthor] = useState('');
   const [role, setRole] = useState<WorkLogEntry['role']>('Developer');
@@ -44,6 +34,16 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
     setAuthor('');
   }
 
+  function formatDateTime(iso: string) {
+    return new Date(iso).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   return (
     <div className={styles.section}>
       <button
@@ -53,9 +53,9 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
         aria-expanded={isExpanded}
       >
         <span className={styles.sectionHeader}>
-          {`Work Log (${entries.length})`}
+          {'Work Log (' + entries.length + ')'}
         </span>
-        <span className={`${styles.chevron} ${!isExpanded ? styles.chevronCollapsed : ''}`}>▼</span>
+        <span className={styles.chevron + ' ' + (!isExpanded ? styles.chevronCollapsed : '')}>▼</span>
       </button>
 
       {isExpanded && (
