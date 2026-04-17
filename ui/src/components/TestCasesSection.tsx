@@ -167,13 +167,13 @@ function TestCaseRow({
           <label className={styles.detailLabel}>Proof</label>
           <MarkdownEditor
             value={tc.proof ?? ''}
-            onChange={(value) => onUpdate({ ...tc, proof: value })}
-            onBlur={(value) => onUpdate({ ...tc, proof: value })}
+            onChange={(value) => onUpdate({ ...tc, proof: value || null })}
+            onBlur={(value) => onUpdate({ ...tc, proof: value || null })}
             onUploadImage={async (file) => {
               const result = await uploadDescriptionImage(file);
               return { markdown: result.markdown };
             }}
-            onUploadComplete={(value) => onUpdate({ ...tc, proof: value })}
+            onUploadComplete={(value) => onUpdate({ ...tc, proof: value || null })}
             readOnly={readOnly}
           />
           <label className={styles.detailLabel} htmlFor={`note-${tc.id}`}>Note</label>
