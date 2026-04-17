@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { IssueType, Priority, Status, Ticket, WorkLogRole } from '../types/ticket';
+import type { IssueType, Priority, Status, Ticket, TicketLink, WorkLogRole } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -182,6 +182,26 @@ export async function deleteTestCase(
 ): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`);
   return res.data;
+}
+
+// Links
+export async function addTicketLink(
+  ticketId: string,
+  targetId: string,
+  relationType: string,
+): Promise<TicketLink> {
+  const res = await client.post<TicketLink>(
+    `/tickets/${ticketId}/links`,
+    { target_id: targetId, relation_type: relationType },
+  );
+  return res.data;
+}
+
+export async function removeTicketLink(
+  ticketId: string,
+  linkId: string,
+): Promise<void> {
+  await client.delete(`/tickets/${ticketId}/links/${linkId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -460,5 +480,34 @@ export function useProjectActivities(projectId: string) {
     queryKey: ['project_activities', projectId],
     queryFn: () => listProjectActivities(projectId),
     enabled: !!projectId,
+  });
+}
+
+export function useAddTicketLink(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      targetId,
+      relationType,
+    }: {
+      ticketId: string;
+      targetId: string;
+      relationType: string;
+    }) => addTicketLink(ticketId, targetId, relationType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
+    },
+  });
+}
+
+export function useRemoveTicketLink(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticketId, linkId }: { ticketId: string; linkId: string }) =>
+      removeTicketLink(ticketId, linkId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
+    },
   });
 }

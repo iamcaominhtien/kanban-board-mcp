@@ -142,7 +142,7 @@ export default function App() {
   }
 
   async function handleCreateTicket(
-    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy' | 'blockDoneIfAcsIncomplete' | 'blockDoneIfTcsIncomplete'>,
+    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy' | 'blockDoneIfAcsIncomplete' | 'blockDoneIfTcsIncomplete' | 'links'>,
   ) {
     if (!currentProjectId) return;
     try {

@@ -21,6 +21,7 @@ from services.tickets import (
     add_acceptance_criterion,
     add_comment,
     add_test_case,
+    add_ticket_link,
     add_work_log,
     create_ticket,
     delete_acceptance_criterion,
@@ -32,6 +33,7 @@ from services.tickets import (
     get_ticket,
     link_block,
     list_tickets,
+    remove_ticket_link,
     toggle_acceptance_criterion,
     unlink_block,
     update_test_case,
@@ -228,7 +230,9 @@ async def patch_status(
     ticket_id: str, body: StatusBody, session: Session
 ) -> TicketRead:
     try:
-        ticket = await update_ticket(session, ticket_id, TicketUpdate(status=body.status))
+        ticket = await update_ticket(
+            session, ticket_id, TicketUpdate(status=body.status)
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
@@ -440,3 +444,44 @@ async def delete_block(
     blocker, blocked = result
     await board_events.publish("invalidate")
     return BlockPairRead(blocker=_read(blocker), blocked=_read(blocked))
+
+
+# ---------------------------------------------------------------------------
+# Extended link relationships
+# ---------------------------------------------------------------------------
+
+
+class TicketLinkBody(BaseModel):
+    target_id: str
+    relation_type: str
+
+
+class TicketLinkRead(BaseModel):
+    id: str
+    target_id: str
+    relation_type: str
+
+
+@router.post(
+    "/tickets/{ticket_id}/links", response_model=TicketLinkRead, status_code=201
+)
+async def post_ticket_link(
+    ticket_id: str, body: TicketLinkBody, session: Session
+) -> TicketLinkRead:
+    try:
+        link = await add_ticket_link(
+            session, ticket_id, body.target_id, body.relation_type
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return TicketLinkRead(**link)
+
+
+@router.delete("/tickets/{ticket_id}/links/{link_id}")
+async def delete_ticket_link(ticket_id: str, link_id: str, session: Session) -> dict:
+    found = await remove_ticket_link(session, ticket_id, link_id)
+    if not found:
+        _404("Link not found")
+    await board_events.publish("invalidate")
+    return {"success": True}

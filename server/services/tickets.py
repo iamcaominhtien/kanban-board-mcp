@@ -533,3 +533,126 @@ async def unlink_block(
     await session.refresh(blocker)
     await session.refresh(blocked)
     return blocker, blocked
+
+
+# ---------------------------------------------------------------------------
+# Extended link relationships
+# ---------------------------------------------------------------------------
+
+VALID_RELATION_TYPES = frozenset(
+    {"relates_to", "causes", "caused_by", "duplicates", "duplicated_by"}
+)
+
+_INVERSE_RELATION: dict[str, str] = {
+    "relates_to": "relates_to",
+    "causes": "caused_by",
+    "caused_by": "causes",
+    "duplicates": "duplicated_by",
+    "duplicated_by": "duplicates",
+}
+
+
+async def add_ticket_link(
+    session: AsyncSession,
+    ticket_id: str,
+    target_id: str,
+    relation_type: str,
+) -> dict:
+    if ticket_id == target_id:
+        raise ValueError("A ticket cannot link to itself")
+    if relation_type not in VALID_RELATION_TYPES:
+        raise ValueError(
+            f"Invalid relation type '{relation_type}'. "
+            f"Valid types: {sorted(VALID_RELATION_TYPES)}"
+        )
+
+    ticket = await session.get(Ticket, ticket_id)
+    target = await session.get(Ticket, target_id)
+    if ticket is None or target is None:
+        raise ValueError("One or both tickets not found")
+
+    ticket_links = _loads(ticket.links)
+    # Dedup check
+    for link in ticket_links:
+        if (
+            link.get("target_id") == target_id
+            and link.get("relation_type") == relation_type
+        ):
+            return link
+
+    new_link_id = str(uuid.uuid4())
+    new_link = {
+        "id": new_link_id,
+        "target_id": target_id,
+        "relation_type": relation_type,
+    }
+    ticket_links.append(new_link)
+    ticket.links = _dumps(ticket_links)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+
+    # Inverse link on target ticket
+    inverse_type = _INVERSE_RELATION[relation_type]
+    target_links = _loads(target.links)
+    already_has_inverse = any(
+        lk.get("target_id") == ticket_id and lk.get("relation_type") == inverse_type
+        for lk in target_links
+    )
+    if not already_has_inverse:
+        target_links.append(
+            {
+                "id": str(uuid.uuid4()),
+                "target_id": ticket_id,
+                "relation_type": inverse_type,
+            }
+        )
+    target.links = _dumps(target_links)
+    target.updated_at = datetime.now(UTC).isoformat()
+
+    session.add(ticket)
+    session.add(target)
+    await session.commit()
+    return new_link
+
+
+async def remove_ticket_link(
+    session: AsyncSession,
+    ticket_id: str,
+    link_id: str,
+) -> bool:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return False
+
+    ticket_links = _loads(ticket.links)
+    link_to_remove = next((lk for lk in ticket_links if lk.get("id") == link_id), None)
+    if link_to_remove is None:
+        return False
+
+    target_id = link_to_remove.get("target_id")
+    relation_type = link_to_remove.get("relation_type")
+
+    ticket.links = _dumps([lk for lk in ticket_links if lk.get("id") != link_id])
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+
+    # Remove inverse link from target
+    if target_id:
+        target = await session.get(Ticket, target_id)
+        if target is not None:
+            inverse_type = _INVERSE_RELATION.get(relation_type, "")
+            target_links = _loads(target.links)
+            target.links = _dumps(
+                [
+                    lk
+                    for lk in target_links
+                    if not (
+                        lk.get("target_id") == ticket_id
+                        and lk.get("relation_type") == inverse_type
+                    )
+                ]
+            )
+            target.updated_at = datetime.now(UTC).isoformat()
+            session.add(target)
+
+    await session.commit()
+    return True
