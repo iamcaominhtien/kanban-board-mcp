@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { IssueType, Priority, Status, Ticket, TicketLink, WorkLogRole } from '../types/ticket';
+import type { IssueType, Priority, RelationType, Status, Ticket, TicketLink, WorkLogRole } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -188,7 +188,7 @@ export async function deleteTestCase(
 export async function addTicketLink(
   ticketId: string,
   targetId: string,
-  relationType: string,
+  relationType: RelationType,
 ): Promise<TicketLink> {
   const res = await client.post<TicketLink>(
     `/tickets/${ticketId}/links`,
@@ -493,7 +493,7 @@ export function useAddTicketLink(projectId: string) {
     }: {
       ticketId: string;
       targetId: string;
-      relationType: string;
+      relationType: RelationType;
     }) => addTicketLink(ticketId, targetId, relationType),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });

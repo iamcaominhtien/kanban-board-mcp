@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { RelationType, Status, Ticket, TicketLink } from '../types';
+import type { RelationType, Status, Ticket } from '../types';
 import styles from './RelationsSection.module.css';
 
 const STATUS_COLORS: Record<Status, { bg: string; color: string }> = {
@@ -43,146 +43,25 @@ interface RelationsSectionProps {
   onRemoveLink?: (ticketId: string, linkId: string) => void;
 }
 
-function RelationList({
-  label,
-  ids,
-  allTickets,
-  onRemove,
-  onAdd,
-  excludeIds,
-}: {
+interface RelationListProps {
   label: string;
-  ids: string[];
+  items: { id: string; ticket: Ticket }[];
   allTickets: Ticket[];
   onRemove: (id: string) => void;
   onAdd: (id: string) => void;
   excludeIds: Set<string>;
-}) {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [search, setSearch] = useState('');
-
-  const related = ids
-    .map((id) => allTickets.find((t) => t.id === id))
-    .filter((t): t is Ticket => !!t);
-
-  const eligible = allTickets.filter((t) => {
-    if (excludeIds.has(t.id)) return false;
-    if (t.parentId !== null) return false;  // sub-tickets not selectable
-    if (!search) return true;
-    return (
-      t.id.toLowerCase().includes(search.toLowerCase()) ||
-      t.title.toLowerCase().includes(search.toLowerCase())
-    );
-  });
-
-  function handleSelect(id: string) {
-    onAdd(id);
-    setShowDropdown(false);
-    setSearch('');
-  }
-
-  return (
-    <div className={styles.group}>
-      <div className={styles.groupHeader}>{label}</div>
-      {related.length === 0 && (
-        <span className={styles.empty}>None</span>
-      )}
-      {related.length > 0 && (
-        <div className={styles.list}>
-          {related.map((t) => {
-            const sc = STATUS_COLORS[t.status as Status] ?? STATUS_COLORS.backlog;
-            return (
-              <div key={t.id} className={styles.row}>
-                <span className={styles.ticketId}>{t.id}</span>
-                <span className={styles.ticketTitle}>{t.title}</span>
-                <span
-                  className={styles.statusChip}
-                  style={{ background: sc.bg, color: sc.color }}
-                >
-                  {STATUS_LABELS[t.status as Status] ?? t.status}
-                </span>
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => onRemove(t.id)}
-                  title="Remove relation"
-                >
-                  ×
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      <div className={styles.addArea}>
-        {!showDropdown ? (
-          <button
-            type="button"
-            className={styles.addBtn}
-            onClick={() => setShowDropdown(true)}
-          >
-            ＋ Add
-          </button>
-        ) : (
-          <div className={styles.dropdown}>
-            <input
-              autoFocus
-              className={styles.searchInput}
-              placeholder="Search tickets…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className={styles.dropdownList}>
-              {eligible.length === 0 && (
-                <span className={styles.dropdownEmpty}>No tickets found</span>
-              )}
-              {eligible.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={styles.dropdownItem}
-                  onClick={() => handleSelect(t.id)}
-                >
-                  <span className={styles.ticketId}>{t.id}</span>
-                  <span className={styles.dropdownTitle}>{t.title}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className={styles.cancelBtn}
-              onClick={() => { setShowDropdown(false); setSearch(''); }}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
-function LinkList({
-  relationType,
-  links,
+function RelationList({
+  label,
+  items,
   allTickets,
   onRemove,
-  excludeIds,
   onAdd,
-}: {
-  relationType: RelationType;
-  links: TicketLink[];
-  allTickets: Ticket[];
-  onRemove: (linkId: string) => void;
-  excludeIds: Set<string>;
-  onAdd: (targetId: string) => void;
-}) {
+  excludeIds,
+}: RelationListProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [search, setSearch] = useState('');
-
-  const related = links
-    .map((lk) => ({ link: lk, ticket: allTickets.find((t) => t.id === lk.targetId) }))
-    .filter((item): item is { link: TicketLink; ticket: Ticket } => !!item.ticket);
 
   const eligible = allTickets.filter((t) => {
     if (excludeIds.has(t.id)) return false;
@@ -196,14 +75,14 @@ function LinkList({
 
   return (
     <div className={styles.group}>
-      <div className={styles.groupHeader}>{RELATION_LABELS[relationType]}</div>
-      {related.length === 0 && <span className={styles.empty}>None</span>}
-      {related.length > 0 && (
+      <div className={styles.groupHeader}>{label}</div>
+      {items.length === 0 && <span className={styles.empty}>None</span>}
+      {items.length > 0 && (
         <div className={styles.list}>
-          {related.map(({ link, ticket }) => {
+          {items.map(({ id, ticket }) => {
             const sc = STATUS_COLORS[ticket.status as Status] ?? STATUS_COLORS.backlog;
             return (
-              <div key={link.id} className={styles.row}>
+              <div key={id} className={styles.row}>
                 <span className={styles.ticketId}>{ticket.id}</span>
                 <span className={styles.ticketTitle}>{ticket.title}</span>
                 <span
@@ -215,8 +94,8 @@ function LinkList({
                 <button
                   type="button"
                   className={styles.removeBtn}
-                  onClick={() => onRemove(link.id)}
-                  title="Remove link"
+                  onClick={() => onRemove(id)}
+                  title="Remove relation"
                 >
                   ×
                 </button>
@@ -281,62 +160,54 @@ export function RelationsSection({
   const blockedBy = ticket.blockedBy ?? [];
   const links = ticket.links ?? [];
 
-  // All IDs used in blocks/blockedBy for exclusion
   const blockRelatedIds = new Set([ticket.id, ...blocks, ...blockedBy]);
 
-  // Build excluded IDs for each link relation type (exclude self + same-type already linked)
-  function excludedForType(type: RelationType): Set<string> {
-    const linked = links.filter((lk) => lk.relationType === type).map((lk) => lk.targetId);
-    return new Set([ticket.id, ...linked]);
+  function getRelationItems(ids: string[]) {
+    return ids
+      .map((id) => ({ id, ticket: allTickets.find((t) => t.id === id) }))
+      .filter((item): item is { id: string; ticket: Ticket } => !!item.ticket);
   }
 
-  function handleAddBlocks(targetId: string) {
-    onLinkBlock(ticket.id, targetId);
-  }
-
-  function handleRemoveBlocks(targetId: string) {
-    onUnlinkBlock(ticket.id, targetId);
-  }
-
-  function handleAddBlockedBy(blockerId: string) {
-    onLinkBlock(blockerId, ticket.id);
-  }
-
-  function handleRemoveBlockedBy(blockerId: string) {
-    onUnlinkBlock(blockerId, ticket.id);
+  function getLinkItems(type: RelationType) {
+    return links
+      .filter((lk) => lk.relationType === type)
+      .map((lk) => ({ id: lk.id, ticket: allTickets.find((t) => t.id === lk.targetId) }))
+      .filter((item): item is { id: string; ticket: Ticket } => !!item.ticket);
   }
 
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeader}>Relations</div>
+    <div className={styles.content}>
       <RelationList
         label="Blocks"
-        ids={blocks}
+        items={getRelationItems(blocks)}
         allTickets={allTickets}
-        onRemove={handleRemoveBlocks}
-        onAdd={handleAddBlocks}
+        onRemove={(id) => onUnlinkBlock(ticket.id, id)}
+        onAdd={(id) => onLinkBlock(ticket.id, id)}
         excludeIds={blockRelatedIds}
       />
       <RelationList
         label="Blocked by"
-        ids={blockedBy}
+        items={getRelationItems(blockedBy)}
         allTickets={allTickets}
-        onRemove={handleRemoveBlockedBy}
-        onAdd={handleAddBlockedBy}
+        onRemove={(id) => onUnlinkBlock(id, ticket.id)}
+        onAdd={(id) => onLinkBlock(id, ticket.id)}
         excludeIds={blockRelatedIds}
       />
-      {ALL_RELATION_TYPES.map((type) => (
-        <LinkList
-          key={type}
-          relationType={type}
-          links={links.filter((lk) => lk.relationType === type)}
-          allTickets={allTickets}
-          excludeIds={excludedForType(type)}
-          onRemove={(linkId) => onRemoveLink?.(ticket.id, linkId)}
-          onAdd={(targetId) => onAddLink?.(ticket.id, targetId, type)}
-        />
-      ))}
+      {ALL_RELATION_TYPES.map((type) => {
+        const items = getLinkItems(type);
+        const excludeIds = new Set([ticket.id, ...items.map((i) => i.ticket.id)]);
+        return (
+          <RelationList
+            key={type}
+            label={RELATION_LABELS[type]}
+            items={items}
+            allTickets={allTickets}
+            onRemove={(id) => onRemoveLink?.(ticket.id, id)}
+            onAdd={(id) => onAddLink?.(ticket.id, id, type)}
+            excludeIds={excludeIds}
+          />
+        );
+      })}
     </div>
   );
 }
-

@@ -552,6 +552,14 @@ _INVERSE_RELATION: dict[str, str] = {
 }
 
 
+def _update_ticket_links(
+    session: AsyncSession, ticket: Ticket, links: list[dict]
+) -> None:
+    ticket.links = _dumps(links)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+
+
 async def add_ticket_link(
     session: AsyncSession,
     ticket_id: str,
@@ -571,6 +579,9 @@ async def add_ticket_link(
     if ticket is None or target is None:
         raise ValueError("One or both tickets not found")
 
+    if ticket.project_id != target.project_id:
+        raise ValueError("Cannot link tickets across different projects.")
+
     ticket_links = _loads(ticket.links)
     # Dedup check
     for link in ticket_links:
@@ -587,8 +598,7 @@ async def add_ticket_link(
         "relation_type": relation_type,
     }
     ticket_links.append(new_link)
-    ticket.links = _dumps(ticket_links)
-    ticket.updated_at = datetime.now(UTC).isoformat()
+    _update_ticket_links(session, ticket, ticket_links)
 
     # Inverse link on target ticket
     inverse_type = _INVERSE_RELATION[relation_type]
@@ -605,11 +615,8 @@ async def add_ticket_link(
                 "relation_type": inverse_type,
             }
         )
-    target.links = _dumps(target_links)
-    target.updated_at = datetime.now(UTC).isoformat()
+        _update_ticket_links(session, target, target_links)
 
-    session.add(ticket)
-    session.add(target)
     await session.commit()
     return new_link
 
@@ -631,9 +638,8 @@ async def remove_ticket_link(
     target_id = link_to_remove.get("target_id")
     relation_type = link_to_remove.get("relation_type")
 
-    ticket.links = _dumps([lk for lk in ticket_links if lk.get("id") != link_id])
-    ticket.updated_at = datetime.now(UTC).isoformat()
-    session.add(ticket)
+    links_after = [lk for lk in ticket_links if lk.get("id") != link_id]
+    _update_ticket_links(session, ticket, links_after)
 
     # Remove inverse link from target
     if target_id:
@@ -641,18 +647,15 @@ async def remove_ticket_link(
         if target is not None:
             inverse_type = _INVERSE_RELATION.get(relation_type, "")
             target_links = _loads(target.links)
-            target.links = _dumps(
-                [
-                    lk
-                    for lk in target_links
-                    if not (
-                        lk.get("target_id") == ticket_id
-                        and lk.get("relation_type") == inverse_type
-                    )
-                ]
-            )
-            target.updated_at = datetime.now(UTC).isoformat()
-            session.add(target)
+            target_after = [
+                lk
+                for lk in target_links
+                if not (
+                    lk.get("target_id") == ticket_id
+                    and lk.get("relation_type") == inverse_type
+                )
+            ]
+            _update_ticket_links(session, target, target_after)
 
     await session.commit()
     return True
