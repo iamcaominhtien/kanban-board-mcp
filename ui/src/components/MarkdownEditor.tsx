@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import remarkGfm from 'remark-gfm';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import styles from './MarkdownEditor.module.css';
 
 const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -37,19 +35,6 @@ interface Props {
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
 }
-
-const MARKDOWN_SCHEMA = {
-  ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), 'img'],
-  attributes: {
-    ...(defaultSchema.attributes ?? {}),
-    img: ['src', 'alt', 'title'],
-  },
-  protocols: {
-    ...(defaultSchema.protocols ?? {}),
-    src: ['http', 'https'],
-  },
-};
 
 export function MarkdownEditor({
   value,
@@ -195,6 +180,9 @@ export function MarkdownEditor({
     if (!file) {
       return;
     }
+    if (!SUPPORTED_UPLOAD_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+      return;
+    }
     void handleImageUpload(file);
   }
 
@@ -228,7 +216,7 @@ export function MarkdownEditor({
         aria-label={readOnly ? undefined : 'Edit description'}
       >
         {value ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}>{value}</ReactMarkdown>
+          <MarkdownRenderer>{value}</MarkdownRenderer>
         ) : (
           <span className={styles.placeholder}>Click to add a description...</span>
         )}
