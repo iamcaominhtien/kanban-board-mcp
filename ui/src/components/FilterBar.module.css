@@ -23,7 +23,8 @@
 }
 
 .searchInput:focus {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-dark) 15%, transparent);
+  border-color: var(--color-accent2);
+  box-shadow: 0 0 0 2px rgba(15, 52, 96, 0.3);
 }
 
 .chips {
@@ -52,6 +53,7 @@
 }
 
 .chipActive {
-  background: var(--color-dark);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
 }

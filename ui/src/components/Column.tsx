@@ -48,6 +48,7 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
     <div
       ref={setNodeRef}
       className={styles.column}
+      data-status={column.id}
       style={{
         backgroundColor: column.accentColor,
         filter: isOver ? 'brightness(0.88)' : undefined,

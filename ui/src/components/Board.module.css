@@ -121,6 +121,12 @@
   flex: 1;
 }
 
+/* Column status top borders */
+.column[data-status="backlog"] { border-top: 3px solid #533483; }
+.column[data-status="todo"] { border-top: 3px solid #0f3460; }
+.column[data-status="in-progress"] { border-top: 3px solid #e2b04a; }
+.column[data-status="done"] { border-top: 3px solid #2ecc71; }
+
 .childIndent {
   padding-left: 16px;
   position: relative;
