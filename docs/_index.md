@@ -1,7 +1,7 @@
 # Documentation Index
 _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/generate_docs_index.py` to refresh._
 
-_Last updated: 2026-04-17_
+_Last updated: 2026-04-18_
 
 ## Business Analysis
 
@@ -30,6 +30,7 @@ _Last updated: 2026-04-17_
 | [test-plans/IAM-88-89.md](test-plans/IAM-88-89.md) | Test Plan: IAM-88 and IAM-89 Markdown and Image Support | review | 1.0.2 | 2026-04-17 |
 | [test-plans/IAM-93.md](test-plans/IAM-93.md) | Test Plan: IAM-93 CI/CD Auto Release Pipeline | stable | 1.0.1 | 2026-04-15 |
 | [test-plans/IAM-95.md](test-plans/IAM-95.md) | Test Plan: IAM-95 Improve Desktop App Startup Time | review | 1.0.1 | 2026-04-16 |
+| [test-plans/iam-115.md](test-plans/iam-115.md) | Test Plan: IAM-115 Ticket Detail Modal and Create Form UI Polish | stable | 1.0.1 | 2026-04-18 |
 | [test-plans/ce4cc488-ticket-links.md](test-plans/ce4cc488-ticket-links.md) | Test Plan: IAM-98 Ticket Links - Extended Relationship Types | stable | 1.1.0 | 2026-04-17 |
 | [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
