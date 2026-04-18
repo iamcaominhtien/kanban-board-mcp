@@ -284,12 +284,9 @@ export function useUpdateTicketStatus() {
 
       // Optimistically update all ticket list caches
       previousQueriesData.forEach(([queryKey]) => {
-        queryClient.setQueryData<Ticket[]>(queryKey, (old) => {
-          if (!old) return old;
-          return old.map((ticket) =>
-            ticket.id === ticketId ? { ...ticket, status } : ticket,
-          );
-        });
+        queryClient.setQueryData<Ticket[]>(queryKey, (old) =>
+          old?.map((t) => (t.id === ticketId ? { ...t, status } : t)),
+        );
       });
 
       // Optimistically update ticket detail cache
@@ -302,19 +299,14 @@ export function useUpdateTicketStatus() {
 
       return { previousQueriesData, previousTicket };
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, variables, context) => {
       // Rollback on error
       if (context?.previousQueriesData) {
         context.previousQueriesData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      if (context?.previousTicket) {
-        queryClient.setQueryData(
-          ticketKeys.detail(context.previousTicket.id),
-          context.previousTicket,
-        );
-      }
+      queryClient.setQueryData(ticketKeys.detail(variables.ticketId), context?.previousTicket);
     },
     onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
