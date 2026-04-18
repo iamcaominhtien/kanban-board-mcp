@@ -32,6 +32,11 @@
   flex-wrap: wrap;
 }
 
+.chips + .chips {
+  padding-left: 16px;
+  border-left: 2px solid color-mix(in srgb, var(--color-dark) 15%, transparent);
+}
+
 .chip {
   border-radius: 999px;
   padding: 6px 14px;
