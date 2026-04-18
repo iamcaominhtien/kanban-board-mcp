@@ -12,7 +12,7 @@
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-dark) 35%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 .card:focus-visible {
@@ -112,7 +112,7 @@
 .dueDate {
   font-size: 11px;
   font-weight: 500;
-  color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  color: rgba(245, 239, 224, 0.65);
 }
 
 .dueDateOverdue {
@@ -124,7 +124,7 @@
 .subTasksProgress {
   font-size: 11px;
   font-weight: 500;
-  color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  color: rgba(245, 239, 224, 0.65);
 }
 
 .subTasksDone {
