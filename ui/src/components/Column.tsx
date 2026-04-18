@@ -57,9 +57,21 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
     >
       <div className={styles.columnHeader}>
         <span className={styles.columnLabel}>{column.label}</span>
-        <span className={styles.badge}>{tickets.length}</span>
+        <span
+          className={styles.badge}
+          style={{ background: 'var(--color-dark)', color: 'var(--color-bg)' }}
+          aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
+        >
+          {tickets.length}
+        </span>
       </div>
       <div className={styles.columnBody}>
+        {ordered.length === 0 && (
+          <div className={styles.emptyState}>
+            <span className={styles.emptyIcon} aria-hidden="true">◻</span>
+            <span className={styles.emptyText}>No tickets</span>
+          </div>
+        )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
           return indented ? (
