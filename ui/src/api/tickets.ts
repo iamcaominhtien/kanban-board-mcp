@@ -273,6 +273,49 @@ export function useUpdateTicketStatus() {
   return useMutation({
     mutationFn: ({ ticketId, status }: { ticketId: string; status: Status }) =>
       updateTicketStatus(ticketId, status),
+    onMutate: async ({ ticketId, status }) => {
+      // Cancel in-flight queries to prevent race conditions
+      await queryClient.cancelQueries({ queryKey: ['tickets'] });
+      await queryClient.cancelQueries({ queryKey: ticketKeys.detail(ticketId) });
+
+      // Snapshot previous data for rollback
+      const previousQueriesData = queryClient.getQueriesData<Ticket[]>({ queryKey: ['tickets'] });
+      const previousTicket = queryClient.getQueryData<Ticket>(ticketKeys.detail(ticketId));
+
+      // Optimistically update all ticket list caches
+      previousQueriesData.forEach(([queryKey]) => {
+        queryClient.setQueryData<Ticket[]>(queryKey, (old) => {
+          if (!old) return old;
+          return old.map((ticket) =>
+            ticket.id === ticketId ? { ...ticket, status } : ticket,
+          );
+        });
+      });
+
+      // Optimistically update ticket detail cache
+      if (previousTicket) {
+        queryClient.setQueryData(ticketKeys.detail(ticketId), {
+          ...previousTicket,
+          status,
+        });
+      }
+
+      return { previousQueriesData, previousTicket };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousQueriesData) {
+        context.previousQueriesData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousTicket) {
+        queryClient.setQueryData(
+          ticketKeys.detail(context.previousTicket.id),
+          context.previousTicket,
+        );
+      }
+    },
     onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
       queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });
