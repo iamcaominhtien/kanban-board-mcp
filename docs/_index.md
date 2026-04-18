@@ -1,7 +1,7 @@
 # Documentation Index
 _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/generate_docs_index.py` to refresh._
 
-_Last updated: 2026-04-17_
+_Last updated: 2026-04-18_
 
 ## Business Analysis
 
@@ -14,13 +14,13 @@ _Last updated: 2026-04-17_
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
+| [test-iam-113-wave-1-css-quick-wins.md](test-iam-113-wave-1-css-quick-wins.md) | Test Plan: IAM-113 Wave 1 CSS Quick Wins | stable | 1.0.2 | 2026-04-18 |
 | [test-logs/iam-35-comments.md](test-logs/iam-35-comments.md) | Test Plan: Comments Cleanup (IAM-35) | stable | 1.0.1 | 2026-04-04 |
 | [test-logs/iam-36-block-relations.md](test-logs/iam-36-block-relations.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | in-progress | 1.0.1 | 2026-04-08 |
 | [test-logs/iam-39-members.md](test-logs/iam-39-members.md) | Test Plan: Assignee, Created By, and Project Members (IAM-39) | stable | 1.0.1 | 2026-04-08 |
 | [test-logs/iam-40-timeline-view.md](test-logs/iam-40-timeline-view.md) | Test Plan: Project Timeline View (IAM-40) | review | 1.0.2 | 2026-04-08 |
 | [test-logs/iam-71-mcp-e2e.md](test-logs/iam-71-mcp-e2e.md) | Test Plan: IAM-71 MCP End-to-End Verification | stable | 1.1.0 | 2026-04-09 |
 | [test-logs/iam-72-proof-note.md](test-logs/iam-72-proof-note.md) | Test Plan: IAM-72 Test Case Proof and Note Rendering | stable | 1.0.1 | 2026-04-09 |
-| [test-plans/0f9eb32c-relations-redesign.md](test-plans/0f9eb32c-relations-redesign.md) | Test Plan: Relations Section Redesign (0f9eb32c) | stable | 1.0.1 | 2026-04-17 |
 | [test-plans/266e30b2-block-done.md](test-plans/266e30b2-block-done.md) | Test Plan: IAM-99 Block Done Transition | stable | 1.0.2 | 2026-04-17 |
 | [test-plans/753a6a27-sse-auto-refresh.md](test-plans/753a6a27-sse-auto-refresh.md) | Test Plan: SSE Auto-Refresh for MCP Mutations (753a6a27) | stable | 1.3.0 | 2026-04-11 |
 | [test-plans/IAM-74.md](test-plans/IAM-74.md) | Test Plan: IAM-74 Desktop App (Electron + PyInstaller + VS Code MCP Auto-Setup) | stable | 1.0.0 | 2026-04-11 |
@@ -49,6 +49,9 @@ _Last updated: 2026-04-17_
 | [specs/ce4cc488-ticket-links.md](specs/ce4cc488-ticket-links.md) | ce4cc488-ticket-links | — | — | — |
 | [specs/desktop-app.md](specs/desktop-app.md) | desktop-app | — | — | — |
 | [test-logs/iam-38-recycle-bin.md](test-logs/iam-38-recycle-bin.md) | iam-38-recycle-bin | — | — | — |
+| [ui-audit/UI-IMPROVEMENT-PLAN.md](ui-audit/UI-IMPROVEMENT-PLAN.md) | UI-IMPROVEMENT-PLAN | — | — | — |
+| [ui-audit/screenshots/initial-snapshot.md](ui-audit/screenshots/initial-snapshot.md) | initial-snapshot | — | — | — |
+| [ui-audit/ui-analysis-brainstormer.md](ui-audit/ui-analysis-brainstormer.md) | ui-analysis-brainstormer | — | — | — |
 
 ## Architecture
 
