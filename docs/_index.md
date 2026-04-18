@@ -31,6 +31,7 @@ _Last updated: 2026-04-18_
 | [test-plans/IAM-95.md](test-plans/IAM-95.md) | Test Plan: IAM-95 Improve Desktop App Startup Time | review | 1.0.1 | 2026-04-16 |
 | [test-plans/ce4cc488-ticket-links.md](test-plans/ce4cc488-ticket-links.md) | Test Plan: IAM-98 Ticket Links - Extended Relationship Types | stable | 1.1.0 | 2026-04-17 |
 | [test-plans/iam-111.md](test-plans/iam-111.md) | Test Plan: IAM-111 Ticket Card Redesign | stable | 1.0.1 | 2026-04-18 |
+| [test-plans/iam-114.md](test-plans/iam-114.md) | Test Plan: IAM-114 Board Layout Improvements | stable | 1.0.2 | 2026-04-18 |
 | [test-plans/iam-115.md](test-plans/iam-115.md) | Test Plan: IAM-115 Ticket Detail Modal and Create Form UI Polish | stable | 1.0.1 | 2026-04-18 |
 | [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
