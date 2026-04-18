@@ -11,9 +11,9 @@ import styles from './Board.module.css';
 
 const COLUMNS: ColumnType[] = [
   { id: 'backlog',     label: 'Backlog',      accentColor: '#533483' },
-  { id: 'todo',        label: 'To Do',        accentColor: '#0f3460' },
-  { id: 'in-progress', label: 'In Progress',  accentColor: '#e2b04a' },
-  { id: 'done',        label: 'Done',         accentColor: '#2ecc71' },
+  { id: 'todo',        label: 'To Do',        accentColor: '#0F3460' },
+  { id: 'in-progress', label: 'In Progress',  accentColor: '#E2B04A' },
+  { id: 'done',        label: 'Done',         accentColor: '#2ECC71' },
 ];
 
 interface BoardProps {
