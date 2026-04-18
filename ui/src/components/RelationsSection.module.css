@@ -154,6 +154,7 @@
   flex-shrink: 0;
   outline: none;
   appearance: auto;
+  box-sizing: border-box;
 }
 
 .typeSelect option {
