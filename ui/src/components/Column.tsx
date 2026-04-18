@@ -48,7 +48,6 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
     <div
       ref={setNodeRef}
       className={styles.column}
-      data-status={column.id}
       style={({
         backgroundColor: column.accentColor,
         '--column-accent': column.accentColor,
