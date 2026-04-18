@@ -2,13 +2,16 @@ import { useRef, useState } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
+import type { Theme } from '../types';
 import styles from './SettingsPanel.module.css';
 
 interface SettingsPanelProps {
   onClose: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
-export function SettingsPanel({ onClose }: SettingsPanelProps) {
+export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelProps) {
   const { data: settings, isLoading } = useSettings();
   const setDataPath = useSetDataPath();
   const [folderInput, setFolderInput] = useState('');
@@ -140,6 +143,23 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               {folderStatus}
             </p>
           )}
+        </div>
+
+        <div className={styles.divider} />
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Theme</h3>
+          <p className={styles.hint}>
+            Switch between color and black & white TV mode.
+          </p>
+          <button
+            type="button"
+            className={styles.applyBtn}
+            onClick={onToggleTheme}
+            style={{ marginTop: '8px' }}
+          >
+            {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
+          </button>
         </div>
 
         <div className={styles.divider} />

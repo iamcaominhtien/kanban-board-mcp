@@ -10,6 +10,7 @@ import { useMembers } from './api/members';
 import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, useWontDoTickets, useRestoreTicket } from './api/tickets';
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
+import { useTheme } from './hooks/useTheme';
 import { extractError } from './api/extractError';
 import type { Priority, Status, Ticket } from './types';
 
@@ -20,6 +21,7 @@ export default function App() {
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
 
+  const { theme, toggleTheme } = useTheme();
   const [currentProjectId, setCurrentProjectId] = useState<string>(
     () => localStorage.getItem('activeProjectId') ?? ''
   );
@@ -334,7 +336,11 @@ export default function App() {
               />
             )}
             {settingsPanelOpen && (
-              <SettingsPanel onClose={() => setSettingsPanelOpen(false)} />
+              <SettingsPanel
+                onClose={() => setSettingsPanelOpen(false)}
+                theme={theme}
+                onToggleTheme={toggleTheme}
+              />
             )}
           </>
         )}

@@ -41,3 +41,8 @@ body {
   min-height: 100vh;
   padding: 24px;
 }
+
+/* Black & White TV theme */
+html[data-theme="bw"] {
+  filter: grayscale(100%) contrast(1.05);
+}
