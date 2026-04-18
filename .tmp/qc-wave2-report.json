@@ -1,0 +1,87 @@
+{
+  "url": "http://127.0.0.1:5174",
+  "generatedAt": "2026-04-18T04:14:11.688Z",
+  "screenshots": [
+    "fix-01-ticket-secondary-text.png",
+    "fix-02-ticket-hover.png",
+    "fix-03-ticket-focus.png",
+    "fix-04-filter-bar-separator.png",
+    "fix-05-unassigned-pill.png",
+    "fix-06-inline-timestamps.png",
+    "fix-07-close-button.png",
+    "fix-08-column-header-top-line.png"
+  ],
+  "logs": {
+    "title": "Kanban Board",
+    "bodyStart": "KANBAN\n\nPROJECTS\n\nSBFF Agent AI Workspace\nSBFF\n[TEST] UI Audit Empty\nTUIA\n[TEST] UI Audit Blank\nUIB\n⚙️\nSettings\n👥\nMembers\n🗑\nRecycle Bin\n2\n+\nNew Project\nSBFF AGENT AI WORKSPACE\nBoard\nList\nTimeline\n+ New Ticket\nALL\nCRITICAL\nHIGH\nMEDIUM\nLOW\nALL ASSIGNEES\nUNASSIGNED\nQUẢN TRỊ VIÊN\nBACKLOG\n6\nSBFF-28\n🔧 Chore\n[CHORE] Rename \"Cascade Complete\" output marker to \"Chain Complete\" in whitebox-utc SKILL files\nMEDIUM\nSP: 5\nSBFF-27\n🐛 Bug\n[BUG] Typo folder \"Piplines\" exists alongside correct \"Pipelines\" in Hanyo.UnitTest\nMEDIUM\nSBFF-25\n⬆ SBFF-12\n🐛 Bug\n[BUG] parse-dd: entity name truncation when resolving from large DD (Rule #7 not enforced)\nHIGH\nSBFF-11\n🐛 Bug\nFix parse-dd type inference: ファイルパス fields always string\nHIGH\n24\n◻ 0/5\nSBFF-5\n🐛 Bug\nGuard: TODO placeholder for undefined message constants in code gen\nMEDIUM\n◻ 0/5\nSBFF-4\n🐛 Bug\nGuard: TODO placeholder for unreferenced-source DDs in code gen\nMEDIUM\n◻ 0/5\nTO DO\n1\nSBFF-18\n🐛 Bug\nFix exact-length validation gen for optional fields\nHIGH\n40\n◻ 0/3\nIN PROGRESS\n0\nDONE\n18\nSBFF-26\n📋 Task\nFix: Rename /cascade → /whitebox-chain across ALL skill and agent files\nHIGH\n✓ 2/2\nSBFF-22\n🐛 Bug\n[FIX] whitebox-utc coverage: use Git Bash on Windows + report",
+    "cardCount": 25,
+    "fix01": {
+      "due": null,
+      "sub": {
+        "text": "◻ 0/5",
+        "color": "color(srgb 0.239216 0.0470588 0.0666667 / 0.45)",
+        "opacity": "1",
+        "fontWeight": "500"
+      }
+    },
+    "fix02": {
+      "before": {
+        "transform": "none",
+        "boxShadow": "none",
+        "opacity": "1"
+      },
+      "after": {
+        "transform": "matrix(1, 0, 0, 1, 0, -2)",
+        "boxShadow": "color(srgb 0.239216 0.0470588 0.0666667 / 0.35) 0px 6px 20px 0px",
+        "opacity": "1"
+      }
+    },
+    "fix03": {
+      "activeHtml": "<div role=\"button\" tabindex=\"0\" aria-disabled=\"false\" aria-roledescription=\"draggable\" aria-describedby=\"DndDescribedBy-3\" style=\"cursor: grab;\"><div class=\"_card_14msz_1\"><div class=\"_cardHeader_14msz_30\"><span class=\"_cardId_14msz_23\">SBFF-11</span><div class=\"_cardHeaderBadges_14msz_37\"><span class=\"_typeBadge_14msz_60\" style=\"background-color: rgb(254, 226, 226); color: rgb(220, 38, 38);\">🐛 Bug</span></div></div><span class=\"_cardTitle_14msz_68\">Fix parse-dd type inference: ファイルパス fields al",
+      "focusState": {
+        "cardOutline": "rgb(245, 239, 224) none 3px",
+        "cardOutlineColor": "rgb(245, 239, 224)",
+        "cardOutlineWidth": "3px",
+        "cardBoxShadow": "color(srgb 0.239216 0.0470588 0.0666667 / 0.35) 0px 6px 20px 0px",
+        "wrapperOutline": "rgb(0, 95, 204) auto 1px",
+        "wrapperBoxShadow": "none"
+      }
+    },
+    "fix04": {
+      "borderLeft": "2px solid color(srgb 0.239216 0.0470588 0.0666667 / 0.15)",
+      "paddingLeft": "16px"
+    },
+    "fix06": {
+      "createdText": "Created: Apr 16, 2026",
+      "updatedText": "Updated: Apr 18, 2026",
+      "createdTop": 370.203125,
+      "updatedTop": 370.203125,
+      "createdLeft": 52,
+      "updatedLeft": 211.390625,
+      "parentDisplay": "block",
+      "parentFlexDirection": "row"
+    },
+    "fix07": {
+      "width": "11.7969px",
+      "height": "19px",
+      "display": "inline-block",
+      "alignItems": "normal",
+      "justifyContent": "normal",
+      "lineHeight": "normal",
+      "textAlign": "center"
+    },
+    "fix05": {
+      "display": "inline",
+      "fontStyle": "normal",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(61, 12, 17)",
+      "borderRadius": "0px",
+      "padding": "0px"
+    },
+    "modalFound": true,
+    "fix08": {
+      "borderTop": "3px solid color(srgb 0.239216 0.0470588 0.0666667 / 0.12)",
+      "backgroundColor": "rgb(245, 197, 24)"
+    }
+  }
+}
