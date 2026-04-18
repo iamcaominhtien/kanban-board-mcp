@@ -125,56 +125,75 @@ export function RelationsSection({
     setSearch('');
   };
 
+  // Group relations by type for display
+  const grouped = useMemo(() => {
+    const map = new Map<RelationTypeKey, RelationRow[]>();
+    relations.forEach((rel) => {
+      if (!map.has(rel.type)) map.set(rel.type, []);
+      map.get(rel.type)!.push(rel);
+    });
+    return map;
+  }, [relations]);
+
   return (
     <div className={styles.section}>
-      <div className={styles.sectionHeader}>RELATIONS</div>
+      <div className={styles.sectionHeader}>
+        <span className={styles.sectionTitle}>RELATIONS</span>
+        {!showAddForm && (
+          <button
+            type="button"
+            className={styles.addBtn}
+            onClick={() => setShowAddForm(true)}
+          >
+            + Add link
+          </button>
+        )}
+      </div>
 
       {relations.length === 0 && !showAddForm && (
-        <span className={styles.empty}>No relations</span>
+        <span className={styles.empty}>No links</span>
       )}
 
-      {relations.length > 0 && (
-        <div className={styles.list}>
-          {relations.map((rel) => {
-            const sc = STATUS_COLORS[rel.ticket.status as Status] ?? STATUS_COLORS.backlog;
-            const canRemove = rel.type === 'blocks' || rel.type === 'blockedBy' || !!onRemoveLink;
-            return (
-              <div key={`${rel.type}-${rel.targetId}`} className={styles.row}>
-                <span className={styles.typeBadge}>{RELATION_TYPE_LABELS[rel.type]}</span>
-                <span className={styles.ticketId}>#{rel.targetId}</span>
-                <span className={styles.ticketTitle}>{rel.ticket.title}</span>
-                <span
-                  className={styles.statusChip}
-                  style={{ background: sc.bg, color: sc.color }}
-                >
-                  {STATUS_LABELS[rel.ticket.status as Status] ?? rel.ticket.status}
-                </span>
-                {canRemove && (
-                  <button
-                    type="button"
-                    className={styles.removeBtn}
-                    onClick={() => handleRemove(rel)}
-                    aria-label="Remove relation"
-                    title="Remove relation"
-                  >
-                    ×
-                  </button>
-                )}
+      {grouped.size > 0 && (
+        <div className={styles.groups}>
+          {Array.from(grouped.entries()).map(([type, rows]) => (
+            <div key={type} className={styles.group}>
+              <div className={styles.groupHeader}>
+                {RELATION_TYPE_LABELS[type]}
               </div>
-            );
-          })}
+              {rows.map((rel) => {
+                const sc = STATUS_COLORS[rel.ticket.status as Status] ?? STATUS_COLORS.backlog;
+                const canRemove = rel.type === 'blocks' || rel.type === 'blockedBy' || !!onRemoveLink;
+                return (
+                  <div key={`${rel.type}-${rel.targetId}`} className={styles.row}>
+                    <span className={styles.ticketId}>{rel.ticket.id}</span>
+                    <span className={styles.ticketTitle}>{rel.ticket.title}</span>
+                    <span
+                      className={styles.statusChip}
+                      style={{ background: sc.bg, color: sc.color }}
+                    >
+                      {STATUS_LABELS[rel.ticket.status as Status] ?? rel.ticket.status}
+                    </span>
+                    {canRemove && (
+                      <button
+                        type="button"
+                        className={styles.removeBtn}
+                        onClick={() => handleRemove(rel)}
+                        aria-label="Remove relation"
+                        title="Remove relation"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
 
-      {!showAddForm ? (
-        <button
-          type="button"
-          className={styles.addBtn}
-          onClick={() => setShowAddForm(true)}
-        >
-          ＋ Add relation
-        </button>
-      ) : (
+      {showAddForm && (
         <div className={styles.addForm}>
           <div className={styles.formRow}>
             <select
