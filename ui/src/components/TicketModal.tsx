@@ -142,7 +142,11 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
   // Fix 3: focus first element on mount
   useEffect(() => {
-    firstFocusRef.current?.focus();
+    if (localMode === 'create') {
+      titleInputRef.current?.focus();
+    } else {
+      firstFocusRef.current?.focus();
+    }
   }, []);
 
   // Fix 1: Escape handler with stable ref — no stale closure
@@ -813,6 +817,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ticket title..."
+                required
+                aria-required="true"
               />
             </div>
 
