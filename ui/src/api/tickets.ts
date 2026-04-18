@@ -275,6 +275,7 @@ export function useUpdateTicketStatus() {
       updateTicketStatus(ticketId, status),
     onMutate: async ({ ticketId, status }) => {
       // Cancel in-flight queries to prevent race conditions
+      // Cancel all ticket list queries — projectId not in scope here so we use the root key
       await queryClient.cancelQueries({ queryKey: ['tickets'] });
       await queryClient.cancelQueries({ queryKey: ticketKeys.detail(ticketId) });
 
@@ -306,12 +307,17 @@ export function useUpdateTicketStatus() {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      queryClient.setQueryData(ticketKeys.detail(variables.ticketId), context?.previousTicket);
+      if (context?.previousTicket !== undefined) {
+        queryClient.setQueryData(ticketKeys.detail(variables.ticketId), context.previousTicket);
+      }
     },
     onSuccess: (ticket) => {
-      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
-      queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+    },
+    onSettled: (_data, _err, variables) => {
+      // Always re-sync with server truth after optimistic update, regardless of success/failure
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(variables.ticketId) });
     },
   });
 }
