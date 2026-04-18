@@ -100,3 +100,5 @@ export interface Column {
   label: string;
   accentColor: string;
 }
+
+export type Theme = 'default' | 'bw';
