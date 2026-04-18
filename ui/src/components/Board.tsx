@@ -10,10 +10,10 @@ import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 
 const COLUMNS: ColumnType[] = [
-  { id: 'backlog',     label: 'Backlog',      accentColor: '#F5C518' },
-  { id: 'todo',        label: 'To Do',        accentColor: '#E8441A' },
-  { id: 'in-progress', label: 'In Progress',  accentColor: '#AACC2E' },
-  { id: 'done',        label: 'Done',         accentColor: '#F472B6' },
+  { id: 'backlog',     label: 'Backlog',      accentColor: '#533483' },
+  { id: 'todo',        label: 'To Do',        accentColor: '#0F3460' },
+  { id: 'in-progress', label: 'In Progress',  accentColor: '#E2B04A' },
+  { id: 'done',        label: 'Done',         accentColor: '#2ECC71' },
 ];
 
 interface BoardProps {
