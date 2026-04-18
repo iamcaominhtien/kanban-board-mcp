@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.12] - 2026-04-18
+
+### Added
+- **B&W TV theme toggle**: A grayscale filter mode inspired by classic black & white TV. Toggle available in the Settings panel; preference persisted across sessions.
+
+---
+
 ## [1.3.11] - 2026-04-18
 
 ### Changed
