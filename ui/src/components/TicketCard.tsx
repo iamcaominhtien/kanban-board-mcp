@@ -37,7 +37,7 @@ export function TicketCard({ ticket, memberMap }: TicketCardProps) {
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
   const isBlocked = (ticket.blockedBy ?? []).length > 0;
   return (
-    <div className={styles.card} tabIndex={0}>
+    <div className={styles.card} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click(); }}>
       <div className={styles.cardHeader}>
         <span className={styles.cardId}>{ticket.id}</span>
         <div className={styles.cardHeaderBadges}>
