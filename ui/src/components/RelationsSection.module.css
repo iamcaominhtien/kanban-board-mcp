@@ -1,10 +1,17 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sectionTitle {
   font-weight: 900;
   font-size: 13px;
   letter-spacing: 0.08em;
@@ -19,42 +26,47 @@
   padding: 4px 0;
 }
 
-.list {
+.groups {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 10px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.groupHeader {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9CA3AF;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(61, 12, 17, 0.08);
+  margin-bottom: 2px;
 }
 
 .row {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(61, 12, 17, 0.06);
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(61, 12, 17, 0.04);
 }
 
 .row:last-child {
   border-bottom: none;
 }
 
-.typeBadge {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #6B7280;
-  background: rgba(107, 114, 128, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
 .ticketId {
   font-size: 11px;
   font-weight: 700;
-  color: #6B7280;
+  color: var(--color-orange);
   flex-shrink: 0;
+  font-family: monospace;
 }
 
 .ticketTitle {
@@ -83,8 +95,13 @@
   color: #9CA3AF;
   padding: 2px 4px;
   flex-shrink: 0;
-  transition: color 0.15s;
   line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.row:hover .removeBtn {
+  opacity: 1;
 }
 
 .removeBtn:hover {
@@ -92,20 +109,21 @@
 }
 
 .addBtn {
-  background: var(--color-dark);
-  color: var(--color-bg);
-  border: none;
+  background: none;
+  border: 1.5px solid rgba(61, 12, 17, 0.2);
+  color: var(--color-dark);
   border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
-  align-self: flex-start;
-  transition: opacity 0.15s;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .addBtn:hover {
-  opacity: 0.85;
+  background: rgba(61, 12, 17, 0.06);
+  border-color: rgba(61, 12, 17, 0.35);
 }
 
 .addForm {
