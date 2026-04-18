@@ -15,6 +15,11 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
+.card:focus {
+  outline: 3px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
 .card:focus-visible {
   outline: 3px solid var(--color-orange);
   outline-offset: 2px;
