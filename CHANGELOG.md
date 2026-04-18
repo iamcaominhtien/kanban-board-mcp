@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.3.13] - 2026-04-18
+
+### Fixed
+- Drag-and-drop snap-back: ticket no longer returns to original column after drop. Implemented local state synchronous update so the card stays in the destination column immediately.
+
+---
+
 ## [1.3.12] - 2026-04-18
 
 ### Added
