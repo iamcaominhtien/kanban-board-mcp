@@ -20,6 +20,7 @@ _Last updated: 2026-04-17_
 | [test-logs/iam-40-timeline-view.md](test-logs/iam-40-timeline-view.md) | Test Plan: Project Timeline View (IAM-40) | review | 1.0.2 | 2026-04-08 |
 | [test-logs/iam-71-mcp-e2e.md](test-logs/iam-71-mcp-e2e.md) | Test Plan: IAM-71 MCP End-to-End Verification | stable | 1.1.0 | 2026-04-09 |
 | [test-logs/iam-72-proof-note.md](test-logs/iam-72-proof-note.md) | Test Plan: IAM-72 Test Case Proof and Note Rendering | stable | 1.0.1 | 2026-04-09 |
+| [test-plans/0f9eb32c-relations-redesign.md](test-plans/0f9eb32c-relations-redesign.md) | Test Plan: Relations Section Redesign (0f9eb32c) | stable | 1.0.1 | 2026-04-17 |
 | [test-plans/266e30b2-block-done.md](test-plans/266e30b2-block-done.md) | Test Plan: IAM-99 Block Done Transition | stable | 1.0.2 | 2026-04-17 |
 | [test-plans/753a6a27-sse-auto-refresh.md](test-plans/753a6a27-sse-auto-refresh.md) | Test Plan: SSE Auto-Refresh for MCP Mutations (753a6a27) | stable | 1.3.0 | 2026-04-11 |
 | [test-plans/IAM-74.md](test-plans/IAM-74.md) | Test Plan: IAM-74 Desktop App (Electron + PyInstaller + VS Code MCP Auto-Setup) | stable | 1.0.0 | 2026-04-11 |
@@ -35,6 +36,7 @@ _Last updated: 2026-04-17_
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
 | [test-plans/iam-97.md](test-plans/iam-97.md) | Test Plan: IAM-97 UI improvements: ticket ordering & terminology | stable | 1.0.1 | 2026-04-16 |
 | [test-plans/test-ac-mcp-tools.md](test-plans/test-ac-mcp-tools.md) | Test Plan: Acceptance Criteria MCP Tools | stable | 1.1.0 | 2026-04-09 |
+| [test-ui-ux-audit-screenshots.md](test-ui-ux-audit-screenshots.md) | Test Plan: UI/UX Screenshot Audit | in-progress | 1.0.0 | 2026-04-17 |
 
 ## Developer Guides
 
