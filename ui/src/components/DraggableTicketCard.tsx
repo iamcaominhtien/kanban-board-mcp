@@ -38,7 +38,7 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap }: Draggabl
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} tabIndex={-1} onClick={handleClick}>
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={handleClick}>
       <TicketCard ticket={ticket} memberMap={memberMap} />
     </div>
   );
