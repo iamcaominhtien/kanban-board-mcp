@@ -19,6 +19,7 @@ const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; 
 function getDueDateDisplay(dueDate: string | null): { label: string; overdue: boolean } | null {
   if (!dueDate) return null;
   const due = new Date(dueDate);
+  if (isNaN(due.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const overdue = due < today;
@@ -36,63 +37,60 @@ export function TicketCard({ ticket, memberMap }: TicketCardProps) {
   const due = getDueDateDisplay(ticket.dueDate);
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
   const isBlocked = (ticket.blockedBy ?? []).length > 0;
+  const completedAC = (ticket.acceptanceCriteria ?? []).filter((s) => s.done).length;
+  const totalAC = (ticket.acceptanceCriteria ?? []).length;
+
   return (
-    <div className={styles.card}>
+    <div className={styles.card} style={{ borderLeftColor: tc.color }}>
+      {/* Header: ID + assignee avatar + drag handle */}
       <div className={styles.cardHeader}>
         <span className={styles.cardId}>{ticket.id}</span>
-        <div className={styles.cardHeaderBadges}>
-          {isBlocked && (
-            <span className={styles.blockedBadge} title="Blocked">🔒</span>
-          )}
-          {ticket.parentId && (
-            <span className={styles.parentBadge}>⬆ {ticket.parentId}</span>
-          )}
-          <span
-            className={styles.typeBadge}
-            style={{ backgroundColor: tc.bg, color: tc.color }}
-          >
-            {tc.icon} {tc.label}
-          </span>
+        <div className={styles.cardHeaderRight}>
+          {assigneeMember && <MemberAvatar member={assigneeMember} size={18} />}
+          <span className={styles.dragHandle} aria-hidden="true">⠿</span>
         </div>
       </div>
+
+      {/* Badges row: type + blocked + parent */}
+      <div className={styles.badgeRow}>
+        <span className={styles.typeBadge} style={{ backgroundColor: tc.bg, color: tc.color }}>
+          {tc.icon} {tc.label}
+        </span>
+        {isBlocked && <span className={styles.blockedBadge} title="Blocked">🔒</span>}
+        {ticket.parentId && <span className={styles.parentBadge}>⬆ sub</span>}
+      </div>
+
+      {/* Title */}
       <span className={styles.cardTitle}>{ticket.title}</span>
+
+      {/* Footer: priority dot + tags + metadata */}
       <div className={styles.cardFooter}>
         <span
-          className={styles.priorityBadge}
+          className={styles.priorityDot}
           style={{ backgroundColor: PRIORITY_COLORS[ticket.priority] }}
-        >
-          {ticket.priority}
-        </span>
-        {ticket.estimate !== null && ticket.estimate !== undefined && (
-          <span className={styles.estimateBadge}>SP: {ticket.estimate}</span>
-        )}
-        {ticket.tags.map((tag, i) => (
-          <span key={`${tag}-${i}`} className={styles.tag}>
-            {tag}
-          </span>
+          title={ticket.priority}
+        />
+        {ticket.tags.slice(0, 2).map((tag, i) => (
+          <span key={`${tag}-${i}`} className={styles.tag}>{tag}</span>
         ))}
-      </div>
-      {due && (
-        <span className={due.overdue ? styles.dueDateOverdue : styles.dueDate}>
-          {due.overdue ? '⚠️' : '📅'} {due.label}
-        </span>
-      )}
-      {(ticket.acceptanceCriteria ?? []).length > 0 && (() => {
-        const completed = (ticket.acceptanceCriteria ?? []).filter((s) => s.done).length;
-        const total = (ticket.acceptanceCriteria ?? []).length;
-        const allDone = completed === total;
-        return (
-          <span className={allDone ? styles.subTasksDone : styles.subTasksProgress}>
-            {allDone ? '✓' : '◻'} {completed}/{total}
+        {ticket.tags.length > 2 && (
+          <span className={styles.tag}>+{ticket.tags.length - 2}</span>
+        )}
+        <span className={styles.footerSpacer} />
+        {ticket.estimate !== null && ticket.estimate !== undefined && (
+          <span className={styles.estimateBadge}>{ticket.estimate}sp</span>
+        )}
+        {totalAC > 0 && (
+          <span className={completedAC === totalAC ? styles.subTasksDone : styles.subTasksProgress}>
+            {completedAC}/{totalAC}
           </span>
-        );
-      })()}
-      {assigneeMember && (
-        <div className={styles.assigneeRow}>
-          <MemberAvatar member={assigneeMember} size={20} />
-          <span className={styles.assigneeName}>{assigneeMember.name}</span>
-        </div>
-      )}
+        )}
+        {due && (
+          <span className={due.overdue ? styles.dueDateOverdue : styles.dueDate}>
+            {due.overdue ? '⚠' : '📅'} {due.label}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -20,7 +20,6 @@ _Last updated: 2026-04-18_
 | [test-logs/iam-40-timeline-view.md](test-logs/iam-40-timeline-view.md) | Test Plan: Project Timeline View (IAM-40) | review | 1.0.2 | 2026-04-08 |
 | [test-logs/iam-71-mcp-e2e.md](test-logs/iam-71-mcp-e2e.md) | Test Plan: IAM-71 MCP End-to-End Verification | stable | 1.1.0 | 2026-04-09 |
 | [test-logs/iam-72-proof-note.md](test-logs/iam-72-proof-note.md) | Test Plan: IAM-72 Test Case Proof and Note Rendering | stable | 1.0.1 | 2026-04-09 |
-| [test-plans/0f9eb32c-relations-redesign.md](test-plans/0f9eb32c-relations-redesign.md) | Test Plan: Relations Section Redesign (0f9eb32c) | stable | 1.0.1 | 2026-04-17 |
 | [test-plans/266e30b2-block-done.md](test-plans/266e30b2-block-done.md) | Test Plan: IAM-99 Block Done Transition | stable | 1.0.2 | 2026-04-17 |
 | [test-plans/753a6a27-sse-auto-refresh.md](test-plans/753a6a27-sse-auto-refresh.md) | Test Plan: SSE Auto-Refresh for MCP Mutations (753a6a27) | stable | 1.3.0 | 2026-04-11 |
 | [test-plans/IAM-74.md](test-plans/IAM-74.md) | Test Plan: IAM-74 Desktop App (Electron + PyInstaller + VS Code MCP Auto-Setup) | stable | 1.0.0 | 2026-04-11 |
@@ -30,8 +29,9 @@ _Last updated: 2026-04-18_
 | [test-plans/IAM-88-89.md](test-plans/IAM-88-89.md) | Test Plan: IAM-88 and IAM-89 Markdown and Image Support | review | 1.0.2 | 2026-04-17 |
 | [test-plans/IAM-93.md](test-plans/IAM-93.md) | Test Plan: IAM-93 CI/CD Auto Release Pipeline | stable | 1.0.1 | 2026-04-15 |
 | [test-plans/IAM-95.md](test-plans/IAM-95.md) | Test Plan: IAM-95 Improve Desktop App Startup Time | review | 1.0.1 | 2026-04-16 |
-| [test-plans/iam-115.md](test-plans/iam-115.md) | Test Plan: IAM-115 Ticket Detail Modal and Create Form UI Polish | stable | 1.0.1 | 2026-04-18 |
 | [test-plans/ce4cc488-ticket-links.md](test-plans/ce4cc488-ticket-links.md) | Test Plan: IAM-98 Ticket Links - Extended Relationship Types | stable | 1.1.0 | 2026-04-17 |
+| [test-plans/iam-111.md](test-plans/iam-111.md) | Test Plan: IAM-111 Ticket Card Redesign | stable | 1.0.1 | 2026-04-18 |
+| [test-plans/iam-115.md](test-plans/iam-115.md) | Test Plan: IAM-115 Ticket Detail Modal and Create Form UI Polish | stable | 1.0.1 | 2026-04-18 |
 | [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
@@ -50,6 +50,9 @@ _Last updated: 2026-04-18_
 | [specs/ce4cc488-ticket-links.md](specs/ce4cc488-ticket-links.md) | ce4cc488-ticket-links | — | — | — |
 | [specs/desktop-app.md](specs/desktop-app.md) | desktop-app | — | — | — |
 | [test-logs/iam-38-recycle-bin.md](test-logs/iam-38-recycle-bin.md) | iam-38-recycle-bin | — | — | — |
+| [ui-audit/UI-IMPROVEMENT-PLAN.md](ui-audit/UI-IMPROVEMENT-PLAN.md) | UI-IMPROVEMENT-PLAN | — | — | — |
+| [ui-audit/screenshots/initial-snapshot.md](ui-audit/screenshots/initial-snapshot.md) | initial-snapshot | — | — | — |
+| [ui-audit/ui-analysis-brainstormer.md](ui-audit/ui-analysis-brainstormer.md) | ui-analysis-brainstormer | — | — | — |
 
 ## Architecture
 
