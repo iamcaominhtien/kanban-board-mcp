@@ -57,14 +57,18 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
     >
       <div className={styles.columnHeader} style={{ borderBottomColor: column.accentColor }}>
         <span className={styles.columnLabel}>{column.label}</span>
-        <span className={styles.badge} style={{ background: column.accentColor, color: '#1a1a2e' }}>
+        <span
+          className={styles.badge}
+          style={{ background: column.accentColor, color: '#1a1a2e' }}
+          aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
+        >
           {tickets.length}
         </span>
       </div>
       <div className={styles.columnBody}>
         {ordered.length === 0 && (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>◻</span>
+            <span className={styles.emptyIcon} aria-hidden="true">◻</span>
             <span className={styles.emptyText}>No tickets</span>
           </div>
         )}
