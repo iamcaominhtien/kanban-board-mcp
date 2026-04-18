@@ -154,14 +154,3 @@
   white-space: nowrap;
 }
 
-.assigneeRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.assigneeName {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(245, 239, 224, 0.75);
-}
