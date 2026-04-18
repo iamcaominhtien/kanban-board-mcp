@@ -112,7 +112,7 @@
 .dueDate {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(245, 239, 224, 0.65);
+  color: color-mix(in srgb, var(--color-bg) 65%, transparent);
 }
 
 .dueDateOverdue {
@@ -124,7 +124,7 @@
 .subTasksProgress {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(245, 239, 224, 0.65);
+  color: color-mix(in srgb, var(--color-bg) 65%, transparent);
 }
 
 .subTasksDone {

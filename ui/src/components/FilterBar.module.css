@@ -34,7 +34,7 @@
 
 .chips + .chips {
   padding-left: 16px;
-  border-left: 2px solid rgba(61, 12, 17, 0.15);
+  border-left: 2px solid color-mix(in srgb, var(--color-dark) 15%, transparent);
 }
 
 .chip {

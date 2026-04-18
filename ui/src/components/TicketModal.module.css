@@ -613,10 +613,10 @@
 
 .unassignedBadge {
   font-size: 0.8rem;
-  color: rgba(61, 12, 17, 0.4);
+  color: color-mix(in srgb, var(--color-dark) 40%, transparent);
   font-family: 'DM Sans', sans-serif;
   font-style: normal;
-  background: rgba(61, 12, 17, 0.06);
+  background: color-mix(in srgb, var(--color-dark) 6%, transparent);
   padding: 2px 8px;
   border-radius: 999px;
 }
