@@ -7,12 +7,17 @@
   flex-direction: column;
   gap: 8px;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  opacity: 0.92;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-dark) 35%, transparent);
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--color-orange);
+  outline-offset: 2px;
 }
 
 .cardId {
@@ -107,7 +112,7 @@
 .dueDate {
   font-size: 11px;
   font-weight: 500;
-  color: #6B7280;
+  color: color-mix(in srgb, var(--color-dark) 45%, transparent);
 }
 
 .dueDateOverdue {
@@ -119,7 +124,7 @@
 .subTasksProgress {
   font-size: 11px;
   font-weight: 500;
-  color: #6B7280;
+  color: color-mix(in srgb, var(--color-dark) 45%, transparent);
 }
 
 .subTasksDone {
