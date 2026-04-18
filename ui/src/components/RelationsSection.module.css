@@ -147,12 +147,13 @@
   color: var(--color-bg);
   border: none;
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 6px 28px 6px 8px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
   outline: none;
+  appearance: auto;
 }
 
 .typeSelect option {
