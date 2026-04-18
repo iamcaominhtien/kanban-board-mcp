@@ -48,9 +48,9 @@
 }
 
 .title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-dark);
 }
@@ -93,10 +93,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: 4px;
 }
 
 .columnLabel {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -104,13 +107,35 @@
 }
 
 .badge {
-  background: var(--color-dark);
-  color: var(--color-bg);
   font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
+  font-weight: 800;
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 1px 8px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 32px 16px;
+  opacity: 0.35;
+}
+
+.emptyIcon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.emptyText {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-dark);
 }
 
 .columnBody {

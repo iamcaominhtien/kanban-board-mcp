@@ -55,11 +55,19 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
         transition: 'filter 0.15s ease, outline 0.15s ease',
       }}
     >
-      <div className={styles.columnHeader}>
+      <div className={styles.columnHeader} style={{ borderBottomColor: column.accentColor }}>
         <span className={styles.columnLabel}>{column.label}</span>
-        <span className={styles.badge}>{tickets.length}</span>
+        <span className={styles.badge} style={{ background: column.accentColor, color: '#1a1a2e' }}>
+          {tickets.length}
+        </span>
       </div>
       <div className={styles.columnBody}>
+        {ordered.length === 0 && (
+          <div className={styles.emptyState}>
+            <span className={styles.emptyIcon}>◻</span>
+            <span className={styles.emptyText}>No tickets</span>
+          </div>
+        )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
           return indented ? (
