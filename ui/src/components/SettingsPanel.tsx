@@ -2,11 +2,12 @@ import { useRef, useState } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
+import type { Theme } from '../types';
 import styles from './SettingsPanel.module.css';
 
 interface SettingsPanelProps {
   onClose: () => void;
-  theme: 'default' | 'bw';
+  theme: Theme;
   onToggleTheme: () => void;
 }
 
