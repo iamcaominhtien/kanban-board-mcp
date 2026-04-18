@@ -20,6 +20,9 @@ export default function App() {
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
 
+  const [theme, setTheme] = useState<'default' | 'bw'>(
+    () => (localStorage.getItem('theme') as 'default' | 'bw') ?? 'default'
+  );
   const [currentProjectId, setCurrentProjectId] = useState<string>(
     () => localStorage.getItem('activeProjectId') ?? ''
   );
@@ -34,6 +37,11 @@ export default function App() {
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
 
   const { data: members = [] } = useMembers(currentProjectId ?? '');
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!globalError) return;
@@ -334,7 +342,11 @@ export default function App() {
               />
             )}
             {settingsPanelOpen && (
-              <SettingsPanel onClose={() => setSettingsPanelOpen(false)} />
+              <SettingsPanel
+                onClose={() => setSettingsPanelOpen(false)}
+                theme={theme}
+                onToggleTheme={() => setTheme(t => t === 'default' ? 'bw' : 'default')}
+              />
             )}
           </>
         )}
