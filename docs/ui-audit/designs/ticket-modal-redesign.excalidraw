@@ -1,0 +1,370 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "type": "text", "id": "t4_title", "x": 60, "y": 20,
+      "width": 600, "height": 35, "text": "Ticket Detail Modal Redesign — Layout Proportions & Metadata",
+      "originalText": "Ticket Detail Modal Redesign — Layout Proportions & Metadata",
+      "fontSize": 26, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40001, "version": 1, "versionNonce": 50001,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "t4_sub", "x": 60, "y": 58,
+      "width": 700, "height": 20, "text": "Issue: main content too narrow, sidebar too wide — content-to-metadata ratio feels off",
+      "originalText": "Issue: main content too narrow, sidebar too wide — content-to-metadata ratio feels off",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#666666", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40002, "version": 1, "versionNonce": 50002,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "t4_lbl_before", "x": 60, "y": 85,
+      "width": 100, "height": 22, "text": "BEFORE",
+      "originalText": "BEFORE",
+      "fontSize": 17, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40003, "version": 1, "versionNonce": 50003,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "b_modal", "x": 60, "y": 110,
+      "width": 820, "height": 500,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "hachure",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40004, "version": 1, "versionNonce": 50004,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "rectangle", "id": "b_modal_hdr", "x": 60, "y": 110,
+      "width": 820, "height": 55,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "cross-hatch",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 60,
+      "angle": 0, "seed": 40005, "version": 1, "versionNonce": 50005,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "b_modal_hdr_txt", "x": 75, "y": 126,
+      "width": 400, "height": 25, "text": "Fix payment gateway timeout   [IN PROGRESS]",
+      "originalText": "Fix payment gateway timeout   [IN PROGRESS]",
+      "fontSize": 16, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40006, "version": 1, "versionNonce": 50006,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "b_main_content", "x": 60, "y": 165,
+      "width": 490, "height": 445,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40007, "version": 1, "versionNonce": 50007,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "b_main_lbl", "x": 70, "y": 172,
+      "width": 200, "height": 14, "text": "MAIN CONTENT  (60%)",
+      "originalText": "MAIN CONTENT  (60%)",
+      "fontSize": 10, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40008, "version": 1, "versionNonce": 50008,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "b_main_desc_lbl", "x": 75, "y": 195,
+      "width": 150, "height": 14, "text": "Description",
+      "originalText": "Description",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40009, "version": 1, "versionNonce": 50009,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "b_desc_area", "x": 75, "y": 214,
+      "width": 465, "height": 120,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40010, "version": 1, "versionNonce": 50010,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "b_desc_txt", "x": 85, "y": 224,
+      "width": 445, "height": 100, "text": "The payment gateway times out after 10s on\nheavy load. Stripe webhook never fires.\nAffects ~12% of checkout flows.\n\n[editor toolbar placeholder]",
+      "originalText": "The payment gateway times out after 10s on\nheavy load. Stripe webhook never fires.\nAffects ~12% of checkout flows.\n\n[editor toolbar placeholder]",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40011, "version": 1, "versionNonce": 50011,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "b_activity_lbl", "x": 75, "y": 350,
+      "width": 150, "height": 14, "text": "Activity",
+      "originalText": "Activity",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40012, "version": 1, "versionNonce": 50012,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "b_activity_area", "x": 75, "y": 370,
+      "width": 465, "height": 130,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40013, "version": 1, "versionNonce": 50013,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "b_activity_txt", "x": 85, "y": 380,
+      "width": 445, "height": 110, "text": "● moved to In Progress — 2h ago\n● assigned to @caominhtien — yesterday\n● created — Apr 15",
+      "originalText": "● moved to In Progress — 2h ago\n● assigned to @caominhtien — yesterday\n● created — Apr 15",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40014, "version": 1, "versionNonce": 50014,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "b_sidebar", "x": 550, "y": 165,
+      "width": 330, "height": 445,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "hachure",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 60,
+      "angle": 0, "seed": 40015, "version": 1, "versionNonce": 50015,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "b_sidebar_lbl", "x": 560, "y": 172,
+      "width": 200, "height": 14, "text": "SIDEBAR  (40%) — too wide",
+      "originalText": "SIDEBAR  (40%) — too wide",
+      "fontSize": 10, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40016, "version": 1, "versionNonce": 50016,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "b_sidebar_fields", "x": 560, "y": 195,
+      "width": 300, "height": 200, "text": "Status:     [In Progress]\nPriority:   [HIGH]\nAssignee:  @caominhtien\nEstimate:  3 SP\nDue date:  Apr 20\nTags:      [auth] [payments]\nType:      Bug\nCreated:   Apr 15\nRelations: none",
+      "originalText": "Status:     [In Progress]\nPriority:   [HIGH]\nAssignee:  @caominhtien\nEstimate:  3 SP\nDue date:  Apr 20\nTags:      [auth] [payments]\nType:      Bug\nCreated:   Apr 15\nRelations: none",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40017, "version": 1, "versionNonce": 50017,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "b_ratio_note", "x": 60, "y": 625,
+      "width": 820, "height": 18, "text": "Problem: 60/40 split — sidebar takes 40% of width but contains sparse metadata; description area feels cramped",
+      "originalText": "Problem: 60/40 split — sidebar takes 40% of width but contains sparse metadata; description area feels cramped",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40018, "version": 1, "versionNonce": 50018,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "t4_lbl_after", "x": 60, "y": 660,
+      "width": 100, "height": 22, "text": "AFTER",
+      "originalText": "AFTER",
+      "fontSize": 17, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40019, "version": 1, "versionNonce": 50019,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "a_modal", "x": 60, "y": 685,
+      "width": 820, "height": 500,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "hachure",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40020, "version": 1, "versionNonce": 50020,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "rectangle", "id": "a_modal_hdr", "x": 60, "y": 685,
+      "width": 820, "height": 65,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "cross-hatch",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 60,
+      "angle": 0, "seed": 40021, "version": 1, "versionNonce": 50021,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "a_modal_hdr_id", "x": 75, "y": 690,
+      "width": 100, "height": 14, "text": "#KB-042 · Bug",
+      "originalText": "#KB-042 · Bug",
+      "fontSize": 11, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40022, "version": 1, "versionNonce": 50022,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "a_modal_hdr_title", "x": 75, "y": 706,
+      "width": 580, "height": 30, "text": "Fix payment gateway timeout",
+      "originalText": "Fix payment gateway timeout",
+      "fontSize": 20, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40023, "version": 1, "versionNonce": 50023,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "a_status_chip", "x": 720, "y": 706,
+      "width": 145, "height": 28,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "cross-hatch",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40024, "version": 1, "versionNonce": 50024,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "a_status_chip_t", "x": 728, "y": 714,
+      "width": 129, "height": 14, "text": "● In Progress",
+      "originalText": "● In Progress",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40025, "version": 1, "versionNonce": 50025,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "a_main_content", "x": 60, "y": 750,
+      "width": 580, "height": 435,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40026, "version": 1, "versionNonce": 50026,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "a_main_lbl", "x": 70, "y": 757,
+      "width": 200, "height": 14, "text": "MAIN CONTENT  (70% — wider)",
+      "originalText": "MAIN CONTENT  (70% — wider)",
+      "fontSize": 10, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40027, "version": 1, "versionNonce": 50027,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "a_desc_area", "x": 75, "y": 780,
+      "width": 555, "height": 140,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40028, "version": 1, "versionNonce": 50028,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "a_desc_txt", "x": 85, "y": 790,
+      "width": 535, "height": 120, "text": "Description (rich text editor — more room to breathe)\n\nThe payment gateway times out after 10s on heavy load.\nStripe webhook never fires. Affects ~12% of checkout flows.\n...",
+      "originalText": "Description (rich text editor — more room to breathe)\n\nThe payment gateway times out after 10s on heavy load.\nStripe webhook never fires. Affects ~12% of checkout flows.\n...",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40029, "version": 1, "versionNonce": 50029,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "a_relations_section", "x": 75, "y": 935,
+      "width": 555, "height": 50, "text": "Relations  (blocks / depends on / related to)\n[Add relation]",
+      "originalText": "Relations  (blocks / depends on / related to)\n[Add relation]",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40030, "version": 1, "versionNonce": 50030,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "a_activity_section", "x": 75, "y": 995,
+      "width": 555, "height": 80, "text": "Activity\n● moved to In Progress — 2h ago\n● assigned to @caominhtien — yesterday",
+      "originalText": "Activity\n● moved to In Progress — 2h ago\n● assigned to @caominhtien — yesterday",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40031, "version": 1, "versionNonce": 50031,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "a_sidebar", "x": 640, "y": 750,
+      "width": 240, "height": 435,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "hachure",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 50,
+      "angle": 0, "seed": 40032, "version": 1, "versionNonce": 50032,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "a_sidebar_lbl", "x": 650, "y": 757,
+      "width": 200, "height": 14, "text": "SIDEBAR  (30% — compact)",
+      "originalText": "SIDEBAR  (30% — compact)",
+      "fontSize": 10, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40033, "version": 1, "versionNonce": 50033,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "a_sidebar_fields", "x": 650, "y": 780,
+      "width": 220, "height": 240, "text": "Priority\n[HIGH]\n\nAssignee\n@caominhtien\n\nEstimate\n3 SP\n\nDue date\nApr 20\n\nTags\n[auth]  [payments]\n\nCreated\nApr 15",
+      "originalText": "Priority\n[HIGH]\n\nAssignee\n@caominhtien\n\nEstimate\n3 SP\n\nDue date\nApr 20\n\nTags\n[auth]  [payments]\n\nCreated\nApr 15",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#555555", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40034, "version": 1, "versionNonce": 50034,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "ann4_box", "x": 900, "y": 685,
+      "width": 350, "height": 500,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40035, "version": 1, "versionNonce": 50035,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "ann4_txt", "x": 912, "y": 700,
+      "width": 326, "height": 470,
+      "text": "KEY CHANGES\n\n① Layout ratio: 60/40 → 70/30\n   Main content gets 110px more width\n   Description editor is comfortable to use\n\n② Header redesign\n   #ID + Type as small label\n   Title as large text\n   Status chip inline (clickable)\n\n③ Sidebar fields: label-above-value pattern\n   (not label: value in one line)\n   Easier to scan vertically\n\n④ Status moved to header\n   Not buried in sidebar metadata\n   One click to change, always visible\n\n⑤ Relations section in main content\n   Not cramped in sidebar\n   More vertical space for relation list\n\n⑥ Edit mode\n   Click any field to edit inline\n   No separate 'Edit' button needed",
+      "originalText": "KEY CHANGES\n\n① Layout ratio: 60/40 → 70/30\n   Main content gets 110px more width\n   Description editor is comfortable to use\n\n② Header redesign\n   #ID + Type as small label\n   Title as large text\n   Status chip inline (clickable)\n\n③ Sidebar fields: label-above-value pattern\n   (not label: value in one line)\n   Easier to scan vertically\n\n④ Status moved to header\n   Not buried in sidebar metadata\n   One click to change, always visible\n\n⑤ Relations section in main content\n   Not cramped in sidebar\n   More vertical space for relation list\n\n⑥ Edit mode\n   Click any field to edit inline\n   No separate 'Edit' button needed",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 40036, "version": 1, "versionNonce": 50036,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    }
+  ],
+  "appState": {
+    "gridSize": null,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

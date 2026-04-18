@@ -1,0 +1,40 @@
+- generic [ref=e3]:
+  - complementary "Project navigation" [ref=e4]:
+    - generic [ref=e5]: KANBAN
+    - navigation [ref=e6]:
+      - paragraph [ref=e7]: Projects
+      - button "SBFF Agent AI Workspace SBFF" [ref=e22] [cursor=pointer]:
+        - generic: SBFF Agent AI Workspace
+        - generic [ref=e24]: SBFF
+      - button "[TEST] UI Audit Empty TUIA" [ref=e25] [cursor=pointer]:
+        - generic: "[TEST] UI Audit Empty"
+        - generic [ref=e27]: TUIA
+    - generic [ref=e8]:
+      - button "⚙️ Settings" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: ⚙️
+        - generic [ref=e11]: Settings
+      - button "👥 Members" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: 👥
+        - generic [ref=e14]: Members
+      - button "🗑 Recycle Bin" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: 🗑
+        - generic [ref=e17]: Recycle Bin
+      - button "+ New Project" [ref=e18] [cursor=pointer]:
+        - text: +
+        - generic [ref=e19]: New Project
+  - generic [ref=e20]:
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - heading "[TEST] UI Audit Empty" [level=1] [ref=e30]
+        - generic [ref=e31]
+      - generic [ref=e37]:
+        - textbox "Search tickets" [ref=e38]:
+          - /placeholder: Search tickets…
+        - generic [ref=e39]
+        - generic [ref=e45]
+      - generic [ref=e49]:
+        - generic [ref=e50]
+        - generic [ref=e93]
+        - generic [ref=e125]
+        - generic [ref=e139]
+    - status [ref=e162]
