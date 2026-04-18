@@ -273,51 +273,9 @@ export function useUpdateTicketStatus() {
   return useMutation({
     mutationFn: ({ ticketId, status }: { ticketId: string; status: Status }) =>
       updateTicketStatus(ticketId, status),
-    onMutate: async ({ ticketId, status }) => {
-      // Cancel in-flight queries to prevent race conditions
-      // Cancel all ticket list queries — projectId not in scope here so we use the root key
-      await queryClient.cancelQueries({ queryKey: ['tickets'] });
-      await queryClient.cancelQueries({ queryKey: ticketKeys.detail(ticketId) });
-
-      // Snapshot previous data for rollback
-      const previousQueriesData = queryClient.getQueriesData<Ticket[]>({ queryKey: ['tickets'] });
-      const previousTicket = queryClient.getQueryData<Ticket>(ticketKeys.detail(ticketId));
-
-      // Optimistically update all ticket list caches
-      previousQueriesData.forEach(([queryKey]) => {
-        queryClient.setQueryData<Ticket[]>(queryKey, (old) =>
-          old?.map((t) => (t.id === ticketId ? { ...t, status } : t)),
-        );
-      });
-
-      // Optimistically update ticket detail cache
-      if (previousTicket) {
-        queryClient.setQueryData(ticketKeys.detail(ticketId), {
-          ...previousTicket,
-          status,
-        });
-      }
-
-      return { previousQueriesData, previousTicket };
-    },
-    onError: (_err, variables, context) => {
-      // Rollback on error
-      if (context?.previousQueriesData) {
-        context.previousQueriesData.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey, data);
-        });
-      }
-      if (context?.previousTicket !== undefined) {
-        queryClient.setQueryData(ticketKeys.detail(variables.ticketId), context.previousTicket);
-      }
-    },
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
-    },
-    onSettled: (_data, _err, variables) => {
-      // Always re-sync with server truth after optimistic update, regardless of success/failure
-      queryClient.invalidateQueries({ queryKey: ['tickets'] });
-      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(variables.ticketId) });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
     },
   });
 }

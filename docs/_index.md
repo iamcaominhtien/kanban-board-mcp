@@ -22,6 +22,7 @@ _Last updated: 2026-04-18_
 | [test-logs/iam-72-proof-note.md](test-logs/iam-72-proof-note.md) | Test Plan: IAM-72 Test Case Proof and Note Rendering | stable | 1.0.1 | 2026-04-09 |
 | [test-plans/266e30b2-block-done.md](test-plans/266e30b2-block-done.md) | Test Plan: IAM-99 Block Done Transition | stable | 1.0.2 | 2026-04-17 |
 | [test-plans/753a6a27-sse-auto-refresh.md](test-plans/753a6a27-sse-auto-refresh.md) | Test Plan: SSE Auto-Refresh for MCP Mutations (753a6a27) | stable | 1.3.0 | 2026-04-11 |
+| [test-plans/IAM-106.md](test-plans/IAM-106.md) | Test Plan: IAM-106 Drag-and-Drop Optimistic Status Update | draft | 1.0.0 | 2026-04-18 |
 | [test-plans/IAM-74.md](test-plans/IAM-74.md) | Test Plan: IAM-74 Desktop App (Electron + PyInstaller + VS Code MCP Auto-Setup) | stable | 1.0.0 | 2026-04-11 |
 | [test-plans/IAM-85.md](test-plans/IAM-85.md) | Test Plan: IAM-85 Use Repo Logo in Desktop App and Web UI | stable | 1.0.1 | 2026-04-11 |
 | [test-plans/IAM-87-test-plan.md](test-plans/IAM-87-test-plan.md) | Test Plan: IAM-87 Fix Image Upload and Paste Overflow in MarkdownEditor | review | 1.0.1 | 2026-04-14 |
