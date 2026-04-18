@@ -97,12 +97,17 @@
 .closeBtn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   color: var(--color-dark);
-  padding: 2px 6px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
   transition: background 0.15s;
 }
 
@@ -458,8 +463,9 @@
 
 .timestamps {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 16px;
+  flex-wrap: wrap;
   font-size: 0.75rem;
   color: #9ca3af;
 }
@@ -607,7 +613,10 @@
 
 .unassignedBadge {
   font-size: 0.8rem;
-  color: #9CA3AF;
+  color: rgba(61, 12, 17, 0.4);
   font-family: 'DM Sans', sans-serif;
-  font-style: italic;
+  font-style: normal;
+  background: rgba(61, 12, 17, 0.06);
+  padding: 2px 8px;
+  border-radius: 999px;
 }

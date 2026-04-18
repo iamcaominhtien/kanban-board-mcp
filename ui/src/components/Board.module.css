@@ -122,7 +122,7 @@
 }
 
 /* Column status top borders — driven by --column-accent injected via inline style */
-.column { border-top: 3px solid var(--column-accent, transparent); }
+.column { border-top: 3px solid rgba(0, 0, 0, 0.12); }
 
 .childIndent {
   padding-left: 16px;

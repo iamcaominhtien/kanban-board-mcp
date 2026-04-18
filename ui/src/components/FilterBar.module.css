@@ -32,6 +32,11 @@
   flex-wrap: wrap;
 }
 
+.chips + .chips {
+  padding-left: 16px;
+  border-left: 2px solid rgba(61, 12, 17, 0.15);
+}
+
 .chip {
   border-radius: 999px;
   padding: 6px 14px;
