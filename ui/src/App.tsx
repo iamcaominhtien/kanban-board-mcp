@@ -66,8 +66,16 @@ export default function App() {
   const updateStatusMutation = useUpdateTicketStatus();
   const restoreTicketMutation = useRestoreTicket(currentProjectId ?? '');
 
+  // Local state for instant drag-and-drop updates (prevents snap-back)
+  const [localTickets, setLocalTickets] = useState<Ticket[]>(tickets);
+
+  // Sync local state with server state
+  useEffect(() => {
+    setLocalTickets(tickets);
+  }, [tickets]);
+
   const q = searchQuery.toLowerCase();
-  const filteredTickets = tickets
+  const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
     .filter((t) => {
       const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
@@ -119,15 +127,23 @@ export default function App() {
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
     if (newStatus === 'in-progress') {
-      const dragged = tickets.find((t) => t.id === ticketId);
+      const dragged = localTickets.find((t) => t.id === ticketId);
       if (dragged && (dragged.blockedBy ?? []).length > 0) {
         setBlockedDragPending({ ticketId, newStatus });
         return;
       }
     }
+    
+    // Update local state synchronously to prevent snap-back
+    setLocalTickets((prev) =>
+      prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t))
+    );
+    
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
     } catch (err) {
+      // Rollback local state on error
+      setLocalTickets(tickets);
       setGlobalError(extractError(err));
     }
   }
@@ -136,9 +152,17 @@ export default function App() {
     if (!blockedDragPending) return;
     const { ticketId, newStatus } = blockedDragPending;
     setBlockedDragPending(null);
+    
+    // Update local state synchronously to prevent snap-back
+    setLocalTickets((prev) =>
+      prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t))
+    );
+    
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
     } catch (err) {
+      // Rollback local state on error
+      setLocalTickets(tickets);
       setGlobalError(extractError(err));
     }
   }
@@ -281,7 +305,7 @@ export default function App() {
           <>
             <Board
               tickets={filteredTickets}
-              allTickets={tickets}
+              allTickets={localTickets}
               onDragEnd={handleDragEnd}
               onNewTicket={handleOpenCreate}
               onCardClick={handleOpenView}

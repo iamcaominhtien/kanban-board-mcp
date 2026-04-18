@@ -274,9 +274,8 @@ export function useUpdateTicketStatus() {
     mutationFn: ({ ticketId, status }: { ticketId: string; status: Status }) =>
       updateTicketStatus(ticketId, status),
     onSuccess: (ticket) => {
-      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
-      queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
     },
   });
 }
