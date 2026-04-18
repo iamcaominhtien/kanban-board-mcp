@@ -49,12 +49,13 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
       ref={setNodeRef}
       className={styles.column}
       data-status={column.id}
-      style={{
+      style={({
         backgroundColor: column.accentColor,
+        '--column-accent': column.accentColor,
         filter: isOver ? 'brightness(0.88)' : undefined,
         outline: isOver ? '2px solid rgba(0,0,0,0.2)' : undefined,
         transition: 'filter 0.15s ease, outline 0.15s ease',
-      }}
+      } as React.CSSProperties)}
     >
       <div className={styles.columnHeader}>
         <span className={styles.columnLabel}>{column.label}</span>
