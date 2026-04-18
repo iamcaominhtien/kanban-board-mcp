@@ -43,7 +43,6 @@ body {
 }
 
 /* Black & White TV theme */
-html[data-theme="bw"] body,
-html[data-theme="bw"] #root {
+html[data-theme="bw"] {
   filter: grayscale(100%) contrast(1.05);
 }
