@@ -55,11 +55,11 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
         transition: 'filter 0.15s ease, outline 0.15s ease',
       }}
     >
-      <div className={styles.columnHeader} style={{ borderBottomColor: column.accentColor }}>
+      <div className={styles.columnHeader} style={{ borderBottomColor: 'rgba(0,0,0,0.2)' }}>
         <span className={styles.columnLabel}>{column.label}</span>
         <span
           className={styles.badge}
-          style={{ background: column.accentColor, color: '#1a1a2e' }}
+          style={{ background: 'var(--color-dark)', color: 'var(--color-bg)' }}
           aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
         >
           {tickets.length}
