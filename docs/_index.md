@@ -37,6 +37,7 @@ _Last updated: 2026-04-18_
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
 | [test-plans/iam-97.md](test-plans/iam-97.md) | Test Plan: IAM-97 UI improvements: ticket ordering & terminology | stable | 1.0.1 | 2026-04-16 |
+| [test-plans/pr-95-bw-theme-toggle.md](test-plans/pr-95-bw-theme-toggle.md) | Test Plan: PR-95 B&W TV Theme Toggle | stable | 1.1.0 | 2026-04-18 |
 | [test-plans/test-ac-mcp-tools.md](test-plans/test-ac-mcp-tools.md) | Test Plan: Acceptance Criteria MCP Tools | stable | 1.1.0 | 2026-04-09 |
 | [test-ui-ux-audit-screenshots.md](test-ui-ux-audit-screenshots.md) | Test Plan: UI/UX Screenshot Audit | in-progress | 1.0.0 | 2026-04-17 |
 
