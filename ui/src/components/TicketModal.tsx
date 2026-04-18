@@ -754,15 +754,11 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           <div className={styles.footer}>
             <div className={styles.deleteArea}>
               {confirmDelete ? (
-                <>
-                  <span className={styles.confirmText}>Are you sure?</span>
-                  <button type="button" className={styles.confirmBtn} onClick={handleDelete}>
-                    Confirm
-                  </button>
-                  <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>
-                    Cancel
-                  </button>
-                </>
+                <div className={styles.confirmArea}>
+                  <span className={styles.confirmText}>Delete this ticket?</span>
+                  <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>Cancel</button>
+                  <button type="button" className={styles.confirmBtn} onClick={handleDelete}>Delete</button>
+                </div>
               ) : (
                 onDelete && (
                   <button type="button" className={styles.deleteOutlineBtn} onClick={() => setConfirmDelete(true)}>
@@ -805,181 +801,192 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
         </div>
 
         <div className={styles.body}>
-          <div className={styles.field}>
-            <label className={styles.label}>Title</label>
-            <input
-              ref={titleInputRef}
-              className={styles.input}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ticket title..."
-            />
-          </div>
+          {/* Group 1 — Basic Info */}
+          <div className={styles.fieldGroup}>
+            <div className={styles.fieldGroupLabel}>Basic info</div>
 
-          <div className={styles.field}>
-            <label className={styles.label}>Description</label>
-            <MarkdownEditor
-              value={description}
-              onChange={setDescription}
-              onUploadImage={handleDescriptionImageUpload}
-              onUploadComplete={(nextDescription) => {
-                void persistDescription(nextDescription);
-              }}
-              onBlur={(newDesc) => {
-                void persistDescription(newDesc);
-              }}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Type</label>
-            <select
-              className={styles.select}
-              value={type}
-              onChange={(e) => setType(e.target.value as IssueType)}
-            >
-              <option value="bug">🐛 Bug</option>
-              <option value="feature">✨ Feature</option>
-              <option value="task">📋 Task</option>
-              <option value="chore">🔧 Chore</option>
-            </select>
-          </div>
-
-          <div className={styles.row}>
             <div className={styles.field}>
-              <label className={styles.label}>Status</label>
+              <label className={styles.label}>Title</label>
+              <input
+                ref={titleInputRef}
+                className={styles.input}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ticket title..."
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Description</label>
+              <MarkdownEditor
+                value={description}
+                onChange={setDescription}
+                onUploadImage={handleDescriptionImageUpload}
+                onUploadComplete={(nextDescription) => {
+                  void persistDescription(nextDescription);
+                }}
+                onBlur={(newDesc) => {
+                  void persistDescription(newDesc);
+                }}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Type</label>
               <select
                 className={styles.select}
-                value={status}
-                onChange={(e) => {
-                  const val = e.target.value as Status;
-                  if (val === 'wont_do') {
-                    setStatus(val);
-                    setWontDoDialogPending(true);
-                  } else {
-                    setStatus(val);
-                    setWontDoDialogPending(false);
-                    setWontDoReason('');
-                  }
-                }}
+                value={type}
+                onChange={(e) => setType(e.target.value as IssueType)}
               >
-                <option value="backlog">Backlog</option>
-                <option value="todo">To Do</option>
-                <option value="in-progress">In Progress</option>
-                <option value="done">Done</option>
-                {!ticket?.parentId && <option value="wont_do">Không làm</option>}
+                <option value="bug">🐛 Bug</option>
+                <option value="feature">✨ Feature</option>
+                <option value="task">📋 Task</option>
+                <option value="chore">🔧 Chore</option>
               </select>
-              {wontDoDialogPending && (
-                <div className={styles.wontDoDialog}>
-                  <label className={styles.label}>Lý do không làm *</label>
-                  <textarea
-                    className={styles.wontDoTextarea}
-                    value={wontDoReason}
-                    onChange={(e) => setWontDoReason(e.target.value)}
-                    placeholder="Nhập lý do..."
-                    rows={3}
-                    autoFocus
-                  />
+            </div>
+          </div>
+
+          {/* Group 2 — Metadata */}
+          <div className={styles.fieldGroup}>
+            <div className={styles.fieldGroupLabel}>Metadata</div>
+
+            <div className={styles.row}>
+              <div className={styles.field}>
+                <label className={styles.label}>Status</label>
+                <select
+                  className={styles.select}
+                  value={status}
+                  onChange={(e) => {
+                    const val = e.target.value as Status;
+                    if (val === 'wont_do') {
+                      setStatus(val);
+                      setWontDoDialogPending(true);
+                    } else {
+                      setStatus(val);
+                      setWontDoDialogPending(false);
+                      setWontDoReason('');
+                    }
+                  }}
+                >
+                  <option value="backlog">Backlog</option>
+                  <option value="todo">To Do</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="done">Done</option>
+                  {!ticket?.parentId && <option value="wont_do">Không làm</option>}
+                </select>
+                {wontDoDialogPending && (
+                  <div className={styles.wontDoDialog}>
+                    <label className={styles.label}>Lý do không làm *</label>
+                    <textarea
+                      className={styles.wontDoTextarea}
+                      value={wontDoReason}
+                      onChange={(e) => setWontDoReason(e.target.value)}
+                      placeholder="Nhập lý do..."
+                      rows={3}
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>Priority</label>
+                <select
+                  className={styles.select}
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as Priority)}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Estimate</label>
+              <div className={styles.estimateSelector}>
+                {ESTIMATE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt === null ? 'none' : opt}
+                    type="button"
+                    className={estimate === opt ? styles.estimateOptionActive : styles.estimateOption}
+                    onClick={() => setEstimate(opt)}
+                  >
+                    {opt === null ? '—' : opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Tags</label>
+              <input
+                className={styles.input}
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="frontend, bug, phase-2..."
+              />
+              {tagsInput.trim() && (
+                <div className={styles.tagChips}>
+                  {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip}>{t.trim()}</span>)}
                 </div>
               )}
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>Priority</label>
-              <select
-                className={styles.select}
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as Priority)}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Start Date</label>
-            <input
-              type="date"
-              className={styles.input}
-              value={startDate ?? ''}
-              onChange={(e) => setStartDate(e.target.value || null)}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Due Date</label>
-            <input
-              type="date"
-              className={styles.input}
-              value={dueDate ?? ''}
-              onChange={(e) => setDueDate(e.target.value || null)}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Estimate</label>
-            <div className={styles.estimateSelector}>
-              {ESTIMATE_OPTIONS.map((opt) => (
-                <button
-                  key={opt === null ? 'none' : opt}
-                  type="button"
-                  className={estimate === opt ? styles.estimateOptionActive : styles.estimateOption}
-                  onClick={() => setEstimate(opt)}
+            {members.length > 0 && (
+              <div className={styles.field}>
+                <label className={styles.label}>Assignee</label>
+                <select
+                  className={styles.select}
+                  value={assignee ?? ''}
+                  onChange={(e) => setAssignee(e.target.value || null)}
                 >
-                  {opt === null ? '—' : opt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Tags</label>
-            <input
-              className={styles.input}
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="frontend, bug, phase-2..."
-            />
-            {tagsInput.trim() && (
-              <div className={styles.tagChips}>
-                {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip}>{t.trim()}</span>)}
+                  <option value="">Unassigned</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
 
-          {members.length > 0 && (
+          {/* Group 3 — Dates */}
+          <div className={styles.fieldGroup}>
+            <div className={styles.fieldGroupLabel}>Dates</div>
+
             <div className={styles.field}>
-              <label className={styles.label}>Assignee</label>
-              <select
-                className={styles.select}
-                value={assignee ?? ''}
-                onChange={(e) => setAssignee(e.target.value || null)}
-              >
-                <option value="">Unassigned</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
+              <label className={styles.label}>Start Date</label>
+              <input
+                type="date"
+                className={styles.input}
+                value={startDate ?? ''}
+                onChange={(e) => setStartDate(e.target.value || null)}
+              />
             </div>
-          )}
+
+            <div className={styles.field}>
+              <label className={styles.label}>Due Date</label>
+              <input
+                type="date"
+                className={styles.input}
+                value={dueDate ?? ''}
+                onChange={(e) => setDueDate(e.target.value || null)}
+              />
+            </div>
+          </div>
         </div>
 
         <div className={styles.footer}>
           {localMode === 'edit' && onDelete && (
             <div className={styles.deleteArea}>
               {confirmDelete ? (
-                <>
-                  <span className={styles.confirmText}>Are you sure?</span>
-                  <button type="button" className={styles.confirmBtn} onClick={handleDelete}>
-                    Confirm
-                  </button>
-                  <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>
-                    Cancel
-                  </button>
-                </>
+                <div className={styles.confirmArea}>
+                  <span className={styles.confirmText}>Delete this ticket?</span>
+                  <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>Cancel</button>
+                  <button type="button" className={styles.confirmBtn} onClick={handleDelete}>Delete</button>
+                </div>
               ) : (
                 <button type="button" className={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>
                   Delete
