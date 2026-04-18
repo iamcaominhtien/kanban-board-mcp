@@ -121,6 +121,9 @@
   flex: 1;
 }
 
+/* Column status top borders — driven by --column-accent injected via inline style */
+.column { border-top: 3px solid var(--column-accent, transparent); }
+
 .childIndent {
   padding-left: 16px;
   position: relative;
