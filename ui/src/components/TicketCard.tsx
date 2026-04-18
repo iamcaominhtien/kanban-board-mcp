@@ -19,6 +19,7 @@ const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; 
 function getDueDateDisplay(dueDate: string | null): { label: string; overdue: boolean } | null {
   if (!dueDate) return null;
   const due = new Date(dueDate);
+  if (isNaN(due.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const overdue = due < today;
