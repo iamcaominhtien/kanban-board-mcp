@@ -9,7 +9,7 @@ description: >
   'challenge this', 'is this a good direction', 'debate this', 'think with me',
   'what are the implications', 'help me think through'.
 argument-hint: "Describe what you want to brainstorm — an idea, problem, trade-off, ethical question, product decision, or open discussion topic."
-tools: [read/readFile, agent, edit/editFiles, todo]
+tools: [read/readFile, read/viewImage, agent, edit/editFiles, todo]
 model: GPT-5.4 (copilot)
 ---
 
