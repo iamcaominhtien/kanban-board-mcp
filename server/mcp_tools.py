@@ -482,7 +482,11 @@ async def create_idea_ticket(
             )
 
         # Resolve emoji and color
-        resolved_emoji = (idea_emoji[0] if idea_emoji else None) or "\U0001f4a1"  # 💡
+        if idea_emoji:
+            idea_emoji = idea_emoji.strip()
+            resolved_emoji = idea_emoji[0] if idea_emoji else "💡"
+        else:
+            resolved_emoji = "💡"
         resolved_color = (
             IdeaColor(idea_color) if idea_color else random.choice(list(IdeaColor))
         )
@@ -508,6 +512,7 @@ async def create_idea_ticket(
         result_dict = _ticket_to_dict(ticket)
 
     await board_events.publish(board_events.IDEA_TICKET_CREATED)
+    await board_events.publish(board_events.INVALIDATE)
     return result_dict
 
 
@@ -544,11 +549,27 @@ async def update_idea_ticket(
     async with async_session() as session:
         ticket = await session.get(Ticket, ticket_id)
         if ticket is None:
-            return None
+            raise ValueError(f"Ticket {ticket_id} not found")
         if ticket.board != BoardType.idea:
-            raise ValueError(f"Ticket '{ticket_id}' is not an idea-board ticket")
+            raise ValueError(f"Ticket {ticket_id} is not an idea ticket")
 
+        # Validate title if provided
+        if title is not None:
+            title = title.strip()
+            if not title:
+                raise ValueError("title cannot be empty")
+            if len(title) > 255:
+                raise ValueError("title must be 255 characters or fewer")
+
+        # Validate tags if provided
+        if tags is not None:
+            if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+                raise ValueError("tags must be a list of strings")
+
+        # Guard against None idea_status for legacy rows
         current_status = ticket.idea_status
+        if current_status is None:
+            current_status = IdeaStatus.draft
 
         # Lock enforcement: approved ideas are locked for content edits
         content_fields_provided = any(v is not None for v in (title, description, tags))
@@ -560,9 +581,10 @@ async def update_idea_ticket(
         # Validate status transition
         if idea_status is not None:
             new_status = IdeaStatus(idea_status)
-            if new_status not in VALID_IDEA_TRANSITIONS.get(current_status, set()):
+            valid = VALID_IDEA_TRANSITIONS.get(current_status, set())
+            if new_status not in valid:
                 raise ValueError(
-                    f"Invalid status transition: {current_status.value} → {new_status.value}"
+                    f"Invalid transition: {current_status.value} → {new_status.value}"
                 )
             ticket.idea_status = new_status
 
@@ -573,6 +595,9 @@ async def update_idea_ticket(
         if tags is not None:
             ticket.tags = json.dumps(tags)
         if idea_emoji is not None:
+            idea_emoji = idea_emoji.strip()
+            if not idea_emoji:
+                raise ValueError("idea_emoji cannot be empty string")
             ticket.idea_emoji = idea_emoji[0]
         if idea_color is not None:
             ticket.idea_color = IdeaColor(idea_color)
@@ -585,6 +610,7 @@ async def update_idea_ticket(
         result_dict = _ticket_to_dict(ticket)
 
     await board_events.publish(board_events.IDEA_TICKET_UPDATED)
+    await board_events.publish(board_events.INVALIDATE)
     return result_dict
 
 
@@ -644,6 +670,7 @@ async def promote_idea_ticket(ticket_id: str) -> dict:
             raise
 
     await board_events.publish(board_events.IDEA_TICKET_PROMOTED)
+    await board_events.publish(board_events.INVALIDATE)
     return result_dict
 
 
@@ -656,9 +683,9 @@ async def drop_idea_ticket(ticket_id: str) -> dict | None:
     async with async_session() as session:
         ticket = await session.get(Ticket, ticket_id)
         if ticket is None:
-            return None
+            raise ValueError(f"Ticket {ticket_id} not found")
         if ticket.board != BoardType.idea:
-            raise ValueError(f"Ticket '{ticket_id}' is not an idea-board ticket")
+            raise ValueError(f"Ticket {ticket_id} is not an idea ticket")
         if ticket.idea_status == IdeaStatus.dropped:
             raise ValueError("Idea is already dropped")
 
@@ -670,6 +697,7 @@ async def drop_idea_ticket(ticket_id: str) -> dict | None:
         result_dict = _ticket_to_dict(ticket)
 
     await board_events.publish(board_events.IDEA_TICKET_DROPPED)
+    await board_events.publish(board_events.INVALIDATE)
     return result_dict
 
 
