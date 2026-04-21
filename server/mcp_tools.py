@@ -1,5 +1,6 @@
 import json
 import random
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Literal
 
@@ -39,6 +40,30 @@ def _ticket_to_dict(ticket: Ticket) -> dict:
     return base
 
 
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+async def _next_ticket_id(session, project_id: str) -> str:
+    """Increment project ticket_counter and return the next ticket ID (e.g. 'IAM-5')."""
+    result = await session.execute(
+        text(
+            "UPDATE project SET ticket_counter = ticket_counter + 1"
+            " WHERE id = :pid RETURNING ticket_counter, prefix"
+        ),
+        {"pid": project_id},
+    )
+    row = result.one()
+    return f"{row.prefix}-{row.ticket_counter}"
+
+
+VALID_IDEA_TRANSITIONS: dict[IdeaStatus, set[IdeaStatus]] = {
+    IdeaStatus.draft: {IdeaStatus.approved, IdeaStatus.dropped},
+    IdeaStatus.approved: {IdeaStatus.draft, IdeaStatus.dropped},
+    IdeaStatus.dropped: set(),  # terminal
+}
+
+
 def notify_on_success(func):
     """Decorator that publishes an SSE invalidation event after a successful mutation."""
 
@@ -46,7 +71,7 @@ def notify_on_success(func):
     async def wrapper(*args, **kwargs):
         result = await func(*args, **kwargs)
         if result is not None:
-            await board_events.publish("invalidate")
+            await board_events.publish(board_events.INVALIDATE)
         return result
 
     return wrapper
@@ -463,15 +488,7 @@ async def create_idea_ticket(
         )
 
         # Increment counter and get ticket ID
-        result = await session.execute(
-            text(
-                "UPDATE project SET ticket_counter = ticket_counter + 1"
-                " WHERE id = :pid RETURNING ticket_counter, prefix"
-            ),
-            {"pid": project_id},
-        )
-        row = result.one()
-        ticket_id = f"{row.prefix}-{row.ticket_counter}"
+        ticket_id = await _next_ticket_id(session, project_id)
 
         ticket = Ticket(
             id=ticket_id,
@@ -543,12 +560,7 @@ async def update_idea_ticket(
         # Validate status transition
         if idea_status is not None:
             new_status = IdeaStatus(idea_status)
-            valid_transitions = {
-                IdeaStatus.draft: {IdeaStatus.approved, IdeaStatus.dropped},
-                IdeaStatus.approved: {IdeaStatus.draft, IdeaStatus.dropped},
-                IdeaStatus.dropped: set(),  # terminal
-            }
-            if new_status not in valid_transitions.get(current_status, set()):
+            if new_status not in VALID_IDEA_TRANSITIONS.get(current_status, set()):
                 raise ValueError(
                     f"Invalid status transition: {current_status.value} → {new_status.value}"
                 )
@@ -565,9 +577,7 @@ async def update_idea_ticket(
         if idea_color is not None:
             ticket.idea_color = IdeaColor(idea_color)
 
-        from datetime import datetime, timezone
-
-        ticket.updated_at = datetime.now(timezone.utc).isoformat()
+        ticket.updated_at = _now_iso()
 
         session.add(ticket)
         await session.commit()
@@ -599,15 +609,7 @@ async def promote_idea_ticket(ticket_id: str) -> dict:
                 raise ValueError("Idea must be in approved state to promote")
 
             # Increment counter for new main ticket
-            result = await session.execute(
-                text(
-                    "UPDATE project SET ticket_counter = ticket_counter + 1"
-                    " WHERE id = :pid RETURNING ticket_counter, prefix"
-                ),
-                {"pid": ticket.project_id},
-            )
-            row = result.one()
-            new_ticket_id = f"{row.prefix}-{row.ticket_counter}"
+            new_ticket_id = await _next_ticket_id(session, ticket.project_id)
 
             new_ticket = Ticket(
                 id=new_ticket_id,
@@ -625,9 +627,7 @@ async def promote_idea_ticket(ticket_id: str) -> dict:
             # NOTE: We use 'dropped' here because IdeaStatus has no 'promoted' state.
             # The link back to this idea is preserved via origin_idea_id on the new ticket.
             ticket.idea_status = IdeaStatus.dropped
-            from datetime import datetime, timezone
-
-            ticket.updated_at = datetime.now(timezone.utc).isoformat()
+            ticket.updated_at = _now_iso()
             session.add(ticket)
 
             await session.commit()
@@ -663,9 +663,7 @@ async def drop_idea_ticket(ticket_id: str) -> dict | None:
             raise ValueError("Idea is already dropped")
 
         ticket.idea_status = IdeaStatus.dropped
-        from datetime import datetime, timezone
-
-        ticket.updated_at = datetime.now(timezone.utc).isoformat()
+        ticket.updated_at = _now_iso()
         session.add(ticket)
         await session.commit()
         await session.refresh(ticket)
