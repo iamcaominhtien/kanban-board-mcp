@@ -3,7 +3,7 @@ name: kanbander
 description: "Specialized ticket management agent using the Vibe Kanban MCP tool. Focused on: searching, creating, updating, and reporting on Kanban issues, managing project tickets, and organizing work items across the board."
 argument-hint: "Describe a ticket action (e.g. 'search for X', 'create a ticket for Y', 'mark ticket #N as done', 'list all open issues')"
 tools: ['vibe_kanban/*']
-model: Gemini 3 Flash (Preview) (copilot)
+model: Claude Haiku 4.5 (copilot)
 ---
 
 # Kanbander — Vibe Kanban Ticket Manager

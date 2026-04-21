@@ -9,7 +9,7 @@ description: >
   'edit the agent config', 'do this small task', 'fix this file', 'run this errand'.
 argument-hint: "Describe the task precisely — what file to touch, what change to make, and why."
 tools: [vscode, execute, read, agent, edit, browser, todo]
-model: Claude Sonnet 4.6 (copilot)
+model: Auto (copilot)
 user-invocable: false
 ---
 
