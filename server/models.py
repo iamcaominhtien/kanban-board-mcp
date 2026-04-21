@@ -1,9 +1,42 @@
 import json
 import uuid
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Literal, Optional
 
 from sqlmodel import Field, SQLModel
+
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+
+class BoardType(str, Enum):
+    """Which board a ticket belongs to."""
+
+    main = "main"
+    idea = "idea"
+
+
+class IdeaStatus(str, Enum):
+    """Lifecycle states for idea-board tickets."""
+
+    draft = "draft"
+    approved = "approved"
+    dropped = "dropped"
+
+
+class IdeaColor(str, Enum):
+    """Accent colors for idea cards."""
+
+    yellow = "yellow"
+    orange = "orange"
+    lime = "lime"
+    pink = "pink"
+    blue = "blue"
+    purple = "purple"
+    teal = "teal"
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +90,17 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
+    # Idea Board fields
+    board: BoardType = Field(
+        default=BoardType.main
+    )  # which board this ticket belongs to
+    idea_status: Optional[IdeaStatus] = Field(
+        default=None
+    )  # only set when board='idea'
+    idea_emoji: Optional[str] = Field(default=None, max_length=8)  # emoji for idea card
+    idea_color: Optional[IdeaColor] = Field(default=None)  # accent color for idea card
+    # origin_idea_id is immutable once set — records which idea ticket was promoted
+    origin_idea_id: Optional[str] = Field(default=None, foreign_key="ticket.id")
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
