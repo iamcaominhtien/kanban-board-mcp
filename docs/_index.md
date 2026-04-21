@@ -1,7 +1,14 @@
 # Documentation Index
 _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/generate_docs_index.py` to refresh._
 
-_Last updated: 2026-04-18_
+_Last updated: 2026-04-22_
+
+## Architecture
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [arch/arch-idea-board-technical.md](arch/arch-idea-board-technical.md) | Idea Board — Technical Architecture | draft | 1.0.0 | 2026-04-21 |
+| [design/idea-board-design.md](design/idea-board-design.md) | Idea Board — Design Document | draft | 1.0.0 | 2026-04-21 |
 
 ## Business Analysis
 
@@ -14,6 +21,7 @@ _Last updated: 2026-04-18_
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
+| [drafts/testing-plan-draft.md](drafts/testing-plan-draft.md) | Test Plan Draft: IAM-100 Idea Board | draft | 1.0.0 | 2026-04-21 |
 | [test-logs/iam-35-comments.md](test-logs/iam-35-comments.md) | Test Plan: Comments Cleanup (IAM-35) | stable | 1.0.1 | 2026-04-04 |
 | [test-logs/iam-36-block-relations.md](test-logs/iam-36-block-relations.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | in-progress | 1.0.1 | 2026-04-08 |
 | [test-logs/iam-39-members.md](test-logs/iam-39-members.md) | Test Plan: Assignee, Created By, and Project Members (IAM-39) | stable | 1.0.1 | 2026-04-08 |
@@ -62,6 +70,24 @@ _Last updated: 2026-04-18_
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
 | [arch/backend-architecture.md](arch/backend-architecture.md) | Backend Architecture & Implementation Plan | approved | 1.0.0 | 2026-04-04 |
+
+## Ba-Spec-Draft
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [drafts/ba-spec-draft.md](drafts/ba-spec-draft.md) | IAM-100 Idea Board — BA Specification Draft | draft | — | — |
+
+## Spec
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [specs/IAM-100-idea-board-spec.md](specs/IAM-100-idea-board-spec.md) | IAM-100: Idea Board — Implementation & Testing Plan | draft | 1.0.0 | 2026-04-21 |
+
+## Technical-Analysis
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [drafts/tech-analysis-draft.md](drafts/tech-analysis-draft.md) | Idea Board Feature — Comprehensive Technical Analysis | draft | 1.0.0 | — |
 
 ## Test-Plan
 
