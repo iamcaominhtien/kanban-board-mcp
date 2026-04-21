@@ -19,6 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # NOTE: origin_idea_id has a self-referential FK in models.py (FK → ticket.id).
+    # SQLite/Alembic batch mode cannot enforce self-referential FK constraints at the
+    # DB level due to a CircularDependencyError in column topological sort.
+    # The FK is declared in models.py for ORM/documentation; enforcement is at app level.
     with op.batch_alter_table("ticket") as batch_op:
         batch_op.add_column(
             sa.Column(
