@@ -766,10 +766,10 @@ async def promote_idea_to_board(
     idea = await session.get(Ticket, idea_ticket_id)
     if idea is None or idea.board != BoardType.idea:
         return None
-    if idea.idea_status != IdeaStatus.approved:
-        raise ValueError(f"Idea must be in 'approved' state to promote (current: {idea.idea_status})")
+    if idea.project_id != project_id:
+        return None  # idea doesn't belong to this project
 
-    # Idempotency: check if already promoted
+    # Idempotency: check if a main board ticket was already created for this idea
     existing_stmt = select(Ticket).where(
         Ticket.origin_idea_id == idea_ticket_id,
         Ticket.board == BoardType.main,
@@ -778,6 +778,9 @@ async def promote_idea_to_board(
     existing = result.first()
 
     if existing is None:
+        # Not yet promoted — enforce approved gate
+        if idea.idea_status != IdeaStatus.approved:
+            raise ValueError(f"Idea must be in 'approved' state to promote (current: {idea.idea_status})")
         # Create the main board ticket
         counter_result = await session.execute(
             text(
@@ -806,10 +809,12 @@ async def promote_idea_to_board(
         session.add(main_ticket)
         existing = main_ticket
 
-    # Drop the idea
-    idea.idea_status = IdeaStatus.dropped
-    idea.updated_at = datetime.now(UTC)
-    session.add(idea)
+    # Always ensure idea is dropped (idempotent)
+    if idea.idea_status != IdeaStatus.dropped:
+        idea.idea_status = IdeaStatus.dropped
+        idea.updated_at = datetime.now(UTC)
+        session.add(idea)
+
     await session.commit()
     await session.refresh(existing)
     await session.refresh(idea)

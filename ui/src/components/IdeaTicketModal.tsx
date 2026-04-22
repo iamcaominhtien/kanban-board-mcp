@@ -137,6 +137,8 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
     await runActionAndClose(() => dropMutation.mutateAsync(ticket.id));
   }
 
+  // In approved state, all fields are read-only — ticket prop reflects server state
+  // No need to save edits before promote
   async function handleConfirmPromote() {
     await runActionAndClose(() =>
       promoteIdeaTicketMutation.mutateAsync(ticket.id)
