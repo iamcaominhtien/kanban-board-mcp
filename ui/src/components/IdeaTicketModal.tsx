@@ -167,7 +167,7 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
   }
 
   const accentHex = COLOR_OPTIONS.find(c => c.value === color)?.hex ?? '#F5C518';
-  const statusStyle = STATUS_COLORS[ticket.ideaStatus];
+  const statusStyle = STATUS_COLORS[ticket.ideaStatus] ?? STATUS_COLORS.draft;
 
   return (
     <div
@@ -186,7 +186,7 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
               className={styles.statusPill}
               style={{ background: statusStyle.bg, color: statusStyle.color }}
             >
-              {STATUS_LABELS[ticket.ideaStatus]}
+              {STATUS_LABELS[ticket.ideaStatus] ?? 'Draft'}
             </span>
           </div>
           <button ref={closeBtnRef} type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
