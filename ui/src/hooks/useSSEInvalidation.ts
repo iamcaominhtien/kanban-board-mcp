@@ -19,8 +19,24 @@ export function useSSEInvalidation() {
         es = new EventSource(`${origin}/events`);
         queryClient.invalidateQueries();
 
-        es.onmessage = () => {
-          queryClient.invalidateQueries();
+        es.onmessage = (event) => {
+          const data: string = event.data ?? '';
+
+          // idea_ticket_created:{projectId} or idea_ticket_updated:{projectId}
+          if (data.startsWith('idea_ticket_')) {
+            const parts = data.split(':');
+            const projectId = parts[1];
+            if (projectId) {
+              // Targeted: only invalidate the idea board for this project
+              queryClient.invalidateQueries({ queryKey: ['tickets', projectId, 'idea'] });
+            } else {
+              // Fallback if no project ID encoded
+              queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            }
+          } else {
+            // Generic invalidate or other events — full invalidation
+            queryClient.invalidateQueries();
+          }
         };
 
         es.onerror = () => {
