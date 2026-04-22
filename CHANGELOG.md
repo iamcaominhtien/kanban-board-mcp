@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.4.1] - 2026-04-22
+
+### Fixed
+- **BUG-01** Tags now persist after saving in IdeaTicketModal (missing field in API schema and service)
+- **BUG-02** Promote to Board is now atomic and idempotent — dedicated `/promote` endpoint prevents duplicate tickets on retry
+- **BUG-03** Full column is now the drag drop target (not just the inner card list), fixing silent no-op when dropping on empty Approved column
+- IdeaTicketModal crash when `ideaStatus` is null or unexpected value (status style lookup now has safe fallback)
+
 ## [1.4.0] - 2025-07-17
 
 ### Added
