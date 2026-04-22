@@ -186,8 +186,9 @@ async def post_idea_ticket(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    await board_events.publish(board_events.IDEA_TICKET_CREATED)
-    await board_events.publish(board_events.INVALIDATE)
+    # Event format: "{event_type}:{project_id}" — project_id must not contain ":"
+    # (project IDs are alphanumeric slugs e.g. "abc-123", no special chars)
+    await board_events.publish(f"{board_events.IDEA_TICKET_CREATED}:{project_id}")
     return _read(ticket)
 
 
@@ -212,7 +213,9 @@ async def patch_idea_ticket(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
-    await board_events.publish(board_events.INVALIDATE)
+    # Event format: "{event_type}:{project_id}" — project_id must not contain ":"
+    # (project IDs are alphanumeric slugs e.g. "abc-123", no special chars)
+    await board_events.publish(f"{board_events.IDEA_TICKET_UPDATED}:{project_id}")
     return _read(ticket)
 
 
