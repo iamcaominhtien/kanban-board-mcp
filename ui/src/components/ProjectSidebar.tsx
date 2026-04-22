@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import type { Project } from '../types';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
 import { BoardSwitcher } from './BoardSwitcher';
+import type { BoardType } from '../hooks/useBoardSelection';
 
 interface ProjectSidebarProps {
   projects: Project[];
@@ -14,8 +15,8 @@ interface ProjectSidebarProps {
   onOpenMembers: () => void;
   onOpenSettings: () => void;
   wontDoCount: number;
-  selectedBoard: 'main' | 'idea';
-  onBoardChange: (board: 'main' | 'idea') => void;
+  selectedBoard: BoardType;
+  onBoardChange: (board: BoardType) => void;
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
@@ -63,42 +64,37 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
       <nav className={styles.projectList}>
         <p className={styles.sectionLabel}>Projects</p>
         {projects.map((project) => (
-          <div
-            key={project.id}
-            role="button"
-            tabIndex={0}
-            className={`${styles.projectItem} ${project.id === currentProjectId ? styles.active : ''}`}
-            onClick={() => onSelectProject(project.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelectProject(project.id);
-              }
-            }}
-          >
-            <span className={styles.dot} style={{ backgroundColor: project.color }} />
-            <span className={styles.projectName}>{project.name}</span>
-            <span className={styles.prefixBadge}>{project.prefix}</span>
-            {projects.length > 1 && (
-              <button
-                type="button"
-                className={styles.deleteBtn}
-                onClick={(e) => handleDelete(e, project.id)}
-                aria-label={`Delete ${project.name}`}
-              >
-                ×
-              </button>
-            )}
+          <Fragment key={project.id}>
+            <div
+              role="button"
+              tabIndex={0}
+              className={`${styles.projectItem} ${project.id === currentProjectId ? styles.active : ''}`}
+              onClick={() => onSelectProject(project.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectProject(project.id);
+                }
+              }}
+            >
+              <span className={styles.dot} style={{ backgroundColor: project.color }} />
+              <span className={styles.projectName}>{project.name}</span>
+              <span className={styles.prefixBadge}>{project.prefix}</span>
+              {projects.length > 1 && (
+                <button
+                  type="button"
+                  className={styles.deleteBtn}
+                  onClick={(e) => handleDelete(e, project.id)}
+                  aria-label={`Delete ${project.name}`}
+                >
+                  ×
+                </button>
+              )}
+            </div>
             {project.id === currentProjectId && (
-              <div
-                style={{ flexBasis: '100%' }}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                <BoardSwitcher selectedBoard={selectedBoard} onBoardChange={onBoardChange} />
-              </div>
+              <BoardSwitcher selectedBoard={selectedBoard} onBoardChange={onBoardChange} />
             )}
-          </div>
+          </Fragment>
         ))}
       </nav>
 

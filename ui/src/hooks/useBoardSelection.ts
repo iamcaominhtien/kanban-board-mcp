@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-type Board = 'main' | 'idea';
+export type BoardType = 'main' | 'idea';
+
+type Board = BoardType;
 
 function storageKey(projectId: string): string {
   return `selectedBoard_${projectId}`;
