@@ -95,17 +95,25 @@ export function useUpdateIdeaTicket(projectId: string) {
 }
 
 export function useDropIdeaTicket(projectId: string) {
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
     mutationFn: (ticketId: string) => dropIdeaTicket(ticketId),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['tickets', projectId] });
+    },
   });
 }
 
 export function usePromoteIdeaTicket(projectId: string) {
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
     mutationFn: (ticketId: string) => promoteIdeaTicket(ticketId),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['tickets', projectId] });
+    },
   });
 }

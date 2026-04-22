@@ -17,10 +17,9 @@ interface IdeaColumnProps {
   onCardClick: (ticket: IdeaTicket) => void;
 }
 
-export function IdeaColumn({ column, tickets, isTerminal, onCardClick }: IdeaColumnProps) {
+export function IdeaColumn({ column, tickets, isTerminal: _isTerminal, onCardClick }: IdeaColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
-    disabled: isTerminal,
   });
 
   return (

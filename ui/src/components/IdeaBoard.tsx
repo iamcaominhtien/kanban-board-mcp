@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { useMemo, useState } from 'react';
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { IdeaStatus, IdeaTicket } from '../types';
 import { useIdeaTickets, useCreateIdeaTicket, useUpdateIdeaTicket } from '../api/useIdeaTickets';
 import { IdeaColumn } from './IdeaColumn';
@@ -34,13 +35,23 @@ export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
   const updateMutation = useUpdateIdeaTicket(projectId);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickDesc, setQuickDesc] = useState('');
+
+  const ticketsByStatus = useMemo(() => {
+    const map: Record<string, IdeaTicket[]> = { draft: [], approved: [], dropped: [] };
+    for (const t of tickets) {
+      const key = t.ideaStatus ?? 'draft';
+      if (map[key]) map[key].push(t);
+    }
+    return map;
+  }, [tickets]);
 
   const activeTicket = tickets.find((t) => t.id === activeTicketId) ?? null;
 
@@ -61,7 +72,7 @@ export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
     if (ticket.ideaStatus === newStatus) return;
 
     if (!ALLOWED_TRANSITIONS[ticket.ideaStatus].has(newStatus)) {
-      console.error(`Transition from ${ticket.ideaStatus} → ${newStatus} is not allowed`);
+      window.alert(`Cannot move from ${ticket.ideaStatus} to ${newStatus}`);
       return;
     }
 
@@ -149,7 +160,7 @@ export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
             <IdeaColumn
               key={col.id}
               column={col}
-              tickets={tickets.filter((t) => t.ideaStatus === col.id)}
+              tickets={ticketsByStatus[col.id] ?? []}
               isTerminal={col.id === 'dropped'}
               onCardClick={onCardClick}
             />
