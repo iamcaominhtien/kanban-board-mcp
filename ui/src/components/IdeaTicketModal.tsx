@@ -5,6 +5,10 @@ import { useCreateTicket } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import styles from './IdeaTicketModal.module.css';
 
+function parseTagsInput(value: string) {
+  return value.split(',').map(tag => tag.trim()).filter(Boolean);
+}
+
 const EMOJIS = [
   '💡','🚀','⚡','🎯','🔥','✨','🌟','💎','🎨','🛠️',
   '📦','🔧','🐛','🎉','🌈','🔮','💬','📈','🏆','🎪',
@@ -59,13 +63,23 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
   const updateMutation = useUpdateIdeaTicket(projectId);
   const dropMutation = useDropIdeaTicket(projectId);
   const createTicketMutation = useCreateTicket(projectId);
+  const isPromotionPending = createTicketMutation.isPending || dropMutation.isPending;
 
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
+  const promotedTicketCreated = useRef(false);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
   }, []);
+
+  useEffect(() => {
+    if (visible) {
+      closeBtnRef.current?.focus();
+    }
+  }, [visible]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -79,60 +93,71 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [showEmojiPicker, showPromoteConfirm]);
 
-  async function handleSave() {
-    if (!title.trim()) { setError('Title is required.'); return; }
+  async function runActionAndClose(action: () => Promise<unknown>) {
     setError(null);
     try {
-      const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
-      await updateMutation.mutateAsync({
-        ticketId: ticket.id,
-        data: { title: title.trim(), description, tags, ideaEmoji: emoji, ideaColor: color },
-      });
+      await action();
       onClose();
     } catch (err) {
       setError(extractError(err));
     }
+  }
+
+  async function handleSave() {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) { setError('Title is required.'); return; }
+
+    await runActionAndClose(() => updateMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: {
+          title: trimmedTitle,
+          description,
+          tags: parseTagsInput(tagsInput),
+          ideaEmoji: emoji,
+          ideaColor: color,
+        },
+      }));
   }
 
   async function handleApprove() {
-    setError(null);
-    try {
-      await updateMutation.mutateAsync({
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) { setError('Title is required.'); return; }
+    await runActionAndClose(() => updateMutation.mutateAsync({
         ticketId: ticket.id,
-        data: { ideaStatus: 'approved' },
-      });
-      onClose();
-    } catch (err) {
-      setError(extractError(err));
-    }
+        data: {
+          ideaStatus: 'approved',
+          title: trimmedTitle,
+          description,
+          tags: parseTagsInput(tagsInput),
+          ideaEmoji: emoji,
+          ideaColor: color,
+        },
+      }));
   }
 
   async function handleDrop() {
-    setError(null);
-    try {
-      await dropMutation.mutateAsync(ticket.id);
-      onClose();
-    } catch (err) {
-      setError(extractError(err));
-    }
+    await runActionAndClose(() => dropMutation.mutateAsync(ticket.id));
   }
 
   async function handleConfirmPromote() {
     setError(null);
     try {
-      // Create a main board ticket from this idea
-      await createTicketMutation.mutateAsync({
-        title: ticket.title,
-        description: ticket.description ?? '',
-        type: 'feature',
-        priority: 'medium',
-        status: 'backlog',
-        tags: ticket.tags,
-        dueDate: null,
-        startDate: null,
-        estimate: null,
-        parentId: null,
-      });
+      if (!promotedTicketCreated.current) {
+        // Create a main board ticket from this idea
+        await createTicketMutation.mutateAsync({
+          title: ticket.title,
+          description: ticket.description ?? '',
+          type: 'feature',
+          priority: 'medium',
+          status: 'backlog',
+          tags: ticket.tags,
+          dueDate: null,
+          startDate: null,
+          estimate: null,
+          parentId: null,
+        });
+        promotedTicketCreated.current = true;
+      }
       // Drop the idea (it's been promoted)
       await dropMutation.mutateAsync(ticket.id);
       onClose();
@@ -164,7 +189,7 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
               {STATUS_LABELS[ticket.ideaStatus]}
             </span>
           </div>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
+          <button ref={closeBtnRef} type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
         </div>
 
         {/* Emoji + Color row */}
@@ -282,9 +307,9 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
                 type="button"
                 className={styles.btnConfirmPromote}
                 onClick={handleConfirmPromote}
-                disabled={createTicketMutation.isPending || dropMutation.isPending}
+                disabled={isPromotionPending}
               >
-                {createTicketMutation.isPending ? 'Creating…' : 'Confirm Promotion'}
+                {isPromotionPending ? 'Creating…' : 'Confirm Promotion'}
               </button>
               <button type="button" className={styles.btnCancel} onClick={() => setShowPromoteConfirm(false)}>
                 Cancel
