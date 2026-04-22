@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
 
 export type BoardType = 'main' | 'idea';
 
@@ -8,7 +8,8 @@ function storageKey(projectId: string): string {
   return `selectedBoard_${projectId}`;
 }
 
-function readFromStorage(projectId: string): Board {
+function readFromStorage(projectId: string | null): Board {
+  if (!projectId) return 'main';
   try {
     const stored = localStorage.getItem(storageKey(projectId));
     if (stored === 'main' || stored === 'idea') return stored;
@@ -19,17 +20,10 @@ function readFromStorage(projectId: string): Board {
 }
 
 export function useBoardSelection(projectId: string | null): [Board, (board: Board) => void] {
-  const [selectedBoard, setSelectedBoardState] = useState<Board>(() => {
-    if (!projectId) return 'main';
-    return readFromStorage(projectId);
-  });
+  const [selectedBoard, setSelectedBoardState] = useState<Board>(() => readFromStorage(projectId));
 
-  // When projectId changes, reload the saved selection for the new project
-  useEffect(() => {
-    if (!projectId) {
-      setSelectedBoardState('main');
-      return;
-    }
+  // useLayoutEffect fires synchronously before paint — no stale render on projectId change
+  useLayoutEffect(() => {
     setSelectedBoardState(readFromStorage(projectId));
   }, [projectId]);
 
