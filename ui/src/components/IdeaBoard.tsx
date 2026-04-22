@@ -4,10 +4,11 @@ import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import type { IdeaStatus, IdeaTicket } from '../types';
 import { useIdeaTickets, useCreateIdeaTicket, useUpdateIdeaTicket } from '../api/useIdeaTickets';
 import { IdeaColumn } from './IdeaColumn';
+import type { IdeaColumnDef } from './IdeaColumn';
 import { IdeaCard } from './IdeaCard';
 import styles from './IdeaBoard.module.css';
 
-const IDEA_COLUMNS: { id: IdeaStatus; label: string; emoji: string; accentColor: string }[] = [
+const IDEA_COLUMNS: IdeaColumnDef[] = [
   { id: 'draft',    label: 'Draft',    emoji: '✏️', accentColor: 'var(--color-yellow)' },
   { id: 'approved', label: 'Approved', emoji: '✅', accentColor: 'var(--color-lime)' },
   { id: 'dropped',  label: 'Dropped',  emoji: '🗑️', accentColor: 'var(--color-pink)' },
@@ -24,11 +25,10 @@ const ALLOWED_TRANSITIONS: Record<IdeaStatus, Set<IdeaStatus>> = {
 
 interface IdeaBoardProps {
   projectId: string;
-  projectName: string;
   onCardClick: (ticket: IdeaTicket) => void;
 }
 
-export function IdeaBoard({ projectId, projectName: _projectName, onCardClick }: IdeaBoardProps) {
+export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
   const { data: tickets = [], isLoading } = useIdeaTickets(projectId);
   const createMutation = useCreateIdeaTicket(projectId);
   const updateMutation = useUpdateIdeaTicket(projectId);
@@ -38,19 +38,13 @@ export function IdeaBoard({ projectId, projectName: _projectName, onCardClick }:
   );
 
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
-  const [localTickets, setLocalTickets] = useState<IdeaTicket[]>([]);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickDesc, setQuickDesc] = useState('');
-  const [createPending, setCreatePending] = useState(false);
 
-  // Sync local tickets from server data
-  const displayTickets = activeTicketId !== null ? localTickets : tickets;
-
-  const activeTicket = displayTickets.find((t) => t.id === activeTicketId) ?? null;
+  const activeTicket = tickets.find((t) => t.id === activeTicketId) ?? null;
 
   function handleDragStart(event: DragStartEvent) {
-    setLocalTickets([...tickets]);
     setActiveTicketId(event.active.id as string);
   }
 
@@ -82,7 +76,6 @@ export function IdeaBoard({ projectId, projectName: _projectName, onCardClick }:
   async function handleQuickCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!quickTitle.trim()) return;
-    setCreatePending(true);
     try {
       await createMutation.mutateAsync({ title: quickTitle.trim(), description: quickDesc.trim() });
       setQuickTitle('');
@@ -91,8 +84,6 @@ export function IdeaBoard({ projectId, projectName: _projectName, onCardClick }:
     } catch (err) {
       console.error('Failed to create idea:', err);
       window.alert('Failed to create idea. Please try again.');
-    } finally {
-      setCreatePending(false);
     }
   }
 
@@ -137,9 +128,9 @@ export function IdeaBoard({ projectId, projectName: _projectName, onCardClick }:
             <button
               type="submit"
               className={styles.quickSubmit}
-              disabled={createPending || !quickTitle.trim()}
+              disabled={createMutation.isPending || !quickTitle.trim()}
             >
-              {createPending ? 'Creating…' : 'Create'}
+              {createMutation.isPending ? 'Creating…' : 'Create'}
             </button>
             <button
               type="button"
@@ -158,7 +149,7 @@ export function IdeaBoard({ projectId, projectName: _projectName, onCardClick }:
             <IdeaColumn
               key={col.id}
               column={col}
-              tickets={displayTickets.filter((t) => t.ideaStatus === col.id)}
+              tickets={tickets.filter((t) => t.ideaStatus === col.id)}
               isTerminal={col.id === 'dropped'}
               onCardClick={onCardClick}
             />

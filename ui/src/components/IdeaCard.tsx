@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import type { IdeaTicket } from '../types';
+import type { IdeaColor, IdeaTicket } from '../types';
 import styles from './IdeaCard.module.css';
 
-const COLOR_MAP: Record<string, string> = {
+const COLOR_MAP: Record<IdeaColor, string> = {
   yellow: 'var(--color-yellow)',
   orange: 'var(--color-orange)',
   lime:   'var(--color-lime)',

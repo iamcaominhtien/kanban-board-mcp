@@ -58,6 +58,11 @@ async function promoteIdeaTicket(ticketId: string): Promise<IdeaTicket> {
 // Hooks
 // ---------------------------------------------------------------------------
 
+function useInvalidateIdeaTickets(projectId: string) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: ideaKeys.all(projectId) });
+}
+
 export function useIdeaTickets(projectId: string) {
   return useQuery({
     queryKey: ideaKeys.all(projectId),
@@ -67,18 +72,16 @@ export function useIdeaTickets(projectId: string) {
 }
 
 export function useCreateIdeaTicket(projectId: string) {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
     mutationFn: (data: Parameters<typeof createIdeaTicket>[1]) =>
       createIdeaTicket(projectId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ideaKeys.all(projectId) });
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function useUpdateIdeaTicket(projectId: string) {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
     mutationFn: ({
       ticketId,
@@ -87,28 +90,22 @@ export function useUpdateIdeaTicket(projectId: string) {
       ticketId: string;
       data: Parameters<typeof updateIdeaTicket>[1];
     }) => updateIdeaTicket(ticketId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ideaKeys.all(projectId) });
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function useDropIdeaTicket(projectId: string) {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
     mutationFn: (ticketId: string) => dropIdeaTicket(ticketId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ideaKeys.all(projectId) });
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function usePromoteIdeaTicket(projectId: string) {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
     mutationFn: (ticketId: string) => promoteIdeaTicket(ticketId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ideaKeys.all(projectId) });
-    },
+    onSuccess: invalidate,
   });
 }

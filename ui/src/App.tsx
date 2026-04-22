@@ -311,7 +311,6 @@ export default function App() {
             {selectedBoard === 'idea' ? (
               <IdeaBoard
                 projectId={currentProjectId}
-                projectName={currentProject?.name ?? ''}
                 onCardClick={(ticket) => { /* TODO: open IdeaTicketModal in IAM-122 */ console.log('open idea', ticket.id) }}
               />
             ) : (

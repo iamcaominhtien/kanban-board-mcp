@@ -3,7 +3,7 @@ import type { IdeaStatus, IdeaTicket } from '../types';
 import { IdeaCard } from './IdeaCard';
 import styles from './IdeaColumn.module.css';
 
-interface IdeaColumnDef {
+export interface IdeaColumnDef {
   id: IdeaStatus;
   label: string;
   emoji: string;
