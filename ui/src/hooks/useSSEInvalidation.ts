@@ -14,30 +14,31 @@ export function useSSEInvalidation() {
       const origin = await resolveOrigin();
       if (!mounted) return;
 
+      function handleMessage(event: MessageEvent<string>) {
+        const eventType = event.data ?? '';
+
+        if (!eventType.startsWith('idea_ticket_')) {
+          // Generic invalidate or other events — full invalidation
+          queryClient.invalidateQueries();
+          return;
+        }
+
+        // e.g. "idea_ticket_created:proj-123" or "idea_ticket_updated:proj-123"
+        const projectId: string = eventType.split(':')[1] ?? '';
+        if (projectId) {
+          queryClient.invalidateQueries({ queryKey: ['tickets', projectId, 'idea'] });
+        } else {
+          console.warn('[SSE] idea_ticket event missing project_id:', eventType);
+          queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        }
+      }
+
       function connect() {
         if (!mounted) return;
         es = new EventSource(`${origin}/events`);
         queryClient.invalidateQueries();
 
-        es.onmessage = (event) => {
-          const data: string = event.data ?? '';
-
-          // idea_ticket_created:{projectId} or idea_ticket_updated:{projectId}
-          if (data.startsWith('idea_ticket_')) {
-            const parts = data.split(':');
-            const projectId = parts[1];
-            if (projectId) {
-              // Targeted: only invalidate the idea board for this project
-              queryClient.invalidateQueries({ queryKey: ['tickets', projectId, 'idea'] });
-            } else {
-              // Fallback if no project ID encoded
-              queryClient.invalidateQueries({ queryKey: ['tickets'] });
-            }
-          } else {
-            // Generic invalidate or other events — full invalidation
-            queryClient.invalidateQueries();
-          }
-        };
+        es.onmessage = handleMessage;
 
         es.onerror = () => {
           if (es) es.close();
