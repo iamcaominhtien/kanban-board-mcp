@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './components/Board';
+import { IdeaBoard } from './components/IdeaBoard';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -308,7 +309,10 @@ export default function App() {
         ) : (
           <>
             {selectedBoard === 'idea' ? (
-              <div style={{ padding: '2rem', color: 'var(--color-dark)', opacity: 0.5 }}>💡 Idea Board — coming soon</div>
+              <IdeaBoard
+                projectId={currentProjectId}
+                onCardClick={(ticket) => { /* TODO: open IdeaTicketModal in IAM-122 */ console.log('open idea', ticket.id) }}
+              />
             ) : (
               <Board
                 tickets={filteredTickets}

@@ -1,0 +1,66 @@
+.column {
+  display: flex;
+  flex-direction: column;
+  width: 290px;
+  min-width: 290px;
+  background: #fff8f0;
+  border-radius: var(--radius-panel);
+  border-top: 4px solid var(--accent, var(--color-yellow));
+  box-shadow: 0 2px 12px rgba(61, 12, 17, 0.06);
+  overflow: hidden;
+  transition: background 0.15s ease;
+}
+
+.columnOver {
+  background: #fff0dc;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(61, 12, 17, 0.07);
+}
+
+.emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-dark);
+  flex: 1;
+}
+
+.badge {
+  background: var(--accent, var(--color-yellow));
+  color: var(--color-dark);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  min-width: 22px;
+  text-align: center;
+}
+
+.cardList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 80px;
+}
+
+.empty {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: rgba(61, 12, 17, 0.35);
+  text-align: center;
+  padding: 24px 0 16px;
+}

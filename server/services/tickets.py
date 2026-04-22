@@ -6,7 +6,17 @@ from sqlalchemy import text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import ActivityEventRead, Member, Ticket, TicketUpdate
+import random
+
+from models import (
+    ActivityEventRead,
+    BoardType,
+    IdeaColor,
+    IdeaStatus,
+    Member,
+    Ticket,
+    TicketUpdate,
+)
 
 UTC = timezone.utc
 
@@ -659,3 +669,87 @@ async def remove_ticket_link(
 
     await session.commit()
     return True
+
+
+# ---------------------------------------------------------------------------
+# Idea board service functions
+# ---------------------------------------------------------------------------
+
+
+async def list_idea_tickets(
+    session: AsyncSession,
+    project_id: str,
+    status: str | None = None,
+) -> list[Ticket]:
+    stmt = select(Ticket).where(
+        Ticket.project_id == project_id,
+        Ticket.board == BoardType.idea,
+    )
+    if status is not None:
+        stmt = stmt.where(Ticket.idea_status == status)
+    result = await session.exec(stmt)
+    return list(result.all())
+
+
+async def create_idea_ticket(
+    session: AsyncSession,
+    project_id: str,
+    title: str,
+    description: str = "",
+    tags: list | None = None,
+    idea_emoji: str | None = None,
+    idea_color: str | None = None,
+) -> Ticket:
+    if tags is None:
+        tags = []
+    if idea_emoji is None:
+        idea_emoji = "💡"
+    if idea_color is None:
+        idea_color = random.choice([c.value for c in IdeaColor])
+
+    result = await session.execute(
+        text(
+            "UPDATE project SET ticket_counter = ticket_counter + 1"
+            " WHERE id = :pid RETURNING ticket_counter, prefix"
+        ),
+        {"pid": project_id},
+    )
+    row = result.one()
+    ticket_id = f"{row.prefix}-{row.ticket_counter}"
+
+    ticket = Ticket(
+        id=ticket_id,
+        project_id=project_id,
+        title=title,
+        description=description,
+        tags=_dumps(tags),
+        board=BoardType.idea,
+        idea_status=IdeaStatus.draft,
+        idea_emoji=idea_emoji,
+        idea_color=idea_color,
+    )
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def update_idea_ticket(
+    session: AsyncSession,
+    ticket_id: str,
+    **kwargs,
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None or ticket.board != BoardType.idea:
+        return None
+
+    allowed = {"title", "description", "idea_status", "idea_emoji", "idea_color"}
+    for field, value in kwargs.items():
+        if field in allowed and value is not None:
+            setattr(ticket, field, value)
+
+    ticket.updated_at = datetime.now(UTC)
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
