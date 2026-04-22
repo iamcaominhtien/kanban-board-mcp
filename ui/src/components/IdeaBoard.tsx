@@ -69,10 +69,11 @@ export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
     const newStatus = over.id as IdeaStatus;
     const ticket = tickets.find((t) => t.id === ticketId);
     if (!ticket) return;
-    if (ticket.ideaStatus === newStatus) return;
+    const currentStatus = ticket.ideaStatus ?? 'draft';
+    if (currentStatus === newStatus) return;
 
-    if (!ALLOWED_TRANSITIONS[ticket.ideaStatus].has(newStatus)) {
-      window.alert(`Cannot move from ${ticket.ideaStatus} to ${newStatus}`);
+    if (!ALLOWED_TRANSITIONS[currentStatus]?.has(newStatus)) {
+      window.alert(`Cannot move from ${currentStatus} to ${newStatus}`);
       return;
     }
 

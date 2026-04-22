@@ -30,6 +30,7 @@ async function createIdeaTicket(
 }
 
 async function updateIdeaTicket(
+  projectId: string,
   ticketId: string,
   data: {
     title?: string;
@@ -40,17 +41,17 @@ async function updateIdeaTicket(
     tags?: string[];
   },
 ): Promise<IdeaTicket> {
-  const res = await client.patch<IdeaTicket>(`/idea-tickets/${ticketId}`, data);
+  const res = await client.patch<IdeaTicket>(`/projects/${projectId}/idea-tickets/${ticketId}`, data);
   return res.data;
 }
 
-async function dropIdeaTicket(ticketId: string): Promise<IdeaTicket> {
-  const res = await client.patch<IdeaTicket>(`/idea-tickets/${ticketId}/drop`);
+async function dropIdeaTicket(projectId: string, ticketId: string): Promise<IdeaTicket> {
+  const res = await client.patch<IdeaTicket>(`/projects/${projectId}/idea-tickets/${ticketId}`, { ideaStatus: 'dropped' });
   return res.data;
 }
 
-async function promoteIdeaTicket(ticketId: string): Promise<IdeaTicket> {
-  const res = await client.patch<IdeaTicket>(`/idea-tickets/${ticketId}/promote`);
+async function promoteIdeaTicket(projectId: string, ticketId: string): Promise<IdeaTicket> {
+  const res = await client.patch<IdeaTicket>(`/projects/${projectId}/idea-tickets/${ticketId}`, { ideaStatus: 'approved' });
   return res.data;
 }
 
@@ -88,8 +89,8 @@ export function useUpdateIdeaTicket(projectId: string) {
       data,
     }: {
       ticketId: string;
-      data: Parameters<typeof updateIdeaTicket>[1];
-    }) => updateIdeaTicket(ticketId, data),
+      data: Parameters<typeof updateIdeaTicket>[2];
+    }) => updateIdeaTicket(projectId, ticketId, data),
     onSuccess: invalidate,
   });
 }
@@ -98,7 +99,7 @@ export function useDropIdeaTicket(projectId: string) {
   const queryClient = useQueryClient();
   const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
-    mutationFn: (ticketId: string) => dropIdeaTicket(ticketId),
+    mutationFn: (ticketId: string) => dropIdeaTicket(projectId, ticketId),
     onSuccess: () => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['tickets', projectId] });
@@ -110,7 +111,7 @@ export function usePromoteIdeaTicket(projectId: string) {
   const queryClient = useQueryClient();
   const invalidate = useInvalidateIdeaTickets(projectId);
   return useMutation({
-    mutationFn: (ticketId: string) => promoteIdeaTicket(ticketId),
+    mutationFn: (ticketId: string) => promoteIdeaTicket(projectId, ticketId),
     onSuccess: () => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['tickets', projectId] });

@@ -247,6 +247,11 @@ class TicketRead(SQLModel):
     links: list[Any] = []
     created_at: str
     updated_at: str
+    board: Optional[str] = None
+    idea_status: Optional[str] = None
+    idea_emoji: Optional[str] = None
+    idea_color: Optional[str] = None
+    origin_idea_id: Optional[str] = None
 
     @classmethod
     def from_ticket(cls, ticket: Ticket) -> "TicketRead":
@@ -278,4 +283,9 @@ class TicketRead(SQLModel):
             links=_parse_json_list(ticket.links),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
+            board=ticket.board.value if ticket.board else None,
+            idea_status=ticket.idea_status.value if ticket.idea_status else None,
+            idea_emoji=ticket.idea_emoji,
+            idea_color=ticket.idea_color.value if ticket.idea_color else None,
+            origin_idea_id=ticket.origin_idea_id,
         )
