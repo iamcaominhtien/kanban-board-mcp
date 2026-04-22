@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { IdeaColor, IdeaStatus, IdeaTicket } from '../types';
-import { useUpdateIdeaTicket, useDropIdeaTicket } from '../api/useIdeaTickets';
-import { useCreateTicket } from '../api/tickets';
+import { useUpdateIdeaTicket, useDropIdeaTicket, usePromoteIdeaTicket } from '../api/useIdeaTickets';
 import { extractError } from '../api/extractError';
 import styles from './IdeaTicketModal.module.css';
 
@@ -62,13 +61,12 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
 
   const updateMutation = useUpdateIdeaTicket(projectId);
   const dropMutation = useDropIdeaTicket(projectId);
-  const createTicketMutation = useCreateTicket(projectId);
-  const isPromotionPending = createTicketMutation.isPending || dropMutation.isPending;
+  const promoteIdeaTicketMutation = usePromoteIdeaTicket(projectId);
+  const isPromotionPending = promoteIdeaTicketMutation.isPending;
 
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
-  const promotedTicketCreated = useRef(false);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -140,30 +138,9 @@ export function IdeaTicketModal({ ticket, projectId, onClose }: IdeaTicketModalP
   }
 
   async function handleConfirmPromote() {
-    setError(null);
-    try {
-      if (!promotedTicketCreated.current) {
-        // Create a main board ticket from this idea
-        await createTicketMutation.mutateAsync({
-          title: ticket.title,
-          description: ticket.description ?? '',
-          type: 'feature',
-          priority: 'medium',
-          status: 'backlog',
-          tags: ticket.tags,
-          dueDate: null,
-          startDate: null,
-          estimate: null,
-          parentId: null,
-        });
-        promotedTicketCreated.current = true;
-      }
-      // Drop the idea (it's been promoted)
-      await dropMutation.mutateAsync(ticket.id);
-      onClose();
-    } catch (err) {
-      setError(extractError(err));
-    }
+    await runActionAndClose(() =>
+      promoteIdeaTicketMutation.mutateAsync(ticket.id)
+    );
   }
 
   const accentHex = COLOR_OPTIONS.find(c => c.value === color)?.hex ?? '#F5C518';
