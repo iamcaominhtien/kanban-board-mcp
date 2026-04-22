@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './components/Board';
+import { IdeaBoard } from './components/IdeaBoard';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -11,8 +12,10 @@ import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, us
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
+import { useBoardSelection } from './hooks/useBoardSelection';
 import { extractError } from './api/extractError';
-import type { Priority, Status, Ticket } from './types';
+import { IdeaTicketModal } from './components/IdeaTicketModal';
+import type { Priority, Status, Ticket, IdeaTicket } from './types';
 
 export default function App() {
   useSSEInvalidation();
@@ -25,6 +28,7 @@ export default function App() {
   const [currentProjectId, setCurrentProjectId] = useState<string>(
     () => localStorage.getItem('activeProjectId') ?? ''
   );
+  const [selectedBoard, setSelectedBoard] = useBoardSelection(currentProjectId || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
@@ -32,6 +36,7 @@ export default function App() {
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [ideaModalTicket, setIdeaModalTicket] = useState<IdeaTicket | null>(null);
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
 
@@ -278,6 +283,8 @@ export default function App() {
         onOpenMembers={() => setMembersPanelOpen(true)}
         onOpenSettings={() => setSettingsPanelOpen(true)}
         wontDoCount={wontDoTickets.length}
+        selectedBoard={selectedBoard}
+        onBoardChange={setSelectedBoard}
       />
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {globalError && (
@@ -303,24 +310,31 @@ export default function App() {
           </div>
         ) : (
           <>
-            <Board
-              tickets={filteredTickets}
-              allTickets={localTickets}
-              onDragEnd={handleDragEnd}
-              onNewTicket={handleOpenCreate}
-              onCardClick={handleOpenView}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              activePriority={activePriority}
-              onPriorityChange={setActivePriority}
-              projectName={currentProject?.name ?? ''}
-              projectId={currentProjectId ?? ''}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              members={members}
-              activeAssignee={activeAssignee}
-              onAssigneeChange={setActiveAssignee}
-            />
+            {selectedBoard === 'idea' ? (
+              <IdeaBoard
+                projectId={currentProjectId}
+                onCardClick={(ticket) => setIdeaModalTicket(ticket)}
+              />
+            ) : (
+              <Board
+                tickets={filteredTickets}
+                allTickets={localTickets}
+                onDragEnd={handleDragEnd}
+                onNewTicket={handleOpenCreate}
+                onCardClick={handleOpenView}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                activePriority={activePriority}
+                onPriorityChange={setActivePriority}
+                projectName={currentProject?.name ?? ''}
+                projectId={currentProjectId ?? ''}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                members={members}
+                activeAssignee={activeAssignee}
+                onAssigneeChange={setActiveAssignee}
+              />
+            )}
             {modalState && (
               modalState.mode === 'create' ? (
                 <TicketModal
@@ -344,6 +358,13 @@ export default function App() {
                   members={members}
                 />
               ) : null
+            )}
+            {ideaModalTicket && (
+              <IdeaTicketModal
+                ticket={ideaModalTicket}
+                projectId={currentProjectId}
+                onClose={() => setIdeaModalTicket(null)}
+              />
             )}
             {recycleBinOpen && (
               <RecycleBin

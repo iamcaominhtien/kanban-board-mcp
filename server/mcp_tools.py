@@ -1,17 +1,67 @@
 import json
+import random
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Literal
 
 import events as board_events
 from mcp.server.fastmcp import FastMCP
 from pydantic import ValidationError
+from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
+from sqlmodel import select
 
 import services.members as svc_members
 import services.projects as svc_projects
 import services.tickets as svc_tickets
 from database import async_session
-from models import MemberRead, ProjectCreate, ProjectRead, TicketRead, TicketUpdate
+from models import (
+    BoardType,
+    IdeaColor,
+    IdeaStatus,
+    MemberRead,
+    Project,
+    ProjectCreate,
+    ProjectRead,
+    Ticket,
+    TicketRead,
+    TicketUpdate,
+)
+
+
+def _ticket_to_dict(ticket: Ticket) -> dict:
+    """Serialize a Ticket to dict, including idea board fields."""
+    base = TicketRead.from_ticket(ticket).model_dump()
+    base["board"] = ticket.board.value if ticket.board else BoardType.main.value
+    base["idea_status"] = ticket.idea_status.value if ticket.idea_status else None
+    base["idea_emoji"] = ticket.idea_emoji
+    base["idea_color"] = ticket.idea_color.value if ticket.idea_color else None
+    base["origin_idea_id"] = ticket.origin_idea_id
+    return base
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+async def _next_ticket_id(session, project_id: str) -> str:
+    """Increment project ticket_counter and return the next ticket ID (e.g. 'IAM-5')."""
+    result = await session.execute(
+        text(
+            "UPDATE project SET ticket_counter = ticket_counter + 1"
+            " WHERE id = :pid RETURNING ticket_counter, prefix"
+        ),
+        {"pid": project_id},
+    )
+    row = result.one()
+    return f"{row.prefix}-{row.ticket_counter}"
+
+
+VALID_IDEA_TRANSITIONS: dict[IdeaStatus, set[IdeaStatus]] = {
+    IdeaStatus.draft: {IdeaStatus.approved, IdeaStatus.dropped},
+    IdeaStatus.approved: {IdeaStatus.draft, IdeaStatus.dropped},
+    IdeaStatus.dropped: set(),  # terminal
+}
 
 
 def notify_on_success(func):
@@ -21,7 +71,7 @@ def notify_on_success(func):
     async def wrapper(*args, **kwargs):
         result = await func(*args, **kwargs)
         if result is not None:
-            await board_events.publish("invalidate")
+            await board_events.publish(board_events.INVALIDATE)
         return result
 
     return wrapper
@@ -54,21 +104,42 @@ async def create_project(name: str, prefix: str, color: str = "#6366f1") -> dict
 
 async def list_tickets(
     project_id: str,
+    board: str | None = None,
     status: str | None = None,
     priority: str | None = None,
     q: str | None = None,
 ) -> list[dict]:
     """List tickets for a project.
 
+    board: 'main' (default) or 'idea'. Defaults to main-board tickets.
     Optionally filter by status (backlog/todo/in-progress/done),
     priority (low/medium/high/critical), or search text (q matches title).
     Returns list of full ticket objects.
     """
+    # Validate board value
+    if board is not None and board not in {b.value for b in BoardType}:
+        raise ValueError(
+            f"Invalid board '{board}'. Must be one of: {[b.value for b in BoardType]}"
+        )
+
+    effective_board = board or BoardType.main.value
+
     async with async_session() as session:
         tickets = await svc_tickets.list_tickets(
-            session, project_id, status=status, priority=priority, q=q
+            session,
+            project_id,
+            status=status,
+            priority=priority,
+            q=q,
+            include_wont_do=True,
         )
-        return [TicketRead.from_ticket(t).model_dump() for t in tickets]
+        # Filter by board (service doesn't support board filter yet)
+        tickets = [
+            t
+            for t in tickets
+            if (t.board.value if t.board else BoardType.main.value) == effective_board
+        ]
+        return [_ticket_to_dict(t) for t in tickets]
 
 
 @notify_on_success
@@ -345,6 +416,291 @@ async def delete_acceptance_criterion(ticket_id: str, criterion_id: str) -> dict
     return result
 
 
+async def list_idea_tickets(
+    project_id: str,
+    status: str | None = None,
+) -> list[dict]:
+    """List idea-board tickets for a project.
+
+    project_id: The project's UUID.
+    status: Optional filter by idea status ('draft', 'approved', 'dropped').
+    Returns list of full ticket objects with idea fields.
+    """
+    async with async_session() as session:
+        project = await session.get(Project, project_id)
+        if project is None:
+            raise ValueError(f"Project not found: {project_id}")
+
+        if status is not None and status not in {s.value for s in IdeaStatus}:
+            raise ValueError(
+                f"Invalid status '{status}'. Must be one of: {[s.value for s in IdeaStatus]}"
+            )
+
+        stmt = select(Ticket).where(
+            Ticket.project_id == project_id,
+            Ticket.board == BoardType.idea,
+        )
+        if status is not None:
+            stmt = stmt.where(Ticket.idea_status == status)
+        result = await session.exec(stmt)
+        tickets = list(result.all())
+        return [_ticket_to_dict(t) for t in tickets]
+
+
+async def create_idea_ticket(
+    project_id: str,
+    title: str,
+    description: str = "",
+    tags: list[str] | None = None,
+    idea_emoji: str | None = None,
+    idea_color: str | None = None,
+) -> dict | None:
+    """Create a new idea-board ticket.
+
+    project_id: The project's UUID.
+    title: Required, non-empty, max 255 chars.
+    description: Optional markdown description.
+    tags: Optional list of tag strings.
+    idea_emoji: Optional single emoji (trimmed to first char). Defaults to 💡.
+    idea_color: Optional accent color ('yellow','orange','lime','pink','blue','purple','teal').
+                Randomly chosen if not provided.
+    Returns the created ticket dict.
+    """
+    async with async_session() as session:
+        project = await session.get(Project, project_id)
+        if project is None:
+            raise ValueError(f"Project not found: {project_id}")
+
+        if not title or not title.strip():
+            raise ValueError("title is required and must be non-empty")
+        if len(title) > 255:
+            raise ValueError("title must be 255 characters or fewer")
+
+        if idea_color is not None and idea_color not in {c.value for c in IdeaColor}:
+            raise ValueError(
+                f"Invalid idea_color '{idea_color}'. Must be one of: {[c.value for c in IdeaColor]}"
+            )
+
+        # Resolve emoji and color
+        if idea_emoji:
+            idea_emoji = idea_emoji.strip()
+            resolved_emoji = idea_emoji[0] if idea_emoji else "💡"
+        else:
+            resolved_emoji = "💡"
+        resolved_color = (
+            IdeaColor(idea_color) if idea_color else random.choice(list(IdeaColor))
+        )
+
+        # Increment counter and get ticket ID
+        ticket_id = await _next_ticket_id(session, project_id)
+
+        ticket = Ticket(
+            id=ticket_id,
+            project_id=project_id,
+            title=title.strip(),
+            description=description,
+            tags=json.dumps(tags or []),
+            status="backlog",
+            board=BoardType.idea,
+            idea_status=IdeaStatus.draft,
+            idea_emoji=resolved_emoji,
+            idea_color=resolved_color,
+        )
+        session.add(ticket)
+        await session.commit()
+        await session.refresh(ticket)
+        result_dict = _ticket_to_dict(ticket)
+
+    await board_events.publish(board_events.IDEA_TICKET_CREATED)
+    await board_events.publish(board_events.INVALIDATE)
+    return result_dict
+
+
+async def update_idea_ticket(
+    ticket_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    tags: list[str] | None = None,
+    idea_emoji: str | None = None,
+    idea_color: str | None = None,
+    idea_status: str | None = None,
+) -> dict | None:
+    """Update an idea-board ticket. Only provided (non-None) fields are changed.
+
+    ticket_id: The ticket ID (e.g. 'IAM-5').
+    title/description/tags: Content fields — locked when idea_status='approved'.
+    idea_emoji: Trimmed to first character.
+    idea_color: One of: yellow, orange, lime, pink, blue, purple, teal.
+    idea_status: One of: draft, approved, dropped.
+
+    Status transitions: draft→approved, draft→dropped, approved→draft, approved→dropped.
+    dropped is terminal (no transitions out).
+    Returns the updated ticket dict or None if not found.
+    """
+    if idea_color is not None and idea_color not in {c.value for c in IdeaColor}:
+        raise ValueError(
+            f"Invalid idea_color '{idea_color}'. Must be one of: {[c.value for c in IdeaColor]}"
+        )
+    if idea_status is not None and idea_status not in {s.value for s in IdeaStatus}:
+        raise ValueError(
+            f"Invalid idea_status '{idea_status}'. Must be one of: {[s.value for s in IdeaStatus]}"
+        )
+
+    async with async_session() as session:
+        ticket = await session.get(Ticket, ticket_id)
+        if ticket is None:
+            raise ValueError(f"Ticket {ticket_id} not found")
+        if ticket.board != BoardType.idea:
+            raise ValueError(f"Ticket {ticket_id} is not an idea ticket")
+
+        # Validate title if provided
+        if title is not None:
+            title = title.strip()
+            if not title:
+                raise ValueError("title cannot be empty")
+            if len(title) > 255:
+                raise ValueError("title must be 255 characters or fewer")
+
+        # Validate tags if provided
+        if tags is not None:
+            if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+                raise ValueError("tags must be a list of strings")
+
+        # Guard against None idea_status for legacy rows
+        current_status = ticket.idea_status
+        if current_status is None:
+            current_status = IdeaStatus.draft
+
+        # Lock enforcement: approved ideas are locked for content edits
+        content_fields_provided = any(v is not None for v in (title, description, tags))
+        if current_status == IdeaStatus.approved and content_fields_provided:
+            raise ValueError(
+                "This idea is approved and locked. Promote it or move it back to draft to edit."
+            )
+
+        # Validate status transition
+        if idea_status is not None:
+            new_status = IdeaStatus(idea_status)
+            valid = VALID_IDEA_TRANSITIONS.get(current_status, set())
+            if new_status not in valid:
+                raise ValueError(
+                    f"Invalid transition: {current_status.value} → {new_status.value}"
+                )
+            ticket.idea_status = new_status
+
+        if title is not None:
+            ticket.title = title
+        if description is not None:
+            ticket.description = description
+        if tags is not None:
+            ticket.tags = json.dumps(tags)
+        if idea_emoji is not None:
+            idea_emoji = idea_emoji.strip()
+            if not idea_emoji:
+                raise ValueError("idea_emoji cannot be empty string")
+            ticket.idea_emoji = idea_emoji[0]
+        if idea_color is not None:
+            ticket.idea_color = IdeaColor(idea_color)
+
+        ticket.updated_at = _now_iso()
+
+        session.add(ticket)
+        await session.commit()
+        await session.refresh(ticket)
+        result_dict = _ticket_to_dict(ticket)
+
+    await board_events.publish(board_events.IDEA_TICKET_UPDATED)
+    await board_events.publish(board_events.INVALIDATE)
+    return result_dict
+
+
+async def promote_idea_ticket(ticket_id: str) -> dict:
+    """Promote an approved idea to a main-board ticket.
+
+    The idea must be in 'approved' state. Creates a new main-board ticket
+    copying title, description, and tags. The idea ticket is then marked
+    as 'dropped' (consumed — it is no longer active).
+    origin_idea_id on the new ticket records the source idea.
+
+    Returns: {promoted_ticket_id, idea_ticket_id, promoted_ticket}.
+    """
+    async with async_session() as session:
+        try:
+            ticket = await session.get(Ticket, ticket_id)
+            if ticket is None:
+                raise ValueError(f"Ticket not found: {ticket_id}")
+            if ticket.board != BoardType.idea:
+                raise ValueError(f"Ticket '{ticket_id}' is not an idea-board ticket")
+            if ticket.idea_status != IdeaStatus.approved:
+                raise ValueError("Idea must be in approved state to promote")
+
+            # Increment counter for new main ticket
+            new_ticket_id = await _next_ticket_id(session, ticket.project_id)
+
+            new_ticket = Ticket(
+                id=new_ticket_id,
+                project_id=ticket.project_id,
+                title=ticket.title,
+                description=ticket.description,
+                tags=ticket.tags,
+                status="backlog",
+                board=BoardType.main,
+                origin_idea_id=ticket_id,
+            )
+            session.add(new_ticket)
+
+            # Mark idea as dropped (consumed — promoted ideas are no longer active)
+            # NOTE: We use 'dropped' here because IdeaStatus has no 'promoted' state.
+            # The link back to this idea is preserved via origin_idea_id on the new ticket.
+            ticket.idea_status = IdeaStatus.dropped
+            ticket.updated_at = _now_iso()
+            session.add(ticket)
+
+            await session.commit()
+            await session.refresh(new_ticket)
+            await session.refresh(ticket)
+
+            result_dict = {
+                "promoted_ticket_id": new_ticket_id,
+                "idea_ticket_id": ticket_id,
+                "promoted_ticket": _ticket_to_dict(new_ticket),
+            }
+        except Exception:
+            await session.rollback()
+            raise
+
+    await board_events.publish(board_events.IDEA_TICKET_PROMOTED)
+    await board_events.publish(board_events.INVALIDATE)
+    return result_dict
+
+
+async def drop_idea_ticket(ticket_id: str) -> dict | None:
+    """Drop (discard) an idea-board ticket.
+
+    Rejects if the idea is already dropped.
+    Returns the updated ticket dict or None if not found.
+    """
+    async with async_session() as session:
+        ticket = await session.get(Ticket, ticket_id)
+        if ticket is None:
+            raise ValueError(f"Ticket {ticket_id} not found")
+        if ticket.board != BoardType.idea:
+            raise ValueError(f"Ticket {ticket_id} is not an idea ticket")
+        if ticket.idea_status == IdeaStatus.dropped:
+            raise ValueError("Idea is already dropped")
+
+        ticket.idea_status = IdeaStatus.dropped
+        ticket.updated_at = _now_iso()
+        session.add(ticket)
+        await session.commit()
+        await session.refresh(ticket)
+        result_dict = _ticket_to_dict(ticket)
+
+    await board_events.publish(board_events.IDEA_TICKET_DROPPED)
+    await board_events.publish(board_events.INVALIDATE)
+    return result_dict
+
+
 async def list_members(project_id: str) -> list[dict]:
     """List all members of a project. Returns id, name, color, project_id, created_at."""
     async with async_session() as session:
@@ -406,3 +762,8 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(list_members)
     mcp.tool()(add_member)
     mcp.tool()(remove_member)
+    mcp.tool()(list_idea_tickets)
+    mcp.tool()(create_idea_ticket)
+    mcp.tool()(update_idea_ticket)
+    mcp.tool()(promote_idea_ticket)
+    mcp.tool()(drop_idea_ticket)
