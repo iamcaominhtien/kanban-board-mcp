@@ -122,6 +122,7 @@ Always follow this process before sending work to another agent:
 7. **Close** — mark tasks done, log work on the Kanban ticket, update memory if needed.
 8. **Cleanup** — after every completed ticket, delegate to `errand-boy` to clean up the environment:
    - Delete any temporary QC test files left outside `docs/test-plans/` (e.g. `docs/test-T0.md`, `docs/test-*.md` in the root docs folder)
+    - After moving files or deleting stray files, commit and push the cleanup changes to main (`git add -u && git commit -m "chore: cleanup ..." && git push origin main`). Do not leave cleanup changes uncommitted.
    - Confirm local feature branch is deleted (already done by squash merge + `--delete-branch`)
    - No other cleanup needed unless explicitly generated during the ticket
 
