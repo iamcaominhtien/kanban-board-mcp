@@ -18,10 +18,11 @@ Merging a PR to `main` automatically triggers `.github/workflows/release.yml`, w
 
 1. **Version bump:** Update `desktop/package.json` and `desktop/package-lock.json` to the new version (`X.Y.Z`).
 2. **Changelog entry:** Add `## [X.Y.Z] - YYYY-MM-DD` section to `CHANGELOG.md` with a summary of changes.
+3. **README.md update:** Replace every version number reference and download link in `README.md` with the new version `X.Y.Z`. (CI does NOT auto-update README — ignore any comment in the workflow suggesting otherwise.)
 
 That's it. After merge, CI handles the rest automatically:
 - Extracts release notes from `CHANGELOG.md`
-- Auto-updates `README.md` version references (commits with `[skip ci]`)
+- ~~Auto-updates `README.md` version references~~ (**NOT implemented** — update README manually in pre-merge checklist)
 - Builds DMG (macOS arm64 + x64) and NSIS installer (Windows x64)
 - Creates the GitHub Release and attaches all artifacts
 
