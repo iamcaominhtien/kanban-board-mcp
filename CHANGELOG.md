@@ -6,6 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.4.0] - 2025-07-17
+
+### Added
+- **Idea Board**: new per-project idea board with 3 columns (Draft, Approved, Dropped)
+- **IdeaCard**: draggable cards with emoji, color accent, status badges, description preview
+- **IdeaTicketModal**: full view/edit/approve/drop/promote workflow with 2-stage promotion confirm
+- **BoardSwitcher**: pill-tab switcher between main Kanban board and Idea Board (persisted per project)
+- **MCP tools**: `list_idea_tickets`, `create_idea_ticket`, `update_idea_ticket`, `promote_idea_ticket`, `drop_idea_ticket`
+- **SSE**: targeted idea board cache invalidation via project-scoped `idea_ticket_*` events
+
+---
+
 ## [1.3.13] - 2026-04-18
 
 ### Fixed
