@@ -94,6 +94,16 @@
   letter-spacing: 0.02em;
 }
 
+.description {
+  font-size: 0.75rem;
+  color: rgba(61, 12, 17, 0.55);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;

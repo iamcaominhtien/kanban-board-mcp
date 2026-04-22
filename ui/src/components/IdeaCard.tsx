@@ -38,7 +38,7 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: dragging ? 0.5 : isDropped ? 0.65 : 1,
+    opacity: dragging ? 0.5 : isDropped ? 0.65 : ticket.ideaStatus === 'approved' ? 0.85 : 1,
     borderLeftColor: accentColor,
   };
 
@@ -77,6 +77,10 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
 
       <div className={styles.body}>
         <p className={styles.title}>{ticket.title}</p>
+
+        {ticket.description && (
+          <p className={styles.description}>{ticket.description}</p>
+        )}
 
         {ticket.ideaStatus === 'approved' && (
           <span className={styles.badgeApproved}>🔒 Approved</span>
