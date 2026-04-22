@@ -50,8 +50,10 @@ async function dropIdeaTicket(projectId: string, ticketId: string): Promise<Idea
   return res.data;
 }
 
-async function promoteIdeaTicket(projectId: string, ticketId: string): Promise<IdeaTicket> {
-  const res = await client.patch<IdeaTicket>(`/projects/${projectId}/idea-tickets/${ticketId}`, { ideaStatus: 'approved' });
+async function promoteIdeaTicket(projectId: string, ticketId: string): Promise<{ promoted_ticket_id: string; idea_ticket_id: string }> {
+  const res = await client.post<{ promoted_ticket_id: string; idea_ticket_id: string }>(
+    `/projects/${projectId}/idea-tickets/${ticketId}/promote`
+  );
   return res.data;
 }
 

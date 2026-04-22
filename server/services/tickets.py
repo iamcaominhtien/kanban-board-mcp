@@ -743,9 +743,11 @@ async def update_idea_ticket(
     if ticket is None or ticket.board != BoardType.idea:
         return None
 
-    allowed = {"title", "description", "idea_status", "idea_emoji", "idea_color"}
+    allowed = {"title", "description", "idea_status", "idea_emoji", "idea_color", "tags"}
+    if "tags" in kwargs and kwargs["tags"] is not None:
+        ticket.tags = _dumps(kwargs["tags"])
     for field, value in kwargs.items():
-        if field in allowed and value is not None:
+        if field in allowed and value is not None and field != "tags":
             setattr(ticket, field, value)
 
     ticket.updated_at = datetime.now(UTC)
@@ -753,3 +755,67 @@ async def update_idea_ticket(
     await session.commit()
     await session.refresh(ticket)
     return ticket
+
+
+async def promote_idea_to_board(
+    session: AsyncSession,
+    idea_ticket_id: str,
+    project_id: str,
+) -> dict | None:
+    """Atomically promote an approved idea to main board. Idempotent."""
+    idea = await session.get(Ticket, idea_ticket_id)
+    if idea is None or idea.board != BoardType.idea:
+        return None
+    if idea.project_id != project_id:
+        return None  # idea doesn't belong to this project
+
+    # Idempotency: check if a main board ticket was already created for this idea
+    existing_stmt = select(Ticket).where(
+        Ticket.origin_idea_id == idea_ticket_id,
+        Ticket.board == BoardType.main,
+    )
+    result = await session.exec(existing_stmt)
+    existing = result.first()
+
+    if existing is None:
+        # Not yet promoted — enforce approved gate
+        if idea.idea_status != IdeaStatus.approved:
+            raise ValueError(f"Idea must be in 'approved' state to promote (current: {idea.idea_status})")
+        # Create the main board ticket
+        counter_result = await session.execute(
+            text(
+                "UPDATE project SET ticket_counter = ticket_counter + 1"
+                " WHERE id = :pid RETURNING ticket_counter, prefix"
+            ),
+            {"pid": project_id},
+        )
+        row = counter_result.one()
+        new_id = f"{row.prefix}-{row.ticket_counter}"
+        now = datetime.now(UTC)
+        main_ticket = Ticket(
+            id=new_id,
+            project_id=project_id,
+            title=idea.title,
+            description=idea.description or "",
+            type="feature",
+            priority="medium",
+            status="backlog",
+            tags=idea.tags or _dumps([]),
+            board=BoardType.main,
+            origin_idea_id=idea_ticket_id,
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(main_ticket)
+        existing = main_ticket
+
+    # Always ensure idea is dropped (idempotent)
+    if idea.idea_status != IdeaStatus.dropped:
+        idea.idea_status = IdeaStatus.dropped
+        idea.updated_at = datetime.now(UTC)
+        session.add(idea)
+
+    await session.commit()
+    await session.refresh(existing)
+    await session.refresh(idea)
+    return {"promoted_ticket_id": existing.id, "idea_ticket_id": idea_ticket_id}

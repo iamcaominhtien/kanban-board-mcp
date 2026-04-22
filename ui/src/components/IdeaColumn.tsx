@@ -24,6 +24,7 @@ export function IdeaColumn({ column, tickets, isTerminal: _isTerminal, onCardCli
 
   return (
     <div
+      ref={setNodeRef}
       className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
       style={{ '--accent': column.accentColor } as React.CSSProperties}
     >
@@ -33,7 +34,7 @@ export function IdeaColumn({ column, tickets, isTerminal: _isTerminal, onCardCli
         <span className={styles.badge}>{tickets.length}</span>
       </div>
 
-      <div ref={setNodeRef} className={styles.cardList}>
+      <div className={styles.cardList}>
         {tickets.length === 0 ? (
           <div className={styles.empty}>No ideas here</div>
         ) : (

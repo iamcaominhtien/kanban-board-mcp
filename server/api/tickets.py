@@ -36,6 +36,7 @@ from services.tickets import (
     link_block,
     list_idea_tickets,
     list_tickets,
+    promote_idea_to_board,
     remove_ticket_link,
     toggle_acceptance_criterion,
     unlink_block,
@@ -63,6 +64,7 @@ class IdeaTicketUpdateBody(SQLModel):
     idea_status: Optional[str] = None
     idea_emoji: Optional[str] = None
     idea_color: Optional[str] = None
+    tags: Optional[list[str]] = None
 
 
 def _read(ticket) -> TicketRead:
@@ -208,6 +210,7 @@ async def patch_idea_ticket(
             idea_status=body.idea_status,
             idea_emoji=body.idea_emoji,
             idea_color=body.idea_color,
+            tags=body.tags,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -217,6 +220,24 @@ async def patch_idea_ticket(
     # (project IDs are alphanumeric slugs e.g. "abc-123", no special chars)
     await board_events.publish(f"{board_events.IDEA_TICKET_UPDATED}:{project_id}")
     return _read(ticket)
+
+
+@router.post(
+    "/projects/{project_id}/idea-tickets/{ticket_id}/promote",
+    response_model=dict,
+    status_code=200,
+)
+async def promote_idea_ticket(
+    project_id: str, ticket_id: str, session: Session
+) -> dict:
+    try:
+        result = await promote_idea_to_board(session, ticket_id, project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if result is None:
+        raise HTTPException(status_code=404, detail="Idea ticket not found")
+    await board_events.publish(board_events.INVALIDATE)
+    return result
 
 
 @router.get("/projects/{project_id}/tickets", response_model=list[TicketRead])
