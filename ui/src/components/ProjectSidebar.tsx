@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Project } from '../types';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
+import { BoardSwitcher } from './BoardSwitcher';
 
 interface ProjectSidebarProps {
   projects: Project[];
@@ -13,11 +14,13 @@ interface ProjectSidebarProps {
   onOpenMembers: () => void;
   onOpenSettings: () => void;
   wontDoCount: number;
+  selectedBoard: 'main' | 'idea';
+  onBoardChange: (board: 'main' | 'idea') => void;
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
 
-export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, onOpenSettings, wontDoCount }: ProjectSidebarProps) {
+export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, onOpenSettings, wontDoCount, selectedBoard, onBoardChange }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
@@ -85,6 +88,15 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
               >
                 ×
               </button>
+            )}
+            {project.id === currentProjectId && (
+              <div
+                style={{ flexBasis: '100%' }}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <BoardSwitcher selectedBoard={selectedBoard} onBoardChange={onBoardChange} />
+              </div>
             )}
           </div>
         ))}

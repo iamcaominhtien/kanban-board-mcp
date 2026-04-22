@@ -11,6 +11,7 @@ import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, us
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
+import { useBoardSelection } from './hooks/useBoardSelection';
 import { extractError } from './api/extractError';
 import type { Priority, Status, Ticket } from './types';
 
@@ -25,6 +26,7 @@ export default function App() {
   const [currentProjectId, setCurrentProjectId] = useState<string>(
     () => localStorage.getItem('activeProjectId') ?? ''
   );
+  const [selectedBoard, setSelectedBoard] = useBoardSelection(currentProjectId || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
@@ -278,6 +280,8 @@ export default function App() {
         onOpenMembers={() => setMembersPanelOpen(true)}
         onOpenSettings={() => setSettingsPanelOpen(true)}
         wontDoCount={wontDoTickets.length}
+        selectedBoard={selectedBoard}
+        onBoardChange={setSelectedBoard}
       />
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {globalError && (
@@ -303,24 +307,28 @@ export default function App() {
           </div>
         ) : (
           <>
-            <Board
-              tickets={filteredTickets}
-              allTickets={localTickets}
-              onDragEnd={handleDragEnd}
-              onNewTicket={handleOpenCreate}
-              onCardClick={handleOpenView}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              activePriority={activePriority}
-              onPriorityChange={setActivePriority}
-              projectName={currentProject?.name ?? ''}
-              projectId={currentProjectId ?? ''}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              members={members}
-              activeAssignee={activeAssignee}
-              onAssigneeChange={setActiveAssignee}
-            />
+            {selectedBoard === 'idea' ? (
+              <div style={{ padding: '2rem', color: 'var(--color-dark)', opacity: 0.5 }}>💡 Idea Board — coming soon</div>
+            ) : (
+              <Board
+                tickets={filteredTickets}
+                allTickets={localTickets}
+                onDragEnd={handleDragEnd}
+                onNewTicket={handleOpenCreate}
+                onCardClick={handleOpenView}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                activePriority={activePriority}
+                onPriorityChange={setActivePriority}
+                projectName={currentProject?.name ?? ''}
+                projectId={currentProjectId ?? ''}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                members={members}
+                activeAssignee={activeAssignee}
+                onAssigneeChange={setActiveAssignee}
+              />
+            )}
             {modalState && (
               modalState.mode === 'create' ? (
                 <TicketModal

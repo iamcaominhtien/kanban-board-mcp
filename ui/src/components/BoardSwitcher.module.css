@@ -1,0 +1,45 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-dark);
+  overflow: hidden;
+  background: transparent;
+  padding: 2px;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.tab {
+  flex: 1;
+  padding: 3px 10px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--color-dark);
+  border-radius: 999px;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+.tab:hover:not(.active) {
+  background: rgba(61, 12, 17, 0.08);
+  opacity: 0.8;
+}
+
+.tab.active {
+  background: var(--color-dark);
+  color: #fff;
+  font-weight: 700;
+  opacity: 1;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-yellow);
+  outline-offset: 1px;
+}
