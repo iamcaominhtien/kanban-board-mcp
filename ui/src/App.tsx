@@ -14,7 +14,8 @@ import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
 import { useBoardSelection } from './hooks/useBoardSelection';
 import { extractError } from './api/extractError';
-import type { Priority, Status, Ticket } from './types';
+import { IdeaTicketModal } from './components/IdeaTicketModal';
+import type { Priority, Status, Ticket, IdeaTicket } from './types';
 
 export default function App() {
   useSSEInvalidation();
@@ -35,6 +36,7 @@ export default function App() {
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [ideaModalTicket, setIdeaModalTicket] = useState<IdeaTicket | null>(null);
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
 
@@ -311,7 +313,7 @@ export default function App() {
             {selectedBoard === 'idea' ? (
               <IdeaBoard
                 projectId={currentProjectId}
-                onCardClick={(ticket) => { /* TODO: open IdeaTicketModal in IAM-122 */ console.log('open idea', ticket.id) }}
+                onCardClick={(ticket) => setIdeaModalTicket(ticket)}
               />
             ) : (
               <Board
@@ -356,6 +358,13 @@ export default function App() {
                   members={members}
                 />
               ) : null
+            )}
+            {ideaModalTicket && (
+              <IdeaTicketModal
+                ticket={ideaModalTicket}
+                projectId={currentProjectId}
+                onClose={() => setIdeaModalTicket(null)}
+              />
             )}
             {recycleBinOpen && (
               <RecycleBin
