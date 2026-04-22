@@ -7,8 +7,7 @@ _Last updated: 2026-04-22_
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
-| [arch/arch-idea-board-technical.md](arch/arch-idea-board-technical.md) | Idea Board — Technical Architecture | draft | 1.0.0 | 2026-04-21 |
-| [design/idea-board-design.md](design/idea-board-design.md) | Idea Board — Design Document | draft | 1.0.0 | 2026-04-21 |
+| [arch/arch-idea-board-technical.md](arch/arch-idea-board-technical.md) | IAM-100: Idea Board — Technical Architecture | stable | 1.0.0 | 2026-04-21 |
 
 ## Business Analysis
 
@@ -39,16 +38,21 @@ _Last updated: 2026-04-22_
 | [test-plans/IAM-93.md](test-plans/IAM-93.md) | Test Plan: IAM-93 CI/CD Auto Release Pipeline | stable | 1.0.1 | 2026-04-15 |
 | [test-plans/IAM-95.md](test-plans/IAM-95.md) | Test Plan: IAM-95 Improve Desktop App Startup Time | review | 1.0.1 | 2026-04-16 |
 | [test-plans/ce4cc488-ticket-links.md](test-plans/ce4cc488-ticket-links.md) | Test Plan: IAM-98 Ticket Links - Extended Relationship Types | stable | 1.1.0 | 2026-04-17 |
+| [test-plans/iam-100-idea-board-demo.md](test-plans/iam-100-idea-board-demo.md) | Test Plan: IAM-100 Idea Board Live Demo | review | 1.1.0 | 2026-04-22 |
 | [test-plans/iam-111.md](test-plans/iam-111.md) | Test Plan: IAM-111 Ticket Card Redesign | stable | 1.0.1 | 2026-04-18 |
 | [test-plans/iam-114.md](test-plans/iam-114.md) | Test Plan: IAM-114 Board Layout Improvements | stable | 1.0.2 | 2026-04-18 |
 | [test-plans/iam-115.md](test-plans/iam-115.md) | Test Plan: IAM-115 Ticket Detail Modal and Create Form UI Polish | stable | 1.0.1 | 2026-04-18 |
+| [test-plans/iam-117.md](test-plans/iam-117.md) | Test Plan: IAM-117 Idea Board Data Model | stable | 1.0.1 | 2026-04-22 |
+| [test-plans/iam-118.md](test-plans/iam-118.md) | Test Plan: IAM-118 MCP Tools for Idea Board | stable | 1.0.1 | 2026-04-22 |
+| [test-plans/iam-119.md](test-plans/iam-119.md) | Test Plan: IAM-119 Blocker Re-run | review | 1.0.1 | 2026-04-22 |
+| [test-plans/iam-121.md](test-plans/iam-121.md) | Test Plan: IAM-121 BoardSwitcher + Routing | review | 1.0.1 | 2026-04-22 |
 | [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
 | [test-plans/iam-97.md](test-plans/iam-97.md) | Test Plan: IAM-97 UI improvements: ticket ordering & terminology | stable | 1.0.1 | 2026-04-16 |
 | [test-plans/pr-95-bw-theme-toggle.md](test-plans/pr-95-bw-theme-toggle.md) | Test Plan: PR-95 B&W TV Theme Toggle | stable | 1.1.0 | 2026-04-18 |
 | [test-plans/test-ac-mcp-tools.md](test-plans/test-ac-mcp-tools.md) | Test Plan: Acceptance Criteria MCP Tools | stable | 1.1.0 | 2026-04-09 |
-| [test-ui-ux-audit-screenshots.md](test-ui-ux-audit-screenshots.md) | Test Plan: UI/UX Screenshot Audit | in-progress | 1.0.0 | 2026-04-17 |
+| [test-plans/ui-ux-audit-screenshots.md](test-plans/ui-ux-audit-screenshots.md) | Test Plan: UI/UX Screenshot Audit | in-progress | 1.0.0 | 2026-04-17 |
 
 ## Developer Guides
 
@@ -77,11 +81,17 @@ _Last updated: 2026-04-22_
 |---|---|---|---|---|
 | [drafts/ba-spec-draft.md](drafts/ba-spec-draft.md) | IAM-100 Idea Board — BA Specification Draft | draft | — | — |
 
+## Design
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [design/idea-board-design.md](design/idea-board-design.md) | Idea Board Design | stable | 1.0.0 | 2026-04-21 |
+
 ## Spec
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
-| [specs/IAM-100-idea-board-spec.md](specs/IAM-100-idea-board-spec.md) | IAM-100: Idea Board — Implementation & Testing Plan | draft | 1.0.0 | 2026-04-21 |
+| [specs/IAM-100-idea-board-spec.md](specs/IAM-100-idea-board-spec.md) | IAM-100: Idea Board — Implementation & Testing Plan | stable | 1.0.0 | 2026-04-21 |
 
 ## Technical-Analysis
 

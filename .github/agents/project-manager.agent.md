@@ -9,7 +9,7 @@ description: >
   'break this into tickets', 'analyze this requirement', 'update the docs', 'manage the backlog',
   'prioritize', 'estimate stories', 'draw a flow', 'create tickets'.
 argument-hint: "Describe the task — e.g. 'plan this feature', 'write a status report for X', 'break this epic into tickets', 'run a project health check'."
-tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/askQuestions, read/readFile, read/viewImage, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, memory/add_observations, memory/create_entities, memory/create_relations, memory/delete_entities, memory/delete_observations, memory/delete_relations, memory/open_nodes, memory/read_graph, memory/search_nodes, todo]
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/askQuestions, read/readFile, read/viewImage, agent, 'memory/*', todo]
 model: Claude Sonnet 4.6 (copilot)
 agents: ["*"]
 ---
