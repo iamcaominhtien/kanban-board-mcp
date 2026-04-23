@@ -39,7 +39,7 @@
 /* Cover block at top */
 .coverBlock {
   position: relative;
-  height: 90px;
+  height: 100px;
   flex-shrink: 0;
   display: flex;
   align-items: flex-end;
@@ -150,21 +150,26 @@
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  border-radius: 20px;
-  border: 1.5px solid rgba(61, 12, 17, 0.18);
+  border-radius: 99px;
+  border: 2px solid var(--color-dark);
   background: #fff;
   font-family: var(--font-body, 'DM Sans', sans-serif);
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-dark);
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s, transform 0.1s;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.12s;
+  box-shadow: 2px 2px 0px rgba(61, 12, 17, 0.15);
   opacity: 0.55;
 }
 
 .energyBtn:hover:not(:disabled) {
   opacity: 0.85;
-  border-color: rgba(61, 12, 17, 0.3);
+}
+
+.energyBtn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px transparent;
 }
 
 .energyBtn:disabled {
@@ -173,8 +178,9 @@
 
 .energyBtnActive {
   opacity: 1;
-  border-color: var(--color-dark);
-  box-shadow: 0 0 0 2px rgba(61, 12, 17, 0.12);
+  background: var(--color-dark);
+  color: #fff;
+  box-shadow: 3px 3px 0px rgba(61, 12, 17, 0.2);
 }
 
 /* Color swatches row */
@@ -422,21 +428,31 @@
 .btnApprovePromote {
   background: var(--color-pink, #F472B6);
   color: var(--color-dark);
-  border: none;
-  border-radius: 10px;
-  padding: 11px 20px;
+  border: 2px solid var(--color-dark);
+  border-radius: 99px;
+  padding: 12px 20px;
   font-family: var(--font-body, 'DM Sans', sans-serif);
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 3px 3px 0px var(--color-dark);
+  transition: transform 0.1s, box-shadow 0.1s;
   flex: 1;
   min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btnApprovePromote:hover:not(:disabled) {
-  opacity: 0.88;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0px var(--color-dark);
+}
+
+.btnApprovePromote:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px transparent;
 }
 
 .btnApprovePromote:disabled {
@@ -448,33 +464,53 @@
 .btnPrimary {
   background: var(--color-dark);
   color: var(--color-bg);
-  border: none;
-  border-radius: 10px;
+  border: 2px solid var(--color-dark);
+  border-radius: 99px;
   padding: 9px 20px;
   font-family: var(--font-body, 'DM Sans', sans-serif);
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s;
+  box-shadow: 2px 2px 0px rgba(61, 12, 17, 0.2);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
-.btnPrimary:hover:not(:disabled) { opacity: 0.85; }
+.btnPrimary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0px rgba(61, 12, 17, 0.25);
+}
+
+.btnPrimary:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px transparent;
+}
+
 .btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btnApprove {
   background: var(--color-lime, #AACC2E);
   color: var(--color-dark);
-  border: none;
-  border-radius: 10px;
+  border: 2px solid var(--color-dark);
+  border-radius: 99px;
   padding: 9px 20px;
   font-family: var(--font-body, 'DM Sans', sans-serif);
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s;
+  box-shadow: 2px 2px 0px rgba(61, 12, 17, 0.2);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
-.btnApprove:hover:not(:disabled) { opacity: 0.85; }
+.btnApprove:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0px rgba(61, 12, 17, 0.25);
+}
+
+.btnApprove:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px transparent;
+}
+
 .btnApprove:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btnPromote {
@@ -495,27 +531,37 @@
 .btnConfirmPromote {
   background: var(--color-lime, #AACC2E);
   color: var(--color-dark);
-  border: none;
-  border-radius: 10px;
+  border: 2px solid var(--color-dark);
+  border-radius: 99px;
   padding: 9px 20px;
   font-family: var(--font-body, 'DM Sans', sans-serif);
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s;
+  box-shadow: 2px 2px 0px rgba(61, 12, 17, 0.2);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
-.btnConfirmPromote:hover:not(:disabled) { opacity: 0.85; }
+.btnConfirmPromote:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0px rgba(61, 12, 17, 0.25);
+}
+
+.btnConfirmPromote:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px transparent;
+}
+
 .btnConfirmPromote:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btnDanger {
   background: transparent;
   color: var(--color-orange, #E8441A);
-  border: 1.5px solid var(--color-orange, #E8441A);
-  border-radius: 10px;
+  border: 2px solid var(--color-orange, #E8441A);
+  border-radius: 99px;
   padding: 8px 18px;
   font-family: var(--font-body, 'DM Sans', sans-serif);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -531,11 +577,11 @@
 .btnCancel {
   background: transparent;
   color: rgba(61, 12, 17, 0.5);
-  border: 1.5px solid rgba(61, 12, 17, 0.2);
-  border-radius: 10px;
+  border: 2px solid rgba(61, 12, 17, 0.2);
+  border-radius: 99px;
   padding: 8px 18px;
   font-family: var(--font-body, 'DM Sans', sans-serif);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;

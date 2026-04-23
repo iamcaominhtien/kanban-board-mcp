@@ -9,6 +9,7 @@ export interface IdeaColumnDef {
   emoji: string;
   accentColor: string;
   colBg: string;
+  headerBg: string;
 }
 
 const EMPTY_ICONS: Record<IdeaStatus, string> = {
@@ -33,10 +34,10 @@ export function IdeaColumn({ column, tickets, isTerminal: _isTerminal, onCardCli
     <div
       ref={setNodeRef}
       className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
-      style={{ '--col-bg': column.colBg } as React.CSSProperties}
+      style={{ '--col-bg': column.colBg, '--col-accent': column.headerBg } as React.CSSProperties}
     >
       <div className={styles.header}>
-        <span className={styles.emoji}>{column.emoji}</span>
+        <span className={styles.emojiCircle}>{column.emoji}</span>
         <span className={styles.label}>{column.label}</span>
         <span className={styles.badge}>{tickets.length}</span>
       </div>

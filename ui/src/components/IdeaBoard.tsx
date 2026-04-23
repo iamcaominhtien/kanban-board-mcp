@@ -10,9 +10,9 @@ import { IdeaCard } from './IdeaCard';
 import styles from './IdeaBoard.module.css';
 
 const IDEA_COLUMNS: IdeaColumnDef[] = [
-  { id: 'draft',    label: 'Drafting',  emoji: '✏️', accentColor: 'var(--color-yellow)', colBg: 'rgba(245, 197, 24, 0.12)' },
-  { id: 'approved', label: 'Approved',  emoji: '✅', accentColor: 'var(--color-lime)',   colBg: 'rgba(170, 204, 46, 0.12)' },
-  { id: 'dropped',  label: 'Dropped',   emoji: '🗑️', accentColor: 'var(--color-dark)',   colBg: 'rgba(61, 12, 17, 0.06)' },
+  { id: 'draft',    label: 'Drafting',  emoji: '✏️', accentColor: 'var(--color-yellow)', colBg: 'rgba(245, 197, 24, 0.12)', headerBg: 'var(--color-yellow)' },
+  { id: 'approved', label: 'Approved',  emoji: '✅', accentColor: 'var(--color-lime)',   colBg: 'rgba(170, 204, 46, 0.12)', headerBg: 'var(--color-lime)' },
+  { id: 'dropped',  label: 'Dropped',   emoji: '🗑️', accentColor: 'var(--color-dark)',   colBg: 'rgba(61, 12, 17, 0.06)',  headerBg: 'rgba(61, 12, 17, 0.2)' },
 ];
 
 const VALID_IDEA_STATUSES = new Set<string>(['draft', 'approved', 'dropped']);
@@ -108,7 +108,10 @@ export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
-        <h1 className={styles.title}>💡 Idea Board</h1>
+        <h1 className={styles.title}>
+          <span className={styles.titleIcon}>✨</span>
+          Idea Space
+        </h1>
         <button
           type="button"
           className={styles.newBtn}
