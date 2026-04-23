@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { IdeaColor, IdeaStatus, IdeaTicket } from '../types';
+import type { IdeaColor, IdeaEnergy, IdeaStatus, IdeaTicket } from '../types';
 
 // ---------------------------------------------------------------------------
 // Query key factory
@@ -38,6 +38,7 @@ async function updateIdeaTicket(
     ideaStatus?: IdeaStatus;
     ideaEmoji?: string;
     ideaColor?: IdeaColor;
+    ideaEnergy?: IdeaEnergy;
     tags?: string[];
   },
 ): Promise<IdeaTicket> {
