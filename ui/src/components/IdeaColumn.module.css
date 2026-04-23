@@ -3,9 +3,9 @@
   flex-direction: column;
   width: 290px;
   min-width: 290px;
-  background: var(--col-bg, rgba(245, 197, 24, 0.08));
+  background: var(--col-bg, rgba(245, 197, 24, 0.12));
   border-radius: var(--radius-panel);
-  border: 1px solid rgba(61, 12, 17, 0.08);
+  border: 1px solid rgba(61, 12, 17, 0.10);
   overflow: hidden;
   transition: background 0.15s ease;
 }

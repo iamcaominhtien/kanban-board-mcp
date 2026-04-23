@@ -10,9 +10,9 @@ import { IdeaCard } from './IdeaCard';
 import styles from './IdeaBoard.module.css';
 
 const IDEA_COLUMNS: IdeaColumnDef[] = [
-  { id: 'draft',    label: 'Drafting',  emoji: '✏️', accentColor: 'var(--color-yellow)', colBg: 'rgba(245, 197, 24, 0.08)' },
-  { id: 'approved', label: 'Approved',  emoji: '✅', accentColor: 'var(--color-lime)',   colBg: 'rgba(170, 204, 46, 0.08)' },
-  { id: 'dropped',  label: 'Dropped',   emoji: '🗑️', accentColor: 'var(--color-dark)',   colBg: 'rgba(61, 12, 17, 0.04)' },
+  { id: 'draft',    label: 'Drafting',  emoji: '✏️', accentColor: 'var(--color-yellow)', colBg: 'rgba(245, 197, 24, 0.12)' },
+  { id: 'approved', label: 'Approved',  emoji: '✅', accentColor: 'var(--color-lime)',   colBg: 'rgba(170, 204, 46, 0.12)' },
+  { id: 'dropped',  label: 'Dropped',   emoji: '🗑️', accentColor: 'var(--color-dark)',   colBg: 'rgba(61, 12, 17, 0.06)' },
 ];
 
 const VALID_IDEA_STATUSES = new Set<string>(['draft', 'approved', 'dropped']);
