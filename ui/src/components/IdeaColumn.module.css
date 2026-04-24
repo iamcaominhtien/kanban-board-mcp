@@ -1,6 +1,6 @@
 .column {
   display: flex; flex-direction: column;
-  width: 300px; min-width: 300px;
+  flex: 1; min-width: 220px;
   border-radius: 20px; border: 2px solid var(--color-dark);
   box-shadow: 4px 4px 0px rgba(61,12,17,0.15);
   overflow: hidden; padding: 12px;

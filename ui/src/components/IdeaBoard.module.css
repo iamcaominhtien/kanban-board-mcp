@@ -60,7 +60,7 @@
 
 .columns {
   flex: 1; display: flex; gap: 20px; overflow-x: auto;
-  align-items: flex-start; padding-bottom: 16px;
+  align-items: stretch; padding-bottom: 16px;
 }
 .columns::-webkit-scrollbar { height: 6px; }
 .columns::-webkit-scrollbar-track { background: transparent; }
