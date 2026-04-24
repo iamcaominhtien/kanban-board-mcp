@@ -56,6 +56,8 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const [visible, setVisible] = useState(false);
 
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
   useEffect(() => { if (visible) closeBtnRef.current?.focus(); }, [visible]);
@@ -63,12 +65,12 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         if (showEmojiPicker) { setShowEmojiPicker(false); return; }
-        onClose();
+        onCloseRef.current();
       }
     }
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [showEmojiPicker, onClose]);
+  }, [showEmojiPicker]);
 
   function handleSave() {
     const trimmed = title.trim();
@@ -87,7 +89,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   }
 
   const accentHex = COLOR_OPTIONS.find(c => c.value === color)?.hex ?? '#F5C518';
-  const statusMeta = STATUS_META[ticket.ideaStatus];
+  const statusMeta = STATUS_META[ticket.ideaStatus] ?? STATUS_META['draft'];
 
   return (
     <div

@@ -96,8 +96,6 @@ const MOCK_TICKETS: IdeaTicket[] = [
   },
 ];
 
-let nextId = 7;
-
 interface IdeaBoardProps {
   projectId: string;
 }
@@ -145,7 +143,7 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
     const title = newTitle.trim();
     if (!title) return;
     const newTicket: IdeaTicket = {
-      id: `IDEA-${nextId++}`,
+      id: `IDEA-${Date.now()}`,
       title,
       description: '',
       ideaStatus: 'draft',
