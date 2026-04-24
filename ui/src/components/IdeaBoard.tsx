@@ -134,11 +134,11 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
   function handleSave(updated: IdeaTicket) {
     setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
   }
-  function handleDrop(id: string) {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, ideaStatus: 'dropped' } : t));
-  }
   function handleStatusChange(id: string, status: IdeaStatus) {
     setTickets(prev => prev.map(t => t.id === id ? { ...t, ideaStatus: status } : t));
+  }
+  function handleDrop(id: string) {
+    handleStatusChange(id, 'dropped');
   }
 
   function handleQuickCreate() {
@@ -200,7 +200,7 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
               key={col.id}
               column={col}
               tickets={ticketsByStatus[col.id] ?? []}
-              onCardClick={(ticket) => setSelectedTicket(ticket)}
+              onCardClick={setSelectedTicket}
             />
           ))}
         </div>

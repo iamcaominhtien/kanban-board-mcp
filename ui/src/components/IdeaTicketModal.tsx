@@ -44,8 +44,6 @@ interface IdeaTicketModalProps {
 export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChange }: IdeaTicketModalProps) {
   const isDraft = ticket.ideaStatus === 'draft';
   const isInReview = ticket.ideaStatus === 'in_review';
-  const isApproved = ticket.ideaStatus === 'approved';
-  const isDropped = ticket.ideaStatus === 'dropped';
   const isEditable = isDraft || isInReview;
 
   const [title, setTitle] = useState(ticket.title);
@@ -139,7 +137,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                 type="text"
                 className={styles.titleInput}
                 value={title}
-                onChange={(e) => isEditable && setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 readOnly={!isEditable}
                 placeholder="Idea title..."
               />
@@ -155,7 +153,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                     key={opt.value}
                     type="button"
                     className={`${styles.energyBtn} ${energy === opt.value ? styles.energyBtnActive : ''}`}
-                    onClick={() => isEditable && setEnergy(energy === opt.value ? null : opt.value as IdeaEnergy)}
+                    onClick={() => setEnergy(energy === opt.value ? null : opt.value as IdeaEnergy)}
                     disabled={!isEditable}
                   >
                     {opt.emoji} {opt.label}
@@ -171,7 +169,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                 <textarea
                   className={styles.descTextarea}
                   value={description}
-                  onChange={(e) => isEditable && setDescription(e.target.value)}
+                  onChange={(e) => setDescription(e.target.value)}
                   readOnly={!isEditable}
                   placeholder="Scribble your rough thoughts here..."
                 />
@@ -188,7 +186,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                     type="button"
                     className={`${styles.colorDot} ${color === c.value ? styles.colorDotActive : ''}`}
                     style={{ background: c.hex }}
-                    onClick={() => isEditable && setColor(c.value)}
+                    onClick={() => setColor(c.value)}
                     disabled={!isEditable}
                     title={c.label}
                     aria-label={c.label}
@@ -224,7 +222,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
             <span className={styles.footerDate}>
               {ticket.createdAt ? `Created ${new Date(ticket.createdAt).toLocaleDateString()}` : ''}
             </span>
-            {!isDropped && !isApproved && (
+            {isEditable && (
               <button type="button" className={styles.dropBtn} onClick={() => { onDrop(ticket.id); onClose(); }}>
                 Drop Idea
               </button>
@@ -232,26 +230,21 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
           </div>
 
           <div className={styles.footerActions}>
-            {isDraft && (
+            {isEditable ? (
               <>
                 <button type="button" className={styles.saveBtn} onClick={handleSave}>Save</button>
-                <button type="button" className={styles.actionBtn} onClick={() => { onStatusChange(ticket.id, 'in_review'); onClose(); }}>
-                  👀 Send to Review
-                </button>
+                {isDraft && (
+                  <button type="button" className={styles.actionBtn} onClick={() => { onStatusChange(ticket.id, 'in_review'); onClose(); }}>
+                    👀 Send to Review
+                  </button>
+                )}
+                {isInReview && (
+                  <button type="button" className={styles.approveBtn} onClick={() => { onStatusChange(ticket.id, 'approved'); onClose(); }}>
+                    🚀 Approve & Promote
+                  </button>
+                )}
               </>
-            )}
-            {isInReview && (
-              <>
-                <button type="button" className={styles.saveBtn} onClick={handleSave}>Save</button>
-                <button type="button" className={styles.approveBtn} onClick={() => { onStatusChange(ticket.id, 'approved'); onClose(); }}>
-                  🚀 Approve & Promote
-                </button>
-              </>
-            )}
-            {isApproved && (
-              <button type="button" className={styles.saveBtn} style={{ flex: 1 }} onClick={onClose}>Close</button>
-            )}
-            {isDropped && (
+            ) : (
               <button type="button" className={styles.saveBtn} style={{ flex: 1 }} onClick={onClose}>Close</button>
             )}
           </div>
