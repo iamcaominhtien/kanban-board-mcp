@@ -81,11 +81,13 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
               {project.id === currentProjectId && (
                 <button
                   type="button"
-                  className={styles.boardToggleBtn}
+                  className={`${styles.boardToggleSwitch} ${activeBoard === 'idea' ? styles.boardToggleOn : ''}`}
                   onClick={(e) => { e.stopPropagation(); onBoardChange(activeBoard === 'main' ? 'idea' : 'main'); }}
-                  title={activeBoard === 'main' ? 'Switch to Idea Space' : 'Switch to Main Board'}
+                  title={activeBoard === 'main' ? 'Switch to Idea Space 💡' : 'Switch to Main Board 📋'}
+                  aria-checked={activeBoard === 'idea'}
+                  role="switch"
                 >
-                  {activeBoard === 'main' ? '💡' : '📋'}
+                  <span className={styles.boardToggleKnob} />
                 </button>
               )}
               {projects.length > 1 && (
