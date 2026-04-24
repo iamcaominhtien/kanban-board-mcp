@@ -280,6 +280,8 @@ export default function App() {
         onOpenMembers={() => setMembersPanelOpen(true)}
         onOpenSettings={() => setSettingsPanelOpen(true)}
         wontDoCount={wontDoTickets.length}
+        activeBoard={activeBoard}
+        onBoardChange={setActiveBoard}
       />
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {globalError && (
@@ -295,25 +297,7 @@ export default function App() {
             <button type="button" onClick={() => setBlockedDragPending(null)} style={{ background: 'transparent', border: '1.5px solid #F5C518', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, color: 'var(--color-dark)' }}>Cancel</button>
           </div>
         )}
-        {/* Board switcher */}
-        <div style={{ padding: '8px 12px 0', flexShrink: 0, display: 'flex' }}>
-          <div style={{ display: 'flex', background: 'rgba(61,12,17,0.06)', border: '2px solid var(--color-dark)', padding: '4px', borderRadius: '99px', boxShadow: '2px 2px 0 rgba(61,12,17,0.1)' }}>
-            <button
-              type="button"
-              onClick={() => setActiveBoard('main')}
-              style={activeBoard === 'main'
-                ? { background: '#fff', border: '2px solid var(--color-dark)', borderRadius: '99px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)' }
-                : { background: 'transparent', border: 'none', borderRadius: '99px', padding: '6px 16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)', opacity: 0.6 }}
-            >Main Board</button>
-            <button
-              type="button"
-              onClick={() => setActiveBoard('idea')}
-              style={activeBoard === 'idea'
-                ? { background: '#fff', border: '2px solid var(--color-dark)', borderRadius: '99px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)' }
-                : { background: 'transparent', border: 'none', borderRadius: '99px', padding: '6px 16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)', opacity: 0.6 }}
-            >Idea Space 💡</button>
-          </div>
-        </div>
+
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {projectsLoading && apiProjects.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>

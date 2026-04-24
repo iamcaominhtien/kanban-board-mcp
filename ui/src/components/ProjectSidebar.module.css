@@ -383,3 +383,23 @@
 .sidebar:focus-within .recycleBinBadge {
   opacity: 1;
 }
+
+.viewsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding-top: 12px;
+  border-top: 2px solid rgba(245, 239, 224, 0.12);
+}
+
+.viewIcon {
+  font-size: 18px;
+  width: 28px;
+  min-width: 28px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

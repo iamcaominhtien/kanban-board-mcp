@@ -13,11 +13,13 @@ interface ProjectSidebarProps {
   onOpenMembers: () => void;
   onOpenSettings: () => void;
   wontDoCount: number;
+  activeBoard: 'main' | 'idea';
+  onBoardChange: (board: 'main' | 'idea') => void;
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
 
-export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, onOpenSettings, wontDoCount }: ProjectSidebarProps) {
+export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, onOpenSettings, wontDoCount, activeBoard, onBoardChange }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
@@ -90,6 +92,28 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
           </Fragment>
         ))}
       </nav>
+
+      <div className={styles.viewsSection}>
+        <p className={styles.sectionLabel}>Views</p>
+        {([
+          { id: 'main', label: 'Main Board', icon: '📋' },
+          { id: 'idea', label: 'Idea Space', icon: '💡' },
+        ] as const).map((view) => (
+          <div
+            key={view.id}
+            role="button"
+            tabIndex={0}
+            className={`${styles.projectItem} ${activeBoard === view.id ? styles.active : ''}`}
+            onClick={() => onBoardChange(view.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBoardChange(view.id); }
+            }}
+          >
+            <span className={styles.viewIcon}>{view.icon}</span>
+            <span className={styles.projectName}>{view.label}</span>
+          </div>
+        ))}
+      </div>
 
       <div className={styles.bottomSection}>
         <button
