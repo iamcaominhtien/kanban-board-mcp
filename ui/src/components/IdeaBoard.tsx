@@ -10,9 +10,9 @@ import { IdeaCard } from './IdeaCard';
 import styles from './IdeaBoard.module.css';
 
 const IDEA_COLUMNS: IdeaColumnDef[] = [
-  { id: 'draft',    label: 'Drafting',  emoji: '✏️', accentColor: 'var(--color-yellow)', colBg: 'rgba(245, 197, 24, 0.12)', headerBg: 'var(--color-yellow)' },
-  { id: 'approved', label: 'Approved',  emoji: '✅', accentColor: 'var(--color-lime)',   colBg: 'rgba(170, 204, 46, 0.12)', headerBg: 'var(--color-lime)' },
-  { id: 'dropped',  label: 'Dropped',   emoji: '🗑️', accentColor: 'var(--color-dark)',   colBg: 'rgba(61, 12, 17, 0.06)',  headerBg: 'rgba(61, 12, 17, 0.2)' },
+  { id: 'draft',    label: 'Draft',    emoji: '✏️', accentColor: 'var(--color-yellow)', headerBg: 'rgba(245,197,24,0.12)',  accentBg: 'var(--color-yellow)' },
+  { id: 'approved', label: 'Approved', emoji: '✅', accentColor: 'var(--color-lime)',   headerBg: 'rgba(170,204,46,0.12)',  accentBg: 'var(--color-lime)' },
+  { id: 'dropped',  label: 'Dropped',  emoji: '🗑️', accentColor: 'var(--color-pink)',   headerBg: 'rgba(61,12,17,0.05)',    accentBg: 'rgba(61,12,17,0.2)' },
 ];
 
 const VALID_IDEA_STATUSES = new Set<string>(['draft', 'approved', 'dropped']);
@@ -108,14 +108,14 @@ export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>✨</span>
-          Idea Space
-        </h1>
+        <div className={styles.headerLeft}>
+          <div className={styles.titleIcon}>✨</div>
+          <h1 className={styles.title}>Idea Space</h1>
+        </div>
         <button
           type="button"
           className={styles.newBtn}
-          onClick={() => setShowQuickCreate((v) => !v)}
+          onClick={() => setShowQuickCreate(v => !v)}
         >
           + New Idea
         </button>
@@ -142,14 +142,14 @@ export function IdeaBoard({ projectId, onCardClick }: IdeaBoardProps) {
           <div className={styles.quickActions}>
             <button
               type="submit"
-              className={styles.quickSubmit}
+              className={styles.quickSaveBtn}
               disabled={createMutation.isPending || !quickTitle.trim()}
             >
               {createMutation.isPending ? 'Creating…' : 'Create'}
             </button>
             <button
               type="button"
-              className={styles.quickCancel}
+              className={styles.quickCancelBtn}
               onClick={() => { setShowQuickCreate(false); setQuickTitle(''); setQuickDesc(''); }}
             >
               Cancel

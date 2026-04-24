@@ -8,15 +8,9 @@ export interface IdeaColumnDef {
   label: string;
   emoji: string;
   accentColor: string;
-  colBg: string;
-  headerBg: string;
+  headerBg: string;   // background for the column body (tinted)
+  accentBg: string;   // background for the emoji circle
 }
-
-const EMPTY_ICONS: Record<IdeaStatus, string> = {
-  draft: '✏️',
-  approved: '✅',
-  dropped: '🗑️',
-};
 
 interface IdeaColumnProps {
   column: IdeaColumnDef;
@@ -34,7 +28,11 @@ export function IdeaColumn({ column, tickets, isTerminal: _isTerminal, onCardCli
     <div
       ref={setNodeRef}
       className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
-      style={{ '--col-bg': column.colBg, '--col-accent': column.headerBg } as React.CSSProperties}
+      style={{
+        '--col-bg': column.headerBg,
+        '--col-accent': column.accentBg,
+        background: column.headerBg,
+      } as React.CSSProperties}
     >
       <div className={styles.header}>
         <span className={styles.emojiCircle}>{column.emoji}</span>
@@ -44,10 +42,7 @@ export function IdeaColumn({ column, tickets, isTerminal: _isTerminal, onCardCli
 
       <div className={styles.cardList}>
         {tickets.length === 0 ? (
-          <div className={styles.empty}>
-            <span className={styles.emptyIcon}>{EMPTY_ICONS[column.id]}</span>
-            No ideas yet
-          </div>
+          <div className={styles.empty}>{column.emoji} No ideas yet</div>
         ) : (
           tickets.map((ticket) => (
             <IdeaCard
