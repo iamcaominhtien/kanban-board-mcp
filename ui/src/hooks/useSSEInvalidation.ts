@@ -14,23 +14,8 @@ export function useSSEInvalidation() {
       const origin = await resolveOrigin();
       if (!mounted) return;
 
-      function handleMessage(event: MessageEvent<string>) {
-        const eventType = event.data ?? '';
-
-        if (!eventType.startsWith('idea_ticket_')) {
-          // Generic invalidate or other events — full invalidation
-          queryClient.invalidateQueries();
-          return;
-        }
-
-        // e.g. "idea_ticket_created:proj-123" or "idea_ticket_updated:proj-123"
-        const projectId: string = eventType.split(':')[1] ?? '';
-        if (projectId) {
-          queryClient.invalidateQueries({ queryKey: ['tickets', projectId, 'idea'] });
-        } else {
-          console.warn('[SSE] idea_ticket event missing project_id:', eventType);
-          queryClient.invalidateQueries({ queryKey: ['tickets'] });
-        }
+      function handleMessage(_event: MessageEvent<string>) {
+        queryClient.invalidateQueries();
       }
 
       function connect() {
