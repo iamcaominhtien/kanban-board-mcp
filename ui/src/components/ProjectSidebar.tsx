@@ -78,6 +78,16 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
               <span className={styles.dot} style={{ backgroundColor: project.color }} />
               <span className={styles.projectName}>{project.name}</span>
               <span className={styles.prefixBadge}>{project.prefix}</span>
+              {project.id === currentProjectId && (
+                <button
+                  type="button"
+                  className={styles.boardToggleBtn}
+                  onClick={(e) => { e.stopPropagation(); onBoardChange(activeBoard === 'main' ? 'idea' : 'main'); }}
+                  title={activeBoard === 'main' ? 'Switch to Idea Space' : 'Switch to Main Board'}
+                >
+                  {activeBoard === 'main' ? '💡' : '📋'}
+                </button>
+              )}
               {projects.length > 1 && (
                 <button
                   type="button"
@@ -92,28 +102,6 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
           </Fragment>
         ))}
       </nav>
-
-      <div className={styles.viewsSection}>
-        <p className={styles.sectionLabel}>Views</p>
-        {([
-          { id: 'main', label: 'Main Board', icon: '📋' },
-          { id: 'idea', label: 'Idea Space', icon: '💡' },
-        ] as const).map((view) => (
-          <div
-            key={view.id}
-            role="button"
-            tabIndex={0}
-            className={`${styles.projectItem} ${activeBoard === view.id ? styles.active : ''}`}
-            onClick={() => onBoardChange(view.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBoardChange(view.id); }
-            }}
-          >
-            <span className={styles.viewIcon}>{view.icon}</span>
-            <span className={styles.projectName}>{view.label}</span>
-          </div>
-        ))}
-      </div>
 
       <div className={styles.bottomSection}>
         <button
