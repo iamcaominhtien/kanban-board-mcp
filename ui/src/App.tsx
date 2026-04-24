@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './components/Board';
+import { IdeaBoard } from './components/IdeaBoard';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -34,6 +35,7 @@ export default function App() {
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
+  const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
 
   const { data: members = [] } = useMembers(currentProjectId ?? '');
 
@@ -279,7 +281,7 @@ export default function App() {
         onOpenSettings={() => setSettingsPanelOpen(true)}
         wontDoCount={wontDoTickets.length}
       />
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {globalError && (
           <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span>{globalError}</span>
@@ -293,10 +295,32 @@ export default function App() {
             <button type="button" onClick={() => setBlockedDragPending(null)} style={{ background: 'transparent', border: '1.5px solid #F5C518', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, color: 'var(--color-dark)' }}>Cancel</button>
           </div>
         )}
+        {/* Board switcher */}
+        <div style={{ padding: '8px 12px 0', flexShrink: 0, display: 'flex' }}>
+          <div style={{ display: 'flex', background: 'rgba(61,12,17,0.06)', border: '2px solid var(--color-dark)', padding: '4px', borderRadius: '99px', boxShadow: '2px 2px 0 rgba(61,12,17,0.1)' }}>
+            <button
+              type="button"
+              onClick={() => setActiveBoard('main')}
+              style={activeBoard === 'main'
+                ? { background: '#fff', border: '2px solid var(--color-dark)', borderRadius: '99px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)' }
+                : { background: 'transparent', border: 'none', borderRadius: '99px', padding: '6px 16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)', opacity: 0.6 }}
+            >Main Board</button>
+            <button
+              type="button"
+              onClick={() => setActiveBoard('idea')}
+              style={activeBoard === 'idea'
+                ? { background: '#fff', border: '2px solid var(--color-dark)', borderRadius: '99px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)' }
+                : { background: 'transparent', border: 'none', borderRadius: '99px', padding: '6px 16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--color-dark)', opacity: 0.6 }}
+            >Idea Space 💡</button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {projectsLoading && apiProjects.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
             Loading projects…
           </div>
+        ) : activeBoard === 'idea' ? (
+          <IdeaBoard projectId={currentProjectId ?? ''} />
         ) : ticketsLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
             Loading tickets…
@@ -368,6 +392,7 @@ export default function App() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );
