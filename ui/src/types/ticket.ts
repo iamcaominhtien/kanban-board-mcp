@@ -102,26 +102,3 @@ export interface Column {
 }
 
 export type Theme = 'default' | 'bw';
-
-// ---------------------------------------------------------------------------
-// Idea Board types
-// ---------------------------------------------------------------------------
-
-export type IdeaStatus = 'draft' | 'approved' | 'dropped';
-export type IdeaColor = 'yellow' | 'orange' | 'lime' | 'pink' | 'blue' | 'purple' | 'teal';
-export type IdeaEnergy = 'seed' | 'concept' | 'hot' | 'big_bet';
-
-export interface IdeaTicket {
-  id: string;
-  projectId: string;
-  title: string;
-  description: string;
-  tags: string[];
-  ideaStatus: IdeaStatus;
-  ideaEmoji: string;
-  ideaColor: IdeaColor;
-  ideaEnergy?: IdeaEnergy;
-  originIdeaId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}

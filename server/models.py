@@ -1,42 +1,9 @@
 import json
 import uuid
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any, Literal, Optional
 
 from sqlmodel import Field, SQLModel
-
-
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
-
-
-class BoardType(str, Enum):
-    """Which board a ticket belongs to."""
-
-    main = "main"
-    idea = "idea"
-
-
-class IdeaStatus(str, Enum):
-    """Lifecycle states for idea-board tickets."""
-
-    draft = "draft"
-    approved = "approved"
-    dropped = "dropped"
-
-
-class IdeaColor(str, Enum):
-    """Accent colors for idea cards."""
-
-    yellow = "yellow"
-    orange = "orange"
-    lime = "lime"
-    pink = "pink"
-    blue = "blue"
-    purple = "purple"
-    teal = "teal"
 
 
 # ---------------------------------------------------------------------------
@@ -90,17 +57,6 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
-    # Idea Board fields
-    board: BoardType = Field(
-        default=BoardType.main
-    )  # which board this ticket belongs to
-    idea_status: Optional[IdeaStatus] = Field(
-        default=None
-    )  # only set when board='idea'
-    idea_emoji: Optional[str] = Field(default=None, max_length=8)  # emoji for idea card
-    idea_color: Optional[IdeaColor] = Field(default=None)  # accent color for idea card
-    # origin_idea_id is immutable once set — records which idea ticket was promoted
-    origin_idea_id: Optional[str] = Field(default=None, foreign_key="ticket.id")
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -247,11 +203,6 @@ class TicketRead(SQLModel):
     links: list[Any] = []
     created_at: str
     updated_at: str
-    board: Optional[str] = None
-    idea_status: Optional[str] = None
-    idea_emoji: Optional[str] = None
-    idea_color: Optional[str] = None
-    origin_idea_id: Optional[str] = None
 
     @classmethod
     def from_ticket(cls, ticket: Ticket) -> "TicketRead":
@@ -283,9 +234,4 @@ class TicketRead(SQLModel):
             links=_parse_json_list(ticket.links),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
-            board=ticket.board.value if ticket.board else None,
-            idea_status=ticket.idea_status.value if ticket.idea_status else None,
-            idea_emoji=ticket.idea_emoji,
-            idea_color=ticket.idea_color.value if ticket.idea_color else None,
-            origin_idea_id=ticket.origin_idea_id,
         )

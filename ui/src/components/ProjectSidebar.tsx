@@ -2,8 +2,6 @@ import { useState, Fragment } from 'react';
 import type { Project } from '../types';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
-import { BoardSwitcher } from './BoardSwitcher';
-import type { BoardType } from '../hooks/useBoardSelection';
 
 interface ProjectSidebarProps {
   projects: Project[];
@@ -15,13 +13,11 @@ interface ProjectSidebarProps {
   onOpenMembers: () => void;
   onOpenSettings: () => void;
   wontDoCount: number;
-  selectedBoard: BoardType;
-  onBoardChange: (board: BoardType) => void;
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
 
-export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, onOpenSettings, wontDoCount, selectedBoard, onBoardChange }: ProjectSidebarProps) {
+export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, onOpenSettings, wontDoCount }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
@@ -91,9 +87,6 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
                 </button>
               )}
             </div>
-            {project.id === currentProjectId && (
-              <BoardSwitcher selectedBoard={selectedBoard} onBoardChange={onBoardChange} />
-            )}
           </Fragment>
         ))}
       </nav>
