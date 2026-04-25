@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ class Ticket(SQLModel, table=True):
     )
 
 
-IDEA_STATUSES = ("raw", "brewing", "validated", "approved", "dropped")
+IDEA_STATUSES = ("draft", "in_review", "approved", "dropped")
 
 
 class IdeaTicket(SQLModel, table=True):
@@ -82,8 +82,8 @@ class IdeaTicket(SQLModel, table=True):
     project_id: str = Field(foreign_key="project.id", index=True)
     title: str
     description: str = Field(default="")
-    idea_status: str = Field(default="raw")  # raw|brewing|validated|approved|dropped
-    idea_color: str = Field(default="#F5C518")
+    idea_status: str = Field(default="draft")  # draft|in_review|approved|dropped
+    idea_color: str = Field(default="yellow")
     idea_emoji: str = Field(default="💡")
     idea_energy: Optional[str] = Field(default=None)  # low|medium|high
     tags: str = Field(default="[]")  # JSON list of strings
@@ -278,21 +278,31 @@ class TicketRead(SQLModel):
         )
 
 
+IDEA_COLORS = ("yellow", "orange", "lime", "pink", "blue", "purple", "teal")
+
+
 class IdeaTicketCreateBody(SQLModel):
     project_id: str
     title: str
     description: str = ""
-    idea_color: str = Field(default="#F5C518", regex=r"^#[0-9A-Fa-f]{6}$")
+    idea_color: str = "yellow"
     idea_emoji: str = "💡"
     idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: list[Any] = Field(default_factory=list)
     problem_statement: Optional[str] = None
 
+    @field_validator("idea_color")
+    @classmethod
+    def validate_color(cls, v: str) -> str:
+        if v not in IDEA_COLORS:
+            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+        return v
+
 
 class IdeaTicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    idea_color: Optional[str] = Field(default=None, regex=r"^#[0-9A-Fa-f]{6}$")
+    idea_color: Optional[str] = None
     idea_emoji: Optional[str] = None
     idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: Optional[list[Any]] = None
@@ -301,6 +311,13 @@ class IdeaTicketUpdate(SQLModel):
     ice_effort: Optional[int] = Field(default=None, ge=1, le=5)
     ice_confidence: Optional[int] = Field(default=None, ge=1, le=5)
     revisit_date: Optional[str] = None
+
+    @field_validator("idea_color")
+    @classmethod
+    def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in IDEA_COLORS:
+            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+        return v
 
 
 class IdeaTicketRead(SQLModel):
