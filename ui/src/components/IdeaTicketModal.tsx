@@ -259,13 +259,22 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               <div>
                 <span className={styles.sectionLabel}>Tags</span>
                 {isEditable ? (
-                  <input
-                    type="text"
-                    className={styles.tagsInput}
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    placeholder="design, ui, feature (comma-separated)"
-                  />
+                  <>
+                    <input
+                      type="text"
+                      className={styles.tagsInput}
+                      value={tagsInput}
+                      onChange={(e) => setTagsInput(e.target.value)}
+                      placeholder="design, ui, feature (comma-separated)"
+                    />
+                    {tagsInput.trim() && (
+                      <div className={styles.tagRow}>
+                        {tagsInput.split(',').map((t) => t.trim()).filter(Boolean).map((t) => (
+                          <span key={t} className={styles.tagPill}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className={styles.tagRow}>
                     {ticket.tags.map(t => <span key={t} className={styles.tagPill}>{t}</span>)}
