@@ -5,7 +5,7 @@ export async function fetchIdeaTickets(projectId: string, ideaStatus?: string): 
   const params: Record<string, string> = { project_id: projectId };
   if (ideaStatus) params.idea_status = ideaStatus;
   const res = await client.get<IdeaTicket[]>('/api/idea-tickets', { params });
-  return res.data;
+  return Array.isArray(res.data) ? res.data : [];
 }
 
 export async function createIdeaTicket(projectId: string, data: Partial<IdeaTicket>): Promise<IdeaTicket> {
