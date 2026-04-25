@@ -33,6 +33,29 @@
 }
 .closeBtn:hover { transform: scale(1.05); }
 
+.fullscreenBtn {
+  position: absolute; top: 16px; right: 60px;
+  width: 36px; height: 36px;
+  background: #fff; border: 2px solid var(--color-dark); border-radius: 99px;
+  box-shadow: 2px 2px 0px rgba(61,12,17,0.12);
+  font-size: 1rem; color: var(--color-dark);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; transition: transform 0.1s ease; z-index: 10;
+}
+.fullscreenBtn:hover { transform: scale(1.05); }
+
+.panelFullscreen {
+  max-width: 100vw !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+}
+
 .scrollBody { flex: 1; overflow: hidden; display: flex; flex-direction: column; background: #fff; min-height: 0; }
 
 .cover {

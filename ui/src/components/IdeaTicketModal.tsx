@@ -58,6 +58,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [visible, setVisible] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -102,8 +103,17 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       role="dialog"
       aria-modal="true"
     >
-      <div className={`${styles.panel} ${visible ? styles.panelVisible : ''}`}>
+      <div className={`${styles.panel} ${visible ? styles.panelVisible : ''} ${fullscreen ? styles.panelFullscreen : ''}`}>
         {/* Floating close button */}
+        <button
+          type="button"
+          className={styles.fullscreenBtn}
+          onClick={() => setFullscreen(v => !v)}
+          aria-label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {fullscreen ? '⤡' : '⤢'}
+        </button>
         <button ref={closeBtnRef} type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
 
         {/* Scrollable body */}
