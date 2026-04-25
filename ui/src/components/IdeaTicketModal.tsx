@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import type { IdeaColor, IdeaEnergy, IdeaStatus, IdeaTicket } from '../types';
 import styles from './IdeaTicketModal.module.css';
 
@@ -54,6 +57,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const [energy, setEnergy] = useState<IdeaEnergy | null>(ticket.ideaEnergy ?? null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -148,15 +152,42 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <span className={styles.sectionLabel}>Description</span>
+                <div className={styles.descHeader}>
+                  <span className={styles.sectionLabel} style={{ margin: 0 }}>Description</span>
+                  {isEditable && (
+                    <div className={styles.descTabs}>
+                      <button
+                        type="button"
+                        className={`${styles.descTab} ${!previewMode ? styles.descTabActive : ''}`}
+                        onClick={() => setPreviewMode(false)}
+                      >Write</button>
+                      <button
+                        type="button"
+                        className={`${styles.descTab} ${previewMode ? styles.descTabActive : ''}`}
+                        onClick={() => setPreviewMode(true)}
+                      >Preview</button>
+                    </div>
+                  )}
+                </div>
                 <div className={styles.descField} style={{ flex: 1 }}>
-                  <textarea
-                    className={styles.descTextarea}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    readOnly={!isEditable}
-                    placeholder="Scribble your rough thoughts here..."
-                  />
+                  {(!isEditable || previewMode) ? (
+                    <div className={styles.markdownBody}>
+                      {description ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                          {description}
+                        </ReactMarkdown>
+                      ) : (
+                        <span style={{ color: 'rgba(61,12,17,0.3)', fontSize: '0.9rem' }}>No description.</span>
+                      )}
+                    </div>
+                  ) : (
+                    <textarea
+                      className={styles.descTextarea}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Scribble your rough thoughts here... (markdown supported)"
+                    />
+                  )}
                 </div>
               </div>
             </div>
