@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timezone
 from functools import wraps
 from typing import Literal
@@ -15,6 +16,7 @@ import services.projects as svc_projects
 import services.tickets as svc_tickets
 from database import async_session
 from models import (
+    IDEA_STATUSES,
     IdeaTicketRead,
     MemberRead,
     ProjectCreate,
@@ -26,7 +28,8 @@ from models import (
 
 
 _UNSET = object()
-_VALID_IDEA_STATUSES = frozenset({"raw", "brewing", "validated", "approved", "dropped"})
+_VALID_IDEA_STATUSES = frozenset(IDEA_STATUSES)
+_HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
 def _ticket_to_dict(ticket: Ticket) -> dict:
@@ -481,6 +484,8 @@ async def create_idea_ticket(
 
     Returns the created idea ticket.
     """
+    if not _HEX_COLOR_RE.match(idea_color):
+        return {"error": "idea_color must be a 6-digit hex color, e.g. #FF0000"}
     try:
         async with async_session() as session:
             ticket = await svc_idea_tickets.create_idea_ticket(
@@ -534,6 +539,8 @@ async def update_idea_ticket(
     Updates last_touched_at and appends to activity_trail.
     Returns the updated idea ticket, or None if not found.
     """
+    if idea_color is not None and not _HEX_COLOR_RE.match(idea_color):
+        return {"error": "idea_color must be a 6-digit hex color, e.g. #FF0000"}
     _nullable = {"idea_energy", "problem_statement", "revisit_date"}
     fields = {
         "title": title,

@@ -12,12 +12,6 @@ from models import IdeaTicket
 UTC = timezone.utc
 
 
-def _loads(value: str) -> list:
-    if not value:
-        return []
-    return json.loads(value)
-
-
 def _safe_json(value: str, fallback=None) -> list:
     if fallback is None:
         fallback = []

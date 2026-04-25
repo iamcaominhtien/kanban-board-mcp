@@ -72,6 +72,9 @@ class Ticket(SQLModel, table=True):
     )
 
 
+IDEA_STATUSES = ("raw", "brewing", "validated", "approved", "dropped")
+
+
 class IdeaTicket(SQLModel, table=True):
     __tablename__ = "idea_ticket"
 
@@ -279,7 +282,7 @@ class IdeaTicketCreateBody(SQLModel):
     project_id: str
     title: str
     description: str = ""
-    idea_color: str = Field(default="#F5C518", pattern=r"#[0-9A-Fa-f]{6}")
+    idea_color: str = Field(default="#F5C518", regex=r"^#[0-9A-Fa-f]{6}$")
     idea_emoji: str = "💡"
     idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: list[Any] = Field(default_factory=list)
@@ -289,7 +292,7 @@ class IdeaTicketCreateBody(SQLModel):
 class IdeaTicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    idea_color: Optional[str] = Field(default=None, pattern=r"#[0-9A-Fa-f]{6}")
+    idea_color: Optional[str] = Field(default=None, regex=r"^#[0-9A-Fa-f]{6}$")
     idea_emoji: Optional[str] = None
     idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: Optional[list[Any]] = None
