@@ -31,7 +31,7 @@ const STATUS_ACTIVITY_LABELS: Record<IdeaStatus, string> = {
 };
 
 function buildActivity(label: string, at: string) {
-  return { id: `a-${Date.now()}`, label, at };
+  return { id: `a-${crypto.randomUUID()}`, label, at };
 }
 
 function withActivity(ticket: IdeaTicket, label: string, at: string): IdeaTicket {
@@ -183,7 +183,12 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
     const ticket = tickets.find(t => t.id === active.id);
     if (!ticket || ticket.ideaStatus === newStatus) return;
     if (!ALLOWED_TRANSITIONS[ticket.ideaStatus]?.includes(newStatus)) return;
-    setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, ideaStatus: newStatus } : t));
+    const now = new Date().toISOString();
+    setTickets(prev => prev.map(t =>
+      t.id === ticket.id
+        ? { ...withActivity(t, STATUS_ACTIVITY_LABELS[newStatus], now), ideaStatus: newStatus }
+        : t
+    ));
   }
 
   function handleSave(updated: IdeaTicket) {
@@ -208,7 +213,7 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
     const title = newTitle.trim();
     if (!title) return;
     const newTicket: IdeaTicket = {
-      id: `IDEA-${Date.now()}`,
+      id: `IDEA-${crypto.randomUUID()}`,
       title,
       description: '',
       ideaStatus: 'draft',

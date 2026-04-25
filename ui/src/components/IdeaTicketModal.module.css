@@ -38,6 +38,12 @@
 .fullscreenBtn { right: 60px; }
 .fullscreenBtn:hover { transform: scale(1.05); }
 
+.closeBtn:focus-visible,
+.fullscreenBtn:focus-visible {
+  outline: 2px solid var(--color-dark);
+  outline-offset: 2px;
+}
+
 .panelFullscreen {
   max-width: 100vw !important;
   width: 100vw !important;

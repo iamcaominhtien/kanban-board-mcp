@@ -38,6 +38,12 @@ const STATUS_META: Record<IdeaStatus, { label: string; bg: string; color: string
 
 const ASSUMPTION_STATUS_ORDER: IdeaAssumptionStatus[] = ['untested', 'validated', 'invalidated'];
 
+const ASSUMPTION_DOT_CLASS: Record<IdeaAssumptionStatus, string> = {
+  untested: styles.assumptionDot_untested,
+  validated: styles.assumptionDot_validated,
+  invalidated: styles.assumptionDot_invalidated,
+};
+
 function normalizeTags(input: string): string[] {
   return input.split(',').map((tag) => tag.trim()).filter(Boolean);
 }
@@ -139,6 +145,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         if (showEmojiPicker) { setShowEmojiPicker(false); return; }
+        if (document.fullscreenElement) { document.exitFullscreen(); return; }
         onCloseRef.current();
       }
     }
@@ -149,14 +156,14 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   function addMicrothought() {
     const text = newMicrothought.trim();
     if (!text) return;
-    setMicrothoughts((prev) => [...prev, { id: `m-${Date.now()}`, text, at: new Date().toISOString() }]);
+    setMicrothoughts((prev) => [...prev, { id: `m-${crypto.randomUUID()}`, text, at: new Date().toISOString() }]);
     setNewMicrothought('');
   }
 
   function addAssumption() {
     const text = newAssumption.trim();
     if (!text) return;
-    setAssumptions((prev) => [...prev, { id: `as-${Date.now()}`, text, status: 'untested' }]);
+    setAssumptions((prev) => [...prev, { id: `as-${crypto.randomUUID()}`, text, status: 'untested' }]);
     setNewAssumption('');
   }
 
@@ -479,7 +486,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                     <div key={a.id} className={`${styles.assumptionItem} ${a.status === 'invalidated' ? styles.invalidated : ''}`}>
                       <button
                         type="button"
-                        className={`${styles.assumptionDot} ${styles[`assumptionDot_${a.status}` as keyof typeof styles]}`}
+                        className={`${styles.assumptionDot} ${ASSUMPTION_DOT_CLASS[a.status]}`}
                         onClick={() => {
                           if (!isEditable) return;
                           cycleAssumptionStatus(a.id);

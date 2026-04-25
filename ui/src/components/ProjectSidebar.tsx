@@ -93,6 +93,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
                 className={`${styles.boardToggleSwitch} ${activeBoard === 'idea' ? styles.boardToggleOn : ''}`}
                 onClick={toggleBoard}
                 title={activeBoard === 'main' ? 'Switch to Idea Space 💡' : 'Switch to Main Board 📋'}
+                aria-label={activeBoard === 'idea' ? 'Switch to Main Board' : 'Switch to Idea Space'}
                 aria-checked={activeBoard === 'idea'}
                 role="switch"
               >
