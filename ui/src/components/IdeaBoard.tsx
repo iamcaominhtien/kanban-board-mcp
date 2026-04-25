@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import type { IdeaStatus, IdeaTicket } from '../types';
@@ -6,6 +6,8 @@ import { IdeaColumn } from './IdeaColumn';
 import type { IdeaColumnDef } from './IdeaColumn';
 import { IdeaCard } from './IdeaCard';
 import { IdeaTicketModal } from './IdeaTicketModal';
+import { fetchIdeaTickets, createIdeaTicket, updateIdeaTicket, updateIdeaStatus } from '../api/ideaTickets';
+import { resolveOrigin } from '../api/resolveOrigin';
 import styles from './IdeaBoard.module.css';
 
 const IDEA_COLUMNS: IdeaColumnDef[] = [
@@ -157,12 +159,36 @@ interface IdeaBoardProps {
   projectId: string;
 }
 
-export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
-  const [tickets, setTickets] = useState<IdeaTicket[]>(MOCK_TICKETS);
+export function IdeaBoard({ projectId }: IdeaBoardProps) {
+  const [tickets, setTickets] = useState<IdeaTicket[]>(projectId ? [] : MOCK_TICKETS);
+  const [loading, setLoading] = useState(!!projectId);
+  const [error, setError] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<IdeaTicket | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+
+  // Load tickets from API
+  useEffect(() => {
+    if (!projectId) return;
+    setLoading(true);
+    fetchIdeaTickets(projectId)
+      .then(setTickets)
+      .catch((e: unknown) => setError((e as Error).message ?? 'Failed to load ideas'))
+      .finally(() => setLoading(false));
+  }, [projectId]);
+
+  // SSE invalidation — re-fetch when the backend signals a change
+  useEffect(() => {
+    if (!projectId) return;
+    const origin = resolveOrigin();
+    const es = new EventSource(`${origin}/events`);
+    es.onmessage = () => {
+      fetchIdeaTickets(projectId).then(setTickets).catch(() => {});
+    };
+    es.onerror = () => {}; // main useSSEInvalidation handles reconnect; silence extra noise
+    return () => es.close();
+  }, [projectId]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -183,28 +209,62 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
     const ticket = tickets.find(t => t.id === active.id);
     if (!ticket || ticket.ideaStatus === newStatus) return;
     if (!ALLOWED_TRANSITIONS[ticket.ideaStatus]?.includes(newStatus)) return;
+
+    // Optimistic update
     const now = new Date().toISOString();
     setTickets(prev => prev.map(t =>
       t.id === ticket.id
         ? { ...withActivity(t, STATUS_ACTIVITY_LABELS[newStatus], now), ideaStatus: newStatus }
         : t
     ));
+
+    if (projectId) {
+      updateIdeaStatus(ticket.id, newStatus).then(updated => {
+        setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
+      }).catch(() => {
+        // Rollback on failure
+        setTickets(prev => prev.map(t => t.id === ticket.id ? ticket : t));
+        setError('Failed to update status');
+      });
+    }
   }
 
   function handleSave(updated: IdeaTicket) {
-    const now = new Date().toISOString();
-    const enriched = withActivity(updated, 'Description updated', now);
-    setTickets(prev => prev.map(t => t.id === enriched.id ? enriched : t));
+    if (!projectId) {
+      const now = new Date().toISOString();
+      const enriched = withActivity(updated, 'Description updated', now);
+      setTickets(prev => prev.map(t => t.id === enriched.id ? enriched : t));
+      return;
+    }
+    const { id, createdAt, updatedAt, ...fields } = updated;
+    updateIdeaTicket(id, fields).then(saved => {
+      setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
+      // Keep modal in sync with latest server state
+      setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    }).catch((e: unknown) => setError((e as Error).message ?? 'Failed to save'));
   }
 
   function handleStatusChange(id: string, status: IdeaStatus) {
+    const ticket = tickets.find(t => t.id === id);
+    // Optimistic update
     const now = new Date().toISOString();
     setTickets(prev => prev.map(t =>
       t.id === id
         ? { ...withActivity(t, STATUS_ACTIVITY_LABELS[status], now), ideaStatus: status }
         : t
     ));
+
+    if (projectId) {
+      updateIdeaStatus(id, status).then(updated => {
+        setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
+      }).catch(() => {
+        // Rollback on failure
+        if (ticket) setTickets(prev => prev.map(t => t.id === id ? ticket : t));
+        setError('Failed to update status');
+      });
+    }
   }
+
   function handleDrop(id: string) {
     handleStatusChange(id, 'dropped');
   }
@@ -212,25 +272,53 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
   function handleQuickCreate() {
     const title = newTitle.trim();
     if (!title) return;
-    const newTicket: IdeaTicket = {
-      id: `IDEA-${crypto.randomUUID()}`,
+    setNewTitle('');
+    setShowNewForm(false);
+
+    if (!projectId) {
+      const newTicket: IdeaTicket = {
+        id: `IDEA-${crypto.randomUUID()}`,
+        title,
+        description: '',
+        ideaStatus: 'draft',
+        ideaColor: 'yellow',
+        ideaEmoji: '💡',
+        tags: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setTickets(prev => [newTicket, ...prev]);
+      return;
+    }
+
+    createIdeaTicket(projectId, {
       title,
       description: '',
       ideaStatus: 'draft',
       ideaColor: 'yellow',
       ideaEmoji: '💡',
       tags: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setTickets(prev => [newTicket, ...prev]);
-    setNewTitle('');
-    setShowNewForm(false);
+    }).then(created => {
+      setTickets(prev => [created, ...prev]);
+    }).catch((e: unknown) => setError((e as Error).message ?? 'Failed to create idea'));
   }
 
   return (
     <div className={styles.wrapper}>
-      {/* Header */}
+      {/* Loading / error states */}
+      {loading && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
+          Loading ideas…
+        </div>
+      )}
+      {!loading && error && (
+        <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 4px' }}>×</button>
+        </div>
+      )}
+      {!loading && (
+      <>{/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <div className={styles.titleIcon}>✨</div>
@@ -286,6 +374,8 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
           onDrop={handleDrop}
           onStatusChange={handleStatusChange}
         />
+      )}
+      </>
       )}
     </div>
   );
