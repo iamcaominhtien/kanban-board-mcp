@@ -450,7 +450,9 @@ async def list_idea_tickets(
     Returns list ordered by last_touched_at descending.
     """
     if idea_status is not None and idea_status not in _VALID_IDEA_STATUSES:
-        return {"error": f"Invalid idea_status '{idea_status}'. Valid values: raw, brewing, validated, approved, dropped"}
+        return {
+            "error": f"Invalid idea_status '{idea_status}'. Valid values: raw, brewing, validated, approved, dropped"
+        }
     async with async_session() as session:
         tickets = await svc_idea_tickets.list_idea_tickets(
             session, project_id=project_id, idea_status=idea_status, q=q
@@ -585,6 +587,7 @@ async def delete_idea_ticket(ticket_id: str) -> dict | None:
         return {"deleted": True}
 
 
+@notify_on_success
 async def update_idea_status(
     ticket_id: str,
     new_status: Literal["raw", "brewing", "validated", "approved", "dropped"],
@@ -607,7 +610,9 @@ async def update_idea_status(
     Returns the updated idea ticket, or {"error": ...} if transition is invalid.
     """
     if new_status not in _VALID_IDEA_STATUSES:
-        return {"error": f"Invalid status '{new_status}'. Must be one of: {', '.join(sorted(_VALID_IDEA_STATUSES))}"}
+        return {
+            "error": f"Invalid status '{new_status}'. Must be one of: {', '.join(sorted(_VALID_IDEA_STATUSES))}"
+        }
     try:
         async with async_session() as session:
             ticket = await svc_idea_tickets.update_idea_status(

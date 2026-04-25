@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import IDEA_STATUSES, IdeaTicket, Ticket
+from models import IDEA_STATUSES, IdeaTicket, Project, Ticket
 from services.tickets import create_ticket as svc_create_ticket
 
 UTC = timezone.utc
@@ -221,7 +221,9 @@ async def update_idea_status(
     if ticket is None:
         raise ValueError(f"Idea ticket '{ticket_id}' not found")
     if new_status not in IDEA_STATUSES:
-        raise ValueError(f"Invalid status '{new_status}'. Must be one of: {', '.join(IDEA_STATUSES)}")
+        raise ValueError(
+            f"Invalid status '{new_status}'. Must be one of: {', '.join(IDEA_STATUSES)}"
+        )
     old_status = ticket.idea_status
     allowed = ALLOWED_TRANSITIONS.get(old_status, set())
     if new_status not in allowed:
@@ -263,6 +265,13 @@ async def promote_idea_to_ticket(
     if ticket.promoted_to_ticket_id is not None:
         raise ValueError(f"Idea already promoted to {ticket.promoted_to_ticket_id}")
 
+    # Validate project exists before calling svc_create_ticket (which commits internally).
+    # NOTE: true atomicity would require svc_create_ticket to use flush instead of commit;
+    # the UNIQUE constraint on promoted_to_ticket_id prevents double-promotion at the DB level.
+    project = await session.get(Project, project_id)
+    if project is None:
+        raise ValueError(f"Project '{project_id}' not found")
+
     tags = _safe_json(ticket.tags)
     new_ticket = await svc_create_ticket(
         session,
@@ -282,7 +291,11 @@ async def promote_idea_to_ticket(
 
     trail = _safe_json(ticket.activity_trail)
     trail.append(
-        {"id": str(uuid.uuid4()), "label": f"Promoted to ticket {new_ticket.id}", "at": now}
+        {
+            "id": str(uuid.uuid4()),
+            "label": f"Promoted to ticket {new_ticket.id}",
+            "at": now,
+        }
     )
     ticket.activity_trail = _dumps(trail)
 

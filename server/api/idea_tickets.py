@@ -1,7 +1,7 @@
-from typing import Annotated, NoReturn
+from typing import Annotated, Literal, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
@@ -102,14 +102,14 @@ async def del_idea_ticket(ticket_id: str, session: Session) -> None:
 
 class IdeaStatusUpdateBody(BaseModel):
     new_status: str
-    reason: str | None = None
+    reason: str | None = Field(default=None, max_length=500)
 
 
 class IdeaPromoteBody(BaseModel):
     project_id: str
     title: str | None = None
-    type: str = "feature"
-    priority: str = "medium"
+    type: Literal["bug", "feature", "task", "chore"] = "feature"
+    priority: Literal["low", "medium", "high", "critical"] = "medium"
 
 
 @router.patch("/api/idea-tickets/{ticket_id}/status", response_model=IdeaTicketRead)
