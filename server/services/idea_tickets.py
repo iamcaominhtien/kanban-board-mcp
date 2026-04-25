@@ -33,6 +33,9 @@ def _clamp(value: int, lo: int = 1, hi: int = 5) -> int:
     return max(lo, min(hi, value))
 
 
+_SKIP = object()  # sentinel: skip this field update
+
+
 def _validate_idea_emoji(value: Any) -> str:
     emoji = str(value)
     if len(emoji.strip()) == 0:
@@ -44,6 +47,8 @@ def _validate_idea_emoji(value: Any) -> str:
 
 def _normalize_update_value(field: str, value: Any) -> Any:
     if field == "idea_emoji":
+        if value is None:
+            return _SKIP
         return _validate_idea_emoji(value)
     if field == "tags":
         return _dumps(value)
@@ -160,6 +165,8 @@ async def update_idea_ticket(
             continue
         old_value = getattr(ticket, field)
         new_value = _normalize_update_value(field, value)
+        if new_value is _SKIP:
+            continue
         if old_value == new_value:
             continue
         changed_field_names.append(field)
