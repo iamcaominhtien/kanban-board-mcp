@@ -8,6 +8,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import IDEA_STATUSES, IdeaTicket, Ticket
+from services.tickets import create_ticket as svc_create_ticket
 
 UTC = timezone.utc
 
@@ -252,8 +253,6 @@ async def promote_idea_to_ticket(
     type_: str = "feature",
     priority: str = "medium",
 ) -> Ticket:
-    from services.tickets import create_ticket as svc_create_ticket
-
     ticket = await session.get(IdeaTicket, idea_ticket_id)
     if ticket is None:
         raise ValueError(f"Idea ticket '{idea_ticket_id}' not found")

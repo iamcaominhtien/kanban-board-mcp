@@ -1,4 +1,4 @@
-from typing import Annotated, NoReturn, Optional
+from typing import Annotated, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -102,14 +102,14 @@ async def del_idea_ticket(ticket_id: str, session: Session) -> None:
 
 class IdeaStatusUpdateBody(BaseModel):
     new_status: str
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 class IdeaPromoteBody(BaseModel):
     project_id: str
-    title: Optional[str] = None
-    type: Optional[str] = "feature"
-    priority: Optional[str] = "medium"
+    title: str | None = None
+    type: str = "feature"
+    priority: str = "medium"
 
 
 @router.patch("/api/idea-tickets/{ticket_id}/status", response_model=IdeaTicketRead)
@@ -136,8 +136,8 @@ async def promote_idea(
             idea_ticket_id=ticket_id,
             project_id=body.project_id,
             title=body.title,
-            type_=body.type or "feature",
-            priority=body.priority or "medium",
+            type_=body.type,
+            priority=body.priority,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
