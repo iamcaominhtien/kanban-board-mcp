@@ -1,29 +1,33 @@
 .overlay {
   position: fixed; inset: 0;
-  background: rgba(61,12,17,0.15); backdrop-filter: blur(2px);
-  display: flex; justify-content: flex-end;
+  background: rgba(61,12,17,0.55); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
   z-index: 500; opacity: 0; transition: opacity 0.2s ease;
+  cursor: pointer;
 }
 .overlayVisible { opacity: 1; }
 
 .panel {
   background: var(--color-bg);
-  border-left: 2px solid var(--color-dark);
-  box-shadow: -8px 0px 24px rgba(61,12,17,0.08);
-  width: 100%; max-width: 640px; height: 100%;
+  border: 2px solid var(--color-dark);
+  border-radius: 20px;
+  box-shadow: 8px 8px 0px rgba(61,12,17,0.15);
+  width: calc(100% - 48px); max-width: 640px;
+  max-height: 90vh;
   display: flex; flex-direction: column;
-  transform: translateX(40px); opacity: 0;
+  transform: translateY(28px); opacity: 0;
   transition: transform 0.2s ease, opacity 0.2s ease;
-  position: relative;
+  cursor: default; position: relative;
+  overflow: hidden;
 }
-.panelVisible { transform: translateX(0); opacity: 1; }
+.panelVisible { transform: translateY(0); opacity: 1; }
 
 .closeBtn {
-  position: absolute; top: 24px; left: -60px;
-  width: 46px; height: 46px;
+  position: absolute; top: 16px; right: 16px;
+  width: 36px; height: 36px;
   background: #fff; border: 2px solid var(--color-dark); border-radius: 99px;
-  box-shadow: 4px 4px 0px rgba(61,12,17,0.15);
-  font-size: 1.1rem; color: var(--color-dark);
+  box-shadow: 2px 2px 0px rgba(61,12,17,0.12);
+  font-size: 1rem; color: var(--color-dark);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   font-weight: 700; transition: transform 0.1s ease; z-index: 10;
 }
@@ -32,7 +36,7 @@
 .scrollBody { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #fff; }
 
 .cover {
-  height: 128px; border-bottom: 2px solid var(--color-dark);
+  height: 120px;
   position: relative; flex-shrink: 0;
 }
 .coverEmojiWrap { position: absolute; bottom: -40px; left: 32px; z-index: 2; }
