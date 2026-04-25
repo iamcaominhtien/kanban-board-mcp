@@ -6,6 +6,7 @@ export default defineConfig({
   base: './',
   server: {
     proxy: {
+      '/api': 'http://localhost:8000',
       '/events': 'http://localhost:8000',
       '/projects': 'http://localhost:8000',
       '/tickets': 'http://localhost:8000',
