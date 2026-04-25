@@ -8,13 +8,16 @@ import events as board_events
 from database import get_session
 from models import IdeaTicketCreateBody, IdeaTicketRead, IdeaTicketUpdate, TicketRead
 from services.idea_tickets import (
+    add_assumption,
     add_microthought,
     create_idea_ticket,
+    delete_assumption,
     delete_idea_ticket,
     delete_microthought,
     get_idea_ticket,
     list_idea_tickets,
     promote_idea_to_ticket,
+    update_assumption_status,
     update_idea_status,
     update_idea_ticket,
 )
@@ -102,6 +105,43 @@ async def del_idea_ticket(ticket_id: str, session: Session) -> None:
     await board_events.publish("invalidate")
 
 
+class AssumptionBody(BaseModel):
+    text: str = Field(..., max_length=500)
+
+
+class AssumptionStatusBody(BaseModel):
+    status: Literal["untested", "validated", "invalidated"]
+
+
+@router.post("/api/idea-tickets/{ticket_id}/assumptions", response_model=IdeaTicketRead)
+async def post_assumption(
+    ticket_id: str, body: AssumptionBody, session: Session
+) -> IdeaTicketRead:
+    try:
+        ticket = await add_assumption(session, ticket_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch(
+    "/api/idea-tickets/{ticket_id}/assumptions/{assumption_id}",
+    response_model=IdeaTicketRead,
+)
+async def patch_assumption_status(
+    ticket_id: str, assumption_id: str, body: AssumptionStatusBody, session: Session
+) -> IdeaTicketRead:
+    try:
+        ticket = await update_assumption_status(
+            session, ticket_id, assumption_id, body.status
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
 class MicrothoughtBody(BaseModel):
     text: str = Field(..., max_length=500)
 
@@ -114,6 +154,21 @@ async def post_microthought(
 ) -> IdeaTicketRead:
     try:
         ticket = await add_microthought(session, ticket_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.delete(
+    "/api/idea-tickets/{ticket_id}/assumptions/{assumption_id}",
+    response_model=IdeaTicketRead,
+)
+async def del_assumption(
+    ticket_id: str, assumption_id: str, session: Session
+) -> IdeaTicketRead:
+    try:
+        ticket = await delete_assumption(session, ticket_id, assumption_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     await board_events.publish("invalidate")

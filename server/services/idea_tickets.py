@@ -325,6 +325,83 @@ async def promote_idea_to_ticket(
     return new_ticket
 
 
+_VALID_ASSUMPTION_STATUSES = {"untested", "validated", "invalidated"}
+
+
+async def add_assumption(
+    session: AsyncSession, ticket_id: str, text: str
+) -> IdeaTicket:
+    text = text.strip()
+    if not text:
+        raise ValueError("text cannot be empty")
+    if len(text) > 500:
+        raise ValueError("text must be 500 characters or fewer")
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
+    now = _now_iso()
+    assumptions = _safe_json(ticket.assumptions)
+    assumptions.append({"id": str(uuid.uuid4()), "text": text, "status": "untested", "at": now})
+    ticket.assumptions = _dumps(assumptions)
+    trail = _safe_json(ticket.activity_trail)
+    trail.append({"id": str(uuid.uuid4()), "label": "Assumption added", "at": now})
+    ticket.activity_trail = _dumps(trail)
+    ticket.last_touched_at = now
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def update_assumption_status(
+    session: AsyncSession, ticket_id: str, assumption_id: str, status: str
+) -> IdeaTicket:
+    if status not in _VALID_ASSUMPTION_STATUSES:
+        raise ValueError(
+            f"Invalid status '{status}'. Must be one of: {', '.join(sorted(_VALID_ASSUMPTION_STATUSES))}"
+        )
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
+    assumptions = _safe_json(ticket.assumptions)
+    assumption = next((a for a in assumptions if a.get("id") == assumption_id), None)
+    if assumption is None:
+        raise ValueError(f"Assumption '{assumption_id}' not found")
+    assumption["status"] = status
+    now = _now_iso()
+    ticket.assumptions = _dumps(assumptions)
+    trail = _safe_json(ticket.activity_trail)
+    trail.append(
+        {"id": str(uuid.uuid4()), "label": f"Assumption marked as {status}", "at": now}
+    )
+    ticket.activity_trail = _dumps(trail)
+    ticket.last_touched_at = now
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def delete_assumption(
+    session: AsyncSession, ticket_id: str, assumption_id: str
+) -> IdeaTicket:
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
+    assumptions = _safe_json(ticket.assumptions)
+    original_len = len(assumptions)
+    assumptions = [a for a in assumptions if a.get("id") != assumption_id]
+    if len(assumptions) == original_len:
+        raise ValueError(f"Assumption '{assumption_id}' not found")
+    now = _now_iso()
+    ticket.assumptions = _dumps(assumptions)
+    trail = _safe_json(ticket.activity_trail)
+    trail.append({"id": str(uuid.uuid4()), "label": "Assumption deleted", "at": now})
+    ticket.activity_trail = _dumps(trail)
+    ticket.last_touched_at = now
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
 async def add_microthought(
     session: AsyncSession, ticket_id: str, text: str
 ) -> IdeaTicket:
