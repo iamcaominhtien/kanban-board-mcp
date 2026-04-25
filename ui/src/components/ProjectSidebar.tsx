@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState } from 'react';
 import type { Project } from '../types';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
@@ -26,6 +26,17 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
   const [prefixError, setPrefixError] = useState<string | null>(null);
 
+  function resetForm() {
+    setFormName('');
+    setFormPrefix('');
+    setFormColor(PRESET_COLORS[0]);
+  }
+
+  function toggleBoard(e: React.MouseEvent) {
+    e.stopPropagation();
+    onBoardChange(activeBoard === 'main' ? 'idea' : 'main');
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formName.trim() || !formPrefix.trim()) return;
@@ -37,9 +48,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
     }
     try {
       await onCreateProject({ name: formName.trim(), prefix: upperPrefix, color: formColor });
-      setFormName('');
-      setFormPrefix('');
-      setFormColor(PRESET_COLORS[0]);
+      resetForm();
       setShowForm(false);
     } catch (err) {
       setPrefixError(`Error: ${extractError(err)}`);
@@ -62,46 +71,45 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
       <nav className={styles.projectList}>
         <p className={styles.sectionLabel}>Projects</p>
         {projects.map((project) => (
-          <Fragment key={project.id}>
-            <div
-              role="button"
-              tabIndex={0}
-              className={`${styles.projectItem} ${project.id === currentProjectId ? styles.active : ''}`}
-              onClick={() => onSelectProject(project.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSelectProject(project.id);
-                }
-              }}
-            >
-              <span className={styles.dot} style={{ backgroundColor: project.color }} />
-              <span className={styles.projectName}>{project.name}</span>
-              <span className={styles.prefixBadge}>{project.prefix}</span>
-              {project.id === currentProjectId && (
-                <button
-                  type="button"
-                  className={`${styles.boardToggleSwitch} ${activeBoard === 'idea' ? styles.boardToggleOn : ''}`}
-                  onClick={(e) => { e.stopPropagation(); onBoardChange(activeBoard === 'main' ? 'idea' : 'main'); }}
-                  title={activeBoard === 'main' ? 'Switch to Idea Space 💡' : 'Switch to Main Board 📋'}
-                  aria-checked={activeBoard === 'idea'}
-                  role="switch"
-                >
-                  <span className={styles.boardToggleKnob} />
-                </button>
-              )}
-              {projects.length > 1 && (
-                <button
-                  type="button"
-                  className={styles.deleteBtn}
-                  onClick={(e) => handleDelete(e, project.id)}
-                  aria-label={`Delete ${project.name}`}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          </Fragment>
+          <div
+            key={project.id}
+            role="button"
+            tabIndex={0}
+            className={`${styles.projectItem} ${project.id === currentProjectId ? styles.active : ''}`}
+            onClick={() => onSelectProject(project.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectProject(project.id);
+              }
+            }}
+          >
+            <span className={styles.dot} style={{ backgroundColor: project.color }} />
+            <span className={styles.projectName}>{project.name}</span>
+            <span className={styles.prefixBadge}>{project.prefix}</span>
+            {project.id === currentProjectId && (
+              <button
+                type="button"
+                className={`${styles.boardToggleSwitch} ${activeBoard === 'idea' ? styles.boardToggleOn : ''}`}
+                onClick={toggleBoard}
+                title={activeBoard === 'main' ? 'Switch to Idea Space 💡' : 'Switch to Main Board 📋'}
+                aria-checked={activeBoard === 'idea'}
+                role="switch"
+              >
+                <span className={styles.boardToggleKnob} />
+              </button>
+            )}
+            {projects.length > 1 && (
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={(e) => handleDelete(e, project.id)}
+                aria-label={`Delete ${project.name}`}
+              >
+                ×
+              </button>
+            )}
+          </div>
         ))}
       </nav>
 

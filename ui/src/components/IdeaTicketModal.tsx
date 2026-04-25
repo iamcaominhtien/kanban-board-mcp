@@ -36,6 +36,17 @@ const STATUS_META: Record<IdeaStatus, { label: string; bg: string; color: string
   dropped:   { label: '🗑️ Dropped',   bg: '#9CA3AF', color: '#fff' },
 };
 
+const ASSUMPTION_STATUS_ORDER: IdeaAssumptionStatus[] = ['untested', 'validated', 'invalidated'];
+
+function normalizeTags(input: string): string[] {
+  return input.split(',').map((tag) => tag.trim()).filter(Boolean);
+}
+
+function clampIceScore(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(5, Math.max(1, value));
+}
+
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -98,6 +109,12 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
+
+  const parsedTags = normalizeTags(tagsInput);
+  const activityTrail = ticket.activityTrail ?? [];
+  const visibleActivity = (showAllActivity ? activityTrail : activityTrail.slice(-3)).slice().reverse();
+  const iceScore = ((iceImpact / iceEffort) * iceConfidence).toFixed(1);
+
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
@@ -129,6 +146,32 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
     return () => document.removeEventListener('keydown', handleKey);
   }, [showEmojiPicker]);
 
+  function addMicrothought() {
+    const text = newMicrothought.trim();
+    if (!text) return;
+    setMicrothoughts((prev) => [...prev, { id: `m-${Date.now()}`, text, at: new Date().toISOString() }]);
+    setNewMicrothought('');
+  }
+
+  function addAssumption() {
+    const text = newAssumption.trim();
+    if (!text) return;
+    setAssumptions((prev) => [...prev, { id: `as-${Date.now()}`, text, status: 'untested' }]);
+    setNewAssumption('');
+  }
+
+  function cycleAssumptionStatus(id: string) {
+    setAssumptions((prev) => prev.map((item) => {
+      if (item.id !== id) return item;
+      const currentIndex = ASSUMPTION_STATUS_ORDER.indexOf(item.status);
+      return { ...item, status: ASSUMPTION_STATUS_ORDER[(currentIndex + 1) % ASSUMPTION_STATUS_ORDER.length] };
+    }));
+  }
+
+  function setClampedIce(setter: (value: number) => void, rawValue: string) {
+    setter(clampIceScore(Number(rawValue)));
+  }
+
   function handleSave() {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -136,7 +179,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       ...ticket,
       title: trimmed,
       description,
-      tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
+      tags: parsedTags,
       ideaEmoji: emoji,
       ideaColor: color,
       ideaEnergy: energy ?? undefined,
@@ -295,18 +338,10 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                         onChange={(e) => setNewMicrothought(e.target.value)}
                         placeholder="Quick thought, link, note..."
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newMicrothought.trim()) {
-                            setMicrothoughts(prev => [...prev, { id: `m-${Date.now()}`, text: newMicrothought.trim(), at: new Date().toISOString() }]);
-                            setNewMicrothought('');
-                          }
+                          if (e.key === 'Enter') addMicrothought();
                         }}
                       />
-                      <button type="button" className={styles.microthoughtAddBtn}
-                        onClick={() => {
-                          if (!newMicrothought.trim()) return;
-                          setMicrothoughts(prev => [...prev, { id: `m-${Date.now()}`, text: newMicrothought.trim(), at: new Date().toISOString() }]);
-                          setNewMicrothought('');
-                        }}>+</button>
+                      <button type="button" className={styles.microthoughtAddBtn} onClick={addMicrothought}>+</button>
                     </div>
                   )}
                 </div>
@@ -375,10 +410,10 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                   />
                 ) : (
                   <div className={styles.tagRow}>
-                    {tagsInput.split(',').map((t) => t.trim()).filter(Boolean).map((t) => (
+                    {parsedTags.map((t) => (
                       <span key={t} className={styles.tagPill}>{t}</span>
                     ))}
-                    {!tagsInput.trim() && (
+                    {!parsedTags.length && (
                       <span style={{ fontSize: '0.8rem', color: 'rgba(61,12,17,0.35)' }}>No tags</span>
                     )}
                   </div>
@@ -391,25 +426,25 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                 <div className={styles.iceWrap}>
                   <div className={styles.iceHeader}>
                     <span className={styles.iceTitle}>ICE Priority</span>
-                    <span className={styles.iceScoreBadge}>{((iceImpact / iceEffort) * iceConfidence).toFixed(1)}</span>
+                    <span className={styles.iceScoreBadge}>{iceScore}</span>
                   </div>
                   <div className={styles.iceRow}>
                     <div className={styles.iceField}>
                       <span className={styles.iceLabel}>Impact</span>
                       <input type="number" min={1} max={5} className={styles.iceInput} value={iceImpact}
-                        onChange={(e) => setIceImpact(Math.min(5, Math.max(1, Number(e.target.value))))} disabled={!isEditable} />
+                        onChange={(e) => setClampedIce(setIceImpact, e.target.value)} disabled={!isEditable} />
                     </div>
                     <span className={styles.iceDivider}>÷</span>
                     <div className={styles.iceField}>
                       <span className={styles.iceLabel}>Effort</span>
                       <input type="number" min={1} max={5} className={styles.iceInput} value={iceEffort}
-                        onChange={(e) => setIceEffort(Math.min(5, Math.max(1, Number(e.target.value))))} disabled={!isEditable} />
+                        onChange={(e) => setClampedIce(setIceEffort, e.target.value)} disabled={!isEditable} />
                     </div>
                     <span className={styles.iceDivider}>×</span>
                     <div className={styles.iceField}>
                       <span className={styles.iceLabel}>Conf.</span>
                       <input type="number" min={1} max={5} className={styles.iceInput} value={iceConfidence}
-                        onChange={(e) => setIceConfidence(Math.min(5, Math.max(1, Number(e.target.value))))} disabled={!isEditable} />
+                        onChange={(e) => setClampedIce(setIceConfidence, e.target.value)} disabled={!isEditable} />
                     </div>
                   </div>
                   <p className={styles.iceFormula}>= ({iceImpact} ÷ {iceEffort}) × {iceConfidence}</p>
@@ -447,9 +482,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                         className={`${styles.assumptionDot} ${styles[`assumptionDot_${a.status}` as keyof typeof styles]}`}
                         onClick={() => {
                           if (!isEditable) return;
-                          const next: IdeaAssumptionStatus[] = ['untested', 'validated', 'invalidated'];
-                          const idx = next.indexOf(a.status);
-                          setAssumptions(prev => prev.map(x => x.id === a.id ? { ...x, status: next[(idx + 1) % 3] } : x));
+                          cycleAssumptionStatus(a.id);
                         }}
                         title={a.status}
                       />
@@ -469,18 +502,10 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                         onChange={(e) => setNewAssumption(e.target.value)}
                         placeholder="Add assumption..."
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newAssumption.trim()) {
-                            setAssumptions(prev => [...prev, { id: `as-${Date.now()}`, text: newAssumption.trim(), status: 'untested' }]);
-                            setNewAssumption('');
-                          }
+                          if (e.key === 'Enter') addAssumption();
                         }}
                       />
-                      <button type="button" className={styles.assumptionAddBtn}
-                        onClick={() => {
-                          if (!newAssumption.trim()) return;
-                          setAssumptions(prev => [...prev, { id: `as-${Date.now()}`, text: newAssumption.trim(), status: 'untested' }]);
-                          setNewAssumption('');
-                        }}>+</button>
+                      <button type="button" className={styles.assumptionAddBtn} onClick={addAssumption}>+</button>
                     </div>
                   )}
                 </div>
@@ -509,15 +534,13 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               )}
 
               {/* Feature 1 — Activity Trail */}
-              {(ticket.activityTrail ?? []).length > 0 && (
+              {activityTrail.length > 0 && (
                 <div className={styles.activityWrap}>
                   <div className={styles.activityHeader}>
                     <span className={styles.activityTitle}>Activity Trail</span>
                   </div>
                   <div className={styles.activityList}>
-                    {(showAllActivity ? (ticket.activityTrail ?? []) : (ticket.activityTrail ?? []).slice(-3))
-                      .slice().reverse()
-                      .map((entry, i) => (
+                    {visibleActivity.map((entry, i) => (
                         <div key={entry.id} className={styles.activityItem}>
                           <div className={`${styles.activityDot} ${i === 0 ? styles.activityDotLatest : ''}`} />
                           <div className={styles.activityContent}>
@@ -527,9 +550,9 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                         </div>
                       ))}
                   </div>
-                  {(ticket.activityTrail ?? []).length > 3 && (
+                  {activityTrail.length > 3 && (
                     <button type="button" className={styles.activityToggle} onClick={() => setShowAllActivity(v => !v)}>
-                      {showAllActivity ? '↑ Show less' : `↓ View all ${ticket.activityTrail!.length} events`}
+                      {showAllActivity ? '↑ Show less' : `↓ View all ${activityTrail.length} events`}
                     </button>
                   )}
                 </div>

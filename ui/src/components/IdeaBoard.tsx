@@ -16,12 +16,31 @@ const IDEA_COLUMNS: IdeaColumnDef[] = [
 ];
 
 // Allowed drag transitions
-const ALLOWED: Record<IdeaStatus, IdeaStatus[]> = {
+const ALLOWED_TRANSITIONS: Record<IdeaStatus, IdeaStatus[]> = {
   draft:     ['in_review', 'dropped'],
   in_review: ['draft', 'approved', 'dropped'],
   approved:  [],
   dropped:   [],
 };
+
+const STATUS_ACTIVITY_LABELS: Record<IdeaStatus, string> = {
+  draft: 'Moved back to Draft',
+  in_review: 'Status changed to In Review',
+  approved: 'Status changed to Promoted',
+  dropped: 'Idea dropped',
+};
+
+function buildActivity(label: string, at: string) {
+  return { id: `a-${Date.now()}`, label, at };
+}
+
+function withActivity(ticket: IdeaTicket, label: string, at: string): IdeaTicket {
+  return {
+    ...ticket,
+    lastTouchedAt: at,
+    activityTrail: [...(ticket.activityTrail ?? []), buildActivity(label, at)],
+  };
+}
 
 const MOCK_TICKETS: IdeaTicket[] = [
   {
@@ -163,37 +182,22 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
     const newStatus = over.id as IdeaStatus;
     const ticket = tickets.find(t => t.id === active.id);
     if (!ticket || ticket.ideaStatus === newStatus) return;
-    if (!ALLOWED[ticket.ideaStatus]?.includes(newStatus)) return;
+    if (!ALLOWED_TRANSITIONS[ticket.ideaStatus]?.includes(newStatus)) return;
     setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, ideaStatus: newStatus } : t));
   }
 
   function handleSave(updated: IdeaTicket) {
     const now = new Date().toISOString();
-    const enriched: IdeaTicket = {
-      ...updated,
-      lastTouchedAt: now,
-      activityTrail: [
-        ...(updated.activityTrail ?? []),
-        { id: `a-${Date.now()}`, label: 'Description updated', at: now },
-      ],
-    };
+    const enriched = withActivity(updated, 'Description updated', now);
     setTickets(prev => prev.map(t => t.id === enriched.id ? enriched : t));
   }
+
   function handleStatusChange(id: string, status: IdeaStatus) {
     const now = new Date().toISOString();
-    const statusLabels: Record<IdeaStatus, string> = {
-      draft: 'Moved back to Draft',
-      in_review: 'Status changed to In Review',
-      approved: 'Status changed to Promoted',
-      dropped: 'Idea dropped',
-    };
     setTickets(prev => prev.map(t =>
-      t.id === id ? {
-        ...t,
-        ideaStatus: status,
-        lastTouchedAt: now,
-        activityTrail: [...(t.activityTrail ?? []), { id: `a-${Date.now()}`, label: statusLabels[status], at: now }],
-      } : t
+      t.id === id
+        ? { ...withActivity(t, STATUS_ACTIVITY_LABELS[status], now), ideaStatus: status }
+        : t
     ));
   }
   function handleDrop(id: string) {
