@@ -23,7 +23,7 @@
 }
 .cardList {
   flex: 1; overflow-y: auto; display: flex; flex-direction: column;
-  gap: 12px; padding: 2px 2px 8px; min-height: 80px;
+  gap: 12px; padding: 2px 2px 8px; min-height: 0;
 }
 .empty {
   font-family: var(--font-body); font-size: 0.8rem;
