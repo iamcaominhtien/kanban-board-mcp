@@ -61,8 +61,25 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const [fullscreen, setFullscreen] = useState(false);
 
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    function handleFsChange() {
+      setFullscreen(!!document.fullscreenElement);
+    }
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      await panelRef.current?.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  }
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
   useEffect(() => { if (visible) closeBtnRef.current?.focus(); }, [visible]);
@@ -103,12 +120,12 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       role="dialog"
       aria-modal="true"
     >
-      <div className={`${styles.panel} ${visible ? styles.panelVisible : ''} ${fullscreen ? styles.panelFullscreen : ''}`}>
+      <div ref={panelRef} className={`${styles.panel} ${visible ? styles.panelVisible : ''} ${fullscreen ? styles.panelFullscreen : ''}`}>
         {/* Floating close button */}
         <button
           type="button"
           className={styles.fullscreenBtn}
-          onClick={() => setFullscreen(v => !v)}
+          onClick={toggleFullscreen}
           aria-label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
         >
