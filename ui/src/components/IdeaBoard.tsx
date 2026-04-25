@@ -35,6 +35,21 @@ const MOCK_TICKETS: IdeaTicket[] = [
     tags: ['onboarding', 'ux'],
     createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
+    problemStatement: 'New users abandon setup because they don\'t see value fast enough.',
+    iceImpact: 4, iceEffort: 2, iceConfidence: 4,
+    activityTrail: [
+      { id: 'a1', label: 'Idea created', at: new Date(Date.now() - 3 * 86400000).toISOString() },
+      { id: 'a2', label: 'Description updated', at: new Date(Date.now() - 1 * 86400000).toISOString() },
+    ],
+    microthoughts: [
+      { id: 'm1', text: 'Check how Duolingo does streak celebrations', at: new Date(Date.now() - 2 * 86400000).toISOString() },
+    ],
+    assumptions: [
+      { id: 'as1', text: 'Users reach "aha moment" faster with visual progress', status: 'untested' },
+      { id: 'as2', text: 'Confetti doesn\'t feel childish for our audience', status: 'untested' },
+    ],
+    revisitDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+    lastTouchedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
   },
   {
     id: 'IDEA-2',
@@ -59,6 +74,20 @@ const MOCK_TICKETS: IdeaTicket[] = [
     tags: ['ui', 'dashboard'],
     createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
+    problemStatement: 'The current analytics page is a wall of numbers — users can\'t prioritize what to act on.',
+    iceImpact: 5, iceEffort: 4, iceConfidence: 3,
+    activityTrail: [
+      { id: 'a1', label: 'Idea created', at: new Date(Date.now() - 2 * 86400000).toISOString() },
+      { id: 'a2', label: 'Status changed to In Review', at: new Date(Date.now() - 1 * 86400000).toISOString() },
+      { id: 'a3', label: 'Energy set to Hot', at: new Date(Date.now() - 12 * 3600000).toISOString() },
+    ],
+    assumptions: [
+      { id: 'as1', text: 'Bento grid is more scannable than table layout', status: 'validated' },
+      { id: 'as2', text: 'Users want to customize grid cell sizes', status: 'untested' },
+      { id: 'as3', text: 'Drag-to-resize works well on mobile', status: 'invalidated' },
+    ],
+    revisitDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+    lastTouchedAt: new Date(Date.now() - 12 * 3600000).toISOString(),
   },
   {
     id: 'IDEA-4',
@@ -82,6 +111,15 @@ const MOCK_TICKETS: IdeaTicket[] = [
     tags: ['ai', 'sorting'],
     createdAt: new Date(Date.now() - 10 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
+    promotedToTicketId: 'ITC-42',
+    promotedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    problemStatement: 'Teams waste time manually sorting backlog every sprint planning.',
+    activityTrail: [
+      { id: 'a1', label: 'Idea created', at: new Date(Date.now() - 10 * 86400000).toISOString() },
+      { id: 'a2', label: 'Status changed to In Review', at: new Date(Date.now() - 7 * 86400000).toISOString() },
+      { id: 'a3', label: 'Status changed to Promoted', at: new Date(Date.now() - 2 * 86400000).toISOString() },
+      { id: 'a4', label: 'Promoted to ticket ITC-42', at: new Date(Date.now() - 2 * 86400000).toISOString() },
+    ],
   },
   {
     id: 'IDEA-6',
@@ -130,10 +168,33 @@ export function IdeaBoard({ projectId: _projectId }: IdeaBoardProps) {
   }
 
   function handleSave(updated: IdeaTicket) {
-    setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
+    const now = new Date().toISOString();
+    const enriched: IdeaTicket = {
+      ...updated,
+      lastTouchedAt: now,
+      activityTrail: [
+        ...(updated.activityTrail ?? []),
+        { id: `a-${Date.now()}`, label: 'Description updated', at: now },
+      ],
+    };
+    setTickets(prev => prev.map(t => t.id === enriched.id ? enriched : t));
   }
   function handleStatusChange(id: string, status: IdeaStatus) {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, ideaStatus: status } : t));
+    const now = new Date().toISOString();
+    const statusLabels: Record<IdeaStatus, string> = {
+      draft: 'Moved back to Draft',
+      in_review: 'Status changed to In Review',
+      approved: 'Status changed to Promoted',
+      dropped: 'Idea dropped',
+    };
+    setTickets(prev => prev.map(t =>
+      t.id === id ? {
+        ...t,
+        ideaStatus: status,
+        lastTouchedAt: now,
+        activityTrail: [...(t.activityTrail ?? []), { id: `a-${Date.now()}`, label: statusLabels[status], at: now }],
+      } : t
+    ));
   }
   function handleDrop(id: string) {
     handleStatusChange(id, 'dropped');

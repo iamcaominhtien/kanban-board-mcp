@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import type { IdeaColor, IdeaEnergy, IdeaStatus, IdeaTicket } from '../types';
+import type { IdeaAssumption, IdeaAssumptionStatus, IdeaColor, IdeaEnergy, IdeaMicrothought, IdeaStatus, IdeaTicket } from '../types';
 import styles from './IdeaTicketModal.module.css';
 
 const EMOJIS = [
@@ -36,6 +36,18 @@ const STATUS_META: Record<IdeaStatus, { label: string; bg: string; color: string
   dropped:   { label: '🗑️ Dropped',   bg: '#9CA3AF', color: '#fff' },
 };
 
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 interface IdeaTicketModalProps {
   ticket: IdeaTicket;
   onClose: () => void;
@@ -60,6 +72,28 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const [visible, setVisible] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+
+  // Feature 2 — Microthoughts
+  const [microthoughts, setMicrothoughts] = useState<IdeaMicrothought[]>(ticket.microthoughts ?? []);
+  const [newMicrothought, setNewMicrothought] = useState('');
+
+  // Feature 3 — ICE
+  const [iceImpact, setIceImpact] = useState(ticket.iceImpact ?? 3);
+  const [iceEffort, setIceEffort] = useState(ticket.iceEffort ?? 3);
+  const [iceConfidence, setIceConfidence] = useState(ticket.iceConfidence ?? 3);
+
+  // Feature 4 — Assumptions
+  const [assumptions, setAssumptions] = useState<IdeaAssumption[]>(ticket.assumptions ?? []);
+  const [newAssumption, setNewAssumption] = useState('');
+
+  // Feature 5 — Revisit Date
+  const [revisitDate, setRevisitDate] = useState(ticket.revisitDate ?? '');
+
+  // Feature 7 — Problem Statement
+  const [problemStatement, setProblemStatement] = useState(ticket.problemStatement ?? '');
+
+  // Feature 1 — Activity Trail "show all" toggle
+  const [showAllActivity, setShowAllActivity] = useState(false);
 
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -106,6 +140,11 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       ideaEmoji: emoji,
       ideaColor: color,
       ideaEnergy: energy ?? undefined,
+      problemStatement: problemStatement.trim() || undefined,
+      iceImpact, iceEffort, iceConfidence,
+      assumptions,
+      microthoughts,
+      revisitDate: revisitDate || undefined,
       updatedAt: new Date().toISOString(),
     });
     onClose();
@@ -179,6 +218,22 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                 <span className={styles.ticketId}>{ticket.id}</span>
               </div>
 
+              {/* Feature 7 — Problem Statement */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span className={styles.sectionLabel} style={{ margin: 0 }}>Problem Statement</span>
+                  {isDraft && <span style={{ fontSize: '0.7rem', color: 'var(--color-orange)', fontWeight: 700 }}>required to review</span>}
+                </div>
+                <input
+                  type="text"
+                  className={styles.problemInput}
+                  value={problemStatement}
+                  onChange={(e) => setProblemStatement(e.target.value)}
+                  readOnly={!isEditable}
+                  placeholder='The problem is: ...'
+                />
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <div className={styles.descHeader}>
                   <span className={styles.sectionLabel} style={{ margin: 0 }}>Description</span>
@@ -215,6 +270,46 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Scribble your rough thoughts here... (markdown supported)"
                     />
+                  )}
+                </div>
+              </div>
+
+              {/* Feature 2 — Microthoughts */}
+              <div>
+                <span className={styles.sectionLabel}>Microthoughts</span>
+                <div className={styles.microthoughtsList}>
+                  {microthoughts.map(m => (
+                    <div key={m.id} className={styles.microthoughtItem}>
+                      <span className={styles.microthoughtText}>{m.text}</span>
+                      <span className={styles.microthoughtTime}>{formatRelativeTime(m.at)}</span>
+                      {isEditable && (
+                        <button type="button" className={styles.microthoughtDelete}
+                          onClick={() => setMicrothoughts(prev => prev.filter(x => x.id !== m.id))}>×</button>
+                      )}
+                    </div>
+                  ))}
+                  {isEditable && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                      <input
+                        type="text"
+                        className={styles.microthoughtInput}
+                        value={newMicrothought}
+                        onChange={(e) => setNewMicrothought(e.target.value)}
+                        placeholder="Quick thought, link, note..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newMicrothought.trim()) {
+                            setMicrothoughts(prev => [...prev, { id: `m-${Date.now()}`, text: newMicrothought.trim(), at: new Date().toISOString() }]);
+                            setNewMicrothought('');
+                          }
+                        }}
+                      />
+                      <button type="button" className={styles.microthoughtAddBtn}
+                        onClick={() => {
+                          if (!newMicrothought.trim()) return;
+                          setMicrothoughts(prev => [...prev, { id: `m-${Date.now()}`, text: newMicrothought.trim(), at: new Date().toISOString() }]);
+                          setNewMicrothought('');
+                        }}>+</button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -291,11 +386,133 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                   </div>
                 )}
               </div>
+
+              {/* Feature 3 — ICE Score */}
+              <div>
+                <span className={styles.sectionLabel}>ICE Score</span>
+                <div className={styles.iceRow}>
+                  {(['Impact', 'Effort', 'Confidence'] as const).map((label, i) => {
+                    const val = [iceImpact, iceEffort, iceConfidence][i];
+                    const setter = [setIceImpact, setIceEffort, setIceConfidence][i];
+                    return (
+                      <div key={label} className={styles.iceField}>
+                        <span className={styles.iceLabel}>{label}</span>
+                        <input
+                          type="number" min={1} max={5}
+                          className={styles.iceInput}
+                          value={val}
+                          onChange={(e) => setter(Math.min(5, Math.max(1, Number(e.target.value))))}
+                          disabled={!isEditable}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className={styles.iceScore}>
+                  Score: <strong>{((iceImpact / iceEffort) * iceConfidence).toFixed(1)}</strong>
+                  <span className={styles.iceFormula}> = ({iceImpact}÷{iceEffort})×{iceConfidence}</span>
+                </div>
+              </div>
+
+              {/* Feature 5 — Revisit Date */}
+              <div>
+                <span className={styles.sectionLabel}>Revisit By</span>
+                <input
+                  type="date"
+                  className={styles.revisitInput}
+                  value={revisitDate}
+                  onChange={(e) => setRevisitDate(e.target.value)}
+                  disabled={!isEditable}
+                />
+                {ticket.lastTouchedAt && (
+                  <span className={styles.lastTouched}>Last touched {formatRelativeTime(ticket.lastTouchedAt)}</span>
+                )}
+              </div>
+
+              {/* Feature 4 — Assumptions */}
+              <div>
+                <span className={styles.sectionLabel}>Assumptions</span>
+                <div className={styles.assumptionsList}>
+                  {assumptions.map(a => (
+                    <div key={a.id} className={styles.assumptionItem}>
+                      <button
+                        type="button"
+                        className={`${styles.assumptionDot} ${styles[`assumptionDot_${a.status}` as keyof typeof styles]}`}
+                        onClick={() => {
+                          if (!isEditable) return;
+                          const next: IdeaAssumptionStatus[] = ['untested', 'validated', 'invalidated'];
+                          const idx = next.indexOf(a.status);
+                          setAssumptions(prev => prev.map(x => x.id === a.id ? { ...x, status: next[(idx + 1) % 3] } : x));
+                        }}
+                        title={a.status}
+                      />
+                      <span className={styles.assumptionText}>{a.text}</span>
+                      {isEditable && (
+                        <button type="button" className={styles.assumptionDelete}
+                          onClick={() => setAssumptions(prev => prev.filter(x => x.id !== a.id))}>×</button>
+                      )}
+                    </div>
+                  ))}
+                  {isEditable && (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                      <input
+                        type="text"
+                        className={styles.assumptionInput}
+                        value={newAssumption}
+                        onChange={(e) => setNewAssumption(e.target.value)}
+                        placeholder="Add assumption..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newAssumption.trim()) {
+                            setAssumptions(prev => [...prev, { id: `as-${Date.now()}`, text: newAssumption.trim(), status: 'untested' }]);
+                            setNewAssumption('');
+                          }
+                        }}
+                      />
+                      <button type="button" className={styles.assumptionAddBtn}
+                        onClick={() => {
+                          if (!newAssumption.trim()) return;
+                          setAssumptions(prev => [...prev, { id: `as-${Date.now()}`, text: newAssumption.trim(), status: 'untested' }]);
+                          setNewAssumption('');
+                        }}>+</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Feature 6 — Promotion Trail */}
+              {ticket.ideaStatus === 'approved' && ticket.promotedToTicketId && (
+                <div className={styles.promotionBanner}>
+                  <span>🚀 Promoted to <strong>{ticket.promotedToTicketId}</strong></span>
+                  {ticket.promotedAt && <span className={styles.promotionDate}>{formatRelativeTime(ticket.promotedAt)}</span>}
+                </div>
+              )}
+
+              {/* Feature 1 — Activity Trail */}
+              {(ticket.activityTrail ?? []).length > 0 && (
+                <div>
+                  <span className={styles.sectionLabel}>Activity</span>
+                  <div className={styles.activityList}>
+                    {(showAllActivity ? (ticket.activityTrail ?? []) : (ticket.activityTrail ?? []).slice(-3))
+                      .slice().reverse()
+                      .map(entry => (
+                        <div key={entry.id} className={styles.activityItem}>
+                          <span className={styles.activityDot} />
+                          <span className={styles.activityLabel}>{entry.label}</span>
+                          <span className={styles.activityTime}>{formatRelativeTime(entry.at)}</span>
+                        </div>
+                      ))}
+                  </div>
+                  {(ticket.activityTrail ?? []).length > 3 && (
+                    <button type="button" className={styles.activityToggle}
+                      onClick={() => setShowAllActivity(v => !v)}>
+                      {showAllActivity ? 'Show less' : `View all ${ticket.activityTrail!.length} events`}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Footer */}
         <div className={styles.footer}>
           <div className={styles.footerMeta}>
             <span className={styles.footerDate}>
@@ -313,7 +530,14 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               <>
                 <button type="button" className={styles.saveBtn} onClick={handleSave}>Save</button>
                 {isDraft && (
-                  <button type="button" className={styles.actionBtn} onClick={() => { onStatusChange(ticket.id, 'in_review'); onClose(); }}>
+                  <button
+                    type="button"
+                    className={styles.actionBtn}
+                    onClick={() => { onStatusChange(ticket.id, 'in_review'); onClose(); }}
+                    disabled={!problemStatement.trim()}
+                    title={!problemStatement.trim() ? 'Fill in the Problem Statement first' : undefined}
+                    style={!problemStatement.trim() ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                  >
                     👀 Send to Review
                   </button>
                 )}

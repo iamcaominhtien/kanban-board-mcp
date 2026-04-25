@@ -351,3 +351,129 @@
 }
 .markdownBody strong { font-weight: 800; }
 .markdownBody a { color: var(--color-dark); text-decoration: underline; }
+
+/* Feature 7 — Problem Statement */
+.problemInput {
+  width: 100%;
+  border: 2px solid var(--color-orange);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-dark);
+  background: rgba(232, 68, 26, 0.04);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.problemInput:focus { border-color: var(--color-dark); }
+.problemInput:read-only { border-color: rgba(61,12,17,0.2); background: transparent; cursor: default; }
+
+/* Feature 2 — Microthoughts */
+.microthoughtsList { display: flex; flex-direction: column; gap: 6px; }
+.microthoughtItem {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(245,197,24,0.1); border: 1.5px solid rgba(245,197,24,0.4);
+  border-radius: 8px; padding: 8px 10px;
+}
+.microthoughtText { flex: 1; font-size: 0.82rem; color: var(--color-dark); line-height: 1.4; }
+.microthoughtTime { font-size: 0.7rem; color: rgba(61,12,17,0.4); white-space: nowrap; margin-top: 1px; flex-shrink: 0; }
+.microthoughtDelete {
+  background: none; border: none; color: rgba(61,12,17,0.4); cursor: pointer;
+  font-size: 1rem; line-height: 1; padding: 0 2px; flex-shrink: 0;
+  transition: color 0.12s;
+}
+.microthoughtDelete:hover { color: var(--color-orange); }
+.microthoughtInput {
+  flex: 1; border: 1.5px solid rgba(61,12,17,0.2); border-radius: 8px;
+  padding: 7px 10px; font-family: var(--font-body); font-size: 0.82rem;
+  color: var(--color-dark); background: var(--color-bg); outline: none;
+}
+.microthoughtInput:focus { border-color: var(--color-dark); }
+.microthoughtAddBtn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid var(--color-dark);
+  background: var(--color-dark); color: var(--color-bg);
+  font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Feature 3 — ICE Score */
+.iceRow { display: flex; gap: 10px; margin-bottom: 8px; }
+.iceField { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+.iceLabel { font-size: 0.68rem; font-weight: 700; color: rgba(61,12,17,0.5); text-transform: uppercase; letter-spacing: 0.06em; }
+.iceInput {
+  width: 48px; text-align: center;
+  border: 2px solid var(--color-dark); border-radius: 8px; padding: 6px 4px;
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 800;
+  color: var(--color-dark); background: #fff; outline: none;
+}
+.iceInput:disabled { background: transparent; border-color: rgba(61,12,17,0.2); cursor: default; }
+.iceScore {
+  font-family: var(--font-body); font-size: 0.88rem; color: var(--color-dark);
+  background: rgba(61,12,17,0.06); border-radius: 8px; padding: 6px 10px;
+}
+.iceScore strong { font-size: 1.1rem; font-weight: 900; }
+.iceFormula { font-size: 0.75rem; color: rgba(61,12,17,0.45); }
+
+/* Feature 5 — Revisit Date */
+.revisitInput {
+  width: 100%; border: 1.5px solid rgba(61,12,17,0.25); border-radius: 8px;
+  padding: 7px 10px; font-family: var(--font-body); font-size: 0.85rem;
+  color: var(--color-dark); background: var(--color-bg); outline: none;
+  margin-bottom: 6px; box-sizing: border-box;
+}
+.revisitInput:disabled { border-color: rgba(61,12,17,0.12); background: transparent; cursor: default; }
+.lastTouched { font-size: 0.72rem; color: rgba(61,12,17,0.45); display: block; }
+
+/* Feature 4 — Assumptions */
+.assumptionsList { display: flex; flex-direction: column; gap: 5px; }
+.assumptionItem { display: flex; align-items: center; gap: 7px; }
+.assumptionDot {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  border: none; cursor: pointer; transition: transform 0.12s;
+}
+.assumptionDot:hover { transform: scale(1.2); }
+.assumptionDot_untested  { background: rgba(61,12,17,0.25); }
+.assumptionDot_validated   { background: #AACC2E; }
+.assumptionDot_invalidated { background: #E8441A; }
+.assumptionText { flex: 1; font-size: 0.82rem; color: var(--color-dark); line-height: 1.4; }
+.assumptionDelete {
+  background: none; border: none; color: rgba(61,12,17,0.35); cursor: pointer;
+  font-size: 0.9rem; padding: 0 2px; transition: color 0.12s;
+}
+.assumptionDelete:hover { color: var(--color-orange); }
+.assumptionInput {
+  flex: 1; border: 1.5px solid rgba(61,12,17,0.2); border-radius: 7px;
+  padding: 5px 8px; font-family: var(--font-body); font-size: 0.8rem;
+  color: var(--color-dark); background: var(--color-bg); outline: none;
+}
+.assumptionInput:focus { border-color: var(--color-dark); }
+.assumptionAddBtn {
+  width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--color-dark);
+  background: var(--color-dark); color: var(--color-bg);
+  font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Feature 1 — Activity Trail */
+.activityList { display: flex; flex-direction: column; gap: 4px; }
+.activityItem { display: flex; align-items: center; gap: 7px; }
+.activityDot { width: 6px; height: 6px; border-radius: 50%; background: rgba(61,12,17,0.25); flex-shrink: 0; }
+.activityLabel { flex: 1; font-size: 0.78rem; color: rgba(61,12,17,0.7); }
+.activityTime { font-size: 0.68rem; color: rgba(61,12,17,0.4); white-space: nowrap; }
+.activityToggle {
+  background: none; border: none; font-size: 0.75rem; color: rgba(61,12,17,0.5);
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+  padding: 4px 0; margin-top: 2px; transition: color 0.12s;
+}
+.activityToggle:hover { color: var(--color-dark); }
+
+/* Feature 6 — Promotion Banner */
+.promotionBanner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(170,204,46,0.15); border: 1.5px solid rgba(170,204,46,0.5);
+  border-radius: 10px; padding: 10px 14px;
+  font-family: var(--font-body); font-size: 0.85rem; color: var(--color-dark);
+}
+.promotionDate { font-size: 0.72rem; color: rgba(61,12,17,0.5); }
