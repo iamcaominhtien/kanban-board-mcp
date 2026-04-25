@@ -71,9 +71,14 @@ interface IdeaTicketModalProps {
   onSave: (updated: IdeaTicket) => void;
   onDrop: (id: string) => void;
   onStatusChange: (id: string, status: IdeaStatus) => void;
+  onAddMicrothought?: (ticketId: string, text: string) => Promise<IdeaTicket>;
+  onDeleteMicrothought?: (ticketId: string, microthoughtId: string) => Promise<IdeaTicket>;
+  onAddAssumption?: (ticketId: string, text: string) => Promise<IdeaTicket>;
+  onDeleteAssumption?: (ticketId: string, assumptionId: string) => Promise<IdeaTicket>;
+  onUpdateAssumptionStatus?: (ticketId: string, assumptionId: string, status: IdeaAssumptionStatus) => Promise<IdeaTicket>;
 }
 
-export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChange }: IdeaTicketModalProps) {
+export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChange, onAddMicrothought, onDeleteMicrothought, onAddAssumption, onDeleteAssumption, onUpdateAssumptionStatus }: IdeaTicketModalProps) {
   const isDraft = ticket.ideaStatus === 'draft';
   const isInReview = ticket.ideaStatus === 'in_review';
   const isEditable = isDraft || isInReview;
@@ -153,26 +158,50 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
     return () => document.removeEventListener('keydown', handleKey);
   }, [showEmojiPicker]);
 
-  function addMicrothought() {
+  async function addMicrothought() {
     const text = newMicrothought.trim();
     if (!text) return;
-    setMicrothoughts((prev) => [...prev, { id: `m-${crypto.randomUUID()}`, text, at: new Date().toISOString() }]);
     setNewMicrothought('');
+    if (onAddMicrothought) {
+      try {
+        const updated = await onAddMicrothought(ticket.id, text);
+        setMicrothoughts(updated.microthoughts ?? []);
+      } catch { /* error handled by parent */ }
+    } else {
+      setMicrothoughts((prev) => [...prev, { id: `m-${crypto.randomUUID()}`, text, at: new Date().toISOString() }]);
+    }
   }
 
-  function addAssumption() {
+  async function addAssumption() {
     const text = newAssumption.trim();
     if (!text) return;
-    setAssumptions((prev) => [...prev, { id: `as-${crypto.randomUUID()}`, text, status: 'untested' }]);
     setNewAssumption('');
+    if (onAddAssumption) {
+      try {
+        const updated = await onAddAssumption(ticket.id, text);
+        setAssumptions(updated.assumptions ?? []);
+      } catch { /* error handled by parent */ }
+    } else {
+      setAssumptions((prev) => [...prev, { id: `as-${crypto.randomUUID()}`, text, status: 'untested' }]);
+    }
   }
 
-  function cycleAssumptionStatus(id: string) {
-    setAssumptions((prev) => prev.map((item) => {
-      if (item.id !== id) return item;
-      const currentIndex = ASSUMPTION_STATUS_ORDER.indexOf(item.status);
-      return { ...item, status: ASSUMPTION_STATUS_ORDER[(currentIndex + 1) % ASSUMPTION_STATUS_ORDER.length] };
-    }));
+  async function cycleAssumptionStatus(id: string) {
+    const item = assumptions.find(a => a.id === id);
+    if (!item) return;
+    const currentIndex = ASSUMPTION_STATUS_ORDER.indexOf(item.status);
+    const newStatus = ASSUMPTION_STATUS_ORDER[(currentIndex + 1) % ASSUMPTION_STATUS_ORDER.length];
+    if (onUpdateAssumptionStatus) {
+      try {
+        const updated = await onUpdateAssumptionStatus(ticket.id, id, newStatus);
+        setAssumptions(updated.assumptions ?? []);
+      } catch { /* error handled by parent */ }
+    } else {
+      setAssumptions((prev) => prev.map((a) => {
+        if (a.id !== id) return a;
+        return { ...a, status: newStatus };
+      }));
+    }
   }
 
   function setClampedIce(setter: (value: number) => void, rawValue: string) {
@@ -332,7 +361,16 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                       <span className={styles.microthoughtTime}>{formatRelativeTime(m.at)}</span>
                       {isEditable && (
                         <button type="button" className={styles.microthoughtDelete}
-                          onClick={() => setMicrothoughts(prev => prev.filter(x => x.id !== m.id))}>×</button>
+                          onClick={async () => {
+                            if (onDeleteMicrothought) {
+                              try {
+                                const updated = await onDeleteMicrothought(ticket.id, m.id);
+                                setMicrothoughts(updated.microthoughts ?? []);
+                              } catch { /* error handled by parent */ }
+                            } else {
+                              setMicrothoughts(prev => prev.filter(x => x.id !== m.id));
+                            }
+                          }}>×</button>
                       )}
                     </div>
                   ))}
@@ -496,7 +534,16 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                       <span className={styles.assumptionText}>{a.text}</span>
                       {isEditable && (
                         <button type="button" className={styles.assumptionDelete}
-                          onClick={() => setAssumptions(prev => prev.filter(x => x.id !== a.id))}>×</button>
+                          onClick={async () => {
+                            if (onDeleteAssumption) {
+                              try {
+                                const updated = await onDeleteAssumption(ticket.id, a.id);
+                                setAssumptions(updated.assumptions ?? []);
+                              } catch { /* error handled by parent */ }
+                            } else {
+                              setAssumptions(prev => prev.filter(x => x.id !== a.id));
+                            }
+                          }}>×</button>
                       )}
                     </div>
                   ))}

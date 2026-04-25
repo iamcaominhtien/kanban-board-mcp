@@ -86,7 +86,7 @@ class IdeaTicket(SQLModel, table=True):
     idea_status: str = Field(default="draft")  # draft|in_review|approved|dropped
     idea_color: str = Field(default="yellow")
     idea_emoji: str = Field(default="💡")
-    idea_energy: Optional[str] = Field(default=None)  # low|medium|high
+    idea_energy: Optional[str] = Field(default=None)  # seed|concept|hot|big_bet
     tags: str = Field(default="[]")  # JSON list of strings
     problem_statement: Optional[str] = Field(default=None)
     ice_impact: int = Field(default=3)
@@ -288,7 +288,7 @@ class IdeaTicketCreateBody(SQLModel):
     description: str = ""
     idea_color: str = "yellow"
     idea_emoji: str = "💡"
-    idea_energy: Optional[Literal["low", "medium", "high"]] = None
+    idea_energy: Optional[Literal["seed", "concept", "hot", "big_bet"]] = None
     tags: list[Any] = Field(default_factory=list)
     problem_statement: Optional[str] = None
 
@@ -305,7 +305,7 @@ class IdeaTicketUpdate(SQLModel):
     description: Optional[str] = None
     idea_color: Optional[str] = None
     idea_emoji: Optional[str] = None
-    idea_energy: Optional[Literal["low", "medium", "high"]] = None
+    idea_energy: Optional[Literal["seed", "concept", "hot", "big_bet"]] = None
     tags: Optional[list[Any]] = None
     problem_statement: Optional[str] = None
     ice_impact: Optional[int] = Field(default=None, ge=1, le=5)

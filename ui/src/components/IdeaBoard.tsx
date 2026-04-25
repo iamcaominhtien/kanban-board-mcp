@@ -6,7 +6,7 @@ import { IdeaColumn } from './IdeaColumn';
 import type { IdeaColumnDef } from './IdeaColumn';
 import { IdeaCard } from './IdeaCard';
 import { IdeaTicketModal } from './IdeaTicketModal';
-import { fetchIdeaTickets, createIdeaTicket, updateIdeaTicket, updateIdeaStatus } from '../api/ideaTickets';
+import { fetchIdeaTickets, createIdeaTicket, updateIdeaTicket, updateIdeaStatus, addMicrothought, deleteMicrothought, addAssumption, deleteAssumption, updateAssumptionStatus } from '../api/ideaTickets';
 import { resolveOrigin } from '../api/resolveOrigin';
 import styles from './IdeaBoard.module.css';
 
@@ -252,6 +252,41 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
     handleStatusChange(id, 'dropped');
   }
 
+  async function handleAddMicrothought(ticketId: string, text: string) {
+    const saved = await addMicrothought(ticketId, text);
+    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
+    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    return saved;
+  }
+
+  async function handleDeleteMicrothought(ticketId: string, microthoughtId: string) {
+    const saved = await deleteMicrothought(ticketId, microthoughtId);
+    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
+    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    return saved;
+  }
+
+  async function handleAddAssumption(ticketId: string, text: string) {
+    const saved = await addAssumption(ticketId, text);
+    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
+    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    return saved;
+  }
+
+  async function handleDeleteAssumption(ticketId: string, assumptionId: string) {
+    const saved = await deleteAssumption(ticketId, assumptionId);
+    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
+    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    return saved;
+  }
+
+  async function handleUpdateAssumptionStatus(ticketId: string, assumptionId: string, status: string) {
+    const saved = await updateAssumptionStatus(ticketId, assumptionId, status);
+    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
+    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    return saved;
+  }
+
   function handleQuickCreate() {
     const title = newTitle.trim();
     if (!title) return;
@@ -356,6 +391,11 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
           onSave={handleSave}
           onDrop={handleDrop}
           onStatusChange={handleStatusChange}
+          onAddMicrothought={projectId ? handleAddMicrothought : undefined}
+          onDeleteMicrothought={projectId ? handleDeleteMicrothought : undefined}
+          onAddAssumption={projectId ? handleAddAssumption : undefined}
+          onDeleteAssumption={projectId ? handleDeleteAssumption : undefined}
+          onUpdateAssumptionStatus={projectId ? handleUpdateAssumptionStatus : undefined}
         />
       )}
       </>
