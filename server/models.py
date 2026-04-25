@@ -3,7 +3,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
-from sqlmodel import Field, SQLModel, field_validator
+from pydantic import field_validator
+from sqlmodel import Field, SQLModel
 
 
 # ---------------------------------------------------------------------------
