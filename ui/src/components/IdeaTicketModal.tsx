@@ -130,90 +130,91 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
 
           {/* Content */}
           <div className={styles.content}>
-            {/* Status + Title */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <span className={styles.statusPill} style={{ background: statusMeta.bg, color: statusMeta.color }}>
-                {statusMeta.label}
-              </span>
-              <input
-                type="text"
-                className={styles.titleInput}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                readOnly={!isEditable}
-                placeholder="Idea title..."
-              />
-              <span className={styles.ticketId}>{ticket.id}</span>
-            </div>
-
-            {/* Energy */}
-            <div>
-              <span className={styles.sectionLabel}>Energy Level</span>
-              <div className={styles.energyRow}>
-                {ENERGY_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`${styles.energyBtn} ${energy === opt.value ? styles.energyBtnActive : ''}`}
-                    onClick={() => setEnergy(energy === opt.value ? null : opt.value as IdeaEnergy)}
-                    disabled={!isEditable}
-                  >
-                    {opt.emoji} {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Description */}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span className={styles.sectionLabel}>Description</span>
-              <div className={styles.descField}>
-                <textarea
-                  className={styles.descTextarea}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  readOnly={!isEditable}
-                  placeholder="Scribble your rough thoughts here..."
-                />
-              </div>
-            </div>
-
-            {/* Color */}
-            <div>
-              <span className={styles.sectionLabel}>Card Color</span>
-              <div className={styles.colorRow}>
-                {COLOR_OPTIONS.map(c => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    className={`${styles.colorDot} ${color === c.value ? styles.colorDotActive : ''}`}
-                    style={{ background: c.hex }}
-                    onClick={() => setColor(c.value)}
-                    disabled={!isEditable}
-                    title={c.label}
-                    aria-label={c.label}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <span className={styles.sectionLabel}>Tags</span>
-              {isEditable ? (
+            {/* LEFT: status, title, id, description */}
+            <div className={styles.contentLeft}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <span className={styles.statusPill} style={{ background: statusMeta.bg, color: statusMeta.color }}>
+                  {statusMeta.label}
+                </span>
                 <input
                   type="text"
-                  className={styles.tagsInput}
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  placeholder="design, ui, feature (comma-separated)"
+                  className={styles.titleInput}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  readOnly={!isEditable}
+                  placeholder="Idea title..."
                 />
-              ) : (
-                <div className={styles.tagRow}>
-                  {ticket.tags.map(t => <span key={t} className={styles.tagPill}>{t}</span>)}
-                  {ticket.tags.length === 0 && <span style={{ fontSize: '0.8rem', color: 'rgba(61,12,17,0.4)' }}>No tags</span>}
+                <span className={styles.ticketId}>{ticket.id}</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <span className={styles.sectionLabel}>Description</span>
+                <div className={styles.descField} style={{ flex: 1 }}>
+                  <textarea
+                    className={styles.descTextarea}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    readOnly={!isEditable}
+                    placeholder="Scribble your rough thoughts here..."
+                  />
                 </div>
-              )}
+              </div>
+            </div>
+
+            {/* RIGHT: energy, color, tags */}
+            <div className={styles.contentRight}>
+              <div>
+                <span className={styles.sectionLabel}>Energy Level</span>
+                <div className={styles.energyRow}>
+                  {ENERGY_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`${styles.energyBtn} ${energy === opt.value ? styles.energyBtnActive : ''}`}
+                      onClick={() => setEnergy(energy === opt.value ? null : opt.value as IdeaEnergy)}
+                      disabled={!isEditable}
+                    >
+                      {opt.emoji} {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className={styles.sectionLabel}>Card Color</span>
+                <div className={styles.colorRow}>
+                  {COLOR_OPTIONS.map(c => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      className={`${styles.colorDot} ${color === c.value ? styles.colorDotActive : ''}`}
+                      style={{ background: c.hex }}
+                      onClick={() => setColor(c.value)}
+                      disabled={!isEditable}
+                      title={c.label}
+                      aria-label={c.label}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className={styles.sectionLabel}>Tags</span>
+                {isEditable ? (
+                  <input
+                    type="text"
+                    className={styles.tagsInput}
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="design, ui, feature (comma-separated)"
+                  />
+                ) : (
+                  <div className={styles.tagRow}>
+                    {ticket.tags.map(t => <span key={t} className={styles.tagPill}>{t}</span>)}
+                    {ticket.tags.length === 0 && <span style={{ fontSize: '0.8rem', color: 'rgba(61,12,17,0.4)' }}>No tags</span>}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

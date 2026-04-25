@@ -12,7 +12,7 @@
   border: 2px solid var(--color-dark);
   border-radius: 20px;
   box-shadow: 8px 8px 0px rgba(61,12,17,0.15);
-  width: calc(100% - 48px); max-width: 640px;
+  width: calc(100% - 48px); max-width: 860px;
   max-height: 90vh;
   display: flex; flex-direction: column;
   transform: translateY(28px); opacity: 0;
@@ -33,7 +33,7 @@
 }
 .closeBtn:hover { transform: scale(1.05); }
 
-.scrollBody { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #fff; }
+.scrollBody { flex: 1; overflow: hidden; display: flex; flex-direction: column; background: #fff; min-height: 0; }
 
 .cover {
   height: 120px;
@@ -75,7 +75,30 @@
 .emojiOption:hover { background: rgba(61,12,17,0.07); }
 .emojiOptionActive { background: rgba(245,197,24,0.3); }
 
-.content { padding: 56px 32px 32px; display: flex; flex-direction: column; gap: 24px; flex: 1; }
+.content {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.contentLeft {
+  padding: 48px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-right: 2px solid rgba(61,12,17,0.1);
+  overflow-y: auto;
+}
+
+.contentRight {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
 
 .statusPill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -116,7 +139,7 @@
   background: rgba(245,197,24,0.06); display: flex; flex-direction: column;
 }
 .descTextarea {
-  flex: 1; width: 100%; min-height: 140px;
+  flex: 1; width: 100%; min-height: 180px;
   background: transparent; border: none; outline: none; resize: none;
   font-family: var(--font-body); font-size: 0.95rem; font-weight: 500;
   color: var(--color-dark); line-height: 1.6;
