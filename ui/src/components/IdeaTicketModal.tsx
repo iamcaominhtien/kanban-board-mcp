@@ -219,18 +219,16 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               </div>
 
               {/* Feature 7 — Problem Statement */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <span className={styles.sectionLabel} style={{ margin: 0 }}>Problem Statement</span>
-                  {isDraft && <span style={{ fontSize: '0.7rem', color: 'var(--color-orange)', fontWeight: 700 }}>required to review</span>}
-                </div>
+              <div className={styles.problemWrap}>
+                <span className={styles.problemLabel}>Problem Statement</span>
+                {isDraft && <span className={styles.problemRequiredHint}>required to review</span>}
                 <input
                   type="text"
                   className={styles.problemInput}
                   value={problemStatement}
                   onChange={(e) => setProblemStatement(e.target.value)}
                   readOnly={!isEditable}
-                  placeholder='The problem is: ...'
+                  placeholder="The problem is: ..."
                 />
               </div>
 
@@ -289,7 +287,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                     </div>
                   ))}
                   {isEditable && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    <div className={styles.microthoughtAddRow}>
                       <input
                         type="text"
                         className={styles.microthoughtInput}
@@ -390,43 +388,52 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               {/* Feature 3 — ICE Score */}
               <div>
                 <span className={styles.sectionLabel}>ICE Score</span>
-                <div className={styles.iceRow}>
-                  {(['Impact', 'Effort', 'Confidence'] as const).map((label, i) => {
-                    const val = [iceImpact, iceEffort, iceConfidence][i];
-                    const setter = [setIceImpact, setIceEffort, setIceConfidence][i];
-                    return (
-                      <div key={label} className={styles.iceField}>
-                        <span className={styles.iceLabel}>{label}</span>
-                        <input
-                          type="number" min={1} max={5}
-                          className={styles.iceInput}
-                          value={val}
-                          onChange={(e) => setter(Math.min(5, Math.max(1, Number(e.target.value))))}
-                          disabled={!isEditable}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className={styles.iceScore}>
-                  Score: <strong>{((iceImpact / iceEffort) * iceConfidence).toFixed(1)}</strong>
-                  <span className={styles.iceFormula}> = ({iceImpact}÷{iceEffort})×{iceConfidence}</span>
+                <div className={styles.iceWrap}>
+                  <div className={styles.iceHeader}>
+                    <span className={styles.iceTitle}>ICE Priority</span>
+                    <span className={styles.iceScoreBadge}>{((iceImpact / iceEffort) * iceConfidence).toFixed(1)}</span>
+                  </div>
+                  <div className={styles.iceRow}>
+                    <div className={styles.iceField}>
+                      <span className={styles.iceLabel}>Impact</span>
+                      <input type="number" min={1} max={5} className={styles.iceInput} value={iceImpact}
+                        onChange={(e) => setIceImpact(Math.min(5, Math.max(1, Number(e.target.value))))} disabled={!isEditable} />
+                    </div>
+                    <span className={styles.iceDivider}>÷</span>
+                    <div className={styles.iceField}>
+                      <span className={styles.iceLabel}>Effort</span>
+                      <input type="number" min={1} max={5} className={styles.iceInput} value={iceEffort}
+                        onChange={(e) => setIceEffort(Math.min(5, Math.max(1, Number(e.target.value))))} disabled={!isEditable} />
+                    </div>
+                    <span className={styles.iceDivider}>×</span>
+                    <div className={styles.iceField}>
+                      <span className={styles.iceLabel}>Conf.</span>
+                      <input type="number" min={1} max={5} className={styles.iceInput} value={iceConfidence}
+                        onChange={(e) => setIceConfidence(Math.min(5, Math.max(1, Number(e.target.value))))} disabled={!isEditable} />
+                    </div>
+                  </div>
+                  <p className={styles.iceFormula}>= ({iceImpact} ÷ {iceEffort}) × {iceConfidence}</p>
                 </div>
               </div>
 
               {/* Feature 5 — Revisit Date */}
               <div>
                 <span className={styles.sectionLabel}>Revisit By</span>
-                <input
-                  type="date"
-                  className={styles.revisitInput}
-                  value={revisitDate}
-                  onChange={(e) => setRevisitDate(e.target.value)}
-                  disabled={!isEditable}
-                />
-                {ticket.lastTouchedAt && (
-                  <span className={styles.lastTouched}>Last touched {formatRelativeTime(ticket.lastTouchedAt)}</span>
-                )}
+                <div className={styles.revisitWrap}>
+                  <div className={styles.revisitRow}>
+                    <input type="date" className={styles.revisitInput} value={revisitDate}
+                      onChange={(e) => setRevisitDate(e.target.value)} disabled={!isEditable} />
+                  </div>
+                  {ticket.lastTouchedAt && (
+                    <span className={styles.lastTouched}>Last touched {formatRelativeTime(ticket.lastTouchedAt)}</span>
+                  )}
+                  {ticket.revisitDate && new Date(ticket.revisitDate) < new Date() && (
+                    <span className={styles.stalenessBadge}>
+                      <span className={styles.stalenessPulse} />
+                      Stale — overdue
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Feature 4 — Assumptions */}
@@ -434,7 +441,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                 <span className={styles.sectionLabel}>Assumptions</span>
                 <div className={styles.assumptionsList}>
                   {assumptions.map(a => (
-                    <div key={a.id} className={styles.assumptionItem}>
+                    <div key={a.id} className={`${styles.assumptionItem} ${a.status === 'invalidated' ? styles.invalidated : ''}`}>
                       <button
                         type="button"
                         className={`${styles.assumptionDot} ${styles[`assumptionDot_${a.status}` as keyof typeof styles]}`}
@@ -454,7 +461,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                     </div>
                   ))}
                   {isEditable && (
-                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                    <div className={styles.assumptionAddRow}>
                       <input
                         type="text"
                         className={styles.assumptionInput}
@@ -477,35 +484,50 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                     </div>
                   )}
                 </div>
+                <div className={styles.assumptionLegend}>
+                  {(['untested', 'validated', 'invalidated'] as IdeaAssumptionStatus[]).map(s => (
+                    <div key={s} className={styles.assumptionLegendItem}>
+                      <div className={styles.assumptionLegendDot} style={{ background: s === 'untested' ? '#F5C518' : s === 'validated' ? '#AACC2E' : '#F472B6' }} />
+                      {s}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Feature 6 — Promotion Trail */}
               {ticket.ideaStatus === 'approved' && ticket.promotedToTicketId && (
                 <div className={styles.promotionBanner}>
-                  <span>🚀 Promoted to <strong>{ticket.promotedToTicketId}</strong></span>
-                  {ticket.promotedAt && <span className={styles.promotionDate}>{formatRelativeTime(ticket.promotedAt)}</span>}
+                  <div className={styles.promotionIcon}>🚀</div>
+                  <div className={styles.promotionText}>
+                    <div className={styles.promotionTitle}>Idea Promoted!</div>
+                    <div className={styles.promotionSub}>
+                      Tracking in <strong>{ticket.promotedToTicketId}</strong>
+                      {ticket.promotedAt && <> · {formatRelativeTime(ticket.promotedAt)}</>}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* Feature 1 — Activity Trail */}
               {(ticket.activityTrail ?? []).length > 0 && (
-                <div>
-                  <span className={styles.sectionLabel}>Activity</span>
+                <div className={styles.activityWrap}>
+                  <div className={styles.activityHeader}>
+                    <span className={styles.activityTitle}>Activity Trail</span>
+                  </div>
                   <div className={styles.activityList}>
                     {(showAllActivity ? (ticket.activityTrail ?? []) : (ticket.activityTrail ?? []).slice(-3))
                       .slice().reverse()
-                      .map(entry => (
+                      .map((entry, i) => (
                         <div key={entry.id} className={styles.activityItem}>
-                          <span className={styles.activityDot} />
+                          <div className={`${styles.activityDot} ${i === 0 ? styles.activityDotLatest : ''}`} />
                           <span className={styles.activityLabel}>{entry.label}</span>
                           <span className={styles.activityTime}>{formatRelativeTime(entry.at)}</span>
                         </div>
                       ))}
                   </div>
                   {(ticket.activityTrail ?? []).length > 3 && (
-                    <button type="button" className={styles.activityToggle}
-                      onClick={() => setShowAllActivity(v => !v)}>
-                      {showAllActivity ? 'Show less' : `View all ${ticket.activityTrail!.length} events`}
+                    <button type="button" className={styles.activityToggle} onClick={() => setShowAllActivity(v => !v)}>
+                      {showAllActivity ? '↑ Show less' : `↓ View all ${ticket.activityTrail!.length} events`}
                     </button>
                   )}
                 </div>
