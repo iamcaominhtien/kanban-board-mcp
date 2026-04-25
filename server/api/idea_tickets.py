@@ -1,16 +1,19 @@
-from typing import Annotated, NoReturn
+from typing import Annotated, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
-from models import IdeaTicketCreateBody, IdeaTicketRead, IdeaTicketUpdate
+from models import IdeaTicketCreateBody, IdeaTicketRead, IdeaTicketUpdate, TicketRead
 from services.idea_tickets import (
     create_idea_ticket,
     delete_idea_ticket,
     get_idea_ticket,
     list_idea_tickets,
+    promote_idea_to_ticket,
+    update_idea_status,
     update_idea_ticket,
 )
 
@@ -95,3 +98,48 @@ async def del_idea_ticket(ticket_id: str, session: Session) -> None:
     if not found:
         _404()
     await board_events.publish("invalidate")
+
+
+class IdeaStatusUpdateBody(BaseModel):
+    new_status: str
+    reason: Optional[str] = None
+
+
+class IdeaPromoteBody(BaseModel):
+    project_id: str
+    title: Optional[str] = None
+    type: Optional[str] = "feature"
+    priority: Optional[str] = "medium"
+
+
+@router.patch("/api/idea-tickets/{ticket_id}/status", response_model=IdeaTicketRead)
+async def patch_idea_status(
+    ticket_id: str, body: IdeaStatusUpdateBody, session: Session
+) -> IdeaTicketRead:
+    try:
+        ticket = await update_idea_status(
+            session, ticket_id, new_status=body.new_status, reason=body.reason
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.post("/api/idea-tickets/{ticket_id}/promote", response_model=TicketRead)
+async def promote_idea(
+    ticket_id: str, body: IdeaPromoteBody, session: Session
+) -> TicketRead:
+    try:
+        new_ticket = await promote_idea_to_ticket(
+            session,
+            idea_ticket_id=ticket_id,
+            project_id=body.project_id,
+            title=body.title,
+            type_=body.type or "feature",
+            priority=body.priority or "medium",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return TicketRead.from_ticket(new_ticket)

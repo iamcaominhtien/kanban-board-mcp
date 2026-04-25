@@ -26,7 +26,6 @@ from models import (
     TicketUpdate,
 )
 
-
 _UNSET = object()
 _VALID_IDEA_STATUSES = frozenset(IDEA_STATUSES)
 _HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -586,6 +585,80 @@ async def delete_idea_ticket(ticket_id: str) -> dict | None:
         return {"deleted": True}
 
 
+async def update_idea_status(
+    ticket_id: str,
+    new_status: Literal["raw", "brewing", "validated", "approved", "dropped"],
+    reason: str | None = None,
+) -> dict | None:
+    """Transition an idea ticket to a new status.
+
+    Allowed transitions:
+    raw → brewing | dropped
+    brewing → validated | raw | dropped
+    validated → approved | brewing | dropped
+    approved → dropped
+    dropped → raw
+
+    Args:
+        ticket_id: The idea ticket ID (e.g. 'IDEA-1')
+        new_status: Target status
+        reason: Optional reason for the transition (appended to activity trail)
+
+    Returns the updated idea ticket, or {"error": ...} if transition is invalid.
+    """
+    if new_status not in _VALID_IDEA_STATUSES:
+        return {"error": f"Invalid status '{new_status}'. Must be one of: {', '.join(sorted(_VALID_IDEA_STATUSES))}"}
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.update_idea_status(
+                session, ticket_id, new_status=new_status, reason=reason
+            )
+            result = _idea_ticket_to_dict(ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return result
+
+
+@notify_on_success
+async def promote_idea_to_ticket(
+    idea_ticket_id: str,
+    project_id: str,
+    title: str | None = None,
+    type_: Literal["bug", "feature", "task", "chore"] = "feature",
+    priority: Literal["low", "medium", "high", "critical"] = "medium",
+) -> dict | None:
+    """Promote an approved idea ticket to a real Kanban ticket.
+
+    Requirements:
+    - idea_status must be 'approved'
+    - problem_statement must be set and non-empty
+    - idea must not have been previously promoted
+
+    Args:
+        idea_ticket_id: The idea ticket ID (e.g. 'IDEA-1')
+        project_id: The target project UUID
+        title: Optional override for the ticket title (defaults to idea title)
+        type_: bug | feature | task | chore (default: feature)
+        priority: low | medium | high | critical (default: medium)
+
+    Returns the newly created Kanban ticket, or {"error": ...} on failure.
+    """
+    try:
+        async with async_session() as session:
+            new_ticket = await svc_idea_tickets.promote_idea_to_ticket(
+                session,
+                idea_ticket_id=idea_ticket_id,
+                project_id=project_id,
+                title=title,
+                type_=type_,
+                priority=priority,
+            )
+            result = _ticket_to_dict(new_ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return result
+
+
 def register(mcp: FastMCP) -> None:
     """Register all Kanban MCP tools with the given FastMCP instance."""
     mcp.tool()(list_projects)
@@ -611,3 +684,5 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(get_idea_ticket)
     mcp.tool()(update_idea_ticket)
     mcp.tool()(delete_idea_ticket)
+    mcp.tool()(update_idea_status)
+    mcp.tool()(promote_idea_to_ticket)

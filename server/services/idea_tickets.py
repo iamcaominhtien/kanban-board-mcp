@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import IdeaTicket
+from models import IDEA_STATUSES, IdeaTicket, Ticket
 
 UTC = timezone.utc
 
@@ -199,3 +199,94 @@ async def delete_idea_ticket(session: AsyncSession, ticket_id: str) -> bool:
     await session.delete(ticket)
     await session.commit()
     return True
+
+
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    "raw": {"brewing", "dropped"},
+    "brewing": {"validated", "raw", "dropped"},
+    "validated": {"approved", "brewing", "dropped"},
+    "approved": {"dropped"},
+    "dropped": {"raw"},
+}
+
+
+async def update_idea_status(
+    session: AsyncSession,
+    ticket_id: str,
+    new_status: str,
+    reason: str | None = None,
+) -> IdeaTicket:
+    ticket = await session.get(IdeaTicket, ticket_id)
+    if ticket is None:
+        raise ValueError(f"Idea ticket '{ticket_id}' not found")
+    if new_status not in IDEA_STATUSES:
+        raise ValueError(f"Invalid status '{new_status}'. Must be one of: {', '.join(IDEA_STATUSES)}")
+    old_status = ticket.idea_status
+    allowed = ALLOWED_TRANSITIONS.get(old_status, set())
+    if new_status not in allowed:
+        raise ValueError(f"Cannot transition from {old_status} to {new_status}")
+
+    now = _now_iso()
+    ticket.idea_status = new_status
+    ticket.updated_at = now
+    ticket.last_touched_at = now
+
+    trail = _safe_json(ticket.activity_trail)
+    label = f"Status changed: {old_status} → {new_status}"
+    if reason:
+        label += f" ({reason})"
+    trail.append({"id": str(uuid.uuid4()), "label": label, "at": now})
+    ticket.activity_trail = _dumps(trail)
+
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def promote_idea_to_ticket(
+    session: AsyncSession,
+    idea_ticket_id: str,
+    project_id: str,
+    title: str | None = None,
+    type_: str = "feature",
+    priority: str = "medium",
+) -> Ticket:
+    from services.tickets import create_ticket as svc_create_ticket
+
+    ticket = await session.get(IdeaTicket, idea_ticket_id)
+    if ticket is None:
+        raise ValueError(f"Idea ticket '{idea_ticket_id}' not found")
+    if ticket.idea_status != "approved":
+        raise ValueError("Only approved ideas can be promoted")
+    if not ticket.problem_statement or not ticket.problem_statement.strip():
+        raise ValueError("Problem statement is required to promote")
+    if ticket.promoted_to_ticket_id is not None:
+        raise ValueError(f"Idea already promoted to {ticket.promoted_to_ticket_id}")
+
+    tags = _safe_json(ticket.tags)
+    new_ticket = await svc_create_ticket(
+        session,
+        project_id=project_id,
+        title=title or ticket.title,
+        description=ticket.problem_statement,
+        type=type_,
+        priority=priority,
+        tags=tags,
+    )
+
+    now = _now_iso()
+    ticket.promoted_to_ticket_id = new_ticket.id
+    ticket.promoted_at = now
+    ticket.updated_at = now
+    ticket.last_touched_at = now
+
+    trail = _safe_json(ticket.activity_trail)
+    trail.append(
+        {"id": str(uuid.uuid4()), "label": f"Promoted to ticket {new_ticket.id}", "at": now}
+    )
+    ticket.activity_trail = _dumps(trail)
+
+    session.add(ticket)
+    await session.commit()
+    return new_ticket
