@@ -1,42 +1,10 @@
 import json
 import uuid
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any, Literal, Optional
 
+from pydantic import field_validator
 from sqlmodel import Field, SQLModel
-
-
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
-
-
-class BoardType(str, Enum):
-    """Which board a ticket belongs to."""
-
-    main = "main"
-    idea = "idea"
-
-
-class IdeaStatus(str, Enum):
-    """Lifecycle states for idea-board tickets."""
-
-    draft = "draft"
-    approved = "approved"
-    dropped = "dropped"
-
-
-class IdeaColor(str, Enum):
-    """Accent colors for idea cards."""
-
-    yellow = "yellow"
-    orange = "orange"
-    lime = "lime"
-    pink = "pink"
-    blue = "blue"
-    purple = "purple"
-    teal = "teal"
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +18,13 @@ class Project(SQLModel, table=True):
     prefix: str = Field(unique=True)  # e.g. "IAM", uppercase, max 6 chars
     color: str  # hex accent color
     ticket_counter: int = Field(default=0)
+
+
+class IdeaCounter(SQLModel, table=True):
+    __tablename__ = "idea_counter"
+
+    id: int = Field(default=1, primary_key=True)
+    counter: int = Field(default=0)
 
 
 class Member(SQLModel, table=True):
@@ -90,17 +65,40 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
-    # Idea Board fields
-    board: BoardType = Field(
-        default=BoardType.main
-    )  # which board this ticket belongs to
-    idea_status: Optional[IdeaStatus] = Field(
-        default=None
-    )  # only set when board='idea'
-    idea_emoji: Optional[str] = Field(default=None, max_length=8)  # emoji for idea card
-    idea_color: Optional[IdeaColor] = Field(default=None)  # accent color for idea card
-    # origin_idea_id is immutable once set — records which idea ticket was promoted
-    origin_idea_id: Optional[str] = Field(default=None, foreign_key="ticket.id")
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
+IDEA_STATUSES = ("draft", "in_review", "approved", "dropped")
+
+
+class IdeaTicket(SQLModel, table=True):
+    __tablename__ = "idea_ticket"
+
+    id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    title: str
+    description: str = Field(default="")
+    idea_status: str = Field(default="draft")  # draft|in_review|approved|dropped
+    idea_color: str = Field(default="yellow")
+    idea_emoji: str = Field(default="💡")
+    idea_energy: Optional[str] = Field(default=None)  # seed|concept|hot|big_bet
+    tags: str = Field(default="[]")  # JSON list of strings
+    problem_statement: Optional[str] = Field(default=None)
+    ice_impact: int = Field(default=3)
+    ice_effort: int = Field(default=3)
+    ice_confidence: int = Field(default=3)
+    revisit_date: Optional[str] = Field(default=None)
+    last_touched_at: Optional[str] = Field(default=None)
+    promoted_to_ticket_id: Optional[str] = Field(default=None)
+    promoted_at: Optional[str] = Field(default=None)
+    activity_trail: str = Field(default="[]")  # JSON list of {id, label, at}
+    microthoughts: str = Field(default="[]")  # JSON list of {id, text, at}
+    assumptions: str = Field(default="[]")  # JSON list of {id, text, status}
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -247,11 +245,6 @@ class TicketRead(SQLModel):
     links: list[Any] = []
     created_at: str
     updated_at: str
-    board: Optional[str] = None
-    idea_status: Optional[str] = None
-    idea_emoji: Optional[str] = None
-    idea_color: Optional[str] = None
-    origin_idea_id: Optional[str] = None
 
     @classmethod
     def from_ticket(cls, ticket: Ticket) -> "TicketRead":
@@ -283,9 +276,98 @@ class TicketRead(SQLModel):
             links=_parse_json_list(ticket.links),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
-            board=ticket.board.value if ticket.board else None,
-            idea_status=ticket.idea_status.value if ticket.idea_status else None,
+        )
+
+
+IDEA_COLORS = ("yellow", "orange", "lime", "pink", "blue", "purple", "teal")
+
+
+class IdeaTicketCreateBody(SQLModel):
+    project_id: str
+    title: str
+    description: str = ""
+    idea_color: str = "yellow"
+    idea_emoji: str = "💡"
+    idea_energy: Optional[Literal["seed", "concept", "hot", "big_bet"]] = None
+    tags: list[Any] = Field(default_factory=list)
+    problem_statement: Optional[str] = None
+
+    @field_validator("idea_color")
+    @classmethod
+    def validate_color(cls, v: str) -> str:
+        if v not in IDEA_COLORS:
+            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+        return v
+
+
+class IdeaTicketUpdate(SQLModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    idea_color: Optional[str] = None
+    idea_emoji: Optional[str] = None
+    idea_energy: Optional[Literal["seed", "concept", "hot", "big_bet"]] = None
+    tags: Optional[list[Any]] = None
+    problem_statement: Optional[str] = None
+    ice_impact: Optional[int] = Field(default=None, ge=1, le=5)
+    ice_effort: Optional[int] = Field(default=None, ge=1, le=5)
+    ice_confidence: Optional[int] = Field(default=None, ge=1, le=5)
+    revisit_date: Optional[str] = None
+
+    @field_validator("idea_color")
+    @classmethod
+    def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in IDEA_COLORS:
+            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+        return v
+
+
+class IdeaTicketRead(SQLModel):
+    id: str
+    project_id: str
+    title: str
+    description: str
+    idea_status: str
+    idea_color: str
+    idea_emoji: str
+    idea_energy: Optional[str]
+    tags: list[Any] = Field(default_factory=list)
+    problem_statement: Optional[str]
+    ice_impact: int
+    ice_effort: int
+    ice_confidence: int
+    revisit_date: Optional[str]
+    last_touched_at: Optional[str]
+    promoted_to_ticket_id: Optional[str]
+    promoted_at: Optional[str]
+    activity_trail: list[Any] = Field(default_factory=list)
+    microthoughts: list[Any] = Field(default_factory=list)
+    assumptions: list[Any] = Field(default_factory=list)
+    created_at: str
+    updated_at: str
+
+    @classmethod
+    def from_idea_ticket(cls, ticket: IdeaTicket) -> "IdeaTicketRead":
+        return cls(
+            id=ticket.id,
+            project_id=ticket.project_id,
+            title=ticket.title,
+            description=ticket.description,
+            idea_status=ticket.idea_status,
+            idea_color=ticket.idea_color,
             idea_emoji=ticket.idea_emoji,
-            idea_color=ticket.idea_color.value if ticket.idea_color else None,
-            origin_idea_id=ticket.origin_idea_id,
+            idea_energy=ticket.idea_energy,
+            tags=_parse_json_list(ticket.tags),
+            problem_statement=ticket.problem_statement,
+            ice_impact=ticket.ice_impact,
+            ice_effort=ticket.ice_effort,
+            ice_confidence=ticket.ice_confidence,
+            revisit_date=ticket.revisit_date,
+            last_touched_at=ticket.last_touched_at,
+            promoted_to_ticket_id=ticket.promoted_to_ticket_id,
+            promoted_at=ticket.promoted_at,
+            activity_trail=_parse_json_list(ticket.activity_trail),
+            microthoughts=_parse_json_list(ticket.microthoughts),
+            assumptions=_parse_json_list(ticket.assumptions),
+            created_at=ticket.created_at,
+            updated_at=ticket.updated_at,
         )

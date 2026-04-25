@@ -103,23 +103,65 @@ export interface Column {
 
 export type Theme = 'default' | 'bw';
 
-// ---------------------------------------------------------------------------
-// Idea Board types
-// ---------------------------------------------------------------------------
-
-export type IdeaStatus = 'draft' | 'approved' | 'dropped';
+// ─── Idea Board ───────────────────────────────────────────────────────────────
+export type IdeaStatus = 'draft' | 'in_review' | 'approved' | 'dropped';
 export type IdeaColor = 'yellow' | 'orange' | 'lime' | 'pink' | 'blue' | 'purple' | 'teal';
+export type IdeaEnergy = 'seed' | 'concept' | 'hot' | 'big_bet';
+
+export interface IdeaActivityEntry {
+  id: string;
+  label: string;       // e.g. "Status changed to In Review", "Description updated"
+  at: string;          // ISO datetime
+}
+
+export interface IdeaMicrothought {
+  id: string;
+  text: string;
+  at: string;          // ISO datetime
+}
+
+export type IdeaAssumptionStatus = 'untested' | 'validated' | 'invalidated';
+
+export interface IdeaAssumption {
+  id: string;
+  text: string;
+  status: IdeaAssumptionStatus;
+}
 
 export interface IdeaTicket {
   id: string;
-  projectId: string;
   title: string;
   description: string;
-  tags: string[];
   ideaStatus: IdeaStatus;
-  ideaEmoji: string;
   ideaColor: IdeaColor;
-  originIdeaId: string | null;
+  ideaEmoji: string;
+  ideaEnergy?: IdeaEnergy;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
+
+  // Feature 1 — Activity Trail
+  activityTrail?: IdeaActivityEntry[];
+
+  // Feature 2 — Microthoughts
+  microthoughts?: IdeaMicrothought[];
+
+  // Feature 3 — ICE Score
+  iceImpact?: number;       // 1-5
+  iceEffort?: number;       // 1-5
+  iceConfidence?: number;   // 1-5
+
+  // Feature 4 — Assumption Tracker
+  assumptions?: IdeaAssumption[];
+
+  // Feature 5 — Revisit Date + Staleness
+  revisitDate?: string;     // ISO date string
+  lastTouchedAt?: string;   // ISO datetime, auto-updated on save
+
+  // Feature 6 — Promotion Trail
+  promotedToTicketId?: string;
+  promotedAt?: string;
+
+  // Feature 7 — Problem Statement
+  problemStatement?: string;
 }

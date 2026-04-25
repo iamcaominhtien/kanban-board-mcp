@@ -12,10 +12,8 @@ import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, us
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
-import { useBoardSelection } from './hooks/useBoardSelection';
 import { extractError } from './api/extractError';
-import { IdeaTicketModal } from './components/IdeaTicketModal';
-import type { Priority, Status, Ticket, IdeaTicket } from './types';
+import type { Priority, Status, Ticket } from './types';
 
 export default function App() {
   useSSEInvalidation();
@@ -28,7 +26,6 @@ export default function App() {
   const [currentProjectId, setCurrentProjectId] = useState<string>(
     () => localStorage.getItem('activeProjectId') ?? ''
   );
-  const [selectedBoard, setSelectedBoard] = useBoardSelection(currentProjectId || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
@@ -36,9 +33,9 @@ export default function App() {
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
-  const [ideaModalTicket, setIdeaModalTicket] = useState<IdeaTicket | null>(null);
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
+  const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
 
   const { data: members = [] } = useMembers(currentProjectId ?? '');
 
@@ -283,10 +280,10 @@ export default function App() {
         onOpenMembers={() => setMembersPanelOpen(true)}
         onOpenSettings={() => setSettingsPanelOpen(true)}
         wontDoCount={wontDoTickets.length}
-        selectedBoard={selectedBoard}
-        onBoardChange={setSelectedBoard}
+        activeBoard={activeBoard}
+        onBoardChange={setActiveBoard}
       />
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {globalError && (
           <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span>{globalError}</span>
@@ -300,23 +297,21 @@ export default function App() {
             <button type="button" onClick={() => setBlockedDragPending(null)} style={{ background: 'transparent', border: '1.5px solid #F5C518', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, color: 'var(--color-dark)' }}>Cancel</button>
           </div>
         )}
+
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {projectsLoading && apiProjects.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
             Loading projects…
           </div>
+        ) : activeBoard === 'idea' ? (
+          <IdeaBoard projectId={currentProjectId ?? ''} />
         ) : ticketsLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
             Loading tickets…
           </div>
         ) : (
           <>
-            {selectedBoard === 'idea' ? (
-              <IdeaBoard
-                projectId={currentProjectId}
-                onCardClick={(ticket) => setIdeaModalTicket(ticket)}
-              />
-            ) : (
-              <Board
+            <Board
                 tickets={filteredTickets}
                 allTickets={localTickets}
                 onDragEnd={handleDragEnd}
@@ -334,7 +329,6 @@ export default function App() {
                 activeAssignee={activeAssignee}
                 onAssigneeChange={setActiveAssignee}
               />
-            )}
             {modalState && (
               modalState.mode === 'create' ? (
                 <TicketModal
@@ -359,13 +353,6 @@ export default function App() {
                 />
               ) : null
             )}
-            {ideaModalTicket && (
-              <IdeaTicketModal
-                ticket={ideaModalTicket}
-                projectId={currentProjectId}
-                onClose={() => setIdeaModalTicket(null)}
-              />
-            )}
             {recycleBinOpen && (
               <RecycleBin
                 tickets={wontDoTickets}
@@ -389,6 +376,7 @@ export default function App() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );

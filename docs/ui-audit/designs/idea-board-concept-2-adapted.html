@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Idea Board Concept 2 - Adapted</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"DM Sans"', 'sans-serif'],
+          body: ['"DM Sans"', 'sans-serif'],
+        },
+        colors: {
+          bg: '#F5EFE0',
+          dark: '#3D0C11',
+          yellow: '#F5C518',
+          orange: '#E8441A',
+          lime: '#AACC2E',
+          pink: '#F472B6',
+          blue: '#5BB8F5',
+          purple: '#8B5CF6',
+          teal: '#14B8A6'
+        },
+        boxShadow: {
+          'hard-sm': '2px 2px 0px rgba(61, 12, 17, 0.15)',
+          'hard-md': '4px 4px 0px rgba(61, 12, 17, 0.15)',
+          'hard-lg': '8px 8px 0px rgba(61, 12, 17, 0.15)',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { background-color: theme('colors.bg'); color: theme('colors.dark'); }
+  .neo-brutal { border: 2px solid theme('colors.dark'); box-shadow: theme('boxShadow.hard-md'); border-radius: 16px; }
+  .neo-btn { border: 2px solid theme('colors.dark'); box-shadow: theme('boxShadow.hard-sm'); border-radius: 99px; transition: transform 0.1s, box-shadow 0.1s; }
+  .neo-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px transparent; }
+  .neo-card { transition: transform 0.2s, box-shadow 0.2s; border-radius: 16px; border: 2px solid theme('colors.dark'); box-shadow: theme('boxShadow.hard-md'); background-color: #fff; overflow: hidden; }
+  .neo-card:hover { transform: translateY(-4px) rotate(1deg); box-shadow: theme('boxShadow.hard-lg'); }
+  .scroll-hide::-webkit-scrollbar { display: none; }
+  
+  .col-bg-drafting { background-color: rgba(245, 197, 24, 0.12); border-radius: 20px; }
+  .col-bg-review { background-color: rgba(91, 184, 245, 0.12); border-radius: 20px; }
+  .col-bg-promoted { background-color: rgba(170, 204, 46, 0.12); border-radius: 20px; }
+  .col-bg-dropped { background-color: rgba(61, 12, 17, 0.06); border-radius: 20px; }
+</style>
+</head>
+<body class="h-screen flex flex-col p-6 font-body overflow-hidden">
+  
+  <!-- Header -->
+  <header class="flex justify-between items-center mb-8 bg-white neo-brutal p-4" style="border-radius: 20px;">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-yellow neo-brutal flex items-center justify-center text-xl" style="border-radius: 12px;">✨</div>
+      <h1 class="font-display font-bold text-3xl">Idea Space</h1>
+    </div>
+    <div class="flex bg-orange/10 border-2 border-dark p-1 rounded-full shadow-hard-sm">
+      <button class="px-6 py-2 rounded-full font-bold text-dark/60 hover:text-dark transition-colors">Main Board</button>
+      <button class="px-6 py-2 bg-white rounded-full border-2 border-dark font-bold text-dark shadow-hard-sm">Idea Board 💡</button>
+    </div>
+  </header>
+
+  <!-- Board -->
+  <div class="flex-1 flex gap-6 overflow-x-auto scroll-hide pb-4">
+    
+    <!-- Drafting -->
+    <div class="flex-none w-80 flex flex-col col-bg-drafting p-3">
+      <div class="flex items-center justify-between mb-4 px-2 pt-2">
+        <h2 class="font-display font-bold text-xl flex items-center gap-2">
+          <span class="bg-yellow w-8 h-8 rounded-full border-2 border-dark shadow-hard-sm flex items-center justify-center text-sm">💭</span>
+          Drafting
+        </h2>
+        <span class="font-bold border-2 border-dark px-2 rounded-full bg-white shadow-hard-sm">2</span>
+      </div>
+      
+      <div class="flex flex-col gap-4 overflow-y-auto pb-10 px-1">
+        <div class="neo-card cursor-grab">
+          <div class="h-3 bg-purple"></div>
+          <div class="p-4">
+            <div class="flex gap-2 mb-3">
+              <span class="bg-white border-2 border-dark rounded-full px-3 py-1 text-xs font-bold shadow-hard-sm">🌱 Seed</span>
+            </div>
+            <h3 class="font-display font-bold text-xl mb-2 items-center flex justify-between">Gamified Onboarding</h3>
+            <p class="font-medium text-sm opacity-80">Add a progress bar and confetti when users create their first 3 tasks.</p>
+          </div>
+        </div>
+
+        <div class="neo-card cursor-grab">
+          <div class="h-3 bg-blue"></div>
+          <div class="p-4">
+            <div class="h-24 rounded-lg border-2 border-dark mb-3 bg-gradient-to-tr from-blue to-teal opacity-50"></div>
+            <div class="flex gap-2 mb-3">
+              <span class="bg-white border-2 border-dark rounded-full px-3 py-1 text-xs font-bold shadow-hard-sm">💡 Concept</span>
+            </div>
+            <h3 class="font-display font-bold text-xl mb-2">Custom Emojis</h3>
+            <p class="font-medium text-sm opacity-80">Allow uploading team emojis for ticket reactions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- In Review -->
+    <div class="flex-none w-80 flex flex-col col-bg-review p-3">
+      <div class="flex items-center justify-between mb-4 px-2 pt-2">
+        <h2 class="font-display font-bold text-xl flex items-center gap-2">
+          <span class="bg-blue w-8 h-8 rounded-full border-2 border-dark shadow-hard-sm flex items-center justify-center text-sm">👀</span>
+          In Review
+        </h2>
+        <span class="font-bold border-2 border-dark px-2 rounded-full bg-white shadow-hard-sm">2</span>
+      </div>
+      
+      <div class="flex flex-col gap-4 overflow-y-auto pb-10 px-1">
+        <div class="neo-card">
+          <div class="h-3 bg-pink"></div>
+          <div class="p-4">
+             <div class="flex gap-2 mb-3">
+              <span class="bg-orange text-white border-2 border-dark rounded-full px-3 py-1 text-xs font-bold shadow-hard-sm">🔥 Hot</span>
+              <span class="bg-white border-2 border-dark rounded-full px-3 py-1 text-xs font-bold shadow-hard-sm">UI</span>
+            </div>
+            <h3 class="font-display font-bold text-xl mb-2">Bento Grid Dashboard</h3>
+            <p class="font-medium text-sm opacity-80 mb-4">Redesign the analytics page using a bento-style fluid grid system.</p>
+            <button class="w-full bg-pink fill-white text-dark border-2 border-dark shadow-hard-sm rounded-full py-2 font-bold text-sm hover:translate-y-[-1px] transition-transform flex items-center justify-center gap-2">
+              <span>🚀</span> Approve & Promote
+            </button>
+          </div>
+        </div>
+
+        <div class="neo-card">
+          <div class="h-3 bg-teal"></div>
+          <div class="p-4">
+            <div class="h-20 rounded-lg border-2 border-dark mb-3 bg-[radial-gradient(#3D0C11_1px,transparent_1px)] bg-[size:10px_10px] bg-yellow/40"></div>
+            <div class="flex gap-2 mb-3">
+              <span class="bg-white border-2 border-dark rounded-full px-3 py-1 text-xs font-bold shadow-hard-sm">🚀 Big Bet</span>
+            </div>
+            <h3 class="font-display font-bold text-xl mb-2">Offline Mode First</h3>
+            <p class="font-medium text-sm opacity-80 mb-4">Port everything to CRDTs to allow seamless offline editing.</p>
+            <button class="w-full bg-pink text-dark border-2 border-dark shadow-hard-sm rounded-full py-2 font-bold text-sm hover:translate-y-[-1px] transition-transform flex items-center justify-center gap-2">
+              <span>🚀</span> Approve & Promote
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Promoted -->
+    <div class="flex-none w-80 flex flex-col col-bg-promoted p-3 opacity-80">
+      <div class="flex items-center justify-between mb-4 px-2 pt-2">
+        <h2 class="font-display font-bold text-xl flex items-center gap-2">
+          <span class="bg-lime w-8 h-8 rounded-full border-2 border-dark shadow-hard-sm flex items-center justify-center text-sm">✅</span>
+          Promoted
+        </h2>
+      </div>
+      <div class="flex flex-col gap-4 px-1">
+        <div class="bg-white/50 border-dashed border-2 border-dark rounded-2xl p-4 relative overflow-hidden">
+          <div class="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
+            <span class="bg-white neo-brutal px-3 py-1 font-bold text-sm rotate-6 shadow-hard-sm">Moved to Backlog!</span>
+          </div>
+          <h3 class="font-display font-bold text-xl mb-2 text-dark/70">Magic Sorting</h3>
+          <p class="font-medium text-sm text-dark/60">Done.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dropped -->
+    <div class="flex-none w-80 flex flex-col col-bg-dropped p-3 opacity-60">
+      <div class="flex items-center justify-between mb-4 px-2 pt-2">
+        <h2 class="font-display font-bold text-xl flex items-center gap-2">
+          <span class="bg-dark/20 w-8 h-8 rounded-full border-2 border-dark shadow-hard-sm flex items-center justify-center text-sm">🗑️</span>
+          Dropped
+        </h2>
+      </div>
+      <div class="flex flex-col gap-4 px-1">
+        <div class="bg-white border-2 border-dark rounded-2xl p-4 shadow-hard-sm">
+          <h3 class="font-display font-bold text-lg mb-0 line-through opacity-80">Voice Memos</h3>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

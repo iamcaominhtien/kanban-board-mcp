@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Side Panel - In Review Adapted</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { display: ['"DM Sans"', 'sans-serif'], body: ['"DM Sans"', 'sans-serif'], },
+        colors: {
+          bg: '#F5EFE0',
+          dark: '#3D0C11',
+          yellow: '#F5C518',
+          orange: '#E8441A',
+          lime: '#AACC2E',
+          pink: '#F472B6',
+          blue: '#5BB8F5',
+          purple: '#8B5CF6',
+          teal: '#14B8A6'
+        },
+        boxShadow: {
+          'hard-sm': '2px 2px 0px rgba(61, 12, 17, 0.15)',
+          'hard-md': '4px 4px 0px rgba(61, 12, 17, 0.15)',
+          'hard-lg': '8px 8px 0px rgba(61, 12, 17, 0.15)',
+          'sidepanel': '-8px 0px 16px rgba(61, 12, 17, 0.05)',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { background-color: theme('colors.bg'); color: theme('colors.dark'); font-family: theme('fontFamily.body'); }
+  .neo-sidepanel { 
+    border-left: 2px solid theme('colors.dark'); 
+    box-shadow: theme('boxShadow.sidepanel'); 
+  }
+  .neo-btn { border: 2px solid theme('colors.dark'); box-shadow: theme('boxShadow.hard-sm'); border-radius: 99px; transition: transform 0.1s, box-shadow 0.1s; }
+  .neo-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px transparent; }
+  .notebook-bg {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(transparent, transparent 27px, rgba(3D, 0C, 11, 0.1) 27px, rgba(3D, 0C, 11, 0.1) 29px);
+    line-height: 29px;
+  }
+</style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-bg relative flex flex-col pl-6 pt-6 pb-6">
+  
+  <!-- Backdrop Board (simplified) -->
+  <header class="flex justify-between items-center mb-8 bg-white border-2 border-dark shadow-hard-md rounded-[20px] p-4 mr-6">
+    <h1 class="font-display font-bold text-3xl flex items-center gap-3"><span class="w-10 h-10 bg-yellow border-2 border-dark rounded-xl flex items-center justify-center shadow-hard-sm text-xl">✨</span> Idea Space</h1>
+  </header>
+  <div class="flex-1 flex gap-6 overflow-hidden pr-6">
+    <div class="w-80 bg-orange/10 border-2 border-dark shadow-hard-md rounded-[20px] p-4"></div>
+    <div class="w-80 bg-blue/10 border-2 border-dark shadow-hard-md rounded-[20px] p-4"></div>
+  </div>
+
+  <!-- SIDE PANEL OVERLAY -->
+  <div class="absolute inset-0 bg-dark/10 backdrop-blur-[2px] z-40 flex justify-end">
+    <!-- Panel Container -->
+    <div class="bg-bg neo-sidepanel w-full max-w-2xl h-full flex flex-col relative">
+      
+      <!-- Close -->
+      <button class="absolute top-6 -left-16 w-12 h-12 bg-white neo-btn flex items-center justify-center font-bold text-2xl z-50 hover:bg-bg hover:scale-105 shadow-hard-md text-dark">✕</button>
+
+      <!-- Content Scrollable Area -->
+      <div class="overflow-y-auto flex-1 flex flex-col bg-white">
+        <!-- Header / Cover -->
+        <div class="h-32 bg-gradient-to-br from-pink to-purple/50 border-b-2 border-dark relative shrink-0">
+          <div class="absolute -bottom-10 left-8 w-20 h-20 bg-white border-2 border-dark rounded-xl flex items-center justify-center text-4xl shadow-hard-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform z-10 rotate-[-2deg]">
+            🕹️
+          </div>
+        </div>
+
+        <div class="px-8 pb-8 pt-14 flex flex-col gap-8 flex-1">
+          <!-- Title & Column Status -->
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="bg-blue border-2 border-dark font-bold text-sm px-3 py-1 rounded-full shadow-hard-sm flex items-center gap-1">
+                <span>👀</span> In Review
+              </span>
+            </div>
+            <input type="text" class="font-display font-bold text-4xl w-full outline-none text-dark placeholder:text-dark/20" value="Bento Grid Dashboard" />
+          </div>
+
+          <!-- Energy Tags Picker -->
+          <div class="flex flex-col gap-3">
+            <label class="font-bold text-sm text-dark/50 uppercase tracking-widest">Energy Level</label>
+            <div class="flex flex-wrap gap-4">
+              <!-- Inactive variants -->
+              <button class="neo-btn bg-white px-5 py-2 font-bold text-sm opacity-50 hover:opacity-100 text-dark">🌱 Seed</button>
+              <button class="neo-btn bg-white px-5 py-2 font-bold text-sm opacity-50 hover:opacity-100 text-dark">💡 Concept</button>
+              <!-- Active variant -->
+              <button class="neo-btn bg-orange text-white px-5 py-2 font-bold text-base shadow-hard-sm ring-2 ring-dark ring-offset-2 rotate-2">🔥 Hot</button>
+              <button class="neo-btn bg-white px-5 py-2 font-bold text-sm opacity-50 hover:opacity-100 text-dark">🚀 Big Bet</button>
+            </div>
+          </div>
+
+          <!-- Description Notebook -->
+          <div class="flex flex-col gap-3 flex-1">
+            <label class="font-bold text-sm text-dark/50 uppercase tracking-widest">Description</label>
+            <!-- Notebook styling -->
+            <div class="border-2 border-dark shadow-hard-md notebook-bg rounded-xl min-h-[250px] p-6 relative flex-1 bg-yellow/10">
+              <div class="absolute left-8 top-0 bottom-0 w-[2px] bg-red-400 opacity-40"></div>
+              <textarea class="w-full h-full bg-transparent outline-none resize-none font-body font-medium text-lg text-dark pl-8 pt-1" placeholder="Scribble your rough thoughts here...">Redesign the analytics page using a bento-style fluid grid system.
+
+Users need a way to customize the metrics they care about most. If we make it drag-and-drop, it feels playful and personal!</textarea>
+            </div>
+          </div>
+
+          <!-- Tags -->
+          <div class="flex flex-col gap-3">
+            <label class="font-bold text-sm text-dark/50 uppercase tracking-widest">Tags</label>
+            <div class="flex flex-wrap gap-2 items-center">
+              <span class="bg-white neo-btn px-4 py-1 font-bold text-sm shadow-hard-sm text-dark">dashboard</span>
+              <span class="bg-white neo-btn px-4 py-1 font-bold text-sm shadow-hard-sm text-dark">ui-refresh</span>
+              <button class="w-8 h-8 rounded-full border-2 border-dashed border-dark/40 flex items-center justify-center hover:bg-dark/10 font-bold opacity-70 text-dark">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="bg-bg border-t-2 border-dark p-6 flex flex-col justify-between shrink-0 gap-4">
+        <div class="flex items-center justify-between w-full">
+           <div class="text-xs font-bold text-dark/40">
+            Created: 3 days ago<br>Updated: 10 mins ago
+          </div>
+          <button class="text-dark/50 hover:text-orange font-bold px-3 py-2 underline decoration-2 underline-offset-4">Drop Idea</button>
+        </div>
+        
+        <div class="flex items-center gap-3 w-full">
+          <button class="neo-btn bg-white px-6 py-4 font-bold text-lg hover:bg-dark/5 flex-1">Save</button>
+          <button class="neo-btn bg-pink text-dark border-2 border-dark px-6 py-4 font-display font-bold text-xl flex items-center justify-center gap-2 hover:bg-pink/80 shadow-hard-md flex-[2]">
+            <span class="text-2xl">🚀</span> Approve & Promote
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

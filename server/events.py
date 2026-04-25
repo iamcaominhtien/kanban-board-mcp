@@ -5,10 +5,6 @@ import asyncio
 # ---------------------------------------------------------------------------
 
 INVALIDATE = "invalidate"
-IDEA_TICKET_CREATED = "idea_ticket_created"
-IDEA_TICKET_UPDATED = "idea_ticket_updated"
-IDEA_TICKET_PROMOTED = "idea_ticket_promoted"
-IDEA_TICKET_DROPPED = "idea_ticket_dropped"
 
 # Global set of subscriber queues
 _subscribers: set[asyncio.Queue] = set()

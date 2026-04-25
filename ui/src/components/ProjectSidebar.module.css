@@ -169,6 +169,46 @@
   background: rgba(232, 68, 26, 0.55);
 }
 
+.boardToggleSwitch {
+  position: relative;
+  display: none;
+  width: 32px;
+  min-width: 32px;
+  height: 18px;
+  border-radius: 99px;
+  border: none;
+  background: rgba(245, 239, 224, 0.18);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.projectItem:hover .boardToggleSwitch,
+.projectItem:focus-within .boardToggleSwitch {
+  display: block;
+}
+
+.boardToggleSwitch.boardToggleOn {
+  background: #F5C518;
+}
+
+.boardToggleKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+  display: block;
+}
+
+.boardToggleSwitch.boardToggleOn .boardToggleKnob {
+  transform: translateX(14px);
+}
+
 .bottomSection {
   margin-top: 16px;
   padding-top: 16px;
@@ -383,3 +423,5 @@
 .sidebar:focus-within .recycleBinBadge {
   opacity: 1;
 }
+
+

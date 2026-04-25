@@ -7,45 +7,37 @@ export interface IdeaColumnDef {
   id: IdeaStatus;
   label: string;
   emoji: string;
-  accentColor: string;
+  headerBg: string;
+  accentBg: string;
 }
 
 interface IdeaColumnProps {
   column: IdeaColumnDef;
   tickets: IdeaTicket[];
-  isTerminal: boolean;
   onCardClick: (ticket: IdeaTicket) => void;
 }
 
-export function IdeaColumn({ column, tickets, isTerminal: _isTerminal, onCardClick }: IdeaColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: column.id,
-  });
+export function IdeaColumn({ column, tickets, onCardClick }: IdeaColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
     <div
       ref={setNodeRef}
       className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
-      style={{ '--accent': column.accentColor } as React.CSSProperties}
+      style={{ background: column.headerBg } as React.CSSProperties}
     >
       <div className={styles.header}>
-        <span className={styles.emoji}>{column.emoji}</span>
+        <span className={styles.emojiCircle} style={{ background: column.accentBg }}>{column.emoji}</span>
         <span className={styles.label}>{column.label}</span>
         <span className={styles.badge}>{tickets.length}</span>
       </div>
-
       <div className={styles.cardList}>
-        {tickets.length === 0 ? (
-          <div className={styles.empty}>No ideas here</div>
-        ) : (
-          tickets.map((ticket) => (
-            <IdeaCard
-              key={ticket.id}
-              ticket={ticket}
-              onClick={() => onCardClick(ticket)}
-            />
-          ))
-        )}
+        {tickets.length === 0
+          ? <div className={styles.empty}>{column.emoji} No ideas yet</div>
+          : tickets.map((ticket) => (
+              <IdeaCard key={ticket.id} ticket={ticket} onClick={() => onCardClick(ticket)} />
+            ))
+        }
       </div>
     </div>
   );

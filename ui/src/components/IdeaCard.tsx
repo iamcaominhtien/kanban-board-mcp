@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import type { IdeaColor, IdeaTicket } from '../types';
+import type { IdeaColor, IdeaEnergy, IdeaTicket } from '../types';
 import styles from './IdeaCard.module.css';
 
 const COLOR_MAP: Record<IdeaColor, string> = {
@@ -12,6 +12,13 @@ const COLOR_MAP: Record<IdeaColor, string> = {
   blue:   'var(--color-blue)',
   purple: 'var(--color-purple)',
   teal:   'var(--color-teal)',
+};
+
+const ENERGY_META: Record<IdeaEnergy, { emoji: string; label: string; activeBg?: string; activeColor?: string }> = {
+  seed:    { emoji: '🌱', label: 'Seed' },
+  concept: { emoji: '💡', label: 'Concept' },
+  hot:     { emoji: '🔥', label: 'Hot',     activeBg: 'var(--color-orange)', activeColor: '#fff' },
+  big_bet: { emoji: '🚀', label: 'Big Bet', activeBg: 'var(--color-purple)', activeColor: '#fff' },
 };
 
 interface IdeaCardProps {
@@ -35,11 +42,11 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
 
   const accentColor = COLOR_MAP[ticket.ideaColor] ?? 'var(--color-yellow)';
   const dragging = isDragging || externalDragging;
+  const draggableProps = isDropped ? {} : { ...listeners, ...attributes };
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: dragging ? 0.5 : isDropped ? 0.65 : ticket.ideaStatus === 'approved' ? 0.85 : 1,
-    borderLeftColor: accentColor,
+    opacity: dragging ? 0.5 : 1,
   };
 
   function handleClick() {
@@ -52,6 +59,11 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
 
   const visibleTags = ticket.tags.slice(0, 3);
   const extraTagCount = ticket.tags.length - visibleTags.length;
+  const energy = ticket.ideaEnergy;
+  const energyMeta = energy ? ENERGY_META[energy] : null;
+  const energyStyle = energyMeta?.activeBg
+    ? { background: energyMeta.activeBg, color: energyMeta.activeColor, borderColor: 'var(--color-dark)' }
+    : undefined;
 
   return (
     <div
@@ -59,44 +71,34 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
       className={`${styles.card} ${isDropped ? styles.cardDropped : ''}`}
       style={style}
       onClick={handleClick}
+      aria-label={`Drag ${ticket.title}`}
+      {...draggableProps}
     >
+      <div className={styles.colorStrip} style={{ background: accentColor }} />
+
       {!isDropped && (
         <button
           type="button"
           className={styles.dragHandle}
-          {...listeners}
-          {...attributes}
           onClick={(e) => e.stopPropagation()}
-          aria-label="Drag card"
-        >
-          ⠿
-        </button>
+          aria-hidden="true"
+          tabIndex={-1}
+        >⠿</button>
       )}
 
-      <div className={styles.emoji}>{ticket.ideaEmoji || '💡'}</div>
-
-      <div className={styles.body}>
+      <div className={styles.inner}>
+        {energyMeta && (
+          <span className={styles.energyTag} style={energyStyle}>
+            {energyMeta.emoji} {energyMeta.label}
+          </span>
+        )}
+        <div className={styles.emoji}>{ticket.ideaEmoji || '💡'}</div>
         <p className={styles.title}>{ticket.title}</p>
-
-        {ticket.description && (
-          <p className={styles.description}>{ticket.description}</p>
-        )}
-
-        {ticket.ideaStatus === 'approved' && (
-          <span className={styles.badgeApproved}>🔒 Approved</span>
-        )}
-        {ticket.ideaStatus === 'dropped' && (
-          <span className={styles.badgeDropped}>✗ Dropped</span>
-        )}
-
+        {ticket.description && <p className={styles.description}>{ticket.description}</p>}
         {visibleTags.length > 0 && (
           <div className={styles.tags}>
-            {visibleTags.map((tag) => (
-              <span key={tag} className={styles.tag}>{tag}</span>
-            ))}
-            {extraTagCount > 0 && (
-              <span className={styles.tagExtra}>+{extraTagCount}</span>
-            )}
+            {visibleTags.map((tag) => <span key={tag} className={styles.tag}>{tag}</span>)}
+            {extraTagCount > 0 && <span className={styles.tagExtra}>+{extraTagCount}</span>}
           </div>
         )}
       </div>

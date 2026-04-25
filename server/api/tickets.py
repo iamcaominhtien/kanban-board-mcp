@@ -8,7 +8,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import events as board_events
 from database import get_session
 from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
-from sqlmodel import SQLModel
 from uploads import (
     MAX_DESCRIPTION_IMAGE_BYTES,
     MIME_BY_EXTENSION,
@@ -24,7 +23,6 @@ from services.tickets import (
     add_test_case,
     add_ticket_link,
     add_work_log,
-    create_idea_ticket,
     create_ticket,
     delete_acceptance_criterion,
     delete_comment,
@@ -34,13 +32,10 @@ from services.tickets import (
     get_project_activities,
     get_ticket,
     link_block,
-    list_idea_tickets,
     list_tickets,
-    promote_idea_to_board,
     remove_ticket_link,
     toggle_acceptance_criterion,
     unlink_block,
-    update_idea_ticket,
     update_test_case,
     update_ticket,
 )
@@ -48,23 +43,6 @@ from services.tickets import (
 router = APIRouter(tags=["tickets"])
 
 Session = Annotated[AsyncSession, Depends(get_session)]
-
-
-class IdeaTicketCreateBody(SQLModel):
-    title: str
-    description: Optional[str] = None
-    tags: Optional[list[str]] = None
-    idea_emoji: Optional[str] = None
-    idea_color: Optional[str] = None
-
-
-class IdeaTicketUpdateBody(SQLModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    idea_status: Optional[str] = None
-    idea_emoji: Optional[str] = None
-    idea_color: Optional[str] = None
-    tags: Optional[list[str]] = None
 
 
 def _read(ticket) -> TicketRead:
@@ -158,86 +136,6 @@ async def upload_description_image(
 # ---------------------------------------------------------------------------
 # Core CRUD
 # ---------------------------------------------------------------------------
-
-
-@router.get("/projects/{project_id}/idea-tickets", response_model=list[TicketRead])
-async def get_idea_tickets(
-    project_id: str,
-    session: Session,
-    status: Optional[str] = None,
-) -> list[TicketRead]:
-    tickets = await list_idea_tickets(session, project_id, status=status)
-    return [_read(t) for t in tickets]
-
-
-@router.post(
-    "/projects/{project_id}/idea-tickets", response_model=TicketRead, status_code=201
-)
-async def post_idea_ticket(
-    project_id: str, body: IdeaTicketCreateBody, session: Session
-) -> TicketRead:
-    try:
-        ticket = await create_idea_ticket(
-            session,
-            project_id=project_id,
-            title=body.title,
-            description=body.description or "",
-            tags=body.tags or [],
-            idea_emoji=body.idea_emoji,
-            idea_color=body.idea_color,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    # Event format: "{event_type}:{project_id}" — project_id must not contain ":"
-    # (project IDs are alphanumeric slugs e.g. "abc-123", no special chars)
-    await board_events.publish(f"{board_events.IDEA_TICKET_CREATED}:{project_id}")
-    return _read(ticket)
-
-
-@router.patch(
-    "/projects/{project_id}/idea-tickets/{ticket_id}",
-    response_model=TicketRead,
-)
-async def patch_idea_ticket(
-    project_id: str, ticket_id: str, body: IdeaTicketUpdateBody, session: Session
-) -> TicketRead:
-    try:
-        ticket = await update_idea_ticket(
-            session,
-            ticket_id,
-            title=body.title,
-            description=body.description,
-            idea_status=body.idea_status,
-            idea_emoji=body.idea_emoji,
-            idea_color=body.idea_color,
-            tags=body.tags,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if ticket is None:
-        _404()
-    # Event format: "{event_type}:{project_id}" — project_id must not contain ":"
-    # (project IDs are alphanumeric slugs e.g. "abc-123", no special chars)
-    await board_events.publish(f"{board_events.IDEA_TICKET_UPDATED}:{project_id}")
-    return _read(ticket)
-
-
-@router.post(
-    "/projects/{project_id}/idea-tickets/{ticket_id}/promote",
-    response_model=dict,
-    status_code=200,
-)
-async def promote_idea_ticket(
-    project_id: str, ticket_id: str, session: Session
-) -> dict:
-    try:
-        result = await promote_idea_to_board(session, ticket_id, project_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if result is None:
-        raise HTTPException(status_code=404, detail="Idea ticket not found")
-    await board_events.publish(board_events.INVALIDATE)
-    return result
 
 
 @router.get("/projects/{project_id}/tickets", response_model=list[TicketRead])
