@@ -34,7 +34,9 @@ def _clamp(value: int, lo: int = 1, hi: int = 5) -> int:
     return max(lo, min(hi, value))
 
 
-async def _get_idea_ticket_or_raise(session: AsyncSession, ticket_id: str) -> IdeaTicket:
+async def _get_idea_ticket_or_raise(
+    session: AsyncSession, ticket_id: str
+) -> IdeaTicket:
     ticket = await session.get(IdeaTicket, ticket_id)
     if ticket is None:
         raise ValueError(f"Idea ticket '{ticket_id}' not found")
@@ -94,7 +96,7 @@ async def create_idea_ticket(
     project_id: str,
     title: str,
     description: str = "",
-    idea_color: str = "#F5C518",
+    idea_color: str = "yellow",
     idea_emoji: str = "💡",
     idea_energy: str | None = None,
     tags: list | None = None,
@@ -224,11 +226,10 @@ async def delete_idea_ticket(session: AsyncSession, ticket_id: str) -> bool:
 
 
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    "raw": {"brewing", "dropped"},
-    "brewing": {"validated", "raw", "dropped"},
-    "validated": {"approved", "brewing", "dropped"},
+    "draft": {"in_review", "dropped"},
+    "in_review": {"approved", "draft", "dropped"},
     "approved": {"dropped"},
-    "dropped": {"raw"},
+    "dropped": {"draft"},
 }
 
 
@@ -339,7 +340,9 @@ async def add_assumption(
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     now = _now_iso()
     assumptions = _safe_json(ticket.assumptions)
-    assumptions.append({"id": str(uuid.uuid4()), "text": text, "status": "untested", "at": now})
+    assumptions.append(
+        {"id": str(uuid.uuid4()), "text": text, "status": "untested", "at": now}
+    )
     ticket.assumptions = _dumps(assumptions)
     trail = _safe_json(ticket.activity_trail)
     trail.append({"id": str(uuid.uuid4()), "label": "Assumption added", "at": now})

@@ -72,7 +72,7 @@ class Ticket(SQLModel, table=True):
     )
 
 
-IDEA_STATUSES = ("raw", "brewing", "validated", "approved", "dropped")
+IDEA_STATUSES = ("draft", "in_review", "approved", "dropped")
 
 
 class IdeaTicket(SQLModel, table=True):
@@ -82,8 +82,8 @@ class IdeaTicket(SQLModel, table=True):
     project_id: str = Field(foreign_key="project.id", index=True)
     title: str
     description: str = Field(default="")
-    idea_status: str = Field(default="raw")  # raw|brewing|validated|approved|dropped
-    idea_color: str = Field(default="#F5C518")
+    idea_status: str = Field(default="draft")  # draft|in_review|approved|dropped
+    idea_color: str = Field(default="yellow")
     idea_emoji: str = Field(default="💡")
     idea_energy: Optional[str] = Field(default=None)  # low|medium|high
     tags: str = Field(default="[]")  # JSON list of strings
@@ -278,11 +278,14 @@ class TicketRead(SQLModel):
         )
 
 
+IDEA_COLORS = ("yellow", "orange", "lime", "pink", "blue", "purple", "teal")
+
+
 class IdeaTicketCreateBody(SQLModel):
     project_id: str
     title: str
     description: str = ""
-    idea_color: str = Field(default="#F5C518", regex=r"^#[0-9A-Fa-f]{6}$")
+    idea_color: str = "yellow"
     idea_emoji: str = "💡"
     idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: list[Any] = Field(default_factory=list)
@@ -292,7 +295,7 @@ class IdeaTicketCreateBody(SQLModel):
 class IdeaTicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    idea_color: Optional[str] = Field(default=None, regex=r"^#[0-9A-Fa-f]{6}$")
+    idea_color: Optional[str] = None
     idea_emoji: Optional[str] = None
     idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: Optional[list[Any]] = None
