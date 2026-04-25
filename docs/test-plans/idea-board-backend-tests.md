@@ -1,8 +1,8 @@
 ---
 title: "Idea Board Backend — Test Plan"
 type: test
-status: draft
-version: 1.0.0
+status: review
+version: 1.2.1
 created: 2026-04-25
 updated: 2026-04-25
 authors: [GitHub Copilot]
@@ -29,6 +29,129 @@ The plan covers six delivery scopes plus regression coverage:
 - Regression protection for the existing main Kanban board
 
 This plan is intentionally black-box at the behavior level even where unit tests are proposed. Assertions focus on contract, validation, persistence, and side effects defined by the BA spec rather than internal implementation details.
+
+## Execution Summary — 2026-04-25
+
+### Automated Execution
+
+| TC ID | Result | Notes |
+|---|---|---|
+| TC-S1-Create-Required | PASS | `POST /api/idea-tickets` creates a ticket with required fields only and returns default `draft` state plus default ICE scores. |
+| TC-S1-Create-All-Fields | PASS | Optional fields persist correctly for color, emoji, energy, tags, and problem statement. |
+| TC-S1-Get-By-Id | PASS | `GET /api/idea-tickets/{id}` returns the expected ticket. |
+| TC-S1-List-By-Project | PASS | `GET /api/idea-tickets?project_id=...` returns only the target project's ideas. |
+| TC-S1-Update-Fields | PASS | `PATCH /api/idea-tickets/{id}` updates editable fields and returns the updated payload. |
+| TC-S1-Delete | PASS | `DELETE /api/idea-tickets/{id}` removes the record and follow-up fetch returns `404`. |
+| TC-S2-Draft-To-InReview | PASS | Valid status transition succeeded. |
+| TC-S2-InReview-To-Approved | PASS | Valid status transition succeeded. |
+| TC-S2-Approved-To-Draft | PASS | Invalid transition rejected with `400` and `cannot transition from approved to draft`. |
+| TC-S2-Draft-To-Approved | PASS | Invalid transition rejected with `400` and `cannot transition from draft to approved`. |
+| TC-S3-Add-Microthought | PASS | Added microthought contains `id`, `text`, and `at`. |
+| TC-S3-Delete-Microthought | PASS | Target microthought deleted successfully. |
+| TC-S4-Add-Update-Delete-Assumption | PASS | Assumption add, update to `validated`, and delete all succeeded. |
+| TC-S4-Invalid-Assumption-Status | PASS | Invalid assumption status is rejected with `422`. |
+| TC-S5-Create-Activity | PASS | Idea creation seeds an activity trail entry. |
+| TC-S5-Status-Change-Activity | PASS | Status transition appends a new activity trail entry. |
+| TC-S5-Reverse-Activity-Trail | PASS | `get_idea_activity_trail` MCP tool returns newest-first order. |
+
+Automated execution result: `17 passed` in `tests/test_idea_tickets.py`.
+
+### Existing Backend Suite
+
+The broader backend suite was rerun after adding the idea-ticket coverage.
+
+| Check | Result | Notes |
+|---|---|---|
+| `pytest tests/ -v 2>&1 \| tail -60` | FAIL | Overall suite result: `3 failed, 92 passed`. The failures are outside the idea-ticket slice. |
+
+Existing non-idea-ticket failures observed:
+
+| TC ID | Result | Notes |
+|---|---|---|
+| BASE-DB-001 | FAIL | `tests/test_database.py::test_database_uses_repo_default_path_when_env_missing` |
+| BASE-DB-002 | FAIL | `tests/test_database.py::test_database_resolves_env_path_and_creates_parent_directory` |
+| BASE-MAIN-001 | FAIL | `tests/test_main.py::test_main_emits_ready_signal_and_serves_health` |
+
+### Manual API Contract Verification
+
+| TC ID | Result | Notes |
+|---|---|---|
+| TC-S6-Create-Project-At-Requested-Path | FAIL | `POST /api/projects` returned `405 Method Not Allowed`. |
+| TC-S6-Diagnostic-Create-Project | PASS | Nearby diagnostic `POST /projects` returned `201` and created project `IQC`. |
+| TC-S6-Create-Idea | PASS | `POST /api/idea-tickets` returned `201` and created `IDEA-2`. |
+| TC-S6-List-Ideas | PASS | `GET /api/idea-tickets?project_id=<project>` returned `200` with the created idea in the list. |
+
+Manual verification conclusion: the idea-ticket REST surface is reachable and functioning, but the provided project-create path in the sample flow is not mounted under `/api` on this branch.
+
+## Black-box E2E Execution Summary — 2026-04-25
+
+Environment checks before execution:
+
+- Backend health: `GET http://localhost:8000/health` returned `{"status":"ok"}`
+- UI availability: Vite dev server was already running and served the app at `http://127.0.0.1:5173/`
+
+Playwright execution target: live UI at `http://127.0.0.1:5173/` with backend at `http://localhost:8000`
+
+### E2E Results
+
+| TC ID | Result | Notes |
+|---|---|---|
+| TC-E2E-01 | FAIL | Selecting the test project and switching to Idea Space blanked the viewport instead of rendering the Idea Board columns. No `Drafting`, `In Review`, `Promoted`, or `Dropped` columns became visible. |
+| TC-E2E-02 | SKIP | Blocked by TC-E2E-01. The Idea Board never rendered, so `+ New Idea` was not reachable. |
+| TC-E2E-03 | SKIP | Blocked by TC-E2E-01. No idea ticket card or modal entry point was available. |
+| TC-E2E-04 | SKIP | Blocked by TC-E2E-01. Could not open an idea ticket modal to edit description. |
+| TC-E2E-05 | SKIP | Blocked by TC-E2E-01. No idea ticket UI rendered, so status change could not be attempted. |
+| TC-E2E-06 | SKIP | Blocked by TC-E2E-01. Invalid status transition could not be exercised without a loaded board. |
+| TC-E2E-07 | SKIP | Blocked by TC-E2E-01. Microthought UI was not reachable. |
+| TC-E2E-08 | SKIP | Blocked by TC-E2E-01. Assumption UI was not reachable. |
+| TC-E2E-09 | SKIP | Blocked by TC-E2E-01. Persistence could not be verified because the board failed before any idea interactions. |
+
+### Evidence
+
+- Screenshot captured for the failure state: Idea Space rendered as a blank page after switching from the main board.
+- Browser-visible state in the failed view: `document.body.innerText === ""`
+- Backend/API activity in the failed state: no backend requests were emitted after the Idea Space crash.
+- Console evidence from the live UI:
+  - Repeated React warning: `Maximum update depth exceeded`
+  - Fatal runtime error: `TypeError: tickets.find is not a function`
+  - React error attribution: `The above error occurred in the <IdeaBoard> component`
+
+### QC Conclusion
+
+The Idea Board feature is not testable end-to-end on this branch because entering Idea Space crashes the client before the board renders. This is a blocking UI defect in the Idea Board load path rather than a backend availability failure.
+
+## Black-box E2E Re-run Summary — 2026-04-25 (post crash fix `079e775`)
+
+Environment checks before execution:
+
+- Backend health: `GET http://localhost:8000/health` returned `{"status":"ok"}`
+- UI availability: the app was reachable at `http://127.0.0.1:5173/`
+
+Execution target: live UI at `http://127.0.0.1:5173/` with backend at `http://localhost:8000`
+
+### E2E Results
+
+| TC ID | Result | Notes |
+|---|---|---|
+| TC-E2E-01 | PASS | The Idea Space view opened successfully from the project switch, rendered the four expected columns (`Drafting`, `In Review`, `Promoted`, `Dropped`), showed no error banner on load, and emitted no new error-level console messages after entering the board. |
+| TC-E2E-02 | FAIL | Clicking `+ New Idea`, entering `E2E Test Idea`, and submitting showed a user-visible banner `Request failed with status code 404`. No card appeared in `Drafting`. Browser console captured `Failed to load resource: the server responded with a status of 404 (Not Found)` for `http://127.0.0.1:5173/api/idea-tickets`. |
+| TC-E2E-03 | SKIP | Blocked by TC-E2E-02. No created idea card was available to open in a modal. |
+| TC-E2E-04 | SKIP | Blocked by TC-E2E-02. Could not edit description without a created idea ticket. |
+| TC-E2E-05 | SKIP | Blocked by TC-E2E-02. Could not change status without a created idea ticket. |
+| TC-E2E-06 | SKIP | Blocked by TC-E2E-02. Could not add a microthought without a created idea ticket. |
+| TC-E2E-07 | SKIP | Blocked by TC-E2E-02. Could not add an assumption without a created idea ticket. |
+| TC-E2E-08 | SKIP | Blocked by TC-E2E-02. Could not verify reload persistence because no idea was created. |
+
+### Evidence
+
+- Viewport screenshot after entering Idea Space showed the board rendering correctly with all four expected columns.
+- The create flow displayed an inline error banner: `Request failed with status code 404`.
+- Console evidence after submit: `Failed to load resource: the server responded with a status of 404 (Not Found)` for `/api/idea-tickets`.
+- Backend health remained positive during the rerun: direct navigation to `http://localhost:8000/health` returned `{"status":"ok"}`.
+
+### QC Conclusion
+
+The crash fix appears effective for the initial Idea Space load path: the board now renders instead of blanking the viewport. The current blocking defect is the create-idea flow, which fails at submission with a 404 against `/api/idea-tickets`, preventing the downstream modal, edit, status-change, and persistence checks from executing.
 
 ## Test Environment
 
