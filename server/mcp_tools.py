@@ -686,6 +686,25 @@ async def add_assumption(ticket_id: str, text: str) -> dict | None:
 
 
 @notify_on_success
+async def add_microthought(ticket_id: str, text: str) -> dict | None:
+    """Add a microthought to an idea ticket.
+
+    Args:
+        ticket_id: The idea ticket ID (e.g. 'IDEA-1')
+        text: The microthought text (max 500 chars)
+
+    Returns the updated idea ticket, or {"error": ...} on failure.
+    """
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.add_microthought(session, ticket_id, text)
+            result = _idea_ticket_to_dict(ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return result
+
+
+@notify_on_success
 async def update_assumption_status(
     ticket_id: str,
     assumption_id: str,
@@ -732,6 +751,27 @@ async def delete_assumption(ticket_id: str, assumption_id: str) -> dict | None:
     return result
 
 
+@notify_on_success
+async def delete_microthought(ticket_id: str, microthought_id: str) -> dict | None:
+    """Delete a microthought from an idea ticket by its ID.
+
+    Args:
+        ticket_id: The idea ticket ID (e.g. 'IDEA-1')
+        microthought_id: The UUID of the microthought to delete
+
+    Returns the updated idea ticket, or {"error": ...} on failure.
+    """
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.delete_microthought(
+                session, ticket_id, microthought_id
+            )
+            result = _idea_ticket_to_dict(ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return result
+
+
 def register(mcp: FastMCP) -> None:
     """Register all Kanban MCP tools with the given FastMCP instance."""
     mcp.tool()(list_projects)
@@ -762,3 +802,5 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(add_assumption)
     mcp.tool()(update_assumption_status)
     mcp.tool()(delete_assumption)
+    mcp.tool()(add_microthought)
+    mcp.tool()(delete_microthought)

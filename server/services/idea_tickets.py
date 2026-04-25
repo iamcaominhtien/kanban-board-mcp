@@ -34,6 +34,27 @@ def _clamp(value: int, lo: int = 1, hi: int = 5) -> int:
     return max(lo, min(hi, value))
 
 
+async def _get_idea_ticket_or_raise(session: AsyncSession, ticket_id: str) -> IdeaTicket:
+    ticket = await session.get(IdeaTicket, ticket_id)
+    if ticket is None:
+        raise ValueError(f"Idea ticket '{ticket_id}' not found")
+    return ticket
+
+
+async def _trail_entry_and_save(
+    session: AsyncSession, ticket: IdeaTicket, label: str, now: str
+) -> IdeaTicket:
+    trail = _safe_json(ticket.activity_trail)
+    trail.append({"id": str(uuid.uuid4()), "label": label, "at": now})
+    ticket.activity_trail = _dumps(trail)
+    ticket.last_touched_at = now
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
 _SKIP = object()  # sentinel: skip this field update
 
 
@@ -379,3 +400,32 @@ async def delete_assumption(
     await session.commit()
     await session.refresh(ticket)
     return ticket
+
+
+async def add_microthought(
+    session: AsyncSession, ticket_id: str, text: str
+) -> IdeaTicket:
+    text = text.strip()
+    if not text:
+        raise ValueError("text cannot be empty")
+    if len(text) > 500:
+        raise ValueError("text must be 500 characters or fewer")
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
+    now = _now_iso()
+    microthoughts = _safe_json(ticket.microthoughts)
+    microthoughts.append({"id": str(uuid.uuid4()), "text": text, "at": now})
+    ticket.microthoughts = _dumps(microthoughts)
+    return await _trail_entry_and_save(session, ticket, "Microthought added", now)
+
+
+async def delete_microthought(
+    session: AsyncSession, ticket_id: str, microthought_id: str
+) -> IdeaTicket:
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
+    microthoughts = _safe_json(ticket.microthoughts)
+    filtered = [m for m in microthoughts if m.get("id") != microthought_id]
+    if len(filtered) == len(microthoughts):
+        raise ValueError(f"Microthought '{microthought_id}' not found")
+    ticket.microthoughts = _dumps(filtered)
+    now = _now_iso()
+    return await _trail_entry_and_save(session, ticket, "Microthought deleted", now)
