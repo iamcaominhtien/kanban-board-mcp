@@ -9,6 +9,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .card:active { cursor: grabbing; }
 .card:hover { transform: translateY(-4px) rotate(1deg); box-shadow: 8px 8px 0px rgba(61, 12, 17, 0.15); }

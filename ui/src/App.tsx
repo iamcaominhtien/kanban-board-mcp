@@ -283,7 +283,7 @@ export default function App() {
         activeBoard={activeBoard}
         onBoardChange={setActiveBoard}
       />
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {globalError && (
           <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span>{globalError}</span>
@@ -298,7 +298,7 @@ export default function App() {
           </div>
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {projectsLoading && apiProjects.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
             Loading projects…

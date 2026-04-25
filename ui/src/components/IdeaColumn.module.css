@@ -1,6 +1,6 @@
 .column {
   display: flex; flex-direction: column;
-  flex: 1; min-width: 220px;
+  flex: 1; min-width: 220px; min-height: 0;
   border-radius: 20px; border: 2px solid var(--color-dark);
   box-shadow: 4px 4px 0px rgba(61,12,17,0.15);
   overflow: hidden; padding: 12px;
@@ -23,7 +23,7 @@
 }
 .cardList {
   flex: 1; overflow-y: auto; display: flex; flex-direction: column;
-  gap: 12px; padding: 2px 2px 8px; min-height: 80px;
+  gap: 12px; padding: 2px 2px 8px; min-height: 0;
 }
 .empty {
   font-family: var(--font-body); font-size: 0.8rem;
