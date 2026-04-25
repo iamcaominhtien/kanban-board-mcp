@@ -42,6 +42,7 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
 
   const accentColor = COLOR_MAP[ticket.ideaColor] ?? 'var(--color-yellow)';
   const dragging = isDragging || externalDragging;
+  const draggableProps = isDropped ? {} : { ...listeners, ...attributes };
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
@@ -49,7 +50,10 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
   };
 
   function handleClick() {
-    if (wasDragging.current) { wasDragging.current = false; return; }
+    if (wasDragging.current) {
+      wasDragging.current = false;
+      return;
+    }
     onClick();
   }
 
@@ -57,6 +61,9 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
   const extraTagCount = ticket.tags.length - visibleTags.length;
   const energy = ticket.ideaEnergy;
   const energyMeta = energy ? ENERGY_META[energy] : null;
+  const energyStyle = energyMeta?.activeBg
+    ? { background: energyMeta.activeBg, color: energyMeta.activeColor, borderColor: 'var(--color-dark)' }
+    : undefined;
 
   return (
     <div
@@ -64,8 +71,7 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
       className={`${styles.card} ${isDropped ? styles.cardDropped : ''}`}
       style={style}
       onClick={handleClick}
-      {...(!isDropped ? listeners : {})}
-      {...(!isDropped ? attributes : {})}
+      {...draggableProps}
     >
       <div className={styles.colorStrip} style={{ background: accentColor }} />
 
@@ -80,10 +86,7 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
 
       <div className={styles.inner}>
         {energyMeta && (
-          <span
-            className={styles.energyTag}
-            style={energyMeta.activeBg ? { background: energyMeta.activeBg, color: energyMeta.activeColor, borderColor: 'var(--color-dark)' } : undefined}
-          >
+          <span className={styles.energyTag} style={energyStyle}>
             {energyMeta.emoji} {energyMeta.label}
           </span>
         )}
