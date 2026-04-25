@@ -64,6 +64,8 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
       className={`${styles.card} ${isDropped ? styles.cardDropped : ''}`}
       style={style}
       onClick={handleClick}
+      {...(!isDropped ? listeners : {})}
+      {...(!isDropped ? attributes : {})}
     >
       <div className={styles.colorStrip} style={{ background: accentColor }} />
 
@@ -71,8 +73,6 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
         <button
           type="button"
           className={styles.dragHandle}
-          {...listeners}
-          {...attributes}
           onClick={(e) => e.stopPropagation()}
           aria-label="Drag card"
         >⠿</button>
