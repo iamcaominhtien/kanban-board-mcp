@@ -32,4 +32,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    pass  # data migration, no safe downgrade
+    raise NotImplementedError("Data migration — no safe downgrade")

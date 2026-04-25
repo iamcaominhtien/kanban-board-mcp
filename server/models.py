@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +291,13 @@ class IdeaTicketCreateBody(SQLModel):
     tags: list[Any] = Field(default_factory=list)
     problem_statement: Optional[str] = None
 
+    @field_validator("idea_color")
+    @classmethod
+    def validate_color(cls, v: str) -> str:
+        if v not in IDEA_COLORS:
+            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+        return v
+
 
 class IdeaTicketUpdate(SQLModel):
     title: Optional[str] = None
@@ -304,6 +311,13 @@ class IdeaTicketUpdate(SQLModel):
     ice_effort: Optional[int] = Field(default=None, ge=1, le=5)
     ice_confidence: Optional[int] = Field(default=None, ge=1, le=5)
     revisit_date: Optional[str] = None
+
+    @field_validator("idea_color")
+    @classmethod
+    def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in IDEA_COLORS:
+            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+        return v
 
 
 class IdeaTicketRead(SQLModel):
