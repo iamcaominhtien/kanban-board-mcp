@@ -209,24 +209,7 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
     const ticket = tickets.find(t => t.id === active.id);
     if (!ticket || ticket.ideaStatus === newStatus) return;
     if (!ALLOWED_TRANSITIONS[ticket.ideaStatus]?.includes(newStatus)) return;
-
-    // Optimistic update
-    const now = new Date().toISOString();
-    setTickets(prev => prev.map(t =>
-      t.id === ticket.id
-        ? { ...withActivity(t, STATUS_ACTIVITY_LABELS[newStatus], now), ideaStatus: newStatus }
-        : t
-    ));
-
-    if (projectId) {
-      updateIdeaStatus(ticket.id, newStatus).then(updated => {
-        setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
-      }).catch(() => {
-        // Rollback on failure
-        setTickets(prev => prev.map(t => t.id === ticket.id ? ticket : t));
-        setError('Failed to update status');
-      });
-    }
+    handleStatusChange(ticket.id, newStatus);
   }
 
   function handleSave(updated: IdeaTicket) {
