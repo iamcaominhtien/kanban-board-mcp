@@ -313,12 +313,12 @@ async def add_assumption(
     text = text.strip()
     if not text:
         raise ValueError("text cannot be empty")
-    ticket = await session.get(IdeaTicket, ticket_id)
-    if ticket is None:
-        raise ValueError(f"Idea ticket '{ticket_id}' not found")
+    if len(text) > 500:
+        raise ValueError("text must be 500 characters or fewer")
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     now = _now_iso()
     assumptions = _safe_json(ticket.assumptions)
-    assumptions.append({"id": str(uuid.uuid4()), "text": text, "status": "untested"})
+    assumptions.append({"id": str(uuid.uuid4()), "text": text, "status": "untested", "at": now})
     ticket.assumptions = _dumps(assumptions)
     trail = _safe_json(ticket.activity_trail)
     trail.append({"id": str(uuid.uuid4()), "label": "Assumption added", "at": now})
@@ -338,9 +338,7 @@ async def update_assumption_status(
         raise ValueError(
             f"Invalid status '{status}'. Must be one of: {', '.join(sorted(_VALID_ASSUMPTION_STATUSES))}"
         )
-    ticket = await session.get(IdeaTicket, ticket_id)
-    if ticket is None:
-        raise ValueError(f"Idea ticket '{ticket_id}' not found")
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     assumptions = _safe_json(ticket.assumptions)
     assumption = next((a for a in assumptions if a.get("id") == assumption_id), None)
     if assumption is None:
@@ -364,9 +362,7 @@ async def update_assumption_status(
 async def delete_assumption(
     session: AsyncSession, ticket_id: str, assumption_id: str
 ) -> IdeaTicket:
-    ticket = await session.get(IdeaTicket, ticket_id)
-    if ticket is None:
-        raise ValueError(f"Idea ticket '{ticket_id}' not found")
+    ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     assumptions = _safe_json(ticket.assumptions)
     original_len = len(assumptions)
     assumptions = [a for a in assumptions if a.get("id") != assumption_id]
