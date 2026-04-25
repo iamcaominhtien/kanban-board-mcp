@@ -1,6 +1,6 @@
 .wrapper {
   display: flex; flex-direction: column;
-  height: 100%; padding: 24px 28px;
+  flex: 1; min-height: 0; padding: 24px 28px;
   background: var(--color-bg); overflow: hidden;
 }
 .header {
