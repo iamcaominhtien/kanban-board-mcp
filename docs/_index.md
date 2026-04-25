@@ -1,7 +1,7 @@
 # Documentation Index
 _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/generate_docs_index.py` to refresh._
 
-_Last updated: 2026-04-22_
+_Last updated: 2026-04-25_
 
 ## Architecture
 
@@ -13,6 +13,7 @@ _Last updated: 2026-04-22_
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
+| [ba/idea-board-backend.md](ba/idea-board-backend.md) | BA Planning: Idea Board Backend Integration | stable | 1.0.0 | 2026-04-25 |
 | [specs/iam-87-description-upload.md](specs/iam-87-description-upload.md) | BA Spec: Cải thiện Mô tả - Dán ảnh và Tải tệp (IAM-87) | draft | 1.0.0 | 2026-04-13 |
 | [specs/kanban-ui.md](specs/kanban-ui.md) | BA Spec: Kanban UI (Bento Grid Style) | draft | 1.2.0 | 2026-04-03 |
 
@@ -50,6 +51,7 @@ _Last updated: 2026-04-22_
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
 | [test-plans/iam-97.md](test-plans/iam-97.md) | Test Plan: IAM-97 UI improvements: ticket ordering & terminology | stable | 1.0.1 | 2026-04-16 |
+| [test-plans/idea-board-backend-tests.md](test-plans/idea-board-backend-tests.md) | Idea Board Backend — Test Plan | draft | 1.0.0 | 2026-04-25 |
 | [test-plans/pr-95-bw-theme-toggle.md](test-plans/pr-95-bw-theme-toggle.md) | Test Plan: PR-95 B&W TV Theme Toggle | stable | 1.1.0 | 2026-04-18 |
 | [test-plans/test-ac-mcp-tools.md](test-plans/test-ac-mcp-tools.md) | Test Plan: Acceptance Criteria MCP Tools | stable | 1.1.0 | 2026-04-09 |
 | [test-plans/ui-ux-audit-screenshots.md](test-plans/ui-ux-audit-screenshots.md) | Test Plan: UI/UX Screenshot Audit | in-progress | 1.0.0 | 2026-04-17 |
@@ -86,6 +88,8 @@ _Last updated: 2026-04-22_
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
 | [design/idea-board-design.md](design/idea-board-design.md) | Idea Board Design | stable | 1.0.0 | 2026-04-21 |
+| [design/idea-board-visual-concept.md](design/idea-board-visual-concept.md) | Idea Board — Concept 2: Playful/Toy-like Visual Design | stable | 1.0.0 | 2026-04-22 |
+| [design/idea-ticket-7-features-visual-concept.md](design/idea-ticket-7-features-visual-concept.md) | Idea Ticket - 7 Features Extension | draft | — | 2026-04-25 |
 
 ## Spec
 
