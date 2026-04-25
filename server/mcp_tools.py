@@ -784,10 +784,8 @@ async def get_idea_activity_trail(ticket_id: str) -> list[dict] | dict:
         ticket = await svc_idea_tickets.get_idea_ticket(session, ticket_id)
         if ticket is None:
             return {"error": f"Idea ticket '{ticket_id}' not found"}
-        try:
-            trail = json.loads(ticket.activity_trail) if ticket.activity_trail else []
-        except (json.JSONDecodeError, TypeError):
-            trail = []
+        read = IdeaTicketRead.from_idea_ticket(ticket)
+        trail = read.activity_trail  # already a Python list, properly parsed
         return list(reversed(trail))
 
 
