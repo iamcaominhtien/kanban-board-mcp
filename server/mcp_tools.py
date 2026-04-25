@@ -674,8 +674,6 @@ async def add_microthought(ticket_id: str, text: str) -> dict | None:
 
     Returns the updated idea ticket, or {"error": ...} on failure.
     """
-    if not text or not text.strip():
-        return {"error": "text cannot be empty"}
     try:
         async with async_session() as session:
             ticket = await svc_idea_tickets.add_microthought(session, ticket_id, text)
