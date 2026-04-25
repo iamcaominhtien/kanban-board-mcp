@@ -520,8 +520,10 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                       .map((entry, i) => (
                         <div key={entry.id} className={styles.activityItem}>
                           <div className={`${styles.activityDot} ${i === 0 ? styles.activityDotLatest : ''}`} />
-                          <span className={styles.activityLabel}>{entry.label}</span>
-                          <span className={styles.activityTime}>{formatRelativeTime(entry.at)}</span>
+                          <div className={styles.activityContent}>
+                            <span className={styles.activityLabel}>{entry.label}</span>
+                            <span className={styles.activityTime}>{formatRelativeTime(entry.at)}</span>
+                          </div>
                         </div>
                       ))}
                   </div>
