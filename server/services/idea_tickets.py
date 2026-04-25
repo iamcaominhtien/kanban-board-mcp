@@ -18,6 +18,15 @@ def _loads(value: str) -> list:
     return json.loads(value)
 
 
+def _safe_json(value: str, fallback=None) -> list:
+    if fallback is None:
+        fallback = []
+    try:
+        return json.loads(value) if value else fallback
+    except (json.JSONDecodeError, TypeError):
+        return fallback
+
+
 def _dumps(value: list) -> str:
     return json.dumps(value)
 
@@ -163,7 +172,7 @@ async def update_idea_ticket(
         setattr(ticket, field, new_value)
 
     if changed_field_names:
-        trail = _loads(ticket.activity_trail)
+        trail = _safe_json(ticket.activity_trail)
         trail.append(
             {
                 "id": str(uuid.uuid4()),

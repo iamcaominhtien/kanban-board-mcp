@@ -279,9 +279,9 @@ class IdeaTicketCreateBody(SQLModel):
     project_id: str
     title: str
     description: str = ""
-    idea_color: str = "#F5C518"
+    idea_color: str = Field(default="#F5C518", pattern=r"#[0-9A-Fa-f]{6}")
     idea_emoji: str = "💡"
-    idea_energy: Optional[str] = None
+    idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: list[Any] = Field(default_factory=list)
     problem_statement: Optional[str] = None
 
@@ -289,14 +289,14 @@ class IdeaTicketCreateBody(SQLModel):
 class IdeaTicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    idea_color: Optional[str] = None
+    idea_color: Optional[str] = Field(default=None, pattern=r"#[0-9A-Fa-f]{6}")
     idea_emoji: Optional[str] = None
-    idea_energy: Optional[str] = None
+    idea_energy: Optional[Literal["low", "medium", "high"]] = None
     tags: Optional[list[Any]] = None
     problem_statement: Optional[str] = None
-    ice_impact: Optional[int] = None
-    ice_effort: Optional[int] = None
-    ice_confidence: Optional[int] = None
+    ice_impact: Optional[int] = Field(default=None, ge=1, le=5)
+    ice_effort: Optional[int] = Field(default=None, ge=1, le=5)
+    ice_confidence: Optional[int] = Field(default=None, ge=1, le=5)
     revisit_date: Optional[str] = None
 
 

@@ -25,6 +25,10 @@ from models import (
 )
 
 
+_UNSET = object()
+_VALID_IDEA_STATUSES = frozenset({"raw", "brewing", "validated", "approved", "dropped"})
+
+
 def _ticket_to_dict(ticket: Ticket) -> dict:
     """Serialize a Ticket to dict."""
     return TicketRead.from_ticket(ticket).model_dump()
@@ -443,6 +447,8 @@ async def list_idea_tickets(
 
     Returns list ordered by last_touched_at descending.
     """
+    if idea_status is not None and idea_status not in _VALID_IDEA_STATUSES:
+        return {"error": f"Invalid idea_status '{idea_status}'. Valid values: raw, brewing, validated, approved, dropped"}
     async with async_session() as session:
         tickets = await svc_idea_tickets.list_idea_tickets(
             session, project_id=project_id, idea_status=idea_status, q=q
@@ -475,19 +481,22 @@ async def create_idea_ticket(
 
     Returns the created idea ticket.
     """
-    async with async_session() as session:
-        ticket = await svc_idea_tickets.create_idea_ticket(
-            session,
-            project_id=project_id,
-            title=title,
-            description=description,
-            idea_color=idea_color,
-            idea_emoji=idea_emoji,
-            idea_energy=idea_energy,
-            tags=tags or [],
-            problem_statement=problem_statement,
-        )
-        result = _idea_ticket_to_dict(ticket)
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.create_idea_ticket(
+                session,
+                project_id=project_id,
+                title=title,
+                description=description,
+                idea_color=idea_color,
+                idea_emoji=idea_emoji,
+                idea_energy=idea_energy,
+                tags=tags or [],
+                problem_statement=problem_statement,
+            )
+            result = _idea_ticket_to_dict(ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
     return result
 
 
@@ -510,19 +519,22 @@ async def update_idea_ticket(
     description: str | None = None,
     idea_color: str | None = None,
     idea_emoji: str | None = None,
-    idea_energy: str | None = None,
+    idea_energy: str | None = _UNSET,
     tags: list[str] | None = None,
-    problem_statement: str | None = None,
+    problem_statement: str | None = _UNSET,
     ice_impact: int | None = None,
     ice_effort: int | None = None,
     ice_confidence: int | None = None,
-    revisit_date: str | None = None,
+    revisit_date: str | None = _UNSET,
 ) -> dict | None:
     """Update one or more fields on an idea ticket. Only provided (non-None) fields are updated.
 
-    ICE values are auto-clamped to 1–5. Updates last_touched_at and appends to activity_trail.
+    Nullable fields (idea_energy, problem_statement, revisit_date) can be explicitly cleared
+    to None by passing null. ICE values are auto-clamped to 1–5.
+    Updates last_touched_at and appends to activity_trail.
     Returns the updated idea ticket, or None if not found.
     """
+    _nullable = {"idea_energy", "problem_statement", "revisit_date"}
     fields = {
         "title": title,
         "description": description,
@@ -536,14 +548,21 @@ async def update_idea_ticket(
         "ice_confidence": ice_confidence,
         "revisit_date": revisit_date,
     }
-    update_data = {k: v for k, v in fields.items() if v is not None}
-    async with async_session() as session:
-        ticket = await svc_idea_tickets.update_idea_ticket(
-            session, ticket_id, **update_data
-        )
-        if ticket is None:
-            return None
-        result = _idea_ticket_to_dict(ticket)
+    update_data = {
+        k: v
+        for k, v in fields.items()
+        if v is not _UNSET and (v is not None or k in _nullable)
+    }
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.update_idea_ticket(
+                session, ticket_id, **update_data
+            )
+            if ticket is None:
+                return None
+            result = _idea_ticket_to_dict(ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
     return result
 
 
