@@ -302,3 +302,51 @@ async def promote_idea_to_ticket(
     session.add(ticket)
     await session.commit()
     return new_ticket
+
+
+async def add_microthought(
+    session: AsyncSession, ticket_id: str, text: str
+) -> IdeaTicket:
+    text = text.strip()
+    if not text:
+        raise ValueError("text cannot be empty")
+    ticket = await session.get(IdeaTicket, ticket_id)
+    if ticket is None:
+        raise ValueError(f"Idea ticket '{ticket_id}' not found")
+    now = _now_iso()
+    microthoughts = _safe_json(ticket.microthoughts)
+    microthoughts.append({"id": str(uuid.uuid4()), "text": text, "at": now})
+    ticket.microthoughts = _dumps(microthoughts)
+    trail = _safe_json(ticket.activity_trail)
+    trail.append({"id": str(uuid.uuid4()), "label": "Microthought added", "at": now})
+    ticket.activity_trail = _dumps(trail)
+    ticket.last_touched_at = now
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def delete_microthought(
+    session: AsyncSession, ticket_id: str, microthought_id: str
+) -> IdeaTicket:
+    ticket = await session.get(IdeaTicket, ticket_id)
+    if ticket is None:
+        raise ValueError(f"Idea ticket '{ticket_id}' not found")
+    microthoughts = _safe_json(ticket.microthoughts)
+    original_len = len(microthoughts)
+    microthoughts = [m for m in microthoughts if m.get("id") != microthought_id]
+    if len(microthoughts) == original_len:
+        raise ValueError(f"Microthought '{microthought_id}' not found")
+    now = _now_iso()
+    ticket.microthoughts = _dumps(microthoughts)
+    trail = _safe_json(ticket.activity_trail)
+    trail.append({"id": str(uuid.uuid4()), "label": "Microthought deleted", "at": now})
+    ticket.activity_trail = _dumps(trail)
+    ticket.last_touched_at = now
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket

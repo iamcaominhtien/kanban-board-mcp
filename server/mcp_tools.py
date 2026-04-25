@@ -664,6 +664,48 @@ async def promote_idea_to_ticket(
     return result
 
 
+@notify_on_success
+async def add_microthought(ticket_id: str, text: str) -> dict | None:
+    """Add a microthought to an idea ticket.
+
+    Args:
+        ticket_id: The idea ticket ID (e.g. 'IDEA-1')
+        text: The microthought text (max 500 chars)
+
+    Returns the updated idea ticket, or {"error": ...} on failure.
+    """
+    if not text or not text.strip():
+        return {"error": "text cannot be empty"}
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.add_microthought(session, ticket_id, text)
+            result = _idea_ticket_to_dict(ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return result
+
+
+@notify_on_success
+async def delete_microthought(ticket_id: str, microthought_id: str) -> dict | None:
+    """Delete a microthought from an idea ticket by its ID.
+
+    Args:
+        ticket_id: The idea ticket ID (e.g. 'IDEA-1')
+        microthought_id: The UUID of the microthought to delete
+
+    Returns the updated idea ticket, or {"error": ...} on failure.
+    """
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.delete_microthought(
+                session, ticket_id, microthought_id
+            )
+            result = _idea_ticket_to_dict(ticket)
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return result
+
+
 def register(mcp: FastMCP) -> None:
     """Register all Kanban MCP tools with the given FastMCP instance."""
     mcp.tool()(list_projects)
@@ -691,3 +733,5 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(delete_idea_ticket)
     mcp.tool()(update_idea_status)
     mcp.tool()(promote_idea_to_ticket)
+    mcp.tool()(add_microthought)
+    mcp.tool()(delete_microthought)
