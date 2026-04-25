@@ -331,6 +331,8 @@ async def add_microthought(
     text = text.strip()
     if not text:
         raise ValueError("text cannot be empty")
+    if len(text) > 500:
+        raise ValueError("text must be 500 characters or fewer")
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     now = _now_iso()
     microthoughts = _safe_json(ticket.microthoughts)
