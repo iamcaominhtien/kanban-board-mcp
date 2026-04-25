@@ -19,6 +19,13 @@ class Project(SQLModel, table=True):
     ticket_counter: int = Field(default=0)
 
 
+class IdeaCounter(SQLModel, table=True):
+    __tablename__ = "idea_counter"
+
+    id: int = Field(default=1, primary_key=True)
+    counter: int = Field(default=0)
+
+
 class Member(SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     project_id: str = Field(foreign_key="project.id")
@@ -57,6 +64,37 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
+class IdeaTicket(SQLModel, table=True):
+    __tablename__ = "idea_ticket"
+
+    id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    title: str
+    description: str = Field(default="")
+    idea_status: str = Field(default="raw")  # raw|brewing|validated|approved|dropped
+    idea_color: str = Field(default="#F5C518")
+    idea_emoji: str = Field(default="💡")
+    idea_energy: Optional[str] = Field(default=None)  # low|medium|high
+    tags: str = Field(default="[]")  # JSON list of strings
+    problem_statement: Optional[str] = Field(default=None)
+    ice_impact: int = Field(default=3)
+    ice_effort: int = Field(default=3)
+    ice_confidence: int = Field(default=3)
+    revisit_date: Optional[str] = Field(default=None)
+    last_touched_at: Optional[str] = Field(default=None)
+    promoted_to_ticket_id: Optional[str] = Field(default=None)
+    promoted_at: Optional[str] = Field(default=None)
+    activity_trail: str = Field(default="[]")  # JSON list of {id, label, at}
+    microthoughts: str = Field(default="[]")  # JSON list of {id, text, at}
+    assumptions: str = Field(default="[]")  # JSON list of {id, text, status}
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -232,6 +270,83 @@ class TicketRead(SQLModel):
             block_done_if_acs_incomplete=ticket.block_done_if_acs_incomplete,
             block_done_if_tcs_incomplete=ticket.block_done_if_tcs_incomplete,
             links=_parse_json_list(ticket.links),
+            created_at=ticket.created_at,
+            updated_at=ticket.updated_at,
+        )
+
+
+class IdeaTicketCreateBody(SQLModel):
+    project_id: str
+    title: str
+    description: str = ""
+    idea_color: str = "#F5C518"
+    idea_emoji: str = "💡"
+    idea_energy: Optional[str] = None
+    tags: list[Any] = []
+    problem_statement: Optional[str] = None
+
+
+class IdeaTicketUpdate(SQLModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    idea_color: Optional[str] = None
+    idea_emoji: Optional[str] = None
+    idea_energy: Optional[str] = None
+    tags: Optional[list[Any]] = None
+    problem_statement: Optional[str] = None
+    ice_impact: Optional[int] = None
+    ice_effort: Optional[int] = None
+    ice_confidence: Optional[int] = None
+    revisit_date: Optional[str] = None
+
+
+class IdeaTicketRead(SQLModel):
+    id: str
+    project_id: str
+    title: str
+    description: str
+    idea_status: str
+    idea_color: str
+    idea_emoji: str
+    idea_energy: Optional[str]
+    tags: list[Any] = []
+    problem_statement: Optional[str]
+    ice_impact: int
+    ice_effort: int
+    ice_confidence: int
+    revisit_date: Optional[str]
+    last_touched_at: Optional[str]
+    promoted_to_ticket_id: Optional[str]
+    promoted_at: Optional[str]
+    activity_trail: list[Any] = []
+    microthoughts: list[Any] = []
+    assumptions: list[Any] = []
+    created_at: str
+    updated_at: str
+
+    @classmethod
+    def from_idea_ticket(cls, ticket: IdeaTicket) -> "IdeaTicketRead":
+        return cls(
+            id=ticket.id,
+            project_id=ticket.project_id,
+            title=ticket.title,
+            description=ticket.description,
+            idea_status=ticket.idea_status,
+            idea_color=ticket.idea_color,
+            idea_emoji=ticket.idea_emoji,
+            idea_energy=ticket.idea_energy,
+            tags=_parse_json_list(ticket.tags),
+            problem_statement=ticket.problem_statement,
+            ice_impact=ticket.ice_impact,
+            ice_effort=ticket.ice_effort,
+            ice_confidence=ticket.ice_confidence,
+            revisit_date=ticket.revisit_date,
+            last_touched_at=ticket.last_touched_at,
+            promoted_to_ticket_id=ticket.promoted_to_ticket_id,
+            promoted_at=ticket.promoted_at,
+            activity_trail=_parse_json_list(ticket.activity_trail),
+            microthoughts=_parse_json_list(ticket.microthoughts),
+            assumptions=_parse_json_list(ticket.assumptions),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

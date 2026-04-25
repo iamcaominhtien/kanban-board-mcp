@@ -8,15 +8,15 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import select
 
+import services.idea_tickets as svc_idea_tickets
 import services.members as svc_members
 import services.projects as svc_projects
 import services.tickets as svc_tickets
 from database import async_session
 from models import (
+    IdeaTicketRead,
     MemberRead,
-    Project,
     ProjectCreate,
     ProjectRead,
     Ticket,
@@ -424,6 +424,143 @@ async def remove_member(project_id: str, member_id: str) -> dict:
     return result
 
 
+async def list_idea_tickets(
+    project_id: str,
+    idea_status: str | None = None,
+    q: str | None = None,
+) -> list[dict]:
+    """List idea tickets for a project.
+
+    Args:
+        project_id: The project UUID
+        idea_status: Optional filter by status (raw | brewing | validated | approved | dropped)
+        q: Optional substring search on title and description
+
+    Returns list ordered by last_touched_at descending.
+    """
+    async with async_session() as session:
+        tickets = await svc_idea_tickets.list_idea_tickets(
+            session, project_id=project_id, idea_status=idea_status, q=q
+        )
+        return [IdeaTicketRead.from_idea_ticket(t).model_dump() for t in tickets]
+
+
+@notify_on_success
+async def create_idea_ticket(
+    project_id: str,
+    title: str,
+    description: str = "",
+    idea_color: str = "#F5C518",
+    idea_emoji: str = "💡",
+    idea_energy: str | None = None,
+    tags: list[str] | None = None,
+    problem_statement: str | None = None,
+) -> dict | None:
+    """Create a new idea ticket. ID is auto-generated as IDEA-N (global counter).
+
+    Args:
+        project_id: The project UUID (required)
+        title: Idea title (required)
+        description: Markdown description
+        idea_color: Hex color string (default #F5C518)
+        idea_emoji: Single emoji character (default 💡)
+        idea_energy: low | medium | high
+        tags: List of tag strings
+        problem_statement: Markdown problem statement
+
+    Returns the created idea ticket.
+    """
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.create_idea_ticket(
+                session,
+                project_id=project_id,
+                title=title,
+                description=description,
+                idea_color=idea_color,
+                idea_emoji=idea_emoji,
+                idea_energy=idea_energy,
+                tags=tags or [],
+                problem_statement=problem_statement,
+            )
+            result = IdeaTicketRead.from_idea_ticket(ticket).model_dump()
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
+    return result
+
+
+async def get_idea_ticket(ticket_id: str) -> dict | None:
+    """Get the full details of an idea ticket by its ID (e.g. 'IDEA-1').
+
+    Returns the idea ticket or None if not found.
+    """
+    async with async_session() as session:
+        ticket = await svc_idea_tickets.get_idea_ticket(session, ticket_id)
+        if ticket is None:
+            return None
+        return IdeaTicketRead.from_idea_ticket(ticket).model_dump()
+
+
+@notify_on_success
+async def update_idea_ticket(
+    ticket_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    idea_color: str | None = None,
+    idea_emoji: str | None = None,
+    idea_energy: str | None = None,
+    tags: list[str] | None = None,
+    problem_statement: str | None = None,
+    ice_impact: int | None = None,
+    ice_effort: int | None = None,
+    ice_confidence: int | None = None,
+    revisit_date: str | None = None,
+) -> dict | None:
+    """Update one or more fields on an idea ticket. Only provided (non-None) fields are updated.
+
+    ICE values are auto-clamped to 1–5. Updates last_touched_at and appends to activity_trail.
+    Returns the updated idea ticket, or None if not found.
+    """
+    fields = {
+        "title": title,
+        "description": description,
+        "idea_color": idea_color,
+        "idea_emoji": idea_emoji,
+        "idea_energy": idea_energy,
+        "tags": tags,
+        "problem_statement": problem_statement,
+        "ice_impact": ice_impact,
+        "ice_effort": ice_effort,
+        "ice_confidence": ice_confidence,
+        "revisit_date": revisit_date,
+    }
+    update_data = {k: v for k, v in fields.items() if v is not None}
+    try:
+        async with async_session() as session:
+            ticket = await svc_idea_tickets.update_idea_ticket(
+                session, ticket_id, **update_data
+            )
+            if ticket is None:
+                return None
+            result = IdeaTicketRead.from_idea_ticket(ticket).model_dump()
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
+    return result
+
+
+@notify_on_success
+async def delete_idea_ticket(ticket_id: str) -> dict | None:
+    """Delete an idea ticket by its ID. Returns {"deleted": true} if successful, None if not found.
+
+    If the idea was previously promoted to a Kanban ticket, the linked ticket is NOT deleted.
+    """
+    async with async_session() as session:
+        deleted = await svc_idea_tickets.delete_idea_ticket(session, ticket_id)
+        if not deleted:
+            return None
+        return {"deleted": True}
+
+
 def register(mcp: FastMCP) -> None:
     """Register all Kanban MCP tools with the given FastMCP instance."""
     mcp.tool()(list_projects)
@@ -444,3 +581,8 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(list_members)
     mcp.tool()(add_member)
     mcp.tool()(remove_member)
+    mcp.tool()(list_idea_tickets)
+    mcp.tool()(create_idea_ticket)
+    mcp.tool()(get_idea_ticket)
+    mcp.tool()(update_idea_ticket)
+    mcp.tool()(delete_idea_ticket)

@@ -16,6 +16,7 @@ from api.tickets import router as tickets_router
 from api.members import router as members_router
 from api.settings import router as settings_router
 from api.data import router as data_router
+from api.idea_tickets import router as idea_tickets_router
 from database import init_db
 from uploads import resolve_upload_path
 
@@ -30,7 +31,9 @@ app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Wildcard is safe: the server binds to 127.0.0.1 (loopback only), so it is not reachable from external networks.
+    allow_origins=[
+        "*"
+    ],  # Wildcard is safe: the server binds to 127.0.0.1 (loopback only), so it is not reachable from external networks.
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
@@ -53,6 +56,7 @@ app.include_router(tickets_router)
 app.include_router(members_router)
 app.include_router(settings_router)
 app.include_router(data_router)
+app.include_router(idea_tickets_router)
 
 
 @app.get("/health")
@@ -183,7 +187,6 @@ if __name__ == "__main__":
     _startup_mark("freeze-support-done")
 
     import socket
-    import sys
 
     import uvicorn
 
