@@ -30,6 +30,11 @@ def _ticket_to_dict(ticket: Ticket) -> dict:
     return TicketRead.from_ticket(ticket).model_dump()
 
 
+def _idea_ticket_to_dict(ticket) -> dict:
+    """Serialize an IdeaTicket to dict."""
+    return IdeaTicketRead.from_idea_ticket(ticket).model_dump()
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -442,7 +447,7 @@ async def list_idea_tickets(
         tickets = await svc_idea_tickets.list_idea_tickets(
             session, project_id=project_id, idea_status=idea_status, q=q
         )
-        return [IdeaTicketRead.from_idea_ticket(t).model_dump() for t in tickets]
+        return [_idea_ticket_to_dict(t) for t in tickets]
 
 
 @notify_on_success
@@ -470,22 +475,19 @@ async def create_idea_ticket(
 
     Returns the created idea ticket.
     """
-    try:
-        async with async_session() as session:
-            ticket = await svc_idea_tickets.create_idea_ticket(
-                session,
-                project_id=project_id,
-                title=title,
-                description=description,
-                idea_color=idea_color,
-                idea_emoji=idea_emoji,
-                idea_energy=idea_energy,
-                tags=tags or [],
-                problem_statement=problem_statement,
-            )
-            result = IdeaTicketRead.from_idea_ticket(ticket).model_dump()
-    except ValueError as exc:
-        raise ValueError(str(exc)) from exc
+    async with async_session() as session:
+        ticket = await svc_idea_tickets.create_idea_ticket(
+            session,
+            project_id=project_id,
+            title=title,
+            description=description,
+            idea_color=idea_color,
+            idea_emoji=idea_emoji,
+            idea_energy=idea_energy,
+            tags=tags or [],
+            problem_statement=problem_statement,
+        )
+        result = _idea_ticket_to_dict(ticket)
     return result
 
 
@@ -498,7 +500,7 @@ async def get_idea_ticket(ticket_id: str) -> dict | None:
         ticket = await svc_idea_tickets.get_idea_ticket(session, ticket_id)
         if ticket is None:
             return None
-        return IdeaTicketRead.from_idea_ticket(ticket).model_dump()
+        return _idea_ticket_to_dict(ticket)
 
 
 @notify_on_success
@@ -535,16 +537,13 @@ async def update_idea_ticket(
         "revisit_date": revisit_date,
     }
     update_data = {k: v for k, v in fields.items() if v is not None}
-    try:
-        async with async_session() as session:
-            ticket = await svc_idea_tickets.update_idea_ticket(
-                session, ticket_id, **update_data
-            )
-            if ticket is None:
-                return None
-            result = IdeaTicketRead.from_idea_ticket(ticket).model_dump()
-    except ValueError as exc:
-        raise ValueError(str(exc)) from exc
+    async with async_session() as session:
+        ticket = await svc_idea_tickets.update_idea_ticket(
+            session, ticket_id, **update_data
+        )
+        if ticket is None:
+            return None
+        result = _idea_ticket_to_dict(ticket)
     return result
 
 

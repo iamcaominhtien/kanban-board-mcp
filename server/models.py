@@ -282,7 +282,7 @@ class IdeaTicketCreateBody(SQLModel):
     idea_color: str = "#F5C518"
     idea_emoji: str = "💡"
     idea_energy: Optional[str] = None
-    tags: list[Any] = []
+    tags: list[Any] = Field(default_factory=list)
     problem_statement: Optional[str] = None
 
 
@@ -309,7 +309,7 @@ class IdeaTicketRead(SQLModel):
     idea_color: str
     idea_emoji: str
     idea_energy: Optional[str]
-    tags: list[Any] = []
+    tags: list[Any] = Field(default_factory=list)
     problem_statement: Optional[str]
     ice_impact: int
     ice_effort: int
@@ -318,9 +318,9 @@ class IdeaTicketRead(SQLModel):
     last_touched_at: Optional[str]
     promoted_to_ticket_id: Optional[str]
     promoted_at: Optional[str]
-    activity_trail: list[Any] = []
-    microthoughts: list[Any] = []
-    assumptions: list[Any] = []
+    activity_trail: list[Any] = Field(default_factory=list)
+    microthoughts: list[Any] = Field(default_factory=list)
+    assumptions: list[Any] = Field(default_factory=list)
     created_at: str
     updated_at: str
 

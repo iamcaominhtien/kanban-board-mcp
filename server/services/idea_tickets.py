@@ -30,6 +30,25 @@ def _clamp(value: int, lo: int = 1, hi: int = 5) -> int:
     return max(lo, min(hi, value))
 
 
+def _validate_idea_emoji(value: Any) -> str:
+    emoji = str(value)
+    if len(emoji.strip()) == 0:
+        raise ValueError("idea_emoji cannot be empty")
+    if len(emoji) > 8:
+        raise ValueError("idea_emoji must be a single emoji character")
+    return emoji
+
+
+def _normalize_update_value(field: str, value: Any) -> Any:
+    if field == "idea_emoji":
+        return _validate_idea_emoji(value)
+    if field == "tags":
+        return _dumps(value)
+    if field in {"ice_impact", "ice_effort", "ice_confidence"}:
+        return _clamp(int(value))
+    return value
+
+
 async def _next_idea_id(session: AsyncSession) -> str:
     result = await session.execute(
         text(
@@ -51,10 +70,7 @@ async def create_idea_ticket(
     tags: list | None = None,
     problem_statement: str | None = None,
 ) -> IdeaTicket:
-    if len(idea_emoji.strip()) == 0:
-        raise ValueError("idea_emoji cannot be empty")
-    if len(idea_emoji) > 8:
-        raise ValueError("idea_emoji must be a single emoji character")
+    idea_emoji = _validate_idea_emoji(idea_emoji)
 
     if tags is None:
         tags = []
@@ -109,7 +125,7 @@ async def list_idea_tickets(
     return list(result.all())
 
 
-_UPDATABLE_FIELDS = (
+_UPDATABLE_FIELDS = {
     "title",
     "description",
     "idea_color",
@@ -121,7 +137,7 @@ _UPDATABLE_FIELDS = (
     "ice_effort",
     "ice_confidence",
     "revisit_date",
-)
+}
 
 
 async def update_idea_ticket(
@@ -139,28 +155,12 @@ async def update_idea_ticket(
     for field, value in fields.items():
         if field not in _UPDATABLE_FIELDS:
             continue
-        old = getattr(ticket, field)
-
-        if field == "idea_emoji":
-            if len(str(value).strip()) == 0:
-                raise ValueError("idea_emoji cannot be empty")
-            if len(str(value)) > 8:
-                raise ValueError("idea_emoji must be a single emoji character")
-
-        if field == "tags":
-            serialized = _dumps(value)
-            if old != serialized:
-                changed_field_names.append(field)
-                setattr(ticket, field, serialized)
-        elif field in ("ice_impact", "ice_effort", "ice_confidence"):
-            clamped = _clamp(int(value))
-            if old != clamped:
-                changed_field_names.append(field)
-                setattr(ticket, field, clamped)
-        else:
-            if old != value:
-                changed_field_names.append(field)
-                setattr(ticket, field, value)
+        old_value = getattr(ticket, field)
+        new_value = _normalize_update_value(field, value)
+        if old_value == new_value:
+            continue
+        changed_field_names.append(field)
+        setattr(ticket, field, new_value)
 
     if changed_field_names:
         trail = _loads(ticket.activity_trail)

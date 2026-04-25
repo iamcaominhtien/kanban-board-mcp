@@ -1,4 +1,4 @@
-from typing import Annotated, NoReturn, Optional
+from typing import Annotated, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -31,8 +31,8 @@ def _404(detail: str = "Idea ticket not found") -> NoReturn:
 async def get_idea_tickets(
     session: Session,
     project_id: str = Query(...),
-    idea_status: Optional[str] = None,
-    q: Optional[str] = None,
+    idea_status: str | None = None,
+    q: str | None = None,
 ) -> list[IdeaTicketRead]:
     tickets = await list_idea_tickets(
         session,
