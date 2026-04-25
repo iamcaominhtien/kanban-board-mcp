@@ -772,6 +772,25 @@ async def delete_microthought(ticket_id: str, microthought_id: str) -> dict | No
     return result
 
 
+async def get_idea_activity_trail(ticket_id: str) -> list[dict] | dict:
+    """Returns the full activity trail for an idea ticket, newest first.
+
+    Args:
+        ticket_id: The idea ticket ID (e.g. 'IDEA-1')
+
+    Returns a list of trail entries (newest first), or {"error": ...} if not found.
+    """
+    async with async_session() as session:
+        ticket = await svc_idea_tickets.get_idea_ticket(session, ticket_id)
+        if ticket is None:
+            return {"error": f"Idea ticket '{ticket_id}' not found"}
+        try:
+            trail = json.loads(ticket.activity_trail) if ticket.activity_trail else []
+        except (json.JSONDecodeError, TypeError):
+            trail = []
+        return list(reversed(trail))
+
+
 def register(mcp: FastMCP) -> None:
     """Register all Kanban MCP tools with the given FastMCP instance."""
     mcp.tool()(list_projects)
@@ -804,3 +823,4 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(delete_assumption)
     mcp.tool()(add_microthought)
     mcp.tool()(delete_microthought)
+    mcp.tool()(get_idea_activity_trail)
