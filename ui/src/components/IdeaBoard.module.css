@@ -59,7 +59,7 @@
 .quickCancelBtn:hover { border-color: var(--color-dark); }
 
 .columns {
-  flex: 1; display: flex; gap: 20px; overflow-x: auto;
+  flex: 1; min-height: 0; display: flex; gap: 20px; overflow-x: auto;
   align-items: stretch; padding-bottom: 16px;
 }
 .columns::-webkit-scrollbar { height: 6px; }
