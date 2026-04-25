@@ -209,6 +209,26 @@
 }
 .tagsInput:focus { border-color: var(--color-dark); }
 
+.tagsSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tagsEditBtn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: opacity 0.12s;
+  line-height: 1;
+}
+.tagsEditBtn:hover { opacity: 1; }
+
 .footer {
   background: var(--color-bg); border-top: 2px solid var(--color-dark);
   padding: 20px 28px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;

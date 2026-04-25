@@ -56,6 +56,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const [color, setColor] = useState<IdeaColor>(ticket.ideaColor ?? 'yellow');
   const [energy, setEnergy] = useState<IdeaEnergy | null>(ticket.ideaEnergy ?? null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [editingTags, setEditingTags] = useState(false);
   const [visible, setVisible] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -257,28 +258,36 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               </div>
 
               <div>
-                <span className={styles.sectionLabel}>Tags</span>
-                {isEditable ? (
-                  <>
-                    <input
-                      type="text"
-                      className={styles.tagsInput}
-                      value={tagsInput}
-                      onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="design, ui, feature (comma-separated)"
-                    />
-                    {tagsInput.trim() && (
-                      <div className={styles.tagRow}>
-                        {tagsInput.split(',').map((t) => t.trim()).filter(Boolean).map((t) => (
-                          <span key={t} className={styles.tagPill}>{t}</span>
-                        ))}
-                      </div>
-                    )}
-                  </>
+                <div className={styles.tagsSectionHeader}>
+                  <span className={styles.sectionLabel} style={{ margin: 0 }}>Tags</span>
+                  {isEditable && !editingTags && (
+                    <button
+                      type="button"
+                      className={styles.tagsEditBtn}
+                      onClick={() => setEditingTags(true)}
+                      title="Edit tags"
+                    >✏️</button>
+                  )}
+                </div>
+                {editingTags ? (
+                  <input
+                    type="text"
+                    className={styles.tagsInput}
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="design, ui, feature (comma-separated)"
+                    autoFocus
+                    onBlur={() => setEditingTags(false)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingTags(false); }}
+                  />
                 ) : (
                   <div className={styles.tagRow}>
-                    {ticket.tags.map(t => <span key={t} className={styles.tagPill}>{t}</span>)}
-                    {ticket.tags.length === 0 && <span style={{ fontSize: '0.8rem', color: 'rgba(61,12,17,0.4)' }}>No tags</span>}
+                    {tagsInput.split(',').map((t) => t.trim()).filter(Boolean).map((t) => (
+                      <span key={t} className={styles.tagPill}>{t}</span>
+                    ))}
+                    {!tagsInput.trim() && (
+                      <span style={{ fontSize: '0.8rem', color: 'rgba(61,12,17,0.35)' }}>No tags</span>
+                    )}
                   </div>
                 )}
               </div>
