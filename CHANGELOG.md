@@ -6,6 +6,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.4.2] - 2026-04-26
+
+### Added
+- **Idea Board Backend**: full backend integration for Idea Board — REST API + MCP tools for idea tickets (CRUD, status transitions, promote to ticket, microthoughts, assumptions, activity trail)
+- **Idea Board API wiring**: React UI fully connected to backend API with SSE real-time invalidation, optimistic status updates with rollback
+
+### Fixed
+- Idea board columns now scroll correctly when cards overflow (flex-shrink + min-height fix)
+- Idea status names aligned between backend and frontend (draft/in_review/approved/dropped)
+- Vite proxy config updated to forward `/api/*` routes to backend
+
+---
+
 ## [1.4.1] - 2026-04-22
 
 ### Fixed
