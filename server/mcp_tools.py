@@ -1,5 +1,4 @@
 import json
-import re
 from datetime import datetime, timezone
 from functools import wraps
 from typing import Literal
@@ -16,6 +15,7 @@ import services.projects as svc_projects
 import services.tickets as svc_tickets
 from database import async_session
 from models import (
+    IDEA_COLORS,
     IDEA_STATUSES,
     IdeaTicketRead,
     MemberRead,
@@ -28,7 +28,7 @@ from models import (
 
 _UNSET = object()
 _VALID_IDEA_STATUSES = frozenset(IDEA_STATUSES)
-_HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+_VALID_IDEA_COLORS = frozenset(IDEA_COLORS)
 
 
 def _ticket_to_dict(ticket: Ticket) -> dict:
@@ -444,14 +444,14 @@ async def list_idea_tickets(
 
     Args:
         project_id: The project UUID
-        idea_status: Optional filter by status (raw | brewing | validated | approved | dropped)
+        idea_status: Optional filter by status (draft | in_review | approved | dropped)
         q: Optional substring search on title and description
 
     Returns list ordered by last_touched_at descending.
     """
     if idea_status is not None and idea_status not in _VALID_IDEA_STATUSES:
         return {
-            "error": f"Invalid idea_status '{idea_status}'. Valid values: raw, brewing, validated, approved, dropped"
+            "error": f"Invalid idea_status '{idea_status}'. Valid values: {', '.join(sorted(_VALID_IDEA_STATUSES))}"
         }
     async with async_session() as session:
         tickets = await svc_idea_tickets.list_idea_tickets(
@@ -465,7 +465,7 @@ async def create_idea_ticket(
     project_id: str,
     title: str,
     description: str = "",
-    idea_color: str = "#F5C518",
+    idea_color: str = "yellow",
     idea_emoji: str = "💡",
     idea_energy: str | None = None,
     tags: list[str] | None = None,
@@ -477,7 +477,7 @@ async def create_idea_ticket(
         project_id: The project UUID (required)
         title: Idea title (required)
         description: Markdown description
-        idea_color: Hex color string (default #F5C518)
+        idea_color: Named color (yellow, orange, lime, pink, blue, purple, teal) — default: yellow
         idea_emoji: Single emoji character (default 💡)
         idea_energy: low | medium | high
         tags: List of tag strings
@@ -485,8 +485,8 @@ async def create_idea_ticket(
 
     Returns the created idea ticket.
     """
-    if not _HEX_COLOR_RE.match(idea_color):
-        return {"error": "idea_color must be a 6-digit hex color, e.g. #FF0000"}
+    if idea_color not in _VALID_IDEA_COLORS:
+        return {"error": f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"}
     try:
         async with async_session() as session:
             ticket = await svc_idea_tickets.create_idea_ticket(
@@ -540,8 +540,8 @@ async def update_idea_ticket(
     Updates last_touched_at and appends to activity_trail.
     Returns the updated idea ticket, or None if not found.
     """
-    if idea_color is not None and not _HEX_COLOR_RE.match(idea_color):
-        return {"error": "idea_color must be a 6-digit hex color, e.g. #FF0000"}
+    if idea_color is not None and idea_color not in _VALID_IDEA_COLORS:
+        return {"error": f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"}
     _nullable = {"idea_energy", "problem_statement", "revisit_date"}
     fields = {
         "title": title,
@@ -590,17 +590,16 @@ async def delete_idea_ticket(ticket_id: str) -> dict | None:
 @notify_on_success
 async def update_idea_status(
     ticket_id: str,
-    new_status: Literal["raw", "brewing", "validated", "approved", "dropped"],
+    new_status: Literal["draft", "in_review", "approved", "dropped"],
     reason: str | None = None,
 ) -> dict | None:
     """Transition an idea ticket to a new status.
 
     Allowed transitions:
-    raw → brewing | dropped
-    brewing → validated | raw | dropped
-    validated → approved | brewing | dropped
+    draft → in_review | dropped
+    in_review → approved | draft | dropped
     approved → dropped
-    dropped → raw
+    dropped → draft
 
     Args:
         ticket_id: The idea ticket ID (e.g. 'IDEA-1')
