@@ -184,7 +184,7 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
     const origin = resolveOrigin();
     const es = new EventSource(`${origin}/events`);
     es.onmessage = () => {
-      fetchIdeaTickets(projectId).then(setTickets).catch(() => {});
+      fetchIdeaTickets(projectId).then(setTickets).catch((e: unknown) => setError((e as Error).message ?? 'Failed to refresh ideas'));
     };
     es.onerror = () => {}; // main useSSEInvalidation handles reconnect; silence extra noise
     return () => es.close();

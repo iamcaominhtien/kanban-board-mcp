@@ -9,7 +9,7 @@ export async function fetchIdeaTickets(projectId: string, ideaStatus?: string): 
 }
 
 export async function createIdeaTicket(projectId: string, data: Partial<IdeaTicket>): Promise<IdeaTicket> {
-  const res = await client.post<IdeaTicket>('/api/idea-tickets', { ...data, projectId });
+  const res = await client.post<IdeaTicket>('/api/idea-tickets', { ...data, project_id: projectId });
   return res.data;
 }
 
@@ -19,7 +19,7 @@ export async function updateIdeaTicket(ticketId: string, data: Partial<IdeaTicke
 }
 
 export async function updateIdeaStatus(ticketId: string, newStatus: string): Promise<IdeaTicket> {
-  const res = await client.patch<IdeaTicket>(`/api/idea-tickets/${ticketId}/status`, { newStatus });
+  const res = await client.patch<IdeaTicket>(`/api/idea-tickets/${ticketId}/status`, { new_status: newStatus });
   return res.data;
 }
 
@@ -62,6 +62,6 @@ export async function deleteAssumption(ticketId: string, assumptionId: string): 
 }
 
 export async function promoteIdeaToTicket(ticketId: string, projectId: string): Promise<unknown> {
-  const res = await client.post(`/api/idea-tickets/${ticketId}/promote`, { projectId });
+  const res = await client.post(`/api/idea-tickets/${ticketId}/promote`, { project_id: projectId });
   return res.data;
 }
