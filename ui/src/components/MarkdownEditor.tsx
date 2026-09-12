@@ -35,6 +35,14 @@ interface Props {
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
   startInEditMode?: boolean;
+  /**
+   * Never falls back to the read-only "click to edit" view, even if a blur
+   * event (e.g. a competing autoFocus elsewhere on mount, like a modal's
+   * focus trap) would otherwise flip the internal edit state back off.
+   * Use this for an always-visible composer (like "add a comment") rather
+   * than `startInEditMode` alone, which only seeds the *initial* state.
+   */
+  alwaysEditing?: boolean;
 }
 
 export function MarkdownEditor({
@@ -45,8 +53,9 @@ export function MarkdownEditor({
   onUploadComplete,
   readOnly = false,
   startInEditMode = false,
+  alwaysEditing = false,
 }: Props) {
-  const [isEditing, setIsEditing] = useState(startInEditMode);
+  const [isEditing, setIsEditing] = useState(startInEditMode || alwaysEditing);
   const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -205,7 +214,7 @@ export function MarkdownEditor({
     }
   }
 
-  if (!isEditing) {
+  if (!isEditing && !alwaysEditing) {
     return (
       <div
         className={`${styles.viewArea}${readOnly ? ` ${styles.viewAreaReadOnly}` : ''}`}

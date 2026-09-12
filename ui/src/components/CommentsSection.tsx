@@ -109,14 +109,10 @@ export function CommentsSection({ comments, onAdd, onEdit, onDelete }: CommentsS
       )}
 
       <div className={styles.addArea}>
-        <label htmlFor="comment-input" className={styles.srOnly}>New comment</label>
-        <textarea
-          id="comment-input"
-          className={styles.textarea}
-          rows={3}
+        <MarkdownEditor
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Add a comment... (Markdown supported)"
+          onChange={setText}
+          alwaysEditing
         />
         <div className={styles.addRow}>
           <button
