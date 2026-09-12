@@ -88,7 +88,7 @@ export function CommentsSection({ comments, onAdd, onEdit, onDelete }: CommentsS
                         onClick={() => startEdit(c)}
                         aria-label="Edit comment"
                       >
-                        ✏️
+                        <span>✏️</span>
                       </button>
                       <button
                         type="button"

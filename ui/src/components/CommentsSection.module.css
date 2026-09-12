@@ -85,6 +85,11 @@
   transition: background 0.15s;
 }
 
+.editBtn span {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
 .editBtn:hover {
   background: #F3F4F6;
 }
