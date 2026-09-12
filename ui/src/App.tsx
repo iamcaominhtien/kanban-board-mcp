@@ -45,6 +45,14 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [globalError]);
 
+  // Debounce search input so we don't hit the API on every keystroke —
+  // the actual fuzzy matching happens server-side (see useTickets below).
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     if (currentProjectId) {
       localStorage.setItem('activeProjectId', currentProjectId);
@@ -61,7 +69,9 @@ export default function App() {
 
   const currentProject = apiProjects.find((p) => p.id === currentProjectId);
 
-  const { data: tickets = [], isLoading: ticketsLoading } = useTickets(currentProjectId ?? '');
+  const { data: tickets = [], isLoading: ticketsLoading } = useTickets(currentProjectId ?? '', {
+    q: debouncedSearchQuery || undefined,
+  });
   const { data: wontDoTickets = [] } = useWontDoTickets(currentProjectId ?? '');
   const createTicketMutation = useCreateTicket(currentProjectId ?? '');
   const deleteTicketMutation = useDeleteTicket(currentProjectId ?? '');
@@ -76,16 +86,17 @@ export default function App() {
     setLocalTickets(tickets);
   }, [tickets]);
 
-  const q = searchQuery.toLowerCase();
+  // Text search (fuzzy match on id/title/description/tags) is already applied
+  // server-side via the `q` param passed to useTickets above — only the
+  // remaining chip filters (priority/assignee) need to run client-side here.
   const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
     .filter((t) => {
-      const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
       const matchesAssignee =
         activeAssignee === 'all' ||
         (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
-      return matchesSearch && matchesPriority && matchesAssignee;
+      return matchesPriority && matchesAssignee;
     });
 
   const [modalState, setModalState] = useState<

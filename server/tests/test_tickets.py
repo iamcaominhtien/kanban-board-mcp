@@ -301,6 +301,76 @@ async def test_list_tickets_with_status_filter(client: httpx.AsyncClient):
 
 
 # ---------------------------------------------------------------------------
+# Fuzzy search (`q`)
+# ---------------------------------------------------------------------------
+
+
+async def test_search_by_ticket_id_substring(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c, prefix="MON")
+        ticket = await _create_ticket(c, project["id"], "Unrelated title")
+        number = ticket["id"].split("-")[1]
+
+        r = await c.get(f"/projects/{project['id']}/tickets", params={"q": number})
+    assert r.status_code == 200
+    results = r.json()
+    assert len(results) == 1
+    assert results[0]["id"] == ticket["id"]
+
+
+async def test_search_by_title_fuzzy(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"], "Fix login page crash")
+        await _create_ticket(c, project["id"], "Improve onboarding flow")
+
+        # Slightly misspelled / partial query should still match via fuzzy scoring.
+        r = await c.get(f"/projects/{project['id']}/tickets", params={"q": "login pge"})
+    assert r.status_code == 200
+    results = r.json()
+    assert len(results) == 1
+    assert results[0]["id"] == ticket["id"]
+
+
+async def test_search_by_description(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(
+            c, project["id"], "Generic title", description="Users cannot reset their password"
+        )
+        await _create_ticket(c, project["id"], "Another generic title")
+
+        r = await c.get(f"/projects/{project['id']}/tickets", params={"q": "reset password"})
+    assert r.status_code == 200
+    results = r.json()
+    assert len(results) == 1
+    assert results[0]["id"] == ticket["id"]
+
+
+async def test_search_by_tag(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"], "Generic title", tags=["backend"])
+        await _create_ticket(c, project["id"], "Other ticket", tags=["frontend"])
+
+        r = await c.get(f"/projects/{project['id']}/tickets", params={"q": "backend"})
+    assert r.status_code == 200
+    results = r.json()
+    assert len(results) == 1
+    assert results[0]["id"] == ticket["id"]
+
+
+async def test_search_no_match_returns_empty(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        await _create_ticket(c, project["id"], "Fix login page crash")
+
+        r = await c.get(f"/projects/{project['id']}/tickets", params={"q": "zzzzz nonexistent"})
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+# ---------------------------------------------------------------------------
 # Wont Do status
 # ---------------------------------------------------------------------------
 

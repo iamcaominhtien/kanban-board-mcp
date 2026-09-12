@@ -10,6 +10,7 @@ dependencies = [
     "fastapi[standard]>=0.135.3",
     "greenlet>=3.3.2",
     "mcp[cli]>=1.27.0",
+    "rapidfuzz>=3.9.0",
     "sqlmodel>=0.0.38",
     "uvicorn>=0.43.0",
 ]
