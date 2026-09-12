@@ -250,7 +250,8 @@ async def update_ticket(
 
 @notify_on_success
 async def add_comment(ticket_id: str, text: str, author: str) -> dict | None:
-    """Add a comment to a ticket. Returns the updated ticket."""
+    """Add a comment to a ticket. `text` supports full Markdown (headings, lists,
+    tables, code blocks, links, images, etc.). Returns the updated ticket."""
     async with async_session() as session:
         ticket = await svc_tickets.add_comment(
             session, ticket_id, text=text, author=author
@@ -263,7 +264,8 @@ async def add_comment(ticket_id: str, text: str, author: str) -> dict | None:
 
 @notify_on_success
 async def update_comment(ticket_id: str, comment_id: str, text: str) -> dict | None:
-    """Edit an existing comment's text. Returns the updated ticket."""
+    """Edit an existing comment's text. `text` supports full Markdown (headings,
+    lists, tables, code blocks, links, images, etc.). Returns the updated ticket."""
     async with async_session() as session:
         ticket = await svc_tickets.update_comment(session, ticket_id, comment_id, text)
         if ticket is None:

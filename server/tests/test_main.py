@@ -27,14 +27,26 @@ async def test_health_returns_ok() -> None:
 
 
 async def test_mcp_endpoint_is_reachable() -> None:
-    """GET /mcp must not return 404 — a protocol response or 405 is acceptable."""
-    async with httpx.AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        response = await client.get("/mcp")
+    """GET /mcp/ must not return 404 - a protocol response or 405 is acceptable.
+
+    Note the trailing slash: `app.mount("/mcp", ...)` only matches "/mcp/" and
+    deeper paths (Starlette's Mount requires it), so bare "/mcp" falls through
+    to the SPA catch-all route instead of ever reaching the MCP app.
+
+    The app's lifespan must actually run here (not just construct the ASGI
+    app) - `mcp.streamable_http_app()`'s own lifespan starts its session
+    manager's task group, and that lifespan only runs because `main.py`'s
+    lifespan explicitly enters `mcp.session_manager.run()` (a mounted
+    sub-app's lifespan is not otherwise propagated by FastAPI/Starlette).
+    """
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get("/mcp/")
 
     assert response.status_code != 404, (
-        f"/mcp returned 404 — mount path misconfigured. Got: {response.status_code}"
+        f"/mcp/ returned 404 — mount path misconfigured. Got: {response.status_code}"
     )
 
 

@@ -64,7 +64,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 15 tools for AI agents over MCP:
+The server exposes 33 tools for AI agents over MCP (selected highlights below — see `server/mcp_tools.py` for the full list, which also covers acceptance criteria, idea tickets, assumptions, and microthoughts):
 
 **Projects & Members**
 - `list_projects` — list all projects
@@ -83,7 +83,7 @@ The server exposes 15 tools for AI agents over MCP:
 
 **Annotations**
 - `add_comment` — add a comment to a ticket (supports full Markdown)
-- `update_comment` — edit an existing comment's text
+- `update_comment` — edit an existing comment's text (supports full Markdown)
 - `delete_comment` — remove a comment from a ticket
 - `add_work_log` — log work with role and note
 - `add_test_case` — attach a test case to a ticket
@@ -115,7 +115,7 @@ Start the server first:
 cd server && uv run uvicorn main:app --port 8000
 ```
 
-Then connect any MCP-compatible client to `http://localhost:8000/mcp`.
+Then connect any MCP-compatible client to `http://localhost:8000/mcp/` (note the trailing slash — the mount only matches with it).
 
 ## Desktop App Release Status
 
