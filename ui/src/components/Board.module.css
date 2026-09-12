@@ -1,5 +1,6 @@
 .board {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -78,11 +79,13 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   flex: 1;
+  min-height: 0;
 }
 
 .column {
   border-radius: var(--radius-panel);
-  min-height: 70vh;
+  height: 100%;
+  min-height: 0;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -137,11 +140,17 @@
 
 .columnBody {
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex: 1;
   padding-top: 4px;
+}
+
+.columnBody::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
 }
 
 .childIndent {

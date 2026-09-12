@@ -2,6 +2,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
+from rapidfuzz import fuzz
 from sqlalchemy import text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -15,6 +16,16 @@ from models import (
 
 UTC = timezone.utc
 
+# Fuzzy search: per-field ranking weight, and the min unweighted score a
+# field needs to count as a match at all.
+_SEARCH_FIELD_WEIGHTS = {
+    "id": 2.0,
+    "title": 1.5,
+    "description": 1.0,
+    "tag": 1.0,
+}
+_SEARCH_MATCH_THRESHOLD = 70.0
+
 
 def _loads(value: str) -> list:
     if not value:
@@ -24,6 +35,36 @@ def _loads(value: str) -> list:
 
 def _dumps(value: list) -> str:
     return json.dumps(value)
+
+
+def _fuzzy_score(ticket: Ticket, query: str) -> float:
+    """Weighted fuzzy-match score of `query` against id/title/description/tags,
+    or 0 if nothing matches closely enough."""
+    query = query.strip().lower()
+    if not query:
+        return 100.0
+
+    best = 0.0
+    for field, weight in (
+        ("id", _SEARCH_FIELD_WEIGHTS["id"]),
+        ("title", _SEARCH_FIELD_WEIGHTS["title"]),
+        ("description", _SEARCH_FIELD_WEIGHTS["description"]),
+    ):
+        value = getattr(ticket, field) or ""
+        if not value:
+            continue
+        raw = fuzz.partial_ratio(query, value.lower())
+        if raw >= _SEARCH_MATCH_THRESHOLD:
+            best = max(best, raw * weight)
+
+    for tag in _loads(ticket.tags):
+        if not tag:
+            continue
+        raw = fuzz.partial_ratio(query, str(tag).lower())
+        if raw >= _SEARCH_MATCH_THRESHOLD:
+            best = max(best, raw * _SEARCH_FIELD_WEIGHTS["tag"])
+
+    return best
 
 
 async def list_tickets(
@@ -41,11 +82,16 @@ async def list_tickets(
         stmt = stmt.where(Ticket.status != "wont_do")
     if priority is not None:
         stmt = stmt.where(Ticket.priority == priority)
-    if q is not None:
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        stmt = stmt.where(Ticket.title.ilike(f"%{escaped}%", escape="\\"))
     result = await session.exec(stmt)
-    return list(result.all())
+    tickets = list(result.all())
+
+    if q is not None and q.strip():
+        scored = [(t, _fuzzy_score(t, q)) for t in tickets]
+        scored = [(t, score) for t, score in scored if score > 0]
+        scored.sort(key=lambda pair: pair[1], reverse=True)
+        tickets = [t for t, _ in scored]
+
+    return tickets
 
 
 async def get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:

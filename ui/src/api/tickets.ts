@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { IssueType, Priority, RelationType, Status, Ticket, TicketLink, WorkLogRole } from '../types/ticket';
 
@@ -225,6 +225,10 @@ export function useTickets(
     queryKey: [...ticketKeys.all(projectId), params],
     queryFn: () => listTickets(projectId, params),
     enabled: !!projectId,
+    // `q` changes on every search keystroke (debounced), which changes the
+    // query key — keep showing the previous results while the new query
+    // fetches instead of flashing a loading state / unmounting the board.
+    placeholderData: keepPreviousData,
   });
 }
 

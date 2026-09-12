@@ -45,6 +45,13 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [globalError]);
 
+  // Debounce search input before sending it to the server (fuzzy match happens there)
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     if (currentProjectId) {
       localStorage.setItem('activeProjectId', currentProjectId);
@@ -61,7 +68,9 @@ export default function App() {
 
   const currentProject = apiProjects.find((p) => p.id === currentProjectId);
 
-  const { data: tickets = [], isLoading: ticketsLoading } = useTickets(currentProjectId ?? '');
+  const { data: tickets = [], isLoading: ticketsLoading } = useTickets(currentProjectId ?? '', {
+    q: debouncedSearchQuery || undefined,
+  });
   const { data: wontDoTickets = [] } = useWontDoTickets(currentProjectId ?? '');
   const createTicketMutation = useCreateTicket(currentProjectId ?? '');
   const deleteTicketMutation = useDeleteTicket(currentProjectId ?? '');
@@ -76,16 +85,15 @@ export default function App() {
     setLocalTickets(tickets);
   }, [tickets]);
 
-  const q = searchQuery.toLowerCase();
+  // Search is applied server-side via `q`; only chip filters remain here
   const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
     .filter((t) => {
-      const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
       const matchesAssignee =
         activeAssignee === 'all' ||
         (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
-      return matchesSearch && matchesPriority && matchesAssignee;
+      return matchesPriority && matchesAssignee;
     });
 
   const [modalState, setModalState] = useState<
