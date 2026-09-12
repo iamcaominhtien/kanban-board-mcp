@@ -74,6 +74,21 @@
   background: #F3F4F6;
 }
 
+.editBtn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.editBtn:hover {
+  background: #F3F4F6;
+}
+
 .deleteBtn {
   background: none;
   border: none;

@@ -84,11 +84,11 @@ export function CommentsSection({ comments, onAdd, onEdit, onDelete }: CommentsS
                     <div className={styles.commentActions}>
                       <button
                         type="button"
-                        className={styles.actionBtn}
+                        className={styles.editBtn}
                         onClick={() => startEdit(c)}
                         aria-label="Edit comment"
                       >
-                        Edit
+                        ✏️
                       </button>
                       <button
                         type="button"
