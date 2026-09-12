@@ -35,14 +35,10 @@ interface Props {
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
   startInEditMode?: boolean;
-  /**
-   * Never falls back to the read-only "click to edit" view, even if a blur
-   * event (e.g. a competing autoFocus elsewhere on mount, like a modal's
-   * focus trap) would otherwise flip the internal edit state back off.
-   * Use this for an always-visible composer (like "add a comment") rather
-   * than `startInEditMode` alone, which only seeds the *initial* state.
-   */
-  alwaysEditing?: boolean;
+  /** Text shown in the collapsed view when there's no content yet. */
+  placeholderText?: string;
+  /** aria-label for the collapsed, clickable view. */
+  editAriaLabel?: string;
 }
 
 export function MarkdownEditor({
@@ -53,9 +49,10 @@ export function MarkdownEditor({
   onUploadComplete,
   readOnly = false,
   startInEditMode = false,
-  alwaysEditing = false,
+  placeholderText = 'Click to add a description...',
+  editAriaLabel = 'Edit description',
 }: Props) {
-  const [isEditing, setIsEditing] = useState(startInEditMode || alwaysEditing);
+  const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -214,7 +211,7 @@ export function MarkdownEditor({
     }
   }
 
-  if (!isEditing && !alwaysEditing) {
+  if (!isEditing) {
     return (
       <div
         className={`${styles.viewArea}${readOnly ? ` ${styles.viewAreaReadOnly}` : ''}`}
@@ -224,12 +221,12 @@ export function MarkdownEditor({
         onKeyDown={readOnly ? undefined : (e) => {
           if (e.key === 'Enter' || e.key === ' ') setIsEditing(true);
         }}
-        aria-label={readOnly ? undefined : 'Edit description'}
+        aria-label={readOnly ? undefined : editAriaLabel}
       >
         {value ? (
           <MarkdownRenderer>{value}</MarkdownRenderer>
         ) : (
-          <span className={styles.placeholder}>Click to add a description...</span>
+          <span className={styles.placeholder}>{placeholderText}</span>
         )}
       </div>
     );

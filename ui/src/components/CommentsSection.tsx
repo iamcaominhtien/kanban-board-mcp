@@ -112,7 +112,8 @@ export function CommentsSection({ comments, onAdd, onEdit, onDelete }: CommentsS
         <MarkdownEditor
           value={text}
           onChange={setText}
-          alwaysEditing
+          placeholderText="Click to add a comment..."
+          editAriaLabel="Add a comment"
         />
         <div className={styles.addRow}>
           <button
