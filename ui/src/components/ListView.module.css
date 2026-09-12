@@ -5,6 +5,12 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.listView::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
 }
 
 /* ── Toolbar ──────────────────────────────── */
