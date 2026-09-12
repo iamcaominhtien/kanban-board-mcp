@@ -39,6 +39,8 @@ interface Props {
   placeholderText?: string;
   /** aria-label for the collapsed, clickable view. */
   editAriaLabel?: string;
+  /** Extra class appended to the collapsed view, to override its look per use case. */
+  viewClassName?: string;
 }
 
 export function MarkdownEditor({
@@ -51,6 +53,7 @@ export function MarkdownEditor({
   startInEditMode = false,
   placeholderText = 'Click to add a description...',
   editAriaLabel = 'Edit description',
+  viewClassName,
 }: Props) {
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
@@ -214,7 +217,7 @@ export function MarkdownEditor({
   if (!isEditing) {
     return (
       <div
-        className={`${styles.viewArea}${readOnly ? ` ${styles.viewAreaReadOnly}` : ''}`}
+        className={`${styles.viewArea}${readOnly ? ` ${styles.viewAreaReadOnly}` : ''}${viewClassName ? ` ${viewClassName}` : ''}`}
         onClick={readOnly ? undefined : () => setIsEditing(true)}
         role={readOnly ? undefined : 'button'}
         tabIndex={readOnly ? undefined : 0}

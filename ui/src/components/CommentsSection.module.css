@@ -102,6 +102,21 @@
   gap: 8px;
 }
 
+/* Match the original comment box look (plain white, solid border) for the
+   collapsed "Add a comment" view, instead of MarkdownEditor's cream card
+   style used for the description field. */
+.composerView {
+  background: white;
+  border-color: var(--color-dark);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.composerView:hover {
+  background: white;
+  border-color: var(--color-dark);
+}
+
 .addRow {
   display: flex;
   justify-content: flex-end;

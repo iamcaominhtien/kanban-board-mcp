@@ -114,6 +114,7 @@ export function CommentsSection({ comments, onAdd, onEdit, onDelete }: CommentsS
           onChange={setText}
           placeholderText="Click to add a comment..."
           editAriaLabel="Add a comment"
+          viewClassName={styles.composerView}
         />
         <div className={styles.addRow}>
           <button
