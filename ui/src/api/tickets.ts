@@ -101,6 +101,15 @@ export async function addComment(
   return res.data;
 }
 
+export async function updateComment(
+  ticketId: string,
+  commentId: string,
+  text: string,
+): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/comments/${commentId}`, { text });
+  return res.data;
+}
+
 export async function deleteComment(
   ticketId: string,
   commentId: string,
@@ -314,6 +323,13 @@ export function useAddComment() {
   return useTicketSubMutation(
     ({ ticketId, text, author }: { ticketId: string; text: string; author?: string }) =>
       addComment(ticketId, text, author),
+  );
+}
+
+export function useUpdateComment() {
+  return useTicketSubMutation(
+    ({ ticketId, commentId, text }: { ticketId: string; commentId: string; text: string }) =>
+      updateComment(ticketId, commentId, text),
   );
 }
 

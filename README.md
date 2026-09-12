@@ -82,7 +82,9 @@ The server exposes 15 tools for AI agents over MCP:
 - `create_child_ticket` — create a subtask under a parent ticket
 
 **Annotations**
-- `add_comment` — add a comment to a ticket
+- `add_comment` — add a comment to a ticket (supports full Markdown)
+- `update_comment` — edit an existing comment's text
+- `delete_comment` — remove a comment from a ticket
 - `add_work_log` — log work with role and note
 - `add_test_case` — attach a test case to a ticket
 - `update_test_case` — update test case status and proof

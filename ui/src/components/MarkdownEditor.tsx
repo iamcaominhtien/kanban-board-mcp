@@ -34,6 +34,7 @@ interface Props {
   onUploadImage?: (file: File) => Promise<{ markdown: string }>;
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
+  startInEditMode?: boolean;
 }
 
 export function MarkdownEditor({
@@ -43,8 +44,9 @@ export function MarkdownEditor({
   onUploadImage,
   onUploadComplete,
   readOnly = false,
+  startInEditMode = false,
 }: Props) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

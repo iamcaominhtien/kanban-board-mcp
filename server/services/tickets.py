@@ -310,6 +310,29 @@ async def delete_comment(
     return ticket
 
 
+async def update_comment(
+    session: AsyncSession, ticket_id: str, comment_id: str, text: str
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    comments = _loads(ticket.comments)
+    found = False
+    for c in comments:
+        if c.get("id") == comment_id:
+            c["text"] = text
+            found = True
+            break
+    if not found:
+        return None
+    ticket.comments = _dumps(comments)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
 # ---------------------------------------------------------------------------
 # Sub-entity: acceptance criteria
 # ---------------------------------------------------------------------------

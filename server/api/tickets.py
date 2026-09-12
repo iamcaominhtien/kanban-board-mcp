@@ -36,6 +36,7 @@ from services.tickets import (
     remove_ticket_link,
     toggle_acceptance_criterion,
     unlink_block,
+    update_comment,
     update_test_case,
     update_ticket,
 )
@@ -251,11 +252,26 @@ class CommentBody(BaseModel):
     author: str = "user"
 
 
+class CommentUpdateBody(BaseModel):
+    text: str
+
+
 @router.post("/tickets/{ticket_id}/comments", response_model=TicketRead)
 async def post_comment(
     ticket_id: str, body: CommentBody, session: Session
 ) -> TicketRead:
     ticket = await add_comment(session, ticket_id, body.text, body.author)
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch("/tickets/{ticket_id}/comments/{comment_id}", response_model=TicketRead)
+async def patch_comment(
+    ticket_id: str, comment_id: str, body: CommentUpdateBody, session: Session
+) -> TicketRead:
+    ticket = await update_comment(session, ticket_id, comment_id, body.text)
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

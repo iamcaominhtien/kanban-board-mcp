@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority, Status, Ticket, WorkLogEntry } from '../types';
 import {
   useUpdateTicket,
-  useAddComment,
+  useAddComment, useUpdateComment, useDeleteComment,
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
   useAddWorkLog,
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
@@ -108,6 +108,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
+  const updateCommentMutation = useUpdateComment();
+  const deleteCommentMutation = useDeleteComment();
   const addACMutation = useAddAcceptanceCriterion();
   const toggleACMutation = useToggleAcceptanceCriterion();
   const deleteACMutation = useDeleteAcceptanceCriterion();
@@ -252,6 +254,22 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     addCommentMutation.mutate(
       { ticketId: ticket.id, text, author: 'user' },
       { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add comment:', err); setViewError('Failed to add comment. Please try again.'); } },
+    );
+  }
+
+  function handleEditComment(commentId: string, text: string) {
+    if (!ticket) return;
+    updateCommentMutation.mutate(
+      { ticketId: ticket.id, commentId, text },
+      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to update comment:', err); setViewError('Failed to update comment. Please try again.'); } },
+    );
+  }
+
+  function handleDeleteComment(commentId: string) {
+    if (!ticket) return;
+    deleteCommentMutation.mutate(
+      { ticketId: ticket.id, commentId },
+      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to delete comment:', err); setViewError('Failed to delete comment. Please try again.'); } },
     );
   }
 
@@ -535,6 +553,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <CommentsSection
                   comments={ticket.comments ?? []}
                   onAdd={handleAddComment}
+                  onEdit={handleEditComment}
+                  onDelete={handleDeleteComment}
                 />
 
                 <hr className={styles.divider} />

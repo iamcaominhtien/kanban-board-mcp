@@ -45,7 +45,58 @@
   color: var(--color-dark);
   line-height: 1.4;
   flex: 1;
+  min-width: 0;
   word-break: break-word;
+}
+
+.commentText :global(p:first-child) {
+  margin-top: 0;
+}
+
+.commentText :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.commentActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  color: #6B7280;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.actionBtn:hover {
+  color: var(--color-dark);
+  background: #F3F4F6;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.deleteBtn:hover {
+  color: #DC2626;
+  background: #FEF2F2;
 }
 
 .timestamp {

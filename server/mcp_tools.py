@@ -262,6 +262,28 @@ async def add_comment(ticket_id: str, text: str, author: str) -> dict | None:
 
 
 @notify_on_success
+async def update_comment(ticket_id: str, comment_id: str, text: str) -> dict | None:
+    """Edit an existing comment's text. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.update_comment(session, ticket_id, comment_id, text)
+        if ticket is None:
+            return None
+        result = TicketRead.from_ticket(ticket).model_dump()
+    return result
+
+
+@notify_on_success
+async def delete_comment(ticket_id: str, comment_id: str) -> dict | None:
+    """Delete a comment from a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.delete_comment(session, ticket_id, comment_id)
+        if ticket is None:
+            return None
+        result = TicketRead.from_ticket(ticket).model_dump()
+    return result
+
+
+@notify_on_success
 async def add_work_log(
     ticket_id: str,
     author: str,
@@ -798,6 +820,8 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(update_ticket_status)
     mcp.tool()(update_ticket)
     mcp.tool()(add_comment)
+    mcp.tool()(update_comment)
+    mcp.tool()(delete_comment)
     mcp.tool()(add_work_log)
     mcp.tool()(add_test_case)
     mcp.tool()(update_test_case)

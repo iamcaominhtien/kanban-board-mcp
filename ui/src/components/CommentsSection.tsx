@@ -1,23 +1,47 @@
 import { useState } from 'react';
 import type { Comment } from '../types';
+import { MarkdownEditor } from './MarkdownEditor';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import styles from './CommentsSection.module.css';
 
 interface CommentsSectionProps {
   comments: Comment[];
   onAdd: (text: string) => void;
+  onEdit: (id: string, text: string) => void;
+  onDelete: (id: string) => void;
 }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function CommentsSection({ comments, onAdd }: CommentsSectionProps) {
+export function CommentsSection({ comments, onAdd, onEdit, onDelete }: CommentsSectionProps) {
   const [text, setText] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
 
   function handleAdd() {
     if (!text.trim()) return;
     onAdd(text.trim());
     setText('');
+  }
+
+  function startEdit(comment: Comment) {
+    setEditingId(comment.id);
+    setEditingText(comment.text);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingText('');
+  }
+
+  function saveEdit(id: string, nextText: string) {
+    const trimmed = nextText.trim();
+    setEditingId(null);
+    setEditingText('');
+    if (!trimmed) return;
+    onEdit(id, trimmed);
   }
 
   return (
@@ -30,10 +54,55 @@ export function CommentsSection({ comments, onAdd }: CommentsSectionProps) {
         <div className={styles.commentList}>
           {comments.map((c) => (
             <div key={c.id} className={styles.comment}>
-              <div className={styles.commentTop}>
-                <p className={styles.commentText}>{c.text}</p>
-              </div>
-              <span className={styles.timestamp}>{formatDate(c.at)}</span>
+              {editingId === c.id ? (
+                <>
+                  <MarkdownEditor
+                    value={editingText}
+                    onChange={setEditingText}
+                    onBlur={(nextText) => saveEdit(c.id, nextText)}
+                    startInEditMode
+                  />
+                  <div className={styles.addRow}>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        cancelEdit();
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.commentTop}>
+                    <div className={styles.commentText}>
+                      <MarkdownRenderer>{c.text}</MarkdownRenderer>
+                    </div>
+                    <div className={styles.commentActions}>
+                      <button
+                        type="button"
+                        className={styles.actionBtn}
+                        onClick={() => startEdit(c)}
+                        aria-label="Edit comment"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteBtn}
+                        onClick={() => onDelete(c.id)}
+                        aria-label="Delete comment"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                  <span className={styles.timestamp}>{formatDate(c.at)}</span>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -47,7 +116,7 @@ export function CommentsSection({ comments, onAdd }: CommentsSectionProps) {
           rows={3}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Add a comment..."
+          placeholder="Add a comment... (Markdown supported)"
         />
         <div className={styles.addRow}>
           <button

@@ -231,6 +231,65 @@ async def test_add_comment_unknown_ticket_returns_none():
 
 
 # ---------------------------------------------------------------------------
+# update_comment
+# ---------------------------------------------------------------------------
+
+
+async def test_update_comment():
+    project = await _seed_project(prefix="UCM")
+    ticket = await mcp_tools.create_ticket(
+        project_id=project["id"], title="Commentable"
+    )
+    added = await mcp_tools.add_comment(ticket["id"], text="Hello world", author="alice")
+    comment_id = added["comments"][0]["id"]
+
+    result = await mcp_tools.update_comment(
+        ticket["id"], comment_id, text="**Edited** message"
+    )
+    assert result is not None
+    updated = next(c for c in result["comments"] if c["id"] == comment_id)
+    assert updated["text"] == "**Edited** message"
+    assert updated["author"] == "alice"
+
+
+async def test_update_comment_unknown_ticket_returns_none():
+    result = await mcp_tools.update_comment("MISSING-0", "some-id", text="hi")
+    assert result is None
+
+
+async def test_update_comment_unknown_comment_returns_none():
+    project = await _seed_project(prefix="UCM2")
+    ticket = await mcp_tools.create_ticket(
+        project_id=project["id"], title="Commentable"
+    )
+    result = await mcp_tools.update_comment(ticket["id"], "missing-comment", text="hi")
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# delete_comment
+# ---------------------------------------------------------------------------
+
+
+async def test_delete_comment():
+    project = await _seed_project(prefix="DCM")
+    ticket = await mcp_tools.create_ticket(
+        project_id=project["id"], title="Commentable"
+    )
+    added = await mcp_tools.add_comment(ticket["id"], text="Hello world", author="alice")
+    comment_id = added["comments"][0]["id"]
+
+    result = await mcp_tools.delete_comment(ticket["id"], comment_id)
+    assert result is not None
+    assert result["comments"] == []
+
+
+async def test_delete_comment_unknown_ticket_returns_none():
+    result = await mcp_tools.delete_comment("MISSING-0", "some-id")
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
 # add_work_log
 # ---------------------------------------------------------------------------
 
