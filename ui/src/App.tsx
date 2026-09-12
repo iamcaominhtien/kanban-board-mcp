@@ -45,8 +45,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [globalError]);
 
-  // Debounce search input so we don't hit the API on every keystroke —
-  // the actual fuzzy matching happens server-side (see useTickets below).
+  // Debounce search input before sending it to the server (fuzzy match happens there)
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
@@ -86,9 +85,7 @@ export default function App() {
     setLocalTickets(tickets);
   }, [tickets]);
 
-  // Text search (fuzzy match on id/title/description/tags) is already applied
-  // server-side via the `q` param passed to useTickets above — only the
-  // remaining chip filters (priority/assignee) need to run client-side here.
+  // Search is applied server-side via `q`; only chip filters remain here
   const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
     .filter((t) => {

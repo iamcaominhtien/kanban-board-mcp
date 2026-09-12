@@ -16,11 +16,8 @@ from models import (
 
 UTC = timezone.utc
 
-# Fuzzy search over tickets: field weights (id/mã ticket ưu tiên cao nhất vì
-# đó là thứ người dùng hay gõ một phần, ví dụ "25" để tìm "MON-25") used only
-# to rank matches, plus the minimum *unweighted* fuzzy score a field has to
-# reach on its own to count as a match at all — this keeps short/noisy
-# queries from producing false positives once weight is applied.
+# Fuzzy search: per-field ranking weight, and the min unweighted score a
+# field needs to count as a match at all.
 _SEARCH_FIELD_WEIGHTS = {
     "id": 2.0,
     "title": 1.5,
@@ -41,17 +38,8 @@ def _dumps(value: list) -> str:
 
 
 def _fuzzy_score(ticket: Ticket, query: str) -> float:
-    """Best weighted fuzzy-match score of `query` against a ticket's
-    searchable fields (id, title, description, tags), or 0 if none of them
-    match closely enough.
-
-    Uses partial-ratio so a short substring (e.g. "25") scores highly
-    against a longer field that contains it (e.g. "MON-25"). A field only
-    counts once its own (unweighted) score clears `_SEARCH_MATCH_THRESHOLD`;
-    the weight is then applied purely to rank confirmed matches against each
-    other (id/title matches outrank a description/tag match), not to decide
-    whether something matches in the first place.
-    """
+    """Weighted fuzzy-match score of `query` against id/title/description/tags,
+    or 0 if nothing matches closely enough."""
     query = query.strip().lower()
     if not query:
         return 100.0
