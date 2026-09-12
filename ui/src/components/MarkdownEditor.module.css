@@ -23,75 +23,10 @@
   border-color: var(--color-orange);
 }
 
-.viewArea p {
-  margin: 0 0 8px;
-}
-
-.viewArea p:last-child {
-  margin-bottom: 0;
-}
-
-.viewArea ul,
-.viewArea ol {
-  margin: 0 0 8px;
-  padding-left: 20px;
-}
-
-.viewArea code {
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-size: 13px;
-}
-
-.viewArea pre {
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
-  padding: 12px;
-  overflow-x: auto;
-  margin: 0 0 8px;
-}
-
-.viewArea h1,
-.viewArea h2,
-.viewArea h3 {
-  margin: 0 0 8px;
-  font-weight: 800;
-}
-
-.viewArea img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
 .placeholder {
   color: #9ca3af;
   font-style: italic;
   font-size: 14px;
-}
-
-.viewArea table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 8px;
-  font-size: 0.9em;
-  overflow-x: auto;
-}
-
-.viewArea th,
-.viewArea td {
-  border: 1px solid rgba(61, 12, 17, 0.25);
-  padding: 6px 12px;
-  text-align: left;
-}
-
-.viewArea thead tr {
-  background-color: rgba(61, 12, 17, 0.06);
-}
-
-.viewArea tbody tr:nth-child(even) {
-  background-color: rgba(61, 12, 17, 0.05);
 }
 
 /* ── Edit mode ── */

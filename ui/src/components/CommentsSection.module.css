@@ -49,14 +49,6 @@
   word-break: break-word;
 }
 
-.commentText :global(p:first-child) {
-  margin-top: 0;
-}
-
-.commentText :global(p:last-child) {
-  margin-bottom: 0;
-}
-
 .commentActions {
   display: flex;
   align-items: center;
