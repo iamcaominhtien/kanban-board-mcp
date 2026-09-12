@@ -336,11 +336,16 @@ async def test_search_by_description(client: httpx.AsyncClient):
     async with client as c:
         project = await _create_project(c)
         ticket = await _create_ticket(
-            c, project["id"], "Generic title", description="Users cannot reset their password"
+            c,
+            project["id"],
+            "Generic title",
+            description="Users cannot reset their password",
         )
         await _create_ticket(c, project["id"], "Another generic title")
 
-        r = await c.get(f"/projects/{project['id']}/tickets", params={"q": "reset password"})
+        r = await c.get(
+            f"/projects/{project['id']}/tickets", params={"q": "reset password"}
+        )
     assert r.status_code == 200
     results = r.json()
     assert len(results) == 1
@@ -350,7 +355,9 @@ async def test_search_by_description(client: httpx.AsyncClient):
 async def test_search_by_tag(client: httpx.AsyncClient):
     async with client as c:
         project = await _create_project(c)
-        ticket = await _create_ticket(c, project["id"], "Generic title", tags=["backend"])
+        ticket = await _create_ticket(
+            c, project["id"], "Generic title", tags=["backend"]
+        )
         await _create_ticket(c, project["id"], "Other ticket", tags=["frontend"])
 
         r = await c.get(f"/projects/{project['id']}/tickets", params={"q": "backend"})
@@ -365,7 +372,9 @@ async def test_search_no_match_returns_empty(client: httpx.AsyncClient):
         project = await _create_project(c)
         await _create_ticket(c, project["id"], "Fix login page crash")
 
-        r = await c.get(f"/projects/{project['id']}/tickets", params={"q": "zzzzz nonexistent"})
+        r = await c.get(
+            f"/projects/{project['id']}/tickets", params={"q": "zzzzz nonexistent"}
+        )
     assert r.status_code == 200
     assert r.json() == []
 

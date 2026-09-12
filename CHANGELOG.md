@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.4.3] - 2026-09-12
+
+### Added
+- **Fuzzy ticket search**: search now matches ticket id/code (e.g. searching `25` finds `MON-25`), title, description, and tags — not just an exact title substring. Matching runs server-side (`rapidfuzz`), ranked by relevance.
+
+### Fixed
+- Kanban columns (and List/Timeline views) can now be scrolled to see tickets beyond the visible area — the column container had no real height bound, so overflow was silently clipped instead of scrolling
+- Search input no longer flashes the whole board to a blank "Loading tickets…" state and loses focus on every keystroke (ticket query now keeps showing previous results while a new search fetches)
+
+### Changed
+- Scrollbars are now hidden on the kanban column, list, and timeline scroll containers (scrolling still works, just no visible track/thumb)
+
+---
+
 ## [1.4.2] - 2026-04-26
 
 ### Added
