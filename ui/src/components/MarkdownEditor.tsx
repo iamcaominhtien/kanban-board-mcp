@@ -34,6 +34,13 @@ interface Props {
   onUploadImage?: (file: File) => Promise<{ markdown: string }>;
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
+  startInEditMode?: boolean;
+  /** Text shown in the collapsed view when there's no content yet. */
+  placeholderText?: string;
+  /** aria-label for the collapsed, clickable view. */
+  editAriaLabel?: string;
+  /** Extra class appended to the collapsed view, to override its look per use case. */
+  viewClassName?: string;
 }
 
 export function MarkdownEditor({
@@ -43,8 +50,12 @@ export function MarkdownEditor({
   onUploadImage,
   onUploadComplete,
   readOnly = false,
+  startInEditMode = false,
+  placeholderText = 'Click to add a description...',
+  editAriaLabel = 'Edit description',
+  viewClassName,
 }: Props) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -206,19 +217,19 @@ export function MarkdownEditor({
   if (!isEditing) {
     return (
       <div
-        className={`${styles.viewArea}${readOnly ? ` ${styles.viewAreaReadOnly}` : ''}`}
+        className={`${styles.viewArea}${readOnly ? ` ${styles.viewAreaReadOnly}` : ''}${viewClassName ? ` ${viewClassName}` : ''}`}
         onClick={readOnly ? undefined : () => setIsEditing(true)}
         role={readOnly ? undefined : 'button'}
         tabIndex={readOnly ? undefined : 0}
         onKeyDown={readOnly ? undefined : (e) => {
           if (e.key === 'Enter' || e.key === ' ') setIsEditing(true);
         }}
-        aria-label={readOnly ? undefined : 'Edit description'}
+        aria-label={readOnly ? undefined : editAriaLabel}
       >
         {value ? (
           <MarkdownRenderer>{value}</MarkdownRenderer>
         ) : (
-          <span className={styles.placeholder}>Click to add a description...</span>
+          <span className={styles.placeholder}>{placeholderText}</span>
         )}
       </div>
     );

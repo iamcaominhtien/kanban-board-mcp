@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.4.4] - 2026-09-13
+
+### Added
+- **Comment editing & deletion**: comments can now be edited and deleted, end-to-end — MCP tools `update_comment`/`delete_comment`, `PATCH`/`DELETE /tickets/{ticket_id}/comments/{comment_id}`, and edit/delete controls on each comment in the UI.
+- **Full Markdown for comments**: comment text now gets the same Markdown treatment as ticket descriptions — tables, task lists, code blocks, links, images, headings, etc., rendered via the shared `MarkdownRenderer` and authored with the same toolbar-driven editor (shown on focus, collapses back to a plain box when idle).
+
+### Fixed
+- The MCP server's HTTP transport (`/mcp`) was completely broken — every tool call over HTTP raised `RuntimeError: Task group is not initialized`, because the mounted MCP sub-app's lifespan was never started. The stdio transport (used by VS Code/Claude Desktop) was unaffected. Also corrected the documented client URL to `/mcp/` (trailing slash required).
+
+### Changed
+- README's MCP tool count corrected (33 tools registered); `add_comment`/`update_comment` tool descriptions now note Markdown support.
+
+---
+
 ## [1.4.3] - 2026-09-12
 
 ### Added

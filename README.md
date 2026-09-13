@@ -64,7 +64,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 15 tools for AI agents over MCP:
+The server exposes 33 tools for AI agents over MCP (selected highlights below — see `server/mcp_tools.py` for the full list, which also covers acceptance criteria, idea tickets, assumptions, and microthoughts):
 
 **Projects & Members**
 - `list_projects` — list all projects
@@ -82,7 +82,9 @@ The server exposes 15 tools for AI agents over MCP:
 - `create_child_ticket` — create a subtask under a parent ticket
 
 **Annotations**
-- `add_comment` — add a comment to a ticket
+- `add_comment` — add a comment to a ticket (supports full Markdown)
+- `update_comment` — edit an existing comment's text (supports full Markdown)
+- `delete_comment` — remove a comment from a ticket
 - `add_work_log` — log work with role and note
 - `add_test_case` — attach a test case to a ticket
 - `update_test_case` — update test case status and proof
@@ -113,7 +115,7 @@ Start the server first:
 cd server && uv run uvicorn main:app --port 8000
 ```
 
-Then connect any MCP-compatible client to `http://localhost:8000/mcp`.
+Then connect any MCP-compatible client to `http://localhost:8000/mcp/` (note the trailing slash — the mount only matches with it).
 
 ## Desktop App Release Status
 
@@ -121,7 +123,7 @@ The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) 
 
 | Platform | Status | Artifact |
 |---|---|---|
-| **macOS** (x64 + arm64) | Available | DMG — see [v1.4.3 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v1.4.3) |
+| **macOS** (x64 + arm64) | Available | DMG — see [v1.4.4 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v1.4.4) |
 | **Windows** (NSIS) | Not yet uploaded | Build from source: `./build-desktop.sh` |
 | **Linux** | Not yet supported | — |
 

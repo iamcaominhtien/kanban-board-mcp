@@ -21,10 +21,21 @@ from database import init_db
 from uploads import resolve_upload_path
 
 
+mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
+
+_mcp_tools.register(mcp)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
-    yield
+    # `mcp.streamable_http_app()` (mounted below) carries its own lifespan that
+    # starts its session manager's task group, but FastAPI/Starlette does not
+    # propagate a mounted sub-app's lifespan from the parent's `Mount` - so it
+    # must be started explicitly here, or every /mcp request raises
+    # "RuntimeError: Task group is not initialized. Make sure to use run()."
+    async with mcp.session_manager.run():
+        await init_db()
+        yield
 
 
 app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
@@ -44,10 +55,6 @@ app.add_middleware(
         "Last-Event-ID",
     ],
 )
-
-mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
-
-_mcp_tools.register(mcp)
 
 app.mount("/mcp", mcp.streamable_http_app())
 

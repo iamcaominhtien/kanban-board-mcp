@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import styles from './MarkdownRenderer.module.css';
 
 const MARKDOWN_SCHEMA = {
   ...defaultSchema,
@@ -21,11 +22,13 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}
-    >
-      {children}
-    </ReactMarkdown>
+    <div className={styles.markdown}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
   );
 }

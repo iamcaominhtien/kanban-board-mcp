@@ -182,6 +182,41 @@ async def test_add_and_delete_comment(client: httpx.AsyncClient):
     assert r_del.json()["comments"] == []
 
 
+async def test_update_comment(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        r_add = await c.post(
+            f"/tickets/{ticket['id']}/comments",
+            json={"text": "Hello", "author": "alice"},
+        )
+        comment_id = r_add.json()["comments"][0]["id"]
+
+        r_patch = await c.patch(
+            f"/tickets/{ticket['id']}/comments/{comment_id}",
+            json={"text": "## Updated\n\n- with markdown"},
+        )
+        assert r_patch.status_code == 200
+        comments = r_patch.json()["comments"]
+        assert len(comments) == 1
+        assert comments[0]["id"] == comment_id
+        assert comments[0]["text"] == "## Updated\n\n- with markdown"
+        assert comments[0]["author"] == "alice"
+
+
+async def test_update_comment_unknown_returns_404(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        r_patch = await c.patch(
+            f"/tickets/{ticket['id']}/comments/does-not-exist",
+            json={"text": "new text"},
+        )
+    assert r_patch.status_code == 404
+
+
 # ---------------------------------------------------------------------------
 # Acceptance criteria
 # ---------------------------------------------------------------------------
