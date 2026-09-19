@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(61, 12, 17, 0.45);
+  background: rgba(30, 42, 34, 0.45);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -9,7 +9,7 @@
 }
 
 .panel {
-  background: #fff8f0;
+  background: var(--color-surface);
   border-radius: 20px;
   padding: 28px 32px;
   min-width: 360px;
@@ -27,10 +27,10 @@
 }
 
 .title {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.2rem;
-  color: #3D0C11;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -38,7 +38,7 @@
   background: none;
   border: none;
   font-size: 1.4rem;
-  color: #3D0C11;
+  color: var(--color-text-primary);
   cursor: pointer;
   line-height: 1;
   padding: 0 4px;
@@ -59,7 +59,7 @@
   gap: 10px;
   padding: 6px 8px;
   border-radius: 10px;
-  background: rgba(61,12,17,0.04);
+  background: rgba(30, 42, 34, 0.04);
 }
 
 .avatar {
@@ -71,24 +71,24 @@
   justify-content: center;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-on-accent-dark);
   flex-shrink: 0;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0.02em;
 }
 
 .memberName {
   flex: 1;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: 0.9rem;
-  color: #3D0C11;
+  color: var(--color-text-primary);
 }
 
 .removeBtn {
   background: none;
   border: none;
   font-size: 1.1rem;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   cursor: pointer;
   line-height: 1;
   padding: 0 4px;
@@ -96,13 +96,13 @@
 }
 
 .removeBtn:hover {
-  color: #DC2626;
+  color: var(--color-danger);
 }
 
 .empty {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: 0.85rem;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   padding: 4px 0;
 }
 
@@ -115,17 +115,17 @@
 .nameInput {
   flex: 1;
   padding: 8px 12px;
-  border: 1.5px solid rgba(61,12,17,0.15);
+  border: 1.5px solid var(--color-border);
   border-radius: 10px;
   font-size: 0.9rem;
-  font-family: 'DM Sans', sans-serif;
-  background: #fff;
-  color: #3D0C11;
+  font-family: var(--font-display);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   outline: none;
 }
 
 .nameInput:focus {
-  border-color: #5BB8F5;
+  border-color: var(--color-primary);
 }
 
 .colorSwatchRow {
@@ -139,7 +139,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1.5px solid rgba(61,12,17,0.15);
+  border: 1.5px solid var(--color-border);
   cursor: pointer;
   padding: 0;
   transition: transform 150ms, box-shadow 150ms;
@@ -150,17 +150,17 @@
 }
 
 .swatchActive {
-  box-shadow: 0 0 0 2px #fff8f0, 0 0 0 4px #3D0C11;
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text-primary);
   transform: scale(1.1);
 }
 
 .addBtn {
   padding: 8px 16px;
-  background: #3D0C11;
-  color: #F5EFE0;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
   border-radius: 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.85rem;
   cursor: pointer;
@@ -174,7 +174,7 @@
 
 .errorText {
   font-size: 0.8rem;
-  color: #DC2626;
+  color: var(--color-danger);
   margin: 0;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-display);
 }
