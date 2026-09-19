@@ -65,6 +65,49 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
   return (
     <aside className={`${styles.sidebar} ${showForm ? styles.expanded : ''}`} aria-label="Project navigation">
       <div className={styles.logo}>
+        <div
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            background: '#2E6F40',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              width: 10,
+              height: 7,
+              borderRadius: 1.5,
+              background: '#1E4A2C',
+              opacity: 0.55,
+              transform: 'rotate(-9deg) translate(-1.2px, 0.8px)',
+            }}
+          />
+          <div
+            style={{
+              width: 10,
+              height: 7,
+              borderRadius: 1.5,
+              background: '#F3F8F4',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: 1,
+              padding: '0 1.2px',
+              boxSizing: 'border-box',
+              boxShadow: '0 1.5px 3px rgba(0,0,0,0.14)',
+            }}
+          >
+            <div style={{ width: '60%', height: 1, borderRadius: 0.5, background: '#B7D9C0' }} />
+            <div style={{ width: '85%', height: 1, borderRadius: 0.5, background: '#B7D9C0' }} />
+          </div>
+        </div>
         <span className={styles.logoText}>KANBAN</span>
       </div>
 

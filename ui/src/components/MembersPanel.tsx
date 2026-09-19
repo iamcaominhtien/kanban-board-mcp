@@ -4,6 +4,16 @@ import type { Member } from '../types/ticket';
 import { useAddMember, useRemoveMember } from '../api/members';
 import styles from './MembersPanel.module.css';
 
+const MEMBER_COLOR_OPTIONS: { hex: string; label: string }[] = [
+  { hex: '#2E6F40', label: 'Forest Green' },
+  { hex: '#5B5FA8', label: 'Indigo' },
+  { hex: '#B4791E', label: 'Amber' },
+  { hex: '#B0446E', label: 'Rose' },
+  { hex: '#3B82F6', label: 'Blue' },
+  { hex: '#DC6803', label: 'Orange' },
+  { hex: '#7C3AED', label: 'Purple' },
+];
+
 function memberInitials(name: string): string {
   return name
     .split(/\s+/)
@@ -21,7 +31,7 @@ interface MembersPanelProps {
 
 export function MembersPanel({ projectId, members, onClose }: MembersPanelProps) {
   const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState('#3B82F6');
+  const [newColor, setNewColor] = useState(MEMBER_COLOR_OPTIONS[0].hex);
   const [addError, setAddError] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
@@ -90,13 +100,6 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
             value={newName}
             onChange={(e) => { setNewName(e.target.value); setAddError(null); }}
           />
-          <input
-            className={styles.colorInput}
-            type="color"
-            value={newColor}
-            onChange={(e) => setNewColor(e.target.value)}
-            title="Avatar color"
-          />
           <button
             type="submit"
             className={styles.addBtn}
@@ -105,6 +108,19 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
             {addMemberMutation.isPending ? '…' : 'Add'}
           </button>
         </form>
+        <div className={styles.colorSwatchRow}>
+          {MEMBER_COLOR_OPTIONS.map((c) => (
+            <button
+              key={c.hex}
+              type="button"
+              className={`${styles.swatch} ${newColor === c.hex ? styles.swatchActive : ''}`}
+              style={{ background: c.hex }}
+              onClick={() => setNewColor(c.hex)}
+              title={c.label}
+              aria-label={c.label}
+            />
+          ))}
+        </div>
         {addError && <p className={styles.errorText}>{addError}</p>}
       </div>
     </div>

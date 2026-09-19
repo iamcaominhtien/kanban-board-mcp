@@ -21,6 +21,9 @@
 }
 
 .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 4px 8px 20px;
   border-bottom: 2px solid rgba(245, 239, 224, 0.12);
   margin-bottom: 16px;

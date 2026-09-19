@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
@@ -19,6 +19,54 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+
+  const WORKSPACE_SETTINGS_KEY = 'kanban.workspaceSettings';
+
+  // TODO(backend): workspace settings are local-only (localStorage) for now.
+  // Replace with GET/POST against a real workspace-settings endpoint once
+  // server/api/settings.py exposes one — see server/config.py for where
+  // data-folder settings are currently persisted, as a pattern to follow.
+  const [workspaceEnabled, setWorkspaceEnabled] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem(WORKSPACE_SETTINGS_KEY);
+      if (raw) return !!JSON.parse(raw).enabled;
+    } catch {
+      // ignore — fall back to default
+    }
+    return false;
+  });
+  const [workspaceRootPath, setWorkspaceRootPath] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(WORKSPACE_SETTINGS_KEY);
+      if (raw) return JSON.parse(raw).rootPath ?? '';
+    } catch {
+      // ignore — fall back to default
+    }
+    return '';
+  });
+  const [retentionDays, setRetentionDays] = useState<7 | 30 | 90 | null>(() => {
+    try {
+      const raw = localStorage.getItem(WORKSPACE_SETTINGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw).retentionDays;
+        if (parsed === 7 || parsed === 30 || parsed === 90 || parsed === null) return parsed;
+      }
+    } catch {
+      // ignore — fall back to default
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        WORKSPACE_SETTINGS_KEY,
+        JSON.stringify({ enabled: workspaceEnabled, rootPath: workspaceRootPath, retentionDays }),
+      );
+    } catch {
+      // ignore — localStorage may be unavailable
+    }
+  }, [workspaceEnabled, workspaceRootPath, retentionDays]);
 
   const isElectron = !!(window as any).electronAPI?.selectFolder;
 
@@ -142,6 +190,52 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
             <p className={`${styles.status} ${folderStatus.startsWith('✓') ? styles.statusSuccess : styles.statusError}`}>
               {folderStatus}
             </p>
+          )}
+        </div>
+
+        <div className={styles.divider} />
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Workspace</h3>
+          <p className={styles.hint}>
+            Give this board its own root folder and (eventually) an automatic retention policy.
+          </p>
+          <button
+            type="button"
+            className={`${styles.workspaceToggle} ${workspaceEnabled ? styles.workspaceToggleActive : ''}`}
+            aria-pressed={workspaceEnabled}
+            onClick={() => setWorkspaceEnabled((v) => !v)}
+          >
+            {workspaceEnabled ? 'Enabled' : 'Disabled'}
+          </button>
+
+          <input
+            className={styles.rootPathInput}
+            type="text"
+            placeholder="Workspace root path (e.g. /Users/you/workspace)"
+            value={workspaceRootPath}
+            onChange={(e) => setWorkspaceRootPath(e.target.value)}
+            disabled={!workspaceEnabled}
+          />
+
+          {/* TODO(backend): retentionDays currently has no effect beyond being
+              displayed/persisted locally — there is no cleanup job wired to it yet. */}
+          <div className={styles.retentionRow}>
+            {([7, 30, 90, null] as const).map((days) => (
+              <button
+                key={String(days)}
+                type="button"
+                className={`${styles.retentionChip} ${retentionDays === days ? styles.retentionChipActive : ''}`}
+                disabled={!workspaceEnabled}
+                onClick={() => setRetentionDays(days)}
+              >
+                {days === null ? 'Forever' : `${days} days`}
+              </button>
+            ))}
+          </div>
+
+          {workspaceEnabled && workspaceRootPath.trim() === '' && (
+            <p className={styles.warningBanner}>Set a root path to finish enabling Workspace.</p>
           )}
         </div>
 

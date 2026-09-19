@@ -128,14 +128,30 @@
   border-color: #5BB8F5;
 }
 
-.colorInput {
-  width: 36px;
-  height: 34px;
+.colorSwatchRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   border: 1.5px solid rgba(61,12,17,0.15);
-  border-radius: 8px;
   cursor: pointer;
-  padding: 2px;
-  background: #fff;
+  padding: 0;
+  transition: transform 150ms, box-shadow 150ms;
+}
+
+.swatch:hover {
+  transform: scale(1.1);
+}
+
+.swatchActive {
+  box-shadow: 0 0 0 2px #fff8f0, 0 0 0 4px #3D0C11;
+  transform: scale(1.1);
 }
 
 .addBtn {
