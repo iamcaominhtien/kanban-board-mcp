@@ -3,17 +3,17 @@ import { MemberAvatar } from './MemberAvatar';
 import styles from './TicketCard.module.css';
 
 const PRIORITY_COLORS: Record<Priority, string> = {
-  critical: '#DC2626',
-  high:     '#E8441A',
-  medium:   '#F5C518',
-  low:      '#9CA3AF',
+  critical: 'var(--color-danger)',
+  high:     'var(--color-orange)',
+  medium:   'var(--color-yellow)',
+  low:      '#9AA8A0',
 };
 
 const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; color: string }> = {
-  bug:     { label: 'Bug',     icon: '🐛', bg: '#FEE2E2', color: '#DC2626' },
-  feature: { label: 'Feature', icon: '✨', bg: '#EDE9FE', color: '#7C3AED' },
-  task:    { label: 'Task',    icon: '📋', bg: '#DBEAFE', color: '#2563EB' },
-  chore:   { label: 'Chore',   icon: '🔧', bg: '#F3F4F6', color: '#6B7280' },
+  bug:     { label: 'Bug',     icon: '🐛', bg: 'rgba(196, 67, 42, 0.12)',  color: 'var(--color-danger)' },
+  feature: { label: 'Feature', icon: '✨', bg: 'rgba(109, 93, 211, 0.12)', color: 'var(--color-purple)' },
+  task:    { label: 'Task',    icon: '📋', bg: 'rgba(47, 111, 176, 0.12)', color: 'var(--color-blue)' },
+  chore:   { label: 'Chore',   icon: '🔧', bg: 'rgba(91, 107, 96, 0.12)',  color: 'var(--color-text-secondary)' },
 };
 
 function getDueDateDisplay(dueDate: string | null): { label: string; overdue: boolean } | null {

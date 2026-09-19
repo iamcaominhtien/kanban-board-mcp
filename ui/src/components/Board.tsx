@@ -9,11 +9,17 @@ import { TimelineView } from './TimelineView';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 
-const COLUMNS: ColumnType[] = [
-  { id: 'backlog',     label: 'Backlog',      accentColor: '#F5C518' },
-  { id: 'todo',        label: 'To Do',        accentColor: '#E8441A' },
-  { id: 'in-progress', label: 'In Progress',  accentColor: '#AACC2E' },
-  { id: 'done',        label: 'Done',         accentColor: '#F472B6' },
+// Extends the base Column shape with the count-pill's text (and, where the
+// accent color itself is too light/mid-tone to clear 4.5:1 with either text
+// color, a slightly darkened badge-only background) so every badge meets
+// WCAG AA contrast against its own accent.
+type BoardColumn = ColumnType & { badgeTextColor: string; badgeBgColor?: string };
+
+const COLUMNS: BoardColumn[] = [
+  { id: 'backlog',     label: 'Backlog',      accentColor: '#9AA8A0',              badgeTextColor: 'var(--color-dark)' },
+  { id: 'todo',        label: 'To Do',        accentColor: 'var(--color-blue)',    badgeTextColor: 'var(--color-on-accent-dark)' },
+  { id: 'in-progress', label: 'In Progress',  accentColor: 'var(--color-orange)',  badgeTextColor: 'var(--color-on-accent-dark)', badgeBgColor: '#BD531C' },
+  { id: 'done',        label: 'Done',         accentColor: 'var(--color-lime)',    badgeTextColor: 'var(--color-dark)' },
 ];
 
 interface BoardProps {
