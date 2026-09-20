@@ -5,16 +5,27 @@ import { MarkdownEditor } from './MarkdownEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import styles from './WorkLogSection.module.css';
 
+// TODO(backend): the design calls for this to become a typed "Debug Space" timeline
+// (kind: investigation/fix-attempt/root-cause/blocked/resolved, pinning, cross-links to
+// Branches/Test Cases) — see design/ mockups (DebugSpace.dc.html). Not implemented; this
+// restyle only updates the visual language of the existing free-text Work Log using
+// current data.
+
 const ROLES: WorkLogEntry['role'][] = ['PM', 'Developer', 'BA', 'Tester', 'Designer', 'Other'];
 
-const ROLE_COLORS: Record<WorkLogEntry['role'], { bg: string; color: string }> = {
-  PM:        { bg: '#EDE9FE', color: '#7C3AED' },
-  Developer: { bg: '#DBEAFE', color: '#2563EB' },
-  BA:        { bg: '#FEF3C7', color: '#D97706' },
-  Tester:    { bg: '#D1FAE5', color: '#059669' },
-  Designer:  { bg: '#FCE7F3', color: '#DB2777' },
-  Other:     { bg: '#F3F4F6', color: '#6B7280' },
+const ROLE_COLORS: Record<WorkLogEntry['role'], string> = {
+  PM:        'var(--color-purple)',
+  Developer: 'var(--color-blue)',
+  BA:        'var(--color-orange)',
+  Tester:    'var(--color-lime)',
+  Designer:  'var(--color-pink)',
+  Other:     'var(--color-text-secondary)',
 };
+
+function roleBadgeStyle(role: WorkLogEntry['role']): { backgroundColor: string; color: string } {
+  const color = ROLE_COLORS[role];
+  return { backgroundColor: `color-mix(in srgb, ${color} 15%, transparent)`, color };
+}
 
 interface WorkLogSectionProps {
   entries: WorkLogEntry[];
@@ -69,7 +80,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
                   <div className={styles.entryHeader}>
                     <span
                       className={styles.roleBadge}
-                      style={{ backgroundColor: ROLE_COLORS[entry.role].bg, color: ROLE_COLORS[entry.role].color }}
+                      style={roleBadgeStyle(entry.role)}
                     >
                       {entry.role}
                     </span>
