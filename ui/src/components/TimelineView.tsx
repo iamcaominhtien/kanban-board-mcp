@@ -59,16 +59,48 @@ function categorizeEvent(type: string): EventCategory {
 
 const EVENT_COLORS: Record<EventCategory, string> = {
   created: 'var(--color-lime)',
-  status_changed: 'var(--color-orange)',
-  commented: 'var(--color-blue)',
+  status_changed: 'var(--color-blue)',
+  commented: 'var(--color-purple)',
   other: 'var(--color-border-strong)',
 };
 
-const EVENT_ICONS: Record<EventCategory, string> = {
-  created: '✦',
-  status_changed: '⟳',
-  commented: '◎',
-  other: '·',
+// Small stroke-SVG icons rendered inside the colored event-rail dot, matching
+// the icon language used elsewhere in the app (Debug Space's rail dots).
+function CreatedIcon() {
+  return (
+    <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round">
+      <path d="M12 5V19" />
+      <path d="M5 12H19" />
+    </svg>
+  );
+}
+
+function StatusChangedIcon() {
+  return (
+    <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round">
+      <path d="M4 4V10H10" />
+      <path d="M4 10L8 6.5A8 8 0 1 1 4 14" />
+    </svg>
+  );
+}
+
+function CommentedIcon() {
+  return (
+    <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15A2 2 0 0 1 19 17H7L3 21V5A2 2 0 0 1 5 3H19A2 2 0 0 1 21 5Z" />
+    </svg>
+  );
+}
+
+function OtherIcon() {
+  return <span className={styles.eventOtherDot} />;
+}
+
+const EVENT_ICONS: Record<EventCategory, () => React.ReactElement> = {
+  created: CreatedIcon,
+  status_changed: StatusChangedIcon,
+  commented: CommentedIcon,
+  other: OtherIcon,
 };
 
 function friendlyEventType(type: string): string {
@@ -293,19 +325,24 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
         {/* LEFT: Fixed label column */}
         <div className={styles.ganttLabelCol}>
           <div className={styles.ganttLabelHeader}>Ticket</div>
-          {ganttTickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              className={styles.ganttLabelRow}
-              style={{ height: ROW_HEIGHT }}
-              onClick={() => onCardClick(ticket)}
-            >
-              <span className={styles.ganttTicketId}>{ticket.id}</span>
-              <span className={styles.ganttTicketTitle} title={ticket.title}>
-                {ticket.title}
-              </span>
-            </div>
-          ))}
+          {ganttTickets.map((ticket) => {
+            const isDone = ticket.status === 'done';
+            return (
+              <div
+                key={ticket.id}
+                className={styles.ganttLabelRow}
+                style={{ height: ROW_HEIGHT }}
+                onClick={() => onCardClick(ticket)}
+              >
+                <span className={`${styles.ganttTicketId}${isDone ? ` ${styles.ganttTicketIdDone}` : ''}`}>
+                  {ticket.id}
+                </span>
+                <span className={styles.ganttTicketTitle} title={ticket.title}>
+                  {ticket.title}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         {/* RIGHT: Scrollable bar area */}
@@ -382,6 +419,12 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
               parseDate(ticket.dueDate)! < today &&
               ticket.status !== 'done' &&
               ticket.status !== 'wont_do';
+            const isDone = ticket.status === 'done';
+            const barClassName = isDone
+              ? styles.ganttBarDone
+              : isOverdue
+                ? styles.ganttBarOverdue
+                : styles.ganttBarNormal;
 
             return (
               <div
@@ -395,7 +438,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                 />
                 <button
                   type="button"
-                  className={`${styles.ganttBar} ${isOverdue ? styles.ganttBarOverdue : styles.ganttBarNormal}${isDraggingThis ? ` ${styles.ganttBarDragging}` : ''}`}
+                  className={`${styles.ganttBar} ${barClassName}${isDraggingThis ? ` ${styles.ganttBarDragging}` : ''}`}
                   style={{
                     left: leftPx,
                     width: widthPx,
@@ -411,7 +454,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                     onPointerDown={(e) => handleEdgePointerDown(e, ticket.id, 'start', ticketStart, ticketEnd)}
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <span className={styles.ganttBarLabel}>{ticket.id}</span>
+                  <span className={`${styles.ganttBarLabel}${isDone ? ` ${styles.ganttBarLabelDone}` : ''}`}>{ticket.id}</span>
                   <span
                     className={styles.ganttBarHandleRight}
                     onPointerDown={(e) => handleEdgePointerDown(e, ticket.id, 'end', ticketStart, ticketEnd)}
@@ -426,7 +469,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
 
       <div className={styles.ganttLegend}>
         <span className={styles.legendDot} style={{ background: 'var(--color-blue)' }} /> Normal
-        <span className={styles.legendDot} style={{ background: 'var(--color-orange)' }} /> Overdue
+        <span className={styles.legendDot} style={{ background: 'var(--color-lime)', opacity: 0.6 }} /> Done
         <span className={styles.legendLine} /> Today
       </div>
     </>
@@ -461,18 +504,22 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
               const ticket = ticketMap.get(ev.ticketId);
               const category = categorizeEvent(ev.eventType);
               const badgeColor = EVENT_COLORS[category];
-              const icon = EVENT_ICONS[category];
+              const Icon = EVENT_ICONS[category];
+              const isLast = idx === group.events.length - 1;
               const time = new Date(ev.at).toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
               });
               return (
                 <div key={`${ev.ticketId}-${ev.at}-${idx}`} className={styles.eventItem}>
-                  <div
-                    className={styles.eventBadgeCircle}
-                    style={{ background: badgeColor }}
-                  >
-                    {icon}
+                  <div className={styles.eventItemRail}>
+                    <span
+                      className={styles.eventDot}
+                      style={{ background: badgeColor }}
+                    >
+                      <Icon />
+                    </span>
+                    {!isLast && <span className={styles.eventLine} />}
                   </div>
                   <div className={styles.eventContent}>
                     <div className={styles.eventRow1}>

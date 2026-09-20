@@ -156,7 +156,8 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--color-orange);
+  background: var(--color-primary);
+  opacity: 0.5;
   z-index: 1;
   pointer-events: none;
 }
@@ -202,7 +203,16 @@
 }
 
 .ganttBarOverdue {
-  background: var(--color-orange);
+  background: var(--color-danger);
+}
+
+.ganttBarDone {
+  background: var(--color-lime);
+  opacity: 0.6;
+}
+
+.ganttBarDone:hover {
+  opacity: 0.75;
 }
 
 /* Invisible edge-resize handles: drag either one to change the ticket's
@@ -241,6 +251,16 @@
   font-family: var(--font-body);
 }
 
+.ganttBarLabelDone {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.7);
+}
+
+.ganttTicketIdDone {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border-strong);
+}
+
 .ganttLegend {
   display: flex;
   align-items: center;
@@ -265,7 +285,8 @@
   display: inline-block;
   width: 16px;
   height: 2px;
-  background: var(--color-orange);
+  background: var(--color-primary);
+  opacity: 0.6;
   margin-right: 4px;
   vertical-align: middle;
 }
@@ -304,67 +325,68 @@
   background: var(--color-border);
 }
 
-/* Rail: left 64px gutter with vertical line, content fills remainder */
+/* Rail: a flex column of items, each with its own dot-and-line rail segment
+   (reuses Debug Space's .dbg-item/.dbg-rail/.dbg-dot/.dbg-line shape). */
 .eventRail {
-  position: relative;
-  padding-left: 64px;
-}
-
-/* Vertical rail line — centered at 32px (badge center) */
-.eventRail::before {
-  content: '';
-  position: absolute;
-  left: 31px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--color-border-strong);
-  border-radius: 1px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .eventItem {
   display: flex;
-  align-items: flex-start;
-  padding: 12px 0;
+  gap: 12px;
+  position: relative;
   border-radius: 8px;
   transition: background 0.12s ease;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.eventItem:last-child {
-  border-bottom: none;
 }
 
 .eventItem:hover {
   background: var(--color-bg);
-  margin: 0 -8px;
-  padding: 12px 8px;
 }
 
-/* Badge circle that straddles the rail */
-.eventBadgeCircle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid var(--color-bg);
+/* Per-item rail: dot + connecting line down to the next item */
+.eventItemRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 13px;
   flex-shrink: 0;
-  /* Badge left = 64 - 48 = 16px; center = 32px — sits on the rail */
-  margin-left: -48px;
-  margin-right: 12px;
-  position: relative;
-  z-index: 1;
+  padding-top: 12px;
+}
+
+.eventDot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 2.5px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  line-height: 1;
-  color: var(--color-on-accent-dark);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.eventLine {
+  width: 2px;
+  flex-grow: 1;
+  background: var(--color-border);
+  margin-top: 2px;
+  min-height: 10px;
+}
+
+.eventOtherDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #FFFFFF;
 }
 
 .eventContent {
   flex: 1;
   min-width: 0;
+  padding: 10px 0 14px;
 }
 
 /* Row 1: ticket chip + title + timestamp */
