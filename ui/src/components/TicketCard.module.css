@@ -3,13 +3,9 @@
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  border-left: 3px solid transparent;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   cursor: pointer;
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
 }
 
 .card:hover {
@@ -17,8 +13,23 @@
   box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
 }
 
-.card:hover .dragHandle {
-  opacity: 0.6;
+.cardBlocked {
+  border: 1.5px dashed color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+}
+
+.cardBlocked:hover {
+  border: 1.5px dashed color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+}
+
+.cardInner {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardBlocked .cardInner {
+  opacity: 0.72;
 }
 
 .cardHeader {
@@ -28,11 +39,18 @@
   gap: 4px;
 }
 
-.cardHeaderRight {
+.cardHeaderLeft {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  gap: 5px;
+  min-width: 0;
+}
+
+.typeLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .cardId {
@@ -41,54 +59,12 @@
   letter-spacing: 0.04em;
   font-family: var(--font-mono);
   color: #9AA8A0;
-}
-
-.dragHandle {
-  font-size: 14px;
-  line-height: 1;
-  opacity: 0;
-  color: var(--color-text-secondary);
-  transition: opacity 0.15s;
-  cursor: grab;
-  user-select: none;
-}
-
-.badgeRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.typeBadge {
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 2px 7px;
-  white-space: nowrap;
-}
-
-.blockedBadge {
-  font-size: 11px;
-  line-height: 1;
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-danger);
-  border-radius: 999px;
-  padding: 2px 5px;
 }
 
-.parentBadge {
-  font-size: 10px;
-  font-weight: 600;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-  border-radius: 999px;
-  padding: 2px 6px;
-  white-space: nowrap;
+.cardIdDone {
+  text-decoration: line-through;
+  text-decoration-color: #C7D2CB;
 }
 
 .cardTitle {
@@ -96,70 +72,119 @@
   font-weight: 600;
   line-height: 1.35;
   color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tagRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tagPill {
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.tagOverflow {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA8A0;
+}
+
+.parentRow {
+  display: flex;
+  align-items: center;
+}
+
+.parentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--color-surface-alt, #F6FAF7);
+  border: 1px solid var(--color-border);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
 }
 
 .cardFooter {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   flex-wrap: wrap;
   min-width: 0;
+  margin-top: auto;
 }
 
 .footerSpacer {
   flex: 1;
 }
 
-.priorityDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
-
-.tag {
-  font-size: 10px;
-  font-weight: 500;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-  border-radius: 999px;
-  padding: 1px 6px;
-  white-space: nowrap;
-}
-
 .estimateBadge {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA8A0;
   white-space: nowrap;
 }
 
 .dueDate {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .dueDateOverdue {
-  font-size: 10px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--color-danger);
   white-space: nowrap;
 }
 
 .subTasksProgress {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .subTasksDone {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--color-primary);
   white-space: nowrap;
 }
 
+.blockedBadge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-danger);
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
