@@ -4,6 +4,14 @@ import { uploadDescriptionImage } from '../api/tickets';
 import { MarkdownEditor } from './MarkdownEditor';
 import styles from './TestCasesSection.module.css';
 
+// TODO(backend): TestCases.dc.html's rev-2 mockup describes a richer data model that is
+// intentionally NOT implemented here pending a backend decision — do not add these fields
+// without one: a 4th `running` status (with `startedAt`), `description`/`expectedResult`
+// (the "pass bar") as separate markdown fields, `proof`+`note` merging into a single markdown
+// `notes` field, `updatedAt`, per-field file attachments (on expectedResult/notes plus a
+// dedicated testDataFiles bucket), a per-row assignee, and short human-readable `TC-N` codes.
+// The mockup's own closing note calls these "open questions" (structured vs. free-text
+// expected result, run history, who can set "Running") that need a QA-workflow check first.
 interface ChildTestCaseSource {
   ticketId: string;
   ticketTitle: string;
@@ -17,6 +25,8 @@ interface TestCasesSectionProps {
   readOnly?: boolean;
   disabled?: boolean;
   childTestCaseSources?: ChildTestCaseSource[];
+  /** This ticket's own id/code, used as the "this ticket" group header in rollup mode. */
+  ownTicketId?: string;
 }
 
 const STATUS_CYCLE: Record<TestCaseStatus, TestCaseStatus> = {
@@ -37,6 +47,13 @@ const STATUS_CLASS: Record<TestCaseStatus, string> = {
   fail: styles.status_fail,
 };
 
+const STATUS_CHIPS: { label: string; value: TestCaseStatus | 'all' }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Pass', value: 'pass' },
+  { label: 'Fail', value: 'fail' },
+  { label: 'Pending', value: 'pending' },
+];
+
 function genId() {
   return typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -49,14 +66,12 @@ function TestCaseRow({
   onDelete,
   readOnly,
   disabled,
-  sourceBadge,
 }: {
   tc: TestCase;
   onUpdate: (updated: TestCase) => void;
   onDelete: () => void;
   readOnly: boolean;
   disabled?: boolean;
-  sourceBadge?: string;
 }) {
   const [expanded, setExpanded] = useState(() => !!(tc.proof || tc.note));
   const [editingTitle, setEditingTitle] = useState(tc.title === '');
@@ -128,27 +143,25 @@ function TestCaseRow({
           </span>
         )}
 
-        {sourceBadge && (
-          <span className={styles.sourceBadge}>{sourceBadge}</span>
-        )}
-
-        {!expanded && (tc.proof || tc.note) && (
+        {!readOnly && !expanded && (tc.proof || tc.note) && (
           <span className={styles.hasMetaIndicator} title="Has proof or note — click ▼ to view">
             📎
           </span>
         )}
 
-        <div className={styles.rowActions}>
-          <button
-            type="button"
-            className={`${styles.expandBtn} ${expanded ? styles.expandBtnOpen : ''}`}
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-            aria-label={expanded ? 'Collapse details' : 'Expand details'}
-          >
-            ▼
-          </button>
-          {!readOnly && (
+        {/* Read-only rows (rolled up from a sub-ticket) show no expand/delete controls at
+            all — view or edit them from that sub-ticket's own Test Cases panel instead. */}
+        {!readOnly && (
+          <div className={styles.rowActions}>
+            <button
+              type="button"
+              className={`${styles.expandBtn} ${expanded ? styles.expandBtnOpen : ''}`}
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse details' : 'Expand details'}
+            >
+              ▼
+            </button>
             <button
               type="button"
               className={styles.deleteBtn}
@@ -158,11 +171,11 @@ function TestCaseRow({
             >
               🗑
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {expanded && (
+      {!readOnly && expanded && (
         <div className={styles.details}>
           <label className={styles.detailLabel}>Proof</label>
           <MarkdownEditor
@@ -192,9 +205,10 @@ function TestCaseRow({
   );
 }
 
-export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false, disabled = false, childTestCaseSources }: TestCasesSectionProps) {
+export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false, disabled = false, childTestCaseSources, ownTicketId }: TestCasesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<TestCaseStatus | 'all'>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [addTitle, setAddTitle] = useState('');
   const [addPending, setAddPending] = useState(false);
@@ -213,44 +227,54 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
 
   const isRollupMode = sourcesWithTCs.length > 0;
 
-  // Build display items based on current filter
-  const displayItems: { tc: TestCase; sourceBadge?: string; isReadOnly: boolean }[] = [];
+  // Build groups (one per ticket) based on the current "Show" filter. In rollup mode each
+  // group renders as its own labeled, bordered block instead of one flat interleaved list.
+  interface Group {
+    key: string;
+    kind: 'own' | 'child';
+    ticketId?: string;
+    ticketTitle?: string;
+    testCases: TestCase[];
+    isReadOnly: boolean;
+  }
+
+  const groups: Group[] = [];
   if (!isRollupMode) {
-    testCases.forEach((tc) => displayItems.push({ tc, isReadOnly: readOnly }));
+    groups.push({ key: 'own', kind: 'own', testCases, isReadOnly: readOnly });
   } else {
     const showOwn = activeFilter === 'all' || activeFilter === 'parent';
     if (showOwn) {
-      testCases.forEach((tc) => displayItems.push({ tc, isReadOnly: false }));
+      groups.push({ key: 'own', kind: 'own', testCases, isReadOnly: false });
     }
-    if (activeFilter === 'all') {
-      sourcesWithTCs.forEach((source) => {
-        source.testCases.forEach((tc) =>
-          displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
-        );
-      });
-    } else if (activeFilter === 'child') {
-      // single child: show all its TCs
-      sourcesWithTCs.forEach((source) => {
-        source.testCases.forEach((tc) =>
-          displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
-        );
-      });
-    } else if (activeFilter.startsWith('child:')) {
-      // multi-child: show specific child
-      const targetId = activeFilter.slice(6);
-      const source = sourcesWithTCs.find((s) => s.ticketId === targetId);
-      source?.testCases.forEach((tc) =>
-        displayItems.push({ tc, sourceBadge: source.ticketId, isReadOnly: true })
-      );
-    }
-    // 'parent' only shows own TCs (already pushed above)
+    const showAllChildren = activeFilter === 'all' || activeFilter === 'child';
+    sourcesWithTCs.forEach((source) => {
+      const show = showAllChildren || activeFilter === `child:${source.ticketId}`;
+      if (show) {
+        groups.push({
+          key: source.ticketId,
+          kind: 'child',
+          ticketId: source.ticketId,
+          ticketTitle: source.ticketTitle,
+          testCases: source.testCases,
+          isReadOnly: true,
+        });
+      }
+    });
   }
+
+  const displayItems: { tc: TestCase; isReadOnly: boolean }[] = groups.flatMap((g) =>
+    g.testCases.map((tc) => ({ tc, isReadOnly: g.isReadOnly }))
+  );
 
   const passCount = displayItems.filter((i) => i.tc.status === 'pass').length;
   const failCount = displayItems.filter((i) => i.tc.status === 'fail').length;
   const todoCount = displayItems.filter((i) => i.tc.status === 'pending').length;
   const totalCount = displayItems.length;
   const totalAllCount = testCases.length + sourcesWithTCs.reduce((sum, s) => sum + s.testCases.length, 0);
+
+  const visibleItems = statusFilter === 'all'
+    ? displayItems
+    : displayItems.filter((i) => i.tc.status === statusFilter);
 
   function handleAdd() {
     if (onAdd) {
@@ -401,23 +425,74 @@ export function TestCasesSection({ testCases, onChange, onAdd, readOnly = false,
               </select>
             </div>
           )}
-          <div className={styles.list}>
-            {displayItems.length === 0 ? (
+          {totalCount > 0 && (
+            <div className={styles.statusChips} role="group" aria-label="Filter by status">
+              {STATUS_CHIPS.map((chip) => {
+                const count = chip.value === 'all' ? totalCount
+                  : chip.value === 'pass' ? passCount
+                  : chip.value === 'fail' ? failCount
+                  : todoCount;
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    className={`${styles.statusChip} ${statusFilter === chip.value ? styles.statusChipActive : ''}`}
+                    onClick={() => setStatusFilter(chip.value)}
+                    aria-pressed={statusFilter === chip.value}
+                  >
+                    {chip.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className={styles.groups}>
+            {totalCount === 0 ? (
               <p className={styles.empty}>No test cases yet.</p>
+            ) : visibleItems.length === 0 ? (
+              <p className={styles.empty}>No test cases match this filter.</p>
             ) : (
-              displayItems.map(({ tc, sourceBadge, isReadOnly }) => (
-                <TestCaseRow
-                  key={`${sourceBadge ?? 'own'}-${tc.id}`}
-                  tc={tc}
-                  onUpdate={handleUpdate}
-                  onDelete={() => handleDelete(tc.id)}
-                  readOnly={isReadOnly}
-                  disabled={disabled}
-                  sourceBadge={sourceBadge}
-                />
-              ))
+              groups.map((group) => {
+                const filtered = statusFilter === 'all'
+                  ? group.testCases
+                  : group.testCases.filter((tc) => tc.status === statusFilter);
+                if (filtered.length === 0) return null;
+                return (
+                  <div key={group.key} className={styles.group}>
+                    {isRollupMode && group.kind === 'own' && (
+                      <div className={styles.groupHeaderOwn}>{ownTicketId ?? 'This ticket'} — this ticket</div>
+                    )}
+                    {isRollupMode && group.kind === 'child' && (
+                      <div className={styles.groupHeaderChild}>
+                        <span className={styles.groupHeaderChildId}>{group.ticketId}</span>
+                        <span className={styles.groupHeaderSep}>·</span>
+                        <span>{group.ticketTitle} — read-only here</span>
+                      </div>
+                    )}
+                    <div className={`${styles.list} ${group.isReadOnly ? styles.listReadOnly : ''}`}>
+                      {filtered.map((tc) => (
+                        <TestCaseRow
+                          key={tc.id}
+                          tc={tc}
+                          onUpdate={handleUpdate}
+                          onDelete={() => handleDelete(tc.id)}
+                          readOnly={group.isReadOnly}
+                          disabled={disabled}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
+          {isRollupMode && totalCount > 0 && (
+            <p className={styles.rollupNote}>
+              Grouped by ticket instead of a flat mixed list — own test cases first, then each
+              sub-ticket&apos;s in its own block. Sub-ticket groups are read-only here — edited
+              from that ticket&apos;s own Test Cases board.
+            </p>
+          )}
         </>
       )}
     </div>

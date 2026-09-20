@@ -898,6 +898,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <>
                 <TestCasesSection
                   testCases={ticket.testCases ?? []}
+                  ownTicketId={ticket.id}
                   disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
                   onAdd={(title) =>
                     new Promise<void>((resolve, reject) =>
