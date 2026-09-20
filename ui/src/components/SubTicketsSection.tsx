@@ -1,17 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { IssueType, Member, Status, Ticket } from '../types';
+import type { IssueType, Member, Ticket } from '../types';
 import { useCreateTicket } from '../api/tickets';
 import { StatusMark, TypeIcon } from './ticketVisuals';
+import { STATUS_DOT_COLORS } from './StatusMenu';
 import { MemberAvatar } from './MemberAvatar';
 import styles from './SubTicketsSection.module.css';
-
-const STATUS_LABELS: Record<Status, string> = {
-  backlog: 'Backlog',
-  todo: 'To Do',
-  'in-progress': 'In Progress',
-  done: 'Done',
-  wont_do: 'Không làm',
-};
 
 // Mirrors TicketCard.tsx's TYPE_CONFIG color-only, so sub-ticket rows' type
 // icons stay visually consistent with the rest of the app.
@@ -125,10 +118,13 @@ export function SubTicketsSection({
   const donePct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   const childIds = new Set(childTickets.map((t) => t.id));
+  const currentTicketParentId = allTickets.find((t) => t.id === currentTicketId)?.parentId ?? null;
 
-  // Eligible: same project implied by allTickets, not current, parentId is null, has no children of its own
+  // Eligible: same project implied by allTickets, not current, not the current
+  // ticket's own parent, parentId is null, has no children of its own
   const eligible = allTickets.filter((t) => {
     if (t.id === currentTicketId) return false;
+    if (t.id === currentTicketParentId) return false;
     if (childIds.has(t.id)) return false;
     if (t.parentId != null) return false;
     const hasChildren = allTickets.some((other) => other.parentId === t.id);
@@ -178,7 +174,10 @@ export function SubTicketsSection({
       { title: trimmed, type: 'task', priority: 'medium', status: 'backlog', parentId: currentTicketId },
       {
         onSuccess: () => {
-          closePanel();
+          // "Add another" flow: keep the panel open, clear + refocus the
+          // title input so the user can immediately create the next one.
+          setNewTitle('');
+          titleInputRef.current?.focus();
         },
         onError: () => {
           setCreateError('Failed to create child ticket. Please try again.');
@@ -278,7 +277,11 @@ export function SubTicketsSection({
             className={styles.addBtn}
             onClick={() => openPanel('new')}
           >
-            ＋ Add sub-ticket
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 5V19" />
+              <path d="M5 12H19" />
+            </svg>
+            Add sub-ticket
           </button>
         )}
 
@@ -299,23 +302,15 @@ export function SubTicketsSection({
               >
                 Existing
               </button>
-              <button
-                type="button"
-                className={styles.closeBtn}
-                onClick={closePanel}
-                aria-label="Close"
-                title="Close"
-              >
-                ✕
-              </button>
             </div>
 
             {activeTab === 'new' && (
-              <form className={styles.tabContent} onSubmit={handleSubmitCreate}>
+              <form className={styles.newRow} onSubmit={handleSubmitCreate}>
+                <span className={styles.radioPlaceholder} />
                 <input
                   ref={titleInputRef}
-                  className={styles.searchInput}
-                  placeholder="Child ticket title…"
+                  className={styles.plainInput}
+                  placeholder="Sub-ticket title…"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   disabled={createTicketMutation.isPending}
@@ -326,34 +321,61 @@ export function SubTicketsSection({
                     }
                   }}
                 />
-                {createError && <p className={styles.errorText}>{createError}</p>}
-                <div className={styles.createFormActions}>
-                  <button
-                    type="submit"
-                    className={styles.submitBtn}
-                    disabled={!newTitle.trim() || createTicketMutation.isPending}
-                  >
-                    {createTicketMutation.isPending ? 'Creating…' : 'Create'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className={styles.iconBtnCancel}
+                  onClick={closePanel}
+                  aria-label="Cancel"
+                  title="Cancel"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M6 6L18 18" />
+                    <path d="M18 6L6 18" />
+                  </svg>
+                </button>
+                <button
+                  type="submit"
+                  className={styles.iconBtnCreate}
+                  disabled={!newTitle.trim() || createTicketMutation.isPending}
+                  aria-label="Create"
+                  title="Create"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 13L10 18L19 6" />
+                  </svg>
+                </button>
               </form>
             )}
 
+            {activeTab === 'new' && createError && (
+              <p className={styles.errorText}>{createError}</p>
+            )}
+
+            {activeTab === 'new' && (
+              <span className={styles.helperText}>Enter to create and add another · Esc to cancel</span>
+            )}
+
             {activeTab === 'existing' && (
-              <div className={styles.tabContent}>
-                <input
-                  ref={searchInputRef}
-                  className={styles.searchInput}
-                  placeholder="Search by title or ID…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      e.stopPropagation();
-                      closePanel();
-                    }
-                  }}
-                />
+              <>
+                <div className={styles.searchRow}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={styles.searchIcon}>
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M21 21L16.5 16.5" />
+                  </svg>
+                  <input
+                    ref={searchInputRef}
+                    className={styles.plainInput}
+                    placeholder="Search tickets…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        closePanel();
+                      }
+                    }}
+                  />
+                </div>
                 <div className={styles.dropdownList}>
                   {filtered.length === 0 ? (
                     <span className={styles.dropdownEmpty}>No eligible tickets found.</span>
@@ -365,14 +387,18 @@ export function SubTicketsSection({
                         className={styles.dropdownItem}
                         onClick={() => handleSelect(t.id)}
                       >
-                        <span className={styles.ticketId}>{t.id}</span>
-                        <span className={styles.ticketTitle}>{t.title}</span>
-                        <span className={styles.statusBadge}>{STATUS_LABELS[t.status]}</span>
+                        <span className={styles.resultDot} style={{ background: STATUS_DOT_COLORS[t.status] }} />
+                        <TypeIcon type={t.type} color={TYPE_ICON_COLOR[t.type]} />
+                        <span className={styles.resultTitle}>{t.title}</span>
+                        <span className={styles.resultId}>{t.id}</span>
                       </button>
                     ))
                   )}
                 </div>
-              </div>
+                <span className={styles.helperText}>
+                  Already-linked tickets and the ticket&apos;s own parent are filtered out of results.
+                </span>
+              </>
             )}
           </div>
         )}
