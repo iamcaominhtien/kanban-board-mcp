@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, PointerSensor, defaultDropAnimationSideEffects, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, DropAnimation } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import type { Column as ColumnType, Member, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
@@ -42,6 +43,21 @@ interface BoardProps {
 }
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'done']);
+
+// Matches the mockup's "Dropped" panel: release -> ~220ms, a small overshoot
+// past 100% scale (105%) before easing back to rest.
+const dropAnimation: DropAnimation = {
+  duration: 220,
+  easing: 'cubic-bezier(.2,.9,.3,1)',
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
+  keyframes({ transform }) {
+    return [
+      { transform: `${CSS.Transform.toString(transform.initial)} scale(1.03)`, offset: 0 },
+      { transform: `${CSS.Transform.toString(transform.final)} scale(1.05)`, offset: 0.45 },
+      { transform: `${CSS.Transform.toString(transform.final)} scale(1)`, offset: 1 },
+    ];
+  },
+};
 
 export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, projectId, viewMode, onViewModeChange, members = [], activeAssignee = 'all', onAssigneeChange }: BoardProps) {
   const sensors = useSensors(
@@ -143,9 +159,17 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
         )}
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={dropAnimation}>
         {activeTicket ? (
-          <div style={{ transform: 'scale(1.03) rotate(2deg)', pointerEvents: 'none' }}>
+          <div
+            style={{
+              transform: 'rotate(-1.5deg) scale(1.03)',
+              opacity: 0.97,
+              boxShadow: '0 16px 30px color-mix(in srgb, var(--color-text-primary) 22%, transparent)',
+              borderRadius: 'var(--radius-md)',
+              pointerEvents: 'none',
+            }}
+          >
             <TicketCard ticket={activeTicket} memberMap={memberMap} childSummary={childSummaryMap.get(activeTicket.id)} />
           </div>
         ) : null}

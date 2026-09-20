@@ -175,6 +175,22 @@
   display: none; /* Chrome/Safari/Edge */
 }
 
+.sourceGhost {
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  min-height: 72px;
+}
+
+.targetGhost {
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary) 45%, var(--color-border-strong));
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  min-height: 72px;
+  flex-shrink: 0;
+}
+
 .childIndent {
   padding-left: 16px;
   position: relative;

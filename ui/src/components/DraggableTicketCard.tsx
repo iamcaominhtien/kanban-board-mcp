@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Member, Ticket } from '../types';
 import { TicketCard } from './TicketCard';
+import styles from './Board.module.css';
 
 interface DraggableTicketCardProps {
   ticket: Ticket;
@@ -25,11 +26,7 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap, childSumma
   }, [isDragging]);
 
   const style: React.CSSProperties = {
-    transform: isDragging
-      ? `${CSS.Translate.toString(transform)} rotate(1deg)`
-      : CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : undefined,
-    boxShadow: isDragging ? '0 12px 24px rgba(30, 42, 34, 0.18)' : undefined,
+    transform: CSS.Translate.toString(transform),
     cursor: 'grab',
   };
 
@@ -39,6 +36,14 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap, childSumma
       return;
     }
     onCardClick?.(ticket);
+  }
+
+  // While this card is being dragged, the real content is shown by the
+  // floating DragOverlay copy elsewhere. This slot becomes an empty
+  // dashed-outline placeholder ("hole left behind"), matching the
+  // mockup's .source-ghost element.
+  if (isDragging) {
+    return <div ref={setNodeRef} style={style} className={styles.sourceGhost} />;
   }
 
   return (
