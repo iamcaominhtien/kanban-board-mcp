@@ -21,10 +21,16 @@ import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
 import { StatusMenu, STATUS_DOT_COLORS } from './StatusMenu';
-import { TypeIcon, PriorityBars, CalendarIcon } from './ticketVisuals';
+import { TypeIcon, PriorityBars, PRIORITY_BAR_COLORS, CalendarIcon } from './ticketVisuals';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
+
+// Display order for the Type segmented buttons (mirrors the mockup's Task/Bug/Feature/Chore order).
+const TYPE_ORDER: IssueType[] = ['task', 'bug', 'feature', 'chore'];
+
+// Display order for the Priority chips.
+const PRIORITY_ORDER: Priority[] = ['low', 'medium', 'high', 'critical'];
 
 // Mirrors TicketCard.tsx's TYPE_CONFIG so type colors stay consistent across the app.
 const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; color: string }> = {
@@ -178,6 +184,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [startDate, setStartDate] = useState<string | null>(ticket?.startDate ?? null);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
   const [assignee, setAssignee] = useState<string | null>(ticket?.assignee ?? null);
+  const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+  const assigneePopoverRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [viewError, setViewError] = useState<string | null>(null);
@@ -311,6 +319,29 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
       document.removeEventListener('keydown', onKeyDown, true);
     };
   }, [tagPopoverOpen]);
+
+  // Close the assignee popover on outside click or Escape — mirrors the "add
+  // tag" popover pattern above.
+  useEffect(() => {
+    if (!assigneePopoverOpen) return;
+    function onPointerDown(e: MouseEvent) {
+      if (assigneePopoverRef.current && !assigneePopoverRef.current.contains(e.target as Node)) {
+        setAssigneePopoverOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setAssigneePopoverOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [assigneePopoverOpen]);
 
   function handleClose() {
     setVisible(false);
@@ -1145,6 +1176,9 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     );
   }
 
+  // Used by the Assignee popover trigger/list below (create + edit form).
+  const assignedMember = assignee ? members.find((m) => m.id === assignee) ?? null : null;
+
   return (
     <div
       className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`}
@@ -1201,16 +1235,20 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
             <div className={styles.field}>
               <label className={styles.label}>Type</label>
-              <select
-                className={styles.select}
-                value={type}
-                onChange={(e) => setType(e.target.value as IssueType)}
-              >
-                <option value="bug">🐛 Bug</option>
-                <option value="feature">✨ Feature</option>
-                <option value="task">📋 Task</option>
-                <option value="chore">🔧 Chore</option>
-              </select>
+              <div className={styles.typeSelector}>
+                {TYPE_ORDER.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={type === t ? styles.typeOptionActive : styles.typeOption}
+                    onClick={() => setType(t)}
+                    aria-pressed={type === t}
+                  >
+                    <TypeIcon type={t} color={TYPE_CONFIG[t].color} />
+                    {TYPE_CONFIG[t].label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1254,16 +1292,20 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
               <div className={styles.field}>
                 <label className={styles.label}>Priority</label>
-                <select
-                  className={styles.select}
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as Priority)}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
+                <div className={styles.priorityChipRow}>
+                  {PRIORITY_ORDER.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={priority === p ? styles.priorityChipActive : styles.priorityChip}
+                      onClick={() => setPriority(p)}
+                      aria-pressed={priority === p}
+                    >
+                      <span className={styles.priorityChipDot} style={{ background: PRIORITY_BAR_COLORS[p] }} />
+                      {capitalize(p)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1376,16 +1418,58 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             {members.length > 0 && (
               <div className={styles.field}>
                 <label className={styles.label}>Assignee</label>
-                <select
-                  className={styles.select}
-                  value={assignee ?? ''}
-                  onChange={(e) => setAssignee(e.target.value || null)}
-                >
-                  <option value="">Unassigned</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                <div className={styles.assigneePopoverAnchor} ref={assigneePopoverRef}>
+                  <button
+                    type="button"
+                    className={styles.assigneeMenuTrigger}
+                    onClick={() => setAssigneePopoverOpen((o) => !o)}
+                    aria-haspopup="listbox"
+                    aria-expanded={assigneePopoverOpen}
+                  >
+                    {assignedMember ? (
+                      <MemberAvatar member={assignedMember} size={18} />
+                    ) : (
+                      <span className={styles.assigneeUnassignedDot} />
+                    )}
+                    <span className={styles.assigneeMenuLabel}>{assignedMember ? assignedMember.name : 'Unassigned'}</span>
+                    <svg
+                      width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                      className={styles.assigneeMenuChevron}
+                      style={{ transform: assigneePopoverOpen ? 'rotate(180deg)' : undefined }}
+                    >
+                      <path d="M6 9L12 15L18 9" />
+                    </svg>
+                  </button>
+
+                  {assigneePopoverOpen && (
+                    <div className={styles.assigneePopover} role="listbox">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={assignee === null}
+                        className={assignee === null ? `${styles.assigneePopoverRow} ${styles.assigneePopoverRowActive}` : styles.assigneePopoverRow}
+                        onClick={() => { setAssignee(null); setAssigneePopoverOpen(false); }}
+                      >
+                        <span className={styles.assigneeUnassignedDot} />
+                        Unassigned
+                      </button>
+                      {members.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          role="option"
+                          aria-selected={assignee === m.id}
+                          className={assignee === m.id ? `${styles.assigneePopoverRow} ${styles.assigneePopoverRowActive}` : styles.assigneePopoverRow}
+                          onClick={() => { setAssignee(m.id); setAssigneePopoverOpen(false); }}
+                        >
+                          <MemberAvatar member={m} size={18} />
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1432,14 +1516,16 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
               )}
             </div>
           )}
-          {localMode === 'edit' && (
-            <button type="button" className={styles.cancelBtn} onClick={handleCancelEdit}>
-              Cancel
-            </button>
-          )}
+          <button
+            type="button"
+            className={styles.cancelBtn}
+            onClick={localMode === 'edit' ? handleCancelEdit : handleClose}
+          >
+            Cancel
+          </button>
           {saveError && <p className={styles.errorText}>{saveError}</p>}
           <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={!title.trim()}>
-            Save
+            {localMode === 'create' ? 'Create Ticket' : 'Save'}
           </button>
         </div>
         {/* Fix 3: focus trap sentinel */}
