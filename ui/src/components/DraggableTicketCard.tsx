@@ -3,14 +3,16 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Member, Ticket } from '../types';
 import { TicketCard } from './TicketCard';
+import styles from './Board.module.css';
 
 interface DraggableTicketCardProps {
   ticket: Ticket;
   onCardClick?: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
+  childSummary?: { done: number; total: number };
 }
 
-export function DraggableTicketCard({ ticket, onCardClick, memberMap }: DraggableTicketCardProps) {
+export function DraggableTicketCard({ ticket, onCardClick, memberMap, childSummary }: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,
   });
@@ -25,7 +27,6 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap }: Draggabl
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : undefined,
     cursor: 'grab',
   };
 
@@ -37,9 +38,17 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap }: Draggabl
     onCardClick?.(ticket);
   }
 
+  // While this card is being dragged, the real content is shown by the
+  // floating DragOverlay copy elsewhere. This slot becomes an empty
+  // dashed-outline placeholder ("hole left behind"), matching the
+  // mockup's .source-ghost element.
+  if (isDragging) {
+    return <div ref={setNodeRef} style={style} className={styles.sourceGhost} />;
+  }
+
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={handleClick}>
-      <TicketCard ticket={ticket} memberMap={memberMap} />
+      <TicketCard ticket={ticket} memberMap={memberMap} childSummary={childSummary} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(30, 42, 34, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,13 +10,13 @@
 }
 
 .panel {
-  background: #13131f;
-  border: 1px solid rgba(170, 204, 46, 0.2);
-  border-radius: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
   width: 100%;
-  max-width: 520px;
+  max-width: 620px;
   padding: 28px 32px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -32,7 +32,7 @@
 .title {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #f5efd0;
+  color: var(--color-text-primary);
   margin: 0;
   letter-spacing: 0.04em;
 }
@@ -40,7 +40,7 @@
 .closeBtn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--color-text-secondary);
   font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
@@ -50,8 +50,8 @@
 }
 
 .closeBtn:hover {
-  color: #f5efd0;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  background: rgba(30, 42, 34, 0.06);
 }
 
 .section {
@@ -66,24 +66,24 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #aacc2e;
+  color: var(--color-primary);
   margin: 0;
 }
 
 .hint {
   font-size: 0.82rem;
-  color: #a0a0b8;
+  color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.5;
 }
 
 .code {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(30, 42, 34, 0.05);
   padding: 2px 6px;
   border-radius: 4px;
-  color: #c8d6e0;
+  color: var(--color-text-primary);
   word-break: break-all;
 }
 
@@ -95,10 +95,10 @@
 
 .input {
   flex: 1;
-  background: #1e1e30;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  color: #f5efd0;
+  color: var(--color-text-primary);
   font-size: 0.85rem;
   padding: 8px 12px;
   outline: none;
@@ -106,17 +106,17 @@
 }
 
 .input:focus {
-  border-color: #aacc2e;
+  border-color: var(--color-primary);
 }
 
 .input::placeholder {
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .browseBtn {
-  background: rgba(170, 204, 46, 0.12);
-  border: 1px solid rgba(170, 204, 46, 0.35);
-  color: #aacc2e;
+  background: var(--color-primary-tint);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  color: var(--color-primary);
   border-radius: 8px;
   padding: 8px 14px;
   font-size: 0.82rem;
@@ -127,14 +127,14 @@
 }
 
 .browseBtn:hover {
-  background: rgba(170, 204, 46, 0.22);
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
 .applyBtn {
   align-self: flex-start;
-  background: #aacc2e;
+  background: var(--color-primary);
   border: none;
-  color: #0f0f18;
+  color: var(--color-on-primary);
   border-radius: 8px;
   padding: 8px 20px;
   font-size: 0.85rem;
@@ -155,7 +155,7 @@
 
 .divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-border);
   margin: 20px 0;
 }
 
@@ -166,9 +166,9 @@
 }
 
 .exportBtn {
-  background: #aacc2e;
+  background: var(--color-primary);
   border: none;
-  color: #0f0f18;
+  color: var(--color-on-primary);
   border-radius: 8px;
   padding: 9px 20px;
   font-size: 0.85rem;
@@ -183,9 +183,9 @@
 }
 
 .importBtn {
-  background: rgba(245, 197, 24, 0.15);
-  border: 1px solid rgba(245, 197, 24, 0.45);
-  color: #f5c518;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-text);
   border-radius: 8px;
   padding: 9px 20px;
   font-size: 0.85rem;
@@ -195,7 +195,7 @@
 }
 
 .importBtn:hover {
-  background: rgba(245, 197, 24, 0.25);
+  background: color-mix(in srgb, var(--color-warning-bg) 80%, var(--color-warning-border) 20%);
   transform: translateY(-1px);
 }
 
@@ -207,16 +207,113 @@
 }
 
 .statusSuccess {
-  color: #aacc2e;
-  background: rgba(170, 204, 46, 0.1);
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
 }
 
 .statusError {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.1);
+  color: var(--color-danger);
+  background: rgba(196, 67, 42, 0.1);
 }
 
 .statusInfo {
-  color: #a0a0b8;
-  background: rgba(160, 160, 184, 0.1);
+  color: var(--color-text-secondary);
+  background: rgba(91, 107, 96, 0.1);
+}
+
+.workspaceToggle {
+  align-self: flex-start;
+  background: rgba(30, 42, 34, 0.04);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.workspaceToggle:hover {
+  background: rgba(30, 42, 34, 0.08);
+}
+
+.workspaceToggleActive {
+  background: var(--color-primary-tint);
+  border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  color: var(--color-primary);
+}
+
+.workspaceToggleActive:hover {
+  background: color-mix(in srgb, var(--color-primary-tint) 80%, var(--color-primary) 20%);
+}
+
+.rootPathInput {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+.rootPathInput:focus {
+  border-color: var(--color-primary);
+}
+
+.rootPathInput::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.rootPathInput:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.retentionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.retentionChip {
+  background: rgba(30, 42, 34, 0.04);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.retentionChip:hover:not(:disabled) {
+  background: rgba(30, 42, 34, 0.08);
+}
+
+.retentionChipActive {
+  background: var(--color-primary-tint);
+  border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  color: var(--color-primary);
+}
+
+.retentionChipActive:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary-tint) 80%, var(--color-primary) 20%);
+}
+
+.retentionChip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.warningBanner {
+  font-size: 0.82rem;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
 }

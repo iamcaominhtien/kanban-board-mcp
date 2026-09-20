@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Priority, Status, Ticket } from '../types';
+import { STATUS_DOT_COLORS } from './StatusMenu';
 import styles from './ListView.module.css';
 
 type GroupBy = 'status' | 'priority' | 'tag';
@@ -10,6 +11,8 @@ interface ListViewProps {
   onCardClick: (ticket: Ticket) => void;
 }
 
+// wont_do tickets are handled separately via the Recycle Bin (see App.tsx/RecycleBin.tsx) and are
+// never included in the main ticket list passed to this component, so they're excluded from these options.
 const STATUS_ORDER: Status[] = ['backlog', 'todo', 'in-progress', 'done'];
 const STATUS_LABELS: Record<Status, string> = {
   backlog: 'Backlog',
@@ -25,6 +28,12 @@ const STATUS_CHIP_CLASS: Record<Status, string> = {
   done: 'chipDone',
   wont_do: 'chipDone',
 };
+
+const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
+  { value: 'status', label: 'By Status' },
+  { value: 'priority', label: 'By Priority' },
+  { value: 'tag', label: 'By Tag' },
+];
 
 const PRIORITY_ORDER: Priority[] = ['critical', 'high', 'medium', 'low'];
 const PRIORITY_LABELS: Record<Priority, string> = {
@@ -168,13 +177,58 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
 export function ListView({ tickets, onCardClick }: ListViewProps) {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [sortBy, setSortBy] = useState<SortBy>('dueDate');
+  const [activeStatuses, setActiveStatuses] = useState<Set<Status>>(new Set());
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [groupByMenuOpen, setGroupByMenuOpen] = useState(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const groupByMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setCollapsedKeys(new Set()); }, [groupBy]);
 
+  // Close popovers on outside click or Escape — mirrors StatusMenu.tsx's pattern.
+  useEffect(() => {
+    if (!statusMenuOpen && !groupByMenuOpen) return;
+    function onPointerDown(e: MouseEvent) {
+      if (statusMenuOpen && statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setStatusMenuOpen(false);
+      }
+      if (groupByMenuOpen && groupByMenuRef.current && !groupByMenuRef.current.contains(e.target as Node)) {
+        setGroupByMenuOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setStatusMenuOpen(false);
+        setGroupByMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [statusMenuOpen, groupByMenuOpen]);
+
+  function toggleStatus(status: Status) {
+    setActiveStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  }
+
+  const filteredTickets = useMemo(
+    () => (activeStatuses.size === 0 ? tickets : tickets.filter((t) => activeStatuses.has(t.status))),
+    [tickets, activeStatuses],
+  );
+
   const groups = useMemo(
-    () => buildGroups(tickets, groupBy, sortBy),
-    [tickets, groupBy, sortBy],
+    () => buildGroups(filteredTickets, groupBy, sortBy),
+    [filteredTickets, groupBy, sortBy],
   );
 
   const allCollapsed = groups.length > 0 && groups.every((g) => collapsedKeys.has(g.key));
@@ -200,17 +254,95 @@ export function ListView({ tickets, onCardClick }: ListViewProps) {
     <div className={styles.listView}>
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
-          <label className={styles.toolbarLabel} htmlFor="lv-groupby">Group&nbsp;by</label>
-          <select
-            id="lv-groupby"
-            className={styles.select}
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-          >
-            <option value="status">By Status</option>
-            <option value="priority">By Priority</option>
-            <option value="tag">By Tag</option>
-          </select>
+          <span className={styles.toolbarLabel}>Group&nbsp;by</span>
+          <div className={styles.dropdownAnchor} ref={groupByMenuRef}>
+            <button
+              type="button"
+              className={styles.dropdownBtn}
+              onClick={() => setGroupByMenuOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={groupByMenuOpen}
+            >
+              {GROUP_BY_OPTIONS.find((o) => o.value === groupBy)?.label}
+              <svg
+                width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                className={styles.dropdownChevron}
+                style={{ transform: groupByMenuOpen ? 'rotate(180deg)' : undefined }}
+              >
+                <path d="M6 9L12 15L18 9" />
+              </svg>
+            </button>
+            {groupByMenuOpen && (
+              <div className={styles.dropdownPopover} role="listbox">
+                {GROUP_BY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="option"
+                    aria-selected={groupBy === opt.value}
+                    className={groupBy === opt.value ? `${styles.dropdownItem} ${styles.dropdownItemActive}` : styles.dropdownItem}
+                    onClick={() => { setGroupBy(opt.value); setGroupByMenuOpen(false); }}
+                  >
+                    <span className={styles.dropdownItemLabel}>{opt.label}</span>
+                    {groupBy === opt.value && (
+                      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className={styles.dropdownCheck}>
+                        <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.dropdownAnchor} ref={statusMenuRef}>
+            <button
+              type="button"
+              className={styles.dropdownBtn}
+              onClick={() => setStatusMenuOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={statusMenuOpen}
+            >
+              <span className={styles.dropdownBtnMuted}>Status:</span>{' '}
+              {activeStatuses.size === 0 ? 'All' : `${activeStatuses.size} selected`}
+              <svg
+                width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                className={styles.dropdownChevron}
+                style={{ transform: statusMenuOpen ? 'rotate(180deg)' : undefined }}
+              >
+                <path d="M6 9L12 15L18 9" />
+              </svg>
+            </button>
+            {statusMenuOpen && (
+              <div className={styles.dropdownPopover}>
+                {STATUS_ORDER.map((status) => {
+                  const checked = activeStatuses.has(status);
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      role="checkbox"
+                      aria-checked={checked}
+                      className={checked ? `${styles.dropdownItem} ${styles.dropdownItemActive}` : styles.dropdownItem}
+                      onClick={() => toggleStatus(status)}
+                    >
+                      <span className={checked ? `${styles.checkbox} ${styles.checkboxChecked}` : styles.checkbox}>
+                        {checked && (
+                          <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+                            <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className={styles.statusDot} style={{ background: STATUS_DOT_COLORS[status] }} />
+                      <span className={styles.dropdownItemLabel}>{STATUS_LABELS[status]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
         <div className={styles.toolbarRight}>
           <span className={styles.toolbarLabel}>Sort</span>

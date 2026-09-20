@@ -26,7 +26,7 @@
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
 }
 
 .countBadge {
@@ -37,15 +37,15 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 10px;
-  background: var(--color-dark);
-  color: var(--color-bg);
+  background: var(--color-primary);
+  color: var(--color-on-accent-dark);
   font-size: 11px;
   font-weight: 700;
 }
 
 .chevron {
   font-size: 10px;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
   transition: transform 0.2s;
   display: inline-block;
 }
@@ -56,19 +56,19 @@
 
 .addBtn {
   background: none;
-  border: 1.5px solid var(--color-dark);
-  border-radius: 8px;
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--color-dark);
+  color: var(--color-primary);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .addBtn:hover {
-  background: var(--color-dark);
-  color: var(--color-bg);
+  background: var(--color-primary);
+  color: var(--color-on-accent-dark);
 }
 
 .list {
@@ -80,7 +80,7 @@
 .empty {
   font-size: 13px;
   font-style: italic;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
 }
 
 /* ── Individual row ── */
@@ -88,7 +88,7 @@
 .row {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid rgba(61, 12, 17, 0.08);
+  border-bottom: 1px solid var(--color-border);
   padding-bottom: 6px;
 }
 
@@ -106,7 +106,7 @@
 .statusBadge {
   flex-shrink: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 800;
@@ -124,24 +124,24 @@
 }
 
 .status_todo {
-  background: #E5E7EB;
-  color: #6B7280;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .status_pass {
-  background: #D1FAE5;
-  color: #065F46;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
 }
 
 .status_fail {
-  background: #FEE2E2;
-  color: #991B1B;
+  background: color-mix(in srgb, var(--color-danger) 16%, var(--color-surface));
+  color: var(--color-danger);
 }
 
 .title {
   flex: 1;
   font-size: 14px;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
   line-height: 1.4;
   cursor: text;
   min-width: 0;
@@ -149,16 +149,16 @@
 }
 
 .placeholder {
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 
 .titleInput {
   flex: 1;
   font-size: 14px;
-  color: var(--color-dark);
-  border: 2px solid var(--color-dark);
-  border-radius: 6px;
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-sm);
   padding: 4px 8px;
   background: transparent;
   outline: none;
@@ -166,12 +166,12 @@
 }
 
 .titleInputError {
-  border-color: #e53e3e;
+  border-color: var(--color-danger);
 }
 
 .titleErrorMsg {
   font-size: 11px;
-  color: #e53e3e;
+  color: var(--color-danger);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -188,7 +188,7 @@
   border: none;
   cursor: pointer;
   font-size: 10px;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   padding: 2px 4px;
   transition: color 0.15s, transform 0.2s;
   display: inline-block;
@@ -196,7 +196,7 @@
 
 .expandBtnOpen {
   transform: rotate(0deg);
-  color: var(--color-dark);
+  color: var(--color-text-primary);
 }
 
 .expandBtn:not(.expandBtnOpen) {
@@ -210,12 +210,12 @@
   font-size: 14px;
   line-height: 1;
   padding: 2px 4px;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   transition: color 0.15s;
 }
 
 .deleteBtn:hover {
-  color: #DC2626;
+  color: var(--color-danger);
 }
 
 .hasMetaIndicator {
@@ -238,16 +238,16 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
 }
 
 .textarea {
-  border: 1.5px solid rgba(61, 12, 17, 0.2);
-  border-radius: 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   font-size: 13px;
-  color: var(--color-dark);
-  background: rgba(61, 12, 17, 0.03);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
   resize: vertical;
   outline: none;
   transition: border-color 0.15s;
@@ -255,7 +255,7 @@
 }
 
 .textarea:focus {
-  border-color: var(--color-dark);
+  border-color: var(--color-primary);
 }
 
 .textarea:read-only {
@@ -274,36 +274,111 @@
 
 .filterSelect {
   appearance: none;
-  background: var(--color-dark);
-  color: var(--color-bg);
-  border: 1.5px solid var(--color-bg);
-  border-radius: 8px;
+  background: var(--color-primary);
+  color: var(--color-on-accent-dark);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
   padding: 4px 28px 4px 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23F5EFE0'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23FFFFFF'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
 }
 
 .filterSelect:focus {
-  outline: 2px solid var(--color-bg);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
 
-/* ── Roll-up: source badge on each row ── */
+/* ── Status filter chips ── */
 
-.sourceBadge {
-  flex-shrink: 0;
-  background: #F3F4F6;
-  color: #6B7280;
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 10px;
+.statusChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+}
+
+.statusChip {
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.statusChip:hover:not(.statusChipActive) {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.statusChipActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-accent-dark);
+}
+
+/* ── Roll-up: grouped blocks (own ticket + one per sub-ticket) ── */
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.groupHeaderOwn {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.groupHeaderChild {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.groupHeaderChildId {
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.groupHeaderSep {
+  color: var(--color-border-strong);
+}
+
+.listReadOnly {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px 10px;
+}
+
+.rollupNote {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin: 2px 0 0;
+  line-height: 1.5;
 }
 
 /* ── Roll-up: status summary in header ── */
@@ -322,18 +397,18 @@
 }
 
 .statusCountPass {
-  background: #D1FAE5;
-  color: #065F46;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
 }
 
 .statusCountFail {
-  background: #FEE2E2;
-  color: #991B1B;
+  background: color-mix(in srgb, var(--color-danger) 16%, var(--color-surface));
+  color: var(--color-danger);
 }
 
 .statusCountTodo {
-  background: #E5E7EB;
-  color: #6B7280;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 /* ── Inline add form ── */
@@ -342,17 +417,17 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--color-bg);
-  border: 2px solid var(--color-dark);
-  border-radius: 12px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   padding: 10px 12px;
 }
 
 .addFormInput {
   font-size: 14px;
-  color: var(--color-dark);
-  border: 1.5px solid rgba(61, 12, 17, 0.3);
-  border-radius: 8px;
+  color: var(--color-text-primary);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
   background: transparent;
   outline: none;
@@ -361,12 +436,12 @@
 }
 
 .addFormInput:focus {
-  border-color: var(--color-dark);
+  border-color: var(--color-primary);
 }
 
 .addFormError {
   font-size: 12px;
-  color: #DC2626;
+  color: var(--color-danger);
   margin: 0;
 }
 
@@ -377,10 +452,10 @@
 }
 
 .addFormSubmit {
-  background: var(--color-dark);
-  color: var(--color-bg);
+  background: var(--color-primary);
+  color: var(--color-on-accent-dark);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 5px 14px;
   font-size: 12px;
   font-weight: 700;
@@ -399,16 +474,16 @@
 
 .addFormCancel {
   background: none;
-  border: 1.5px solid rgba(61, 12, 17, 0.3);
-  border-radius: 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: border-color 0.15s;
 }
 
 .addFormCancel:hover {
-  border-color: var(--color-dark);
+  border-color: var(--color-primary);
 }

@@ -9,13 +9,13 @@
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
 }
 
 .empty {
   font-size: 13px;
   font-style: italic;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
 }
 
 .list {
@@ -28,7 +28,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(61, 12, 17, 0.08);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .row:last-child {
@@ -39,14 +39,14 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  accent-color: var(--color-dark);
+  accent-color: var(--color-primary);
   cursor: pointer;
 }
 
 .text {
   flex: 1;
   font-size: 14px;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
   line-height: 1.4;
   cursor: pointer;
 }
@@ -54,86 +54,214 @@
 .textCompleted {
   flex: 1;
   font-size: 14px;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   line-height: 1.4;
   text-decoration: line-through;
   cursor: pointer;
 }
 
-.deleteBtn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  color: color-mix(in srgb, var(--color-dark) 65%, transparent);
-  padding: 0 2px;
+/* Hover-revealed edit/delete icons — invisible at rest, fade in on row
+   hover/focus so the row stays clean when idle. */
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
   flex-shrink: 0;
-  transition: color 0.15s;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
-.deleteBtn:hover {
-  color: #DC2626;
+.row:hover .rowActions,
+.row:focus-within .rowActions {
+  opacity: 1;
+}
+
+.iconBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.iconBtn:hover {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+/* Inline add/edit row — same shape for both, per the mockup: the checkbox
+   (or its placeholder) stays put so editing never looks like a fresh,
+   unchecked item. */
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.checkboxPlaceholder {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.4px solid var(--color-border-strong);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.checkboxPlaceholderDone {
+  composes: checkboxPlaceholder;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.inlineInput {
+  flex-grow: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background: none;
+}
+
+.iconBtnCancel,
+.iconBtnSave {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.iconBtnCancel {
+  background: none;
+  color: var(--color-text-secondary);
+}
+
+.iconBtnCancel:hover {
+  color: var(--color-text-primary);
+}
+
+.iconBtnSave {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.iconBtnSave:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.iconBtnSave:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Inline delete confirm — the row itself turns into the confirm, no modal,
+   same idea as a tag pill's inline remove. */
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  margin: 0 -8px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+}
+
+.confirmCheckboxPlaceholder {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.4px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.confirmText {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--color-danger) 70%, black);
+}
+
+.confirmCancelBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 3px 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.confirmCancelBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.confirmDeleteBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-on-primary);
+  background: var(--color-danger);
+  border: none;
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.confirmDeleteBtn:hover {
+  opacity: 0.85;
 }
 
 .addArea {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.input {
-  border: 2px solid var(--color-dark);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--color-dark);
-  width: 100%;
-  outline: none;
-  background: white;
-  transition: border-color 0.15s;
-}
-
-.input:focus {
-  border-color: var(--color-orange);
-}
-
-.addRow {
-  display: flex;
-  justify-content: flex-end;
+  gap: 6px;
 }
 
 .addBtn {
-  background: var(--color-dark);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-card);
-  padding: 8px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  background: none;
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12px;
   font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: color 0.15s, border-color 0.15s;
 }
 
-.addBtn:hover:not(:disabled) {
-  opacity: 0.85;
+.addBtn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
 }
 
-.addBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.helperText {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  padding-left: 25px;
 }

@@ -19,7 +19,7 @@
 
 .subModeSwitcher {
   display: flex;
-  border: 1.5px solid var(--color-dark);
+  border: 1.5px solid var(--color-border-strong);
   border-radius: var(--radius-card);
   overflow: hidden;
   width: fit-content;
@@ -29,7 +29,7 @@
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
   background: transparent;
   border: none;
   padding: 8px 18px;
@@ -39,12 +39,12 @@
 }
 
 .subModeBtn + .subModeBtn {
-  border-left: 1.5px solid var(--color-dark);
+  border-left: 1.5px solid var(--color-border-strong);
 }
 
 .subModeBtnActive {
-  background: var(--color-dark);
-  color: var(--color-bg);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 /* ─── Empty state ────────────────────────────────────────────────────────── */
@@ -52,8 +52,7 @@
 .emptyState {
   padding: 40px;
   text-align: center;
-  color: var(--color-dark);
-  opacity: 0.5;
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-family: var(--font-body);
 }
@@ -62,16 +61,16 @@
 
 .ganttWrapper {
   display: flex;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .ganttLabelCol {
   width: 200px;
   flex-shrink: 0;
-  border-right: 1px solid #e5e7eb;
-  background: var(--color-bg, #faf8f5);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg);
   z-index: 2;
 }
 
@@ -84,8 +83,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #9ca3af;
-  border-bottom: 1px solid #e5e7eb;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
   font-family: var(--font-body);
 }
 
@@ -95,27 +94,27 @@
   justify-content: center;
   padding: 0 12px;
   gap: 2px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   overflow: hidden;
 }
 
 .ganttLabelRow:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--color-bg);
 }
 
 .ganttTicketId {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   font-weight: 600;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   white-space: nowrap;
 }
 
 .ganttTicketTitle {
   font-size: 13px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -131,14 +130,14 @@
   height: 40px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   position: relative;
 }
 
 .ganttDateTick {
   position: absolute;
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   top: 50%;
   transform: translateY(-50%);
@@ -149,7 +148,7 @@
 
 .ganttBarRow {
   position: relative;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .ganttTodayLine {
@@ -157,7 +156,8 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #f97316;
+  background: var(--color-primary);
+  opacity: 0.5;
   z-index: 1;
   pointer-events: none;
 }
@@ -167,8 +167,8 @@
 }
 
 .ganttDateTickToday {
-  background: var(--color-dark);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border-radius: 99px;
   padding: 2px 8px;
   font-size: 11px;
@@ -193,22 +193,72 @@
   opacity: 0.8;
 }
 
+.ganttBarDragging {
+  opacity: 0.85;
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
 .ganttBarNormal {
-  background: #93c5fd;
+  background: var(--color-blue);
 }
 
 .ganttBarOverdue {
-  background: #f97316;
+  background: var(--color-danger);
+}
+
+.ganttBarDone {
+  background: var(--color-lime);
+  opacity: 0.6;
+}
+
+.ganttBarDone:hover {
+  opacity: 0.75;
+}
+
+/* Invisible edge-resize handles: drag either one to change the ticket's
+   start/due date without opening the ticket modal. */
+.ganttBarHandleLeft,
+.ganttBarHandleRight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 3;
+}
+
+.ganttBarHandleLeft {
+  left: -2px;
+}
+
+.ganttBarHandleRight {
+  right: -2px;
+}
+
+.ganttBarHandleLeft:hover,
+.ganttBarHandleRight:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .ganttBarLabel {
   font-size: 9px;
   font-weight: 900;
-  color: #fff;
+  color: var(--color-on-accent-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: var(--font-body);
+}
+
+.ganttBarLabelDone {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.7);
+}
+
+.ganttTicketIdDone {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border-strong);
 }
 
 .ganttLegend {
@@ -219,8 +269,7 @@
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-dark);
-  opacity: 0.7;
+  color: var(--color-text-secondary);
 }
 
 .legendDot {
@@ -236,7 +285,8 @@
   display: inline-block;
   width: 16px;
   height: 2px;
-  background: #f97316;
+  background: var(--color-primary);
+  opacity: 0.6;
   margin-right: 4px;
   vertical-align: middle;
 }
@@ -263,7 +313,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(61, 12, 17, 0.5);
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
   padding: 4px 0;
 }
@@ -272,70 +322,71 @@
   content: '';
   flex: 1;
   height: 1.5px;
-  background: rgba(61, 12, 17, 0.1);
+  background: var(--color-border);
 }
 
-/* Rail: left 64px gutter with vertical line, content fills remainder */
+/* Rail: a flex column of items, each with its own dot-and-line rail segment
+   (reuses Debug Space's .dbg-item/.dbg-rail/.dbg-dot/.dbg-line shape). */
 .eventRail {
-  position: relative;
-  padding-left: 64px;
-}
-
-/* Vertical rail line — centered at 32px (badge center) */
-.eventRail::before {
-  content: '';
-  position: absolute;
-  left: 31px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(61, 12, 17, 0.2);
-  border-radius: 1px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .eventItem {
   display: flex;
-  align-items: flex-start;
-  padding: 12px 0;
+  gap: 12px;
+  position: relative;
   border-radius: 8px;
   transition: background 0.12s ease;
-  border-bottom: 1px solid rgba(61, 12, 17, 0.06);
-}
-
-.eventItem:last-child {
-  border-bottom: none;
 }
 
 .eventItem:hover {
-  background: rgba(61, 12, 17, 0.04);
-  margin: 0 -8px;
-  padding: 12px 8px;
+  background: var(--color-bg);
 }
 
-/* Badge circle that straddles the rail */
-.eventBadgeCircle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid var(--color-bg);
+/* Per-item rail: dot + connecting line down to the next item */
+.eventItemRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 13px;
   flex-shrink: 0;
-  /* Badge left = 64 - 48 = 16px; center = 32px — sits on the rail */
-  margin-left: -48px;
-  margin-right: 12px;
-  position: relative;
-  z-index: 1;
+  padding-top: 12px;
+}
+
+.eventDot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 2.5px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  line-height: 1;
-  color: #fff;
-  box-shadow: 0 1px 3px rgba(61, 12, 17, 0.15);
+}
+
+.eventLine {
+  width: 2px;
+  flex-grow: 1;
+  background: var(--color-border);
+  margin-top: 2px;
+  min-height: 10px;
+}
+
+.eventOtherDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #FFFFFF;
 }
 
 .eventContent {
   flex: 1;
   min-width: 0;
+  padding: 10px 0 14px;
 }
 
 /* Row 1: ticket chip + title + timestamp */
@@ -348,12 +399,12 @@
 }
 
 .eventTicketChip {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 800;
-  color: var(--color-orange);
+  color: var(--color-primary);
   background: none;
-  border: 1px solid var(--color-orange);
+  border: 1px solid var(--color-primary);
   border-radius: 4px;
   padding: 1px 6px;
   line-height: 1.7;
@@ -364,20 +415,20 @@
 }
 
 .eventTicketChip:hover:not(:disabled) {
-  background: rgba(232, 68, 26, 0.1);
+  background: var(--color-primary-tint);
 }
 
 .eventTicketChip:disabled {
   cursor: default;
-  color: rgba(61, 12, 17, 0.35);
-  border-color: rgba(61, 12, 17, 0.2);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-strong);
 }
 
 .eventTicketTitle {
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -389,7 +440,7 @@
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 500;
-  color: rgba(61, 12, 17, 0.4);
+  color: var(--color-text-secondary);
   margin-left: auto;
   white-space: nowrap;
   flex-shrink: 0;
@@ -409,14 +460,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(61, 12, 17, 0.6);
+  color: var(--color-text-secondary);
 }
 
 .eventDetailText {
   font-family: var(--font-body);
   font-size: 13px;
   font-style: normal;
-  color: rgba(61, 12, 17, 0.55);
+  color: var(--color-text-secondary);
   margin-left: 6px;
   white-space: nowrap;
   overflow: hidden;

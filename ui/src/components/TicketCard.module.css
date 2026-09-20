@@ -1,23 +1,46 @@
 .card {
-  background: var(--color-dark);
-  color: var(--color-bg);
-  border-radius: var(--radius-card);
-  border-left: 3px solid transparent;
-  padding: 10px 12px 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  opacity: 0.95;
+  border-color: #B9CBBF;
+  box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
 }
 
-.card:hover .dragHandle {
-  opacity: 0.6;
+.cardBlocked {
+  border: 1.5px dashed color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+}
+
+.cardBlocked:hover {
+  border: 1.5px dashed color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+}
+
+/* Ambient tint for any ticket that has sub-tickets — always on, independent
+   of hover/selection/column, per the board-grouping mockup. */
+.cardParent {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-primary) 15%, var(--color-border));
+}
+
+.cardParent:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+}
+
+.cardInner {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardBlocked .cardInner {
+  opacity: 0.72;
 }
 
 .cardHeader {
@@ -27,130 +50,179 @@
   gap: 4px;
 }
 
-.cardHeaderRight {
+.cardHeaderLeft {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  gap: 5px;
+  min-width: 0;
+}
+
+.typeLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .cardId {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  opacity: 0.45;
   letter-spacing: 0.04em;
-  font-family: monospace;
-}
-
-.dragHandle {
-  font-size: 14px;
-  line-height: 1;
-  opacity: 0;
-  color: var(--color-bg);
-  transition: opacity 0.15s;
-  cursor: grab;
-  user-select: none;
-}
-
-.badgeRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.typeBadge {
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 2px 7px;
-  white-space: nowrap;
-}
-
-.blockedBadge {
-  font-size: 12px;
-  line-height: 1;
+  font-family: var(--font-mono);
+  color: #9AA8A0;
   flex-shrink: 0;
 }
 
-.parentBadge {
-  font-size: 10px;
-  font-weight: 600;
-  background: rgba(245, 239, 224, 0.12);
-  color: rgba(245, 239, 224, 0.6);
-  border-radius: 999px;
-  padding: 2px 6px;
-  white-space: nowrap;
+.cardIdDone {
+  text-decoration: line-through;
+  text-decoration-color: #C7D2CB;
 }
 
 .cardTitle {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.35;
+  color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tagRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tagPill {
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.tagOverflow {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA8A0;
+}
+
+.subTicketProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subTicketProgressTrack {
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.subTicketProgressFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+.subTicketProgressLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.parentRow {
+  display: flex;
+  align-items: center;
+}
+
+.parentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--color-surface-alt, #F6FAF7);
+  border: 1px solid var(--color-border);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
 }
 
 .cardFooter {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   flex-wrap: wrap;
   min-width: 0;
+  margin-top: auto;
 }
 
 .footerSpacer {
   flex: 1;
 }
 
-.priorityDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
-
-.tag {
-  font-size: 10px;
-  font-weight: 500;
-  background: rgba(245, 239, 224, 0.1);
-  color: rgba(245, 239, 224, 0.7);
-  border-radius: 999px;
-  padding: 1px 6px;
-  white-space: nowrap;
-}
-
 .estimateBadge {
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(245, 239, 224, 0.55);
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA8A0;
   white-space: nowrap;
 }
 
 .dueDate {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 500;
-  color: rgba(245, 239, 224, 0.55);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .dueDateOverdue {
-  font-size: 10px;
-  font-weight: 700;
-  color: #FCA5A5;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-danger);
   white-space: nowrap;
 }
 
 .subTasksProgress {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  color: rgba(245, 239, 224, 0.5);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .subTasksDone {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  color: #86EFAC;
+  color: var(--color-primary);
   white-space: nowrap;
 }
 
+.blockedBadge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-danger);
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

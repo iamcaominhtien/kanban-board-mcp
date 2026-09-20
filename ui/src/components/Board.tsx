@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, PointerSensor, defaultDropAnimationSideEffects, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, DropAnimation } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import type { Column as ColumnType, Member, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
@@ -9,11 +10,17 @@ import { TimelineView } from './TimelineView';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 
-const COLUMNS: ColumnType[] = [
-  { id: 'backlog',     label: 'Backlog',      accentColor: '#F5C518' },
-  { id: 'todo',        label: 'To Do',        accentColor: '#E8441A' },
-  { id: 'in-progress', label: 'In Progress',  accentColor: '#AACC2E' },
-  { id: 'done',        label: 'Done',         accentColor: '#F472B6' },
+// Extends the base Column shape with the count-pill's text (and, where the
+// accent color itself is too light/mid-tone to clear 4.5:1 with either text
+// color, a slightly darkened badge-only background) so every badge meets
+// WCAG AA contrast against its own accent.
+type BoardColumn = ColumnType & { badgeTextColor: string; badgeBgColor?: string };
+
+const COLUMNS: BoardColumn[] = [
+  { id: 'backlog',     label: 'Backlog',      accentColor: '#9AA8A0',              badgeTextColor: 'var(--color-dark)' },
+  { id: 'todo',        label: 'To Do',        accentColor: 'var(--color-blue)',    badgeTextColor: 'var(--color-on-accent-dark)' },
+  { id: 'in-progress', label: 'In Progress',  accentColor: 'var(--color-orange)',  badgeTextColor: 'var(--color-on-accent-dark)', badgeBgColor: '#BD531C' },
+  { id: 'done',        label: 'Done',         accentColor: 'var(--color-lime)',    badgeTextColor: 'var(--color-dark)' },
 ];
 
 interface BoardProps {
@@ -37,6 +44,21 @@ interface BoardProps {
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'done']);
 
+// Matches the mockup's "Dropped" panel: release -> ~220ms, a small overshoot
+// past 100% scale (105%) before easing back to rest.
+const dropAnimation: DropAnimation = {
+  duration: 220,
+  easing: 'cubic-bezier(.2,.9,.3,1)',
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
+  keyframes({ transform }) {
+    return [
+      { transform: `${CSS.Transform.toString(transform.initial)} scale(1.03)`, offset: 0 },
+      { transform: `${CSS.Transform.toString(transform.final)} scale(1.05)`, offset: 0.45 },
+      { transform: `${CSS.Transform.toString(transform.final)} scale(1)`, offset: 1 },
+    ];
+  },
+};
+
 export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, projectId, viewMode, onViewModeChange, members = [], activeAssignee = 'all', onAssigneeChange }: BoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -44,6 +66,18 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
+
+  // Roll up sub-ticket completion per parent, computed once from the full
+  // (unfiltered) ticket set so it stays accurate regardless of which column
+  // or filter view a card currently sits in.
+  const childSummaryMap = new Map<string, { done: number; total: number }>();
+  for (const t of allTickets) {
+    if (!t.parentId) continue;
+    const entry = childSummaryMap.get(t.parentId) ?? { done: 0, total: 0 };
+    entry.total += 1;
+    if (t.status === 'done') entry.done += 1;
+    childSummaryMap.set(t.parentId, entry);
+  }
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(event.active.id as string);
@@ -110,16 +144,33 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
           <div className={styles.columns}>
             {COLUMNS.map((col) => {
               const colTickets = tickets.filter((t) => t.status === col.id);
-              return <Column key={col.id} column={col} tickets={colTickets} onCardClick={onCardClick} memberMap={memberMap} />;
+              return (
+                <Column
+                  key={col.id}
+                  column={col}
+                  tickets={colTickets}
+                  onCardClick={onCardClick}
+                  memberMap={memberMap}
+                  childSummaryMap={childSummaryMap}
+                />
+              );
             })}
           </div>
         )}
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={dropAnimation}>
         {activeTicket ? (
-          <div style={{ transform: 'scale(1.03) rotate(2deg)', pointerEvents: 'none' }}>
-            <TicketCard ticket={activeTicket} memberMap={memberMap} />
+          <div
+            style={{
+              transform: 'rotate(-1.5deg) scale(1.03)',
+              opacity: 0.97,
+              boxShadow: '0 16px 30px color-mix(in srgb, var(--color-text-primary) 22%, transparent)',
+              borderRadius: 'var(--radius-md)',
+              pointerEvents: 'none',
+            }}
+          >
+            <TicketCard ticket={activeTicket} memberMap={memberMap} childSummary={childSummaryMap.get(activeTicket.id)} />
           </div>
         ) : null}
       </DragOverlay>

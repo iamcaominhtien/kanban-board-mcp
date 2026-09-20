@@ -4,13 +4,14 @@ import { DraggableTicketCard } from './DraggableTicketCard';
 import styles from './Board.module.css';
 
 interface ColumnProps {
-  column: ColumnType;
+  column: ColumnType & { badgeTextColor: string; badgeBgColor?: string };
   tickets: Ticket[];
   onCardClick: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
+  childSummaryMap?: Map<string, { done: number; total: number }>;
 }
 
-export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps) {
+export function Column({ column, tickets, onCardClick, memberMap, childSummaryMap }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -47,19 +48,17 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
   return (
     <div
       ref={setNodeRef}
-      className={styles.column}
-      style={{
-        backgroundColor: column.accentColor,
-        filter: isOver ? 'brightness(0.88)' : undefined,
-        outline: isOver ? '2px solid rgba(0,0,0,0.2)' : undefined,
-        transition: 'filter 0.15s ease, outline 0.15s ease',
-      }}
+      className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
     >
+      <div className={styles.columnAccentBar} style={{ backgroundColor: column.accentColor }} />
       <div className={styles.columnHeader}>
         <span className={styles.columnLabel}>{column.label}</span>
         <span
           className={styles.badge}
-          style={{ background: 'var(--color-dark)', color: 'var(--color-bg)' }}
+          style={{
+            backgroundColor: column.badgeBgColor ?? column.accentColor,
+            color: column.badgeTextColor,
+          }}
           aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
         >
           {tickets.length}
@@ -74,14 +73,16 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
+          const childSummary = childSummaryMap?.get(ticket.id);
           return indented ? (
             <div key={ticket.id} className={styles.childIndent}>
-              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} childSummary={childSummary} />
             </div>
           ) : (
-            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} childSummary={childSummary} />
           );
         })}
+        {isOver && <div className={styles.targetGhost} />}
       </div>
     </div>
   );
