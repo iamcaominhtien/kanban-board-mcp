@@ -8,9 +8,10 @@ interface ColumnProps {
   tickets: Ticket[];
   onCardClick: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
+  childSummaryMap?: Map<string, { done: number; total: number }>;
 }
 
-export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps) {
+export function Column({ column, tickets, onCardClick, memberMap, childSummaryMap }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -72,12 +73,13 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
+          const childSummary = childSummaryMap?.get(ticket.id);
           return indented ? (
             <div key={ticket.id} className={styles.childIndent}>
-              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} childSummary={childSummary} />
             </div>
           ) : (
-            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} childSummary={childSummary} />
           );
         })}
       </div>

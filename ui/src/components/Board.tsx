@@ -51,6 +51,18 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
 
+  // Roll up sub-ticket completion per parent, computed once from the full
+  // (unfiltered) ticket set so it stays accurate regardless of which column
+  // or filter view a card currently sits in.
+  const childSummaryMap = new Map<string, { done: number; total: number }>();
+  for (const t of allTickets) {
+    if (!t.parentId) continue;
+    const entry = childSummaryMap.get(t.parentId) ?? { done: 0, total: 0 };
+    entry.total += 1;
+    if (t.status === 'done') entry.done += 1;
+    childSummaryMap.set(t.parentId, entry);
+  }
+
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(event.active.id as string);
   }
@@ -116,7 +128,16 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
           <div className={styles.columns}>
             {COLUMNS.map((col) => {
               const colTickets = tickets.filter((t) => t.status === col.id);
-              return <Column key={col.id} column={col} tickets={colTickets} onCardClick={onCardClick} memberMap={memberMap} />;
+              return (
+                <Column
+                  key={col.id}
+                  column={col}
+                  tickets={colTickets}
+                  onCardClick={onCardClick}
+                  memberMap={memberMap}
+                  childSummaryMap={childSummaryMap}
+                />
+              );
             })}
           </div>
         )}
@@ -125,7 +146,7 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
       <DragOverlay>
         {activeTicket ? (
           <div style={{ transform: 'scale(1.03) rotate(2deg)', pointerEvents: 'none' }}>
-            <TicketCard ticket={activeTicket} memberMap={memberMap} />
+            <TicketCard ticket={activeTicket} memberMap={memberMap} childSummary={childSummaryMap.get(activeTicket.id)} />
           </div>
         ) : null}
       </DragOverlay>

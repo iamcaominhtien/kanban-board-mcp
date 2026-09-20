@@ -166,9 +166,10 @@ function SubTicketIcon() {
 interface TicketCardProps {
   ticket: Ticket;
   memberMap?: Map<string, Member>;
+  childSummary?: { done: number; total: number };
 }
 
-export function TicketCard({ ticket, memberMap }: TicketCardProps) {
+export function TicketCard({ ticket, memberMap, childSummary }: TicketCardProps) {
   const tc = TYPE_CONFIG[ticket.type];
   const due = getDueDateDisplay(ticket.dueDate);
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
@@ -178,9 +179,11 @@ export function TicketCard({ ticket, memberMap }: TicketCardProps) {
   const isDone = ticket.status === 'done';
   const visibleTags = ticket.tags.slice(0, 3);
   const overflowTagCount = ticket.tags.length - visibleTags.length;
+  const hasChildren = !!childSummary && childSummary.total > 0;
+  const childProgressPct = hasChildren ? Math.round((childSummary!.done / childSummary!.total) * 100) : 0;
 
   return (
-    <div className={`${styles.card} ${isBlocked ? styles.cardBlocked : ''}`}>
+    <div className={`${styles.card} ${isBlocked ? styles.cardBlocked : ''} ${hasChildren ? styles.cardParent : ''}`}>
       <div className={styles.cardInner}>
         {/* Header: type icon + label on the left, ticket ID on the right */}
         <div className={styles.cardHeader}>
@@ -201,6 +204,18 @@ export function TicketCard({ ticket, memberMap }: TicketCardProps) {
               <span key={`${tag}-${i}`} className={styles.tagPill} style={tagChipStyle(tag)}>{tag}</span>
             ))}
             {overflowTagCount > 0 && <span className={styles.tagOverflow}>+{overflowTagCount}</span>}
+          </div>
+        )}
+
+        {/* Sub-ticket progress rollup (parent cards only) */}
+        {hasChildren && (
+          <div className={styles.subTicketProgressRow}>
+            <div className={styles.subTicketProgressTrack}>
+              <div className={styles.subTicketProgressFill} style={{ width: `${childProgressPct}%` }} />
+            </div>
+            <span className={styles.subTicketProgressLabel}>
+              {childSummary!.done}/{childSummary!.total} sub-tasks
+            </span>
           </div>
         )}
 

@@ -21,6 +21,17 @@
   border: 1.5px dashed color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
 }
 
+/* Ambient tint for any ticket that has sub-tickets — always on, independent
+   of hover/selection/column, per the board-grouping mockup. */
+.cardParent {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-primary) 15%, var(--color-border));
+}
+
+.cardParent:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+}
+
 .cardInner {
   padding: 12px 14px;
   display: flex;
@@ -99,6 +110,33 @@
   font-size: 11px;
   font-weight: 600;
   color: #9AA8A0;
+}
+
+.subTicketProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subTicketProgressTrack {
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.subTicketProgressFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+.subTicketProgressLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .parentRow {
