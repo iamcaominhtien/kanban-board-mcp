@@ -1,7 +1,7 @@
 // Small shared visual pieces (type icon, priority bars, due-date calendar icon)
 // used by both TicketCard.tsx and TicketModal.tsx, so the two stay visually
 // consistent instead of maintaining two copies of the same SVG generation logic.
-import type { IssueType, Priority } from '../types';
+import type { IssueType, Priority, Status } from '../types';
 
 export interface TypeIconProps {
   type: IssueType;
@@ -91,6 +91,54 @@ export function PriorityBars({ priority }: PriorityBarsProps) {
         />
       ))}
     </svg>
+  );
+}
+
+// Small status mark used in compact ticket rows (e.g. sub-ticket list, sub-task
+// checklist): a filled checkmark circle for done, a filled dot for in-progress,
+// and an empty outlined circle for anything else (backlog/todo/wont_do).
+export interface StatusMarkProps {
+  status: Status;
+  size?: number;
+}
+
+export function StatusMark({ status, size = 15 }: StatusMarkProps) {
+  if (status === 'done') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }} aria-label="Done">
+        <circle cx="7" cy="7" r="6" stroke="var(--color-primary)" strokeWidth="1.6" />
+        <path d="M4.3 7.2L6.1 9L9.8 5" stroke="var(--color-primary)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (status === 'in-progress') {
+    return (
+      <span
+        aria-label="In progress"
+        style={{
+          display: 'inline-block',
+          width: size - 1,
+          height: size - 1,
+          borderRadius: '50%',
+          background: 'var(--color-blue)',
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+  return (
+    <span
+      aria-label="Not started"
+      style={{
+        display: 'inline-block',
+        width: size - 1,
+        height: size - 1,
+        borderRadius: '50%',
+        border: '1.6px solid var(--color-text-secondary)',
+        boxSizing: 'border-box',
+        flexShrink: 0,
+      }}
+    />
   );
 }
 

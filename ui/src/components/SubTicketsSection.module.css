@@ -4,12 +4,46 @@
   gap: 10px;
 }
 
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .sectionHeader {
-  font-weight: 900;
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.progressTrack {
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  overflow: hidden;
+  max-width: 120px;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.progressCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.footnote {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
 .empty {
@@ -21,22 +55,59 @@
 .list {
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 9px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .row:last-child {
   border-bottom: none;
 }
 
+.waveBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.wave-done {
+  background: var(--color-primary-tint);
+  border: none;
+  color: var(--color-primary);
+}
+
+.wave-current {
+  background: var(--color-surface);
+  border: 1.4px solid var(--color-blue);
+  color: var(--color-blue);
+}
+
+.wave-future {
+  background: var(--color-surface);
+  border: 1.4px dashed var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
 .ticketLink {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -51,27 +122,52 @@
   text-decoration: underline;
 }
 
+.titleCol {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
 .ticketId {
-  font-size: 12px;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--color-text-secondary);
+  width: 62px;
+  text-align: right;
   flex-shrink: 0;
 }
 
+.ticketIdDone {
+  composes: ticketId;
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border-strong);
+}
+
 .ticketTitle {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-primary);
   line-height: 1.4;
 }
 
-.statusBadge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 20px;
-  background: var(--color-bg);
+.ticketTitleDone {
+  composes: ticketTitle;
   color: var(--color-text-secondary);
-  flex-shrink: 0;
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border-strong);
+}
+
+.blockedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 7px 2px 6px;
+  border-radius: 3px;
+  background: rgba(196, 67, 42, 0.1);
+  color: var(--color-danger);
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .unlinkBtn {

@@ -568,11 +568,9 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
       return true;
     });
 
-    // Sub-task progress bar (adapted from the childSummaryMap computation added
-    // to Board.tsx: done/total across this ticket's direct sub-tickets).
+    // Gate for showing the sub-tickets section; SubTicketsSection computes its
+    // own done/total counts and progress bar internally from childTickets.
     const subTaskTotal = childTickets.length;
-    const subTaskDone = childTickets.filter((t) => t.status === 'done').length;
-    const subTaskPct = subTaskTotal > 0 ? Math.round((subTaskDone / subTaskTotal) * 100) : 0;
 
     const testCases = ticket.testCases ?? [];
     const tcPass = testCases.filter((tc) => tc.status === 'pass').length;
@@ -593,6 +591,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
     const assigneeMember = ticket.assignee ? members.find((m) => m.id === ticket.assignee) : null;
     const creatorMember = ticket.createdBy ? members.find((m) => m.id === ticket.createdBy) : null;
+    const memberMap = new Map(members.map((m) => [m.id, m]));
     const dueInfo = ticket.dueDate ? (() => {
       const due = new Date(ticket.dueDate as string);
       const today = new Date();
@@ -727,18 +726,16 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
                 {isRootTicket && subTaskTotal > 0 && (
                   <div className={styles.dtSectionBlock}>
-                    <div className={styles.dtSubTaskHeader}>
-                      <div className={styles.dtLabelInline}>SUB-TASKS</div>
-                      <div className={styles.dtProgressTrack}>
-                        <div className={styles.dtProgressFill} style={{ width: `${subTaskPct}%` }} />
-                      </div>
-                      <span className={styles.dtProgressCount}>{subTaskDone}/{subTaskTotal}</span>
-                    </div>
+                    {/* SubTicketsSection renders its own "SUB-TICKETS · N" header
+                        + progress bar internally, so no extra label wrapper here
+                        (this block used to duplicate it under a "SUB-TASKS" label,
+                        which mislabeled sub-tickets as sub-tasks). */}
                     <SubTicketsSection
                       childTickets={childTickets}
                       allTickets={allTickets}
                       currentTicketId={ticket.id}
                       projectId={ticket.projectId}
+                      memberMap={memberMap}
                       onOpenTicket={(t) => onOpenTicket && onOpenTicket(t)}
                       onLinkChild={handleLinkChild}
                       onUnlinkChild={handleUnlinkChild}
