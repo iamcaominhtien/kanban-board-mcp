@@ -504,6 +504,9 @@
 }
 
 .statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--color-dark);
   color: var(--color-bg);
   font-size: 11px;
@@ -512,6 +515,13 @@
   text-transform: uppercase;
   padding: 4px 12px;
   border-radius: 99px;
+}
+
+.statusBadgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .estimateBadge {

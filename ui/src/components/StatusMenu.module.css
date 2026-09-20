@@ -1,0 +1,129 @@
+.statusMenuAnchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.statusMenuTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.statusMenuTrigger:hover,
+.statusMenuTrigger:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.statusMenuLabel {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.statusMenuChevron {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusMenuPopover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 188px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+
+.statusMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.statusMenuItem:hover {
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.statusMenuItemActive {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  font-weight: 600;
+}
+
+.statusMenuItemLabel {
+  flex-grow: 1;
+}
+
+.statusMenuCheck {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.statusMenuItemDisabled {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  opacity: 0.55;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+.statusMenuItemDisabled .statusDot {
+  opacity: 0.7;
+}
+
+.statusMenuSoonTag {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.statusMenuDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 4px 6px;
+}
