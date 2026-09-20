@@ -4,12 +4,15 @@ import styles from './ListView.module.css';
 
 type GroupBy = 'status' | 'priority' | 'tag';
 type SortBy = 'dueDate' | 'createdAt';
+type StatusFilter = Status | 'all';
 
 interface ListViewProps {
   tickets: Ticket[];
   onCardClick: (ticket: Ticket) => void;
 }
 
+// wont_do tickets are handled separately via the Recycle Bin (see App.tsx/RecycleBin.tsx) and are
+// never included in the main ticket list passed to this component, so they're excluded from these options.
 const STATUS_ORDER: Status[] = ['backlog', 'todo', 'in-progress', 'done'];
 const STATUS_LABELS: Record<Status, string> = {
   backlog: 'Backlog',
@@ -25,6 +28,11 @@ const STATUS_CHIP_CLASS: Record<Status, string> = {
   done: 'chipDone',
   wont_do: 'chipDone',
 };
+
+const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'All Statuses' },
+  ...STATUS_ORDER.map((status) => ({ value: status, label: STATUS_LABELS[status] })),
+];
 
 const PRIORITY_ORDER: Priority[] = ['critical', 'high', 'medium', 'low'];
 const PRIORITY_LABELS: Record<Priority, string> = {
@@ -168,13 +176,19 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
 export function ListView({ tickets, onCardClick }: ListViewProps) {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [sortBy, setSortBy] = useState<SortBy>('dueDate');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => { setCollapsedKeys(new Set()); }, [groupBy]);
 
+  const filteredTickets = useMemo(
+    () => (statusFilter === 'all' ? tickets : tickets.filter((t) => t.status === statusFilter)),
+    [tickets, statusFilter],
+  );
+
   const groups = useMemo(
-    () => buildGroups(tickets, groupBy, sortBy),
-    [tickets, groupBy, sortBy],
+    () => buildGroups(filteredTickets, groupBy, sortBy),
+    [filteredTickets, groupBy, sortBy],
   );
 
   const allCollapsed = groups.length > 0 && groups.every((g) => collapsedKeys.has(g.key));
@@ -200,6 +214,17 @@ export function ListView({ tickets, onCardClick }: ListViewProps) {
     <div className={styles.listView}>
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
+          <label className={styles.toolbarLabel} htmlFor="lv-status">Status</label>
+          <select
+            id="lv-status"
+            className={styles.select}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+          >
+            {STATUS_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
           <label className={styles.toolbarLabel} htmlFor="lv-groupby">Group&nbsp;by</label>
           <select
             id="lv-groupby"

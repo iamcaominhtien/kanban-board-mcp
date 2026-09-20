@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Ticket } from '../types';
-import { useProjectActivities } from '../api/tickets';
+import { useProjectActivities, useUpdateTicket } from '../api/tickets';
 import type { ActivityEvent } from '../api/tickets';
 import styles from './TimelineView.module.css';
 
@@ -34,6 +34,18 @@ function formatShortDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// UTC-safe day math for the drag-to-resize interaction: dates parsed from
+// "YYYY-MM-DD" strings are UTC midnight (see parseDate), so we keep the
+// arithmetic in UTC and re-serialize the same way to avoid local-timezone
+// off-by-one drift.
+function addDaysUTC(d: Date, days: number): Date {
+  return new Date(d.getTime() + days * 86_400_000);
+}
+
+function formatISODateUTC(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 // ─── Event helpers ────────────────────────────────────────────────────────────
 
 type EventCategory = 'created' | 'status_changed' | 'commented' | 'other';
@@ -46,10 +58,10 @@ function categorizeEvent(type: string): EventCategory {
 }
 
 const EVENT_COLORS: Record<EventCategory, string> = {
-  created: '#AACC2E',
-  status_changed: '#E8441A',
-  commented: '#5BB8F5',
-  other: 'rgba(61,12,17,0.2)',
+  created: 'var(--color-lime)',
+  status_changed: 'var(--color-orange)',
+  commented: 'var(--color-blue)',
+  other: 'var(--color-border-strong)',
 };
 
 const EVENT_ICONS: Record<EventCategory, string> = {
@@ -90,7 +102,120 @@ interface GanttProps {
   onCardClick: (ticket: Ticket) => void;
 }
 
+interface DragOrigin {
+  ticketId: string;
+  edge: 'start' | 'end';
+  startX: number;
+  origStart: Date;
+  origEnd: Date;
+}
+
+interface DragPreview {
+  ticketId: string;
+  edge: 'start' | 'end';
+  deltaDays: number;
+}
+
 function GanttChart({ tickets, onCardClick }: GanttProps) {
+  const updateTicket = useUpdateTicket();
+  // Mutable drag origin (avoids re-subscribing window listeners on every
+  // pointermove) + a small bit of state so the dragged bar re-renders live.
+  // `deltaDaysRef` mirrors the latest pointermove delta synchronously, so
+  // pointerup/pointercancel can read the final value directly (without going
+  // through a setState updater, which React.StrictMode double-invokes in dev
+  // and would otherwise fire the mutation twice per drag).
+  const dragRef = useRef<DragOrigin | null>(null);
+  const deltaDaysRef = useRef(0);
+  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+  // Guards against a click firing on the bar right after a resize-drag ends
+  // (the browser dispatches `click` on the common ancestor of pointerdown/up
+  // targets, which is the bar button itself when the pointer drifts off the
+  // handle during the drag).
+  const justDraggedRef = useRef(false);
+  const mutateRef = useRef(updateTicket.mutate);
+  mutateRef.current = updateTicket.mutate;
+
+  useEffect(() => {
+    function onPointerMove(e: PointerEvent) {
+      const origin = dragRef.current;
+      if (!origin) return;
+      const deltaDays = Math.round((e.clientX - origin.startX) / DAY_WIDTH);
+      deltaDaysRef.current = deltaDays;
+      setDragPreview({ ticketId: origin.ticketId, edge: origin.edge, deltaDays });
+    }
+    function finishDrag(commit: boolean) {
+      const origin = dragRef.current;
+      if (!origin) return;
+      dragRef.current = null;
+      const deltaDays = deltaDaysRef.current;
+      deltaDaysRef.current = 0;
+
+      if (commit && deltaDays !== 0) {
+        const MIN_DURATION_DAYS = 1;
+        if (origin.edge === 'start') {
+          const maxStart = addDaysUTC(origin.origEnd, -MIN_DURATION_DAYS);
+          let newStart = addDaysUTC(origin.origStart, deltaDays);
+          if (newStart.getTime() > maxStart.getTime()) newStart = maxStart;
+          if (newStart.getTime() !== origin.origStart.getTime()) {
+            mutateRef.current({
+              ticketId: origin.ticketId,
+              data: { startDate: formatISODateUTC(newStart) },
+            });
+          }
+        } else {
+          const minEnd = addDaysUTC(origin.origStart, MIN_DURATION_DAYS);
+          let newEnd = addDaysUTC(origin.origEnd, deltaDays);
+          if (newEnd.getTime() < minEnd.getTime()) newEnd = minEnd;
+          if (newEnd.getTime() !== origin.origEnd.getTime()) {
+            mutateRef.current({
+              ticketId: origin.ticketId,
+              data: { dueDate: formatISODateUTC(newEnd) },
+            });
+          }
+        }
+      }
+
+      setDragPreview(null);
+      justDraggedRef.current = true;
+      setTimeout(() => { justDraggedRef.current = false; }, 0);
+    }
+    function onPointerUp() {
+      finishDrag(true);
+    }
+    function onPointerCancel() {
+      finishDrag(false);
+    }
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+    };
+  }, []);
+
+  function handleEdgePointerDown(
+    e: React.PointerEvent,
+    ticketId: string,
+    edge: 'start' | 'end',
+    ticketStart: Date,
+    ticketEnd: Date,
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { ticketId, edge, startX: e.clientX, origStart: ticketStart, origEnd: ticketEnd };
+    deltaDaysRef.current = 0;
+    justDraggedRef.current = true;
+    setDragPreview({ ticketId, edge, deltaDays: 0 });
+  }
+
+  function handleBarClick(ticket: Ticket) {
+    if (justDraggedRef.current) return;
+    onCardClick(ticket);
+  }
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -222,9 +347,35 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
             const effectiveStart = ticketStart < rangeStart ? rangeStart : ticketStart;
             const effectiveEnd = ticketEnd > rangeEnd ? rangeEnd : ticketEnd;
 
-            const leftPx = daysBetween(rangeStart, effectiveStart) * DAY_WIDTH;
+            let leftPx = daysBetween(rangeStart, effectiveStart) * DAY_WIDTH;
             const rawWidthPx = Math.max(daysBetween(effectiveStart, effectiveEnd), 1) * DAY_WIDTH;
-            const widthPx = Math.max(rawWidthPx, MIN_BAR_PX);
+            let widthPx = Math.max(rawWidthPx, MIN_BAR_PX);
+
+            // Live visual preview while this bar's edge is being dragged.
+            // Clamp deltaDays to the same 1-day-minimum-duration rule the
+            // commit (onPointerUp) applies, rather than a raw pixel floor —
+            // otherwise the bar snaps back visibly once the drag is released
+            // past that point.
+            const isDraggingThis = dragPreview?.ticketId === ticket.id;
+            if (isDraggingThis) {
+              const MIN_DURATION_DAYS = 1;
+              const durationDays = Math.max(daysBetween(ticketStart, ticketEnd), 1);
+              let clampedDeltaDays = dragPreview.deltaDays;
+              if (dragPreview.edge === 'start') {
+                const maxDeltaDays = durationDays - MIN_DURATION_DAYS;
+                if (clampedDeltaDays > maxDeltaDays) clampedDeltaDays = maxDeltaDays;
+              } else {
+                const minDeltaDays = -(durationDays - MIN_DURATION_DAYS);
+                if (clampedDeltaDays < minDeltaDays) clampedDeltaDays = minDeltaDays;
+              }
+              const shiftPx = clampedDeltaDays * DAY_WIDTH;
+              if (dragPreview.edge === 'start') {
+                leftPx += shiftPx;
+                widthPx = Math.max(widthPx - shiftPx, DAY_WIDTH * MIN_DURATION_DAYS);
+              } else {
+                widthPx = Math.max(widthPx + shiftPx, DAY_WIDTH * MIN_DURATION_DAYS);
+              }
+            }
 
             const isOverdue =
               parseDate(ticket.dueDate) !== null &&
@@ -244,17 +395,28 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                 />
                 <button
                   type="button"
-                  className={`${styles.ganttBar} ${isOverdue ? styles.ganttBarOverdue : styles.ganttBarNormal}`}
+                  className={`${styles.ganttBar} ${isOverdue ? styles.ganttBarOverdue : styles.ganttBarNormal}${isDraggingThis ? ` ${styles.ganttBarDragging}` : ''}`}
                   style={{
                     left: leftPx,
                     width: widthPx,
                     height: BAR_HEIGHT,
                     top: `calc(50% - ${BAR_HEIGHT / 2}px)`,
                   }}
-                  onClick={() => onCardClick(ticket)}
-                  title={`${ticket.title}\n${ticket.startDate ? formatShortDate(ticket.startDate) : '?'} → ${ticket.dueDate ? formatShortDate(ticket.dueDate) : '?'}`}
+                  onClick={() => handleBarClick(ticket)}
+                  title={`${ticket.title}\n${ticket.startDate ? formatShortDate(ticket.startDate) : '?'} → ${ticket.dueDate ? formatShortDate(ticket.dueDate) : '?'}\n(drag either edge to reschedule)`}
                 >
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+                  <span
+                    className={styles.ganttBarHandleLeft}
+                    onPointerDown={(e) => handleEdgePointerDown(e, ticket.id, 'start', ticketStart, ticketEnd)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                   <span className={styles.ganttBarLabel}>{ticket.id}</span>
+                  <span
+                    className={styles.ganttBarHandleRight}
+                    onPointerDown={(e) => handleEdgePointerDown(e, ticket.id, 'end', ticketStart, ticketEnd)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </button>
               </div>
             );
@@ -263,8 +425,8 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
       </div>
 
       <div className={styles.ganttLegend}>
-        <span className={styles.legendDot} style={{ background: '#93c5fd' }} /> Normal
-        <span className={styles.legendDot} style={{ background: '#f97316' }} /> Overdue
+        <span className={styles.legendDot} style={{ background: 'var(--color-blue)' }} /> Normal
+        <span className={styles.legendDot} style={{ background: 'var(--color-orange)' }} /> Overdue
         <span className={styles.legendLine} /> Today
       </div>
     </>

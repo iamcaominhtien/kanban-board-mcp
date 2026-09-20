@@ -9,13 +9,13 @@
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
 }
 
 .empty {
   font-size: 13px;
   font-style: italic;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
 }
 
 .list {
@@ -28,7 +28,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(61, 12, 17, 0.08);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .row:last-child {
@@ -54,13 +54,13 @@
 .ticketId {
   font-size: 12px;
   font-weight: 700;
-  color: #6B7280;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
 .ticketTitle {
   font-size: 14px;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
   line-height: 1.4;
 }
 
@@ -69,8 +69,8 @@
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 20px;
-  background: #F3F4F6;
-  color: #374151;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
@@ -79,15 +79,21 @@
   border: none;
   font-size: 12px;
   cursor: pointer;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   padding: 2px 4px;
   flex-shrink: 0;
-  transition: color 0.15s;
+  opacity: 0;
+  transition: color 0.15s, opacity 0.15s;
   white-space: nowrap;
 }
 
+.row:hover .unlinkBtn,
+.row:focus-within .unlinkBtn {
+  opacity: 1;
+}
+
 .unlinkBtn:hover {
-  color: #DC2626;
+  color: var(--color-danger);
 }
 
 .addArea {
@@ -97,10 +103,10 @@
 }
 
 .addBtn {
-  background: var(--color-dark);
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 700;
@@ -113,29 +119,90 @@
   opacity: 0.85;
 }
 
-.dropdown {
+/* Inline expanding add panel with New / Existing tabs */
+
+.addPanel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: white;
-  border: 2px solid var(--color-dark);
-  border-radius: 10px;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 10px;
 }
 
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 6px;
+}
+
+.tab,
+.tabActive {
+  background: none;
+  border: none;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab {
+  color: var(--color-text-secondary);
+}
+
+.tab:hover {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.tabActive {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+.closeBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 4px 6px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  line-height: 1;
+}
+
+.closeBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .searchInput {
-  border: 1px solid #D1D5DB;
-  border-radius: 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
   font-size: 13px;
-  color: var(--color-dark);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
   outline: none;
   width: 100%;
   font-family: var(--font-body);
 }
 
 .searchInput:focus {
-  border-color: var(--color-dark);
+  border-color: var(--color-primary);
 }
 
 .dropdownList {
@@ -150,7 +217,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   background: none;
   border: none;
@@ -160,82 +227,19 @@
 }
 
 .dropdownItem:hover {
-  background: #F3F4F6;
+  background: var(--color-primary-tint);
 }
 
 .dropdownEmpty {
   font-size: 13px;
   font-style: italic;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   padding: 4px 8px;
-}
-
-.cancelLink {
-  background: none;
-  border: none;
-  font-size: 12px;
-  color: #9CA3AF;
-  cursor: pointer;
-  padding: 2px 0;
-  align-self: flex-start;
-  text-decoration: underline;
-}
-
-.cancelLink:hover {
-  color: var(--color-dark);
-}
-
-.setParentArea {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.setParentLabel {
-  font-size: 12px;
-  font-weight: 700;
-  color: #6B7280;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.addButtons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.createBtn {
-  background: var(--color-bg);
-  color: var(--color-dark);
-  border: 2px solid var(--color-dark);
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  align-self: flex-start;
-  transition: opacity 0.15s;
-}
-
-.createBtn:hover {
-  opacity: 0.8;
-}
-
-.createForm {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--color-bg);
-  border: 2px solid var(--color-dark);
-  border-radius: 16px;
-  padding: 12px;
 }
 
 .errorText {
   font-size: 12px;
-  color: #DC2626;
+  color: var(--color-danger);
   margin: 0;
 }
 
@@ -243,4 +247,26 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.submitBtn {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

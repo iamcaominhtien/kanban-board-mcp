@@ -11,6 +11,8 @@ const STATUS_LABELS: Record<Status, string> = {
   wont_do: 'Không làm',
 };
 
+type AddTab = 'new' | 'existing';
+
 interface SubTicketsSectionProps {
   childTickets: Ticket[];
   allTickets: Ticket[];
@@ -30,13 +32,14 @@ export function SubTicketsSection({
   onLinkChild,
   onUnlinkChild,
 }: SubTicketsSectionProps) {
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [activeTab, setActiveTab] = useState<AddTab>('new');
   const [search, setSearch] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const createTicketMutation = useCreateTicket(projectId);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const childIds = new Set(childTickets.map((t) => t.id));
 
@@ -57,31 +60,31 @@ export function SubTicketsSection({
 
   function handleSelect(id: string) {
     onLinkChild(id);
-    setShowDropdown(false);
+    closePanel();
+  }
+
+  function closePanel() {
+    setShowAddPanel(false);
     setSearch('');
-  }
-
-  function handleOpenDropdown() {
-    setShowDropdown(true);
-    setSearch('');
-  }
-
-  useEffect(() => {
-    if (showCreateForm) {
-      titleInputRef.current?.focus();
-    }
-  }, [showCreateForm]);
-
-  function handleOpenCreateForm() {
-    setShowCreateForm(true);
-    setNewTitle('');
-  }
-
-  function handleCancelCreate() {
-    setShowCreateForm(false);
     setNewTitle('');
     setCreateError(null);
   }
+
+  function openPanel(tab: AddTab) {
+    setShowAddPanel(true);
+    setActiveTab(tab);
+    setSearch('');
+    setCreateError(null);
+  }
+
+  useEffect(() => {
+    if (!showAddPanel) return;
+    if (activeTab === 'new') {
+      titleInputRef.current?.focus();
+    } else {
+      searchInputRef.current?.focus();
+    }
+  }, [showAddPanel, activeTab]);
 
   function handleSubmitCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -92,8 +95,7 @@ export function SubTicketsSection({
       { title: trimmed, type: 'task', priority: 'medium', status: 'backlog', parentId: currentTicketId },
       {
         onSuccess: () => {
-          setShowCreateForm(false);
-          setNewTitle('');
+          closePanel();
         },
         onError: () => {
           setCreateError('Failed to create child ticket. Please try again.');
@@ -108,7 +110,7 @@ export function SubTicketsSection({
         Sub-tickets{childTickets.length > 0 ? ` (${childTickets.length})` : ''}
       </span>
 
-      {childTickets.length === 0 && !showDropdown && (
+      {childTickets.length === 0 && !showAddPanel && (
         <span className={styles.empty}>No sub-tickets yet.</span>
       )}
 
@@ -139,92 +141,108 @@ export function SubTicketsSection({
       )}
 
       <div className={styles.addArea}>
-        {!showDropdown && !showCreateForm && (
-          <div className={styles.addButtons}>
-            <button type="button" className={styles.addBtn} onClick={handleOpenDropdown}>
-              ＋ Link ticket as child
-            </button>
-            <button type="button" className={styles.createBtn} onClick={handleOpenCreateForm}>
-              ＋ New child ticket
-            </button>
-          </div>
+        {!showAddPanel && (
+          <button
+            type="button"
+            className={styles.addBtn}
+            onClick={() => openPanel('new')}
+          >
+            ＋ Add sub-ticket
+          </button>
         )}
 
-        {showCreateForm && (
-          <form className={styles.createForm} onSubmit={handleSubmitCreate}>
-            <input
-              ref={titleInputRef}
-              className={styles.searchInput}
-              placeholder="Child ticket title…"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              disabled={createTicketMutation.isPending}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.stopPropagation();
-                  handleCancelCreate();
-                }
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSubmitCreate(e as unknown as React.FormEvent);
-                }
-              }}
-            />
-            {createError && <p className={styles.errorText}>{createError}</p>}
-            <div className={styles.createFormActions}>
+        {showAddPanel && (
+          <div className={styles.addPanel}>
+            <div className={styles.tabs}>
               <button
-                type="submit"
-                className={styles.addBtn}
-                disabled={!newTitle.trim() || createTicketMutation.isPending}
+                type="button"
+                className={activeTab === 'new' ? styles.tabActive : styles.tab}
+                onClick={() => setActiveTab('new')}
               >
-                {createTicketMutation.isPending ? 'Creating…' : 'Create'}
+                New
               </button>
               <button
                 type="button"
-                className={styles.cancelLink}
-                onClick={handleCancelCreate}
-                disabled={createTicketMutation.isPending}
+                className={activeTab === 'existing' ? styles.tabActive : styles.tab}
+                onClick={() => setActiveTab('existing')}
               >
-                Cancel
+                Existing
+              </button>
+              <button
+                type="button"
+                className={styles.closeBtn}
+                onClick={closePanel}
+                aria-label="Close"
+                title="Close"
+              >
+                ✕
               </button>
             </div>
-          </form>
-        )}
 
-        {showDropdown && (
-          <div className={styles.dropdown}>
-            <input
-              className={styles.searchInput}
-              placeholder="Search by title or ID…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              autoFocus
-            />
-            <div className={styles.dropdownList}>
-              {filtered.length === 0 ? (
-                <span className={styles.dropdownEmpty}>No eligible tickets found.</span>
-              ) : (
-                filtered.map((t) => (
+            {activeTab === 'new' && (
+              <form className={styles.tabContent} onSubmit={handleSubmitCreate}>
+                <input
+                  ref={titleInputRef}
+                  className={styles.searchInput}
+                  placeholder="Child ticket title…"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  disabled={createTicketMutation.isPending}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      e.stopPropagation();
+                      closePanel();
+                    }
+                  }}
+                />
+                {createError && <p className={styles.errorText}>{createError}</p>}
+                <div className={styles.createFormActions}>
                   <button
-                    key={t.id}
-                    type="button"
-                    className={styles.dropdownItem}
-                    onClick={() => handleSelect(t.id)}
+                    type="submit"
+                    className={styles.submitBtn}
+                    disabled={!newTitle.trim() || createTicketMutation.isPending}
                   >
-                    <span className={styles.ticketId}>{t.id}</span>
-                    <span className={styles.ticketTitle}>{t.title}</span>
-                    <span className={styles.statusBadge}>{STATUS_LABELS[t.status]}</span>
+                    {createTicketMutation.isPending ? 'Creating…' : 'Create'}
                   </button>
-                ))
-              )}
-            </div>
-            <button
-              type="button"
-              className={styles.cancelLink}
-              onClick={() => { setShowDropdown(false); setSearch(''); }}
-            >
-              Cancel
-            </button>
+                </div>
+              </form>
+            )}
+
+            {activeTab === 'existing' && (
+              <div className={styles.tabContent}>
+                <input
+                  ref={searchInputRef}
+                  className={styles.searchInput}
+                  placeholder="Search by title or ID…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      e.stopPropagation();
+                      closePanel();
+                    }
+                  }}
+                />
+                <div className={styles.dropdownList}>
+                  {filtered.length === 0 ? (
+                    <span className={styles.dropdownEmpty}>No eligible tickets found.</span>
+                  ) : (
+                    filtered.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={styles.dropdownItem}
+                        onClick={() => handleSelect(t.id)}
+                      >
+                        <span className={styles.ticketId}>{t.id}</span>
+                        <span className={styles.ticketTitle}>{t.title}</span>
+                        <span className={styles.statusBadge}>{STATUS_LABELS[t.status]}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

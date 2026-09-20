@@ -24,19 +24,42 @@ import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
 
+// Mirrors TicketCard.tsx's PRIORITY_COLORS so priority colors stay consistent across the app.
 const PRIORITY_COLORS: Record<Priority, { bg: string; color: string }> = {
-  critical: { bg: '#DC2626', color: 'white' },
-  high:     { bg: '#E8441A', color: 'white' },
-  medium:   { bg: '#F5C518', color: 'var(--color-dark)' },
-  low:      { bg: '#9CA3AF', color: 'var(--color-dark)' },
+  critical: { bg: 'var(--color-danger)', color: 'white' },
+  high:     { bg: 'var(--color-orange)', color: 'white' },
+  medium:   { bg: 'var(--color-yellow)', color: 'var(--color-dark)' },
+  low:      { bg: '#9AA8A0', color: 'var(--color-dark)' },
 };
 
+// Mirrors TicketCard.tsx's TYPE_CONFIG so type colors stay consistent across the app.
 const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; color: string }> = {
-  bug:     { label: 'Bug',     icon: '🐛', bg: '#FEE2E2', color: '#DC2626' },
-  feature: { label: 'Feature', icon: '✨', bg: '#EDE9FE', color: '#7C3AED' },
-  task:    { label: 'Task',    icon: '📋', bg: '#DBEAFE', color: '#2563EB' },
-  chore:   { label: 'Chore',   icon: '🔧', bg: '#F3F4F6', color: '#6B7280' },
+  bug:     { label: 'Bug',     icon: '🐛', bg: 'rgba(196, 67, 42, 0.12)',  color: 'var(--color-danger)' },
+  feature: { label: 'Feature', icon: '✨', bg: 'rgba(109, 93, 211, 0.12)', color: 'var(--color-purple)' },
+  task:    { label: 'Task',    icon: '📋', bg: 'rgba(47, 111, 176, 0.12)', color: 'var(--color-blue)' },
+  chore:   { label: 'Chore',   icon: '🔧', bg: 'rgba(91, 107, 96, 0.12)',  color: 'var(--color-text-secondary)' },
 };
+
+// Small fixed palette used to deterministically color tag pills (hash by tag string).
+const TAG_PALETTE = [
+  'var(--color-blue)',
+  'var(--color-purple)',
+  'var(--color-primary)',
+  'var(--color-orange)',
+  'var(--color-danger)',
+  'var(--color-teal)',
+];
+
+function tagColor(tag: string): string {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) hash = (hash + tag.charCodeAt(i)) % TAG_PALETTE.length;
+  return TAG_PALETTE[hash];
+}
+
+function tagChipStyle(tag: string): { backgroundColor: string; color: string } {
+  const color = tagColor(tag);
+  return { backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`, color };
+}
 
 const STATUS_LABELS: Record<Status, string> = {
   backlog:     'Backlog',
@@ -700,7 +723,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       <span className={styles.sidebarLabel}>Tags</span>
                       <div className={styles.tagChips}>
                         {ticket.tags.map((tag, i) => (
-                          <span key={`${tag}-${i}`} className={styles.chip}>{tag}</span>
+                          <span key={`${tag}-${i}`} className={styles.chip} style={tagChipStyle(tag)}>{tag}</span>
                         ))}
                       </div>
                     </div>
@@ -730,7 +753,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       <button
                         type="button"
                         className={styles.chip}
-                        style={{ cursor: 'pointer', background: '#FEE2E2', color: '#DC2626' }}
+                        style={{ cursor: 'pointer', background: 'rgba(196, 67, 42, 0.12)', color: 'var(--color-danger)' }}
                         onClick={handleRemoveParent}
                         title="Click to remove parent"
                       >
@@ -876,44 +899,46 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           <div className={styles.fieldGroup}>
             <div className={styles.fieldGroupLabel}>Metadata</div>
 
-            <div className={styles.row}>
-              <div className={styles.field}>
-                <label className={styles.label}>Status</label>
-                <select
-                  className={styles.select}
-                  value={status}
-                  onChange={(e) => {
-                    const val = e.target.value as Status;
-                    if (val === 'wont_do') {
-                      setStatus(val);
-                      setWontDoDialogPending(true);
-                    } else {
-                      setStatus(val);
-                      setWontDoDialogPending(false);
-                      setWontDoReason('');
-                    }
-                  }}
-                >
-                  <option value="backlog">Backlog</option>
-                  <option value="todo">To Do</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="done">Done</option>
-                  {!ticket?.parentId && <option value="wont_do">Không làm</option>}
-                </select>
-                {wontDoDialogPending && (
-                  <div className={styles.wontDoDialog}>
-                    <label className={styles.label}>Lý do không làm *</label>
-                    <textarea
-                      className={styles.wontDoTextarea}
-                      value={wontDoReason}
-                      onChange={(e) => setWontDoReason(e.target.value)}
-                      placeholder="Nhập lý do..."
-                      rows={3}
-                      autoFocus
-                    />
-                  </div>
-                )}
-              </div>
+            <div className={styles.row} style={localMode === 'create' ? { gridTemplateColumns: '1fr' } : undefined}>
+              {localMode !== 'create' && (
+                <div className={styles.field}>
+                  <label className={styles.label}>Status</label>
+                  <select
+                    className={styles.select}
+                    value={status}
+                    onChange={(e) => {
+                      const val = e.target.value as Status;
+                      if (val === 'wont_do') {
+                        setStatus(val);
+                        setWontDoDialogPending(true);
+                      } else {
+                        setStatus(val);
+                        setWontDoDialogPending(false);
+                        setWontDoReason('');
+                      }
+                    }}
+                  >
+                    <option value="backlog">Backlog</option>
+                    <option value="todo">To Do</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="done">Done</option>
+                    {!ticket?.parentId && <option value="wont_do">Không làm</option>}
+                  </select>
+                  {wontDoDialogPending && (
+                    <div className={styles.wontDoDialog}>
+                      <label className={styles.label}>Lý do không làm *</label>
+                      <textarea
+                        className={styles.wontDoTextarea}
+                        value={wontDoReason}
+                        onChange={(e) => setWontDoReason(e.target.value)}
+                        placeholder="Nhập lý do..."
+                        rows={3}
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className={styles.field}>
                 <label className={styles.label}>Priority</label>
@@ -956,7 +981,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
               />
               {tagsInput.trim() && (
                 <div className={styles.tagChips}>
-                  {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip}>{t.trim()}</span>)}
+                  {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip} style={tagChipStyle(t.trim())}>{t.trim()}</span>)}
                 </div>
               )}
             </div>
