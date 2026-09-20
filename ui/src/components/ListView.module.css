@@ -61,6 +61,117 @@
   border-color: var(--color-primary);
 }
 
+/* Dropdown-menu pattern (Group by / Status filter) — mirrors StatusMenu.module.css */
+.dropdownAnchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.dropdownBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.dropdownBtn:hover,
+.dropdownBtn:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.dropdownBtnMuted {
+  color: var(--color-text-secondary);
+}
+
+.dropdownChevron {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.dropdownPopover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 170px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.dropdownItem:hover {
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.dropdownItemActive {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  font-weight: 600;
+}
+
+.dropdownItemLabel {
+  flex-grow: 1;
+}
+
+.dropdownCheck {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.checkbox {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1.6px solid var(--color-border-strong);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-primary);
+}
+
+.checkboxChecked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* Sort toggle */
 .toggleGroup {
   display: flex;
