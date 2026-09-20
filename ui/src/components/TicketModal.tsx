@@ -440,6 +440,43 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     );
   }
 
+  // There is no backend endpoint to edit an acceptance criterion's text in
+  // place (only add / toggle / delete exist), so "edit" is implemented here
+  // as a real delete-then-add using those existing endpoints, restoring the
+  // done state with a toggle if the original was checked. Known side effect:
+  // the edited criterion gets a new id and moves to the end of the list,
+  // since it's really a fresh item rather than an in-place update.
+  // TODO(backend): add a dedicated `PATCH /tickets/{id}/acceptance-criteria/{criterionId}`
+  // endpoint so this can be a single atomic update with no reordering.
+  function handleEditAC(id: string, newText: string) {
+    if (!ticket) return;
+    const original = ticket.acceptanceCriteria?.find((ac) => ac.id === id);
+    const wasDone = original?.done ?? false;
+    deleteACMutation.mutate(
+      { ticketId: ticket.id, criterionId: id },
+      {
+        onSuccess: () => {
+          addACMutation.mutate(
+            { ticketId: ticket.id, text: newText },
+            {
+              onSuccess: (updatedTicket) => {
+                setViewError(null);
+                if (!wasDone) return;
+                const criteria = updatedTicket.acceptanceCriteria ?? [];
+                const newCriterion = criteria[criteria.length - 1];
+                if (newCriterion) {
+                  toggleACMutation.mutate({ ticketId: updatedTicket.id, criterionId: newCriterion.id });
+                }
+              },
+              onError: (err) => { console.error('Failed to re-add edited acceptance criterion:', err); setViewError('Failed to edit acceptance criterion. Please try again.'); },
+            },
+          );
+        },
+        onError: (err) => { console.error('Failed to edit acceptance criterion:', err); setViewError('Failed to edit acceptance criterion. Please try again.'); },
+      },
+    );
+  }
+
   function handleAddWorkLog(entry: Omit<WorkLogEntry, 'id'>) {
     if (!ticket) return;
     addWorkLogMutation.mutate(
@@ -752,6 +789,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     onAdd={handleAddAC}
                     onToggle={handleToggleAC}
                     onDelete={handleDeleteAC}
+                    onEdit={handleEditAC}
                   />
                   <div className={styles.blockGuardRow}>
                     <label className={styles.blockGuardLabel}>
