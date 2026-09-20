@@ -1,14 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { RelationType, Status, Ticket } from '../types';
+import { STATUS_DOT_COLORS } from './StatusMenu';
 import styles from './RelationsSection.module.css';
-
-const STATUS_COLORS: Record<Status, { bg: string; color: string }> = {
-  backlog: { bg: '#FEF9C3', color: '#854D0E' },
-  todo: { bg: '#FED7AA', color: '#9A3412' },
-  'in-progress': { bg: '#D9F99D', color: '#3F6212' },
-  done: { bg: '#FCE7F3', color: '#9D174D' },
-  wont_do: { bg: '#F3F4F6', color: '#6B7280' },
-};
 
 const STATUS_LABELS: Record<Status, string> = {
   backlog: 'Backlog',
@@ -44,6 +37,22 @@ interface RelationRow {
   targetId: string;
   ticket: Ticket;
   linkId?: string;
+}
+
+// Wraps the substring of `text` matching `query` (case-insensitive) in <mark>,
+// mirroring the mockup's highlighted-match example in the add-link dropdown.
+function highlightMatch(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return text;
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className={styles.highlight}>{text.slice(idx, idx + q.length)}</mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
 }
 
 export function RelationsSection({
@@ -139,15 +148,6 @@ export function RelationsSection({
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
         <span className={styles.sectionTitle}>RELATIONS</span>
-        {!showAddForm && (
-          <button
-            type="button"
-            className={styles.addBtn}
-            onClick={() => setShowAddForm(true)}
-          >
-            + Add link
-          </button>
-        )}
       </div>
 
       {relations.length === 0 && !showAddForm && (
@@ -162,17 +162,25 @@ export function RelationsSection({
                 {RELATION_TYPE_LABELS[type]}
               </div>
               {rows.map((rel) => {
-                const sc = STATUS_COLORS[rel.ticket.status as Status] ?? STATUS_COLORS.backlog;
+                const status = rel.ticket.status as Status;
                 const canRemove = rel.type === 'blocks' || rel.type === 'blockedBy' || !!onRemoveLink;
                 return (
                   <div key={`${rel.type}-${rel.targetId}`} className={styles.row}>
                     <span className={styles.ticketId}>{rel.ticket.id}</span>
                     <span className={styles.ticketTitle}>{rel.ticket.title}</span>
-                    <span
-                      className={styles.statusChip}
-                      style={{ background: sc.bg, color: sc.color }}
-                    >
-                      {STATUS_LABELS[rel.ticket.status as Status] ?? rel.ticket.status}
+                    <span className={styles.statusChip}>
+                      {status === 'done' ? (
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                          <circle cx="7" cy="7" r="6" stroke="var(--color-primary)" strokeWidth="1.4" />
+                          <path d="M4.3 7.2L6.1 9L9.8 5" stroke="var(--color-primary)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : (
+                        <span className={styles.statusDot} style={{ background: STATUS_DOT_COLORS[status] }} aria-hidden="true" />
+                      )}
+                      <span className={styles.statusChipLabel}>{STATUS_LABELS[status] ?? status}</span>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={styles.statusChipChevron}>
+                        <path d="M6 9L12 15L18 9" />
+                      </svg>
                     </span>
                     {canRemove && (
                       <button
@@ -190,7 +198,34 @@ export function RelationsSection({
               })}
             </div>
           ))}
+          {!showAddForm && (
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={() => setShowAddForm(true)}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M12 5V19" />
+                <path d="M5 12H19" />
+              </svg>
+              Add link
+            </button>
+          )}
         </div>
+      )}
+
+      {relations.length === 0 && !showAddForm && (
+        <button
+          type="button"
+          className={styles.addBtn}
+          onClick={() => setShowAddForm(true)}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 5V19" />
+            <path d="M5 12H19" />
+          </svg>
+          Add link
+        </button>
       )}
 
       {showAddForm && (
@@ -243,10 +278,13 @@ export function RelationsSection({
                 onClick={() => handleAdd(t.id)}
               >
                 <span className={styles.ticketId}>#{t.id}</span>
-                <span className={styles.dropdownTitle}>{t.title}</span>
+                <span className={styles.dropdownTitle}>{highlightMatch(t.title, search)}</span>
               </button>
             ))}
           </div>
+          <span className={styles.helperText}>
+            Search excludes the ticket itself and anything already linked to it (any relation type).
+          </span>
         </div>
       )}
     </div>
