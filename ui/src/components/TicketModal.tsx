@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { IssueType, Member, Priority, Status, Ticket, WorkLogEntry } from '../types';
 import {
   useUpdateTicket,
@@ -20,17 +20,10 @@ import { RelationsSection } from './RelationsSection';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
+import { TypeIcon, PriorityBars, CalendarIcon } from './ticketVisuals';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
-
-// Mirrors TicketCard.tsx's PRIORITY_COLORS so priority colors stay consistent across the app.
-const PRIORITY_COLORS: Record<Priority, { bg: string; color: string }> = {
-  critical: { bg: 'var(--color-danger)', color: 'white' },
-  high:     { bg: 'var(--color-orange)', color: 'white' },
-  medium:   { bg: 'var(--color-yellow)', color: 'var(--color-dark)' },
-  low:      { bg: '#9AA8A0', color: 'var(--color-dark)' },
-};
 
 // Mirrors TicketCard.tsx's TYPE_CONFIG so type colors stay consistent across the app.
 const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; color: string }> = {
@@ -71,6 +64,63 @@ const STATUS_LABELS: Record<Status, string> = {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function capitalize(s: string) {
+  return s.length ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+// Regex for the exact markdown image syntax MarkdownEditor.tsx's upload flow inserts
+// (`![alt](url)` — see its insertTextAtCursor/upload handler). Used to build a
+// client-side-only Attachments list from the description + comments; nothing is
+// persisted or fetched from a backend attachments endpoint (there is none).
+const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(([^)]+)\)/g;
+
+interface Attachment {
+  url: string;
+  alt: string;
+  sourceLabel: string;
+}
+
+function extractAttachments(ticket: Ticket): Attachment[] {
+  const results: Attachment[] = [];
+  const pushMatches = (text: string, sourceLabel: string) => {
+    const re = new RegExp(MARKDOWN_IMAGE_RE);
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const url = m[2];
+      // Skip the transient "uploading…" placeholder MarkdownEditor inserts while an
+      // upload is in flight — it isn't a real, resolvable attachment.
+      if (url.startsWith('uploading:')) continue;
+      results.push({ url, alt: m[1], sourceLabel });
+    }
+  };
+  pushMatches(ticket.description ?? '', 'in Description');
+  for (const c of ticket.comments ?? []) {
+    pushMatches(c.text ?? '', `in comment · ${c.author}`);
+  }
+  return results;
+}
+
+// ─── Detail-view panel-swap (header icon buttons) ──────────────────────────
+// Details and Test Cases are real, backed by existing data. Debug Space and
+// Workspace are new-concept panels with no backend/data-model support yet
+// (confirmed: no per-ticket filesystem workspace exists anywhere in ui/src or
+// the backend) — per product decision they render as styled placeholder
+// panels only, no fake data or functionality, until that backend work lands.
+// Branches was removed from this panel-swap system entirely — the mockup
+// moves branch info to a plain (also-placeholder) sidebar field instead; see
+// its TODO(backend) comment near the sidebar "Branch" row below.
+type DetailTab = 'details' | 'testcases' | 'debug' | 'workspace';
+
+function PlaceholderPanel({ icon, title, description }: { icon: string; title: string; description: string }) {
+  return (
+    <div className={styles.placeholderPanel}>
+      <span className={styles.placeholderIcon}>{icon}</span>
+      <h3 className={styles.placeholderTitle}>{title}</h3>
+      <p className={styles.placeholderText}>{description}</p>
+    </div>
+  );
 }
 
 type CreateTicketData = {
@@ -117,7 +167,11 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [description, setDescription] = useState(ticket?.description ?? '');
   const [status, setStatus] = useState<Status>(ticket?.status ?? 'backlog');
   const [priority, setPriority] = useState<Priority>(ticket?.priority ?? 'medium');
-  const [tagsInput, setTagsInput] = useState(ticket?.tags.join(', ') ?? '');
+  const [tags, setTags] = useState<string[]>(ticket?.tags ?? []);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [tagQuery, setTagQuery] = useState('');
+  const tagPopoverRef = useRef<HTMLDivElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
   const [startDate, setStartDate] = useState<string | null>(ticket?.startDate ?? null);
@@ -128,6 +182,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const [viewError, setViewError] = useState<string | null>(null);
   const [wontDoDialogPending, setWontDoDialogPending] = useState(false);
   const [wontDoReason, setWontDoReason] = useState('');
+  const [activeTab, setActiveTab] = useState<DetailTab>('details');
+  const [branchNoteOpen, setBranchNoteOpen] = useState(false);
 
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
@@ -192,6 +248,69 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // Client-derived list of the project's existing tags (no backend "all tags" endpoint),
+  // flattened from allTickets, deduped, excluding tags already on this ticket.
+  const existingProjectTags = useMemo(() => {
+    const seen = new Set<string>();
+    for (const t of allTickets) {
+      for (const tag of t.tags ?? []) {
+        if (!tags.includes(tag)) seen.add(tag);
+      }
+    }
+    return [...seen].sort((a, b) => a.localeCompare(b));
+  }, [allTickets, tags]);
+
+  const filteredExistingTags = useMemo(() => {
+    const q = tagQuery.trim().toLowerCase();
+    if (!q) return existingProjectTags;
+    return existingProjectTags.filter((t) => t.toLowerCase().includes(q));
+  }, [existingProjectTags, tagQuery]);
+
+  const canCreateTag =
+    tagQuery.trim().length > 0 &&
+    !existingProjectTags.some((t) => t.toLowerCase() === tagQuery.trim().toLowerCase()) &&
+    !tags.some((t) => t.toLowerCase() === tagQuery.trim().toLowerCase());
+
+  function handleAddExistingTag(tag: string) {
+    setTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
+    setTagQuery('');
+    tagInputRef.current?.focus();
+  }
+
+  function handleCreateTag() {
+    const text = tagQuery.trim();
+    if (!text) return;
+    setTags((prev) => (prev.includes(text) ? prev : [...prev, text]));
+    setTagQuery('');
+    tagInputRef.current?.focus();
+  }
+
+  function handleRemoveTag(tag: string) {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  }
+
+  // Close the "add tag" popover on outside click or Escape.
+  useEffect(() => {
+    if (!tagPopoverOpen) return;
+    function onPointerDown(e: MouseEvent) {
+      if (tagPopoverRef.current && !tagPopoverRef.current.contains(e.target as Node)) {
+        setTagPopoverOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setTagPopoverOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [tagPopoverOpen]);
+
   function handleClose() {
     setVisible(false);
     setSaveError(null);
@@ -201,7 +320,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
   async function handleSave() {
     if (!title.trim()) return;
-    const tags = [...new Set(tagsInput.split(',').map((t) => t.trim()).filter(Boolean))];
+    const finalTags = [...new Set(tags.map((t) => t.trim()).filter(Boolean))];
     setSaveError(null);
 
     if (localMode === 'create') {
@@ -212,7 +331,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           type,
           status,
           priority,
-          tags,
+          tags: finalTags,
           dueDate: dueDate || null,
           startDate: startDate || null,
           estimate,
@@ -242,7 +361,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             type,
             status,
             priority,
-            tags,
+            tags: finalTags,
             dueDate: dueDate || null,
             startDate: startDate || null,
             estimate,
@@ -377,7 +496,9 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
     setDescription(ticket?.description ?? '');
     setStatus(ticket?.status ?? 'backlog');
     setPriority(ticket?.priority ?? 'medium');
-    setTagsInput(ticket?.tags.join(', ') ?? '');
+    setTags(ticket?.tags ?? []);
+    setTagPopoverOpen(false);
+    setTagQuery('');
     setType(ticket?.type ?? 'task');
     setDueDate(ticket?.dueDate ?? null);
     setStartDate(ticket?.startDate ?? null);
@@ -392,7 +513,6 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
   if (localMode === 'view' && ticket) {
     const currentTicket = ticket;
-    const pc = PRIORITY_COLORS[currentTicket.priority];
     const childTickets = allTickets.filter((t) => t.parentId === currentTicket.id);
     const parentTicket = currentTicket.parentId ? allTickets.find((t) => t.id === currentTicket.parentId) : undefined;
     const isChildTicket = !!currentTicket.parentId;
@@ -448,6 +568,38 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
       return true;
     });
 
+    // Sub-task progress bar (adapted from the childSummaryMap computation added
+    // to Board.tsx: done/total across this ticket's direct sub-tickets).
+    const subTaskTotal = childTickets.length;
+    const subTaskDone = childTickets.filter((t) => t.status === 'done').length;
+    const subTaskPct = subTaskTotal > 0 ? Math.round((subTaskDone / subTaskTotal) * 100) : 0;
+
+    const testCases = ticket.testCases ?? [];
+    const tcPass = testCases.filter((tc) => tc.status === 'pass').length;
+    const tcFail = testCases.filter((tc) => tc.status === 'fail').length;
+    const tcPending = testCases.filter((tc) => tc.status === 'pending').length;
+    const testCasesDotColor = testCases.length === 0
+      ? 'var(--color-border)'
+      : tcFail > 0
+        ? 'var(--color-danger)'
+        : tcPending > 0
+          ? 'var(--color-text-secondary)'
+          : 'var(--color-blue)';
+    const testCasesTooltip = testCases.length === 0
+      ? 'Test Cases — none yet'
+      : `Test — ${tcPass} pass · ${tcFail} fail · ${tcPending} pending`;
+
+    const attachments = extractAttachments(ticket);
+
+    const assigneeMember = ticket.assignee ? members.find((m) => m.id === ticket.assignee) : null;
+    const creatorMember = ticket.createdBy ? members.find((m) => m.id === ticket.createdBy) : null;
+    const dueInfo = ticket.dueDate ? (() => {
+      const due = new Date(ticket.dueDate as string);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return { overdue: due < today, label: formatDate(ticket.dueDate as string) };
+    })() : null;
+
     return (
       <div
         className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`}
@@ -460,64 +612,128 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           aria-modal="true"
           aria-labelledby="modal-heading"
         >
-          <div className={styles.header}>
-            {isChildTicket && parentTicket ? (
-              <div className={styles.headerBreadcrumb}>
-                <button type="button" className={styles.headerParentId} onClick={() => onOpenTicket?.(parentTicket)}>
-                  {parentTicket.id}
-                </button>
-                <span className={styles.headerSep}>/</span>
-                <span id="modal-heading" className={styles.headerChildId}>{ticket.id}</span>
+          <div className={styles.dtHeader}>
+            <div className={styles.dtHeaderIdentity}>
+              <div className={styles.dtTypeGroup}>
+                <TypeIcon type={ticket.type} color={TYPE_CONFIG[ticket.type].color} />
+                <span className={styles.dtTypeLabel}>{TYPE_CONFIG[ticket.type].label}</span>
               </div>
-            ) : (
-              <span id="modal-heading" className={styles.headerTitle}>{ticket.id}</span>
-            )}
-            <button type="button" aria-label="Close modal" className={styles.closeBtn} onClick={handleClose} ref={firstFocusRef}>
+              <span className={styles.dtHeaderDivider} />
+              {isChildTicket && parentTicket ? (
+                <div className={styles.headerBreadcrumb}>
+                  <button type="button" className={styles.dtParentBtn} onClick={() => onOpenTicket?.(parentTicket)}>
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
+                      <path d="M7.5 8.5L10 11L7.5 13.5" />
+                    </svg>
+                    {parentTicket.id}
+                  </button>
+                  <span className={styles.headerSep}>/</span>
+                  <button
+                    type="button"
+                    id="modal-heading"
+                    className={styles.dtIdBtn}
+                    onClick={() => setActiveTab('details')}
+                    title="Back to Details"
+                  >
+                    {ticket.id}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  id="modal-heading"
+                  className={styles.dtIdBtn}
+                  onClick={() => setActiveTab('details')}
+                  title="Back to Details"
+                >
+                  {ticket.id}
+                </button>
+              )}
+            </div>
+
+            <div className={styles.dtViewRow}>
+              <button
+                type="button"
+                aria-label="Test Cases"
+                className={`${styles.dtViewBtn} ${activeTab === 'testcases' ? styles.dtViewBtnActive : ''}`}
+                onClick={() => setActiveTab('testcases')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11L12 14L22 4" />
+                  <path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" />
+                </svg>
+                <span className={styles.dtViewDot} style={{ background: testCasesDotColor }} />
+                <span className={styles.dtViewTooltip}>{testCasesTooltip}</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Debug Space"
+                className={`${styles.dtViewBtn} ${activeTab === 'debug' ? styles.dtViewBtnActive : ''}`}
+                onClick={() => setActiveTab('debug')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M7 9L10 12L7 15" />
+                  <path d="M12 15H17" />
+                </svg>
+                {/* Static neutral dot — Debug Space has no real data yet (TODO(backend) below). */}
+                <span className={styles.dtViewDot} style={{ background: 'var(--color-primary)' }} />
+                <span className={styles.dtViewTooltip}>Debug — coming soon</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Workspace"
+                className={`${styles.dtViewBtn} ${activeTab === 'workspace' ? styles.dtViewBtnActive : ''}`}
+                onClick={() => setActiveTab('workspace')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
+                </svg>
+                <span className={styles.dtViewTooltip}>Workspace — coming soon</span>
+              </button>
+            </div>
+
+            <button type="button" aria-label="Close modal" className={styles.dtCloseBtn} onClick={handleClose} ref={firstFocusRef}>
               ×
             </button>
           </div>
 
           <div className={styles.body}>
-            <h2 className={styles.viewTitle}>{ticket.title}</h2>
-
             <div className={styles.twoColLayout}>
               {/* ── Left column: content ── */}
               <div className={styles.mainCol}>
-                <MarkdownEditor
-                  value={description}
-                  onChange={setDescription}
-                  readOnly={true}
-                />
-
-                <div className={styles.timestamps}>
-                  <span>Created: {formatDate(ticket.createdAt)}</span>
-                  <span>Updated: {formatDate(ticket.updatedAt)}</span>
+              {activeTab === 'details' && (
+                <>
+                <div className={styles.dtTitleBlock}>
+                  <h2 className={styles.viewTitle}>{ticket.title}</h2>
+                  {ticket.tags.length > 0 && (
+                    <div className={styles.tagChips}>
+                      {ticket.tags.map((tag, i) => (
+                        <span key={`${tag}-${i}`} className={styles.tagPill} style={tagChipStyle(tag)}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <hr className={styles.divider} />
-
-                <AcceptanceCriteriaSection
-                  acceptanceCriteria={ticket.acceptanceCriteria ?? []}
-                  onAdd={handleAddAC}
-                  onToggle={handleToggleAC}
-                  onDelete={handleDeleteAC}
-                />
-
-                <div className={styles.blockGuardRow}>
-                  <label className={styles.blockGuardLabel}>
-                    <input
-                      type="checkbox"
-                      checked={ticket.blockDoneIfAcsIncomplete}
-                      onChange={() => handleToggleBlockGuard('blockDoneIfAcsIncomplete')}
-                      className={styles.blockGuardCheckbox}
-                    />
-                    Block Done if ACs not all passed
-                  </label>
+                <div className={styles.dtSectionBlock}>
+                  <div className={styles.dtLabel}>Description</div>
+                  <MarkdownEditor
+                    value={description}
+                    onChange={setDescription}
+                    readOnly={true}
+                  />
                 </div>
 
-                {isRootTicket && (
-                  <>
-                    <hr className={styles.divider} />
+                {isRootTicket && subTaskTotal > 0 && (
+                  <div className={styles.dtSectionBlock}>
+                    <div className={styles.dtSubTaskHeader}>
+                      <div className={styles.dtLabelInline}>SUB-TASKS</div>
+                      <div className={styles.dtProgressTrack}>
+                        <div className={styles.dtProgressFill} style={{ width: `${subTaskPct}%` }} />
+                      </div>
+                      <span className={styles.dtProgressCount}>{subTaskDone}/{subTaskTotal}</span>
+                    </div>
                     <SubTicketsSection
                       childTickets={childTickets}
                       allTickets={allTickets}
@@ -527,7 +743,34 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       onLinkChild={handleLinkChild}
                       onUnlinkChild={handleUnlinkChild}
                     />
-                    <hr className={styles.divider} />
+                  </div>
+                )}
+
+                <div className={styles.dtSectionBlock}>
+                  {/* AcceptanceCriteriaSection renders its own "ACCEPTANCE CRITERIA" header
+                      internally, so no extra label wrapper is added here (would duplicate it). */}
+                  <AcceptanceCriteriaSection
+                    acceptanceCriteria={ticket.acceptanceCriteria ?? []}
+                    onAdd={handleAddAC}
+                    onToggle={handleToggleAC}
+                    onDelete={handleDeleteAC}
+                  />
+                  <div className={styles.blockGuardRow}>
+                    <label className={styles.blockGuardLabel}>
+                      <input
+                        type="checkbox"
+                        checked={ticket.blockDoneIfAcsIncomplete}
+                        onChange={() => handleToggleBlockGuard('blockDoneIfAcsIncomplete')}
+                        className={styles.blockGuardCheckbox}
+                      />
+                      Block Done if ACs not all passed
+                    </label>
+                  </div>
+                </div>
+
+                {isRootTicket && (
+                  <div className={styles.dtSectionBlock}>
+                    {/* RelationsSection renders its own "RELATIONS" header internally. */}
                     <RelationsSection
                       ticket={ticket}
                       allTickets={allTickets}
@@ -568,31 +811,55 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                         )
                       }
                     />
-                  </>
+                  </div>
                 )}
 
+                {attachments.length > 0 && (
+                  <div className={styles.dtSectionBlock}>
+                    <div className={styles.dtLabelInline}>ATTACHMENTS · {attachments.length}</div>
+                    {/* TODO(backend): only image attachments (parsed from markdown `![alt](url)` syntax
+                        already produced by MarkdownEditor's upload flow) can be shown here — there is no
+                        file-upload capability in the app today for non-image attachments (e.g. PDFs), so
+                        that case is not represented until a real upload/attachment data model lands. */}
+                    <div className={styles.dtAttachmentsRow}>
+                      {attachments.map((a, i) => (
+                        <div key={`${a.url}-${i}`} className={styles.dtAttachment}>
+                          <div className={styles.dtAttachmentThumb}>
+                            <img src={a.url} alt={a.alt || 'attachment'} />
+                          </div>
+                          <span className={styles.dtAttachmentCaption}>{a.sourceLabel}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.dtSectionBlock}>
+                  {/* CommentsSection renders its own "Comments (N)" header internally. */}
+                  <CommentsSection
+                    comments={ticket.comments ?? []}
+                    onAdd={handleAddComment}
+                    onEdit={handleEditComment}
+                    onDelete={handleDeleteComment}
+                  />
+                </div>
+
+                {/* Activity Log and Work Log aren't part of the Details layout in the mockup,
+                    but are existing, working features not being dropped by this task — kept
+                    here, below Comments, so nothing already shipped is lost. */}
                 <hr className={styles.divider} />
-
-                <CommentsSection
-                  comments={ticket.comments ?? []}
-                  onAdd={handleAddComment}
-                  onEdit={handleEditComment}
-                  onDelete={handleDeleteComment}
-                />
-
-                <hr className={styles.divider} />
-
                 <ActivityLog entries={ticket.activityLog ?? []} />
 
                 <hr className={styles.divider} />
-
                 <WorkLogSection
                   entries={ticket.workLog ?? []}
                   onAdd={handleAddWorkLog}
                 />
+                </>
+              )}
 
-                <hr className={styles.divider} />
-
+              {activeTab === 'testcases' && (
+                <>
                 <TestCasesSection
                   testCases={ticket.testCases ?? []}
                   disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
@@ -656,83 +923,117 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     Block Done if TCs missing or not all passed
                   </label>
                 </div>
+                </>
+              )}
+
+              {activeTab === 'debug' && (
+                // TODO(backend): Debug Space needs a new typed-entry data model (kind: investigation/fix-attempt/root-cause/blocked/resolved, pinning, cross-links to branches/test cases) — see design/ mockups for the full spec. This tab is a placeholder until that backend work lands.
+                <PlaceholderPanel
+                  icon="🐞"
+                  title="Debug Space"
+                  description="Debug Space is coming soon — a dedicated timeline for investigation notes, fix attempts, and links to branches & test cases."
+                />
+              )}
+
+              {activeTab === 'workspace' && (
+                // TODO(backend): per-ticket Workspace needs real filesystem integration (a {workspaceRoot}/{TICKET-KEY}/ folder, file listing, retention). This tab is a placeholder until that backend work lands. (Distinct from the Settings → Workspace section already shipped, which is a different, simpler per-project setting.)
+                <PlaceholderPanel
+                  icon="🗂"
+                  title="Workspace"
+                  description="Workspace is coming soon — a dedicated scratch folder for this ticket's files."
+                />
+              )}
+
               </div>
 
-              {/* ── Right sidebar: metadata ── */}
+              {/* ── Right sidebar: metadata ──
+                  Each field is a static, read-only rendering of the ticket's current
+                  data in this (view-mode) panel — the existing Edit/Save/Cancel toggle
+                  is unchanged, and switching to edit mode still opens the separate
+                  form (below) where these same fields are actually editable. See the
+                  final report for the full rationale on this view/edit split. */}
               <aside className={styles.sidebarCol}>
                 <div className={styles.sidebarCard}>
-                  <div className={styles.sidebarRow}>
-                    <span className={styles.sidebarLabel}>Status</span>
+                  <div className={styles.dtSidebarRow}>
+                    <span className={styles.dtLabel}>Status</span>
                     <span className={styles.statusBadge}>{STATUS_LABELS[ticket.status]}</span>
                   </div>
 
-                  <div className={styles.sidebarRow}>
-                    <span className={styles.sidebarLabel}>Priority</span>
-                    <span
-                      className={styles.priorityBadge}
-                      style={{ backgroundColor: pc.bg, color: pc.color }}
+                  {/* TODO(backend): Branches is an entirely new feature (branch/merge graph,
+                      baseline/branch/merged/stale states, per-ticket branch metadata) with no
+                      existing data model or backend support — this was previously a whole
+                      placeholder tab; it's now a single, clearly-disabled sidebar field until
+                      that work is scoped. No fake branch names/state are shown. */}
+                  <div className={styles.dtSidebarRow}>
+                    <span className={styles.dtLabel}>Branch</span>
+                    <button
+                      type="button"
+                      className={styles.dtBranchBtn}
+                      onClick={() => setBranchNoteOpen((o) => !o)}
+                      aria-expanded={branchNoteOpen}
                     >
-                      ● {ticket.priority}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="6" cy="6" r="2.5" />
+                        <circle cx="6" cy="18" r="2.5" />
+                        <circle cx="18" cy="6" r="2.5" />
+                        <path d="M6 8.5V15.5" />
+                        <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                      </svg>
+                      Not connected
+                    </button>
+                    {branchNoteOpen && (
+                      <span className={styles.dtBranchNote}>Branch tracking is coming soon.</span>
+                    )}
+                  </div>
+
+                  <div className={styles.dtSidebarRow}>
+                    <span className={styles.dtLabel}>Assignee</span>
+                    {assigneeMember ? (
+                      <span className={styles.memberChip}>
+                        <MemberAvatar member={assigneeMember} size={22} />
+                        <span>{assigneeMember.name}</span>
+                      </span>
+                    ) : (
+                      <span className={styles.unassignedBadge}>Unassigned</span>
+                    )}
+                  </div>
+
+                  <div className={styles.dtSidebarRow}>
+                    <span className={styles.dtLabel}>Priority</span>
+                    <span className={styles.dtPriorityValue}>
+                      <PriorityBars priority={ticket.priority} />
+                      {capitalize(ticket.priority)}
                     </span>
                   </div>
 
-                  <div className={styles.sidebarRow}>
-                    <span className={styles.sidebarLabel}>Type</span>
-                    <span
-                      className={styles.typeBadge}
-                      style={{ backgroundColor: TYPE_CONFIG[ticket.type].bg, color: TYPE_CONFIG[ticket.type].color }}
-                    >
-                      {TYPE_CONFIG[ticket.type].icon} {TYPE_CONFIG[ticket.type].label}
-                    </span>
-                  </div>
-
-                  {ticket.estimate !== null && ticket.estimate !== undefined && (
-                    <div className={styles.sidebarRow}>
-                      <span className={styles.sidebarLabel}>Story Points</span>
-                      <span className={styles.estimateBadge}>SP: {ticket.estimate}</span>
-                    </div>
-                  )}
-
-                  {ticket.dueDate && (() => {
-                    const due = new Date(ticket.dueDate);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const overdue = due < today;
-                    const label = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    return (
-                      <div className={styles.sidebarRow}>
-                        <span className={styles.sidebarLabel}>Due Date</span>
-                        <span className={overdue ? styles.dueDateOverdue : styles.dueDateBadge}>
-                          {overdue ? '⚠️' : '📅'} {label}
-                        </span>
-                      </div>
-                    );
-                  })()}
-
-                  {ticket.startDate && (
-                    <div className={styles.sidebarRow}>
-                      <span className={styles.sidebarLabel}>Start Date</span>
-                      <span className={styles.dueDateBadge}>
-                        🗓 {new Date(ticket.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {dueInfo && (
+                    <div className={styles.dtSidebarRow}>
+                      <span className={styles.dtLabel}>Due date</span>
+                      <span className={dueInfo.overdue ? styles.dueDateOverdue : styles.dtDueValue}>
+                        <CalendarIcon overdue={dueInfo.overdue} />
+                        {dueInfo.label}
                       </span>
                     </div>
                   )}
 
-                  {ticket.tags.length > 0 && (
-                    <div className={styles.sidebarSection}>
-                      <span className={styles.sidebarLabel}>Tags</span>
-                      <div className={styles.tagChips}>
-                        {ticket.tags.map((tag, i) => (
-                          <span key={`${tag}-${i}`} className={styles.chip} style={tagChipStyle(tag)}>{tag}</span>
-                        ))}
-                      </div>
+                  {ticket.estimate !== null && ticket.estimate !== undefined && (
+                    <div className={styles.dtSidebarRow}>
+                      <span className={styles.dtLabel}>Estimate</span>
+                      <span className={styles.dtPlainValue}>{ticket.estimate} pt</span>
+                    </div>
+                  )}
+
+                  {ticket.startDate && (
+                    <div className={styles.dtSidebarRow}>
+                      <span className={styles.dtLabel}>Start date</span>
+                      <span className={styles.dtPlainValue}>{formatDate(ticket.startDate)}</span>
                     </div>
                   )}
 
                   {/* Set parent — only for root tickets with no children */}
                   {isRootTicket && childTickets.length === 0 && (
                     <div className={styles.sidebarSection}>
-                      <span className={styles.sidebarLabel}>Parent ticket</span>
+                      <span className={styles.dtLabel}>Parent ticket</span>
                       <select
                         className={styles.select}
                         defaultValue=""
@@ -749,7 +1050,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                   {/* Remove parent — only for child tickets (parentId is set) */}
                   {ticket.parentId && (
                     <div className={styles.sidebarSection}>
-                      <span className={styles.sidebarLabel}>Parent ticket</span>
+                      <span className={styles.dtLabel}>Parent ticket</span>
                       <button
                         type="button"
                         className={styles.chip}
@@ -762,37 +1063,15 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     </div>
                   )}
 
-                  {/* Created by */}
-                  {ticket.createdBy && (() => {
-                    const creator = members.find((m) => m.id === ticket.createdBy);
-                    return creator ? (
-                      <div className={styles.sidebarRow}>
-                        <span className={styles.sidebarLabel}>Created by</span>
-                        <span className={styles.memberChip}>
-                          <MemberAvatar member={creator} size={20} />
-                          <span>{creator.name}</span>
-                        </span>
-                      </div>
-                    ) : null;
-                  })()}
+                  <hr className={styles.dtSidebarDivider} />
 
-                  {/* Assignee */}
-                  {(() => {
-                    const assigneeMember = ticket.assignee ? members.find((m) => m.id === ticket.assignee) : null;
-                    return (
-                      <div className={styles.sidebarRow}>
-                        <span className={styles.sidebarLabel}>Assignee</span>
-                        {assigneeMember ? (
-                          <span className={styles.memberChip}>
-                            <MemberAvatar member={assigneeMember} size={20} />
-                            <span>{assigneeMember.name}</span>
-                          </span>
-                        ) : (
-                          <span className={styles.unassignedBadge}>Unassigned</span>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  <div className={styles.dtMetaText}>
+                    <div>
+                      Created {formatDate(ticket.createdAt)}
+                      {creatorMember && <> by <span className={styles.dtMetaStrong}>{creatorMember.name}</span></>}
+                    </div>
+                    <div>Updated {formatDate(ticket.updatedAt)}</div>
+                  </div>
                 </div>
               </aside>
             </div>
@@ -918,6 +1197,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       }
                     }}
                   >
+                    {/* TODO(backend): "Review" and "Testing" statuses are part of the target design but need a backend Status enum/migration change first — see server/models.py's Status definition and Board.tsx's COLUMNS. Do not add them as selectable options until that lands. */}
                     <option value="backlog">Backlog</option>
                     <option value="todo">To Do</option>
                     <option value="in-progress">In Progress</option>
@@ -973,17 +1253,92 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
 
             <div className={styles.field}>
               <label className={styles.label}>Tags</label>
-              <input
-                className={styles.input}
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="frontend, bug, phase-2..."
-              />
-              {tagsInput.trim() && (
-                <div className={styles.tagChips}>
-                  {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip} style={tagChipStyle(t.trim())}>{t.trim()}</span>)}
+              <div className={styles.tagEditRow}>
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className={`${styles.tagPill} ${styles.tagPillRemovable}`}
+                    style={tagChipStyle(tag)}
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      className={styles.tagRemoveBtn}
+                      aria-label={`Remove tag ${tag}`}
+                      onClick={() => handleRemoveTag(tag)}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12">
+                        <path d="M3 3L9 9M9 3L3 9" stroke={tagColor(tag)} strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+
+                <div className={styles.tagPopoverAnchor} ref={tagPopoverRef}>
+                  <button
+                    type="button"
+                    className={styles.addTagBtn}
+                    onClick={() => {
+                      setTagPopoverOpen((open) => !open);
+                      setTagQuery('');
+                      setTimeout(() => tagInputRef.current?.focus(), 0);
+                    }}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 12 12">
+                      <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                    </svg>
+                    Add tag
+                  </button>
+
+                  {tagPopoverOpen && (
+                    <div className={styles.tagPopover}>
+                      <input
+                        ref={tagInputRef}
+                        className={styles.tagPopoverInput}
+                        value={tagQuery}
+                        onChange={(e) => setTagQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (filteredExistingTags.length > 0) {
+                              handleAddExistingTag(filteredExistingTags[0]);
+                            } else if (canCreateTag) {
+                              handleCreateTag();
+                            }
+                          }
+                        }}
+                        placeholder="Type to filter or create..."
+                        autoFocus
+                      />
+                      <div className={styles.tagPopoverList}>
+                        {filteredExistingTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={styles.tagPopoverRow}
+                            onClick={() => handleAddExistingTag(tag)}
+                          >
+                            <span className={styles.tagPill} style={tagChipStyle(tag)}>{tag}</span>
+                            <span className={styles.tagExistingLabel}>existing tag</span>
+                          </button>
+                        ))}
+                        {canCreateTag && (
+                          <button type="button" className={styles.tagCreateRow} onClick={handleCreateTag}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <path d="M12 5V19" />
+                              <path d="M5 12H19" />
+                            </svg>
+                            Create &quot;{tagQuery.trim()}&quot;
+                          </button>
+                        )}
+                        {filteredExistingTags.length === 0 && !canCreateTag && (
+                          <div className={styles.tagEmpty}>No matching tags</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {members.length > 0 && (
