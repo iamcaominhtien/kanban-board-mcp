@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .mm-avatar { width: 32px; height: 32px; border-radius: 50%; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mm-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; }
+    .mm-name { flex-grow: 1; font-size: 13.5px; font-weight: 600; color: #1E2A22; }
+    .mm-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #5B6B60; background: #F6FAF7; padding: 2px 7px; border-radius: 999px; }
+    .mm-remove-btn { width: 26px; height: 26px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0; }
+    .mm-remove-btn:hover { background: #FBEAEA; color: #C4432A; }
+    .mm-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 7px; border: 1px solid #C7D2CB; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px; color: #1E2A22; }
+    .mm-swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; box-sizing: border-box; }
+    .mm-swatch-active { border-color: #1E2A22; }
+    .mm-add-btn { padding: 8px 16px; border-radius: 8px; border: none; background: #2E6F40; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; flex-shrink: 0; }
+    .mm-add-btn:disabled { opacity: 0.45; cursor: default; }
+    .mm-field-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9AA8A0; }
+    .mm-divider { height: 1px; background: #EEF3EF; }
+    .mm-error { font-size: 11.5px; font-weight: 600; color: #C4432A; }
+  </style>
+</helmet>
+
+<div style="width: 1220px; height: 1660px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Screen — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Members</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 900px; line-height: 1.5;">Opens from the sidebar's "Members" button — a centered modal over a dimmed board, same overlay behavior as today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">MembersPanel.tsx</code>. Same data, same calls (<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">useMembers</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">useAddMember</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">useRemoveMember</code>, project-scoped <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">/projects/:id/members</code>) — only the visual language and the color picker change.</div>
+  </div>
+
+  <!-- Full screen -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Full screen — modal open, dimmed board behind it</div>
+    <div style="width: 1160px; height: 720px; border-radius: 14px; background: #EEF3EF; box-sizing: border-box; padding: 60px; display: flex; align-items: flex-start; justify-content: center; position: relative; overflow: hidden;">
+
+      <div style="position: absolute; inset: 0; background: rgba(37,61,44,0.5);"></div>
+      <div style="position: absolute; top: 24px; left: 24px; width: 140px; height: 80px; border-radius: 10px; background: #253D2C; opacity: 0.35;"></div>
+
+      <div style="position: relative; width: 460px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.28); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #E3E8E5;">
+          <span style="font-size: 15px; font-weight: 700; color: #1E2A22; display: flex; align-items: center; gap: 8px;">Project Members <span class="mm-count">4</span></span>
+          <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+          </button>
+        </div>
+
+        <div style="padding: 10px 24px 22px; display: flex; flex-direction: column;">
+
+          <div class="mm-row">
+            <div class="mm-avatar" style="background: #DCEEE1; color: #2E6F40;">AN</div>
+            <span class="mm-name">An Nguyen</span>
+            <button class="mm-remove-btn" aria-label="Remove An Nguyen">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+          <div class="mm-divider"></div>
+
+          <div class="mm-row">
+            <div class="mm-avatar" style="background: #E6E9F5; color: #5B5FA8;">HM</div>
+            <span class="mm-name">Hoa Mai</span>
+            <button class="mm-remove-btn" aria-label="Remove Hoa Mai">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+          <div class="mm-divider"></div>
+
+          <div class="mm-row">
+            <div class="mm-avatar" style="background: #F3E7DC; color: #B4791E;">TV</div>
+            <span class="mm-name">Tuan Vo</span>
+            <button class="mm-remove-btn" aria-label="Remove Tuan Vo">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+          <div class="mm-divider"></div>
+
+          <div class="mm-row">
+            <div class="mm-avatar" style="background: #FBE4E9; color: #B0446E;">LP</div>
+            <span class="mm-name">Linh Pham</span>
+            <button class="mm-remove-btn" aria-label="Remove Linh Pham">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+
+          <div style="height: 1px; background: #E3E8E5; margin: 14px 0 16px;"></div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span class="mm-field-label">Add member</span>
+            <input class="mm-input" placeholder="Member name…">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; gap: 7px;">
+                <span class="mm-swatch mm-swatch-active" style="background: #2E6F40;"></span>
+                <span class="mm-swatch" style="background: #5B5FA8;"></span>
+                <span class="mm-swatch" style="background: #B4791E;"></span>
+                <span class="mm-swatch" style="background: #B0446E;"></span>
+                <span class="mm-swatch" style="background: #2F6FB0;"></span>
+                <span class="mm-swatch" style="background: #6D5DD3;"></span>
+                <span class="mm-swatch" style="background: #C4432A;"></span>
+              </div>
+              <button class="mm-add-btn">Add</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary states -->
+  <div style="display: flex; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Empty state — no members yet</div>
+      <div style="width: 380px; border-radius: 10px; border: 1px solid #E3E8E5; box-sizing: border-box; background: #FFFFFF; padding: 28px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C7D2CB" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.5 19C3.5 15.5 6 13.5 9 13.5C12 13.5 14.5 15.5 14.5 19"></path><circle cx="17" cy="9" r="2.6"></circle><path d="M15.5 13.6C18 13.6 20 15.3 20.3 18"></path></svg>
+        <span style="font-size: 12.5px; color: #9AA8A0; font-weight: 500;">No members yet.</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Add — pending / error</div>
+      <div style="width: 380px; border-radius: 10px; border: 1px solid #E3E8E5; box-sizing: border-box; background: #FFFFFF; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+        <span class="mm-field-label">Add member</span>
+        <input class="mm-input" value="Khoa Dang">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; gap: 7px;">
+            <span class="mm-swatch" style="background: #2E6F40;"></span>
+            <span class="mm-swatch mm-swatch-active" style="background: #2F6FB0;"></span>
+            <span class="mm-swatch" style="background: #B4791E;"></span>
+          </div>
+          <button class="mm-add-btn" disabled>…</button>
+        </div>
+        <span class="mm-error">Failed to add member. Please try again.</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Remove — blocked (in use)</div>
+      <div style="width: 380px; border-radius: 10px; border: 1px solid #E3E8E5; box-sizing: border-box; background: #FFFFFF; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+        <div class="mm-row" style="padding: 0;">
+          <div class="mm-avatar" style="background: #DCEEE1; color: #2E6F40;">AN</div>
+          <span class="mm-name">An Nguyen</span>
+          <button class="mm-remove-btn" aria-label="Remove An Nguyen" style="background: #FBEAEA; color: #C4432A;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <span class="mm-error">Cannot remove: assigned to 3 open tickets. Reassign first.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #E3E8E5;"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <span style="font-size: 12px; font-weight: 600; color: #5B6B60;">Note</span>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">No data model changes — <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">Member</code> is still just <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">{id, name, color}</code>, same endpoints. Two real UI changes: (1) the native <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">&lt;input type="color"&gt;</code> swatch becomes a 7-color preset palette pulled from the pastel-avatar pairs already used across the canvas (Ticket Card, Main Board avatars, Filter bar's Assignee dropdown) — keeps every member's avatar visually consistent with the rest of the system instead of an arbitrary picked hex. (2) the "Remove — blocked" state is new: <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">removeMember</code> today just calls DELETE and shows whatever <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">err.response.data.detail</code> comes back, so if the backend doesn't already reject removing a member with open assigned tickets, that check needs adding server-side for this message to ever appear — otherwise it silently orphans <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">assignee</code> on those tickets.</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

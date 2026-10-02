@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .nt-field-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9AA8A0; }
+    .nt-type-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #5B6B60; flex: 1; justify-content: center; }
+    .nt-type-btn-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .nt-priority-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12px; font-weight: 600; color: #5B6B60; }
+    .nt-priority-chip-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .nt-est-btn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12px; font-weight: 600; color: #5B6B60; }
+    .nt-est-btn-active { border-color: #2E6F40; background: #2E6F40; color: #FFFFFF; }
+    .nt-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 7px; border: 1px solid #C7D2CB; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #1E2A22; }
+    .md-toolbar-btn { width: 22px; height: 22px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5B6B60; }
+    .md-toolbar-btn:hover { background: #EAF0EC; }
+    .tag-pill { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+    .mb-dropdown-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #1E2A22; }
+  </style>
+</helmet>
+
+<div style="width: 900px; height: 1560px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">New Ticket</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 760px; line-height: 1.5;">Opens from the "+ New Ticket" button in the Main Board's top bar — a centered modal over a dimmed board, same overlay behavior as today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">TicketModal.tsx</code> in create mode. All the current fields (Title, Description, Type, Status, Priority, Estimate, Tags, Assignee, Start/Due date) stay — this just restyles the plain selects/emoji into the rest of the system's language. New ticket always starts in Backlog, so Status isn't a field here — it's set on the board via drag or the Status Menu afterward.</div>
+  </div>
+
+  <div style="width: 620px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #E3E8E5;">
+      <span style="font-size: 15px; font-weight: 700; color: #1E2A22;">New Ticket</span>
+      <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 20px; max-height: 640px; overflow-y: auto;">
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span class="nt-field-label">Title</span>
+        <input class="nt-input" style="font-size: 15px; font-weight: 600; padding: 10px 12px;" placeholder="Ticket title…" value="Add hover state to column drop zone">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span class="nt-field-label">Type</span>
+        <div style="display: flex; gap: 6px;">
+          <button class="nt-type-btn nt-type-btn-active">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            Task
+          </button>
+          <button class="nt-type-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="5" ry="6.5"></ellipse><circle cx="12" cy="6" r="2.6"></circle><path d="M7 11H4"></path><path d="M7 16H4"></path><path d="M17 11H20"></path><path d="M17 16H20"></path></svg>
+            Bug
+          </button>
+          <button class="nt-type-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z"></path><path d="M10 20.5H14"></path></svg>
+            Feature
+          </button>
+          <button class="nt-type-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="4.5" width="4" height="4" rx="1"></rect><path d="M10.5 6.5H20"></path><rect x="4" y="10" width="4" height="4" rx="1"></rect><path d="M10.5 12H20"></path><rect x="4" y="15.5" width="4" height="4" rx="1"></rect><path d="M10.5 17.5H20"></path></svg>
+            Chore
+          </button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span class="nt-field-label">Description</span>
+        <div style="border-radius: 7px; border: 1px solid #C7D2CB; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 1px; padding: 4px 6px; background: #F6FAF7; border-bottom: 1px solid #E3E8E5;">
+            <button class="md-toolbar-btn" aria-label="Bold"><span style="font-size: 12px; font-weight: 800;">B</span></button>
+            <button class="md-toolbar-btn" aria-label="Italic"><span style="font-size: 12px; font-style: italic; font-weight: 600;">i</span></button>
+            <button class="md-toolbar-btn" aria-label="Bulleted list">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="4.5" cy="6" r="1"></circle><circle cx="4.5" cy="12" r="1"></circle><circle cx="4.5" cy="18" r="1"></circle><path d="M9 6H20"></path><path d="M9 12H20"></path><path d="M9 18H20"></path></svg>
+            </button>
+            <button class="md-toolbar-btn" aria-label="Code">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6L2 12L8 18"></path><path d="M16 6L22 12L16 18"></path></svg>
+            </button>
+            <button class="md-toolbar-btn" aria-label="Image">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+            </button>
+            <span style="flex-grow: 1;"></span>
+            <span style="font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9AA8A0; padding-right: 4px;">Markdown</span>
+          </div>
+          <div style="padding: 9px 11px; font-size: 12.5px; color: #9AA8A0; min-height: 70px;">Add a description…</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+          <span class="nt-field-label">Priority</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="nt-priority-chip"><span style="width: 6px; height: 6px; border-radius: 50%; background: #9BB3A4;"></span>Low</button>
+            <button class="nt-priority-chip nt-priority-chip-active"><span style="width: 6px; height: 6px; border-radius: 50%; background: #E8B93A;"></span>Medium</button>
+            <button class="nt-priority-chip"><span style="width: 6px; height: 6px; border-radius: 50%; background: #E2793D;"></span>High</button>
+            <button class="nt-priority-chip"><span style="width: 6px; height: 6px; border-radius: 50%; background: #D64545;"></span>Critical</button>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <span class="nt-field-label">Assignee</span>
+          <button class="mb-dropdown-btn">
+            <span style="width: 15px; height: 15px; border-radius: 50%; border: 1.4px dashed #C7D2CB; flex-shrink: 0;"></span>
+            Unassigned
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span class="nt-field-label">Estimate</span>
+        <div style="display: flex; gap: 6px;">
+          <button class="nt-est-btn">—</button>
+          <button class="nt-est-btn">1</button>
+          <button class="nt-est-btn nt-est-btn-active">2</button>
+          <button class="nt-est-btn">3</button>
+          <button class="nt-est-btn">5</button>
+          <button class="nt-est-btn">8</button>
+          <button class="nt-est-btn">13</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span class="nt-field-label">Tags</span>
+        <input class="nt-input" placeholder="frontend, bug, phase-2…" value="ui, dnd">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="tag-pill" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">ui</span>
+          <span class="tag-pill" style="background: rgba(109,93,211,0.12); color: #6D5DD3;">dnd</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+          <span class="nt-field-label">Start Date</span>
+          <input class="nt-input" type="date">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+          <span class="nt-field-label">Due Date</span>
+          <input class="nt-input" type="date">
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid #E3E8E5;">
+      <button style="padding: 8px 16px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; color: #5B6B60; font-size: 13px; font-weight: 600; cursor: pointer;">Cancel</button>
+      <button style="padding: 8px 18px; border-radius: 8px; border: none; background: #2E6F40; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;">Create Ticket</button>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 780px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: no data model changes — every field maps to what <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">TicketModal.tsx</code> already collects in create mode (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">title, description, type, priority, estimate, tags, assignee, startDate, dueDate</code>). Visual changes only: (1) Type moves from an emoji <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">&lt;select&gt;</code> (🐛✨📋🔧) to icon segmented buttons, reusing the Ticket Type Icons set. (2) Priority moves from a plain <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">&lt;select&gt;</code> to colored-dot chips, matching the priority dot colors used everywhere else. (3) Assignee becomes a dropdown trigger in the Status-Menu style instead of a native <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">&lt;select&gt;</code>, consistent with the Filter bar's Assignee dropdown. (4) Estimate keeps its current button-group behavior, just restyled. (5) Description gets the same compact markdown toolbar as Debug Space's "Log entry" form. (6) Status is dropped as a create-time field — new tickets always start in Backlog today (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">useCreateTicket</code> doesn't take a status), so showing the selector here was never actually meaningful.</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

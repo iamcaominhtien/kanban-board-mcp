@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .st-section-title { font-size: 13px; font-weight: 700; color: #1E2A22; }
+    .st-hint { font-size: 12px; color: #5B6B60; line-height: 1.5; }
+    .st-code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: #F6FAF7; padding: 2px 6px; border-radius: 4px; color: #2E6F40; }
+    .st-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 7px; border: 1px solid #C7D2CB; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px; color: #1E2A22; }
+    .st-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #1E2A22; }
+    .st-btn-primary { border: none; background: #2E6F40; color: #FFFFFF; }
+    .st-btn-danger-outline { border-color: #F0C4B8; color: #C4432A; }
+    .st-btn:disabled { opacity: 0.45; cursor: default; }
+    .st-status-ok { font-size: 11.5px; font-weight: 600; color: #2E6F40; }
+    .st-status-err { font-size: 11.5px; font-weight: 600; color: #C4432A; }
+    .st-divider { height: 1px; background: #E3E8E5; }
+    .st-toggle-track { position: relative; width: 34px; height: 19px; border-radius: 999px; flex-shrink: 0; cursor: pointer; }
+    .st-toggle-dot { position: absolute; top: 2px; width: 15px; height: 15px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(30,42,34,0.25); }
+    .st-field-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9AA8A0; }
+    .st-retention-opt { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #5B6B60; }
+    .st-retention-opt-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+  </style>
+</helmet>
+
+<div style="width: 1220px; height: 2020px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Screen — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Settings</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 900px; line-height: 1.5;">Opens from the sidebar's "Settings" button — a centered modal over a dimmed board, same overlay behavior as today's <code class="st-code">SettingsPanel.tsx</code>. Data Folder, Theme and Import/Export sections are a direct restyle of what's already there, wired to the same <code class="st-code">useSettings</code>/<code class="st-code">useSetDataPath</code> hooks and <code class="st-code">/settings</code>, <code class="st-code">/data/export</code>, <code class="st-code">/data/import</code> endpoints — no behavior changes. One new section, <b style="color: #1E2A22;">Workspace</b>: the app-wide config the Workspace tab's note called for (<code class="st-code">enabled</code>, <code class="st-code">rootPath</code>, <code class="st-code">defaultRetentionDays</code>) — this is where it gets set, since Workspace's own panel is per-task and read-only.</div>
+  </div>
+
+  <!-- Full screen -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Full screen — modal open, dimmed board behind it</div>
+    <div style="width: 1160px; height: 900px; border-radius: 14px; background: #EEF3EF; box-sizing: border-box; padding: 60px; display: flex; align-items: flex-start; justify-content: center; position: relative; overflow: hidden;">
+
+      <!-- dimmed board hint behind -->
+      <div style="position: absolute; inset: 0; background: rgba(37,61,44,0.5);"></div>
+      <div style="position: absolute; top: 24px; left: 24px; width: 140px; height: 80px; border-radius: 10px; background: #253D2C; opacity: 0.35;"></div>
+
+      <div style="position: relative; width: 620px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.28); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #E3E8E5;">
+          <span style="font-size: 15px; font-weight: 700; color: #1E2A22;">Settings</span>
+          <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+          </button>
+        </div>
+
+        <div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 20px; max-height: 700px; overflow-y: auto; overflow-x: visible;">
+
+          <!-- Data Folder -->
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span class="st-section-title">Data Folder</span>
+            <div class="st-hint">Current: <span class="st-code">/Users/minh/kanban-data</span></div>
+            <div style="display: flex; gap: 8px;">
+              <input class="st-input" placeholder="New folder path (e.g. /Users/you/kanban-data)">
+              <button class="st-btn" style="flex-shrink: 0;">Browse…</button>
+            </div>
+            <button class="st-btn st-btn-primary" style="align-self: flex-start;" disabled>Apply</button>
+          </div>
+
+          <div class="st-divider"></div>
+
+          <!-- Workspace (new) -->
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="st-section-title" style="flex-grow: 1;">Workspace</span>
+              <div class="st-toggle-track" style="background: #2E6F40;">
+                <div class="st-toggle-dot" style="left: 17px;"></div>
+              </div>
+            </div>
+            <div class="st-hint">Local scratch folder per task, no API — the Workspace tab on a ticket lists whatever's on disk under this root. Turning this off hides the Workspace tab everywhere.</div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span class="st-field-label">Root path</span>
+              <div style="display: flex; gap: 8px;">
+                <input class="st-input" value="/Users/minh/kanban-workspace">
+                <button class="st-btn" style="flex-shrink: 0;">Browse…</button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span class="st-field-label">Default retention for new tasks</span>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <span class="st-retention-opt">7 days</span>
+                <span class="st-retention-opt st-retention-opt-active">30 days</span>
+                <span class="st-retention-opt">90 days</span>
+                <span class="st-retention-opt">Forever</span>
+              </div>
+              <span class="st-hint" style="font-size: 11px;">Applies to new task folders only — a task can override this from its own Workspace tab. A background sweep deletes folders past their window; anything overridden to "Forever" is skipped.</span>
+            </div>
+          </div>
+
+          <div class="st-divider"></div>
+
+          <!-- Theme -->
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span class="st-section-title">Theme</span>
+            <div class="st-hint">Switch between color and black &amp; white TV mode.</div>
+            <button class="st-btn" style="align-self: flex-start;">📺 Switch to B&amp;W</button>
+          </div>
+
+          <div class="st-divider"></div>
+
+          <!-- Import / Export -->
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span class="st-section-title">Import / Export</span>
+            <div class="st-hint">Export all data (database + attachments) as a ZIP file. Use the same file to import and restore.</div>
+            <div style="display: flex; gap: 8px;">
+              <button class="st-btn">⬇ Export Data</button>
+              <button class="st-btn st-btn-danger-outline">⬆ Import Data</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workspace section detail states -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Workspace section — off state</div>
+    <div style="width: 572px; border-radius: 10px; border: 1px solid #E3E8E5; box-sizing: border-box; background: #FFFFFF; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="st-section-title" style="flex-grow: 1;">Workspace</span>
+        <div class="st-toggle-track" style="background: #D7DEDA;">
+          <div class="st-toggle-dot" style="left: 2px;"></div>
+        </div>
+      </div>
+      <div class="st-hint">Turned off — the Workspace tab is hidden on every ticket. Root path and retention stay saved for next time it's re-enabled.</div>
+    </div>
+  </div>
+
+  <!-- Apply state with warning -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Data Folder — after Apply, with warning returned</div>
+    <div style="width: 572px; border-radius: 10px; border: 1px solid #E3E8E5; box-sizing: border-box; background: #FFFFFF; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <span class="st-section-title">Data Folder</span>
+      <div class="st-hint">Current: <span class="st-code">/Users/minh/kanban-data-v2</span></div>
+      <div style="display: flex; gap: 8px;">
+        <input class="st-input" placeholder="New folder path (e.g. /Users/you/kanban-data)">
+        <button class="st-btn" style="flex-shrink: 0;">Browse…</button>
+      </div>
+      <button class="st-btn st-btn-primary" style="align-self: flex-start;" disabled>Apply</button>
+      <span class="st-status-ok">✓ Data folder updated successfully. ⚠️ 2 attachments could not be moved and were left behind.</span>
+    </div>
+  </div>
+
+  <!-- Import confirm + progress -->
+  <div style="display: flex; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Import — native confirm() before overwrite</div>
+      <div style="width: 380px; border-radius: 10px; border: 1px solid #E3E8E5; box-shadow: 0 12px 28px rgba(30,42,34,0.14); box-sizing: border-box; background: #FFFFFF; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+        <span style="font-size: 12.5px; color: #1E2A22; line-height: 1.5;">⚠️ Import will REPLACE all current data (tickets, projects, members, attachments).<br><br>This cannot be undone. Continue?</span>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button class="st-btn">Cancel</button>
+          <button class="st-btn" style="border-color: #F0C4B8; background: #C4432A; color: #FFFFFF;">OK</button>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Import — statuses</div>
+      <div style="width: 300px; display: flex; flex-direction: column; gap: 10px;">
+        <span class="st-status-ok" style="font-weight: 500; color: #5B6B60;">Importing...</span>
+        <span class="st-status-ok">✓ Import successful. The page will reload.</span>
+        <span class="st-status-err">Error: Only .zip files are accepted.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="st-divider"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <span style="font-size: 12px; font-weight: 600; color: #5B6B60;">Note</span>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Data Folder, Theme and Import/Export are a 1:1 restyle of the current <code class="st-code">SettingsPanel.tsx</code> — same fields, same hooks (<code class="st-code">useSettings</code>, <code class="st-code">useSetDataPath</code>), same endpoints (<code class="st-code">/settings</code>, <code class="st-code">/settings/data-path</code>, <code class="st-code">/data/export</code>, <code class="st-code">/data/import</code>), same copy for the destructive-import confirm. The Workspace section is new and needs real wiring: a <code class="st-code">WorkspaceSettings</code> row (<code class="st-code">enabled</code>, <code class="st-code">rootPath</code>, <code class="st-code">defaultRetentionDays</code>) alongside today's settings table, a save endpoint next to <code class="st-code">/settings/data-path</code>, and the toggle needs to actually gate whether the Workspace tab renders on <code class="st-code">TicketDetail</code>/<code class="st-code">TicketDetailParent</code>. Retention options shown (7/30/90/Forever) match the chip set already proposed on the Workspace board's own retention dropdown, so a task's per-task override and this default read the same scale. Import/Export intentionally doesn't touch Workspace files — those live outside the app's data folder on purpose, so a restore doesn't silently delete someone's local scratch files.</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

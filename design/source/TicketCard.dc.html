@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .card-title {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; line-height: 1.3;
+    }
+    .tag-pill { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+  </style>
+</helmet>
+
+<div style="width: 2232px; height: 488px; box-sizing: border-box; padding: 64px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — rev. 6</div>
+    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1E2A22;">Ticket Card</h1>
+    <div style="font-size: 14px; color: #5B6B60;">Tags get their own row between title and footer — uppercase pills, with an overflow count once they run out of room. Title clamps to 2 lines with an ellipsis. Blocked no longer fights the ID for space — a floating badge carries it instead.</div>
+  </div>
+
+  <div style="display: flex; gap: 24px;">
+
+    <!-- Default -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Default — many tags</div>
+      <div style="width: 280px; height: 160px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E3E8E5; box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+          </div>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-142</span>
+        </div>
+        <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Add drag handle to ticket card footer</div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="tag-pill" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">ui</span>
+          <span class="tag-pill" style="background: rgba(109,93,211,0.12); color: #6D5DD3;">dnd</span>
+          <span class="tag-pill" style="background: rgba(46,111,64,0.12); color: #2E6F40;">backend</span>
+          <span style="font-size: 11px; font-weight: 600; color: #9AA8A0;">+2</span>
+        </div>
+        <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">AN</div>
+          <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+            <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E8B93A"></rect>
+            <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E8B93A"></rect>
+            <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+            <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+          </svg>
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 11px; color: #9AA8A0;">3 pt</span>
+          <span style="font-size: 11px; color: #5B6B60;">2/4</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hover -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Hover — one tag</div>
+      <div style="width: 280px; height: 160px; border-radius: 8px; background: #FFFFFF; border: 1px solid #B9CBBF; box-shadow: 0 2px 8px rgba(30,42,34,0.08); box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="5" ry="6.5"></ellipse><circle cx="12" cy="6" r="2.6"></circle><path d="M7 11H4"></path><path d="M7 16H4"></path><path d="M17 11H20"></path><path d="M17 16H20"></path></svg>
+            <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Bug</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-118</span>
+            <svg width="10" height="14" viewBox="0 0 10 16" fill="#B7C4BC"><circle cx="2" cy="2" r="1.3"></circle><circle cx="8" cy="2" r="1.3"></circle><circle cx="2" cy="8" r="1.3"></circle><circle cx="8" cy="8" r="1.3"></circle><circle cx="2" cy="14" r="1.3"></circle><circle cx="8" cy="14" r="1.3"></circle></svg>
+          </div>
+        </div>
+        <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Fix column scroll jump on card drop</div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="tag-pill" style="background: rgba(196,67,42,0.12); color: #C4432A;">urgent</span>
+        </div>
+        <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #F3E7DC; color: #B4791E; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">TV</div>
+          <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+            <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#D64545"></rect>
+            <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#D64545"></rect>
+            <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#D64545"></rect>
+            <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#D64545"></rect>
+          </svg>
+          <span style="flex-grow: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #C4432A;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10H20.5"></path><path d="M8 3V6.5"></path><path d="M16 3V6.5"></path></svg>
+            Due Sep 12
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dragging -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Dragging — two tags</div>
+      <div style="width: 280px; height: 160px; display: flex; align-items: center;">
+        <div style="width: 274px; height: 154px; border-radius: 8px; background: #FFFFFF; border: 1px solid #DCE6DF; box-shadow: 0 12px 24px rgba(30,42,34,0.18); box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; transform: rotate(1deg);">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z"></path><path d="M10 20.5H14"></path></svg>
+              <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Feature</span>
+            </div>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-097</span>
+          </div>
+          <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Bulk assign tickets from list view</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="tag-pill" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">ui</span>
+            <span class="tag-pill" style="background: rgba(226,121,61,0.14); color: #B4571F;">perf</span>
+          </div>
+          <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+            <div style="width: 20px; height: 20px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">HM</div>
+            <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+              <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E8B93A"></rect>
+              <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#DCE6DF"></rect>
+              <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+              <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+            </svg>
+            <span style="flex-grow: 1;"></span>
+            <span style="font-size: 11px; color: #9AA8A0;">5 pt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Blocked -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Blocked — floating badge</div>
+      <div style="width: 280px; height: 160px; border-radius: 8px; background: #FFFFFF; border: 1.5px dashed #D9A79A; box-sizing: border-box; padding: 12px 14px; position: relative;">
+        <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; opacity: 0.72;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2" stroke-linecap="round"><rect x="4" y="6" width="4" height="4" rx="1"></rect><path d="M10.5 8H20"></path><rect x="4" y="14" width="4" height="4" rx="1"></rect><path d="M10.5 16H20"></path></svg>
+              <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Chore</span>
+            </div>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-061</span>
+          </div>
+          <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Migrate board state to new schema</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="tag-pill" style="background: rgba(46,111,64,0.12); color: #2E6F40;">backend</span>
+          </div>
+          <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+            <div style="width: 20px; height: 20px; border-radius: 50%; background: #EEF1EE; color: #5B6B60; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">DL</div>
+            <span style="flex-grow: 1;"></span>
+            <span style="font-size: 11px; color: #9AA8A0;">8 pt</span>
+            <span style="font-size: 11px; color: #5B6B60;">1/3</span>
+          </div>
+        </div>
+        <div title="Blocked by KAN-058" style="position: absolute; top: -9px; right: -9px; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; border: 1.5px solid #C4432A; box-shadow: 0 1px 3px rgba(30,42,34,0.16); display: flex; align-items: center; justify-content: center;">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="3" y="6.5" width="8" height="6" rx="1.3" stroke="#C4432A" stroke-width="1.4"></rect><path d="M4.6 6.5V4.8A2.4 2.4 0 0 1 9.4 4.8V6.5" stroke="#C4432A" stroke-width="1.4" stroke-linecap="round"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Long title -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Long title — 2-line clamp</div>
+      <div style="width: 280px; height: 160px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E3E8E5; box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="5" ry="6.5"></ellipse><circle cx="12" cy="6" r="2.6"></circle><path d="M7 11H4"></path><path d="M7 16H4"></path><path d="M17 11H20"></path><path d="M17 16H20"></path></svg>
+            <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Bug</span>
+          </div>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-203</span>
+        </div>
+        <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Investigate intermittent WebSocket disconnects when switching fast between Idea Board and List View on slow connections</div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="tag-pill" style="background: rgba(109,93,211,0.12); color: #6D5DD3;">dnd</span>
+        </div>
+        <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #EEF1EE; color: #5B6B60; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">AN</div>
+          <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+            <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E2793D"></rect>
+            <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E2793D"></rect>
+            <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#E2793D"></rect>
+            <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+          </svg>
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 11px; color: #9AA8A0;">5 pt</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-ticket -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Sub-ticket — has a parent</div>
+      <div style="width: 280px; height: 160px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E3E8E5; box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+          </div>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-145</span>
+        </div>
+        <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Write unit tests for drag handle</div>
+        <div>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; background: #F6FAF7; border: 1px solid #E3E8E5; font-size: 10px; font-weight: 600; color: #5B6B60;">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5"></path><path d="M7.5 8.5L10 11L7.5 13.5"></path></svg>
+            KAN-140
+          </span>
+        </div>
+        <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">HM</div>
+          <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+            <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#DCE6DF"></rect>
+            <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#DCE6DF"></rect>
+            <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+            <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+          </svg>
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 11px; color: #9AA8A0;">2 pt</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Done -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Done — struck ID</div>
+      <div style="width: 280px; height: 160px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E3E8E5; box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+          </div>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; text-decoration: line-through; text-decoration-color: #C7D2CB;">KAN-141</span>
+        </div>
+        <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Update column header snapshot tests</div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="tag-pill" style="background: rgba(46,111,64,0.12); color: #2E6F40;">backend</span>
+        </div>
+        <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">AN</div>
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 11px; color: #9AA8A0;">3 pt</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":2232,"height":488}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  </style>
+</helmet>
+
+<div style="width: 620px; height: 620px; box-sizing: border-box; padding: 64px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component</div>
+    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1E2A22;">Notification Toast</h1>
+    <div style="font-size: 14px; color: #5B6B60;">Success, error and warning variants — bottom-right stack.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+
+    <!-- Success -->
+    <div style="width: 100%; box-sizing: border-box; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DCE6DF; box-shadow: 0 10px 24px rgba(30,42,34,0.10);">
+      <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 50%; background: #CFFFDC; display: flex; align-items: center; justify-content: center; color: #2E6F40; font-size: 16px; font-weight: 700;">✓</div>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+        <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Moved to Done</div>
+        <div style="font-size: 13px; color: #5B6B60;">KAN-142 · Add drag handle to ticket card footer</div>
+      </div>
+      <div style="width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #B7C4BC; font-size: 14px; font-weight: 600;">✕</div>
+    </div>
+
+    <!-- Error -->
+    <div style="width: 100%; box-sizing: border-box; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DCE6DF; box-shadow: 0 10px 24px rgba(30,42,34,0.10);">
+      <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 50%; background: #FBE7E4; display: flex; align-items: center; justify-content: center; color: #C4432A; font-size: 16px; font-weight: 700;">✕</div>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+        <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Couldn't save changes</div>
+        <div style="font-size: 13px; color: #5B6B60;">Check your connection and try again.</div>
+      </div>
+      <div style="width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #B7C4BC; font-size: 14px; font-weight: 600;">✕</div>
+    </div>
+
+    <!-- Warning -->
+    <div style="width: 100%; box-sizing: border-box; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DCE6DF; box-shadow: 0 10px 24px rgba(30,42,34,0.10);">
+      <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 50%; background: #FCEFD9; display: flex; align-items: center; justify-content: center; color: #B4791E; font-size: 16px; font-weight: 700;">!</div>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+        <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">3 tickets overdue</div>
+        <div style="font-size: 13px; color: #5B6B60;">Review them from the Board tab.</div>
+      </div>
+      <div style="width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #B7C4BC; font-size: 14px; font-weight: 600;">✕</div>
+    </div>
+
+  </div>
+
+  <!-- Inline banner variant -->
+  <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Inline banner (in-page, not floating)</div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; background: #F6FAF7; border: 1px solid #DCE6DF;">
+      <span style="color: #2E6F40; font-size: 15px;">✓</span>
+      <span style="font-size: 13px; font-weight: 500; color: #1E2A22;">Board synced — all changes saved</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":620,"height":620}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

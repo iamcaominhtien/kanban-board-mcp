@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .br-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .br-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+    .br-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #FFFFFF; }
+    .br-row:not(:last-child) { border-bottom: 1px solid #EEF3EF; }
+    .br-add-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0; }
+  </style>
+</helmet>
+
+<div style="width: 1300px; height: 2740px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — new feature</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Branches</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 900px; line-height: 1.5;">A ticket can be branched into one or more variant tickets to explore a different approach without disturbing the original. <strong>Baseline</strong> is the ticket's main line (what ships by default); a <strong>branch</strong> forks from it (or from another branch) at a point in time, carries its own status, and eventually gets <strong>merged</strong> back (its conclusion/changes folded into the baseline), left <strong>open</strong> (still diverged, exploration ongoing), or goes <strong>stale</strong> (abandoned, needs a decision). This is a new concept — not in the current data model — assuming one baseline ticket can own many branches, and a branch can itself be branched.</div>
+  </div>
+
+  <!-- Ticket Detail integration -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">In Ticket Detail — sidebar row (open branch, showing 1 ahead / 1 behind of its base)</div>
+    <div style="width: 260px; display: flex; flex-direction: column; gap: 6px;">
+      <div class="br-label">Branch</div>
+      <button style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #F6FAF7; cursor: pointer;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M6 8.5V15.5"/><path d="M8.5 6H13A5 5 0 0 1 18 11V15.5"/></svg>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22;">feature/attachments</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"/></svg>
+      </button>
+      <span style="font-size: 11px; color: #9AA8A0; padding-left: 2px;">from main · 2 ahead, 1 behind</span>
+    </div>
+  </div>
+
+  <!-- Clicking the sidebar Branch button -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking the sidebar "Branch" button — switcher popover</div>
+    <div style="position: relative; width: 260px; height: 320px;">
+      <button style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 6px; border: 1px solid #2E6F40; background: #FFFFFF; cursor: pointer;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M6 8.5V15.5"></path><path d="M8.5 6H13A5 5 0 0 1 18 11V15.5"></path></svg>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22;">feature/attachments</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15L12 9L18 15"></path></svg>
+      </button>
+
+      <div style="position: absolute; top: 38px; left: 0; width: 300px; border: 1px solid #E3E8E5; border-radius: 10px; background: #FFFFFF; box-shadow: 0 16px 32px rgba(30,42,34,0.16); box-sizing: border-box; overflow: hidden;">
+        <div style="padding: 10px 14px; border-bottom: 1px solid #EEF3EF; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9AA8A0;">Branches of KAN-100</div>
+
+        <div style="display: flex; flex-direction: column;">
+          <button style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: none; background: none; cursor: pointer; text-align: left; border-bottom: 1px solid #EEF3EF;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2E6F40; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #1E2A22;">main</span>
+            <span class="br-status" style="background: rgba(46,111,64,0.12); color: #2E6F40; font-size: 9.5px; padding: 2px 6px;">Baseline</span>
+          </button>
+
+          <button style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: none; background: #F6FAF7; cursor: pointer; text-align: left; border-bottom: 1px solid #EEF3EF;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #6D5DD3; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22;">feature/attachments</span>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0;"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.4"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+
+          <button style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: none; background: none; cursor: pointer; text-align: left; border-bottom: 1px solid #EEF3EF;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #1E2A22;">feature/column-header</span>
+            <span class="br-status" style="background: rgba(46,111,64,0.12); color: #2E6F40; font-size: 9.5px; padding: 2px 6px;">Merged</span>
+          </button>
+
+          <button style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: none; background: none; cursor: pointer; text-align: left;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #C4432A; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #9AA8A0;">spike/websocket-sync</span>
+            <span class="br-status" style="background: rgba(196,67,42,0.1); color: #C4432A; font-size: 9.5px; padding: 2px 6px;">Stale</span>
+          </button>
+        </div>
+
+        <div style="border-top: 1px solid #EEF3EF; display: flex; flex-direction: column;">
+          <button style="display: flex; align-items: center; gap: 8px; padding: 9px 14px; border: none; background: none; cursor: pointer; text-align: left; font-size: 12.5px; color: #9AA8A0;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Create branch
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; padding: 9px 14px; border: none; background: none; cursor: pointer; text-align: left; font-size: 12.5px; font-weight: 600; color: #2E6F40;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+            View full graph →
+          </button>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 640px;">Clicking a row switches Ticket Detail to that branch's ticket in place (same panel, new content — like switching git branches keeps you in the same working directory). "View full graph" opens the graph below in a panel over Ticket Detail, with a "← Back to KAN-152" button in its header to return — the popover alone only lists this ticket family flatly, it doesn't show ancestry or where a stale branch forked from.</div>
+  </div>
+
+  <!-- Graph -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Branch graph — the panel's default tab, one merged, one open, one stale (forked off the open branch)</div>
+    <div style="display: inline-flex; gap: 3px; padding: 3px; background: #F6FAF7; border-radius: 8px; width: fit-content;">
+      <button style="padding: 6px 14px; border-radius: 6px; border: none; background: #FFFFFF; box-shadow: 0 1px 2px rgba(30,42,34,0.08); cursor: pointer; font-size: 12.5px; font-weight: 600; color: #1E2A22;">Graph</button>
+      <button style="padding: 6px 14px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12.5px; color: #9AA8A0;">List</button>
+    </div>
+    <div style="border: 1px solid #E3E8E5; border-radius: 10px; padding: 24px 28px; box-sizing: border-box;">
+
+      <svg width="1188" height="420" viewBox="0 0 1188 420" style="overflow: visible;">
+        <!-- lane labels -->
+        <text x="0" y="146" font-family="JetBrains Mono, monospace" font-size="11" fill="#9AA8A0">main</text>
+        <text x="0" y="66" font-family="JetBrains Mono, monospace" font-size="11" fill="#2F6FB0">feature/column-header</text>
+        <text x="0" y="246" font-family="JetBrains Mono, monospace" font-size="11" fill="#6D5DD3">feature/attachments</text>
+        <text x="0" y="326" font-family="JetBrains Mono, monospace" font-size="11" fill="#C4432A">spike/websocket-sync</text>
+
+        <!-- main line -->
+        <path d="M180 150 L1080 150" stroke="#2E6F40" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+        <!-- branch A: diverge, run, merge back -->
+        <path d="M300 150 C330 150 330 70 360 70 L500 70 C560 70 560 150 600 150" stroke="#2F6FB0" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+        <!-- branch B: diverge, run, stays open -->
+        <path d="M420 150 C450 150 450 250 480 250 L860 250" stroke="#6D5DD3" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+        <!-- branch C: forks off branch B, goes stale -->
+        <path d="M620 250 C650 250 650 330 680 330 L780 330" stroke="#C4432A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="1 0"/>
+        <path d="M780 330 L860 330" stroke="#C4432A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="5 5"/>
+
+        <!-- main nodes -->
+        <circle cx="180" cy="150" r="7" fill="#2E6F40"/>
+        <text x="180" y="180" font-family="JetBrains Mono, monospace" font-size="11" fill="#5B6B60" text-anchor="middle">KAN-100</text>
+
+        <circle cx="600" cy="150" r="8" fill="#2E6F40"/>
+        <path d="M596 150 L599 153 L605 146" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <text x="600" y="180" font-family="JetBrains Mono, monospace" font-size="11" fill="#5B6B60" text-anchor="middle">Merge commit</text>
+
+        <circle cx="1080" cy="150" r="7" fill="#2E6F40"/>
+        <text x="1080" y="180" font-family="JetBrains Mono, monospace" font-size="11" fill="#1E2A22" font-weight="600" text-anchor="middle">main HEAD</text>
+
+        <!-- branch A node -->
+        <circle cx="430" cy="70" r="6" fill="#2F6FB0"/>
+        <text x="430" y="50" font-family="JetBrains Mono, monospace" font-size="11" fill="#5B6B60" text-anchor="middle">KAN-141</text>
+
+        <!-- branch B nodes -->
+        <circle cx="560" cy="250" r="6" fill="#6D5DD3" stroke="#1E2A22" stroke-width="1.5"/>
+        <text x="560" y="274" font-family="JetBrains Mono, monospace" font-size="11" fill="#1E2A22" font-weight="600" text-anchor="middle">KAN-152 — you are here</text>
+
+        <circle cx="860" cy="250" r="7" fill="none" stroke="#6D5DD3" stroke-width="2"/>
+        <text x="860" y="274" font-family="JetBrains Mono, monospace" font-size="11" fill="#1E2A22" font-weight="600" text-anchor="middle">HEAD — open</text>
+
+        <!-- branch C nodes -->
+        <circle cx="720" cy="330" r="6" fill="#C4432A"/>
+        <text x="720" y="354" font-family="JetBrains Mono, monospace" font-size="11" fill="#5B6B60" text-anchor="middle">KAN-158</text>
+
+        <g transform="translate(860,330)">
+          <path d="M-6 -6 L6 6 M6 -6 L-6 6" stroke="#C4432A" stroke-width="2" stroke-linecap="round"/>
+          <circle r="9" fill="none" stroke="#C4432A" stroke-width="1.6" stroke-dasharray="2 2"/>
+        </g>
+        <text x="860" y="354" font-family="JetBrains Mono, monospace" font-size="11" fill="#C4432A" font-weight="600" text-anchor="middle">stale</text>
+      </svg>
+
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5;">Diverge points sit exactly on the parent lane; a merge commit renders larger with a small check. An open tip is a hollow ring in the branch's own color; a stale tip is a dashed ring with an ×, distinct from a normal commit dot so an old, abandoned branch reads at a glance. The dark-ringed node is whichever ticket you opened the graph from (here, KAN-152) — this is the same graph "View full graph" opens, whether reached standalone or from Ticket Detail.</div>
+  </div>
+
+  <!-- Branch list -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Branch list — clicking the "List" tab above swaps the graph for this table in the same panel; same data, sortable/scannable</div>
+    <div style="display: inline-flex; gap: 3px; padding: 3px; background: #F6FAF7; border-radius: 8px; width: fit-content;">
+      <button style="padding: 6px 14px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12.5px; color: #9AA8A0;">Graph</button>
+      <button style="padding: 6px 14px; border-radius: 6px; border: none; background: #FFFFFF; box-shadow: 0 1px 2px rgba(30,42,34,0.08); cursor: pointer; font-size: 12.5px; font-weight: 600; color: #1E2A22;">List</button>
+    </div>
+    <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 7px 12px; background: #F6FAF7; border-bottom: 1px solid #E3E8E5;">
+        <span style="width: 8px; flex-shrink: 0;"></span>
+        <span style="width: 180px; flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9AA8A0;">Branch</span>
+        <span style="flex-grow: 1;"></span>
+        <span style="width: 62px; flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9AA8A0;">Created</span>
+        <span style="width: 72px; flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9AA8A0;">Status</span>
+        <span style="width: 58px; flex-shrink: 0;"></span>
+      </div>
+
+      <div class="br-row">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #2E6F40; flex-shrink: 0;"></span>
+        <span style="width: 180px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22; flex-shrink: 0;">main</span>
+        <span style="flex-grow: 1; font-size: 12.5px; color: #9AA8A0;">baseline</span>
+        <span style="width: 62px; font-size: 11.5px; color: #9AA8A0; flex-shrink: 0;">Aug 28</span>
+        <span style="width: 72px; flex-shrink: 0;"><span class="br-status" style="background: rgba(46,111,64,0.12); color: #2E6F40; padding: 3px 6px;">Baseline</span></span>
+        <span style="width: 58px; flex-shrink: 0;"></span>
+      </div>
+
+      <div class="br-row">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></span>
+        <span style="width: 180px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22; flex-shrink: 0;">feature/column-header</span>
+        <span style="flex-grow: 1; font-size: 12.5px; color: #9AA8A0;">from <span style="font-family: 'JetBrains Mono', monospace; color: #5B6B60;">main</span> · KAN-141 · merged 3 days ago</span>
+        <span style="width: 62px; font-size: 11.5px; color: #9AA8A0; flex-shrink: 0;">Sep 10</span>
+        <span style="width: 72px; flex-shrink: 0;">
+          <span class="br-status" style="background: rgba(46,111,64,0.12); color: #2E6F40; padding: 3px 6px; white-space: nowrap;">
+            <svg width="9" height="9" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.6"/><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Merged
+          </span>
+        </span>
+        <span style="width: 58px; flex-shrink: 0;"></span>
+      </div>
+
+      <div class="br-row">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #6D5DD3; flex-shrink: 0;"></span>
+        <span style="width: 180px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22; flex-shrink: 0;">feature/attachments</span>
+        <span style="flex-grow: 1; font-size: 12.5px; color: #9AA8A0;">from <span style="font-family: 'JetBrains Mono', monospace; color: #5B6B60;">main</span> · KAN-152 · 2 ahead, 1 behind</span>
+        <span style="width: 62px; font-size: 11.5px; color: #9AA8A0; flex-shrink: 0;">Sep 15</span>
+        <span style="width: 72px; flex-shrink: 0;"><span class="br-status" style="background: rgba(109,93,211,0.14); color: #6D5DD3;">Open</span></span>
+        <span style="width: 58px; flex-shrink: 0;">
+          <button style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 11px; font-weight: 600; color: #1E2A22; white-space: nowrap;">Merge</button>
+        </span>
+      </div>
+
+      <div class="br-row">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #C4432A; flex-shrink: 0;"></span>
+        <span style="width: 180px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #9AA8A0; flex-shrink: 0;">spike/websocket-sync</span>
+        <span style="flex-grow: 1; font-size: 12.5px; color: #9AA8A0;">from <span style="font-family: 'JetBrains Mono', monospace; color: #5B6B60;">feature/attachments</span> · KAN-158 · no activity 12 days</span>
+        <span style="width: 62px; font-size: 11.5px; color: #9AA8A0; flex-shrink: 0;">Sep 6</span>
+        <span style="width: 72px; flex-shrink: 0;"><span class="br-status" style="background: rgba(196,67,42,0.1); color: #C4432A;">Stale</span></span>
+        <span style="width: 58px; flex-shrink: 0;">
+          <button style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 11px; color: #9AA8A0; white-space: nowrap;">Archive</button>
+        </span>
+      </div>
+
+    </div>
+    <button class="br-add-btn">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"/><path d="M5 12H19"/></svg>
+      Create branch
+    </button>
+  </div>
+
+  <!-- Create branch popover -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking "Create branch"</div>
+    <div style="width: 420px; border: 1px solid #E3E8E5; border-radius: 10px; padding: 18px 20px; box-sizing: border-box; box-shadow: 0 12px 28px rgba(30,42,34,0.12); display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 13px; font-weight: 700; color: #1E2A22;">New branch</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 11px; font-weight: 600; color: #9AA8A0;">Name</span>
+        <div style="padding: 7px 10px; border-radius: 6px; border: 1px solid #B9CBBF; background: #FFFFFF; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #1E2A22; box-shadow: 0 0 0 2px rgba(46,111,64,0.12);">experiment/drag-inertia</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 11px; font-weight: 600; color: #9AA8A0;">Branch from</span>
+        <button style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #F6FAF7; cursor: pointer;">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #2E6F40;"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22;">main</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"/></svg>
+        </button>
+        <span style="font-size: 11px; color: #9AA8A0;">Any existing branch works too, not just main — spins up a new ticket that carries the parent's description/AC as a starting point.</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding-top: 4px;">
+        <button style="padding: 7px 14px; border-radius: 6px; border: none; background: #2E6F40; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;">Create branch</button>
+        <button style="padding: 7px 14px; border-radius: 6px; border: 1px solid #E3E8E5; background: none; color: #5B6B60; font-size: 13px; cursor: pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1300,"height":2740}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
