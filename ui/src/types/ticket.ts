@@ -169,6 +169,7 @@ export interface Project {
   prefix: string;
   color: string;
   ticketCounter: number;
+  repoPath?: string | null;
 }
 
 export interface Column {

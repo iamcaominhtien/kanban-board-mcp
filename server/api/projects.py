@@ -47,7 +47,10 @@ async def get_one_project(project_id: str, session: Session) -> ProjectRead:
 async def patch_project(
     project_id: str, data: ProjectUpdate, session: Session
 ) -> ProjectRead:
-    project = await update_project(session, project_id, data)
+    try:
+        project = await update_project(session, project_id, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     await board_events.publish("invalidate")

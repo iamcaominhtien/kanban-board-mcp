@@ -24,6 +24,7 @@ import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
 import { BranchesSection } from './BranchesSection';
 import { CreateBranchModal } from './CreateBranchModal';
+import { useProject, useUpdateProject } from '../api/projects';
 import { SubTicketsSection } from './SubTicketsSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
@@ -168,6 +169,9 @@ export function TicketModal({
   const removeTicketLinkMutation = useRemoveTicketLink(ticket?.projectId ?? '');
 
   const { data: ticketBranches = [] } = useTicketBranches(ticket?.id ?? '');
+  const { data: project } = useProject(ticket?.projectId ?? '');
+  const updateProjectMutation = useUpdateProject();
+  const [repoPathDraft, setRepoPathDraft] = useState('');
 
   const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
   const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
@@ -492,48 +496,11 @@ export function TicketModal({
   // ══════════════════════════════════════════════════════════════
   // RENDER: VIEW MODE (Ticket Detail Panel)
   // ══════════════════════════════════════════════════════════════
-  const fallbackBranches: TicketBranch[] = [
-    {
-      id: 'baseline-main',
-      name: 'main',
-      status: 'baseline',
-      branchFrom: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'feat-attachments',
-      name: 'feature/attachments',
-      status: 'open',
-      branchFrom: 'main',
-      aheadCount: 2,
-      behindCount: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'feat-col-header',
-      name: 'feature/column-header',
-      status: 'merged',
-      branchFrom: 'main',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'spike-ws',
-      name: 'spike/websocket-sync',
-      status: 'stale',
-      branchFrom: 'feature/attachments',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
-
   const rawBranches: TicketBranch[] = (ticketBranches.length > 0
     ? ticketBranches
     : (ticket?.branches && ticket.branches.length > 0)
       ? ticket.branches
-      : fallbackBranches
+      : []
   );
 
   const branchesList: TicketBranch[] = [
@@ -550,18 +517,19 @@ export function TicketModal({
     ...rawBranches,
   ];
 
-  const defaultBranch = (ticket?.branches && ticket.branches[0]) || branchesList.find(b => b.status === 'open') || branchesList[0];
+  // Use the live list (git-refreshed) rather than ticket.branches, whose counts are stale
+  const defaultBranch = branchesList.find(b => b.status !== 'baseline') || branchesList[0];
   const activeBranch = branchesList.find(b => b.name === selectedBranchName) || defaultBranch;
-  const activeBranchName = activeBranch?.name ?? 'feature/attachments';
+  const activeBranchName = activeBranch?.name ?? 'main';
   const activeBranchSubtext = activeBranch
     ? (activeBranch.status === 'baseline'
         ? 'baseline'
         : `from ${activeBranch.branchFrom || 'main'}${
             activeBranch.aheadCount !== undefined
               ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
-              : ' · 1 ahead'
+              : ''
           }`)
-    : 'from main · 1 ahead';
+    : 'from main';
 
   return (
     <div className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
@@ -996,6 +964,42 @@ export function TicketModal({
                     })}
                   </div>
 
+                  {!project?.repoPath && (
+                    <form
+                      className={styles.branchCreateInline}
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const path = repoPathDraft.trim();
+                        if (!path || !ticket) return;
+                        try {
+                          await updateProjectMutation.mutateAsync({ id: ticket.projectId, repo_path: path });
+                          setRepoPathDraft('');
+                          toast.success('Git repository linked', path);
+                        } catch (err) {
+                          toast.error("Couldn't link repository", extractError(err));
+                        }
+                      }}
+                    >
+                      <input
+                        type="text"
+                        className={styles.branchCreateInput}
+                        placeholder="Link git repo: /path/to/repo"
+                        value={repoPathDraft}
+                        onChange={(e) => setRepoPathDraft(e.target.value)}
+                      />
+                      <div className={styles.branchCreateActions}>
+                        <button
+                          type="submit"
+                          className={styles.btnPri}
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                          disabled={updateProjectMutation.isPending || !repoPathDraft.trim()}
+                        >
+                          Link repo
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
                   <div className={styles.branchPopoverFooter}>
                     <button
                       type="button"
@@ -1019,15 +1023,15 @@ export function TicketModal({
                         setActiveTab('branches');
                       }}
                     >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                        </svg>
-                        View full graph →
-                      </button>
-                    </div>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                      </svg>
+                      View full graph →
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
