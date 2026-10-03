@@ -109,23 +109,6 @@ export function TicketCard({
         {/* Title: 2-line clamped */}
         <div className={styles.cardTitle}>{ticket.title}</div>
 
-        {/* Sub-tasks progress bar for parent tickets */}
-        {hasSubtasks && subtaskStats && (
-          <div className={styles.subtaskProgressBar}>
-            <div className={styles.subtaskTrack}>
-              <div
-                className={styles.subtaskFill}
-                style={{
-                  width: `${Math.round((subtaskStats.completed / subtaskStats.total) * 100)}%`,
-                }}
-              />
-            </div>
-            <span className={styles.subtaskText}>
-              {subtaskStats.completed}/{subtaskStats.total} sub-tasks
-            </span>
-          </div>
-        )}
-
         {/* Parent chip & Tags row */}
         {(ticket.parentId || visibleTags.length > 0) && (
           <div className={styles.tagsRow}>
@@ -153,6 +136,23 @@ export function TicketCard({
             {overflowCount > 0 && (
               <span className={styles.tagOverflow}>+{overflowCount}</span>
             )}
+          </div>
+        )}
+
+        {/* Sub-tasks progress bar for parent tickets */}
+        {hasSubtasks && subtaskStats && (
+          <div className={styles.subtaskProgressBar}>
+            <div className={styles.subtaskTrack}>
+              <div
+                className={styles.subtaskFill}
+                style={{
+                  width: `${Math.round((subtaskStats.completed / subtaskStats.total) * 100)}%`,
+                }}
+              />
+            </div>
+            <span className={styles.subtaskText}>
+              {subtaskStats.completed}/{subtaskStats.total} sub-tasks
+            </span>
           </div>
         )}
 
