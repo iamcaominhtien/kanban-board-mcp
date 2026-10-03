@@ -1,19 +1,20 @@
-import type { IssueType, Member, Priority, Ticket } from '../types';
+import type { IssueType, Member, Ticket } from '../types';
 import { MemberAvatar } from './MemberAvatar';
+import {
+  TicketTypeIcon,
+  PriorityMark,
+  DueDateIcon,
+  OverdueIcon,
+  BlockedIcon,
+  DragHandleIcon,
+} from './icons';
 import styles from './TicketCard.module.css';
 
-const PRIORITY_COLORS: Record<Priority, string> = {
-  critical: '#DC2626',
-  high:     '#E8441A',
-  medium:   '#F5C518',
-  low:      '#9CA3AF',
-};
-
-const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; color: string }> = {
-  bug:     { label: 'Bug',     icon: '🐛', bg: '#FEE2E2', color: '#DC2626' },
-  feature: { label: 'Feature', icon: '✨', bg: '#EDE9FE', color: '#7C3AED' },
-  task:    { label: 'Task',    icon: '📋', bg: '#DBEAFE', color: '#2563EB' },
-  chore:   { label: 'Chore',   icon: '🔧', bg: '#F3F4F6', color: '#6B7280' },
+const TYPE_CONFIG: Record<IssueType, { label: string; bg: string; color: string }> = {
+  bug:     { label: 'Bug',     bg: '#FBE7E4', color: '#C4432A' },
+  feature: { label: 'Feature', bg: '#EDE9F9', color: '#6D5DD3' },
+  task:    { label: 'Task',    bg: '#E1EEFB', color: '#2F6FB0' },
+  chore:   { label: 'Chore',   bg: '#EEF1EE', color: '#5B6B60' },
 };
 
 function getDueDateDisplay(dueDate: string | null): { label: string; overdue: boolean } | null {
@@ -33,7 +34,7 @@ interface TicketCardProps {
 }
 
 export function TicketCard({ ticket, memberMap }: TicketCardProps) {
-  const tc = TYPE_CONFIG[ticket.type];
+  const tc = TYPE_CONFIG[ticket.type] ?? TYPE_CONFIG.task;
   const due = getDueDateDisplay(ticket.dueDate);
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
   const isBlocked = (ticket.blockedBy ?? []).length > 0;
@@ -47,29 +48,31 @@ export function TicketCard({ ticket, memberMap }: TicketCardProps) {
         <span className={styles.cardId}>{ticket.id}</span>
         <div className={styles.cardHeaderRight}>
           {assigneeMember && <MemberAvatar member={assigneeMember} size={18} />}
-          <span className={styles.dragHandle} aria-hidden="true">⠿</span>
+          <span className={styles.dragHandle} aria-hidden="true">
+            <DragHandleIcon size={14} fill="currentColor" />
+          </span>
         </div>
       </div>
 
       {/* Badges row: type + blocked + parent */}
       <div className={styles.badgeRow}>
-        <span className={styles.typeBadge} style={{ backgroundColor: tc.bg, color: tc.color }}>
-          {tc.icon} {tc.label}
+        <span className={styles.typeBadge} style={{ backgroundColor: tc.bg, color: tc.color, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <TicketTypeIcon type={ticket.type} size={13} /> {tc.label}
         </span>
-        {isBlocked && <span className={styles.blockedBadge} title="Blocked">🔒</span>}
+        {isBlocked && (
+          <span className={styles.blockedBadge} title="Blocked" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <BlockedIcon size={13} />
+          </span>
+        )}
         {ticket.parentId && <span className={styles.parentBadge}>⬆ sub</span>}
       </div>
 
       {/* Title */}
       <span className={styles.cardTitle}>{ticket.title}</span>
 
-      {/* Footer: priority dot + tags + metadata */}
+      {/* Footer: priority + tags + metadata */}
       <div className={styles.cardFooter}>
-        <span
-          className={styles.priorityDot}
-          style={{ backgroundColor: PRIORITY_COLORS[ticket.priority] }}
-          title={ticket.priority}
-        />
+        <PriorityMark priority={ticket.priority} width={16} height={14} />
         {ticket.tags.slice(0, 2).map((tag, i) => (
           <span key={`${tag}-${i}`} className={styles.tag}>{tag}</span>
         ))}
@@ -86,8 +89,8 @@ export function TicketCard({ ticket, memberMap }: TicketCardProps) {
           </span>
         )}
         {due && (
-          <span className={due.overdue ? styles.dueDateOverdue : styles.dueDate}>
-            {due.overdue ? '⚠' : '📅'} {due.label}
+          <span className={due.overdue ? styles.dueDateOverdue : styles.dueDate} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {due.overdue ? <OverdueIcon size={12} /> : <DueDateIcon size={12} />} {due.label}
           </span>
         )}
       </div>

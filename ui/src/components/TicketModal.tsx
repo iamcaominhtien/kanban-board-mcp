@@ -20,6 +20,7 @@ import { RelationsSection } from './RelationsSection';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
+import { TicketTypeIcon, PriorityMark } from './icons';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
@@ -31,11 +32,11 @@ const PRIORITY_COLORS: Record<Priority, { bg: string; color: string }> = {
   low:      { bg: '#9CA3AF', color: 'var(--color-dark)' },
 };
 
-const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; color: string }> = {
-  bug:     { label: 'Bug',     icon: '🐛', bg: '#FEE2E2', color: '#DC2626' },
-  feature: { label: 'Feature', icon: '✨', bg: '#EDE9FE', color: '#7C3AED' },
-  task:    { label: 'Task',    icon: '📋', bg: '#DBEAFE', color: '#2563EB' },
-  chore:   { label: 'Chore',   icon: '🔧', bg: '#F3F4F6', color: '#6B7280' },
+const TYPE_CONFIG: Record<IssueType, { label: string; bg: string; color: string }> = {
+  bug:     { label: 'Bug',     bg: '#FBE7E4', color: '#C4432A' },
+  feature: { label: 'Feature', bg: '#EDE9F9', color: '#6D5DD3' },
+  task:    { label: 'Task',    bg: '#E1EEFB', color: '#2F6FB0' },
+  chore:   { label: 'Chore',   bg: '#EEF1EE', color: '#5B6B60' },
 };
 
 const STATUS_LABELS: Record<Status, string> = {
@@ -647,9 +648,9 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     <span className={styles.sidebarLabel}>Priority</span>
                     <span
                       className={styles.priorityBadge}
-                      style={{ backgroundColor: pc.bg, color: pc.color }}
+                      style={{ backgroundColor: pc.bg, color: pc.color, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     >
-                      ● {ticket.priority}
+                      <PriorityMark priority={ticket.priority} width={16} height={14} /> {ticket.priority}
                     </span>
                   </div>
 
@@ -657,9 +658,9 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                     <span className={styles.sidebarLabel}>Type</span>
                     <span
                       className={styles.typeBadge}
-                      style={{ backgroundColor: TYPE_CONFIG[ticket.type].bg, color: TYPE_CONFIG[ticket.type].color }}
+                      style={{ backgroundColor: TYPE_CONFIG[ticket.type].bg, color: TYPE_CONFIG[ticket.type].color, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     >
-                      {TYPE_CONFIG[ticket.type].icon} {TYPE_CONFIG[ticket.type].label}
+                      <TicketTypeIcon type={ticket.type} size={15} /> {TYPE_CONFIG[ticket.type].label}
                     </span>
                   </div>
 

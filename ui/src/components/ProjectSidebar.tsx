@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Project } from '../types';
+import { AppLogo } from './icons';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
 
@@ -65,6 +66,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
   return (
     <aside className={`${styles.sidebar} ${showForm ? styles.expanded : ''}`} aria-label="Project navigation">
       <div className={styles.logo}>
+        <AppLogo size={22} />
         <span className={styles.logoText}>KANBAN</span>
       </div>
 
