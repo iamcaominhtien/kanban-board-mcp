@@ -19,7 +19,7 @@
 
 .subModeSwitcher {
   display: flex;
-  border: 1.5px solid var(--color-border-strong);
+  border: 1.5px solid var(--color-dark);
   border-radius: var(--radius-card);
   overflow: hidden;
   width: fit-content;
@@ -29,7 +29,7 @@
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--color-dark);
   background: transparent;
   border: none;
   padding: 8px 18px;
@@ -39,12 +39,12 @@
 }
 
 .subModeBtn + .subModeBtn {
-  border-left: 1.5px solid var(--color-border-strong);
+  border-left: 1.5px solid var(--color-dark);
 }
 
 .subModeBtnActive {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--color-dark);
+  color: var(--color-bg);
 }
 
 /* ─── Empty state ────────────────────────────────────────────────────────── */
@@ -52,7 +52,8 @@
 .emptyState {
   padding: 40px;
   text-align: center;
-  color: var(--color-text-secondary);
+  color: var(--color-dark);
+  opacity: 0.5;
   font-size: 14px;
   font-family: var(--font-body);
 }
@@ -61,16 +62,16 @@
 
 .ganttWrapper {
   display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .ganttLabelCol {
   width: 200px;
   flex-shrink: 0;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-bg);
+  border-right: 1px solid #e5e7eb;
+  background: var(--color-bg, #faf8f5);
   z-index: 2;
 }
 
@@ -83,8 +84,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border);
+  color: #9ca3af;
+  border-bottom: 1px solid #e5e7eb;
   font-family: var(--font-body);
 }
 
@@ -94,27 +95,27 @@
   justify-content: center;
   padding: 0 12px;
   gap: 2px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #f3f4f6;
   cursor: pointer;
   overflow: hidden;
 }
 
 .ganttLabelRow:hover {
-  background: var(--color-bg);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .ganttTicketId {
   font-size: 11px;
-  color: var(--color-text-secondary);
+  color: #9ca3af;
   font-weight: 600;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono, monospace);
   white-space: nowrap;
 }
 
 .ganttTicketTitle {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #1f2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -130,14 +131,14 @@
   height: 40px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #e5e7eb;
   position: relative;
 }
 
 .ganttDateTick {
   position: absolute;
   font-size: 11px;
-  color: var(--color-text-secondary);
+  color: #9ca3af;
   white-space: nowrap;
   top: 50%;
   transform: translateY(-50%);
@@ -148,7 +149,7 @@
 
 .ganttBarRow {
   position: relative;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .ganttTodayLine {
@@ -156,7 +157,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--color-orange);
+  background: #f97316;
   z-index: 1;
   pointer-events: none;
 }
@@ -166,8 +167,8 @@
 }
 
 .ganttDateTickToday {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--color-dark);
+  color: #fff;
   border-radius: 99px;
   padding: 2px 8px;
   font-size: 11px;
@@ -192,49 +193,18 @@
   opacity: 0.8;
 }
 
-.ganttBarDragging {
-  opacity: 0.85;
-  box-shadow: 0 0 0 2px var(--color-primary);
-}
-
 .ganttBarNormal {
-  background: var(--color-blue);
+  background: #93c5fd;
 }
 
 .ganttBarOverdue {
-  background: var(--color-orange);
-}
-
-/* Invisible edge-resize handles: drag either one to change the ticket's
-   start/due date without opening the ticket modal. */
-.ganttBarHandleLeft,
-.ganttBarHandleRight {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-  touch-action: none;
-  z-index: 3;
-}
-
-.ganttBarHandleLeft {
-  left: -2px;
-}
-
-.ganttBarHandleRight {
-  right: -2px;
-}
-
-.ganttBarHandleLeft:hover,
-.ganttBarHandleRight:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: #f97316;
 }
 
 .ganttBarLabel {
   font-size: 9px;
   font-weight: 900;
-  color: var(--color-on-accent-dark);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,7 +219,8 @@
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-dark);
+  opacity: 0.7;
 }
 
 .legendDot {
@@ -265,7 +236,7 @@
   display: inline-block;
   width: 16px;
   height: 2px;
-  background: var(--color-orange);
+  background: #f97316;
   margin-right: 4px;
   vertical-align: middle;
 }
@@ -292,7 +263,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-text-secondary);
+  color: rgba(61, 12, 17, 0.5);
   margin-bottom: 4px;
   padding: 4px 0;
 }
@@ -301,7 +272,7 @@
   content: '';
   flex: 1;
   height: 1.5px;
-  background: var(--color-border);
+  background: rgba(61, 12, 17, 0.1);
 }
 
 /* Rail: left 64px gutter with vertical line, content fills remainder */
@@ -318,7 +289,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--color-border-strong);
+  background: rgba(61, 12, 17, 0.2);
   border-radius: 1px;
 }
 
@@ -328,7 +299,7 @@
   padding: 12px 0;
   border-radius: 8px;
   transition: background 0.12s ease;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(61, 12, 17, 0.06);
 }
 
 .eventItem:last-child {
@@ -336,7 +307,7 @@
 }
 
 .eventItem:hover {
-  background: var(--color-bg);
+  background: rgba(61, 12, 17, 0.04);
   margin: 0 -8px;
   padding: 12px 8px;
 }
@@ -358,8 +329,8 @@
   justify-content: center;
   font-size: 14px;
   line-height: 1;
-  color: var(--color-on-accent-dark);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(61, 12, 17, 0.15);
 }
 
 .eventContent {
@@ -377,12 +348,12 @@
 }
 
 .eventTicketChip {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono, monospace);
   font-size: 11px;
   font-weight: 800;
-  color: var(--color-primary);
+  color: var(--color-orange);
   background: none;
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-orange);
   border-radius: 4px;
   padding: 1px 6px;
   line-height: 1.7;
@@ -393,20 +364,20 @@
 }
 
 .eventTicketChip:hover:not(:disabled) {
-  background: var(--color-primary-tint);
+  background: rgba(232, 68, 26, 0.1);
 }
 
 .eventTicketChip:disabled {
   cursor: default;
-  color: var(--color-text-secondary);
-  border-color: var(--color-border-strong);
+  color: rgba(61, 12, 17, 0.35);
+  border-color: rgba(61, 12, 17, 0.2);
 }
 
 .eventTicketTitle {
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -418,7 +389,7 @@
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(61, 12, 17, 0.4);
   margin-left: auto;
   white-space: nowrap;
   flex-shrink: 0;
@@ -438,14 +409,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-secondary);
+  color: rgba(61, 12, 17, 0.6);
 }
 
 .eventDetailText {
   font-family: var(--font-body);
   font-size: 13px;
   font-style: normal;
-  color: var(--color-text-secondary);
+  color: rgba(61, 12, 17, 0.55);
   margin-left: 6px;
   white-space: nowrap;
   overflow: hidden;

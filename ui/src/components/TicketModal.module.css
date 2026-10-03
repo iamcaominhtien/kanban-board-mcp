@@ -132,12 +132,11 @@
 }
 
 .fieldGroupLabel {
-  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: #9CA3AF;
   padding-bottom: 6px;
 }
 
@@ -148,23 +147,22 @@
 }
 
 .label {
-  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--color-dark);
 }
 
 .input,
 .textarea,
 .select {
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  border: 2px solid var(--color-dark);
+  border-radius: 8px;
+  background: white;
   font-family: var(--font-body);
   font-size: 14px;
-  color: var(--color-text-primary);
+  color: var(--color-dark);
   padding: 10px 12px;
   outline: none;
   transition: border-color 0.15s;
@@ -174,7 +172,7 @@
 .input:focus,
 .textarea:focus,
 .select:focus {
-  border-color: var(--color-primary);
+  border-color: var(--color-orange);
 }
 
 .textarea {
@@ -190,7 +188,8 @@
 }
 
 .chip {
-  /* background/color are set per-tag via inline style (tinted palette) */
+  background: var(--color-dark);
+  color: var(--color-bg);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
