@@ -51,11 +51,6 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
     }
   }
 
-  // TODO(backend): the API does not currently reject DELETE /projects/:id/members/:memberId
-  // for a member who is still assigned to open tickets -- it just deletes them and silently
-  // orphans the `assignee` field on those tickets. Once the backend adds that validation and
-  // returns a matching `detail` message (e.g. "Cannot remove: assigned to N open tickets."),
-  // the generic error handling below will surface it correctly with no client changes needed.
   async function handleRemove(memberId: string) {
     setRemoveError(null);
     try {
@@ -70,9 +65,7 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2 className={styles.title}>
-            Project Members <span className={styles.countBadge}>{members.length}</span>
-          </h2>
+          <h2 className={styles.title}>Project Members</h2>
           <button type="button" className={styles.closeBtn} onClick={onClose}>×</button>
         </div>
 
@@ -100,7 +93,6 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
         {removeError && <p className={styles.errorText}>{removeError}</p>}
 
         <form className={styles.addForm} onSubmit={handleAdd}>
-          <span className={styles.fieldLabel}>Add member</span>
           <input
             className={styles.nameInput}
             type="text"
@@ -108,29 +100,27 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
             value={newName}
             onChange={(e) => { setNewName(e.target.value); setAddError(null); }}
           />
-          <div className={styles.addFormRow}>
-            <div className={styles.colorSwatchRow}>
-              {MEMBER_COLOR_OPTIONS.map((c) => (
-                <button
-                  key={c.hex}
-                  type="button"
-                  className={`${styles.swatch} ${newColor === c.hex ? styles.swatchActive : ''}`}
-                  style={{ background: c.hex }}
-                  onClick={() => setNewColor(c.hex)}
-                  title={c.label}
-                  aria-label={c.label}
-                />
-              ))}
-            </div>
-            <button
-              type="submit"
-              className={styles.addBtn}
-              disabled={!newName.trim() || addMemberMutation.isPending}
-            >
-              {addMemberMutation.isPending ? '…' : 'Add'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            className={styles.addBtn}
+            disabled={!newName.trim() || addMemberMutation.isPending}
+          >
+            {addMemberMutation.isPending ? '…' : 'Add'}
+          </button>
         </form>
+        <div className={styles.colorSwatchRow}>
+          {MEMBER_COLOR_OPTIONS.map((c) => (
+            <button
+              key={c.hex}
+              type="button"
+              className={`${styles.swatch} ${newColor === c.hex ? styles.swatchActive : ''}`}
+              style={{ background: c.hex }}
+              onClick={() => setNewColor(c.hex)}
+              title={c.label}
+              aria-label={c.label}
+            />
+          ))}
+        </div>
         {addError && <p className={styles.errorText}>{addError}</p>}
       </div>
     </div>
