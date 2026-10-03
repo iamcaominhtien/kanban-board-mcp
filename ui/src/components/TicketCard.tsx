@@ -126,29 +126,27 @@ export function TicketCard({
           </div>
         )}
 
-        {/* Sub-ticket parent chip if has parent */}
-        {ticket.parentId && (
-          <span className={styles.parentChip} title={`Sub-ticket of ${ticket.parentId}`}>
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="#9AA8A0"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
-              <path d="M7.5 8.5L10 11L7.5 13.5" />
-            </svg>
-            {ticket.parentId}
-          </span>
-        )}
-
-        {/* Tags row with overflow count */}
-        {visibleTags.length > 0 && (
+        {/* Parent chip & Tags row */}
+        {(ticket.parentId || visibleTags.length > 0) && (
           <div className={styles.tagsRow}>
+            {ticket.parentId && (
+              <span className={styles.parentChip} title={`Sub-ticket of ${ticket.parentId}`}>
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  stroke="#9AA8A0"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
+                  <path d="M7.5 8.5L10 11L7.5 13.5" />
+                </svg>
+                {ticket.parentId}
+              </span>
+            )}
             {visibleTags.map((tag, idx) => (
               <TagPill key={`${tag}-${idx}`} tag={tag} size="small" />
             ))}
