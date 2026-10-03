@@ -133,6 +133,157 @@ export function MarkdownEditor({
     onBlur?.(md);
   }
 
+  function handleUndo() {
+    wysiwygRef.current?.focus();
+    document.execCommand('undo');
+    syncContent();
+    updateToolbarState();
+  }
+
+  function handleRedo() {
+    wysiwygRef.current?.focus();
+    document.execCommand('redo');
+    syncContent();
+    updateToolbarState();
+  }
+
+  function toggleBold() {
+    wysiwygRef.current?.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) {
+      document.execCommand('bold', false);
+      syncContent();
+      updateToolbarState();
+      return;
+    }
+
+    const range = sel.getRangeAt(0);
+
+    // If collapsed, check if cursor is inside a bold element (b, strong)
+    if (range.collapsed) {
+      let node: Node | null = range.startContainer;
+      if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+      const boldEl = (node as HTMLElement)?.closest('b, strong');
+      if (boldEl && wysiwygRef.current?.contains(boldEl)) {
+        // Unwrap this bold element directly (toggle off)
+        const text = boldEl.textContent || '';
+        const textNode = document.createTextNode(text);
+        const parent = boldEl.parentNode;
+        parent?.replaceChild(textNode, boldEl);
+        // Restore cursor
+        const newRange = document.createRange();
+        newRange.setStart(textNode, Math.min(range.startOffset, text.length));
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        syncContent();
+        updateToolbarState();
+        return;
+      }
+
+      // Otherwise select the word under cursor so user can bold/unbold with 1 click
+      const textNode = range.startContainer;
+      if (textNode.nodeType === Node.TEXT_NODE) {
+        const text = textNode.nodeValue || '';
+        const offset = range.startOffset;
+        let start = offset;
+        let end = offset;
+        while (start > 0 && /\S/.test(text[start - 1])) start--;
+        while (end < text.length && /\S/.test(text[end])) end++;
+        if (end > start) {
+          const wordRange = document.createRange();
+          wordRange.setStart(textNode, start);
+          wordRange.setEnd(textNode, end);
+          sel.removeAllRanges();
+          sel.addRange(wordRange);
+        }
+      }
+    }
+
+    // Toggle bold using execCommand
+    const wasBold = document.queryCommandState('bold');
+    document.execCommand('bold', false);
+
+    // If it was already bold, ensure all <strong> / <b> inside or covering selection get unwrapped
+    if (wasBold) {
+      const allBolds = wysiwygRef.current?.querySelectorAll('strong, b');
+      allBolds?.forEach((el) => {
+        if (sel.containsNode(el, true)) {
+          const text = el.textContent || '';
+          el.replaceWith(document.createTextNode(text));
+        }
+      });
+    }
+
+    syncContent();
+    updateToolbarState();
+  }
+
+  function toggleItalic() {
+    wysiwygRef.current?.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) {
+      document.execCommand('italic', false);
+      syncContent();
+      updateToolbarState();
+      return;
+    }
+
+    const range = sel.getRangeAt(0);
+
+    if (range.collapsed) {
+      let node: Node | null = range.startContainer;
+      if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+      const italicEl = (node as HTMLElement)?.closest('i, em');
+      if (italicEl && wysiwygRef.current?.contains(italicEl)) {
+        const text = italicEl.textContent || '';
+        const textNode = document.createTextNode(text);
+        italicEl.parentNode?.replaceChild(textNode, italicEl);
+        const newRange = document.createRange();
+        newRange.setStart(textNode, Math.min(range.startOffset, text.length));
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        syncContent();
+        updateToolbarState();
+        return;
+      }
+
+      const textNode = range.startContainer;
+      if (textNode.nodeType === Node.TEXT_NODE) {
+        const text = textNode.nodeValue || '';
+        const offset = range.startOffset;
+        let start = offset;
+        let end = offset;
+        while (start > 0 && /\S/.test(text[start - 1])) start--;
+        while (end < text.length && /\S/.test(text[end])) end++;
+        if (end > start) {
+          const wordRange = document.createRange();
+          wordRange.setStart(textNode, start);
+          wordRange.setEnd(textNode, end);
+          sel.removeAllRanges();
+          sel.addRange(wordRange);
+        }
+      }
+    }
+
+    const wasItalic = document.queryCommandState('italic');
+    document.execCommand('italic', false);
+
+    if (wasItalic) {
+      const allItalics = wysiwygRef.current?.querySelectorAll('em, i');
+      allItalics?.forEach((el) => {
+        if (sel.containsNode(el, true)) {
+          const text = el.textContent || '';
+          el.replaceWith(document.createTextNode(text));
+        }
+      });
+    }
+
+    syncContent();
+    updateToolbarState();
+  }
+
   function executeFormat(cmd: string, val: string = '') {
     wysiwygRef.current?.focus();
     document.execCommand(cmd, false, val);
@@ -259,13 +410,11 @@ export function MarkdownEditor({
     setIsUploading(true);
     try {
       const res = await onUploadImage(file);
-      // res.markdown is ![alt](url)
       const match = res.markdown.match(/!\[(.*?)\]\((.*?)\)/);
       if (match) {
         const [, alt, src] = match;
         wysiwygRef.current?.focus();
         document.execCommand('insertImage', false, src);
-        // Find inserted img and add alt
         const imgs = wysiwygRef.current?.querySelectorAll('img');
         if (imgs && imgs.length > 0) {
           const lastImg = imgs[imgs.length - 1];
@@ -283,6 +432,30 @@ export function MarkdownEditor({
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    const isMod = e.metaKey || e.ctrlKey;
+    if (isMod && !e.shiftKey && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      handleUndo();
+      return;
+    }
+    if ((isMod && e.shiftKey && e.key.toLowerCase() === 'z') || (isMod && e.key.toLowerCase() === 'y')) {
+      e.preventDefault();
+      handleRedo();
+      return;
+    }
+    if (isMod && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      toggleBold();
+      return;
+    }
+    if (isMod && e.key.toLowerCase() === 'i') {
+      e.preventDefault();
+      toggleItalic();
+      return;
     }
   }
 
@@ -324,15 +497,51 @@ export function MarkdownEditor({
         {/* Toolbar Header (no Write/Preview tabs in Approach B) */}
         <div className={styles.toolbarHeader}>
           <div className={styles.toolsGroup}>
+            {/* Undo (Hoàn tác) */}
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              aria-label="Undo"
+              title="Undo (⌘Z / Ctrl+Z)"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleUndo();
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7v6h6" />
+                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+              </svg>
+            </button>
+
+            {/* Redo (Làm lại) */}
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              aria-label="Redo"
+              title="Redo (⌘⇧Z / Ctrl+Y)"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleRedo();
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 7v6h-6" />
+                <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+              </svg>
+            </button>
+
+            <span className={styles.divider} />
+
             {/* Bold */}
             <button
               type="button"
               className={`${styles.toolbarBtn} ${isBold ? styles.toolbarBtnActive : ''}`}
               aria-label="Bold"
-              title="Bold"
+              title="Bold (⌘B / Ctrl+B)"
               onMouseDown={(e) => {
                 e.preventDefault();
-                executeFormat('bold');
+                toggleBold();
               }}
             >
               <span style={{ fontSize: 14, fontWeight: 800 }}>B</span>
@@ -343,10 +552,10 @@ export function MarkdownEditor({
               type="button"
               className={`${styles.toolbarBtn} ${isItalic ? styles.toolbarBtnActive : ''}`}
               aria-label="Italic"
-              title="Italic"
+              title="Italic (⌘I / Ctrl+I)"
               onMouseDown={(e) => {
                 e.preventDefault();
-                executeFormat('italic');
+                toggleItalic();
               }}
             >
               <span style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 600 }}>i</span>
@@ -624,6 +833,7 @@ export function MarkdownEditor({
           }}
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
+          onKeyDown={handleKeyDown}
           onBlur={syncContent}
         />
       </div>
