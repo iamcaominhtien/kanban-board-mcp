@@ -183,12 +183,136 @@
   display: none;
 }
 
+/* ── Approach B WYSIWYG Area ── */
+
+.wysiwygArea {
+  padding: 20px 22px 24px;
+  min-height: 180px;
+  box-sizing: border-box;
+  outline: none;
+  caret-color: #2E6F40;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #3A4A3E;
+}
+
+.wysiwygArea:empty::before {
+  content: attr(data-placeholder);
+  color: #9AA8A0;
+  pointer-events: none;
+}
+
+.wysiwygArea h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1E2A22;
+  margin: 0 0 6px;
+}
+
+.wysiwygArea h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1E2A22;
+  margin: 12px 0 4px;
+}
+
+.wysiwygArea h2:first-child {
+  margin-top: 0;
+}
+
+.wysiwygArea h3 {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1E2A22;
+  margin: 10px 0 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wysiwygArea p {
+  margin: 0 0 12px;
+}
+
+.wysiwygArea p:last-child {
+  margin-bottom: 0;
+}
+
+.wysiwygArea ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.wysiwygArea ol {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.wysiwygArea li {
+  margin-bottom: 3px;
+}
+
+.wysiwygArea code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  background: #F6FAF7;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #2E6F40;
+}
+
+.wysiwygArea pre {
+  background: #F6FAF7;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 0 0 12px;
+}
+
+.wysiwygArea pre code {
+  background: none;
+  padding: 0;
+  color: #3A4A3E;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.wysiwygArea mark {
+  background: rgba(232, 185, 58, 0.35);
+  color: #1E2A22;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.wysiwygArea blockquote {
+  margin: 0 0 12px;
+  padding: 2px 14px;
+  border-left: 2.5px solid #DCE6DF;
+  color: #5B6B60;
+  font-style: italic;
+}
+
+.wysiwygArea a {
+  color: #2E6F40;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wysiwygArea img {
+  max-width: 100%;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  margin: 8px 0;
+  display: block;
+}
+
 /* ── Link Popover (DescriptionMarkdown.dc.html L285-296) ── */
 
 .linkPopover {
   position: absolute;
   top: 40px;
-  right: 10px;
+  left: 200px;
   width: 280px;
   background: #FFFFFF;
   border: 1px solid #E3E8E5;
