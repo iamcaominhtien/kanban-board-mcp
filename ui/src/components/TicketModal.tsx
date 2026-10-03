@@ -689,12 +689,37 @@ export function TicketModal({
             </button>
           </div>
 
-          <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M6 6L18 18" />
-              <path d="M18 6L6 18" />
-            </svg>
-          </button>
+          <div className={styles.headerRight}>
+            {onDelete && (
+              <button
+                type="button"
+                className={styles.deleteHeaderBtn}
+                aria-label="Delete ticket"
+                title="Delete ticket"
+                onClick={() => {
+                  if (window.confirm(`Delete ${ticket.id}?`)) {
+                    onDelete(ticket.id);
+                    handleClose();
+                  }
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </button>
+            )}
+
+            <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M6 6L18 18" />
+                <path d="M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -1183,20 +1208,6 @@ export function TicketModal({
                 </span>
               </div>
               <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
-              {onDelete && (
-                <button
-                  type="button"
-                  className={styles.deleteTicketLink}
-                  onClick={() => {
-                    if (window.confirm(`Delete ${ticket.id}?`)) {
-                      onDelete(ticket.id);
-                      handleClose();
-                    }
-                  }}
-                >
-                  Delete ticket
-                </button>
-              )}
             </div>
           </aside>
         </div>
