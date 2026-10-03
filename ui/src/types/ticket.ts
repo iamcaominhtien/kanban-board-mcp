@@ -120,6 +120,7 @@ export interface Ticket {
   links: TicketLink[];  // extended relationship links
   branches?: TicketBranch[];
   workspaceRetentionDays?: number | null;
+  repoPath?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -159,6 +160,8 @@ export interface TicketBranch {
   linkedTicketId?: string | null;
   aheadCount?: number;
   behindCount?: number;
+  /** false when a git repo is linked but this branch doesn't exist in it */
+  inRepo?: boolean;
   createdAt: string;
   updatedAt: string;
 }

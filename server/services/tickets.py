@@ -230,6 +230,11 @@ async def update_ticket(
         if assignee_member is None or assignee_member.project_id != ticket.project_id:
             raise ValueError("Assignee must be a member of this project")
 
+    # Per-ticket git repo override; empty/null falls back to the project's repo
+    if "repo_path" in update_data:
+        raw_repo = (update_data["repo_path"] or "").strip()
+        update_data["repo_path"] = git_repo.normalize_repo_path(raw_repo) if raw_repo else None
+
     # Clear wont_do_reason when transitioning away from wont_do
     if "status" in update_data and update_data["status"] != "wont_do":
         update_data.setdefault("wont_do_reason", None)
@@ -879,6 +884,9 @@ async def list_branches(
 
 
 async def _project_repo_path(session: AsyncSession, ticket: Ticket) -> str | None:
+    """Effective repo for a ticket: its own override, else the project's."""
+    if getattr(ticket, "repo_path", None):
+        return ticket.repo_path
     project = await session.get(Project, ticket.project_id)
     return project.repo_path if project else None
 
@@ -893,9 +901,13 @@ def _sync_branches_with_git(repo_path: str, branches: list[dict]) -> list[dict]:
             try:
                 info = git_repo.branch_info(repo, br["name"], br.get("branch_from") or "main")
             except (git_repo.GitRepoError, GitCommandError):
-                synced.append(br)  # branch missing locally: keep stored values
+                # Branch not in this repo (e.g. repo was changed): keep stored values
+                br.update(in_repo=False, inRepo=False)
+                synced.append(br)
                 continue
             br.update(
+                in_repo=True,
+                inRepo=True,
                 commit_hash=info.commit_hash,
                 commitHash=info.commit_hash,
                 ahead_count=info.ahead_count,
