@@ -120,8 +120,8 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
 
       <DragOverlay>
         {activeTicket ? (
-          <div style={{ transform: 'scale(1.03) rotate(2deg)', pointerEvents: 'none' }}>
-            <TicketCard ticket={activeTicket} memberMap={memberMap} />
+          <div style={{ pointerEvents: 'none', width: 280 }}>
+            <TicketCard ticket={activeTicket} memberMap={memberMap} isDragging={true} />
           </div>
         ) : null}
       </DragOverlay>

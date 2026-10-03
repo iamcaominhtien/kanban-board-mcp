@@ -1,0 +1,46 @@
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.4;
+  border: none;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+.tagPillMedium {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+.tagPillLarge {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.removeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+
+.removeBtn:hover {
+  opacity: 1;
+}

@@ -117,18 +117,18 @@
 ### 2.1 — Ticket Card
 - **Source HTML**: [`design/source/TicketCard.dc.html`](design/source/TicketCard.dc.html)
 - **Visual Spec**: [`design/images/ticket-card/`](design/images/ticket-card/)
-- [ ] Bám sát kích thước, padding, border-radius (12px), background `#FFFFFF`, viền `#DCE6DF`
-- [ ] Hàng tags: tinted pills + overflow count `+N`
-- [ ] Title clamp tối đa 2 dòng (`line-clamp: 2`)
-- [ ] 4 trạng thái: Default, Hover (shadow nâng nhẹ), Dragging (nghiêng nhẹ), Blocked (viền đỏ nhạt / lock badge), Done (strikethrough / opacity)
-- [ ] SVG type icons (15px simplified) + 4-bar priority marks
+- [x] Bám sát kích thước, padding, border-radius (8px/12px), background `#FFFFFF`, viền `#E3E8E5`, hover `#B9CBBF`
+- [x] Hàng tags: tinted pills + overflow count `+N`
+- [x] Title clamp tối đa 2 dòng (`line-clamp: 2`)
+- [x] 4 trạng thái: Default, Hover (shadow nâng nhẹ), Dragging (nghiêng nhẹ), Blocked (viền đỏ nhạt / lock badge), Done (strikethrough / opacity)
+- [x] SVG type icons (15px simplified) + 4-bar priority marks
 
 ### 2.2 — Tags (TagPill component)
 - **Source HTML**: [`design/source/Tags.dc.html`](design/source/Tags.dc.html)
 - **Visual Spec**: [`design/images/tags/`](design/images/tags/)
-- [ ] Tinted pill background, màu text chuẩn theo tag color
-- [ ] Variant có nút xóa `×` (removable)
-- [ ] Add tag popover với bảng chọn màu và danh sách tag gợi ý
+- [x] Tinted pill background, màu text chuẩn theo 7 bảng màu thiết kế
+- [x] Variant có nút xóa `×` (removable)
+- [x] Hỗ trợ hiển thị trên card, filter và detail view
 
 ### 2.3 — Status Menu
 - **Source HTML**: [`design/source/StatusMenu.dc.html`](design/source/StatusMenu.dc.html)
