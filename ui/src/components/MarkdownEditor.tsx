@@ -7,6 +7,15 @@ import styles from './MarkdownEditor.module.css';
 const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const FILE_INPUT_ACCEPT = SUPPORTED_UPLOAD_IMAGE_TYPES.join(',');
 
+/** Normalise a URL (without double-encoding) so it is safe to assign to href/src. */
+function normalizeUrl(url: string): string | null {
+  try {
+    return encodeURI(decodeURI(url));
+  } catch {
+    return null;
+  }
+}
+
 interface Props {
   value: string;
   onChange: (value: string) => void;
@@ -369,7 +378,10 @@ export function MarkdownEditor({
   function applyLink() {
     const raw = linkUrl.trim();
     const url = raw && !/^[a-z][a-z0-9+.-]*:/i.test(raw) ? `https://${raw}` : raw;
-    if (!url || !(url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:'))) {
+    const safeUrl = url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:')
+      ? normalizeUrl(url)
+      : null;
+    if (!safeUrl) {
       setIsLinkPopoverOpen(false);
       return;
     }
@@ -381,18 +393,18 @@ export function MarkdownEditor({
       sel?.addRange(savedSelectionRangeRef.current);
 
       if (savedSelectionRangeRef.current.collapsed || !savedSelectionRangeRef.current.toString()) {
-        const textToUse = linkText.trim() || url;
+        const textToUse = linkText.trim() || safeUrl;
         const a = document.createElement('a');
-        a.href = url;
+        a.href = safeUrl;
         a.textContent = textToUse;
         savedSelectionRangeRef.current.insertNode(a);
       } else {
-        document.execCommand('createLink', false, url);
+        document.execCommand('createLink', false, safeUrl);
       }
     } else {
-      const textToUse = linkText.trim() || url;
+      const textToUse = linkText.trim() || safeUrl;
       const a = document.createElement('a');
-      a.href = url;
+      a.href = safeUrl;
       a.textContent = textToUse;
       wysiwygRef.current?.appendChild(a);
     }
@@ -417,8 +429,11 @@ export function MarkdownEditor({
 
         const img = document.createElement('img');
         const resolvedSrc = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
-        if (!(resolvedSrc.startsWith('https://') || resolvedSrc.startsWith('http://') || resolvedSrc.startsWith('/'))) return;
-        img.src = resolvedSrc;
+        const safeSrc = resolvedSrc.startsWith('https://') || resolvedSrc.startsWith('http://') || resolvedSrc.startsWith('/')
+          ? normalizeUrl(resolvedSrc)
+          : null;
+        if (!safeSrc) return;
+        img.src = safeSrc;
         img.alt = alt;
 
         const sel = window.getSelection();
