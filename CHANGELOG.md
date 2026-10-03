@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.4.5] - 2026-09-16
+
+### Fixed
+- **Desktop app SSE reconnect stuck on the wrong port**: the live-update stream resolved the backend's origin once at mount and never re-checked it, so if that happened before Electron's backend-ready signal arrived (more likely the longer the backend takes to start), it stayed permanently stuck retrying the wrong fallback port every few seconds — each retry force-refetched everything, producing a repeating load/stall cycle. It now re-resolves the origin on every reconnect attempt so it self-corrects.
+
+---
+
 ## [1.4.4] - 2026-09-13
 
 ### Added
