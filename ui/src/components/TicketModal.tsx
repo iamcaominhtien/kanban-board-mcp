@@ -9,7 +9,7 @@ import {
   useLinkBlock, useUnlinkBlock,
   useAddTicketLink, useRemoveTicketLink,
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
-  useTicketBranches, useCreateBranch,
+  useTicketBranches,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
@@ -23,6 +23,7 @@ import { TestCasesSection } from './TestCasesSection';
 import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
 import { BranchesSection } from './BranchesSection';
+import { CreateBranchModal } from './CreateBranchModal';
 import { SubTicketsSection } from './SubTicketsSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
@@ -167,20 +168,16 @@ export function TicketModal({
   const removeTicketLinkMutation = useRemoveTicketLink(ticket?.projectId ?? '');
 
   const { data: ticketBranches = [] } = useTicketBranches(ticket?.id ?? '');
-  const createBranchMutation = useCreateBranch();
 
   const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
   const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
-  const [showCreateBranch, setShowCreateBranch] = useState(false);
-  const [newBranchName, setNewBranchName] = useState('');
-  const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+  const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
   const branchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (branchContainerRef.current && !branchContainerRef.current.contains(e.target as Node)) {
         setIsBranchPopoverOpen(false);
-        setShowCreateBranch(false);
       }
     }
     if (isBranchPopoverOpen) {
@@ -999,85 +996,29 @@ export function TicketModal({
                     })}
                   </div>
 
-                  {showCreateBranch ? (
-                    <form
-                      className={styles.branchCreateInline}
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const trimmed = newBranchName.trim();
-                        if (!trimmed) return;
-                        setIsCreatingBranch(true);
-                        try {
-                          await createBranchMutation.mutateAsync({
-                            ticketId: ticket.id,
-                            data: {
-                              name: trimmed,
-                              branch_from: activeBranchName || 'main',
-                              status: 'open',
-                            }
-                          });
-                          setSelectedBranchName(trimmed);
-                          setNewBranchName('');
-                          setShowCreateBranch(false);
-                          toast.success('Branch created', trimmed);
-                        } catch (err) {
-                          toast.error("Couldn't create branch", extractError(err));
-                        } finally {
-                          setIsCreatingBranch(false);
-                        }
+                  <div className={styles.branchPopoverFooter}>
+                    <button
+                      type="button"
+                      className={styles.branchFooterBtn}
+                      onClick={() => {
+                        setIsBranchPopoverOpen(false);
+                        setIsCreateBranchModalOpen(true);
                       }}
                     >
-                      <input
-                        type="text"
-                        className={styles.branchCreateInput}
-                        placeholder="branch-name"
-                        value={newBranchName}
-                        onChange={(e) => setNewBranchName(e.target.value)}
-                        autoFocus
-                      />
-                      <div className={styles.branchCreateActions}>
-                        <button
-                          type="button"
-                          className={styles.btnSec}
-                          style={{ padding: '4px 8px', fontSize: 11 }}
-                          onClick={() => {
-                            setShowCreateBranch(false);
-                            setNewBranchName('');
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className={styles.btnPri}
-                          style={{ padding: '4px 10px', fontSize: 11 }}
-                          disabled={isCreatingBranch || !newBranchName.trim()}
-                        >
-                          {isCreatingBranch ? 'Creating...' : 'Create'}
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className={styles.branchPopoverFooter}>
-                      <button
-                        type="button"
-                        className={styles.branchFooterBtn}
-                        onClick={() => setShowCreateBranch(true)}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <path d="M12 5V19" />
-                          <path d="M5 12H19" />
-                        </svg>
-                        Create branch
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
-                        onClick={() => {
-                          setIsBranchPopoverOpen(false);
-                          setActiveTab('branches');
-                        }}
-                      >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M12 5V19" />
+                        <path d="M5 12H19" />
+                      </svg>
+                      Create branch
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
+                      onClick={() => {
+                        setIsBranchPopoverOpen(false);
+                        setActiveTab('branches');
+                      }}
+                    >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="7" height="7" rx="1.5" />
                           <rect x="14" y="3" width="7" height="7" rx="1.5" />
@@ -1087,7 +1028,6 @@ export function TicketModal({
                         View full graph →
                       </button>
                     </div>
-                  )}
                 </div>
               )}
             </div>
@@ -1302,6 +1242,17 @@ export function TicketModal({
             )}
           </div>
         )}
+
+        <CreateBranchModal
+          isOpen={isCreateBranchModalOpen}
+          onClose={() => setIsCreateBranchModalOpen(false)}
+          ticketId={ticket.id}
+          branches={branchesList}
+          initialBranchFrom={activeBranchName || 'main'}
+          onSuccess={(newBranch) => {
+            setSelectedBranchName(newBranch);
+          }}
+        />
       </div>
     </div>
   );

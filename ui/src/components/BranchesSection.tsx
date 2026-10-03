@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TicketBranch, BranchStatus } from '../types';
-import { useTicketBranches, useCreateBranch, useUpdateBranch } from '../api/tickets';
+import { useTicketBranches, useUpdateBranch } from '../api/tickets';
+import { CreateBranchModal } from './CreateBranchModal';
 import styles from './BranchesSection.module.css';
 
 interface BranchesSectionProps {
@@ -51,29 +52,10 @@ function formatDate(iso?: string): string {
 
 export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionProps) {
   const [activeTab, setActiveTab] = useState<'graph' | 'list'>('graph');
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [branchNameDraft, setBranchNameDraft] = useState('');
-  const [branchFromDraft, setBranchFromDraft] = useState('main');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: branches = [], isLoading } = useTicketBranches(ticketId);
-  const createBranchMutation = useCreateBranch();
   const updateBranchMutation = useUpdateBranch();
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = branchNameDraft.trim();
-    if (!trimmed) return;
-    await createBranchMutation.mutateAsync({
-      ticketId,
-      data: {
-        name: trimmed,
-        branch_from: branchFromDraft,
-        status: 'open',
-      },
-    });
-    setBranchNameDraft('');
-    setShowCreateForm(false);
-  }
 
   function handleStatusChange(branch: TicketBranch, nextStatus: BranchStatus) {
     updateBranchMutation.mutate({
@@ -126,8 +108,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
           <button
             type="button"
             className={styles.brAddBtn}
-            onClick={() => setShowCreateForm(true)}
-            disabled={showCreateForm}
+            onClick={() => setIsCreateModalOpen(true)}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
               <path d="M12 5V19" /><path d="M5 12H19" />
@@ -136,60 +117,6 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
           </button>
         )}
       </div>
-
-      {/* Create Branch Inline Form */}
-      {showCreateForm && (
-        <form className={styles.createFormCard} onSubmit={handleCreate}>
-          <span className={styles.formTitle}>New branch</span>
-          <div className={styles.fieldGroup}>
-            <span className={styles.fieldLabel}>Name</span>
-            <input
-              className={styles.textInput}
-              value={branchNameDraft}
-              onChange={(e) => setBranchNameDraft(e.target.value)}
-              placeholder="e.g. feature/attachments or experiment/new-ui"
-              autoFocus
-              required
-            />
-          </div>
-          <div className={styles.fieldGroup}>
-            <span className={styles.fieldLabel}>Branch from</span>
-            <select
-              className={styles.selectInput}
-              value={branchFromDraft}
-              onChange={(e) => setBranchFromDraft(e.target.value)}
-            >
-              <option value="main">main (Baseline)</option>
-              {allBranches
-                .filter((b) => b.name !== 'main')
-                .map((b) => (
-                  <option key={b.id} value={b.name}>
-                    {b.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div className={styles.formActions}>
-            <button
-              type="submit"
-              className={styles.btnSubmit}
-              disabled={createBranchMutation.isPending || !branchNameDraft.trim()}
-            >
-              {createBranchMutation.isPending ? 'Creating…' : 'Create branch'}
-            </button>
-            <button
-              type="button"
-              className={styles.btnCancel}
-              onClick={() => {
-                setShowCreateForm(false);
-                setBranchNameDraft('');
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* Graph Tab */}
       {activeTab === 'graph' && (
@@ -321,6 +248,28 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
           })}
         </div>
       )}
+
+      {activeTab === 'list' && !readOnly && (
+        <button
+          type="button"
+          className={styles.brAddBtn}
+          onClick={() => setIsCreateModalOpen(true)}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 5V19" /><path d="M5 12H19" />
+          </svg>
+          Create branch
+        </button>
+      )}
+
+      <CreateBranchModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        ticketId={ticketId}
+        branches={allBranches}
+        initialBranchFrom="main"
+      />
     </div>
   );
 }
