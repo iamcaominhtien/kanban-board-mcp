@@ -20,7 +20,6 @@ import { RelationsSection } from './RelationsSection';
 import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
-import { StatusMenu, STATUS_DOT_COLORS } from './StatusMenu';
 import { TypeIcon, PriorityBars, CalendarIcon } from './ticketVisuals';
 import styles from './TicketModal.module.css';
 
@@ -954,10 +953,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                 <div className={styles.sidebarCard}>
                   <div className={styles.dtSidebarRow}>
                     <span className={styles.dtLabel}>Status</span>
-                    <span className={styles.statusBadge}>
-                      <span className={styles.statusBadgeDot} style={{ background: STATUS_DOT_COLORS[ticket.status] }} />
-                      {STATUS_LABELS[ticket.status]}
-                    </span>
+                    <span className={styles.statusBadge}>{STATUS_LABELS[ticket.status]}</span>
                   </div>
 
                   {/* TODO(backend): Branches is an entirely new feature (branch/merge graph,
@@ -1183,10 +1179,11 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
               {localMode !== 'create' && (
                 <div className={styles.field}>
                   <label className={styles.label}>Status</label>
-                  <StatusMenu
+                  <select
+                    className={styles.select}
                     value={status}
-                    showWontDo={!ticket?.parentId}
-                    onChange={(val) => {
+                    onChange={(e) => {
+                      const val = e.target.value as Status;
                       if (val === 'wont_do') {
                         setStatus(val);
                         setWontDoDialogPending(true);
@@ -1196,7 +1193,14 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                         setWontDoReason('');
                       }
                     }}
-                  />
+                  >
+                    {/* TODO(backend): "Review" and "Testing" statuses are part of the target design but need a backend Status enum/migration change first — see server/models.py's Status definition and Board.tsx's COLUMNS. Do not add them as selectable options until that lands. */}
+                    <option value="backlog">Backlog</option>
+                    <option value="todo">To Do</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="done">Done</option>
+                    {!ticket?.parentId && <option value="wont_do">Không làm</option>}
+                  </select>
                   {wontDoDialogPending && (
                     <div className={styles.wontDoDialog}>
                       <label className={styles.label}>Lý do không làm *</label>
