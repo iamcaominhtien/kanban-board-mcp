@@ -21,6 +21,7 @@ import { TestCasesSection } from './TestCasesSection';
 import { WorkLogSection } from './WorkLogSection';
 import { SubTicketsSection } from './SubTicketsSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
+import { StatusMenu } from './StatusMenu';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
@@ -882,11 +883,9 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
             <div className={styles.row}>
               <div className={styles.field}>
                 <label className={styles.label}>Status</label>
-                <select
-                  className={styles.select}
+                <StatusMenu
                   value={status}
-                  onChange={(e) => {
-                    const val = e.target.value as Status;
+                  onChange={(val) => {
                     if (val === 'wont_do') {
                       setStatus(val);
                       setWontDoDialogPending(true);
@@ -896,15 +895,7 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                       setWontDoReason('');
                     }
                   }}
-                >
-                  <option value="backlog">Backlog</option>
-                  <option value="todo">To Do</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="review">Review</option>
-                  <option value="testing">Testing</option>
-                  <option value="done">Done</option>
-                  {!ticket?.parentId && <option value="wont_do">Không làm</option>}
-                </select>
+                />
                 {wontDoDialogPending && (
                   <div className={styles.wontDoDialog}>
                     <label className={styles.label}>Lý do không làm *</label>

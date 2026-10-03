@@ -13,6 +13,8 @@ import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
 import { extractError } from './api/extractError';
+import { useToast } from './components/Toast';
+import { FullPageSpinner } from './components/LoadingStates';
 import type { Priority, Status, Ticket } from './types';
 
 export default function App() {
@@ -38,6 +40,7 @@ export default function App() {
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
 
   const { data: members = [] } = useMembers(currentProjectId ?? '');
+  const toast = useToast();
 
   useEffect(() => {
     if (!globalError) return;
@@ -136,8 +139,8 @@ export default function App() {
       : undefined;
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
+    const dragged = localTickets.find((t) => t.id === ticketId);
     if (newStatus === 'in-progress') {
-      const dragged = localTickets.find((t) => t.id === ticketId);
       if (dragged && (dragged.blockedBy ?? []).length > 0) {
         setBlockedDragPending({ ticketId, newStatus });
         return;
@@ -151,16 +154,22 @@ export default function App() {
     
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
+      if (newStatus === 'done' && dragged) {
+        toast.success('Moved to Done', `${dragged.id} · ${dragged.title}`);
+      }
     } catch (err) {
       // Rollback local state on error
       setLocalTickets(tickets);
-      setGlobalError(extractError(err));
+      const errMsg = extractError(err);
+      setGlobalError(errMsg);
+      toast.error("Couldn't save changes", errMsg);
     }
   }
 
   async function proceedBlockedDrag() {
     if (!blockedDragPending) return;
     const { ticketId, newStatus } = blockedDragPending;
+    const dragged = localTickets.find((t) => t.id === ticketId);
     setBlockedDragPending(null);
     
     // Update local state synchronously to prevent snap-back
@@ -170,10 +179,15 @@ export default function App() {
     
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
+      if (newStatus === 'done' && dragged) {
+        toast.success('Moved to Done', `${dragged.id} · ${dragged.title}`);
+      }
     } catch (err) {
       // Rollback local state on error
       setLocalTickets(tickets);
-      setGlobalError(extractError(err));
+      const errMsg = extractError(err);
+      setGlobalError(errMsg);
+      toast.error("Couldn't save changes", errMsg);
     }
   }
 
@@ -308,15 +322,11 @@ export default function App() {
 
         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {projectsLoading && apiProjects.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
-            Loading projects…
-          </div>
+          <FullPageSpinner message="Loading projects…" />
         ) : activeBoard === 'idea' ? (
           <IdeaBoard projectId={currentProjectId ?? ''} />
         ) : ticketsLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
-            Loading tickets…
-          </div>
+          <FullPageSpinner message="Loading board…" />
         ) : (
           <>
             <Board

@@ -133,26 +133,26 @@
 ### 2.3 — Status Menu
 - **Source HTML**: [`design/source/StatusMenu.dc.html`](design/source/StatusMenu.dc.html)
 - **Visual Spec**: [`design/images/status-menu/`](design/images/status-menu/)
-- [ ] Dropdown pattern 7 statuses kèm màu accent và checkmark cho status hiện tại
-- [ ] Micro-interactions hover và transition mở menu
+- [x] Dropdown pattern 7 statuses kèm màu accent và checkmark cho status hiện tại
+- [x] Micro-interactions hover và transition mở menu
 
 ### 2.4 — Toast / Notification
 - **Source HTML**: [`design/source/Toast.dc.html`](design/source/Toast.dc.html)
 - **Visual Spec**: [`design/images/toast/`](design/images/toast/)
-- [ ] 3 variants: Success, Error, Info
-- [ ] Bottom-right stack container + inline banner variant
+- [x] 3 variants: Success, Error, Warning, Info
+- [x] Bottom-right stack container + inline banner variant
 
 ### 2.5 — Loading States
 - **Source HTML**: [`design/source/Loading.dc.html`](design/source/Loading.dc.html)
 - **Visual Spec**: [`design/images/loading/`](design/images/loading/)
-- [ ] Skeleton cards với shimmer gradient animation
-- [ ] Button loading spinners
+- [x] Skeleton cards với shimmer gradient animation
+- [x] Button loading spinners & Full-page spinner
 
 ### 2.6 — Drag & Drop Motion
 - **Source HTML**: [`design/source/DragDrop.dc.html`](design/source/DragDrop.dc.html)
 - **Visual Spec**: [`design/images/drag-drop/`](design/images/drag-drop/)
-- [ ] Pickup animation: nâng card lên với shadow và độ nghiêng
-- [ ] Source ghost slot (dashed placeholder) & target drop indicator line
+- [x] Pickup animation: nâng card lên với shadow và độ nghiêng (-1.5deg tilt, 1.03 scale)
+- [x] Source ghost slot (dashed placeholder) & target drop indicator line
 
 ---
 

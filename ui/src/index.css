@@ -16,13 +16,13 @@
   --color-text-body: #3F4B45;
 
   /* ── Column / Status accents ── */
-  --color-backlog:    #8B8B8B;
-  --color-todo:       #3B82F6;
-  --color-inprogress: #F59E0B;
+  --color-backlog:    #9AA8A0;
+  --color-todo:       #2F6FB0;
+  --color-inprogress: #E2793D;
   --color-review:     #6D5DD3;
   --color-testing:    #B4571F;
   --color-done:       #68BA7F;
-  --color-wontdo:     #9CA3AF;
+  --color-wontdo:     #C4432A;
 
   /* ── Legacy aliases (for gradual migration) ── */
   --color-dark:      var(--color-text-pri);

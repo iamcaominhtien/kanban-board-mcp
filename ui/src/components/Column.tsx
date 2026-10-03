@@ -47,26 +47,27 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
   return (
     <div
       ref={setNodeRef}
-      className={styles.column}
-      style={{
-        backgroundColor: column.accentColor,
-        filter: isOver ? 'brightness(0.88)' : undefined,
-        outline: isOver ? '2px solid rgba(0,0,0,0.2)' : undefined,
-        transition: 'filter 0.15s ease, outline 0.15s ease',
-      }}
+      className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}
     >
-      <div className={styles.columnHeader}>
-        <span className={styles.columnLabel}>{column.label}</span>
-        <span
-          className={styles.badge}
-          style={{ background: 'var(--color-dark)', color: 'var(--color-bg)' }}
-          aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
-        >
-          {tickets.length}
-        </span>
+      <div className={styles.columnHeaderContainer}>
+        <div className={styles.columnHeaderTop}>
+          <span className={styles.columnLabel}>{column.label}</span>
+          <span
+            className={styles.columnBadge}
+            style={{ backgroundColor: column.accentColor }}
+            aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
+          >
+            {tickets.length}
+          </span>
+        </div>
+        <div
+          className={styles.columnBar}
+          style={{ backgroundColor: column.accentColor }}
+        />
       </div>
+
       <div className={styles.columnBody}>
-        {ordered.length === 0 && (
+        {ordered.length === 0 && !isOver && (
           <div className={styles.emptyState}>
             <span className={styles.emptyIcon} aria-hidden="true">◻</span>
             <span className={styles.emptyText}>No tickets</span>
@@ -82,6 +83,11 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
             <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
           );
         })}
+        {isOver && (
+          <div className={styles.dropTargetGhost}>
+            Drop here
+          </div>
+        )}
       </div>
     </div>
   );
