@@ -1,6 +1,6 @@
 # Ticket Detail
 
-> Component · source: [`TicketDetail.dc.html`](../source/TicketDetail.dc.html) · canvas `1789831198-eb58` · sha256 `e72a89d895904e5b5c9ca6a2749e7efec4f8c98e52d3ceccf27058bc26e5e6e4`
+> Component · source: [`TicketDetail.dc.html`](../source/TicketDetail.dc.html) · canvas `1791005836-9c57` · sha256 `b5c85d28007021ded54b71b651812b54fd6c1ae9a48e8821790c79aad1dce328`
 
 Opens over the board on click. Same visual language as the card — same icon, priority marks, tag pills and sub-task chip — just given room to breathe.
 
@@ -12,13 +12,14 @@ The panel is a header bar over a two-column body (main column + sidebar). It is 
 
 Source: [TicketDetail.dc.html](../source/TicketDetail.dc.html) › `<!-- Header -->` (L58–95)
 
-![Ticket Detail header — type, parent KAN-140, id KAN-145, three icon view buttons, close](../images/ticket-detail/ticket-detail-1-header-bar.png)
+![Ticket Detail header — type, parent KAN-140, id KAN-145, four icon view buttons, close](../images/ticket-detail/ticket-detail-1-header-bar.png)
 
-- Left to right: ticket type (Task), parent link (KAN-140), current ticket id (**KAN-145**), then three icon-only view buttons (Test, Debug, Workspace), and a close button on the right.
+- Left to right: ticket type (Task), parent link (KAN-140), current ticket id (**KAN-145**), then four icon-only view buttons (Test, Debug, Workspace, Activity), and a close button on the right.
 - Each icon button shows a tooltip on hover (real hover works live in the canvas):
   - Test — `Test — 1 pass · 1 running · 2 pending`
   - Debug — `Debug — 2 entries`
   - Workspace — `Workspace — 6 files · 12.4 MB`
+  - Activity — `Activity — 9 changes` (see [activity.md](activity.md); no status dot)
 - The Test button carries a status dot (blue here; red when anything is failing, gray/green otherwise).
 
 ## 2. Main column — title, description, sub-tasks, acceptance criteria
