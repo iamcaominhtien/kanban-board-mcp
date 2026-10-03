@@ -1,38 +1,42 @@
-/* Markdown Editor styling matching design/source/DescriptionMarkdown.dc.html */
+/* Markdown Editor styling strictly matching design/source/DescriptionMarkdown.dc.html (Approach A) */
 
 .viewArea {
-  background: #FFFFFF;
-  border-radius: 10px;
-  padding: 14px 18px;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.6;
   color: #3A4A3E;
-  min-height: 80px;
-  max-height: 480px;
-  overflow-y: auto;
   cursor: pointer;
-  border: 1px solid #E3E8E5;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  border-radius: 8px;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  transition: background-color 0.15s, border-color 0.15s;
+  min-height: 28px;
 }
 
 .viewArea:hover {
-  border-color: #B9CBBF;
+  background-color: #F6FAF7;
 }
 
 .viewArea:focus-visible {
   outline: none;
-  border-color: #2E6F40;
-  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
+  background-color: #F6FAF7;
+}
+
+.viewAreaReadOnly {
+  cursor: default;
+}
+
+.viewAreaReadOnly:hover {
+  background-color: transparent;
 }
 
 .placeholder {
   color: #9AA8A0;
-  font-style: italic;
-  font-size: 13.5px;
+  font-size: 13px;
+  user-select: none;
 }
 
-/* ── Edit Container ── */
+/* ── Edit Container (Approach A) ── */
 
 .editContainer {
   display: flex;
@@ -41,7 +45,9 @@
   border-radius: 10px;
   background: #FFFFFF;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  box-sizing: border-box;
 }
 
 .toolbarHeader {
@@ -51,6 +57,8 @@
   padding: 8px 10px;
   background: #F6FAF7;
   border-bottom: 1px solid #E3E8E5;
+  border-radius: 9px 9px 0 0;
+  position: relative;
   flex-wrap: wrap;
   gap: 6px;
 }
@@ -62,16 +70,20 @@
 }
 
 .tab {
-  padding: 4px 12px;
+  padding: 5px 12px;
   border-radius: 6px;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  background: transparent;
+  background: none;
   color: #9AA8A0;
   transition: all 0.12s;
+}
+
+.tab:hover:not(.tabActive) {
+  color: #5B6B60;
 }
 
 .tabActive {
@@ -92,7 +104,7 @@
   border-radius: 5px;
   border: none;
   background: none;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -107,6 +119,11 @@
   color: #1E2A22;
 }
 
+.toolbarBtnActive {
+  background: #EAF0EC;
+  color: #2E6F40;
+}
+
 .toolbarBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -119,20 +136,42 @@
   margin: 0 4px;
 }
 
+.donePillBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: #F1F8F3;
+  color: #2E6F40;
+  border: 1px solid rgba(46, 111, 64, 0.18);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: background 0.12s;
+}
+
+.donePillBtn:hover {
+  background: #E2F0E6;
+}
+
+/* ── Raw Markdown Textarea (.md-raw) ── */
+
 .textarea {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.7;
   color: #3A4A3E;
   white-space: pre-wrap;
   width: 100%;
   border: none;
   outline: none;
-  resize: vertical;
-  min-height: 140px;
-  padding: 14px 18px;
+  resize: none;
+  background: none;
+  padding: 16px 18px;
   box-sizing: border-box;
-  background: transparent;
+  min-height: 180px;
 }
 
 .textarea::placeholder {
@@ -140,11 +179,15 @@
 }
 
 .previewContainer {
-  padding: 14px 18px;
-  min-height: 140px;
-  max-height: 480px;
-  overflow-y: auto;
+  padding: 20px 22px;
+  min-height: 180px;
   box-sizing: border-box;
+}
+
+.hintText {
+  font-size: 11.5px;
+  color: #9AA8A0;
+  margin-top: 6px;
 }
 
 .uploadStatus {
@@ -160,51 +203,102 @@
   display: none;
 }
 
-.footerActions {
+/* ── Link Popover (DescriptionMarkdown.dc.html L285-296) ── */
+
+.linkPopover {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  width: 280px;
+  background: #FFFFFF;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.16);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  box-sizing: border-box;
+}
+
+.popoverUrlRow {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid #E3E8E5;
-  background: #FAFCFA;
+  gap: 6px;
 }
 
-.cancelBtn {
-  background: transparent;
-  border: 1px solid #E3E8E5;
-  border-radius: 6px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #5B6B60;
-  cursor: pointer;
+.popoverUrlInput {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  color: #1E2A22;
+  background: none;
+  padding: 2px 0;
 }
 
-.cancelBtn:hover {
+.popoverUrlInput::placeholder {
+  color: #9AA8A0;
+}
+
+.popoverDivider {
+  height: 1px;
   background: #EEF3EF;
 }
 
-.doneBtn {
-  background: #2E6F40;
-  border: 1px solid #235832;
-  border-radius: 6px;
-  padding: 4px 14px;
-  font-size: 12px;
+.popoverLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9AA8A0;
+}
+
+.popoverTextDisplay {
+  font-size: 12.5px;
+  color: #1E2A22;
+  padding: 5px 7px;
+  background: #F6FAF7;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+.popoverActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.popoverCancelBtn {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9AA8A0;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.popoverCancelBtn:hover {
+  color: #5B6B60;
+}
+
+.popoverApplyBtn {
+  font-size: 11.5px;
   font-weight: 600;
   color: #FFFFFF;
+  background: #2E6F40;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 10px;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(46, 111, 64, 0.2);
 }
 
-.doneBtn:hover {
-  background: #235832;
-}
-
-.viewAreaReadOnly {
-  cursor: default;
-}
-
-.viewAreaReadOnly:hover {
-  border-color: #E3E8E5;
+.popoverApplyBtn:hover {
+  background: #245833;
 }

@@ -5,10 +5,11 @@ import styles from './MarkdownRenderer.module.css';
 
 const MARKDOWN_SCHEMA = {
   ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), 'img'],
+  tagNames: [...(defaultSchema.tagNames ?? []), 'img', 'mark'],
   attributes: {
     ...(defaultSchema.attributes ?? {}),
     img: ['src', 'alt', 'title'],
+    mark: ['class', 'className'],
   },
   protocols: {
     ...(defaultSchema.protocols ?? {}),
