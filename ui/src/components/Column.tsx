@@ -82,7 +82,6 @@ export function Column({ column, tickets, onCardClick, memberMap, childSummaryMa
             <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} childSummary={childSummary} />
           );
         })}
-        {isOver && <div className={styles.targetGhost} />}
       </div>
     </div>
   );
