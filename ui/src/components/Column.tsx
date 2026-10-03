@@ -4,7 +4,7 @@ import { DraggableTicketCard } from './DraggableTicketCard';
 import styles from './Board.module.css';
 
 interface ColumnProps {
-  column: ColumnType & { badgeTextColor: string; badgeBgColor?: string };
+  column: ColumnType;
   tickets: Ticket[];
   onCardClick: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
@@ -47,17 +47,19 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
   return (
     <div
       ref={setNodeRef}
-      className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
+      className={styles.column}
+      style={{
+        backgroundColor: column.accentColor,
+        filter: isOver ? 'brightness(0.88)' : undefined,
+        outline: isOver ? '2px solid rgba(0,0,0,0.2)' : undefined,
+        transition: 'filter 0.15s ease, outline 0.15s ease',
+      }}
     >
-      <div className={styles.columnAccentBar} style={{ backgroundColor: column.accentColor }} />
       <div className={styles.columnHeader}>
         <span className={styles.columnLabel}>{column.label}</span>
         <span
           className={styles.badge}
-          style={{
-            backgroundColor: column.badgeBgColor ?? column.accentColor,
-            color: column.badgeTextColor,
-          }}
+          style={{ background: 'var(--color-dark)', color: 'var(--color-bg)' }}
           aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
         >
           {tickets.length}

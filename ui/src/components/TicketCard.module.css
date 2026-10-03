@@ -1,20 +1,19 @@
 .card {
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  background: var(--color-dark);
+  color: var(--color-bg);
+  border-radius: var(--radius-card);
   border-left: 3px solid transparent;
-  padding: 12px 14px;
+  padding: 10px 12px 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   cursor: pointer;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
 .card:hover {
-  border-color: #B9CBBF;
-  box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
+  transform: translateY(-2px);
+  opacity: 0.95;
 }
 
 .card:hover .dragHandle {
@@ -36,18 +35,18 @@
 }
 
 .cardId {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
+  opacity: 0.45;
   letter-spacing: 0.04em;
-  font-family: var(--font-mono);
-  color: #9AA8A0;
+  font-family: monospace;
 }
 
 .dragHandle {
   font-size: 14px;
   line-height: 1;
   opacity: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-bg);
   transition: opacity 0.15s;
   cursor: grab;
   user-select: none;
@@ -69,33 +68,25 @@
 }
 
 .blockedBadge {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-danger);
-  border-radius: 999px;
-  padding: 2px 5px;
 }
 
 .parentBadge {
   font-size: 10px;
   font-weight: 600;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
+  background: rgba(245, 239, 224, 0.12);
+  color: rgba(245, 239, 224, 0.6);
   border-radius: 999px;
   padding: 2px 6px;
   white-space: nowrap;
 }
 
 .cardTitle {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.35;
-  color: var(--color-text-primary);
 }
 
 .cardFooter {
@@ -121,8 +112,8 @@
 .tag {
   font-size: 10px;
   font-weight: 500;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
+  background: rgba(245, 239, 224, 0.1);
+  color: rgba(245, 239, 224, 0.7);
   border-radius: 999px;
   padding: 1px 6px;
   white-space: nowrap;
@@ -131,35 +122,35 @@
 .estimateBadge {
   font-size: 10px;
   font-weight: 700;
-  color: var(--color-text-secondary);
+  color: rgba(245, 239, 224, 0.55);
   white-space: nowrap;
 }
 
 .dueDate {
   font-size: 10px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(245, 239, 224, 0.55);
   white-space: nowrap;
 }
 
 .dueDateOverdue {
   font-size: 10px;
   font-weight: 700;
-  color: var(--color-danger);
+  color: #FCA5A5;
   white-space: nowrap;
 }
 
 .subTasksProgress {
   font-size: 10px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(245, 239, 224, 0.5);
   white-space: nowrap;
 }
 
 .subTasksDone {
   font-size: 10px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: #86EFAC;
   white-space: nowrap;
 }
 

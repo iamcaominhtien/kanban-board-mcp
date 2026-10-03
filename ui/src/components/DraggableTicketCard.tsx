@@ -24,11 +24,8 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap }: Draggabl
   }, [isDragging]);
 
   const style: React.CSSProperties = {
-    transform: isDragging
-      ? `${CSS.Translate.toString(transform)} rotate(1deg)`
-      : CSS.Translate.toString(transform),
+    transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : undefined,
-    boxShadow: isDragging ? '0 12px 24px rgba(30, 42, 34, 0.18)' : undefined,
     cursor: 'grab',
   };
 

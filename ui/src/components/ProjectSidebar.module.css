@@ -25,16 +25,15 @@
   align-items: center;
   gap: 10px;
   padding: 4px 8px 20px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 2px solid rgba(245, 239, 224, 0.12);
   margin-bottom: 16px;
 }
 
 .logoText {
-  font-family: var(--font-mono);
   font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--color-on-primary);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--color-bg);
   opacity: 0;
   white-space: nowrap;
   transition: opacity 0.15s ease 0.05s;
@@ -51,7 +50,7 @@
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #6E8676;
+  color: rgba(245, 239, 224, 0.45);
   padding: 0 8px;
   margin-bottom: 6px;
   opacity: 0;
@@ -80,7 +79,7 @@
   padding: 8px;
   border-radius: 10px;
   background: transparent;
-  color: #D7E3DA;
+  color: rgba(245, 239, 224, 0.7);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
@@ -90,19 +89,18 @@
 }
 
 .projectItem:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-on-primary);
+  background: rgba(245, 239, 224, 0.08);
+  color: var(--color-bg);
 }
 
 .projectItem:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid rgba(245, 239, 224, 0.5);
   outline-offset: 2px;
 }
 
 .projectItem.active {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-weight: 700;
+  background: rgba(245, 239, 224, 0.14);
+  color: var(--color-bg);
 }
 
 .dot {
@@ -131,8 +129,8 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: #8FA396;
-  background: rgba(255, 255, 255, 0.1);
+  color: rgba(245, 239, 224, 0.45);
+  background: rgba(245, 239, 224, 0.1);
   border-radius: 4px;
   padding: 2px 5px;
   flex-shrink: 0;
@@ -145,11 +143,6 @@
 .sidebar.expanded .prefixBadge,
 .sidebar:focus-within .prefixBadge {
   opacity: 1;
-}
-
-.projectItem.active .prefixBadge {
-  color: var(--color-on-primary);
-  background: rgba(255, 255, 255, 0.18);
 }
 
 .deleteBtn {
@@ -187,7 +180,7 @@
   height: 18px;
   border-radius: 99px;
   border: none;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(245, 239, 224, 0.18);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -200,7 +193,7 @@
 }
 
 .boardToggleSwitch.boardToggleOn {
-  background: var(--color-yellow);
+  background: #F5C518;
 }
 
 .boardToggleKnob {
@@ -210,7 +203,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--color-surface);
+  background: #fff;
   transition: transform 0.2s ease;
   display: block;
 }
@@ -222,16 +215,16 @@
 .bottomSection {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 2px solid rgba(255, 255, 255, 0.12);
+  border-top: 2px solid rgba(245, 239, 224, 0.12);
 }
 
 .newProjectBtn {
   width: 100%;
   padding: 9px 12px;
   border-radius: 10px;
-  border: 2px dashed rgba(255, 255, 255, 0.25);
+  border: 2px dashed rgba(245, 239, 224, 0.25);
   background: transparent;
-  color: #8FA396;
+  color: rgba(245, 239, 224, 0.55);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
@@ -244,8 +237,8 @@
 }
 
 .newProjectBtn:hover {
-  border-color: rgba(255, 255, 255, 0.5);
-  color: var(--color-on-primary);
+  border-color: rgba(245, 239, 224, 0.5);
+  color: var(--color-bg);
 }
 
 .newProjectLabel {
@@ -272,7 +265,7 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(245, 239, 224, 0.55);
   margin-bottom: 2px;
 }
 
@@ -281,9 +274,9 @@
   box-sizing: border-box;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--color-on-primary);
+  border: 1.5px solid rgba(245, 239, 224, 0.2);
+  background: rgba(245, 239, 224, 0.07);
+  color: var(--color-bg);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
@@ -291,11 +284,11 @@
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(245, 239, 224, 0.3);
 }
 
 .input:focus {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(245, 239, 224, 0.5);
 }
 
 .colorSwatches {
@@ -320,7 +313,7 @@
 }
 
 .swatchActive {
-  border-color: var(--color-on-primary);
+  border-color: var(--color-bg);
   transform: scale(1.15);
 }
 
@@ -352,9 +345,9 @@
   flex: 1;
   padding: 8px;
   border-radius: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(245, 239, 224, 0.2);
   background: transparent;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(245, 239, 224, 0.55);
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
@@ -363,12 +356,12 @@
 }
 
 .cancelBtn:hover {
-  border-color: rgba(255, 255, 255, 0.45);
-  color: var(--color-on-primary);
+  border-color: rgba(245, 239, 224, 0.45);
+  color: var(--color-bg);
 }
 
 .errorText {
-  color: var(--color-danger);
+  color: #DC2626;
   font-size: 12px;
   margin-top: 4px;
   margin-bottom: 0;
@@ -380,7 +373,7 @@
   border-radius: 10px;
   border: none;
   background: transparent;
-  color: #B7C9BE;
+  color: rgba(245, 239, 224, 0.55);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
@@ -393,8 +386,8 @@
 }
 
 .recycleBinBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-on-primary);
+  background: rgba(245, 239, 224, 0.08);
+  color: var(--color-bg);
 }
 
 .recycleBinIcon {
@@ -419,8 +412,8 @@
 .recycleBinBadge {
   font-size: 10px;
   font-weight: 800;
-  background: var(--color-yellow);
-  color: var(--color-dark);
+  background: rgba(220, 38, 38, 0.7);
+  color: white;
   border-radius: 10px;
   padding: 1px 6px;
   opacity: 0;
