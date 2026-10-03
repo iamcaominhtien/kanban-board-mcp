@@ -440,11 +440,20 @@
   font-weight: 600;
   color: #1E2A22;
   transition: background-color 0.15s ease, border-color 0.15s ease;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .branchBtn:hover {
   background: #FFFFFF;
   border-color: #B9CBBF;
+}
+
+.branchText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .branchSubtext {

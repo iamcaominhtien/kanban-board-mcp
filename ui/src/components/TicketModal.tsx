@@ -778,17 +778,17 @@ export function TicketModal({
                 type="button"
                 className={styles.branchBtn}
                 onClick={() => setActiveTab('branches')}
-                title="View / switch branches"
+                title={ticket.branches?.[0]?.name ? `Branch: ${ticket.branches[0].name}` : 'Branch: feature/drag-tests'}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <circle cx="6" cy="6" r="2.5" />
                   <circle cx="6" cy="18" r="2.5" />
                   <circle cx="18" cy="6" r="2.5" />
                   <path d="M6 8.5V15.5" />
                   <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
                 </svg>
-                <span>{ticket.branches?.[0]?.name ?? 'feature/drag-tests'}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <span className={styles.branchText}>{ticket.branches?.[0]?.name ?? 'feature/drag-tests'}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <path d="M6 9L12 15L18 9" />
                 </svg>
               </button>
