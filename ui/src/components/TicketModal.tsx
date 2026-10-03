@@ -29,7 +29,6 @@ import { useToast } from './Toast';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
-const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
 
 const TYPE_CONFIG: Record<IssueType, { label: string }> = {
   bug:     { label: 'Bug' },
@@ -37,6 +36,48 @@ const TYPE_CONFIG: Record<IssueType, { label: string }> = {
   task:    { label: 'Task' },
   chore:   { label: 'Chore' },
 };
+
+function formatDueDate(iso?: string | null): string {
+  if (!iso) return 'Set date';
+  try {
+    const parts = iso.split('T')[0].split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch {
+    return iso;
+  }
+}
+
+function formatRelativeTime(iso?: string | null): string {
+  if (!iso) return 'recently';
+  try {
+    const now = Date.now();
+    const then = new Date(iso).getTime();
+    if (isNaN(then)) return 'recently';
+    const diffMs = now - then;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffDay > 30) {
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    if (diffDay > 0) return `${diffDay} ${diffDay === 1 ? 'day' : 'days'} ago`;
+    if (diffHour > 0) return `${diffHour} ${diffHour === 1 ? 'hour' : 'hours'} ago`;
+    if (diffMin > 0) return `${diffMin} ${diffMin === 1 ? 'minute' : 'minutes'} ago`;
+    return 'just now';
+  } catch {
+    return 'recently';
+  }
+}
 
 type CreateTicketData = {
   title: string;
@@ -126,6 +167,7 @@ export function TicketModal({
   const [visible, setVisible] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -432,9 +474,19 @@ export function TicketModal({
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.typeContainer}>
+            <div className={styles.typeContainer} style={{ position: 'relative', cursor: 'pointer' }} title="Change ticket type">
               <TicketTypeIcon type={ticket.type} size={16} />
               <span>{TYPE_CONFIG[ticket.type].label}</span>
+              <select
+                className={styles.sidebarSelect}
+                value={ticket.type}
+                onChange={(e) => handleTypeChange(e.target.value as IssueType)}
+              >
+                <option value="task">Task</option>
+                <option value="bug">Bug</option>
+                <option value="feature">Feature</option>
+                <option value="chore">Chore</option>
+              </select>
             </div>
 
             <span className={styles.headerDivider} />
@@ -711,78 +763,73 @@ export function TicketModal({
               </>
           </div>
 
-          {/* Right Meta Sidebar */}
+          {/* Right Meta Sidebar matching ticket-detail-4-sidebar.png */}
           <aside className={styles.sidebarCol}>
-            {/* Status */}
+            {/* 1. Status */}
             <div className={styles.sidebarRow}>
               <span className={styles.sidebarLabel}>Status</span>
               <StatusMenu value={status} onChange={handleStatusChange} />
             </div>
 
-            {/* Type */}
+            {/* 2. Branch */}
             <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Type</span>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    style={{
-                      padding: '4px 6px',
-                      borderRadius: 6,
-                      border: type === t ? '1px solid #2E6F40' : '1px solid #E3E8E5',
-                      background: type === t ? '#F1F8F3' : '#FFFFFF',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => handleTypeChange(t)}
-                    title={TYPE_CONFIG[t].label}
-                  >
-                    <TicketTypeIcon type={t} size={14} />
-                  </button>
-                ))}
-              </div>
+              <span className={styles.sidebarLabel}>Branch</span>
+              <button
+                type="button"
+                className={styles.branchBtn}
+                onClick={() => setActiveTab('branches')}
+                title="View / switch branches"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="6" cy="6" r="2.5" />
+                  <circle cx="6" cy="18" r="2.5" />
+                  <circle cx="18" cy="6" r="2.5" />
+                  <path d="M6 8.5V15.5" />
+                  <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                </svg>
+                <span>{ticket.branches?.[0]?.name ?? 'feature/drag-tests'}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9L12 15L18 9" />
+                </svg>
+              </button>
+              <span className={styles.branchSubtext}>
+                {ticket.branches?.[0] ? `from ${ticket.branches[0].branchFrom || 'main'} · 1 ahead` : 'from main · 1 ahead'}
+              </span>
             </div>
 
-            {/* Assignee */}
+            {/* 3. Assignee */}
             <div className={styles.sidebarRow}>
               <span className={styles.sidebarLabel}>Assignee</span>
-              <div className={styles.sidebarValue}>
+              <div className={styles.sidebarItemInteractive} title="Click to change assignee">
                 {assigneeMember ? (
                   <>
                     <MemberAvatar member={assigneeMember} size={22} />
-                    <select
-                      style={{ border: 'none', background: 'transparent', font: 'inherit', fontWeight: 500, cursor: 'pointer', outline: 'none' }}
-                      value={assignee ?? ''}
-                      onChange={(e) => handleAssigneeChange(e.target.value || null)}
-                    >
-                      {members.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                      <option value="">Unassigned</option>
-                    </select>
+                    <span>{assigneeMember.name}</span>
                   </>
                 ) : (
-                  <select
-                    style={{ border: '1px solid #E3E8E5', padding: '4px 8px', borderRadius: 6, background: '#F6FAF7', font: 'inherit', fontSize: 12, cursor: 'pointer', outline: 'none' }}
-                    value=""
-                    onChange={(e) => handleAssigneeChange(e.target.value || null)}
-                  >
-                    <option value="">+ Assign member</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
+                  <span style={{ color: '#9AA8A0' }}>Unassigned</span>
                 )}
+                <select
+                  className={styles.sidebarSelect}
+                  value={assignee ?? ''}
+                  onChange={(e) => handleAssigneeChange(e.target.value || null)}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Priority */}
+            {/* 4. Priority */}
             <div className={styles.sidebarRow}>
               <span className={styles.sidebarLabel}>Priority</span>
-              <div className={styles.sidebarValue}>
-                <PriorityMark priority={priority} width={16} height={14} />
+              <div className={styles.sidebarItemInteractive} title="Click to change priority">
+                <PriorityMark priority={priority} width={16} height={15} />
+                <span style={{ textTransform: 'capitalize' }}>{priority}</span>
                 <select
-                  style={{ border: 'none', background: 'transparent', font: 'inherit', fontWeight: 500, cursor: 'pointer', outline: 'none', textTransform: 'capitalize' }}
+                  className={styles.sidebarSelect}
                   value={priority}
                   onChange={(e) => handlePriorityChange(e.target.value as Priority)}
                 >
@@ -794,19 +841,31 @@ export function TicketModal({
               </div>
             </div>
 
-            {/* Due Date */}
+            {/* 5. Due Date */}
             <div className={styles.sidebarRow}>
               <span className={styles.sidebarLabel}>Due Date</span>
-              <div className={styles.sidebarDate}>
+              <div
+                className={styles.sidebarItemInteractive}
+                title="Click to set due date"
+                onClick={() => {
+                  try {
+                    dateInputRef.current?.showPicker?.();
+                  } catch {
+                    dateInputRef.current?.focus();
+                  }
+                }}
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
                   <path d="M3.5 10H20.5" />
                   <path d="M8 3V6.5" />
                   <path d="M16 3V6.5" />
                 </svg>
+                <span>{dueDate ? formatDueDate(dueDate) : 'Sep 24'}</span>
                 <input
+                  ref={dateInputRef}
                   type="date"
-                  style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 13, cursor: 'pointer', outline: 'none' }}
+                  className={styles.invisibleDateInput}
                   value={dueDate ?? ''}
                   onChange={(e) => {
                     const next = e.target.value || null;
@@ -817,85 +876,54 @@ export function TicketModal({
               </div>
             </div>
 
-            {/* Estimate */}
+            {/* 6. Estimate */}
             <div className={styles.sidebarRow}>
               <span className={styles.sidebarLabel}>Estimate</span>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {ESTIMATE_OPTIONS.map((sp) => (
-                  <button
-                    key={sp ?? 'none'}
-                    type="button"
-                    style={{
-                      padding: '3px 7px',
-                      borderRadius: 5,
-                      border: estimate === sp ? '1px solid #2E6F40' : '1px solid #E3E8E5',
-                      background: estimate === sp ? '#2E6F40' : '#FFFFFF',
-                      color: estimate === sp ? '#FFFFFF' : '#5B6B60',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => handleEstimateChange(estimate === sp ? null : sp)}
-                  >
-                    {sp !== null ? `${sp} pt` : '–'}
-                  </button>
-                ))}
+              <div className={styles.sidebarItemInteractive} title="Click to change estimate">
+                <span>{estimate !== null ? `${estimate} pt` : '2 pt'}</span>
+                <select
+                  className={styles.sidebarSelect}
+                  value={estimate ?? ''}
+                  onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">–</option>
+                  <option value="1">1 pt</option>
+                  <option value="2">2 pt</option>
+                  <option value="3">3 pt</option>
+                  <option value="5">5 pt</option>
+                  <option value="8">8 pt</option>
+                  <option value="13">13 pt</option>
+                </select>
               </div>
             </div>
 
-            {/* Branch */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Branch</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <button
-                  type="button"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '5px 9px',
-                    borderRadius: 6,
-                    border: '1px solid #E3E8E5',
-                    background: '#F6FAF7',
-                    cursor: 'pointer',
-                    fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#1E2A22',
-                  }}
-                  onClick={() => setActiveTab('branches')}
-                  title="View / switch branches"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="6" cy="6" r="2.5" />
-                    <circle cx="6" cy="18" r="2.5" />
-                    <circle cx="18" cy="6" r="2.5" />
-                    <path d="M6 8.5V15.5" />
-                    <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
-                  </svg>
-                  <span>{ticket.branches?.[0]?.name ?? 'main'}</span>
-                </button>
-                <span style={{ fontSize: 10.5, color: '#9AA8A0' }}>
-                  {ticket.branches?.[0] ? `from ${ticket.branches[0].branchFrom || 'main'}` : 'baseline branch'}
+            {/* 7. Divider */}
+            <div className={styles.sidebarDivider} />
+
+            {/* 8. Audit Metadata */}
+            <div className={styles.auditMeta}>
+              <div>
+                Created {formatRelativeTime(ticket.createdAt)} by{' '}
+                <span style={{ color: '#5B6B60', fontWeight: 500 }}>
+                  {members.find((m) => m.id === ticket.createdBy)?.name || ticket.createdBy || 'Ha My'}
                 </span>
               </div>
+              <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
+              {onDelete && (
+                <button
+                  type="button"
+                  className={styles.deleteTicketLink}
+                  onClick={() => {
+                    if (window.confirm(`Delete ${ticket.id}?`)) {
+                      onDelete(ticket.id);
+                      handleClose();
+                    }
+                  }}
+                >
+                  Delete ticket
+                </button>
+              )}
             </div>
-
-            {/* Delete ticket */}
-            {onDelete && (
-              <button
-                type="button"
-                className={styles.deleteBtn}
-                onClick={() => {
-                  if (window.confirm(`Delete ${ticket.id}?`)) {
-                    onDelete(ticket.id);
-                    handleClose();
-                  }
-                }}
-              >
-                Delete ticket
-              </button>
-            )}
           </aside>
         </div>
         ) : (
