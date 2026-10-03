@@ -520,7 +520,8 @@ export function TicketModal({
     ...rawBranches,
   ];
 
-  const defaultBranch = (ticket?.branches && ticket.branches[0]) || branchesList.find(b => b.status === 'open') || branchesList[0];
+  // Use the live list (git-refreshed) rather than ticket.branches, whose counts are stale
+  const defaultBranch = branchesList.find(b => b.status !== 'baseline') || branchesList[0];
   const activeBranch = branchesList.find(b => b.name === selectedBranchName) || defaultBranch;
   const activeBranchName = activeBranch?.name ?? 'main';
   const activeBranchSubtext = activeBranch
