@@ -57,28 +57,28 @@
 
 .markdown th,
 .markdown td {
-  border: 1px solid color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+  border: 1px solid rgba(61, 12, 17, 0.25);
   padding: 6px 12px;
   text-align: left;
 }
 
 .markdown thead tr {
-  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  background-color: rgba(61, 12, 17, 0.06);
 }
 
 .markdown tbody tr:nth-child(even) {
-  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  background-color: rgba(61, 12, 17, 0.05);
 }
 
 .markdown blockquote {
   margin: 0 0 8px;
   padding-left: 12px;
-  border-left: 3px solid color-mix(in srgb, var(--color-text-primary) 25%, transparent);
-  color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+  border-left: 3px solid rgba(61, 12, 17, 0.25);
+  color: rgba(61, 12, 17, 0.75);
 }
 
 .markdown hr {
   border: none;
-  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 20%, transparent);
+  border-top: 1px solid rgba(61, 12, 17, 0.2);
   margin: 8px 0;
 }
