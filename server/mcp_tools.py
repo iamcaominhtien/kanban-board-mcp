@@ -316,14 +316,27 @@ async def add_work_log(
 async def add_test_case(
     ticket_id: str,
     title: str,
-    status: Literal["pending", "pass", "fail"] = "pending",
+    status: Literal["pending", "running", "pass", "fail"] = "pending",
+    description: str | None = None,
+    expected_result: str | None = None,
+    notes: str | None = None,
     proof: str | None = None,
     note: str | None = None,
+    assignee: str | None = None,
 ) -> dict | None:
     """Add a test case to a ticket. Returns the updated ticket."""
     async with async_session() as session:
         ticket = await svc_tickets.add_test_case(
-            session, ticket_id, title=title, status=status, proof=proof, note=note
+            session,
+            ticket_id,
+            title=title,
+            status=status,
+            proof=proof,
+            note=note,
+            description=description,
+            expected_result=expected_result,
+            notes=notes,
+            assignee=assignee,
         )
         if ticket is None:
             return None
@@ -335,11 +348,16 @@ async def add_test_case(
 async def update_test_case(
     ticket_id: str,
     test_case_id: str,
-    status: Literal["pending", "pass", "fail"] | None = None,
+    title: str | None = None,
+    status: Literal["pending", "running", "pass", "fail"] | None = None,
+    description: str | None = None,
+    expected_result: str | None = None,
+    notes: str | None = None,
     proof: str | None = None,
     note: str | None = None,
+    assignee: str | None = None,
 ) -> dict | None:
-    """Update a test case's status, proof, or note. Returns the updated ticket."""
+    """Update a test case's status, title, description, expected_result, notes, or assignee. Returns the updated ticket."""
     async with async_session() as session:
         ticket = await svc_tickets.get_ticket(session, ticket_id)
         if ticket is None:
@@ -348,10 +366,18 @@ async def update_test_case(
         current = next((tc for tc in tcs if tc.get("id") == test_case_id), None)
         if current is None:
             return None
-        if status is None:
-            status = current["status"]
         updated = await svc_tickets.update_test_case(
-            session, ticket_id, test_case_id, status=status, proof=proof, note=note
+            session,
+            ticket_id,
+            test_case_id,
+            title=title,
+            status=status,
+            proof=proof,
+            note=note,
+            description=description,
+            expected_result=expected_result,
+            notes=notes,
+            assignee=assignee,
         )
         if updated is None:
             return None

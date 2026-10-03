@@ -47,14 +47,31 @@ export interface WorkLogEntry {
   at: string; // ISO datetime
 }
 
-export type TestCaseStatus = 'pending' | 'pass' | 'fail';
+export type TestCaseStatus = 'pending' | 'running' | 'pass' | 'fail';
+
+export interface TestCaseFileData {
+  id: string;
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+}
 
 export interface TestCase {
   id: string;
+  code?: string; // e.g. "TC-1"
   title: string;
   status: TestCaseStatus;
-  proof: string | null;
-  note: string | null;
+  description?: string | null;
+  expectedResult?: string | null;
+  notes?: string | null;
+  proof?: string | null; // legacy
+  note?: string | null;  // legacy
+  startedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+  assignee?: string | null;
+  testDataFiles?: TestCaseFileData[];
 }
 
 export interface Ticket {

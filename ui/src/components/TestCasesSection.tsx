@@ -20,19 +20,22 @@ interface TestCasesSectionProps {
 }
 
 const STATUS_CYCLE: Record<TestCaseStatus, TestCaseStatus> = {
-  pending: 'pass',
+  pending: 'running',
+  running: 'pass',
   pass: 'fail',
   fail: 'pending',
 };
 
 const STATUS_LABEL: Record<TestCaseStatus, string> = {
   pending: 'PENDING',
+  running: 'RUNNING',
   pass: 'PASS',
   fail: 'FAIL',
 };
 
 const STATUS_CLASS: Record<TestCaseStatus, string> = {
   pending: styles.status_todo,
+  running: styles.status_running,
   pass: styles.status_pass,
   fail: styles.status_fail,
 };

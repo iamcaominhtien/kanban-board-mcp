@@ -444,22 +444,49 @@ async def add_test_case(
     status: str = "pending",
     proof: str | None = None,
     note: str | None = None,
+    description: str | None = None,
+    expected_result: str | None = None,
+    notes: str | None = None,
+    assignee: str | None = None,
+    test_data_files: list | None = None,
 ) -> Ticket | None:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     tcs = _loads(ticket.test_cases)
-    tcs.append(
-        {
-            "id": str(uuid.uuid4()),
-            "title": title,
-            "status": status,
-            "proof": proof,
-            "note": note,
-        }
-    )
+    # Determine human-readable TC code (TC-1, TC-2, ...)
+    max_num = 0
+    for item in tcs:
+        c = item.get("code") or ""
+        if c.startswith("TC-"):
+            try:
+                num = int(c.split("-")[1])
+                if num > max_num:
+                    max_num = num
+            except ValueError:
+                pass
+    tc_code = f"TC-{max(len(tcs) + 1, max_num + 1)}"
+    now_iso = datetime.now(UTC).isoformat()
+
+    new_tc = {
+        "id": str(uuid.uuid4()),
+        "code": tc_code,
+        "title": title,
+        "status": status,
+        "description": description,
+        "expected_result": expected_result,
+        "notes": notes if notes is not None else note,
+        "proof": proof,
+        "note": note,
+        "started_at": now_iso if status == "running" else None,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+        "assignee": assignee,
+        "test_data_files": test_data_files or [],
+    }
+    tcs.append(new_tc)
     ticket.test_cases = _dumps(tcs)
-    ticket.updated_at = datetime.now(UTC).isoformat()
+    ticket.updated_at = now_iso
     session.add(ticket)
     await session.commit()
     await session.refresh(ticket)
@@ -470,9 +497,15 @@ async def update_test_case(
     session: AsyncSession,
     ticket_id: str,
     tc_id: str,
-    status: str,
+    status: str | None = None,
     proof: str | None = None,
     note: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    expected_result: str | None = None,
+    notes: str | None = None,
+    assignee: str | None = None,
+    test_data_files: list | None = None,
 ) -> Ticket | None:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
@@ -480,11 +513,28 @@ async def update_test_case(
     tcs = _loads(ticket.test_cases)
     for tc in tcs:
         if tc.get("id") == tc_id:
-            tc["status"] = status
+            old_status = tc.get("status")
+            if status is not None:
+                tc["status"] = status
+                if status == "running" and old_status != "running":
+                    tc["started_at"] = datetime.now(UTC).isoformat()
+            if title is not None:
+                tc["title"] = title
+            if description is not None:
+                tc["description"] = description
+            if expected_result is not None:
+                tc["expected_result"] = expected_result
+            if notes is not None:
+                tc["notes"] = notes
             if proof is not None:
                 tc["proof"] = proof
             if note is not None:
                 tc["note"] = note
+            if assignee is not None:
+                tc["assignee"] = assignee
+            if test_data_files is not None:
+                tc["test_data_files"] = test_data_files
+            tc["updated_at"] = datetime.now(UTC).isoformat()
             break
     ticket.test_cases = _dumps(tcs)
     ticket.updated_at = datetime.now(UTC).isoformat()

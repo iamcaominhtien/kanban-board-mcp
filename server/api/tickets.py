@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated, Literal, NoReturn, Optional
+from typing import Annotated, Any, Literal, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
@@ -369,15 +369,26 @@ async def del_work_log(ticket_id: str, log_id: str, session: Session) -> TicketR
 
 class TestCaseCreateBody(BaseModel):
     title: str
-    status: Literal["pending", "pass", "fail"] = "pending"
+    status: Literal["pending", "running", "pass", "fail"] = "pending"
     proof: Optional[str] = None
     note: Optional[str] = None
+    description: Optional[str] = None
+    expected_result: Optional[str] = None
+    notes: Optional[str] = None
+    assignee: Optional[str] = None
+    test_data_files: list[dict[str, Any]] = []
 
 
 class TestCaseUpdateBody(BaseModel):
-    status: Literal["pending", "pass", "fail"]
+    title: Optional[str] = None
+    status: Optional[Literal["pending", "running", "pass", "fail"]] = None
     proof: Optional[str] = None
     note: Optional[str] = None
+    description: Optional[str] = None
+    expected_result: Optional[str] = None
+    notes: Optional[str] = None
+    assignee: Optional[str] = None
+    test_data_files: Optional[list[dict[str, Any]]] = None
 
 
 @router.post("/tickets/{ticket_id}/test-cases", response_model=TicketRead)
@@ -385,7 +396,17 @@ async def post_test_case(
     ticket_id: str, body: TestCaseCreateBody, session: Session
 ) -> TicketRead:
     ticket = await add_test_case(
-        session, ticket_id, body.title, body.status, body.proof, body.note
+        session,
+        ticket_id,
+        title=body.title,
+        status=body.status,
+        proof=body.proof,
+        note=body.note,
+        description=body.description,
+        expected_result=body.expected_result,
+        notes=body.notes,
+        assignee=body.assignee,
+        test_data_files=body.test_data_files,
     )
     if ticket is None:
         _404()
@@ -398,7 +419,18 @@ async def patch_test_case(
     ticket_id: str, tc_id: str, body: TestCaseUpdateBody, session: Session
 ) -> TicketRead:
     ticket = await update_test_case(
-        session, ticket_id, tc_id, body.status, body.proof, body.note
+        session,
+        ticket_id,
+        tc_id,
+        title=body.title,
+        status=body.status,
+        proof=body.proof,
+        note=body.note,
+        description=body.description,
+        expected_result=body.expected_result,
+        notes=body.notes,
+        assignee=body.assignee,
+        test_data_files=body.test_data_files,
     )
     if ticket is None:
         _404()

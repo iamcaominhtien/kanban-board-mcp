@@ -316,6 +316,56 @@ async def test_add_update_delete_test_case(client: httpx.AsyncClient):
     assert r_del.json()["test_cases"] == []
 
 
+async def test_test_case_extended_fields_and_running_status(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        # Add first TC with running status & extended fields
+        r1 = await c.post(
+            f"/tickets/{ticket['id']}/test-cases",
+            json={
+                "title": "Verify login with OAuth",
+                "status": "running",
+                "description": "User clicks Google button and completes auth",
+                "expected_result": "Redirect to dashboard with valid JWT",
+                "notes": "Testing against staging OAuth provider",
+                "assignee": "alex",
+            },
+        )
+        assert r1.status_code == 200
+        tc1 = r1.json()["test_cases"][0]
+        assert tc1["code"] == "TC-1"
+        assert tc1["status"] == "running"
+        assert tc1["started_at"] is not None
+        assert tc1["description"] == "User clicks Google button and completes auth"
+        assert tc1["expected_result"] == "Redirect to dashboard with valid JWT"
+        assert tc1["assignee"] == "alex"
+
+        # Add second TC
+        r2 = await c.post(
+            f"/tickets/{ticket['id']}/test-cases",
+            json={"title": "Verify password reset", "status": "pending"},
+        )
+        assert r2.status_code == 200
+        tc2 = r2.json()["test_cases"][1]
+        assert tc2["code"] == "TC-2"
+        assert tc2["status"] == "pending"
+
+        # Update first TC to pass
+        r_upd = await c.patch(
+            f"/tickets/{ticket['id']}/test-cases/{tc1['id']}",
+            json={
+                "status": "pass",
+                "notes": "OAuth returned status 200, JWT verified in local storage",
+            },
+        )
+        assert r_upd.status_code == 200
+        tc1_updated = r_upd.json()["test_cases"][0]
+        assert tc1_updated["status"] == "pass"
+        assert tc1_updated["notes"] == "OAuth returned status 200, JWT verified in local storage"
+
+
 # ---------------------------------------------------------------------------
 # List with filters
 # ---------------------------------------------------------------------------

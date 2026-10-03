@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { IssueType, Priority, RelationType, Status, Ticket, TicketLink, WorkLogRole } from '../types/ticket';
+import type { IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketLink, WorkLogRole } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -168,15 +168,16 @@ export async function deleteWorkLog(
 export async function addTestCase(
   ticketId: string,
   title: string,
+  extra?: Partial<TestCase>,
 ): Promise<Ticket> {
-  const res = await client.post<Ticket>(`/tickets/${ticketId}/test-cases`, { title });
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/test-cases`, { title, ...extra });
   return res.data;
 }
 
 export async function updateTestCase(
   ticketId: string,
   testCaseId: string,
-  data: { title?: string; status?: string; proof?: string | null; note?: string | null },
+  data: Partial<TestCase>,
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(
     `/tickets/${ticketId}/test-cases/${testCaseId}`,

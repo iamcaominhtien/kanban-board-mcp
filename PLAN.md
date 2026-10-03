@@ -75,10 +75,11 @@
 ### 1.2 — TestCase Model Extension
 - **Source HTML**: [`design/source/TestCases.dc.html`](design/source/TestCases.dc.html)
 - **Visual Spec**: [`design/images/test-cases/`](design/images/test-cases/)
-- [ ] Thêm status `running` vào TestCaseStatus
-- [ ] Thêm các trường: description, expectedResult (free text markdown), notes, code, assignee, order
-- [ ] Backend model + Alembic migration
-- [ ] API endpoints cho TestCase mở rộng
+- [x] Thêm status `running` vào TestCaseStatus (cycle: pending → running → pass → fail → pending)
+- [x] Thêm các trường: code (`TC-1`, `TC-2`...), description, expectedResult (free text markdown), notes, startedAt, assignee, testDataFiles
+- [x] Backend services + API + MCP tools (`add_test_case`, `update_test_case`)
+- [x] Frontend types, API client, TestCasesSection status badges
+- [x] Unit tests trong `server/tests/test_tickets.py` (29/29 passed)
 
 ### 1.3 — WorkLog → Debug Space Model
 - **Source HTML**: [`design/source/DebugSpace.dc.html`](design/source/DebugSpace.dc.html)
