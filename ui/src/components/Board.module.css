@@ -124,7 +124,7 @@
   flex-direction: column;
   gap: 6px;
   flex-shrink: 0;
-  padding-right: 8px;
+  padding: 0 6px;
 }
 
 .columnHeaderTop {
@@ -167,7 +167,7 @@
   gap: 10px;
   flex: 1;
   min-height: 0;
-  padding: 4px 2px 12px 0;
+  padding: 6px 6px 14px 6px;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
 }
