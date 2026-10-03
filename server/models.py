@@ -65,6 +65,7 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
+    branches: str = Field(default="[]")  # JSON: list of {id, name, status, branch_from, ...}
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -180,6 +181,7 @@ class TicketCreate(SQLModel):
     activity_log: list[Any] = []
     work_log: list[Any] = []
     test_cases: list[Any] = []
+    branches: list[Any] = []
     created_by: Optional[str] = None
     assignee: Optional[str] = None
 
@@ -247,6 +249,7 @@ class TicketRead(SQLModel):
     block_done_if_acs_incomplete: bool = False
     block_done_if_tcs_incomplete: bool = False
     links: list[Any] = []
+    branches: list[Any] = []
     created_at: str
     updated_at: str
 
@@ -278,6 +281,7 @@ class TicketRead(SQLModel):
             block_done_if_acs_incomplete=ticket.block_done_if_acs_incomplete,
             block_done_if_tcs_incomplete=ticket.block_done_if_tcs_incomplete,
             links=_parse_json_list(ticket.links),
+            branches=_parse_json_list(getattr(ticket, "branches", "[]")),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

@@ -630,3 +630,55 @@ async def test_review_and_testing_status_transitions(client: httpx.AsyncClient):
         assert r.status_code == 200
         assert r.json()["status"] == "testing"
 
+
+async def test_branch_crud_operations(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        # Create branch
+        r_create = await c.post(
+            f"/tickets/{ticket['id']}/branches",
+            json={
+                "name": "feature/attachments",
+                "branch_from": "main",
+                "status": "open",
+                "ahead_count": 2,
+                "behind_count": 1,
+            },
+        )
+        assert r_create.status_code == 201
+        branches = r_create.json()["branches"]
+        assert len(branches) == 1
+        branch = branches[0]
+        assert branch["name"] == "feature/attachments"
+        assert branch["status"] == "open"
+        assert branch["branch_from"] == "main"
+        assert branch["ahead_count"] == 2
+        assert branch["behind_count"] == 1
+        branch_id = branch["id"]
+
+        # List branches
+        r_list = await c.get(f"/tickets/{ticket['id']}/branches")
+        assert r_list.status_code == 200
+        assert len(r_list.json()) == 1
+
+        # Patch branch
+        r_patch = await c.patch(
+            f"/tickets/{ticket['id']}/branches/{branch_id}",
+            json={
+                "status": "merged",
+                "pr_url": "https://github.com/example/repo/pull/42",
+            },
+        )
+        assert r_patch.status_code == 200
+        updated_branch = r_patch.json()["branches"][0]
+        assert updated_branch["status"] == "merged"
+        assert updated_branch["pr_url"] == "https://github.com/example/repo/pull/42"
+
+        # Delete branch
+        r_del = await c.delete(f"/tickets/{ticket['id']}/branches/{branch_id}")
+        assert r_del.status_code == 200
+        assert r_del.json()["branches"] == []
+
+

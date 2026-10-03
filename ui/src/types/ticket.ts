@@ -118,6 +118,23 @@ export interface Ticket {
   blockDoneIfAcsIncomplete: boolean;
   blockDoneIfTcsIncomplete: boolean;
   links: TicketLink[];  // extended relationship links
+  branches?: TicketBranch[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BranchStatus = 'baseline' | 'open' | 'merged' | 'stale' | 'archived';
+
+export interface TicketBranch {
+  id: string;
+  name: string;
+  status: BranchStatus;
+  branchFrom: string;
+  prUrl?: string | null;
+  commitHash?: string | null;
+  linkedTicketId?: string | null;
+  aheadCount?: number;
+  behindCount?: number;
   createdAt: string;
   updatedAt: string;
 }

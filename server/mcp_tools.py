@@ -426,6 +426,86 @@ async def update_test_case(
 
 
 @notify_on_success
+async def add_branch(
+    ticket_id: str,
+    name: str,
+    branch_from: str = "main",
+    status: Literal["baseline", "open", "merged", "stale", "archived"] = "open",
+    pr_url: str | None = None,
+    commit_hash: str | None = None,
+    linked_ticket_id: str | None = None,
+    ahead_count: int = 0,
+    behind_count: int = 0,
+) -> dict | None:
+    """Create a branch on a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.add_branch(
+            session,
+            ticket_id,
+            name=name,
+            branch_from=branch_from,
+            status=status,
+            pr_url=pr_url,
+            commit_hash=commit_hash,
+            linked_ticket_id=linked_ticket_id,
+            ahead_count=ahead_count,
+            behind_count=behind_count,
+        )
+        if ticket is None:
+            return None
+        result = TicketRead.from_ticket(ticket).model_dump()
+    return result
+
+
+@notify_on_success
+async def update_branch(
+    ticket_id: str,
+    branch_id: str,
+    name: str | None = None,
+    status: Literal["baseline", "open", "merged", "stale", "archived"] | None = None,
+    branch_from: str | None = None,
+    pr_url: str | None = None,
+    commit_hash: str | None = None,
+    linked_ticket_id: str | None = None,
+    ahead_count: int | None = None,
+    behind_count: int | None = None,
+) -> dict | None:
+    """Update a branch on a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.update_branch(
+            session,
+            ticket_id,
+            branch_id,
+            name=name,
+            status=status,
+            branch_from=branch_from,
+            pr_url=pr_url,
+            commit_hash=commit_hash,
+            linked_ticket_id=linked_ticket_id,
+            ahead_count=ahead_count,
+            behind_count=behind_count,
+        )
+        if ticket is None:
+            return None
+        result = TicketRead.from_ticket(ticket).model_dump()
+    return result
+
+
+@notify_on_success
+async def delete_branch(
+    ticket_id: str,
+    branch_id: str,
+) -> dict | None:
+    """Delete a branch from a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.delete_branch(session, ticket_id, branch_id)
+        if ticket is None:
+            return None
+        result = TicketRead.from_ticket(ticket).model_dump()
+    return result
+
+
+@notify_on_success
 async def create_child_ticket(
     parent_ticket_id: str,
     title: str,
@@ -904,6 +984,9 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(add_test_case)
     mcp.tool()(update_test_case)
     mcp.tool()(create_child_ticket)
+    mcp.tool()(add_branch)
+    mcp.tool()(update_branch)
+    mcp.tool()(delete_branch)
     mcp.tool()(add_acceptance_criterion)
     mcp.tool()(toggle_acceptance_criterion)
     mcp.tool()(delete_acceptance_criterion)

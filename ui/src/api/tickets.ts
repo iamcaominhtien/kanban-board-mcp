@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketLink, WorkLogEntry, WorkLogRole } from '../types/ticket';
+import type { IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, WorkLogEntry, WorkLogRole } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -221,6 +221,46 @@ export async function removeTicketLink(
   linkId: string,
 ): Promise<void> {
   await client.delete(`/tickets/${ticketId}/links/${linkId}`);
+}
+
+// Branches
+export async function listBranches(ticketId: string): Promise<TicketBranch[]> {
+  const res = await client.get<TicketBranch[]>(`/tickets/${ticketId}/branches`);
+  return res.data;
+}
+
+export async function createBranch(
+  ticketId: string,
+  data: {
+    name: string;
+    branch_from?: string;
+    status?: string;
+    pr_url?: string | null;
+    commit_hash?: string | null;
+    linked_ticket_id?: string | null;
+    ahead_count?: number;
+    behind_count?: number;
+  },
+): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/branches`, data);
+  return res.data;
+}
+
+export async function updateBranch(
+  ticketId: string,
+  branchId: string,
+  data: Partial<TicketBranch>,
+): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/branches/${branchId}`, data);
+  return res.data;
+}
+
+export async function deleteBranch(
+  ticketId: string,
+  branchId: string,
+): Promise<Ticket> {
+  const res = await client.delete<Ticket>(`/tickets/${ticketId}/branches/${branchId}`);
+  return res.data;
 }
 
 // ---------------------------------------------------------------------------

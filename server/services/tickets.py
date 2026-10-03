@@ -852,3 +852,146 @@ async def remove_ticket_link(
 
     await session.commit()
     return True
+
+
+# ---------------------------------------------------------------------------
+# Sub-entity: branches
+# ---------------------------------------------------------------------------
+
+VALID_BRANCH_STATUSES = {"baseline", "open", "merged", "stale", "archived"}
+
+
+async def list_branches(
+    session: AsyncSession, ticket_id: str
+) -> list[dict] | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    return _loads(getattr(ticket, "branches", "[]"))
+
+
+async def add_branch(
+    session: AsyncSession,
+    ticket_id: str,
+    name: str,
+    branch_from: str = "main",
+    status: str = "open",
+    pr_url: str | None = None,
+    commit_hash: str | None = None,
+    linked_ticket_id: str | None = None,
+    ahead_count: int = 0,
+    behind_count: int = 0,
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    if status not in VALID_BRANCH_STATUSES:
+        raise ValueError(
+            f"Invalid branch status '{status}'. Valid statuses: {sorted(VALID_BRANCH_STATUSES)}"
+        )
+    branches = _loads(getattr(ticket, "branches", "[]"))
+    now_iso = datetime.now(UTC).isoformat()
+    new_branch = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "status": status,
+        "branch_from": branch_from,
+        "branchFrom": branch_from,
+        "pr_url": pr_url,
+        "prUrl": pr_url,
+        "commit_hash": commit_hash,
+        "commitHash": commit_hash,
+        "linked_ticket_id": linked_ticket_id,
+        "linkedTicketId": linked_ticket_id,
+        "ahead_count": ahead_count,
+        "aheadCount": ahead_count,
+        "behind_count": behind_count,
+        "behindCount": behind_count,
+        "created_at": now_iso,
+        "createdAt": now_iso,
+        "updated_at": now_iso,
+        "updatedAt": now_iso,
+    }
+    branches.append(new_branch)
+    ticket.branches = _dumps(branches)
+    ticket.updated_at = now_iso
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def update_branch(
+    session: AsyncSession,
+    ticket_id: str,
+    branch_id: str,
+    name: str | None = None,
+    status: str | None = None,
+    branch_from: str | None = None,
+    pr_url: str | None = None,
+    commit_hash: str | None = None,
+    linked_ticket_id: str | None = None,
+    ahead_count: int | None = None,
+    behind_count: int | None = None,
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    if status is not None and status not in VALID_BRANCH_STATUSES:
+        raise ValueError(
+            f"Invalid branch status '{status}'. Valid statuses: {sorted(VALID_BRANCH_STATUSES)}"
+        )
+    branches = _loads(getattr(ticket, "branches", "[]"))
+    found = False
+    now_iso = datetime.now(UTC).isoformat()
+    for br in branches:
+        if br.get("id") == branch_id:
+            found = True
+            if name is not None:
+                br["name"] = name
+            if status is not None:
+                br["status"] = status
+            if branch_from is not None:
+                br["branch_from"] = branch_from
+                br["branchFrom"] = branch_from
+            if pr_url is not None:
+                br["pr_url"] = pr_url
+                br["prUrl"] = pr_url
+            if commit_hash is not None:
+                br["commit_hash"] = commit_hash
+                br["commitHash"] = commit_hash
+            if linked_ticket_id is not None:
+                br["linked_ticket_id"] = linked_ticket_id
+                br["linkedTicketId"] = linked_ticket_id
+            if ahead_count is not None:
+                br["ahead_count"] = ahead_count
+                br["aheadCount"] = ahead_count
+            if behind_count is not None:
+                br["behind_count"] = behind_count
+                br["behindCount"] = behind_count
+            br["updated_at"] = now_iso
+            br["updatedAt"] = now_iso
+            break
+    if not found:
+        return None
+    ticket.branches = _dumps(branches)
+    ticket.updated_at = now_iso
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def delete_branch(
+    session: AsyncSession, ticket_id: str, branch_id: str
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    branches = _loads(getattr(ticket, "branches", "[]"))
+    ticket.branches = _dumps([br for br in branches if br.get("id") != branch_id])
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket

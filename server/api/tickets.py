@@ -19,12 +19,14 @@ from uploads import (
 )
 from services.tickets import (
     add_acceptance_criterion,
+    add_branch,
     add_comment,
     add_test_case,
     add_ticket_link,
     add_work_log,
     create_ticket,
     delete_acceptance_criterion,
+    delete_branch,
     delete_comment,
     delete_test_case,
     delete_ticket,
@@ -32,10 +34,12 @@ from services.tickets import (
     get_project_activities,
     get_ticket,
     link_block,
+    list_branches,
     list_tickets,
     remove_ticket_link,
     toggle_acceptance_criterion,
     unlink_block,
+    update_branch,
     update_comment,
     update_test_case,
     update_ticket,
@@ -590,3 +594,94 @@ async def delete_ticket_link(ticket_id: str, link_id: str, session: Session) -> 
         _404("Link not found")
     await board_events.publish("invalidate")
     return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Branches
+# ---------------------------------------------------------------------------
+
+
+class BranchCreateBody(BaseModel):
+    name: str
+    branch_from: str = "main"
+    status: Literal["baseline", "open", "merged", "stale", "archived"] = "open"
+    pr_url: str | None = None
+    commit_hash: str | None = None
+    linked_ticket_id: str | None = None
+    ahead_count: int = 0
+    behind_count: int = 0
+
+
+class BranchUpdateBody(BaseModel):
+    name: str | None = None
+    branch_from: str | None = None
+    status: Literal["baseline", "open", "merged", "stale", "archived"] | None = None
+    pr_url: str | None = None
+    commit_hash: str | None = None
+    linked_ticket_id: str | None = None
+    ahead_count: int | None = None
+    behind_count: int | None = None
+
+
+@router.get("/tickets/{ticket_id}/branches")
+async def get_ticket_branches(ticket_id: str, session: Session) -> list[dict]:
+    branches = await list_branches(session, ticket_id)
+    if branches is None:
+        _404()
+    return branches
+
+
+@router.post("/tickets/{ticket_id}/branches", response_model=TicketRead, status_code=201)
+async def post_branch(
+    ticket_id: str, body: BranchCreateBody, session: Session
+) -> TicketRead:
+    ticket = await add_branch(
+        session,
+        ticket_id,
+        name=body.name,
+        branch_from=body.branch_from,
+        status=body.status,
+        pr_url=body.pr_url,
+        commit_hash=body.commit_hash,
+        linked_ticket_id=body.linked_ticket_id,
+        ahead_count=body.ahead_count,
+        behind_count=body.behind_count,
+    )
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch("/tickets/{ticket_id}/branches/{branch_id}", response_model=TicketRead)
+async def patch_branch(
+    ticket_id: str, branch_id: str, body: BranchUpdateBody, session: Session
+) -> TicketRead:
+    ticket = await update_branch(
+        session,
+        ticket_id,
+        branch_id,
+        name=body.name,
+        status=body.status,
+        branch_from=body.branch_from,
+        pr_url=body.pr_url,
+        commit_hash=body.commit_hash,
+        linked_ticket_id=body.linked_ticket_id,
+        ahead_count=body.ahead_count,
+        behind_count=body.behind_count,
+    )
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.delete("/tickets/{ticket_id}/branches/{branch_id}", response_model=TicketRead)
+async def del_branch(
+    ticket_id: str, branch_id: str, session: Session
+) -> TicketRead:
+    ticket = await delete_branch(session, ticket_id, branch_id)
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)

@@ -92,9 +92,10 @@
 ### 1.4 — Branches Model (New)
 - **Source HTML**: [`design/source/Branches.dc.html`](design/source/Branches.dc.html)
 - **Visual Spec**: [`design/images/branches/`](design/images/branches/)
-- [ ] Thiết kế Branch model (id, ticketId, name, status, prUrl, commitHash, createdAt)
-- [ ] Backend model + Alembic migration + API endpoints
-- [ ] Frontend type definition
+- [x] Thiết kế Branch model (id, name, status (`baseline` | `open` | `merged` | `stale` | `archived`), branchFrom, prUrl, commitHash, linkedTicketId, aheadCount, behindCount, createdAt, updatedAt)
+- [x] Backend model + Alembic migration (`b3c4d5e6f7a8_add_branches_column.py`) + API endpoints (`GET /branches`, `POST /branches`, `PATCH /branches/{id}`, `DELETE /branches/{id}`) + MCP tools
+- [x] Frontend type definition (`BranchStatus`, `TicketBranch`) và API client (`listBranches`, `createBranch`, `updateBranch`, `deleteBranch`)
+- [x] Unit tests trong `server/tests/test_tickets.py` (31/31 passed)
 
 ### 1.5 — Workspace Settings Model (New)
 - **Source HTML**: [`design/source/Workspace.dc.html`](design/source/Workspace.dc.html)
