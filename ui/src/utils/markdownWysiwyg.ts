@@ -13,19 +13,32 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/** Allow only http(s), mailto, root-relative and plain relative URLs. */
+export function isSafeUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (/^(https?:|mailto:)/i.test(trimmed)) return true;
+  return !/^[a-z][a-z0-9+.-]*:/i.test(trimmed.replace(/[\u0000-\u0020]/g, ''));
+}
+
 function formatInlineMarkdown(text: string): string {
   // Strip any old uploading:... placeholder
   text = text.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '');
 
+  // Escape raw HTML first so user text can never inject markup
+  text = escapeHtml(text);
+
   // Images: ![alt](url)
   let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
     if (url.startsWith('uploading:')) return '';
+    if (!isSafeUrl(url)) return '';
     const src = url.startsWith('/uploads/') ? `${resolveOrigin()}${url}` : url;
     return `<img src="${src}" alt="${alt}" />`;
   });
 
   // Links: [text](url)
-  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, url) =>
+    isSafeUrl(url) ? `<a href="${url}">${label}</a>` : label,
+  );
 
   // Bold: **text**
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');

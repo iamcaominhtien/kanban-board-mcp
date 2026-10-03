@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { markdownToHtml, htmlToMarkdown } from '../utils/markdownWysiwyg';
+import { markdownToHtml, htmlToMarkdown, isSafeUrl } from '../utils/markdownWysiwyg';
 import { resolveOrigin } from '../api/resolveOrigin';
 import styles from './MarkdownEditor.module.css';
 
@@ -62,7 +62,7 @@ export function MarkdownEditor({
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
       const html = markdownToHtml(latestValueRef.current);
-      wysiwygRef.current.innerHTML = html;
+      wysiwygRef.current.innerHTML = html; // html is escaped by markdownToHtml
       requestAnimationFrame(() => {
         wysiwygRef.current?.focus();
       });
@@ -367,8 +367,9 @@ export function MarkdownEditor({
   }
 
   function applyLink() {
-    const url = linkUrl.trim();
-    if (!url) {
+    const raw = linkUrl.trim();
+    const url = raw && !/^[a-z][a-z0-9+.-]*:/i.test(raw) ? `https://${raw}` : raw;
+    if (!url || !isSafeUrl(url)) {
       setIsLinkPopoverOpen(false);
       return;
     }
@@ -382,16 +383,16 @@ export function MarkdownEditor({
       if (savedSelectionRangeRef.current.collapsed || !savedSelectionRangeRef.current.toString()) {
         const textToUse = linkText.trim() || url;
         const a = document.createElement('a');
-        a.href = url.startsWith('http') ? url : `https://${url}`;
+        a.setAttribute('href', url);
         a.textContent = textToUse;
         savedSelectionRangeRef.current.insertNode(a);
       } else {
-        document.execCommand('createLink', false, url.startsWith('http') ? url : `https://${url}`);
+        document.execCommand('createLink', false, url);
       }
     } else {
       const textToUse = linkText.trim() || url;
       const a = document.createElement('a');
-      a.href = url.startsWith('http') ? url : `https://${url}`;
+      a.setAttribute('href', url);
       a.textContent = textToUse;
       wysiwygRef.current?.appendChild(a);
     }
@@ -416,8 +417,9 @@ export function MarkdownEditor({
 
         const img = document.createElement('img');
         const resolvedSrc = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
-        img.src = resolvedSrc;
-        img.alt = alt;
+        if (!isSafeUrl(resolvedSrc)) return;
+        img.setAttribute('src', resolvedSrc);
+        img.setAttribute('alt', alt);
 
         const sel = window.getSelection();
         const savedRange = savedSelectionRangeRef.current;

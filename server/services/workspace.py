@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import os
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -44,9 +45,17 @@ async def update_workspace_settings(
     return settings
 
 
+_SAFE_TICKET_ID = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
 def _resolve_workspace_path(root_path: str, ticket_id: str) -> Path:
-    expanded = os.path.expanduser(root_path)
-    return Path(expanded) / ticket_id
+    if not _SAFE_TICKET_ID.fullmatch(ticket_id):
+        raise ValueError(f"Invalid ticket id: {ticket_id!r}")
+    root = Path(os.path.expanduser(root_path)).resolve()
+    folder = (root / ticket_id).resolve()
+    if not folder.is_relative_to(root):
+        raise ValueError("Workspace path escapes the workspace root")
+    return folder
 
 
 async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[str, Any] | None:
@@ -54,7 +63,10 @@ async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[st
     if ticket is None:
         return None
     settings = await get_workspace_settings(session)
-    folder_path = _resolve_workspace_path(settings.root_path, ticket_id)
+    try:
+        folder_path = _resolve_workspace_path(settings.root_path, ticket_id)
+    except ValueError:
+        return None
 
     files: list[dict[str, Any]] = []
     total_bytes = 0
@@ -63,7 +75,7 @@ async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[st
     if exists:
         try:
             for entry in sorted(folder_path.rglob('*')):
-                if entry.is_file():
+                if entry.is_file() and not entry.is_symlink():
                     stat = entry.stat()
                     total_bytes += stat.st_size
                     files.append({
