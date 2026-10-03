@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { markdownToHtml, htmlToMarkdown, isSafeUrl } from '../utils/markdownWysiwyg';
+import { markdownToHtml, htmlToMarkdown } from '../utils/markdownWysiwyg';
 import { resolveOrigin } from '../api/resolveOrigin';
 import styles from './MarkdownEditor.module.css';
 
@@ -369,7 +369,7 @@ export function MarkdownEditor({
   function applyLink() {
     const raw = linkUrl.trim();
     const url = raw && !/^[a-z][a-z0-9+.-]*:/i.test(raw) ? `https://${raw}` : raw;
-    if (!url || !isSafeUrl(url)) {
+    if (!url || !(url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:'))) {
       setIsLinkPopoverOpen(false);
       return;
     }
@@ -383,7 +383,7 @@ export function MarkdownEditor({
       if (savedSelectionRangeRef.current.collapsed || !savedSelectionRangeRef.current.toString()) {
         const textToUse = linkText.trim() || url;
         const a = document.createElement('a');
-        a.setAttribute('href', url);
+        a.href = url;
         a.textContent = textToUse;
         savedSelectionRangeRef.current.insertNode(a);
       } else {
@@ -392,7 +392,7 @@ export function MarkdownEditor({
     } else {
       const textToUse = linkText.trim() || url;
       const a = document.createElement('a');
-      a.setAttribute('href', url);
+      a.href = url;
       a.textContent = textToUse;
       wysiwygRef.current?.appendChild(a);
     }
@@ -417,9 +417,9 @@ export function MarkdownEditor({
 
         const img = document.createElement('img');
         const resolvedSrc = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
-        if (!isSafeUrl(resolvedSrc)) return;
-        img.setAttribute('src', resolvedSrc);
-        img.setAttribute('alt', alt);
+        if (!(resolvedSrc.startsWith('https://') || resolvedSrc.startsWith('http://') || resolvedSrc.startsWith('/'))) return;
+        img.src = resolvedSrc;
+        img.alt = alt;
 
         const sel = window.getSelection();
         const savedRange = savedSelectionRangeRef.current;

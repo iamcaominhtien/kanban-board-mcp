@@ -51,11 +51,11 @@ _SAFE_TICKET_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 def _resolve_workspace_path(root_path: str, ticket_id: str) -> Path:
     if not _SAFE_TICKET_ID.fullmatch(ticket_id):
         raise ValueError(f"Invalid ticket id: {ticket_id!r}")
-    root = Path(os.path.expanduser(root_path)).resolve()
-    folder = (root / ticket_id).resolve()
-    if not folder.is_relative_to(root):
+    root = os.path.realpath(os.path.expanduser(root_path))
+    folder = os.path.realpath(os.path.join(root, ticket_id))
+    if not folder.startswith(root.rstrip(os.sep) + os.sep):
         raise ValueError("Workspace path escapes the workspace root")
-    return folder
+    return Path(folder)
 
 
 async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[str, Any] | None:
