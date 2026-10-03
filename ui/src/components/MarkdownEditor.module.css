@@ -136,26 +136,6 @@
   margin: 0 4px;
 }
 
-.donePillBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 5px;
-  background: #F1F8F3;
-  color: #2E6F40;
-  border: 1px solid rgba(46, 111, 64, 0.18);
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-left: 6px;
-  transition: background 0.12s;
-}
-
-.donePillBtn:hover {
-  background: #E2F0E6;
-}
-
 /* ── Raw Markdown Textarea (.md-raw) ── */
 
 .textarea {

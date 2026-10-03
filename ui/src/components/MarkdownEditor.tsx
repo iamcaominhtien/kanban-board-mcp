@@ -467,19 +467,6 @@ export function MarkdownEditor({
                   <path d="M6 18H21" />
                 </svg>
               </button>
-
-              {/* Done pill button */}
-              <button
-                type="button"
-                className={styles.donePillBtn}
-                title="Save & close editor (Esc)"
-                onClick={finishEditing}
-              >
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                  <path d="M3 7.5L5.5 10L11 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Done
-              </button>
             </div>
           )}
 
