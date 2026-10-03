@@ -199,46 +199,40 @@
 }
 
 .addBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  background: none;
-  color: var(--color-text-secondary);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  font-size: 12px;
-  font-family: var(--font-body);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  align-self: flex-start;
+  transition: opacity 0.15s;
 }
 
 .addBtn:hover {
-  color: var(--color-text-primary);
-  border-color: var(--color-text-secondary);
+  opacity: 0.85;
 }
 
-/* Inline expanding add panel with New / Existing tabs — restyled to sit in
-   place of the "+ Add sub-ticket" button, matching the compact height of an
-   actual list row rather than a separate bordered box. */
+/* Inline expanding add panel with New / Existing tabs */
 
 .addPanel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   background: var(--color-surface);
-  border: 1px solid var(--color-primary);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
-  padding: 6px 10px 8px;
-  overflow: hidden;
+  padding: 10px;
 }
 
 .tabs {
   display: flex;
   align-items: center;
   gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 6px;
 }
 
 .tab,
@@ -246,11 +240,11 @@
   background: none;
   border: none;
   padding: 4px 10px;
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   font-family: var(--font-body);
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   transition: background 0.15s, color 0.15s;
 }
 
@@ -259,88 +253,52 @@
 }
 
 .tab:hover {
+  background: var(--color-bg);
   color: var(--color-text-primary);
 }
 
 .tabActive {
-  color: var(--color-primary);
-  background: var(--color-primary-tint);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
 }
 
-.newRow {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 2px 0;
-}
-
-.radioPlaceholder {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  border: 1.6px solid var(--color-border-strong);
-  box-sizing: border-box;
-  flex-shrink: 0;
-}
-
-.plainInput {
-  flex-grow: 1;
-  min-width: 0;
+.closeBtn {
+  margin-left: auto;
+  background: none;
   border: none;
-  outline: none;
-  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 4px 6px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  line-height: 1;
+}
+
+.closeBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.searchInput {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
   font-size: 13px;
   color: var(--color-text-primary);
-  background: none;
+  background: var(--color-surface);
+  outline: none;
+  width: 100%;
+  font-family: var(--font-body);
 }
 
-.iconBtnCancel,
-.iconBtnCreate {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: opacity 0.15s, background 0.15s;
-}
-
-.iconBtnCancel {
-  background: none;
-  color: var(--color-text-secondary);
-}
-
-.iconBtnCancel:hover {
-  color: var(--color-text-primary);
-}
-
-.iconBtnCreate {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.iconBtnCreate:hover:not(:disabled) {
-  opacity: 0.85;
-}
-
-.iconBtnCreate:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.searchRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 0;
-}
-
-.searchIcon {
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
+.searchInput:focus {
+  border-color: var(--color-primary);
 }
 
 .dropdownList {
@@ -348,14 +306,12 @@
   flex-direction: column;
   max-height: 160px;
   overflow-y: auto;
-  border-top: 1px solid var(--color-border);
-  padding-top: 4px;
 }
 
 .dropdownItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -367,31 +323,7 @@
 }
 
 .dropdownItem:hover {
-  background: var(--color-bg);
-}
-
-.resultDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.resultTitle {
-  flex-grow: 1;
-  min-width: 0;
-  font-size: 12.5px;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.resultId {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
+  background: var(--color-primary-tint);
 }
 
 .dropdownEmpty {
@@ -407,7 +339,30 @@
   margin: 0;
 }
 
-.helperText {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+.createFormActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.submitBtn {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
