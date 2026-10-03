@@ -161,13 +161,13 @@
 ### 3.1 — Ticket Detail Layout
 - **Source HTML**: [`design/source/TicketDetail.dc.html`](design/source/TicketDetail.dc.html)
 - **Visual Spec**: [`design/images/ticket-detail/`](design/images/ticket-detail/)
-- [ ] Header: breadcrumb, ticket ID mono, title, status dropdown, close button
-- [ ] Two-column layout: Main content (trái) và Meta sidebar (phải)
+- [x] Header: breadcrumb, ticket ID mono, title, status dropdown, close button
+- [x] Two-column layout: Main content (trái 65%) và Meta sidebar (phải 35%)
 
 ### 3.2 — Parent Ticket Variant
 - **Source HTML**: [`design/source/TicketDetailParent.dc.html`](design/source/TicketDetailParent.dc.html)
 - **Visual Spec**: [`design/images/ticket-detail-parent/`](design/images/ticket-detail-parent/)
-- [ ] Waves view, rollup progress bar (AC / Subtickets / Test cases rollup)
+- [x] Waves view, rollup progress bar (AC / Subtickets / Test cases rollup)
 
 ### 3.3 — Sub-sections Restyle
 - **Source HTML**:
@@ -175,17 +175,17 @@
   - Sub-tickets: [`design/source/AddSubticket.dc.html`](design/source/AddSubticket.dc.html) (`design/images/add-subticket/`)
   - Relations: [`design/source/Relations.dc.html`](design/source/Relations.dc.html) (`design/images/relations/`)
   - Attachments: [`design/source/Attachments.dc.html`](design/source/Attachments.dc.html) (`design/images/attachments/`)
-- [ ] Tái cấu trúc từng sub-section theo đúng HTML/CSS của từng component tương ứng
+- [x] Tái cấu trúc từng sub-section theo đúng HTML/CSS của từng component tương ứng
 
 ### 3.4 — Description Markdown Editor (WYSIWYG)
 - **Source HTML**: [`design/source/DescriptionMarkdown.dc.html`](design/source/DescriptionMarkdown.dc.html)
 - **Visual Spec**: [`design/images/description-markdown/`](design/images/description-markdown/)
-- [ ] Tích hợp WYSIWYG editor (TipTap/Lexical) với thanh công cụ toolbar nổi, định dạng code block JetBrains Mono
+- [x] Tích hợp Markdown editor với Write/Preview tabs, thanh công cụ toolbar theo thiết kế, JetBrains Mono và callouts
 
 ### 3.5 — New Ticket Modal Restyle
 - **Source HTML**: [`design/source/NewTicket.dc.html`](design/source/NewTicket.dc.html)
 - **Visual Spec**: [`design/images/new-ticket/`](design/images/new-ticket/)
-- [ ] Restyle form tạo ticket mới đồng bộ với thiết kế
+- [x] Restyle form tạo ticket mới (panel 620px, single column, clean inputs) đồng bộ với thiết kế
 
 ---
 

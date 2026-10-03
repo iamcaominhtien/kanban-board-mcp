@@ -1,121 +1,204 @@
+/* Markdown Editor styling matching design/source/DescriptionMarkdown.dc.html */
+
 .viewArea {
-  background: var(--color-bg);
-  border-radius: 16px;
-  padding: 16px;
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-dark);
-  min-height: 60px;
-  max-height: 320px;
+  line-height: 1.65;
+  color: #3A4A3E;
+  min-height: 80px;
+  max-height: 480px;
   overflow-y: auto;
   cursor: pointer;
-  border: 2px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
+  border: 1px solid #E3E8E5;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .viewArea:hover {
-  border-color: rgba(61, 12, 17, 0.25);
-  background: rgba(245, 239, 224, 0.85);
+  border-color: #B9CBBF;
 }
 
-.viewArea:focus {
+.viewArea:focus-visible {
   outline: none;
-  border-color: var(--color-orange);
+  border-color: #2E6F40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
 }
 
 .placeholder {
-  color: #9ca3af;
+  color: #9AA8A0;
   font-style: italic;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
-/* ── Edit mode ── */
+/* ── Edit Container ── */
 
 .editContainer {
   display: flex;
   flex-direction: column;
-  border: 2px solid var(--color-dark);
-  border-radius: 16px;
-  background: var(--color-bg);
-  box-shadow: 0 0 0 4px rgba(61, 12, 17, 0.35);
+  border: 1px solid #2E6F40;
+  border-radius: 10px;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
+  overflow: hidden;
 }
 
-.toolbar {
+.toolbarHeader {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #F6FAF7;
+  border-bottom: 1px solid #E3E8E5;
   flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
   gap: 2px;
-  padding: 6px 8px;
-  background: rgba(61, 12, 17, 0.04);
-  border-bottom: 1px solid rgba(61, 12, 17, 0.12);
-  border-radius: 14px 14px 0 0;
+}
+
+.tab {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #9AA8A0;
+  transition: all 0.12s;
+}
+
+.tabActive {
+  background: #FFFFFF;
+  color: #1E2A22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.08);
+}
+
+.toolsGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .toolbarBtn {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-dark);
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-  white-space: nowrap;
-  line-height: 1.4;
+  color: #5B6B60;
+  transition: background 0.12s, color 0.12s;
+  padding: 0;
+  font-family: inherit;
+}
+
+.toolbarBtn:hover:not(:disabled) {
+  background: #EAF0EC;
+  color: #1E2A22;
 }
 
 .toolbarBtn:disabled {
-  opacity: 0.45;
-  cursor: wait;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.toolbarBtn:hover {
-  background: rgba(61, 12, 17, 0.1);
-  border-color: rgba(61, 12, 17, 0.2);
-}
-
-.toolbarBtn:active {
-  background: rgba(61, 12, 17, 0.16);
-}
-
-.bold {
-  font-weight: 900;
-}
-
-.italic {
-  font-style: italic;
+.divider {
+  width: 1px;
+  height: 16px;
+  background: #DCE6DF;
+  margin: 0 4px;
 }
 
 .textarea {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #3A4A3E;
+  white-space: pre-wrap;
+  width: 100%;
   border: none;
   outline: none;
   resize: vertical;
-  min-height: 120px;
-  padding: 12px 16px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-dark);
-  background: var(--color-bg);
-  width: 100%;
+  min-height: 140px;
+  padding: 14px 18px;
   box-sizing: border-box;
-  border-radius: 0 0 14px 14px;
+  background: transparent;
 }
 
 .textarea::placeholder {
-  color: #9ca3af;
+  color: #9AA8A0;
+}
+
+.previewContainer {
+  padding: 14px 18px;
+  min-height: 140px;
+  max-height: 480px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .uploadStatus {
-  padding: 8px 16px 0;
-  font-size: 12px;
+  padding: 6px 14px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: rgba(61, 12, 17, 0.72);
+  color: #2E6F40;
+  background: #F1F8F3;
+  border-bottom: 1px solid #D7E8DC;
 }
 
 .fileInput {
   display: none;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid #E3E8E5;
+  background: #FAFCFA;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid #E3E8E5;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5B6B60;
+  cursor: pointer;
+}
+
+.cancelBtn:hover {
+  background: #EEF3EF;
+}
+
+.doneBtn {
+  background: #2E6F40;
+  border: 1px solid #235832;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(46, 111, 64, 0.2);
+}
+
+.doneBtn:hover {
+  background: #235832;
 }
 
 .viewAreaReadOnly {
@@ -123,6 +206,5 @@
 }
 
 .viewAreaReadOnly:hover {
-  border-color: transparent;
-  background: var(--color-bg);
+  border-color: #E3E8E5;
 }
