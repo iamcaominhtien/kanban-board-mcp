@@ -194,30 +194,33 @@
 ### 4.1 — Test Cases Panel (Rewrite hoàn toàn)
 - **Source HTML**: [`design/source/TestCases.dc.html`](design/source/TestCases.dc.html)
 - **Visual Spec**: [`design/images/test-cases/`](design/images/test-cases/)
-- [ ] Bảng Test Case: Pass, Fail, Running (với pulsating ring), Pending
-- [ ] Free text markdown cho Expected Result
-- [ ] Form thêm/sửa test case, hiển thị run history mới nhất
+- [x] Bảng Test Case: Pass, Fail, Running (với pulsating ring `tcRing`), Pending
+- [x] Free text markdown cho Expected Result, Description, Notes, Test data file chips
+- [x] Form thêm/sửa test case (inline top card), hiển thị timestamps và assignee avatar
 
 ### 4.2 — Debug Space Panel
 - **Source HTML**: [`design/source/DebugSpace.dc.html`](design/source/DebugSpace.dc.html)
 - **Visual Spec**: [`design/images/debug-space/`](design/images/debug-space/)
-- [ ] Timeline 5 loại entry: Investigation, Fix attempt, Root cause, Blocked, Resolved
-- [ ] Pin entry quan trọng lên đầu, liên kết branch và test case
+- [x] Timeline 5 loại entry: Investigation, Fix attempt, Root cause, Blocked, Resolved
+- [x] Pin entry quan trọng lên đầu, liên kết branch và test case, file chips
 
 ### 4.3 — Workspace Panel
 - **Source HTML**: [`design/source/Workspace.dc.html`](design/source/Workspace.dc.html)
 - **Visual Spec**: [`design/images/workspace/`](design/images/workspace/)
-- [ ] Trạng thái retention clock: Auto-delete pending vs Kept forever
+- [x] Trạng thái retention clock: Auto-delete pending vs Kept forever
+- [x] Danh sách scratch files, dung lượng, thời gian cập nhật, mở thư mục và copy path
 
 ### 4.4 — Branches Panel
 - **Source HTML**: [`design/source/Branches.dc.html`](design/source/Branches.dc.html)
 - **Visual Spec**: [`design/images/branches/`](design/images/branches/)
-- [ ] Danh sách git branches liên kết với ticket, trạng thái PR / commit
+- [x] Switcher Graph & List view các git branches liên kết với ticket
+- [x] Trạng thái baseline, open, merged, stale, form tạo branch mới
 
 ### 4.5 — Sub-task Grouping trên Board
 - **Source HTML**: [`design/source/BoardGrouping.dc.html`](design/source/BoardGrouping.dc.html)
 - **Visual Spec**: [`design/images/board-grouping/`](design/images/board-grouping/)
-- [ ] Gom nhóm sub-task dưới parent ticket trên Kanban board
+- [x] Thẻ cha có nền xanh nhẹ `#F1F8F3`, viền `#D7E8DC`, thanh tiến độ sub-tasks (e.g. 2/3 sub-tasks)
+- [x] Thẻ con hiển thị chip parent KAN-ID, gom nhóm và thụt lề dưới thẻ cha trong cùng cột
 
 ---
 

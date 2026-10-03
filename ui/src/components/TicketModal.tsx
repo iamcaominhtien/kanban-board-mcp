@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { IssueType, Member, Priority, Status, Ticket, WorkLogEntry } from '../types';
+import type { IssueType, Member, Priority, Status, Ticket } from '../types';
 import {
   useUpdateTicket,
   useAddComment, useUpdateComment, useDeleteComment,
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
-  useAddWorkLog,
+  useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
   uploadDescriptionImage,
   useLinkBlock, useUnlinkBlock,
@@ -18,7 +18,9 @@ import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { MemberAvatar } from './MemberAvatar';
 import { RelationsSection } from './RelationsSection';
 import { TestCasesSection } from './TestCasesSection';
-import { WorkLogSection } from './WorkLogSection';
+import { DebugSpaceSection } from './DebugSpaceSection';
+import { WorkspaceSection } from './WorkspaceSection';
+import { BranchesSection } from './BranchesSection';
 import { SubTicketsSection } from './SubTicketsSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
@@ -85,7 +87,7 @@ export function TicketModal({
   members = [],
 }: TicketModalProps) {
   const localMode = initialMode;
-  const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace'>('main');
+  const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches'>('main');
 
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -111,6 +113,8 @@ export function TicketModal({
   const toggleACMutation = useToggleAcceptanceCriterion();
   const deleteACMutation = useDeleteAcceptanceCriterion();
   const addWorkLogMutation = useAddWorkLog();
+  const updateWorkLogMutation = useUpdateWorkLog();
+  const deleteWorkLogMutation = useDeleteWorkLog();
   const addTestCaseMutation = useAddTestCase();
   const updateTestCaseMutation = useUpdateTestCase();
   const deleteTestCaseMutation = useDeleteTestCase();
@@ -453,7 +457,12 @@ export function TicketModal({
               </>
             )}
 
-            <button type="button" className={styles.idBtn} onClick={handleCopyId} title="Click to copy ID">
+            <button
+              type="button"
+              className={styles.idBtn}
+              onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
+              title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
+            >
               {ticket.id}
             </button>
           </div>
@@ -500,6 +509,22 @@ export function TicketModal({
               </svg>
               <span className={styles.viewTooltip}>Workspace</span>
             </button>
+
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${activeTab === 'branches' ? styles.viewBtnActive : ''}`}
+              onClick={() => setActiveTab(activeTab === 'branches' ? 'main' : 'branches')}
+              aria-label="Branches"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="6" r="2.5" />
+                <circle cx="6" cy="18" r="2.5" />
+                <circle cx="18" cy="6" r="2.5" />
+                <path d="M6 8.5V15.5" />
+                <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+              </svg>
+              <span className={styles.viewTooltip}>Branches</span>
+            </button>
           </div>
 
           <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
@@ -511,68 +536,10 @@ export function TicketModal({
         </div>
 
         {/* Body */}
-        <div className={styles.detailBody}>
-          {/* Main Column */}
-          <div className={styles.mainCol}>
-            {activeTab === 'test_cases' ? (
-              <TestCasesSection
-                testCases={ticket.testCases ?? []}
-                disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
-                onAdd={(tCase) =>
-                  new Promise<void>((resolve, reject) =>
-                    addTestCaseMutation.mutate(
-                      { ticketId: ticket.id, title: tCase },
-                      {
-                        onSuccess: () => resolve(),
-                        onError: (err) => reject(err),
-                      }
-                    )
-                  )
-                }
-                onChange={(updated) => {
-                  const old = ticket.testCases ?? [];
-                  const deletedIds = old
-                    .filter((o) => !updated.some((u) => u.id === o.id))
-                    .map((o) => o.id);
-                  const changedItems = updated.filter((u) => {
-                    const o = old.find((item) => item.id === u.id);
-                    return o && JSON.stringify(o) !== JSON.stringify(u);
-                  });
-                  deletedIds.forEach((id) =>
-                    deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id })
-                  );
-                  changedItems.forEach((tc) =>
-                    updateTestCaseMutation.mutate({
-                      ticketId: ticket.id,
-                      testCaseId: tc.id,
-                      data: {
-                        title: tc.title,
-                        status: tc.status,
-                        proof: tc.proof ?? null,
-                        note: tc.note ?? null,
-                      },
-                    })
-                  );
-                }}
-              />
-            ) : activeTab === 'debug_space' ? (
-              <WorkLogSection
-                entries={ticket.workLog ?? []}
-                onAdd={(entry: Omit<WorkLogEntry, 'id'>) => {
-                  addWorkLogMutation.mutate({
-                    ticketId: ticket.id,
-                    data: { author: entry.author, role: entry.role, note: entry.note },
-                  });
-                }}
-              />
-            ) : activeTab === 'workspace' ? (
-              <div style={{ padding: '24px 0', color: '#5B6B60', fontSize: 13 }}>
-                <div className={styles.sectionLabel} style={{ marginBottom: 12 }}>WORKSPACE FILES</div>
-                <div style={{ padding: 16, border: '1px dashed #C7D2CB', borderRadius: 8, background: '#F6FAF7' }}>
-                  Workspace files and retention for {ticket.id}
-                </div>
-              </div>
-            ) : (
+        {activeTab === 'main' ? (
+          <div className={styles.detailBody}>
+            {/* Main Column */}
+            <div className={styles.mainCol}>
               <>
                 {/* Title & Tags */}
                 <div className={styles.titleArea}>
@@ -740,7 +707,6 @@ export function TicketModal({
                 {/* Activity Log */}
                 <ActivityLog entries={ticket.activityLog ?? []} />
               </>
-            )}
           </div>
 
           {/* Right Meta Sidebar */}
@@ -875,6 +841,44 @@ export function TicketModal({
               </div>
             </div>
 
+            {/* Branch */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Branch</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <button
+                  type="button"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '5px 9px',
+                    borderRadius: 6,
+                    border: '1px solid #E3E8E5',
+                    background: '#F6FAF7',
+                    cursor: 'pointer',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#1E2A22',
+                  }}
+                  onClick={() => setActiveTab('branches')}
+                  title="View / switch branches"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="6" cy="6" r="2.5" />
+                    <circle cx="6" cy="18" r="2.5" />
+                    <circle cx="18" cy="6" r="2.5" />
+                    <path d="M6 8.5V15.5" />
+                    <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                  </svg>
+                  <span>{ticket.branches?.[0]?.name ?? 'main'}</span>
+                </button>
+                <span style={{ fontSize: 10.5, color: '#9AA8A0' }}>
+                  {ticket.branches?.[0] ? `from ${ticket.branches[0].branchFrom || 'main'}` : 'baseline branch'}
+                </span>
+              </div>
+            </div>
+
             {/* Delete ticket */}
             {onDelete && (
               <button
@@ -892,6 +896,97 @@ export function TicketModal({
             )}
           </aside>
         </div>
+        ) : (
+          <div className={styles.fullWidthBody}>
+            {activeTab === 'test_cases' && (
+              <TestCasesSection
+                ticketId={ticket.id}
+                testCases={ticket.testCases ?? []}
+                childTestCaseSources={childTickets
+                  .filter((st) => (st.testCases?.length ?? 0) > 0)
+                  .map((st) => ({
+                    ticketId: st.id,
+                    ticketTitle: st.title,
+                    testCases: st.testCases ?? [],
+                  }))}
+                disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
+                onAdd={(tCase) =>
+                  new Promise<void>((resolve, reject) =>
+                    addTestCaseMutation.mutate(
+                      { ticketId: ticket.id, title: tCase },
+                      {
+                        onSuccess: () => resolve(),
+                        onError: (err) => reject(err),
+                      }
+                    )
+                  )
+                }
+                onChange={(updated) => {
+                  const old = ticket.testCases ?? [];
+                  const deletedIds = old
+                    .filter((o) => !updated.some((u) => u.id === o.id))
+                    .map((o) => o.id);
+                  const changedItems = updated.filter((u) => {
+                    const o = old.find((item) => item.id === u.id);
+                    return o && JSON.stringify(o) !== JSON.stringify(u);
+                  });
+                  deletedIds.forEach((id) =>
+                    deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id })
+                  );
+                  changedItems.forEach((tc) =>
+                    updateTestCaseMutation.mutate({
+                      ticketId: ticket.id,
+                      testCaseId: tc.id,
+                      data: {
+                        title: tc.title,
+                        status: tc.status,
+                        description: tc.description,
+                        expectedResult: tc.expectedResult,
+                        notes: tc.notes,
+                        startedAt: tc.startedAt,
+                        assignee: tc.assignee,
+                        testDataFiles: tc.testDataFiles,
+                        proof: tc.proof ?? null,
+                        note: tc.note ?? null,
+                      },
+                    })
+                  );
+                }}
+              />
+            )}
+            {activeTab === 'debug_space' && (
+              <DebugSpaceSection
+                ticketId={ticket.id}
+                entries={ticket.workLog ?? []}
+                onAdd={async (entry) => {
+                  await addWorkLogMutation.mutateAsync({
+                    ticketId: ticket.id,
+                    data: entry,
+                  });
+                }}
+                onUpdate={(entryId, data) =>
+                  updateWorkLogMutation.mutate({
+                    ticketId: ticket.id,
+                    entryId,
+                    data,
+                  })
+                }
+                onDelete={(entryId) =>
+                  deleteWorkLogMutation.mutate({
+                    ticketId: ticket.id,
+                    entryId,
+                  })
+                }
+              />
+            )}
+            {activeTab === 'workspace' && (
+              <WorkspaceSection ticketId={ticket.id} />
+            )}
+            {activeTab === 'branches' && (
+              <BranchesSection ticketId={ticket.id} />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

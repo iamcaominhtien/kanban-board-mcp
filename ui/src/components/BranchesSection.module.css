@@ -1,0 +1,290 @@
+/* Branches Section matching design/source/Branches.dc.html */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  background: #F6FAF7;
+  border-radius: 8px;
+}
+
+.tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #9AA8A0;
+  transition: all 0.12s;
+}
+
+.tabActive {
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.08);
+  font-weight: 600;
+  color: #1E2A22;
+}
+
+.brAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px dashed #C7D2CB;
+  background: none;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  color: #9AA8A0;
+  transition: all 0.12s;
+}
+
+.brAddBtn:hover {
+  border-color: #2E6F40;
+  color: #2E6F40;
+}
+
+/* List Table */
+.tableCard {
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #FFFFFF;
+}
+
+.tableHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #F6FAF7;
+  border-bottom: 1px solid #E3E8E5;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9AA8A0;
+}
+
+.brRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #FFFFFF;
+  transition: background 0.1s;
+}
+
+.brRow:not(:last-child) {
+  border-bottom: 1px solid #EEF3EF;
+}
+
+.brRow:hover {
+  background: #FAFCFA;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.branchName {
+  width: 190px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branchMeta {
+  flex-grow: 1;
+  font-size: 12.5px;
+  color: #9AA8A0;
+}
+
+.metaMono {
+  font-family: 'JetBrains Mono', monospace;
+  color: #5B6B60;
+}
+
+.dateCol {
+  width: 70px;
+  font-size: 11.5px;
+  color: #9AA8A0;
+  flex-shrink: 0;
+}
+
+.statusCol {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.brStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.actionCol {
+  width: 65px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1E2A22;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+
+.actionBtn:hover {
+  background: #F6FAF7;
+  border-color: #2E6F40;
+}
+
+/* Graph Container */
+.graphCard {
+  border: 1px solid #E3E8E5;
+  border-radius: 10px;
+  padding: 24px 28px;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  overflow-x: auto;
+}
+
+/* Create Branch Popover / Form */
+.createFormCard {
+  border: 1px solid #2E6F40;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.formTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E2A22;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA8A0;
+}
+
+.textInput {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #B9CBBF;
+  background: #FFFFFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #1E2A22;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.selectInput {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  background: #F6FAF7;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #1E2A22;
+  outline: none;
+  cursor: pointer;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.btnSubmit {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnSubmit:hover:not(:disabled) {
+  background: #235832;
+}
+
+.btnCancel {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  background: none;
+  color: #5B6B60;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.emptyState {
+  padding: 32px;
+  text-align: center;
+  color: #9AA8A0;
+  font-size: 13px;
+}

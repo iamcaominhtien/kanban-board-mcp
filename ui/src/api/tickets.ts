@@ -447,6 +447,20 @@ export function useAddWorkLog() {
   );
 }
 
+export function useUpdateWorkLog() {
+  return useTicketSubMutation(
+    ({
+      ticketId,
+      entryId,
+      data,
+    }: {
+      ticketId: string;
+      entryId: string;
+      data: Parameters<typeof updateWorkLog>[2];
+    }) => updateWorkLog(ticketId, entryId, data),
+  );
+}
+
 export function useDeleteWorkLog() {
   return useTicketSubMutation(
     ({ ticketId, entryId }: { ticketId: string; entryId: string }) =>
@@ -609,3 +623,91 @@ export function useRemoveTicketLink(projectId: string) {
     },
   });
 }
+
+export function useTicketWorkspace(ticketId: string) {
+  return useQuery({
+    queryKey: ['ticket_workspace', ticketId],
+    queryFn: () => getTicketWorkspace(ticketId),
+    enabled: !!ticketId,
+  });
+}
+
+export function useSetTicketWorkspaceRetention() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      retentionDays,
+    }: {
+      ticketId: string;
+      retentionDays: number | null;
+    }) => setTicketWorkspaceRetention(ticketId, retentionDays),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_workspace', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useTicketBranches(ticketId: string) {
+  return useQuery({
+    queryKey: ['ticket_branches', ticketId],
+    queryFn: () => listBranches(ticketId),
+    enabled: !!ticketId,
+  });
+}
+
+export function useCreateBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      data,
+    }: {
+      ticketId: string;
+      data: Parameters<typeof createBranch>[1];
+    }) => createBranch(ticketId, data),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useUpdateBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      branchId,
+      data,
+    }: {
+      ticketId: string;
+      branchId: string;
+      data: Parameters<typeof updateBranch>[2];
+    }) => updateBranch(ticketId, branchId, data),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useDeleteBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      branchId,
+    }: {
+      ticketId: string;
+      branchId: string;
+    }) => deleteBranch(ticketId, branchId),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+

@@ -20,6 +20,37 @@
   box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
 }
 
+.cardParent {
+  background: #F1F8F3 !important;
+  border-color: #D7E8DC !important;
+}
+
+.subtaskProgressBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subtaskTrack {
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #DCE6DF;
+  overflow: hidden;
+}
+
+.subtaskFill {
+  height: 100%;
+  background: #2E6F40;
+}
+
+.subtaskText {
+  font-size: 10px;
+  font-weight: 600;
+  color: #5B6B60;
+  white-space: nowrap;
+}
+
 .card:hover .dragHandle {
   opacity: 1;
 }

@@ -28,6 +28,7 @@ interface TicketCardProps {
   isDragging?: boolean;
   className?: string;
   onClick?: () => void;
+  subtaskStats?: { total: number; completed: number };
 }
 
 export function TicketCard({
@@ -36,6 +37,7 @@ export function TicketCard({
   isDragging,
   className,
   onClick,
+  subtaskStats,
 }: TicketCardProps) {
   const typeLabel = TYPE_LABELS[ticket.type] ?? 'Task';
   const due = getDueDateDisplay(ticket.dueDate);
@@ -44,12 +46,14 @@ export function TicketCard({
   const isDone = ticket.status === 'done';
   const completedAC = (ticket.acceptanceCriteria ?? []).filter((s) => s.done).length;
   const totalAC = (ticket.acceptanceCriteria ?? []).length;
+  const hasSubtasks = subtaskStats && subtaskStats.total > 0;
 
   const cardClasses = [
     styles.card,
     isDragging ? styles.cardDragging : '',
     isBlocked ? styles.cardBlocked : '',
     isDone ? styles.cardDone : '',
+    hasSubtasks ? styles.cardParent : '',
     className ?? '',
   ]
     .filter(Boolean)
@@ -104,6 +108,23 @@ export function TicketCard({
 
         {/* Title: 2-line clamped */}
         <div className={styles.cardTitle}>{ticket.title}</div>
+
+        {/* Sub-tasks progress bar for parent tickets */}
+        {hasSubtasks && subtaskStats && (
+          <div className={styles.subtaskProgressBar}>
+            <div className={styles.subtaskTrack}>
+              <div
+                className={styles.subtaskFill}
+                style={{
+                  width: `${Math.round((subtaskStats.completed / subtaskStats.total) * 100)}%`,
+                }}
+              />
+            </div>
+            <span className={styles.subtaskText}>
+              {subtaskStats.completed}/{subtaskStats.total} sub-tasks
+            </span>
+          </div>
+        )}
 
         {/* Sub-ticket parent chip if has parent */}
         {ticket.parentId && (

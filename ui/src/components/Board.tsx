@@ -112,7 +112,16 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
           <div className={styles.columns}>
             {COLUMNS.map((col) => {
               const colTickets = tickets.filter((t) => t.status === col.id);
-              return <Column key={col.id} column={col} tickets={colTickets} onCardClick={onCardClick} memberMap={memberMap} />;
+              return (
+                <Column
+                  key={col.id}
+                  column={col}
+                  tickets={colTickets}
+                  allTickets={tickets}
+                  onCardClick={onCardClick}
+                  memberMap={memberMap}
+                />
+              );
             })}
           </div>
         )}

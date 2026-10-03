@@ -222,6 +222,14 @@
   max-height: calc(90vh - 75px);
 }
 
+.fullWidthBody {
+  padding: 20px 28px 28px;
+  overflow-y: auto;
+  max-height: calc(90vh - 75px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .mainCol {
   flex: 1;
   min-width: 0;

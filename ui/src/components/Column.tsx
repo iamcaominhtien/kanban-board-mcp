@@ -6,11 +6,12 @@ import styles from './Board.module.css';
 interface ColumnProps {
   column: ColumnType;
   tickets: Ticket[];
+  allTickets?: Ticket[];
   onCardClick: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
 }
 
-export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps) {
+export function Column({ column, tickets, allTickets, onCardClick, memberMap }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -75,12 +76,31 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
+          const childTicketsForThis = (allTickets ?? tickets).filter((t) => t.parentId === ticket.id);
+          const subtaskStats = childTicketsForThis.length > 0
+            ? {
+                total: childTicketsForThis.length,
+                completed: childTicketsForThis.filter((c) => c.status === 'done').length,
+              }
+            : undefined;
+
           return indented ? (
             <div key={ticket.id} className={styles.childIndent}>
-              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+              <DraggableTicketCard
+                ticket={ticket}
+                onCardClick={onCardClick}
+                memberMap={memberMap}
+                subtaskStats={subtaskStats}
+              />
             </div>
           ) : (
-            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+            <DraggableTicketCard
+              key={ticket.id}
+              ticket={ticket}
+              onCardClick={onCardClick}
+              memberMap={memberMap}
+              subtaskStats={subtaskStats}
+            />
           );
         })}
         {isOver && (

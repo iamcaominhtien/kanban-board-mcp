@@ -8,9 +8,10 @@ interface DraggableTicketCardProps {
   ticket: Ticket;
   onCardClick?: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
+  subtaskStats?: { total: number; completed: number };
 }
 
-export function DraggableTicketCard({ ticket, onCardClick, memberMap }: DraggableTicketCardProps) {
+export function DraggableTicketCard({ ticket, onCardClick, memberMap, subtaskStats }: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,
   });
@@ -54,7 +55,7 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap }: Draggabl
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={handleClick}>
-      <TicketCard ticket={ticket} memberMap={memberMap} />
+      <TicketCard ticket={ticket} memberMap={memberMap} subtaskStats={subtaskStats} />
     </div>
   );
 }
