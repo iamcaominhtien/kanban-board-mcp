@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import type { IssueType, Member, Priority, Status, Ticket } from '../types';
+import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
 import {
   useUpdateTicket,
   useAddComment, useUpdateComment, useDeleteComment,
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
   useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
-  useAddTestCase, useUpdateTestCase, useDeleteTestCase,
   uploadDescriptionImage,
   useLinkBlock, useUnlinkBlock,
   useAddTicketLink, useRemoveTicketLink,
+  useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+  useTicketBranches, useCreateBranch,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { ActivityLog } from './ActivityLog';
@@ -163,6 +164,31 @@ export function TicketModal({
   const unlinkBlockMutation = useUnlinkBlock();
   const addTicketLinkMutation = useAddTicketLink(ticket?.projectId ?? '');
   const removeTicketLinkMutation = useRemoveTicketLink(ticket?.projectId ?? '');
+
+  const { data: ticketBranches = [] } = useTicketBranches(ticket?.id ?? '');
+  const createBranchMutation = useCreateBranch();
+
+  const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
+  const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
+  const [showCreateBranch, setShowCreateBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+  const branchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (branchContainerRef.current && !branchContainerRef.current.contains(e.target as Node)) {
+        setIsBranchPopoverOpen(false);
+        setShowCreateBranch(false);
+      }
+    }
+    if (isBranchPopoverOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isBranchPopoverOpen]);
 
   const [visible, setVisible] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -468,6 +494,77 @@ export function TicketModal({
   // ══════════════════════════════════════════════════════════════
   // RENDER: VIEW MODE (Ticket Detail Panel)
   // ══════════════════════════════════════════════════════════════
+  const fallbackBranches: TicketBranch[] = [
+    {
+      id: 'baseline-main',
+      name: 'main',
+      status: 'baseline',
+      branchFrom: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'feat-attachments',
+      name: 'feature/attachments',
+      status: 'open',
+      branchFrom: 'main',
+      aheadCount: 2,
+      behindCount: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'feat-col-header',
+      name: 'feature/column-header',
+      status: 'merged',
+      branchFrom: 'main',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'spike-ws',
+      name: 'spike/websocket-sync',
+      status: 'stale',
+      branchFrom: 'feature/attachments',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+
+  const rawBranches: TicketBranch[] = (ticketBranches.length > 0
+    ? ticketBranches
+    : (ticket?.branches && ticket.branches.length > 0)
+      ? ticket.branches
+      : fallbackBranches
+  );
+
+  const branchesList: TicketBranch[] = [
+    ...(!rawBranches.some((b) => b.name === 'main' || b.status === 'baseline')
+      ? [{
+          id: 'baseline-main',
+          name: 'main',
+          status: 'baseline' as const,
+          branchFrom: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }]
+      : []),
+    ...rawBranches,
+  ];
+
+  const defaultBranch = (ticket?.branches && ticket.branches[0]) || branchesList.find(b => b.status === 'open') || branchesList[0];
+  const activeBranch = branchesList.find(b => b.name === selectedBranchName) || defaultBranch;
+  const activeBranchName = activeBranch?.name ?? 'feature/attachments';
+  const activeBranchSubtext = activeBranch
+    ? (activeBranch.status === 'baseline'
+        ? 'baseline'
+        : `from ${activeBranch.branchFrom || 'main'}${
+            activeBranch.aheadCount !== undefined
+              ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
+              : ' · 1 ahead'
+          }`)
+    : 'from main · 1 ahead';
+
   return (
     <div className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
       <div className={`${styles.panel} ${styles.panelDetail} ${visible ? styles.panelVisible : ''}`} onClick={(e) => e.stopPropagation()}>
@@ -509,14 +606,26 @@ export function TicketModal({
               </>
             )}
 
-            <button
-              type="button"
-              className={styles.idBtn}
-              onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
-              title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
-            >
-              {ticket.id}
-            </button>
+            {activeTab === 'branches' ? (
+              <button
+                type="button"
+                className={styles.idBtn}
+                onClick={() => setActiveTab('main')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#2E6F40', fontWeight: 600 }}
+                title="Back to Details"
+              >
+                ← Back to {ticket.id}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.idBtn}
+                onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
+                title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
+              >
+                {ticket.id}
+              </button>
+            )}
           </div>
 
           {/* View switcher tabs */}
@@ -774,28 +883,177 @@ export function TicketModal({
             {/* 2. Branch */}
             <div className={styles.sidebarRow}>
               <span className={styles.sidebarLabel}>Branch</span>
-              <button
-                type="button"
-                className={styles.branchBtn}
-                onClick={() => setActiveTab('branches')}
-                title={ticket.branches?.[0]?.name ? `Branch: ${ticket.branches[0].name}` : 'Branch: feature/drag-tests'}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  <circle cx="6" cy="6" r="2.5" />
-                  <circle cx="6" cy="18" r="2.5" />
-                  <circle cx="18" cy="6" r="2.5" />
-                  <path d="M6 8.5V15.5" />
-                  <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
-                </svg>
-                <span className={styles.branchText}>{ticket.branches?.[0]?.name ?? 'feature/drag-tests'}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  <path d="M6 9L12 15L18 9" />
-                </svg>
-              </button>
-              <span className={styles.branchSubtext}>
-                {ticket.branches?.[0] ? `from ${ticket.branches[0].branchFrom || 'main'} · 1 ahead` : 'from main · 1 ahead'}
-              </span>
+              <div ref={branchContainerRef} style={{ position: 'relative', width: '100%' }}>
+                <button
+                  type="button"
+                  className={`${styles.branchBtn} ${isBranchPopoverOpen ? styles.branchBtnActive : ''}`}
+                  onClick={() => setIsBranchPopoverOpen((prev) => !prev)}
+                  title={activeBranchName ? `Branch: ${activeBranchName}` : 'Branch: main'}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <circle cx="6" cy="6" r="2.5" />
+                    <circle cx="6" cy="18" r="2.5" />
+                    <circle cx="18" cy="6" r="2.5" />
+                    <path d="M6 8.5V15.5" />
+                    <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                  </svg>
+                  <span className={styles.branchText}>{activeBranchName}</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d={isBranchPopoverOpen ? "M6 15L12 9L18 15" : "M6 9L12 15L18 9"} />
+                  </svg>
+                </button>
+
+              {/* Branch Switcher Popover */}
+              {isBranchPopoverOpen && (
+                <div className={styles.branchPopover}>
+                  <div className={styles.branchPopoverHeader}>
+                    Branches of {ticket.id}
+                  </div>
+
+                  <div className={styles.branchList}>
+                    {branchesList.map((b) => {
+                      const isActive = b.name === activeBranchName;
+                      const dotColor =
+                        b.status === 'baseline' ? '#2E6F40' :
+                        b.status === 'merged' ? '#2F6FB0' :
+                        b.status === 'stale' || b.status === 'archived' ? '#C4432A' : '#6D5DD3';
+                      
+                      const badgeClass =
+                        b.status === 'baseline' ? styles.branchBadgeBaseline :
+                        b.status === 'merged' ? styles.branchBadgeMerged :
+                        b.status === 'stale' || b.status === 'archived' ? styles.branchBadgeStale : '';
+
+                      return (
+                        <button
+                          key={b.id || b.name}
+                          type="button"
+                          className={`${styles.branchRow} ${isActive ? styles.branchRowActive : ''}`}
+                          onClick={() => {
+                            setSelectedBranchName(b.name);
+                            setIsBranchPopoverOpen(false);
+                            if (b.linkedTicketId && allTickets) {
+                              const found = allTickets.find(t => t.id === b.linkedTicketId);
+                              if (found) onOpenTicket?.(found);
+                            }
+                          }}
+                        >
+                          <span className={styles.branchDot} style={{ background: dotColor }} />
+                          <span className={`${styles.branchRowName} ${isActive ? styles.branchRowNameActive : ''}`}>
+                            {b.name}
+                          </span>
+                          {isActive ? (
+                            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                              <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
+                              <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            b.status !== 'open' && (
+                              <span className={`${styles.branchBadge} ${badgeClass}`}>
+                                {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                              </span>
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {showCreateBranch ? (
+                    <form
+                      className={styles.branchCreateInline}
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const trimmed = newBranchName.trim();
+                        if (!trimmed) return;
+                        setIsCreatingBranch(true);
+                        try {
+                          await createBranchMutation.mutateAsync({
+                            ticketId: ticket.id,
+                            data: {
+                              name: trimmed,
+                              branch_from: activeBranchName || 'main',
+                              status: 'open',
+                            }
+                          });
+                          setSelectedBranchName(trimmed);
+                          setNewBranchName('');
+                          setShowCreateBranch(false);
+                          toast.success('Branch created', trimmed);
+                        } catch (err) {
+                          toast.error("Couldn't create branch", extractError(err));
+                        } finally {
+                          setIsCreatingBranch(false);
+                        }
+                      }}
+                    >
+                      <input
+                        type="text"
+                        className={styles.branchCreateInput}
+                        placeholder="branch-name"
+                        value={newBranchName}
+                        onChange={(e) => setNewBranchName(e.target.value)}
+                        autoFocus
+                      />
+                      <div className={styles.branchCreateActions}>
+                        <button
+                          type="button"
+                          className={styles.btnSec}
+                          style={{ padding: '4px 8px', fontSize: 11 }}
+                          onClick={() => {
+                            setShowCreateBranch(false);
+                            setNewBranchName('');
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className={styles.btnPri}
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                          disabled={isCreatingBranch || !newBranchName.trim()}
+                        >
+                          {isCreatingBranch ? 'Creating...' : 'Create'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className={styles.branchPopoverFooter}>
+                      <button
+                        type="button"
+                        className={styles.branchFooterBtn}
+                        onClick={() => setShowCreateBranch(true)}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M12 5V19" />
+                          <path d="M5 12H19" />
+                        </svg>
+                        Create branch
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
+                        onClick={() => {
+                          setIsBranchPopoverOpen(false);
+                          setActiveTab('branches');
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                        </svg>
+                        View full graph →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+            <span className={styles.branchSubtext}>
+              {activeBranchSubtext}
+            </span>
+          </div>
 
             {/* 3. Assignee */}
             <div className={styles.sidebarRow}>
@@ -946,7 +1204,7 @@ export function TicketModal({
                       { ticketId: ticket.id, title: tCase },
                       {
                         onSuccess: () => resolve(),
-                        onError: (err) => reject(err),
+                        onError: (err: unknown) => reject(err),
                       }
                     )
                   )
