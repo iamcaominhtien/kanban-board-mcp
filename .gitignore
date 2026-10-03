@@ -36,3 +36,7 @@ desktop/build/*
 !desktop/build/icon.png
 !desktop/build/icon.icns
 !desktop/build/icon.ico
+
+# Playwright & test artifacts
+.playwright-mcp/
+comments_*.png

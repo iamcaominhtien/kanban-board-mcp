@@ -697,7 +697,9 @@ export function TicketModal({
                 {/* Comments */}
                 <CommentsSection
                   comments={ticket.comments ?? []}
-                  onAdd={(t) => addCommentMutation.mutate({ ticketId: ticket.id, text: t, author: 'user' })}
+                  members={members}
+                  currentMember={assigneeMember}
+                  onAdd={(t) => addCommentMutation.mutate({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'An Nguyen' })}
                   onEdit={(cId, t) => updateCommentMutation.mutate({ ticketId: ticket.id, commentId: cId, text: t })}
                   onDelete={(cId) => deleteCommentMutation.mutate({ ticketId: ticket.id, commentId: cId })}
                 />
