@@ -1,16 +1,14 @@
 .listView {
   display: flex;
   flex-direction: column;
-  gap: 16px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
-
-.listView::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Edge */
+  border-radius: 12px;
+  border: 1px solid #E3E8E5;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
+  background: #FFFFFF;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* ── Toolbar ──────────────────────────────── */
@@ -18,11 +16,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #E3E8E5;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgba(61, 12, 17, 0.04);
-  border-radius: 16px;
+  gap: 10px;
+  background: #FFFFFF;
+  box-sizing: border-box;
 }
 
 .toolbarLeft,
@@ -30,241 +29,366 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .toolbarLabel {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--color-dark);
-  opacity: 0.7;
+  color: #9AA8A0;
   white-space: nowrap;
 }
 
-.select {
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-dark);
-  background: var(--color-bg);
-  border: 1.5px solid var(--color-dark);
-  border-radius: 10px;
-  padding: 5px 10px;
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%233D0C11' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 28px;
+.divider {
+  width: 1px;
+  height: 20px;
+  background: #E3E8E5;
+  margin: 0 2px;
 }
 
-.select:focus {
-  border-color: var(--color-orange, #E8441A);
+.dropdownContainer {
+  position: relative;
+}
+
+.dropdownBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.dropdownBtn:hover {
+  background: #F6FAF7;
+}
+
+.dropdownBtnActive {
+  border-color: #2E6F40;
+}
+
+.labelMuted {
+  color: #9AA8A0;
+  font-weight: 500;
+}
+
+.chevronIcon {
+  color: #9AA8A0;
+  transition: transform 0.15s ease;
+}
+
+.chevronRotated {
+  transform: rotate(180deg);
+  color: #5B6B60;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  background: #FFFFFF;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #3A4A3E;
+  transition: background 0.12s ease;
+  box-sizing: border-box;
+}
+
+.dropdownItem:hover {
+  background: #F6FAF7;
+}
+
+.dropdownItemActive {
+  background: #F1F8F3;
+  color: #1E2A22;
+  font-weight: 600;
+}
+
+.checkSquare {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1.6px solid #C7D2CB;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.checkSquareChecked {
+  background: #2E6F40;
+  border-color: #2E6F40;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.checkIcon {
+  color: #2E6F40;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* Sort toggle */
 .toggleGroup {
   display: flex;
-  border: 1.5px solid var(--color-dark);
-  border-radius: 10px;
-  overflow: hidden;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: #EEF3EF;
 }
 
 .toggleBtn {
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-dark);
+  color: #5B6B60;
   background: transparent;
   border: none;
-  padding: 5px 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.12s ease, color 0.12s ease;
 }
 
-.toggleBtn + .toggleBtn {
-  border-left: 1.5px solid var(--color-dark);
+.toggleBtn:hover {
+  color: #1E2A22;
 }
 
 .toggleBtnActive {
-  background: var(--color-dark);
-  color: var(--color-bg);
+  background: #FFFFFF;
+  color: #1E2A22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.10);
 }
 
-/* Expand/Collapse All */
-.expandBtn {
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-dark);
-  background: transparent;
-  border: 1.5px solid var(--color-dark);
-  border-radius: 10px;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.expandBtn:hover {
-  background: var(--color-dark);
-  color: var(--color-bg);
-}
-
-/* ── Groups ───────────────────────────────── */
-.groups {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.empty {
-  text-align: center;
-  color: var(--color-dark);
-  opacity: 0.5;
-  font-size: 14px;
-  padding: 40px 0;
-}
-
-/* ── Group ────────────────────────────────── */
-.group {
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1.5px solid rgba(61, 12, 17, 0.1);
-}
-
-.groupHeader {
-  width: 100%;
-  display: flex;
+.collapseAllBtn {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(61, 12, 17, 0.05);
-  border: none;
+  padding: 7px 11px;
+  border-radius: 8px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
   cursor: pointer;
-  text-align: left;
   font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #5B6B60;
   transition: background 0.12s ease;
 }
 
+.collapseAllBtn:hover {
+  background: #F6FAF7;
+}
+
+/* ── Groups list ─────────────────────────── */
+.groups {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.empty {
+  font-size: 13px;
+  color: #9AA8A0;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  background: #F6FAF7;
+  border-radius: 7px;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.12s ease;
+  box-sizing: border-box;
+}
+
 .groupHeader:hover {
-  background: rgba(61, 12, 17, 0.09);
+  background: #EEF3EF;
 }
 
 .groupDot {
-  width: 10px;
-  height: 10px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .groupChevron {
-  font-size: 11px;
-  color: var(--color-dark);
-  opacity: 0.6;
+  color: #5B6B60;
+  transition: transform 0.15s ease;
   flex-shrink: 0;
 }
 
+.groupChevronCollapsed {
+  transform: rotate(-90deg);
+}
+
 .groupLabel {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-dark);
-  flex: 1;
+  flex-grow: 1;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1E2A22;
 }
 
 .groupBadge {
-  background: var(--color-dark);
-  color: var(--color-bg);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 999px;
-  padding: 2px 8px;
+  color: #5B6B60;
 }
 
-/* ── Rows ─────────────────────────────────── */
 .groupRows {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2px;
+  background: #FFFFFF;
 }
 
 .row {
-  width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: none;
-  background: transparent;
+  gap: 14px;
+  padding: 9px 12px;
   cursor: pointer;
+  border: none;
+  border-bottom: 1px solid #EEF3EF;
+  background: #FFFFFF;
+  width: 100%;
   text-align: left;
+  box-sizing: border-box;
   font-family: var(--font-body);
   transition: background 0.12s ease;
 }
 
+.row:last-child {
+  border-bottom: none;
+}
+
 .row:hover {
-  background: rgba(61, 12, 17, 0.06);
+  background: #F6FAF7;
 }
 
 .rowId {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-dark);
-  opacity: 0.5;
-  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #9AA8A0;
+  width: 68px;
   flex-shrink: 0;
-  min-width: 72px;
+}
+
+.rowIdDone {
+  text-decoration: line-through;
+  text-decoration-color: #C7D2CB;
 }
 
 .rowTitle {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-dark);
+  flex-grow: 1;
+  font-size: 13px;
+  color: #1E2A22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.chip {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-dark);
-  border-radius: 999px;
-  padding: 3px 9px;
-  white-space: nowrap;
-  flex-shrink: 0;
+.rowTitleDone {
+  color: #5B6B60;
 }
-
-/* Status chip colors */
-.chipBacklog    { background: var(--color-backlog); color: #FFFFFF; }
-.chipTodo       { background: var(--color-todo); color: #FFFFFF; }
-.chipInProgress { background: var(--color-inprogress); color: #FFFFFF; }
-.chipReview     { background: var(--color-review); color: #FFFFFF; }
-.chipTesting    { background: var(--color-testing); color: #FFFFFF; }
-.chipDone       { background: var(--color-done); color: #FFFFFF; }
-
-/* Priority chip colors — must match PRIORITY_COLORS in TicketCard.tsx */
-.chipCritical  { background: #DC2626; }
-.chipHigh      { background: var(--color-orange, #E8441A); }
-.chipMedium    { background: var(--color-yellow, #F5C518); }
-.chipLow       { background: #9CA3AF; }
-
-/* Tag group dot colors */
-.chipTag       { background: var(--color-blue,   #5BB8F5); }
-.chipUntagged  { background: var(--color-gray, #9CA3AF); }
 
 .rowDue {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-dark);
-  opacity: 0.55;
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 100px;
+  font-size: 11.5px;
+  color: #9AA8A0;
+  width: 78px;
   text-align: right;
+  flex-shrink: 0;
 }
+
+.rowDueOverdue {
+  color: #C4432A;
+  font-weight: 600;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusChip {
+  width: 76px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Priority chips */
+.chipCritical { background: rgba(196, 67, 42, 0.14); color: #C4432A; }
+.chipHigh     { background: rgba(226, 121, 61, 0.16); color: #B4571F; }
+.chipMedium   { background: rgba(232, 185, 58, 0.18); color: #9A7B14; }
+.chipLow      { background: rgba(155, 179, 164, 0.20); color: #4E6459; }
+.chipNeutral  { background: rgba(154, 168, 160, 0.18); color: #5B6B60; }
+
+/* Status chips */
+.chipBacklog    { background: rgba(154, 168, 160, 0.18); color: #5B6B60; }
+.chipTodo       { background: rgba(47, 111, 176, 0.14); color: #2F6FB0; }
+.chipInProgress { background: rgba(226, 121, 61, 0.16); color: #B4571F; }
+.chipReview     { background: rgba(109, 93, 211, 0.14); color: #6D5DD3; }
+.chipTesting    { background: rgba(180, 87, 31, 0.16); color: #B4571F; }
+.chipDone       { background: rgba(46, 111, 64, 0.14); color: #2E6F40; }

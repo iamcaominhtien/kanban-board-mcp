@@ -15,7 +15,7 @@ import { useTheme } from './hooks/useTheme';
 import { extractError } from './api/extractError';
 import { useToast } from './components/Toast';
 import { FullPageSpinner } from './components/LoadingStates';
-import type { Priority, Status, Ticket } from './types';
+import type { IssueType, Priority, Status, Ticket } from './types';
 
 export default function App() {
   useSSEInvalidation();
@@ -29,6 +29,7 @@ export default function App() {
     () => localStorage.getItem('activeProjectId') ?? ''
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -92,11 +93,12 @@ export default function App() {
   const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
     .filter((t) => {
+      const matchesType = activeType === 'all' || t.type === activeType;
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
       const matchesAssignee =
         activeAssignee === 'all' ||
         (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
-      return matchesPriority && matchesAssignee;
+      return matchesType && matchesPriority && matchesAssignee;
     });
 
   const [modalState, setModalState] = useState<
@@ -216,6 +218,7 @@ export default function App() {
   function handleSelectProject(id: string) {
     setCurrentProjectId(id);
     setSearchQuery('');
+    setActiveType('all');
     setActivePriority('all');
     setActiveAssignee('all');
     closeModal();
@@ -337,6 +340,8 @@ export default function App() {
                 onCardClick={handleOpenView}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                activeType={activeType}
+                onTypeChange={setActiveType}
                 activePriority={activePriority}
                 onPriorityChange={setActivePriority}
                 projectName={currentProject?.name ?? ''}

@@ -229,36 +229,43 @@
 ### 5.1 — Main Board (Full 6 Columns)
 - **Source HTML**: [`design/source/MainBoard.dc.html`](design/source/MainBoard.dc.html)
 - **Visual Spec**: [`design/images/main-board/`](design/images/main-board/)
-- [ ] Cấu trúc 6 cột: Backlog, Todo, In-Progress, Review, Testing, Done
-- [ ] Filter Bar: lọc theo member avatar, tag pill, priority, search text
-- [ ] Column header: badge đếm số lượng ticket, accent color dot
+- [x] Cấu trúc 6 cột: Backlog, Todo, In-Progress, Review, Testing, Done
+- [x] Filter Bar: dropdowns một hàng (Type, Priority, Assignee) với checkmarks và Search box chuẩn artboard
+- [x] Column header: badge đếm số lượng ticket, thanh accent color bar 3px
 
 ### 5.2 — Project Sidebar (Dark Ink Theme)
 - **Source HTML**: [`design/source/Main.dc.html`](design/source/Main.dc.html) (L236–248)
 - **Visual Spec**: [`design/images/main-board/`](design/images/main-board/)
-- [ ] Nền `#253D2C`, logo chip 22px chuẩn thiết kế, switch board toggle, danh sách projects
+- [x] Nền `#253D2C`, logo chip 22px chuẩn thiết kế (thẻ sau nghiêng -9° và thẻ trước đổ bóng), Idea Space toggle card, danh sách projects với active green `#2E6F40`, + New Project dashed button, Settings / Members / Recycle Bin items
 
 ### 5.3 — List View
 - **Source HTML**: [`design/source/ListView.dc.html`](design/source/ListView.dc.html)
 - **Visual Spec**: [`design/images/list-view/`](design/images/list-view/)
-- [ ] Group by Status / Assignee / Priority / Tags
-- [ ] Header bảng, row hover, status chip và priority bars
+- [x] Group by Status / Priority / Tag với dropdown custom
+- [x] Status multi-select filter dropdown với checkboxes
+- [x] Sort by Due Date / Created segmented toggle & Collapse/Expand All
+- [x] Header bảng, row hover, status chip và priority bars, gạch ngang ID cho ticket Done
 
 ### 5.4 — Timeline / Gantt View
 - **Source HTML**: [`design/source/TimelineView.dc.html`](design/source/TimelineView.dc.html)
 - **Visual Spec**: [`design/images/timeline-view/`](design/images/timeline-view/)
-- [ ] Thanh bar timeline theo ngày/tuần/tháng
-- [ ] Drag bar để reschedule và resize hai đầu để thay đổi thời lượng
+- [x] Segmented switcher Gantt & Event Timeline
+- [x] Gantt: thanh bar 60 ngày, vạch ngày hôm nay, màu sắc theo trạng thái (xanh, đỏ overdue, xanh lá mờ cho done)
+- [x] Resize 2 đầu thanh bar trực tiếp (Starts / Due date live tooltip) để reschedule mà không cần mở modal
+- [x] Event Timeline: tái sử dụng rail pattern từ Debug Space với dot và stroke SVG icons
 
 ### 5.5 — Members Modal
 - **Source HTML**: [`design/source/MembersView.dc.html`](design/source/MembersView.dc.html)
 - **Visual Spec**: [`design/images/members-view/`](design/images/members-view/)
-- [ ] Danh sách thành viên, avatar, role, số lượng ticket đang nắm giữ, nút thêm/xóa thành viên
+- [x] Modal 460px nền trắng nổi bật trên overlay dimmed `#253D2C` 50%
+- [x] Danh sách thành viên, avatar, nút xóa với hover cảnh báo, form thêm thành viên với 7 màu preset palette chuẩn thiết kế
 
 ### 5.6 — Settings Modal
 - **Source HTML**: [`design/source/SettingsView.dc.html`](design/source/SettingsView.dc.html)
 - **Visual Spec**: [`design/images/settings-view/`](design/images/settings-view/)
-- [ ] Cài đặt project, prefix, màu sắc, data folder path, retention policy
+- [x] Modal 620px với Data Folder path, browse và apply
+- [x] Workspace app-wide configuration: toggle switch, root path, default retention chips (7, 30, 90 ngày, Forever)
+- [x] Theme switch toggle và Import / Export ZIP actions
 
 ---
 

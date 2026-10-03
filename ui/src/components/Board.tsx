@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import type { Column as ColumnType, Member, Priority, Status, Ticket } from '../types';
+import type { Column as ColumnType, IssueType, Member, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -26,6 +26,8 @@ interface BoardProps {
   onCardClick: (ticket: Ticket) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  activeType?: IssueType | 'all';
+  onTypeChange?: (t: IssueType | 'all') => void;
   activePriority: Priority | 'all';
   onPriorityChange: (p: Priority | 'all') => void;
   projectName: string;
@@ -39,7 +41,26 @@ interface BoardProps {
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'review', 'testing', 'done']);
 
-export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, projectId, viewMode, onViewModeChange, members = [], activeAssignee = 'all', onAssigneeChange }: BoardProps) {
+export function Board({
+  tickets,
+  allTickets,
+  onDragEnd,
+  onNewTicket,
+  onCardClick,
+  searchQuery,
+  onSearchChange,
+  activeType = 'all',
+  onTypeChange,
+  activePriority,
+  onPriorityChange,
+  projectName,
+  projectId,
+  viewMode,
+  onViewModeChange,
+  members = [],
+  activeAssignee = 'all',
+  onAssigneeChange,
+}: BoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -97,6 +118,8 @@ export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick
         <FilterBar
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
+          activeType={activeType}
+          onTypeChange={onTypeChange}
           activePriority={activePriority}
           onPriorityChange={onPriorityChange}
           members={members}

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
@@ -20,11 +20,43 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
+  // App-wide workspace configuration state (persisted to localStorage)
+  const [workspaceEnabled, setWorkspaceEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('kanban_workspace_enabled') !== 'false';
+  });
+  const [workspaceRoot, setWorkspaceRoot] = useState<string>(() => {
+    return localStorage.getItem('kanban_workspace_root') || '~/kanban-workspace';
+  });
+  const [defaultRetention, setDefaultRetention] = useState<string>(() => {
+    return localStorage.getItem('kanban_workspace_retention') || '30';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kanban_workspace_enabled', String(workspaceEnabled));
+  }, [workspaceEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('kanban_workspace_root', workspaceRoot);
+  }, [workspaceRoot]);
+
+  useEffect(() => {
+    localStorage.setItem('kanban_workspace_retention', defaultRetention);
+  }, [defaultRetention]);
+
   const isElectron = !!(window as any).electronAPI?.selectFolder;
 
   async function handleBrowse() {
-    const folder = await (window as any).electronAPI.selectFolder();
-    if (folder) setFolderInput(folder);
+    if ((window as any).electronAPI?.selectFolder) {
+      const folder = await (window as any).electronAPI.selectFolder();
+      if (folder) setFolderInput(folder);
+    }
+  }
+
+  async function handleBrowseWorkspace() {
+    if ((window as any).electronAPI?.selectFolder) {
+      const folder = await (window as any).electronAPI.selectFolder();
+      if (folder) setWorkspaceRoot(folder);
+    }
   }
 
   async function handleApplyFolder() {
@@ -100,95 +132,177 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
   return (
     <div className={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-label="Settings">
       <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>Settings</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close settings">
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M6 6L18 18M18 6L6 18" />
+            </svg>
           </button>
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Data Folder</h3>
-          {isLoading ? (
-            <p className={styles.hint}>Loading...</p>
-          ) : (
-            <p className={styles.hint}>
-              Current: <code className={styles.code}>{settings?.dataFolder}</code>
-            </p>
-          )}
-          <div className={styles.folderRow}>
-            <input
-              className={styles.input}
-              type="text"
-              placeholder="New folder path (e.g. /Users/you/kanban-data)"
-              value={folderInput}
-              onChange={(e) => { setFolderInput(e.target.value); setFolderStatus(null); }}
-            />
-            {isElectron && (
-              <button type="button" className={styles.browseBtn} onClick={handleBrowse}>
-                Browse…
-              </button>
+        {/* Scrollable Body */}
+        <div className={styles.body}>
+          {/* Data Folder Section */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Data Folder</span>
+            <div className={styles.hint}>
+              Current: <span className={styles.code}>{isLoading ? 'Loading…' : (settings?.dataFolder || 'Default')}</span>
+            </div>
+            <div className={styles.inputRow}>
+              <input
+                className={styles.input}
+                type="text"
+                placeholder="New folder path (e.g. /Users/you/kanban-data)"
+                value={folderInput}
+                onChange={(e) => {
+                  setFolderInput(e.target.value);
+                  setFolderStatus(null);
+                }}
+              />
+              {isElectron && (
+                <button type="button" className={styles.btn} onClick={handleBrowse}>
+                  Browse…
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              style={{ alignSelf: 'flex-start' }}
+              disabled={!folderInput.trim() || setDataPath.isPending}
+              onClick={handleApplyFolder}
+            >
+              {setDataPath.isPending ? 'Moving…' : 'Apply'}
+            </button>
+            {folderStatus && (
+              <span className={folderStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>
+                {folderStatus}
+              </span>
             )}
           </div>
-          <button
-            type="button"
-            className={styles.applyBtn}
-            disabled={!folderInput.trim() || setDataPath.isPending}
-            onClick={handleApplyFolder}
-          >
-            {setDataPath.isPending ? 'Moving…' : 'Apply'}
-          </button>
-          {folderStatus && (
-            <p className={`${styles.status} ${folderStatus.startsWith('✓') ? styles.statusSuccess : styles.statusError}`}>
-              {folderStatus}
-            </p>
-          )}
-        </div>
 
-        <div className={styles.divider} />
+          <div className={styles.divider} />
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Theme</h3>
-          <p className={styles.hint}>
-            Switch between color and black & white TV mode.
-          </p>
-          <button
-            type="button"
-            className={styles.applyBtn}
-            onClick={onToggleTheme}
-            style={{ marginTop: '8px' }}
-          >
-            {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
-          </button>
-        </div>
+          {/* Workspace Section (App-wide) */}
+          <div className={styles.section}>
+            <div className={styles.sectionHeaderRow}>
+              <span className={styles.sectionTitle} style={{ flexGrow: 1 }}>Workspace</span>
+              <div
+                className={`${styles.toggleTrack} ${workspaceEnabled ? styles.toggleTrackActive : ''}`}
+                onClick={() => setWorkspaceEnabled((v) => !v)}
+                role="switch"
+                aria-checked={workspaceEnabled}
+              >
+                <div className={`${styles.toggleDot} ${workspaceEnabled ? styles.toggleDotActive : ''}`} />
+              </div>
+            </div>
+            <div className={styles.hint}>
+              Local scratch folder per task, no API — the Workspace tab on a ticket lists whatever's on disk under this root. Turning this off hides the Workspace tab everywhere.
+            </div>
 
-        <div className={styles.divider} />
+            {workspaceEnabled && (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span className={styles.fieldLabel}>Root path</span>
+                  <div className={styles.inputRow}>
+                    <input
+                      className={styles.input}
+                      value={workspaceRoot}
+                      onChange={(e) => setWorkspaceRoot(e.target.value)}
+                    />
+                    {isElectron && (
+                      <button type="button" className={styles.btn} onClick={handleBrowseWorkspace}>
+                        Browse…
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Import / Export</h3>
-          <p className={styles.hint}>
-            Export all data (database + attachments) as a ZIP file. Use the same file to import and
-            restore.
-          </p>
-          <div className={styles.importExportRow}>
-            <button type="button" className={styles.exportBtn} onClick={handleExport}>
-              ⬇ Export Data
-            </button>
-            <button type="button" className={styles.importBtn} onClick={() => importRef.current?.click()}>
-              ⬆ Import Data
-            </button>
-            <input ref={importRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handleImport} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span className={styles.fieldLabel}>Default retention for new tasks</span>
+                  <div className={styles.retentionRow}>
+                    {[
+                      { value: '7', label: '7 days' },
+                      { value: '30', label: '30 days' },
+                      { value: '90', label: '90 days' },
+                      { value: 'forever', label: 'Forever' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={`${styles.retentionOpt} ${defaultRetention === opt.value ? styles.retentionOptActive : ''}`}
+                        onClick={() => setDefaultRetention(opt.value)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className={styles.hint} style={{ fontSize: '11px' }}>
+                    Applies to new task folders only — a task can override this from its own Workspace tab. A background sweep deletes folders past their window; anything overridden to "Forever" is skipped.
+                  </span>
+                </div>
+              </>
+            )}
           </div>
-          {exportStatus && (
-            <p className={`${styles.status} ${exportStatus.startsWith('✓') ? styles.statusSuccess : styles.statusError}`}>
-              {exportStatus}
-            </p>
-          )}
-          {importStatus && (
-            <p className={`${styles.status} ${importStatus.startsWith('✓') ? styles.statusSuccess : importStatus === 'Importing...' ? styles.statusInfo : styles.statusError}`}>
-              {importStatus}
-            </p>
-          )}
+
+          <div className={styles.divider} />
+
+          {/* Theme Section */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Theme</span>
+            <div className={styles.hint}>Switch between color and black &amp; white TV mode.</div>
+            <button
+              type="button"
+              className={styles.btn}
+              onClick={onToggleTheme}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
+            </button>
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* Import / Export Section */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Import / Export</span>
+            <div className={styles.hint}>
+              Export all data (database + attachments) as a ZIP file. Use the same file to import and restore.
+            </div>
+            <div className={styles.inputRow}>
+              <button type="button" className={styles.btn} onClick={handleExport}>
+                ⬇ Export Data
+              </button>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDangerOutline}`}
+                onClick={() => importRef.current?.click()}
+              >
+                ⬆ Import Data
+              </button>
+              <input ref={importRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handleImport} />
+            </div>
+            {exportStatus && (
+              <span className={exportStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>
+                {exportStatus}
+              </span>
+            )}
+            {importStatus && (
+              <span
+                className={
+                  importStatus.startsWith('✓')
+                    ? styles.statusOk
+                    : importStatus === 'Importing...'
+                    ? styles.statusInfo
+                    : styles.statusErr
+                }
+              >
+                {importStatus}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

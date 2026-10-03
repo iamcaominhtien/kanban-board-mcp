@@ -20,7 +20,19 @@ interface ProjectSidebarProps {
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
 
-export function ProjectSidebar({ projects, currentProjectId, onSelectProject, onCreateProject, onDeleteProject, onOpenRecycleBin, onOpenMembers, onOpenSettings, wontDoCount, activeBoard, onBoardChange }: ProjectSidebarProps) {
+export function ProjectSidebar({
+  projects,
+  currentProjectId,
+  onSelectProject,
+  onCreateProject,
+  onDeleteProject,
+  onOpenRecycleBin,
+  onOpenMembers,
+  onOpenSettings,
+  wontDoCount,
+  activeBoard,
+  onBoardChange,
+}: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
@@ -33,8 +45,7 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
     setFormColor(PRESET_COLORS[0]);
   }
 
-  function toggleBoard(e: React.MouseEvent) {
-    e.stopPropagation();
+  function toggleBoard() {
     onBoardChange(activeBoard === 'main' ? 'idea' : 'main');
   }
 
@@ -56,139 +67,186 @@ export function ProjectSidebar({ projects, currentProjectId, onSelectProject, on
     }
   }
 
-  function handleDelete(e: React.MouseEvent, id: string) {
+  function handleDelete(e: React.MouseEvent, id: string, name: string) {
     e.stopPropagation();
-    if (window.confirm('Delete this project? All its tickets will be lost.')) {
+    if (window.confirm(`Delete project "${name}"? All its tickets will be lost.`)) {
       onDeleteProject(id);
     }
   }
 
   return (
-    <aside className={`${styles.sidebar} ${showForm ? styles.expanded : ''}`} aria-label="Project navigation">
-      <div className={styles.logo}>
+    <aside className={styles.sidebar} aria-label="Project navigation">
+      {/* App Brand Header */}
+      <div className={styles.logoArea}>
         <AppLogo size={22} />
         <span className={styles.logoText}>KANBAN</span>
       </div>
 
-      <nav className={styles.projectList}>
-        <p className={styles.sectionLabel}>Projects</p>
-        {projects.map((project) => (
-          <div
-            key={project.id}
-            role="button"
-            tabIndex={0}
-            className={`${styles.projectItem} ${project.id === currentProjectId ? styles.active : ''}`}
-            onClick={() => onSelectProject(project.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelectProject(project.id);
-              }
-            }}
-          >
-            <span className={styles.dot} style={{ backgroundColor: project.color }} />
-            <span className={styles.projectName}>{project.name}</span>
-            <span className={styles.prefixBadge}>{project.prefix}</span>
-            {project.id === currentProjectId && (
-              <button
-                type="button"
-                className={`${styles.boardToggleSwitch} ${activeBoard === 'idea' ? styles.boardToggleOn : ''}`}
-                onClick={toggleBoard}
-                title={activeBoard === 'main' ? 'Switch to Idea Space 💡' : 'Switch to Main Board 📋'}
-                aria-label={activeBoard === 'idea' ? 'Switch to Main Board' : 'Switch to Idea Space'}
-                aria-checked={activeBoard === 'idea'}
-                role="switch"
-              >
-                <span className={styles.boardToggleKnob} />
-              </button>
-            )}
-            {projects.length > 1 && (
-              <button
-                type="button"
-                className={styles.deleteBtn}
-                onClick={(e) => handleDelete(e, project.id)}
-                aria-label={`Delete ${project.name}`}
-              >
-                ×
-              </button>
-            )}
-          </div>
-        ))}
-      </nav>
+      {/* Projects List */}
+      <div className={styles.projectSection}>
+        <div className={styles.sectionLabel}>Projects</div>
 
-      <div className={styles.bottomSection}>
+        <nav className={styles.projectList}>
+          {projects.map((project) => {
+            const isActive = project.id === currentProjectId;
+            return (
+              <div
+                key={project.id}
+                role="button"
+                tabIndex={0}
+                className={`${styles.projectItem} ${isActive ? styles.projectItemActive : ''}`}
+                onClick={() => onSelectProject(project.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectProject(project.id);
+                  }
+                }}
+              >
+                <span className={styles.projectDot} style={{ backgroundColor: project.color }} />
+                <span className={styles.projectName}>{project.name}</span>
+                <span className={styles.prefixBadge}>{project.prefix}</span>
+                {projects.length > 1 && !isActive && (
+                  <button
+                    type="button"
+                    className={styles.deleteBtn}
+                    onClick={(e) => handleDelete(e, project.id, project.name)}
+                    aria-label={`Delete ${project.name}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* New Project Button or Form */}
+      {showForm ? (
+        <form className={styles.newProjectForm} onSubmit={handleSubmit}>
+          <div className={styles.formTitle}>New Project</div>
+          <input
+            className={styles.formInput}
+            type="text"
+            placeholder="Project name"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            autoFocus
+          />
+          <input
+            className={styles.formInput}
+            type="text"
+            placeholder="Prefix (e.g. PROJ)"
+            value={formPrefix}
+            maxLength={6}
+            onChange={(e) => {
+              setFormPrefix(e.target.value.toUpperCase());
+              setPrefixError(null);
+            }}
+          />
+          {prefixError && <p className={styles.formError}>{prefixError}</p>}
+          <div className={styles.swatchesRow}>
+            {PRESET_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={`${styles.swatch} ${formColor === color ? styles.swatchActive : ''}`}
+                style={{ backgroundColor: color }}
+                onClick={() => setFormColor(color)}
+                aria-label={`Color ${color}`}
+              />
+            ))}
+          </div>
+          <div className={styles.formActions}>
+            <button type="submit" className={styles.submitBtn}>
+              Create
+            </button>
+            <button
+              type="button"
+              className={styles.cancelBtn}
+              onClick={() => {
+                setShowForm(false);
+                setPrefixError(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
         <button
           type="button"
-          className={styles.recycleBinBtn}
+          className={styles.newProjectBtn}
+          onClick={() => setShowForm(true)}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+            <path d="M12 5V19M5 12H19" />
+          </svg>
+          New Project
+        </button>
+      )}
+
+      {/* Idea Space Toggle Card */}
+      <div
+        className={`${styles.ideaCard} ${activeBoard === 'idea' ? styles.ideaCardActive : ''}`}
+        onClick={toggleBoard}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleBoard();
+          }
+        }}
+      >
+        <span className={styles.ideaLabel}>Idea Space</span>
+        <div className={`${styles.toggleTrack} ${activeBoard === 'idea' ? styles.toggleTrackActive : ''}`}>
+          <div className={`${styles.toggleKnob} ${activeBoard === 'idea' ? styles.toggleKnobActive : ''}`} />
+        </div>
+      </div>
+
+      <div className={styles.spacer} />
+
+      {/* Bottom Actions */}
+      <div className={styles.bottomNav}>
+        <button
+          type="button"
+          className={styles.sidebarIconBtn}
           onClick={onOpenSettings}
-          title="Settings"
         >
-          <span className={styles.recycleBinIcon}>⚙️</span>
-          <span className={styles.recycleBinLabel}>Settings</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2V5M12 19V22M4.2 4.2L6.3 6.3M17.7 17.7L19.8 19.8M2 12H5M19 12H22M4.2 19.8L6.3 17.7M17.7 6.3L19.8 4.2" />
+          </svg>
+          Settings
         </button>
         <button
           type="button"
-          className={styles.recycleBinBtn}
+          className={styles.sidebarIconBtn}
           onClick={onOpenMembers}
-          title="Project Members"
         >
-          <span className={styles.recycleBinIcon}>👥</span>
-          <span className={styles.recycleBinLabel}>Members</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="8" r="3.2" />
+            <path d="M3.5 19C3.5 15.5 6 13.5 9 13.5C12 13.5 14.5 15.5 14.5 19" />
+            <circle cx="17" cy="9" r="2.6" />
+            <path d="M15.5 13.6C18 13.6 20 15.3 20.3 18" />
+          </svg>
+          Members
         </button>
         <button
           type="button"
-          className={styles.recycleBinBtn}
+          className={styles.sidebarIconBtn}
           onClick={onOpenRecycleBin}
-          title="Recycle Bin"
         >
-          <span className={styles.recycleBinIcon}>🗑</span>
-          <span className={styles.recycleBinLabel}>Recycle Bin</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6H21M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+          Recycle Bin
           {wontDoCount > 0 && (
-            <span className={styles.recycleBinBadge}>{wontDoCount}</span>
+            <span className={styles.badgeCount}>{wontDoCount}</span>
           )}
         </button>
-        {showForm ? (
-          <form className={styles.newProjectForm} onSubmit={handleSubmit}>
-            <p className={styles.formTitle}>New Project</p>
-            <input
-              className={styles.input}
-              type="text"
-              placeholder="Project name"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              autoFocus
-            />
-            <input
-              className={styles.input}
-              type="text"
-              placeholder="Prefix (e.g. PROJ)"
-              value={formPrefix}
-              maxLength={6}
-              onChange={(e) => { setFormPrefix(e.target.value.toUpperCase()); setPrefixError(null); }}
-            />
-            {prefixError && <p className={styles.errorText}>{prefixError}</p>}
-            <div className={styles.colorSwatches}>
-              {PRESET_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`${styles.swatch} ${formColor === color ? styles.swatchActive : ''}`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setFormColor(color)}
-                  aria-label={`Color ${color}`}
-                />
-              ))}
-            </div>
-            <div className={styles.formActions}>
-              <button type="submit" className={styles.submitBtn}>Create</button>
-              <button type="button" className={styles.cancelBtn} onClick={() => { setShowForm(false); setPrefixError(null); }}>Cancel</button>
-            </div>
-          </form>
-        ) : (
-          <button type="button" className={styles.newProjectBtn} onClick={() => setShowForm(true)}>
-            +<span className={styles.newProjectLabel}> New Project</span>
-          </button>
-        )}
       </div>
     </aside>
   );
