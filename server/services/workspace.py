@@ -62,12 +62,12 @@ async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[st
 
     if exists:
         try:
-            for entry in sorted(folder_path.iterdir()):
+            for entry in sorted(folder_path.rglob('*')):
                 if entry.is_file():
                     stat = entry.stat()
                     total_bytes += stat.st_size
                     files.append({
-                        "name": entry.name,
+                        "name": str(entry.relative_to(folder_path)),
                         "size": stat.st_size,
                         "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
                     })

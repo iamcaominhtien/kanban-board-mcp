@@ -81,7 +81,8 @@ function formatTimeAgo(isoString: string): string {
   return `${diffDay}d ago`;
 }
 
-function getInitials(name: string): string {
+function getInitials(name?: string | null): string {
+  if (!name || !name.trim()) return 'DL';
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -134,7 +135,11 @@ export function DebugSpaceSection({
 
   const filteredEntries = [...entries]
     .filter((e) => activeFilter === 'all' || (e.kind || 'investigation') === activeFilter)
-    .sort((a, b) => b.at.localeCompare(a.at));
+    .sort((a, b) => {
+      const timeB = b.at ?? (b as any).date ?? (b as any).createdAt ?? '';
+      const timeA = a.at ?? (a as any).date ?? (a as any).createdAt ?? '';
+      return String(timeB).localeCompare(String(timeA));
+    });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -368,9 +373,9 @@ export function DebugSpaceSection({
                       className={styles.dbgAvatar}
                       style={{ background: roleCfg.bg, color: roleCfg.color }}
                     >
-                      {getInitials(entry.author)}
+                      {getInitials(entry.author || (entry as any).author_name)}
                     </div>
-                    <span className={styles.authorName}>{entry.author}</span>
+                    <span className={styles.authorName}>{entry.author || (entry as any).author_name || 'Developer'}</span>
                     <span
                       className={styles.dbgRoleBadge}
                       style={{ background: roleCfg.bg, color: roleCfg.color }}

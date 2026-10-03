@@ -65,21 +65,30 @@ export function RelationsSection({
   // Build unified relation rows
   const relations: RelationRow[] = useMemo(() => {
     const rows: RelationRow[] = [];
+    const seen = new Set<string>();
+
+    const addRow = (row: RelationRow) => {
+      const key = `${row.type}-${row.targetId}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        rows.push(row);
+      }
+    };
 
     (ticket.blocks ?? []).forEach((targetId) => {
       const t = allTickets.find((item) => item.id === targetId);
-      if (t) rows.push({ type: 'blocks', targetId, ticket: t });
+      if (t) addRow({ type: 'blocks', targetId, ticket: t });
     });
 
     (ticket.blockedBy ?? []).forEach((targetId) => {
       const t = allTickets.find((item) => item.id === targetId);
-      if (t) rows.push({ type: 'blockedBy', targetId, ticket: t });
+      if (t) addRow({ type: 'blockedBy', targetId, ticket: t });
     });
 
     (ticket.links ?? []).forEach((link) => {
       const t = allTickets.find((item) => item.id === link.targetId);
       if (t)
-        rows.push({
+        addRow({
           type: link.relationType,
           targetId: link.targetId,
           ticket: t,
