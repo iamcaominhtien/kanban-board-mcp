@@ -189,7 +189,9 @@ class TicketCreateBody(SQLModel):
     description: str = ""
     type: Literal["bug", "feature", "task", "chore"] = "task"
     priority: Literal["low", "medium", "high", "critical"] = "medium"
-    status: Literal["backlog", "todo", "in-progress", "done", "wont_do"] = "backlog"
+    status: Literal[
+        "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
+    ] = "backlog"
     estimate: Optional[float] = None
     due_date: Optional[str] = None
     start_date: Optional[str] = None
@@ -202,9 +204,11 @@ class TicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
     type: Optional[Literal["bug", "feature", "task", "chore"]] = None
-    status: Optional[Literal["backlog", "todo", "in-progress", "done", "wont_do"]] = (
-        None
-    )
+    status: Optional[
+        Literal[
+            "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
+        ]
+    ] = None
     priority: Optional[Literal["low", "medium", "high", "critical"]] = None
     estimate: Optional[float] = None
     due_date: Optional[str] = None

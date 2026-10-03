@@ -10,10 +10,12 @@ import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 
 const COLUMNS: ColumnType[] = [
-  { id: 'backlog',     label: 'Backlog',      accentColor: '#F5C518' },
-  { id: 'todo',        label: 'To Do',        accentColor: '#E8441A' },
-  { id: 'in-progress', label: 'In Progress',  accentColor: '#AACC2E' },
-  { id: 'done',        label: 'Done',         accentColor: '#F472B6' },
+  { id: 'backlog',     label: 'Backlog',      accentColor: 'var(--color-backlog)' },
+  { id: 'todo',        label: 'To Do',        accentColor: 'var(--color-todo)' },
+  { id: 'in-progress', label: 'In Progress',  accentColor: 'var(--color-inprogress)' },
+  { id: 'review',      label: 'Review',       accentColor: 'var(--color-review)' },
+  { id: 'testing',     label: 'Testing',      accentColor: 'var(--color-testing)' },
+  { id: 'done',        label: 'Done',         accentColor: 'var(--color-done)' },
 ];
 
 interface BoardProps {
@@ -35,7 +37,7 @@ interface BoardProps {
   onAssigneeChange?: (id: string | 'all') => void;
 }
 
-const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'done']);
+const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'review', 'testing', 'done']);
 
 export function Board({ tickets, allTickets, onDragEnd, onNewTicket, onCardClick, searchQuery, onSearchChange, activePriority, onPriorityChange, projectName, projectId, viewMode, onViewModeChange, members = [], activeAssignee = 'all', onAssigneeChange }: BoardProps) {
   const sensors = useSensors(

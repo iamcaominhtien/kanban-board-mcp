@@ -7,6 +7,8 @@ const STATUS_LABELS: Record<Status, string> = {
   backlog: 'Backlog',
   todo: 'To Do',
   'in-progress': 'In Progress',
+  review: 'Review',
+  testing: 'Testing',
   done: 'Done',
   wont_do: 'Không làm',
 };

@@ -126,7 +126,9 @@ async def create_ticket(
     title: str,
     type: Literal["bug", "feature", "task", "chore"] = "task",
     priority: Literal["low", "medium", "high", "critical"] = "medium",
-    status: Literal["backlog", "todo", "in-progress", "done"] = "backlog",
+    status: Literal[
+        "backlog", "todo", "in-progress", "review", "testing", "done"
+    ] = "backlog",
     description: str = "",
     parent_id: str | None = None,
     estimate: float | None = None,
@@ -140,7 +142,7 @@ async def create_ticket(
         title: Ticket title (required)
         type: bug | feature | task | chore (default: task)
         priority: low | medium | high | critical (default: medium)
-        status: backlog | todo | in-progress | done (default: backlog)
+        status: backlog | todo | in-progress | review | testing | done (default: backlog)
         description: Markdown description
         parent_id: Optional parent ticket ID for subtasks (max 1 level deep)
         estimate: Story points (e.g. 1, 2, 3, 5, 8)
@@ -185,9 +187,11 @@ async def get_ticket(ticket_id: str) -> dict | None:
 @notify_on_success
 async def update_ticket_status(
     ticket_id: str,
-    status: Literal["backlog", "todo", "in-progress", "done"],
+    status: Literal[
+        "backlog", "todo", "in-progress", "review", "testing", "done"
+    ],
 ) -> dict | None:
-    """Update the status of a ticket. Valid statuses: backlog, todo, in-progress, done.
+    """Update the status of a ticket. Valid statuses: backlog, todo, in-progress, review, testing, done.
 
     Automatically appends a status change entry to the ticket's activity log.
     Returns the updated ticket or None if not found.
@@ -212,7 +216,12 @@ async def update_ticket(
     description: str | None = None,
     type: Literal["bug", "feature", "task", "chore"] | None = None,
     priority: Literal["low", "medium", "high", "critical"] | None = None,
-    status: Literal["backlog", "todo", "in-progress", "done"] | None = None,
+    status: (
+        Literal[
+            "backlog", "todo", "in-progress", "review", "testing", "done"
+        ]
+        | None
+    ) = None,
     estimate: float | None = None,
     due_date: str | None = None,
     parent_id: str | None = None,

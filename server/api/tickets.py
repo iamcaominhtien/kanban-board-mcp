@@ -223,7 +223,9 @@ async def del_ticket(ticket_id: str, session: Session) -> None:
 
 
 class StatusBody(BaseModel):
-    status: Literal["backlog", "todo", "in-progress", "done"]
+    status: Literal[
+        "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
+    ]
 
 
 @router.patch("/tickets/{ticket_id}/status", response_model=TicketRead)

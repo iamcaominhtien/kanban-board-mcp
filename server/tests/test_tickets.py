@@ -508,3 +508,26 @@ async def test_restore_ticket_clears_wont_do_reason(client: httpx.AsyncClient):
     body = r.json()
     assert body["status"] == "backlog"
     assert body["wont_do_reason"] is None
+
+
+async def test_review_and_testing_status_transitions(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        # Update to review
+        r = await c.patch(
+            f"/tickets/{ticket['id']}/status",
+            json={"status": "review"},
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "review"
+
+        # Update to testing
+        r = await c.patch(
+            f"/tickets/{ticket['id']}/status",
+            json={"status": "testing"},
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "testing"
+

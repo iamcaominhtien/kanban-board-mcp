@@ -43,6 +43,8 @@ const STATUS_LABELS: Record<Status, string> = {
   backlog:     'Backlog',
   todo:        'To Do',
   'in-progress': 'In Progress',
+  review:      'Review',
+  testing:     'Testing',
   done:        'Done',
   wont_do:     'Không làm',
 };
@@ -898,6 +900,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                   <option value="backlog">Backlog</option>
                   <option value="todo">To Do</option>
                   <option value="in-progress">In Progress</option>
+                  <option value="review">Review</option>
+                  <option value="testing">Testing</option>
                   <option value="done">Done</option>
                   {!ticket?.parentId && <option value="wont_do">Không làm</option>}
                 </select>

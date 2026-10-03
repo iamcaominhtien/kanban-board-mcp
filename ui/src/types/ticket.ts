@@ -1,5 +1,5 @@
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
-export type Status = 'backlog' | 'todo' | 'in-progress' | 'done' | 'wont_do';
+export type Status = 'backlog' | 'todo' | 'in-progress' | 'review' | 'testing' | 'done' | 'wont_do';
 export type IssueType = 'bug' | 'feature' | 'task' | 'chore';
 export type RelationType = 'relates_to' | 'causes' | 'caused_by' | 'duplicates' | 'duplicated_by';
 

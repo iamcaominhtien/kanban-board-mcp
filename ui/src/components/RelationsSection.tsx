@@ -6,7 +6,9 @@ const STATUS_COLORS: Record<Status, { bg: string; color: string }> = {
   backlog: { bg: '#FEF9C3', color: '#854D0E' },
   todo: { bg: '#FED7AA', color: '#9A3412' },
   'in-progress': { bg: '#D9F99D', color: '#3F6212' },
-  done: { bg: '#FCE7F3', color: '#9D174D' },
+  review: { bg: '#EDE9F9', color: '#6D5DD3' },
+  testing: { bg: 'rgba(180, 87, 31, 0.14)', color: '#B4571F' },
+  done: { bg: '#DCEEE1', color: '#2E6F40' },
   wont_do: { bg: '#F3F4F6', color: '#6B7280' },
 };
 
@@ -14,6 +16,8 @@ const STATUS_LABELS: Record<Status, string> = {
   backlog: 'Backlog',
   todo: 'To Do',
   'in-progress': 'In Progress',
+  review: 'Review',
+  testing: 'Testing',
   done: 'Done',
   wont_do: "Won't Do",
 };

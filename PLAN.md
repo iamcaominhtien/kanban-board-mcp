@@ -66,11 +66,11 @@
 
 ### 1.1 — Status Enum Expansion (review + testing)
 - **Spec Ref**: 7 statuses (`backlog`, `todo`, `in-progress`, `review`, `testing`, `done`, `wont_do`)
-- [ ] Frontend: update `Status` type trong `types/index.ts`
-- [ ] Frontend: update `COLUMNS` array + `VALID_STATUSES`
-- [ ] Backend: update status validation trong `server/models.py`
-- [ ] Backend: update MCP tools trong `server/mcp_tools.py`
-- [ ] DB migration / Alembic nếu cần
+- [x] Frontend: update `Status` type trong `types/index.ts`
+- [x] Frontend: update `COLUMNS` array + `VALID_STATUSES` (6 active columns trên board)
+- [x] Backend: update status validation trong `server/models.py` và `server/api/tickets.py`
+- [x] Backend: update MCP tools trong `server/mcp_tools.py`
+- [x] Unit tests: thêm tests cho `review` và `testing` transitions trong `server/tests/test_tickets.py` (28/28 passed)
 
 ### 1.2 — TestCase Model Extension
 - **Source HTML**: [`design/source/TestCases.dc.html`](design/source/TestCases.dc.html)

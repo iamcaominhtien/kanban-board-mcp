@@ -10,11 +10,13 @@ interface ListViewProps {
   onCardClick: (ticket: Ticket) => void;
 }
 
-const STATUS_ORDER: Status[] = ['backlog', 'todo', 'in-progress', 'done'];
+const STATUS_ORDER: Status[] = ['backlog', 'todo', 'in-progress', 'review', 'testing', 'done'];
 const STATUS_LABELS: Record<Status, string> = {
   backlog: 'Backlog',
   todo: 'To Do',
   'in-progress': 'In Progress',
+  review: 'Review',
+  testing: 'Testing',
   done: 'Done',
   wont_do: 'Không làm',
 };
@@ -22,6 +24,8 @@ const STATUS_CHIP_CLASS: Record<Status, string> = {
   backlog: 'chipBacklog',
   todo: 'chipTodo',
   'in-progress': 'chipInProgress',
+  review: 'chipReview',
+  testing: 'chipTesting',
   done: 'chipDone',
   wont_do: 'chipDone',
 };

@@ -241,10 +241,12 @@
 }
 
 /* Status chip colors */
-.chipBacklog   { background: var(--color-yellow, #F5C518); }
-.chipTodo      { background: var(--color-orange, #E8441A); }
-.chipInProgress{ background: var(--color-lime,   #AACC2E); }
-.chipDone      { background: var(--color-pink,   #F472B6); }
+.chipBacklog    { background: var(--color-backlog); color: #FFFFFF; }
+.chipTodo       { background: var(--color-todo); color: #FFFFFF; }
+.chipInProgress { background: var(--color-inprogress); color: #FFFFFF; }
+.chipReview     { background: var(--color-review); color: #FFFFFF; }
+.chipTesting    { background: var(--color-testing); color: #FFFFFF; }
+.chipDone       { background: var(--color-done); color: #FFFFFF; }
 
 /* Priority chip colors — must match PRIORITY_COLORS in TicketCard.tsx */
 .chipCritical  { background: #DC2626; }
