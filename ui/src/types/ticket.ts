@@ -39,13 +39,31 @@ export interface ActivityEntry {
 
 export type WorkLogRole = 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
 
+export type DebugEntryKind = 'investigation' | 'fix_attempt' | 'root_cause' | 'blocked' | 'resolved';
+
+export interface DebugAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+}
+
 export interface WorkLogEntry {
   id: string;
   author: string;
-  role: WorkLogRole;
+  role: WorkLogRole | string;
   note: string;
   at: string; // ISO datetime
+  kind?: DebugEntryKind;
+  pinned?: boolean;
+  attachments?: DebugAttachment[];
+  linkedBranch?: string | null;
+  linkedTestCase?: string | null;
+  updatedAt?: string | null;
 }
+
+export type DebugEntry = WorkLogEntry;
 
 export type TestCaseStatus = 'pending' | 'running' | 'pass' | 'fail';
 

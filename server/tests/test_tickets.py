@@ -282,6 +282,55 @@ async def test_delete_work_log(client: httpx.AsyncClient):
     assert r_del.json()["work_log"] == []
 
 
+async def test_debug_space_extended_work_log_and_update(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        # Add rich debug entry
+        r_add = await c.post(
+            f"/tickets/{ticket['id']}/work-log",
+            json={
+                "author": "An",
+                "role": "Tester",
+                "note": "Found null pointer in JWT decoder",
+                "kind": "investigation",
+                "pinned": True,
+                "attachments": [{"id": "att-1", "name": "trace.log", "url": "/uploads/trace.log"}],
+                "linked_branch": "fix/jwt-decode",
+                "linked_test_case": "TC-1",
+            },
+        )
+        assert r_add.status_code == 200
+        wl = r_add.json()["work_log"]
+        assert len(wl) == 1
+        entry = wl[0]
+        assert entry["author"] == "An"
+        assert entry["kind"] == "investigation"
+        assert entry["pinned"] is True
+        assert len(entry["attachments"]) == 1
+        assert entry["linked_branch"] == "fix/jwt-decode"
+        assert entry["linked_test_case"] == "TC-1"
+        assert entry["at"] is not None
+
+        # Update debug entry (change to root_cause, modify note)
+        log_id = entry["id"]
+        r_patch = await c.patch(
+            f"/tickets/{ticket['id']}/work-log/{log_id}",
+            json={
+                "kind": "root_cause",
+                "note": "Confirmed root cause: missing fallback when token header has no kid",
+                "pinned": True,
+            },
+        )
+        assert r_patch.status_code == 200
+        entry_upd = r_patch.json()["work_log"][0]
+        assert entry_upd["kind"] == "root_cause"
+        assert entry_upd["note"] == "Confirmed root cause: missing fallback when token header has no kid"
+        assert entry_upd["pinned"] is True
+        assert entry_upd["updated_at"] is not None
+
+
 # ---------------------------------------------------------------------------
 # Test cases
 # ---------------------------------------------------------------------------

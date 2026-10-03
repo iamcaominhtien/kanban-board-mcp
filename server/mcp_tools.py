@@ -300,11 +300,51 @@ async def add_work_log(
     author: str,
     role: Literal["PM", "Developer", "BA", "Tester", "Designer", "Other"],
     note: str,
+    kind: Literal["investigation", "fix_attempt", "root_cause", "blocked", "resolved"] = "investigation",
+    pinned: bool = False,
+    linked_branch: str | None = None,
+    linked_test_case: str | None = None,
 ) -> dict | None:
-    """Log work done on a ticket. Returns the updated ticket."""
+    """Log work or debug entry on a ticket. Returns the updated ticket."""
     async with async_session() as session:
         ticket = await svc_tickets.add_work_log(
-            session, ticket_id, author=author, role=role, note=note
+            session,
+            ticket_id,
+            author=author,
+            role=role,
+            note=note,
+            kind=kind,
+            pinned=pinned,
+            linked_branch=linked_branch,
+            linked_test_case=linked_test_case,
+        )
+        if ticket is None:
+            return None
+        result = TicketRead.from_ticket(ticket).model_dump()
+    return result
+
+
+@notify_on_success
+async def update_work_log(
+    ticket_id: str,
+    log_id: str,
+    note: str | None = None,
+    kind: Literal["investigation", "fix_attempt", "root_cause", "blocked", "resolved"] | None = None,
+    pinned: bool | None = None,
+    linked_branch: str | None = None,
+    linked_test_case: str | None = None,
+) -> dict | None:
+    """Update a work or debug entry on a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.update_work_log(
+            session,
+            ticket_id,
+            log_id,
+            note=note,
+            kind=kind,
+            pinned=pinned,
+            linked_branch=linked_branch,
+            linked_test_case=linked_test_case,
         )
         if ticket is None:
             return None
@@ -860,6 +900,7 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(update_comment)
     mcp.tool()(delete_comment)
     mcp.tool()(add_work_log)
+    mcp.tool()(update_work_log)
     mcp.tool()(add_test_case)
     mcp.tool()(update_test_case)
     mcp.tool()(create_child_ticket)

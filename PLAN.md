@@ -84,8 +84,10 @@
 ### 1.3 — WorkLog → Debug Space Model
 - **Source HTML**: [`design/source/DebugSpace.dc.html`](design/source/DebugSpace.dc.html)
 - **Visual Spec**: [`design/images/debug-space/`](design/images/debug-space/)
-- [ ] Mở rộng WorkLogEntry: `kind` (`investigation` | `fix_attempt` | `root_cause` | `blocked` | `resolved`), `pinned`, `attachments`, `linkedBranch`, `linkedTestCase`
-- [ ] Backend model + Alembic migration + API endpoints
+- [x] Mở rộng WorkLogEntry: `kind` (`investigation` | `fix_attempt` | `root_cause` | `blocked` | `resolved`), `pinned`, `attachments`, `linkedBranch`, `linkedTestCase`, `updatedAt`
+- [x] Backend services + API (`POST /work-log`, `PATCH /work-log/{id}`, `DELETE /work-log/{id}`) + MCP tools (`add_work_log`, `update_work_log`)
+- [x] Frontend type definitions (`DebugEntryKind`, `DebugAttachment`, `WorkLogEntry`) và API client (`addWorkLog`, `updateWorkLog`, `deleteWorkLog`)
+- [x] Unit tests trong `server/tests/test_tickets.py` (30/30 passed) & `test_mcp_tools.py` (37/37 passed)
 
 ### 1.4 — Branches Model (New)
 - **Source HTML**: [`design/source/Branches.dc.html`](design/source/Branches.dc.html)

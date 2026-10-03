@@ -394,21 +394,90 @@ async def delete_acceptance_criterion(
 
 
 async def add_work_log(
-    session: AsyncSession, ticket_id: str, author: str, role: str, note: str
+    session: AsyncSession,
+    ticket_id: str,
+    author: str,
+    role: str,
+    note: str,
+    kind: str = "investigation",
+    pinned: bool = False,
+    attachments: list | None = None,
+    linked_branch: str | None = None,
+    linked_test_case: str | None = None,
 ) -> Ticket | None:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     logs = _loads(ticket.work_log)
+    now_iso = datetime.now(UTC).isoformat()
     logs.append(
         {
             "id": str(uuid.uuid4()),
             "author": author,
             "role": role,
             "note": note,
-            "at": datetime.now(UTC).isoformat(),
+            "at": now_iso,
+            "kind": kind,
+            "pinned": pinned,
+            "attachments": attachments or [],
+            "linked_branch": linked_branch,
+            "linkedBranch": linked_branch,
+            "linked_test_case": linked_test_case,
+            "linkedTestCase": linked_test_case,
+            "updated_at": now_iso,
         }
     )
+    ticket.work_log = _dumps(logs)
+    ticket.updated_at = now_iso
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def update_work_log(
+    session: AsyncSession,
+    ticket_id: str,
+    log_id: str,
+    note: str | None = None,
+    kind: str | None = None,
+    pinned: bool | None = None,
+    attachments: list | None = None,
+    linked_branch: str | None = None,
+    linked_test_case: str | None = None,
+    author: str | None = None,
+    role: str | None = None,
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    logs = _loads(ticket.work_log)
+    found = False
+    for lg in logs:
+        if lg.get("id") == log_id:
+            found = True
+            if note is not None:
+                lg["note"] = note
+            if kind is not None:
+                lg["kind"] = kind
+            if pinned is not None:
+                lg["pinned"] = pinned
+            if attachments is not None:
+                lg["attachments"] = attachments
+            if linked_branch is not None:
+                lg["linked_branch"] = linked_branch
+                lg["linkedBranch"] = linked_branch
+            if linked_test_case is not None:
+                lg["linked_test_case"] = linked_test_case
+                lg["linkedTestCase"] = linked_test_case
+            if author is not None:
+                lg["author"] = author
+            if role is not None:
+                lg["role"] = role
+            lg["updated_at"] = datetime.now(UTC).isoformat()
+            break
+    if not found:
+        return None
     ticket.work_log = _dumps(logs)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)

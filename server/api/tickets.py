@@ -39,6 +39,7 @@ from services.tickets import (
     update_comment,
     update_test_case,
     update_ticket,
+    update_work_log,
 )
 
 router = APIRouter(tags=["tickets"])
@@ -340,13 +341,63 @@ class WorkLogBody(BaseModel):
     author: str
     role: str
     note: str
+    kind: str = "investigation"
+    pinned: bool = False
+    attachments: list[dict[str, Any]] = []
+    linked_branch: str | None = None
+    linked_test_case: str | None = None
+
+
+class WorkLogUpdateBody(BaseModel):
+    author: str | None = None
+    role: str | None = None
+    note: str | None = None
+    kind: str | None = None
+    pinned: bool | None = None
+    attachments: list[dict[str, Any]] | None = None
+    linked_branch: str | None = None
+    linked_test_case: str | None = None
 
 
 @router.post("/tickets/{ticket_id}/work-log", response_model=TicketRead)
 async def post_work_log(
     ticket_id: str, body: WorkLogBody, session: Session
 ) -> TicketRead:
-    ticket = await add_work_log(session, ticket_id, body.author, body.role, body.note)
+    ticket = await add_work_log(
+        session,
+        ticket_id,
+        author=body.author,
+        role=body.role,
+        note=body.note,
+        kind=body.kind,
+        pinned=body.pinned,
+        attachments=body.attachments,
+        linked_branch=body.linked_branch,
+        linked_test_case=body.linked_test_case,
+    )
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch("/tickets/{ticket_id}/work-log/{log_id}", response_model=TicketRead)
+async def patch_work_log(
+    ticket_id: str, log_id: str, body: WorkLogUpdateBody, session: Session
+) -> TicketRead:
+    ticket = await update_work_log(
+        session,
+        ticket_id,
+        log_id,
+        note=body.note,
+        kind=body.kind,
+        pinned=body.pinned,
+        attachments=body.attachments,
+        linked_branch=body.linked_branch,
+        linked_test_case=body.linked_test_case,
+        author=body.author,
+        role=body.role,
+    )
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
