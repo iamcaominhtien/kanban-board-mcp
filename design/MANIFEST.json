@@ -1,8 +1,16 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1789831198-eb58",
-  "exported": "2026-10-02",
+  "canvas_version": "1791005836-9c57",
+  "exported": "2026-10-03",
   "files": {
+    "Activity.dc.html": {
+      "bytes": 31260,
+      "sha256": "af140c0ef8e32e19556b935b44d410c13932db3f28c1a98b29ec1686e4af47d9",
+      "title": "Activity",
+      "page": "components",
+      "w": 1180,
+      "h": 2300
+    },
     "AddAC.dc.html": {
       "bytes": 10515,
       "sha256": "9ff98d111ab0be4b70d8c916e0b18ec20f7161b74b42211c24137c6a59db7f50",
@@ -54,7 +62,7 @@
     "DescriptionMarkdown.dc.html": {
       "bytes": 29401,
       "sha256": "8501a7e64178985e6db549983ef94578e5c96c3dc9f6421018868c3a54058e76",
-      "title": "Description \u2014 Markdown",
+      "title": "Description — Markdown",
       "page": "components",
       "w": 900,
       "h": 2820
@@ -172,8 +180,8 @@
       "h": 488
     },
     "TicketDetail.dc.html": {
-      "bytes": 27498,
-      "sha256": "e72a89d895904e5b5c9ca6a2749e7efec4f8c98e52d3ceccf27058bc26e5e6e4",
+      "bytes": 27978,
+      "sha256": "b5c85d28007021ded54b71b651812b54fd6c1ae9a48e8821790c79aad1dce328",
       "title": "Ticket Detail",
       "page": "components",
       "w": 1150,
@@ -182,7 +190,7 @@
     "TicketDetailParent.dc.html": {
       "bytes": 42921,
       "sha256": "8adf1e756bd5c8e341b1df96c557cd52c5da78a8e18ed51b4cf1d316081d9ec5",
-      "title": "Ticket Detail \u2014 Parent",
+      "title": "Ticket Detail — Parent",
       "page": "components",
       "w": 1150,
       "h": 2140

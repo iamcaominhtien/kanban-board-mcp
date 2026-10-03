@@ -2,8 +2,8 @@
 
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
-- **Canvas:** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1789831198-eb58` (26 artboards) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
+- **Canvas version exported:** `1791005836-9c57` (27 artboards; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 ## Layout
 
@@ -25,6 +25,7 @@ Each doc's header links to its source file and records the canvas version and sh
 
 ### Components
 
+- [Activity](components/activity.md)
 - [Add / Edit / Delete Acceptance Criterion](components/add-ac.md)
 - [Add Sub-ticket](components/add-subticket.md)
 - [Attachments](components/attachments.md)
