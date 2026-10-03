@@ -100,13 +100,15 @@
 ### 1.5 — Workspace Settings Model (New)
 - **Source HTML**: [`design/source/Workspace.dc.html`](design/source/Workspace.dc.html)
 - **Visual Spec**: [`design/images/workspace/`](design/images/workspace/)
-- [ ] WorkspaceSettings model (retentionDays, autoDeleteEnabled, keptForever)
-- [ ] Backend model + API endpoints
+- [x] WorkspaceSettings model (id, enabled, rootPath, defaultRetentionDays) + per-task `workspaceRetentionDays`
+- [x] Alembic migration (`c4d5e6f7a8b9_add_workspace_settings.py`) + API endpoints (`GET/PATCH /workspace/settings`, `GET /tickets/{id}/workspace`, `PATCH /tickets/{id}/workspace/retention`)
+- [x] Frontend types (`WorkspaceSettings`, `WorkspaceFile`, `TicketWorkspaceInfo`) và API client (`getWorkspaceSettings`, `updateWorkspaceSettings`, `getTicketWorkspace`, `setTicketWorkspaceRetention`)
 
 ### 1.6 — Members "Remove blocked" Check
 - **Source HTML**: [`design/source/MembersView.dc.html`](design/source/MembersView.dc.html)
 - **Visual Spec**: [`design/images/members-view/`](design/images/members-view/)
-- [ ] Server-side validation không cho xóa member nếu đang được assign ticket chưa đóng
+- [x] Server-side validation không cho xóa member nếu đang được assign ticket chưa đóng (`status not in ('done', 'wont_do')`) kèm thông báo chuẩn: `"Cannot remove: assigned to N open tickets. Reassign first."`
+- [x] Unit tests trong `server/tests/test_tickets.py` (33/33 passed)
 
 ---
 

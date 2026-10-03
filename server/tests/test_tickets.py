@@ -682,3 +682,81 @@ async def test_branch_crud_operations(client: httpx.AsyncClient):
         assert r_del.json()["branches"] == []
 
 
+async def test_workspace_settings_and_ticket_retention(client: httpx.AsyncClient):
+    async with client as c:
+        # Get settings
+        r_get = await c.get("/workspace/settings")
+        assert r_get.status_code == 200
+        settings = r_get.json()
+        assert settings["enabled"] is True
+        assert settings["default_retention_days"] == 14
+
+        # Patch settings
+        r_patch = await c.patch(
+            "/workspace/settings",
+            json={"default_retention_days": 30},
+        )
+        assert r_patch.status_code == 200
+        assert r_patch.json()["default_retention_days"] == 30
+
+        # Ticket workspace
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        r_ws = await c.get(f"/tickets/{ticket['id']}/workspace")
+        assert r_ws.status_code == 200
+        ws_info = r_ws.json()
+        assert ws_info["enabled"] is True
+        assert ws_info["retention_days"] == 30
+        assert "files" in ws_info
+
+        # Override retention per task
+        r_override = await c.patch(
+            f"/tickets/{ticket['id']}/workspace/retention",
+            json={"retention_days": 7},
+        )
+        assert r_override.status_code == 200
+        assert r_override.json()["workspace_retention_days"] == 7
+
+        r_ws2 = await c.get(f"/tickets/{ticket['id']}/workspace")
+        assert r_ws2.json()["retention_days"] == 7
+
+
+async def test_remove_member_blocked_when_assigned_to_open_tickets(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        # Create member
+        r_mem = await c.post(
+            f"/projects/{project['id']}/members",
+            json={"name": "An Nguyen", "color": "#2E6F40"},
+        )
+        assert r_mem.status_code == 201
+        member_id = r_mem.json()["id"]
+
+        # Create ticket assigned to member
+        ticket = await _create_ticket(c, project["id"], title="Task for An")
+        r_assign = await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"assignee": member_id},
+        )
+        assert r_assign.status_code == 200
+        assert r_assign.json()["assignee"] == member_id
+
+        # Try to delete member while assigned to open ticket
+        r_del_blocked = await c.delete(f"/projects/{project['id']}/members/{member_id}")
+        assert r_del_blocked.status_code == 400
+        assert "Cannot remove: assigned to 1 open ticket" in r_del_blocked.json()["detail"]
+
+        # Close ticket
+        r_done = await c.patch(
+            f"/tickets/{ticket['id']}/status",
+            json={"status": "done"},
+        )
+        assert r_done.status_code == 200
+
+        # Now delete member should succeed
+        r_del_ok = await c.delete(f"/projects/{project['id']}/members/{member_id}")
+        assert r_del_ok.status_code == 204
+
+
+

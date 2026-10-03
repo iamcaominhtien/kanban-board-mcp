@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, WorkLogEntry, WorkLogRole } from '../types/ticket';
+import type { IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceSettings } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -260,6 +260,35 @@ export async function deleteBranch(
   branchId: string,
 ): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/branches/${branchId}`);
+  return res.data;
+}
+
+// Workspace
+export async function getWorkspaceSettings(): Promise<WorkspaceSettings> {
+  const res = await client.get<WorkspaceSettings>('/workspace/settings');
+  return res.data;
+}
+
+export async function updateWorkspaceSettings(
+  data: Partial<WorkspaceSettings>,
+): Promise<WorkspaceSettings> {
+  const res = await client.patch<WorkspaceSettings>('/workspace/settings', data);
+  return res.data;
+}
+
+export async function getTicketWorkspace(ticketId: string): Promise<TicketWorkspaceInfo> {
+  const res = await client.get<TicketWorkspaceInfo>(`/tickets/${ticketId}/workspace`);
+  return res.data;
+}
+
+export async function setTicketWorkspaceRetention(
+  ticketId: string,
+  retentionDays: number | null,
+): Promise<Ticket> {
+  const res = await client.patch<Ticket>(
+    `/tickets/${ticketId}/workspace/retention`,
+    { retention_days: retentionDays },
+  );
   return res.data;
 }
 

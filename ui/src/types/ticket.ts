@@ -119,8 +119,32 @@ export interface Ticket {
   blockDoneIfTcsIncomplete: boolean;
   links: TicketLink[];  // extended relationship links
   branches?: TicketBranch[];
+  workspaceRetentionDays?: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WorkspaceSettings {
+  id: number;
+  enabled: boolean;
+  rootPath: string;
+  defaultRetentionDays: number | null;
+}
+
+export interface WorkspaceFile {
+  name: string;
+  size: number;
+  modifiedAt: string;
+}
+
+export interface TicketWorkspaceInfo {
+  enabled: boolean;
+  path: string;
+  exists: boolean;
+  retentionDays: number | null;
+  files: WorkspaceFile[];
+  fileCount: number;
+  totalBytes: number;
 }
 
 export type BranchStatus = 'baseline' | 'open' | 'merged' | 'stale' | 'archived';

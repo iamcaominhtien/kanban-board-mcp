@@ -20,6 +20,21 @@ class Project(SQLModel, table=True):
     ticket_counter: int = Field(default=0)
 
 
+class WorkspaceSettings(SQLModel, table=True):
+    __tablename__ = "workspace_settings"
+
+    id: int = Field(default=1, primary_key=True)
+    enabled: bool = Field(default=True)
+    root_path: str = Field(default="~/kanban-workspace")
+    default_retention_days: Optional[int] = Field(default=14)
+
+
+class WorkspaceSettingsUpdate(SQLModel):
+    enabled: Optional[bool] = None
+    root_path: Optional[str] = None
+    default_retention_days: Optional[int] = None
+
+
 class IdeaCounter(SQLModel, table=True):
     __tablename__ = "idea_counter"
 
@@ -66,6 +81,7 @@ class Ticket(SQLModel, table=True):
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
     branches: str = Field(default="[]")  # JSON: list of {id, name, status, branch_from, ...}
+    workspace_retention_days: Optional[int] = Field(default=None)
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -182,6 +198,7 @@ class TicketCreate(SQLModel):
     work_log: list[Any] = []
     test_cases: list[Any] = []
     branches: list[Any] = []
+    workspace_retention_days: Optional[int] = None
     created_by: Optional[str] = None
     assignee: Optional[str] = None
 
@@ -250,6 +267,7 @@ class TicketRead(SQLModel):
     block_done_if_tcs_incomplete: bool = False
     links: list[Any] = []
     branches: list[Any] = []
+    workspace_retention_days: Optional[int] = None
     created_at: str
     updated_at: str
 
@@ -282,6 +300,7 @@ class TicketRead(SQLModel):
             block_done_if_tcs_incomplete=ticket.block_done_if_tcs_incomplete,
             links=_parse_json_list(ticket.links),
             branches=_parse_json_list(getattr(ticket, "branches", "[]")),
+            workspace_retention_days=getattr(ticket, "workspace_retention_days", None),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )
