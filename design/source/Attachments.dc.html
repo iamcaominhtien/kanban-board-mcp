@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .att-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .att-thumb { position: relative; width: 76px; height: 76px; border-radius: 8px; overflow: hidden; border: 1px solid #E3E8E5; flex-shrink: 0; }
+    .att-thumb-remove { position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; border-radius: 50%; background: rgba(30,42,34,0.65); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .att-file-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #E3E8E5; border-radius: 7px; background: #FFFFFF; }
+    .att-file-icon { width: 26px; height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    @keyframes attPulseBg {
+      0%, 100% { background-color: #F6FAF7; }
+      50%      { background-color: #DCE6DF; }
+    }
+    @keyframes attPulseIcon {
+      0%, 100% { opacity: 0.3; transform: scale(0.92); }
+      50%      { opacity: 1; transform: scale(1); }
+    }
+    .att-pulse-box {
+      animation: attPulseBg 1.4s ease-in-out infinite;
+    }
+    .att-pulse-icon {
+      animation: attPulseIcon 1.4s ease-in-out infinite;
+    }
+  </style>
+</helmet>
+
+<div style="width: 900px; height: 700px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Attachments</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 700px; line-height: 1.5;">Every file uploaded to a ticket — from Description or from any comment — lands in one consolidated Attachments section at the bottom of the ticket, tagged with where it came from. No duplicate strip under Description and another under each comment: the markdown/comment text already shows the media inline, so a second copy right below it added nothing.</div>
+  </div>
+
+  <!-- Consolidated attachments zone -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">One zone, ticket-wide — placed after Comments</div>
+    <div style="width: 788px; border: 1px solid #E3E8E5; border-radius: 10px; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;">
+      <div class="att-label">ATTACHMENTS · 4</div>
+      <div style="display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;">
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="att-thumb">
+            <svg width="76" height="76" viewBox="0 0 76 76"><rect width="76" height="76" fill="#F1F8F3"></rect><rect x="10" y="14" width="56" height="38" rx="4" fill="#FFFFFF" stroke="#D7E8DC"></rect><rect x="16" y="20" width="30" height="6" rx="3" fill="#9AA8A0"></rect><rect x="16" y="30" width="44" height="16" rx="4" fill="#F6FAF7" stroke="#E3E8E5"></rect></svg>
+            <button class="att-thumb-remove" aria-label="Remove">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+          <span style="font-size: 9.5px; color: #9AA8A0;">in Description</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="att-thumb">
+            <svg width="76" height="76" viewBox="0 0 76 76"><rect width="76" height="76" fill="#FBE7E4"></rect><circle cx="38" cy="30" r="10" fill="#F3D4CE"></circle><path d="M14 62L30 42L44 56L52 46L64 62Z" fill="#F3D4CE"></path></svg>
+            <button class="att-thumb-remove" aria-label="Remove">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+          <span style="font-size: 9.5px; color: #9AA8A0;">in comment · Ha My</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="att-file-chip">
+            <div class="att-file-icon" style="background: #E1EEFB;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6FB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">qa-notes.pdf</span>
+              <span style="font-size: 10.5px; color: #9AA8A0;">248 KB</span>
+            </div>
+            <button aria-label="Download" style="width: 22px; height: 22px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; margin-left: 4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4V15"></path><path d="M7 10L12 15L17 10"></path><path d="M5 19H19"></path></svg>
+            </button>
+          </div>
+          <span style="font-size: 9.5px; color: #9AA8A0; padding-left: 2px;">in Description</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="att-file-chip">
+            <div class="att-file-icon" style="background: #F3EFEA;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A7355" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">safari-repro.zip</span>
+              <span style="font-size: 10.5px; color: #9AA8A0;">1.4 MB</span>
+            </div>
+            <button aria-label="Download" style="width: 22px; height: 22px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; margin-left: 4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4V15"></path><path d="M7 10L12 15L17 10"></path><path d="M5 19H19"></path></svg>
+            </button>
+          </div>
+          <span style="font-size: 9.5px; color: #9AA8A0; padding-left: 2px;">in comment · An Nguyen</span>
+        </div>
+
+        <button style="display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; border-radius: 8px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; color: #9AA8A0;" aria-label="Add attachment">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+        </button>
+
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0;">Images render as square thumbnails (click to open full-size); anything else falls back to a name + size chip with its own icon per file type. Each item is tagged with where it was uploaded from — Description, or a named comment — so provenance isn't lost by consolidating the display.</div>
+  </div>
+
+  <!-- Uploading state -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">While uploading</div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="att-thumb att-pulse-box" style="display: flex; align-items: center; justify-content: center;">
+        <svg class="att-pulse-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+      </div>
+      <div class="att-file-chip">
+        <div class="att-file-icon" style="background: #F6FAF7;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 110px;">
+          <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">design-spec.pdf</span>
+          <div style="height: 3px; border-radius: 2px; background: #DCE6DF; overflow: hidden;">
+            <div style="width: 62%; height: 100%; background: #2E6F40;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0;">Thumbnail placeholder pulses until the image decodes; non-image files show a thin progress bar under the name instead.</div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

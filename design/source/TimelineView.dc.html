@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .tv-toggle-btn { padding: 7px 14px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #5B6B60; }
+    .tv-toggle-btn-active { background: #FFFFFF; color: #1E2A22; box-shadow: 0 1px 2px rgba(30,42,34,0.10); }
+    .tv-gantt-row { display: flex; align-items: center; height: 46px; border-bottom: 1px solid #EEF3EF; }
+    .tv-gantt-label { display: flex; align-items: center; gap: 8px; padding: 0 14px; cursor: pointer; overflow: hidden; box-sizing: border-box; width: 100%; }
+    .tv-gantt-label:hover { background: #F6FAF7; }
+    .tv-gantt-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tv-gantt-bar { position: absolute; top: 50%; transform: translateY(-50%); height: 16px; border-radius: 4px; display: flex; align-items: center; padding: 0 6px; cursor: pointer; box-sizing: border-box; }
+    .dbg-item { display: flex; gap: 12px; position: relative; }
+    .dbg-rail { display: flex; flex-direction: column; align-items: center; width: 13px; flex-shrink: 0; }
+    .dbg-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; box-sizing: border-box; border: 2.5px solid #FFFFFF; box-shadow: 0 0 0 1px #E3E8E5; display: flex; align-items: center; justify-content: center; }
+    .dbg-line { width: 2px; flex-grow: 1; background: #E3E8E5; margin-top: 2px; min-height: 10px; }
+    .tv-event-chip { display: inline-flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: #2E6F40; background: #F1F8F3; border: 1px solid #D7E8DC; padding: 2px 7px; border-radius: 5px; cursor: pointer; }
+    .tv-resize-handle { position: absolute; top: 0; bottom: 0; width: 6px; display: flex; align-items: center; justify-content: center; cursor: ew-resize; }
+    .tv-resize-grip { width: 2px; height: 8px; border-radius: 1px; background: rgba(255,255,255,0.85); }
+
+    @keyframes tvResizeWidth {
+      0%, 8%   { width: 140px; box-shadow: none; }
+      18%      { box-shadow: 0 3px 8px rgba(30,42,34,0.14); }
+      22%, 68% { width: 196px; box-shadow: 0 5px 12px rgba(30,42,34,0.22); }
+      82%      { width: 196px; box-shadow: 0 2px 5px rgba(30,42,34,0.10); }
+      92%, 100% { width: 140px; box-shadow: none; }
+    }
+    @keyframes tvGhostFade {
+      0%, 14%  { opacity: 0; }
+      20%, 84% { opacity: 1; }
+      92%, 100% { opacity: 0; }
+    }
+    @keyframes tvTooltipFade {
+      0%, 16%  { opacity: 0; transform: translate(-50%, 4px); }
+      24%, 82% { opacity: 1; transform: translate(-50%, 0); }
+      90%, 100% { opacity: 0; transform: translate(-50%, 4px); }
+    }
+    @keyframes tvTooltipMove {
+      0%, 20%  { left: 118px; }
+      26%, 80% { left: 178px; }
+      100%     { left: 118px; }
+    }
+    .tv-resize-live-bar { animation: tvResizeWidth 4.2s cubic-bezier(.4,0,.2,1) infinite; }
+    .tv-resize-live-ghost { animation: tvGhostFade 4.2s ease infinite; }
+    .tv-resize-live-tooltip { animation: tvTooltipFade 4.2s ease infinite, tvTooltipMove 4.2s cubic-bezier(.4,0,.2,1) infinite; }
+  </style>
+</helmet>
+
+<div style="width: 1220px; height: 2740px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Screen — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Timeline View</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 860px; line-height: 1.5;">Opens from the "Timeline" segment in Main Board's view switcher. Maps 1:1 to today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">TimelineView.tsx</code> — two sub-modes, Gantt and Event Timeline, same 60-day window and same activity feed. Visual pass only: the flat neon bar/event colors move to the system palette, and the Event Timeline's rail reuses the exact dot-and-line pattern already built for Debug Space.</div>
+  </div>
+
+  <!-- Sub-mode switcher -->
+  <div style="display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: #EEF3EF; align-self: flex-start;">
+    <button class="tv-toggle-btn tv-toggle-btn-active">Gantt</button>
+    <button class="tv-toggle-btn">Event Timeline</button>
+  </div>
+
+  <!-- Gantt -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Gantt — tickets with a start or due date, 60-day window</div>
+    <div style="width: 1108px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+      <div style="display: flex;">
+
+        <!-- Label column -->
+        <div style="width: 230px; flex-shrink: 0; border-right: 1px solid #E3E8E5;">
+          <div style="height: 40px; display: flex; align-items: center; padding: 0 14px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9AA8A0; border-bottom: 1px solid #E3E8E5; background: #F6FAF7;">Ticket</div>
+          <div class="tv-gantt-row"><div class="tv-gantt-label"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; flex-shrink: 0;">KAN-140</span><span class="tv-gantt-title" style="font-size: 12.5px; color: #1E2A22;">Redesign board column header</span></div></div>
+          <div class="tv-gantt-row"><div class="tv-gantt-label"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; flex-shrink: 0;">KAN-145</span><span class="tv-gantt-title" style="font-size: 12.5px; color: #1E2A22;">Write unit tests for drag handle</span></div></div>
+          <div class="tv-gantt-row"><div class="tv-gantt-label"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; flex-shrink: 0;">KAN-153</span><span class="tv-gantt-title" style="font-size: 12.5px; color: #1E2A22;">Publish TC-code lookup endpoint</span></div></div>
+          <div class="tv-gantt-row"><div class="tv-gantt-label"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; flex-shrink: 0;">KAN-155</span><span class="tv-gantt-title" style="font-size: 12.5px; color: #1E2A22;">Add file attachments to test cases</span></div></div>
+          <div class="tv-gantt-row" style="border-bottom: none;"><div class="tv-gantt-label"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; flex-shrink: 0; text-decoration: line-through; text-decoration-color: #C7D2CB;">KAN-138</span><span class="tv-gantt-title" style="font-size: 12.5px; color: #1E2A22;">Fix drag ghost offset on Retina displays</span></div></div>
+        </div>
+
+        <!-- Bar area -->
+        <div style="flex: 1; min-width: 0; overflow-x: auto;">
+          <div style="width: 878px; position: relative;">
+            <div style="height: 40px; position: relative; border-bottom: 1px solid #E3E8E5; background: #F6FAF7;">
+              <div style="position: absolute; left: 0px; top: 0; height: 100%; display: flex; align-items: center; font-size: 10.5px; font-weight: 600; color: #9AA8A0; padding-left: 6px;">Sep 12</div>
+              <div style="position: absolute; left: 126px; top: 0; height: 100%; display: flex; align-items: center; font-size: 10.5px; font-weight: 700; color: #2E6F40; padding-left: 6px;">Sep 19</div>
+              <div style="position: absolute; left: 252px; top: 0; height: 100%; display: flex; align-items: center; font-size: 10.5px; font-weight: 600; color: #9AA8A0; padding-left: 6px;">Sep 26</div>
+              <div style="position: absolute; left: 378px; top: 0; height: 100%; display: flex; align-items: center; font-size: 10.5px; font-weight: 600; color: #9AA8A0; padding-left: 6px;">Oct 3</div>
+              <div style="position: absolute; left: 504px; top: 0; height: 100%; display: flex; align-items: center; font-size: 10.5px; font-weight: 600; color: #9AA8A0; padding-left: 6px;">Oct 10</div>
+              <div style="position: absolute; left: 630px; top: 0; height: 100%; display: flex; align-items: center; font-size: 10.5px; font-weight: 600; color: #9AA8A0; padding-left: 6px;">Oct 17</div>
+              <div style="position: absolute; left: 756px; top: 0; height: 100%; display: flex; align-items: center; font-size: 10.5px; font-weight: 600; color: #9AA8A0; padding-left: 6px;">Oct 24</div>
+            </div>
+
+            <div style="position: absolute; left: 126px; top: 40px; bottom: 0; width: 2px; background: #2E6F40; opacity: 0.4;"></div>
+
+            <div style="height: 46px; position: relative; border-bottom: 1px solid #EEF3EF;">
+              <button class="tv-gantt-bar" style="left: 90px; width: 108px; background: #2F6FB0;" title="Redesign board column header">
+                <span style="font-size: 10px; font-weight: 700; color: #FFFFFF;">KAN-140</span>
+              </button>
+            </div>
+            <div style="height: 46px; position: relative; border-bottom: 1px solid #EEF3EF;">
+              <button class="tv-gantt-bar" style="left: 126px; width: 72px; background: #2F6FB0;" title="Write unit tests for drag handle">
+                <span style="font-size: 10px; font-weight: 700; color: #FFFFFF;">KAN-145</span>
+              </button>
+            </div>
+            <div style="height: 46px; position: relative; border-bottom: 1px solid #EEF3EF;">
+              <button class="tv-gantt-bar" style="left: 108px; width: 18px; background: #C4432A;" title="Publish TC-code lookup endpoint — overdue"></button>
+              <span style="position: absolute; left: 132px; top: 50%; transform: translateY(-50%); font-size: 10.5px; font-weight: 600; color: #C4432A;">Due Sep 12</span>
+            </div>
+            <div style="height: 46px; position: relative; border-bottom: 1px solid #EEF3EF;">
+              <button class="tv-gantt-bar" style="left: 144px; width: 144px; background: #2F6FB0;" title="Add file attachments to test cases">
+                <span style="font-size: 10px; font-weight: 700; color: #FFFFFF;">KAN-155</span>
+              </button>
+            </div>
+            <div style="height: 46px; position: relative;">
+              <button class="tv-gantt-bar" style="left: 18px; width: 90px; background: #68BA7F; opacity: 0.6;" title="Fix drag ghost offset on Retina displays — done">
+                <span style="font-size: 10px; font-weight: 700; color: #FFFFFF;">KAN-138</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 18px;">
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5B6B60;"><span style="width: 9px; height: 9px; border-radius: 3px; background: #2F6FB0;"></span>Normal</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5B6B60;"><span style="width: 9px; height: 9px; border-radius: 3px; background: #C4432A;"></span>Overdue</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5B6B60;"><span style="width: 9px; height: 9px; border-radius: 3px; background: #68BA7F; opacity: 0.6;"></span>Done</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5B6B60;"><span style="width: 2px; height: 12px; background: #2E6F40; opacity: 0.5;"></span>Today</span>
+    </div>
+  </div>
+
+  <!-- Resize to change dates -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">New — dragging a bar edge changes its date, no need to open the ticket</div>
+    <div style="display: flex; gap: 32px;">
+
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 260px;">
+        <div style="width: 260px; height: 70px; border-radius: 8px; background: #FBFCFB; border: 1px solid #E3E8E5; box-sizing: border-box; display: flex; align-items: center; padding: 0 20px;">
+          <div style="position: relative; width: 140px; height: 16px;">
+            <div style="position: absolute; inset: 0; border-radius: 4px; background: #2F6FB0;"></div>
+            <div class="tv-resize-handle" style="left: -1px;"><span class="tv-resize-grip"></span></div>
+            <div class="tv-resize-handle" style="right: -1px;"><span class="tv-resize-grip"></span></div>
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Hover — grip marks appear at both ends</div>
+        <div style="font-size: 11px; color: #9AA8A0; line-height: 1.4;">Cursor becomes ↔ over either edge. Nothing else about the bar changes yet.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 260px;">
+        <div style="width: 260px; height: 70px; border-radius: 8px; background: #FBFCFB; border: 1px solid #E3E8E5; box-sizing: border-box; display: flex; align-items: center; padding: 0 20px; position: relative;">
+          <div style="position: relative; width: 140px; height: 16px;">
+            <div style="position: absolute; top: 0; left: 0; width: 140px; height: 16px; border-radius: 4px; border: 1.5px dashed #B9CBBF; box-sizing: border-box;"></div>
+            <div style="position: absolute; inset: 0; width: 196px; border-radius: 4px; background: #2F6FB0; box-shadow: 0 4px 10px rgba(30,42,34,0.20);"></div>
+            <div class="tv-resize-handle" style="left: -1px;"><span class="tv-resize-grip"></span></div>
+            <div class="tv-resize-handle" style="left: 189px;"><span class="tv-resize-grip"></span></div>
+          </div>
+          <div style="position: absolute; top: -8px; left: 178px; padding: 3px 8px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 10.5px; font-weight: 600; white-space: nowrap;">Due Sep 26</div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Dragging the right edge — due date</div>
+        <div style="font-size: 11px; color: #9AA8A0; line-height: 1.4;">Snaps to whole days (18px = 1 day). Dashed outline marks where it started; a tooltip tracks the new date live.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 260px;">
+        <div style="width: 260px; height: 70px; border-radius: 8px; background: #FBFCFB; border: 1px solid #E3E8E5; box-sizing: border-box; display: flex; align-items: center; padding: 0 20px; position: relative;">
+          <div style="position: relative; width: 140px; height: 16px; margin-left: -46px;">
+            <div style="position: absolute; top: 0; left: 46px; width: 140px; height: 16px; border-radius: 4px; border: 1.5px dashed #B9CBBF; box-sizing: border-box;"></div>
+            <div style="position: absolute; inset: 0; width: 186px; border-radius: 4px; background: #2F6FB0; box-shadow: 0 4px 10px rgba(30,42,34,0.20);"></div>
+            <div class="tv-resize-handle" style="left: -1px;"><span class="tv-resize-grip"></span></div>
+            <div class="tv-resize-handle" style="left: 179px;"><span class="tv-resize-grip"></span></div>
+          </div>
+          <div style="position: absolute; top: -8px; left: 20px; padding: 3px 8px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 10.5px; font-weight: 600; white-space: nowrap;">Starts Sep 14</div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Dragging the left edge — start date</div>
+        <div style="font-size: 11px; color: #9AA8A0; line-height: 1.4;">Same mechanic, mirrored. Can't drag past the other edge — bar always keeps at least 1 day.</div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+      <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Live loop — the same sequence, running</div>
+      <div style="width: 340px; height: 80px; border-radius: 8px; background: #FBFCFB; border: 1px solid #E3E8E5; box-sizing: border-box; display: flex; align-items: center; padding: 0 24px; position: relative; overflow: hidden;">
+        <div style="position: relative; width: 140px; height: 16px;">
+          <div class="tv-resize-live-ghost" style="position: absolute; top: 0; left: 0; width: 140px; height: 16px; border-radius: 4px; border: 1.5px dashed #B9CBBF; box-sizing: border-box;"></div>
+          <div class="tv-resize-live-bar" style="position: absolute; top: 0; left: 0; height: 16px; border-radius: 4px; background: #2F6FB0;">
+            <div class="tv-resize-handle" style="left: -1px;"><span class="tv-resize-grip"></span></div>
+            <div class="tv-resize-handle" style="right: -1px;"><span class="tv-resize-grip"></span></div>
+          </div>
+          <div class="tv-resize-live-tooltip" style="position: absolute; top: -30px; padding: 3px 8px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 10.5px; font-weight: 600; white-space: nowrap; transform: translateX(-50%);">Due Sep 26</div>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #9AA8A0; line-height: 1.4; max-width: 340px;">Grab → drag → hold → release → settle, same rhythm as the Drag &amp; Drop card motion. Reload the page to see it from the start.</div>
+    </div>
+  </div>
+
+  <!-- Event Timeline -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Event Timeline — same rail pattern as Debug Space, one category-colored dot per event type</div>
+    <div style="width: 700px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; padding: 24px 28px;">
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #9AA8A0;">September 19, 2026</div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #6D5DD3;"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15A2 2 0 0 1 19 17H7L3 21V5A2 2 0 0 1 5 3H19A2 2 0 0 1 21 5Z"></path></svg></span><span class="dbg-line"></span></div>
+            <div style="flex: 1; padding-bottom: 14px;">
+              <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                <span class="tv-event-chip">KAN-145</span>
+                <span style="font-size: 12.5px; color: #1E2A22; flex-grow: 1;">Write unit tests for drag handle</span>
+                <span style="font-size: 10.5px; color: #9AA8A0;">4:12 PM</span>
+              </div>
+              <div style="font-size: 11.5px; color: #5B6B60; margin-top: 2px;">Commented</div>
+            </div>
+          </div>
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #2F6FB0;"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"><path d="M4 4V10H10"></path><path d="M4 10L8 6.5A8 8 0 1 1 4 14"></path></svg></span><span class="dbg-line"></span></div>
+            <div style="flex: 1; padding-bottom: 14px;">
+              <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                <span class="tv-event-chip">KAN-140</span>
+                <span style="font-size: 12.5px; color: #1E2A22; flex-grow: 1;">Redesign board column header</span>
+                <span style="font-size: 10.5px; color: #9AA8A0;">2:47 PM</span>
+              </div>
+              <div style="font-size: 11.5px; color: #5B6B60; margin-top: 2px;">Changed status <span style="color: #9AA8A0;">— To Do → In Progress</span></div>
+            </div>
+          </div>
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #2E6F40;"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg></span></div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                <span class="tv-event-chip">KAN-155</span>
+                <span style="font-size: 12.5px; color: #1E2A22; flex-grow: 1;">Add file attachments to test case fields</span>
+                <span style="font-size: 10.5px; color: #9AA8A0;">11:03 AM</span>
+              </div>
+              <div style="font-size: 11.5px; color: #5B6B60; margin-top: 2px;">Created</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="height: 1px; background: #EEF3EF; margin: 18px 0;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #9AA8A0;">September 18, 2026</div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #9AA8A0;"><span style="width: 3px; height: 3px; border-radius: 50%; background: #FFFFFF;"></span></span></div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                <span class="tv-event-chip">KAN-153</span>
+                <span style="font-size: 12.5px; color: #1E2A22; flex-grow: 1;">Publish TC-code lookup endpoint</span>
+                <span style="font-size: 10.5px; color: #9AA8A0;">5:30 PM</span>
+              </div>
+              <div style="font-size: 11.5px; color: #5B6B60; margin-top: 2px;">Changed assignee <span style="color: #9AA8A0;">— unassigned → An</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 900px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: visual pass only, all logic in <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">TimelineView.tsx</code> is unchanged — same 60-day window, same clamping-to-window rules, same activity feed. (1) <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">EVENT_COLORS</code> moves off the flat neon set (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">#AACC2E</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">#E8441A</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">#5BB8F5</code>) to the system palette (created green, status change blue, commented purple, other neutral). (2) <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">EVENT_ICONS</code> moves from unicode glyphs (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">✦⟳◎·</code>) to the same small stroke-SVG icon language as everywhere else. (3) the event rail reuses Debug Space's <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">.dbg-item</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">.dbg-rail</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">.dbg-dot</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">.dbg-line</code> pattern outright — same shape, different color key. (4) Gantt bars: normal blue, overdue red (was orange), done bars dimmed instead of just colored, matching the dimmed-but-not-greyed convention used for Done cards elsewhere; today line uses the brand green instead of a plain vertical rule. (5) ticket titles that are struck through (KAN-138 here) reuse the Done-status convention from Ticket Card and List View. (6) resize-to-reschedule is a real new interaction, not in <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">GanttChart</code> today — bars are plain non-draggable buttons there. Needs pointer handlers on two new edge zones per bar (mousedown → track horizontal delta → snap to <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">DAY_WIDTH</code> increments → on release, PATCH the ticket's <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">startDate</code> or <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">dueDate</code>), plus a min-1-day clamp so the two edges can't cross. Doesn't need <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">@dnd-kit</code> — it's a single-axis resize, not a drop target — plain pointer events are enough, same weight as the rest of this component.</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1220,"height":2740}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

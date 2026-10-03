@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .td-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .tag-pill { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+    .tag-pill-edit { display: inline-flex; align-items: center; gap: 4px; padding: 2px 5px 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; border: none; cursor: pointer; }
+    .tag-pill-remove { opacity: 0.55; display: flex; }
+    .tag-pill-edit:hover .tag-pill-remove { opacity: 1; }
+    .tag-add-btn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 3px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #9AA8A0; }
+    .td-ac-item { display: flex; align-items: flex-start; gap: 9px; }
+    .td-sidebar-row { display: flex; flex-direction: column; gap: 6px; }
+    .td-rel-row { position: relative; }
+    .td-rel-remove { opacity: 0; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); }
+    .td-rel-row:hover .td-rel-remove { opacity: 1; }
+    .td-rel-remove:hover { background: #FBE7E4; color: #C4432A; }
+    .dt-view-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; color: #5B6B60; position: relative; box-sizing: border-box; }
+    .dt-view-btn:hover { background: #F6FAF7; }
+    .dt-view-btn-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .dt-view-dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+    .dt-view-tooltip { position: absolute; top: 36px; left: 0; padding: 5px 9px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; }
+    .dt-view-btn:hover .dt-view-tooltip { opacity: 1; }
+    .dt-tab-counts { display: inline-flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
+    .dt-id-btn { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 3px 5px; margin: -3px -5px; border-radius: 5px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #1E2A22; }
+    .dt-id-btn:hover { background: #F6FAF7; }
+    .tc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .tc-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF; }
+    .tc-status { display: inline-flex; align-items: center; justify-content: center; padding: 3px 9px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; border: none; cursor: pointer; flex-shrink: 0; width: 62px; box-sizing: border-box; }
+    .tc-status-pending { background: #F1F3F1; color: #5B6B60; }
+    .tc-status-pass { background: #DCEEE1; color: #2E6F40; }
+    .tc-status-fail { background: rgba(196,67,42,0.12); color: #C4432A; }
+    .tc-icon-btn { width: 24px; height: 24px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0; }
+    .tc-icon-btn:hover { background: #F6FAF7; color: #5B6B60; }
+    .tc-add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 6px; border: none; background: #2E6F40; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+  </style>
+</helmet>
+
+<div style="width: 1150px; height: 1390px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 24px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Ticket Detail</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 760px; line-height: 1.5;">Opens over the board on click. Same visual language as the card — same icon, priority marks, tag pills and sub-task chip — just given room to breathe.</div>
+  </div>
+
+  <!-- Panel mockup -->
+  <div style="width: 1038px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+    <!-- Header -->
+    <div style="display: flex; align-items: center; gap: 24px; padding: 20px 28px; border-bottom: 1px solid #E3E8E5;">
+      <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <span style="font-size: 13px; font-weight: 500; color: #5B6B60;">Task</span>
+        </div>
+        <span style="width: 1px; height: 14px; background: #E3E8E5;"></span>
+        <button style="display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9AA8A0;">
+          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5"></path><path d="M7.5 8.5L10 11L7.5 13.5"></path></svg>
+          KAN-140
+        </button>
+        <span style="font-size: 13px; color: #C7D2CB;">/</span>
+        <button class="dt-id-btn">KAN-145</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px; flex-grow: 1; overflow: hidden;">
+        <button class="dt-view-btn" aria-label="Test Cases">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+          <span class="dt-view-dot" style="background: #2F6FB0;"></span>
+          <span class="dt-view-tooltip">Test — 1 pass · 1 running · 2 pending</span>
+        </button>
+        <button class="dt-view-btn" aria-label="Debug Space">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9L10 12L7 15"></path><path d="M12 15H17"></path></svg>
+          <span class="dt-view-dot" style="background: #2E6F40;"></span>
+          <span class="dt-view-tooltip">Debug — 2 entries</span>
+        </button>
+        <button class="dt-view-btn" aria-label="Workspace">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+          <span class="dt-view-tooltip">Workspace — 6 files · 12.4 MB</span>
+        </button>
+      </div>
+
+      <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <!-- Body: two columns -->
+    <div style="display: flex; gap: 32px; padding: 24px 28px 28px; position: relative">
+
+      <!-- Main column -->
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px;">
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 21px; font-weight: 700; line-height: 1.3; color: #1E2A22;">Write unit tests for drag handle</h2>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <button class="tag-pill-edit" style="background: rgba(46,111,64,0.12); color: #2E6F40;">
+              FRONTEND
+              <svg class="tag-pill-remove" width="9" height="9" viewBox="0 0 12 12"><path d="M3 3L9 9M9 3L3 9" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round"></path></svg>
+            </button>
+            <button class="tag-pill-edit" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">
+              TEST
+              <svg class="tag-pill-remove" width="9" height="9" viewBox="0 0 12 12"><path d="M3 3L9 9M9 3L3 9" stroke="#2F6FB0" stroke-width="1.6" stroke-linecap="round"></path></svg>
+            </button>
+            <button class="tag-add-btn" aria-label="Add tag">
+              <svg width="9" height="9" viewBox="0 0 12 12"><path d="M6 2V10M2 6H10" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round"></path></svg>
+              Add tag
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="td-label">Description</div>
+          <div style="font-size: 14px; line-height: 1.6; color: #3A4A3E;">Add coverage for the pointer-down → drag → drop sequence on <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">DraggableTicketCard</code>. Should assert the card re-parents into the target column and the source slot's ghost state clears on drop.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">SUB-TASKS</div>
+            <div style="flex-grow: 1; height: 4px; border-radius: 2px; background: #DCE6DF; overflow: hidden; max-width: 120px;">
+              <div style="width: 66%; height: 100%; background: #2E6F40;"></div>
+            </div>
+            <span style="font-size: 11px; font-weight: 600; color: #5B6B60;">2/3</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF; border-bottom: 1px solid #EEF3EF;">
+              <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.4"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #5B6B60; text-decoration: line-through; text-decoration-color: #C7D2CB;">Add integration test for header drag</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-146</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF; border-bottom: 1px solid #EEF3EF;">
+              <div style="width: 16px; height: 16px; border-radius: 50%; border: 1.4px solid #2E6F40; box-sizing: border-box;"></div>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 500;">Write unit tests for drag handle</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-145</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF;">
+              <div style="width: 16px; height: 16px; border-radius: 50%; border: 1.4px solid #C7D2CB; box-sizing: border-box;"></div>
+              <span style="flex-grow: 1; font-size: 13px; color: #5B6B60;">Update column header snapshot tests</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-141</span>
+            </div>
+          </div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add sub-task
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">ACCEPTANCE CRITERIA</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label class="td-ac-item">
+              <svg width="16" height="16" viewBox="0 0 14 14" fill="none" style="margin-top: 1px; flex-shrink: 0;"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.4"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="font-size: 13px; color: #9AA8A0; text-decoration: line-through; text-decoration-color: #C7D2CB;">Drag from any column into any other column moves the card</span>
+            </label>
+            <label class="td-ac-item">
+              <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0; margin-top: 1px;"></div>
+              <span style="font-size: 13px; color: #3A4A3E;">Source slot shows an empty-state ghost while dragging</span>
+            </label>
+            <label class="td-ac-item">
+              <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0; margin-top: 1px;"></div>
+              <span style="font-size: 13px; color: #3A4A3E;">Test suite passes in CI headless mode</span>
+            </label>
+          </div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add criterion
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid #EEF3EF;">
+          <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">RELATIONS</div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 10.5px; font-weight: 600; color: #9AA8A0;">Blocked by</div>
+            <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+              <div class="td-rel-row" style="display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: #FFFFFF;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 62px; flex-shrink: 0;">KAN-146</span>
+                <span style="flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: #1E2A22;">Add integration test for header drag</span>
+                <button style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 8px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; flex-shrink: 0; margin-left: auto;">
+                  <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0;"></span>
+                  <span style="font-size: 11.5px; font-weight: 600; color: #1E2A22;">In Progress</span>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+                </button>
+                <button class="td-rel-remove" aria-label="Remove relation" style="width: 20px; height: 20px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add link
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #EEF3EF;">
+          <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">ATTACHMENTS · 2</div>
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="width: 76px; height: 76px; border-radius: 8px; overflow: hidden; border: 1px solid #E3E8E5; flex-shrink: 0;">
+                <svg width="76" height="76" viewBox="0 0 76 76"><rect width="76" height="76" fill="#F6FAF7"></rect><rect x="10" y="14" width="56" height="38" rx="4" fill="#FFFFFF" stroke="#E3E8E5"></rect><rect x="16" y="20" width="30" height="6" rx="3" fill="#9AA8A0"></rect><rect x="16" y="30" width="44" height="16" rx="4" fill="#F1F8F3" stroke="#D7E8DC"></rect></svg>
+              </div>
+              <span style="font-size: 9.5px; color: #9AA8A0;">in comment · Ha My</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #E3E8E5; border-radius: 7px; background: #FFFFFF;">
+                <div style="width: 26px; height: 26px; border-radius: 5px; background: #E1EEFB; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6FB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">qa-notes.pdf</span>
+                  <span style="font-size: 10.5px; color: #9AA8A0;">248 KB</span>
+                </div>
+              </div>
+              <span style="font-size: 9.5px; color: #9AA8A0; padding-left: 2px;">in Description</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid #EEF3EF;">
+          <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">COMMENTS</div>
+          <div style="display: flex; gap: 10px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <div style="display: flex; align-items: baseline; gap: 6px;">
+                <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">Ha My</span>
+                <span style="font-size: 11px; color: #9AA8A0;">2 hours ago</span>
+              </div>
+              <div style="font-size: 13px; color: #3A4A3E; line-height: 1.5;">Blocked on KAN-146 landing first — the fixture it adds is shared.</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+            <div style="flex-grow: 1; padding: 8px 12px; border-radius: 7px; border: 1px solid #E3E8E5; font-size: 13px; color: #9AA8A0;">Add a comment…</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sidebar -->
+      <div style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 18px;">
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Status</div>
+          <button style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #F6FAF7; cursor: pointer;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0;"></span>
+            <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">In Progress</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Branch</div>
+          <button style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #F6FAF7; cursor: pointer;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M6 8.5V15.5"></path><path d="M8.5 6H13A5 5 0 0 1 18 11V15.5"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22;">feature/drag-tests</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+          <span style="font-size: 11px; color: #9AA8A0; padding-left: 2px;">from main · 1 ahead</span>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Assignee</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 22px; height: 22px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">HM</div>
+            <span style="font-size: 13px; color: #1E2A22; font-weight: 500;">Ha My</span>
+          </div>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Priority</div>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <svg width="16" height="15" viewBox="0 0 26 24" fill="none">
+              <rect x="0" y="17" width="4.4" height="7" rx="1.5" fill="#E2793D"></rect>
+              <rect x="7.2" y="12" width="4.4" height="12" rx="1.5" fill="#E2793D"></rect>
+              <rect x="14.4" y="7" width="4.4" height="17" rx="1.5" fill="#E2793D"></rect>
+              <rect x="21.6" y="2" width="4.4" height="22" rx="1.5" fill="#DCE6DF"></rect>
+            </svg>
+            <span style="font-size: 13px; color: #1E2A22; font-weight: 500;">High</span>
+          </div>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Due date</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10H20.5"></path><path d="M8 3V6.5"></path><path d="M16 3V6.5"></path></svg>
+            <span style="font-size: 13px; color: #1E2A22;">Sep 24</span>
+          </div>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Estimate</div>
+          <span style="font-size: 13px; color: #1E2A22;">2 pt</span>
+        </div>
+
+        <div style="height: 1px; background: #EEF3EF; margin: 2px 0;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: #9AA8A0; line-height: 1.6;">
+          <div>Created 3 days ago by <span style="color: #5B6B60; font-weight: 500;">Ha My</span></div>
+          <div>Updated 2 hours ago</div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+  <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 700px; margin-top: -12px;">Replaces the old "Test Cases" section that used to live inside Details — more views (e.g. Activity, Work Log) can land as more icon buttons here later. Icon only, with a red dot when anything's failing (gray/green otherwise) — hover for the pass/fail/pending breakdown. No "Details" button needed to switch back — clicking the ticket id itself returns to Details, same as it already does everywhere else in the app. Clicking it swaps the whole panel body for the test list — see the dedicated <strong style="color: #5B6B60;">Test Cases</strong> board for that full state.</div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1150,"height":1390}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

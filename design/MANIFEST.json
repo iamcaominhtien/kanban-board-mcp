@@ -1,0 +1,215 @@
+{
+  "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
+  "canvas_version": "1789831198-eb58",
+  "exported": "2026-10-02",
+  "files": {
+    "AddAC.dc.html": {
+      "bytes": 10515,
+      "sha256": "9ff98d111ab0be4b70d8c916e0b18ec20f7161b74b42211c24137c6a59db7f50",
+      "title": "Add / Edit / Delete Acceptance Criterion",
+      "page": "components",
+      "w": 640,
+      "h": 820
+    },
+    "AddSubticket.dc.html": {
+      "bytes": 7427,
+      "sha256": "80a473ddb53c7891b62f00c83e624291c1de4aa3bf4ce88fb9f2cd562a53af26",
+      "title": "Add Sub-ticket",
+      "page": "components",
+      "w": 680,
+      "h": 620
+    },
+    "Attachments.dc.html": {
+      "bytes": 10377,
+      "sha256": "b061d3cd81252f5356e62ee61ed795cfa3bc71e6399acf78f079a30e1582fee6",
+      "title": "Attachments",
+      "page": "components",
+      "w": 900,
+      "h": 700
+    },
+    "BoardGrouping.dc.html": {
+      "bytes": 11736,
+      "sha256": "0fc83c69fa515d2fe2440aa57ee7068a1cb499f7f1f56c3d935a0660e268b371",
+      "title": "Sub-task Grouping",
+      "page": "components",
+      "w": 1100,
+      "h": 620
+    },
+    "Branches.dc.html": {
+      "bytes": 23814,
+      "sha256": "fc1af35c4d81d505e66505ee0276ec0c65b8e31f8f6434b1674775be8e405a2a",
+      "title": "Branches",
+      "page": "components",
+      "w": 1300,
+      "h": 2740
+    },
+    "DebugSpace.dc.html": {
+      "bytes": 30886,
+      "sha256": "a330f8c6b647c3d1f2a0be2545094f0cfddb1433996cd2cf8b0bbdc50c49e32f",
+      "title": "Debug Space",
+      "page": "components",
+      "w": 1180,
+      "h": 3160
+    },
+    "DescriptionMarkdown.dc.html": {
+      "bytes": 29401,
+      "sha256": "8501a7e64178985e6db549983ef94578e5c96c3dc9f6421018868c3a54058e76",
+      "title": "Description \u2014 Markdown",
+      "page": "components",
+      "w": 900,
+      "h": 2820
+    },
+    "DragDrop.dc.html": {
+      "bytes": 12022,
+      "sha256": "73bd0e40ed345173bf2fffcfe800294bd46e975ade63571057cb4c6460c98392",
+      "title": "Drag & Drop",
+      "page": "components",
+      "w": 1200,
+      "h": 780
+    },
+    "Icons.dc.html": {
+      "bytes": 22464,
+      "sha256": "da9137d02d0db7390c3794796ccdd345bf3a0b5efe13e812f55a746370d436c8",
+      "title": "Ticket Type Icons",
+      "page": "components",
+      "w": 900,
+      "h": 1660
+    },
+    "ListView.dc.html": {
+      "bytes": 28132,
+      "sha256": "279f9b89e4a461aec15a0afdf8664711f94b2ccd9cff91960ec8b39417c4b7a7",
+      "title": "List View",
+      "page": "screens",
+      "w": 1220,
+      "h": 2260
+    },
+    "Loading.dc.html": {
+      "bytes": 5056,
+      "sha256": "6ac06b47f346c0831f05800b294f942e8fa188834ca0f7a579c6af07f948e5cd",
+      "title": "Loading States",
+      "page": "components",
+      "w": 960,
+      "h": 520
+    },
+    "Main.dc.html": {
+      "bytes": 22628,
+      "sha256": "7884fbe8b88b596a8e04c29d13c515c8f1e31b6813d592f7b4524c18264dc927",
+      "title": "Theme & Typography",
+      "page": "foundations",
+      "w": 1240,
+      "h": 2140
+    },
+    "MainBoard.dc.html": {
+      "bytes": 59681,
+      "sha256": "c9cfebf2497dd15ff4d691c68f3fc1fdc9737424dc41902e89cf493acc1c73ec",
+      "title": "Main Board",
+      "page": "screens",
+      "w": 1880,
+      "h": 3800
+    },
+    "MembersView.dc.html": {
+      "bytes": 13462,
+      "sha256": "d1e672e5aa19f54ef5291bacf04604368ae2f57fdd11fcdec1ec08013470c034",
+      "title": "Members",
+      "page": "screens",
+      "w": 1220,
+      "h": 1660
+    },
+    "NewTicket.dc.html": {
+      "bytes": 14744,
+      "sha256": "41b0c090e738584674c688680360b7c159ad36874ac38546b617ada232a1ef74",
+      "title": "New Ticket",
+      "page": "components",
+      "w": 900,
+      "h": 1560
+    },
+    "Relations.dc.html": {
+      "bytes": 14224,
+      "sha256": "17f7fa101ac225f1ea4fc0d6bcd12493c19fb6b2bffe24aa6556acb295f361c0",
+      "title": "Relations",
+      "page": "components",
+      "w": 1080,
+      "h": 1220
+    },
+    "SettingsView.dc.html": {
+      "bytes": 14361,
+      "sha256": "25e88488360baf42b79bdcfc2497857105124ad6a5da03f36e78ed9b496f89e4",
+      "title": "Settings",
+      "page": "screens",
+      "w": 1220,
+      "h": 2020
+    },
+    "StatusMenu.dc.html": {
+      "bytes": 6999,
+      "sha256": "3a317d8703c3c512e8b42551b76f17d6da674bda86a9b11b842c15d8b58b51c1",
+      "title": "Status Menu",
+      "page": "components",
+      "w": 640,
+      "h": 760
+    },
+    "Tags.dc.html": {
+      "bytes": 7630,
+      "sha256": "5ae415f2b360c1ed2352bc234c7f9c8f85e718d0ef07766becc0fbd4522a1789",
+      "title": "Tags",
+      "page": "components",
+      "w": 900,
+      "h": 900
+    },
+    "TestCases.dc.html": {
+      "bytes": 49175,
+      "sha256": "0450dd12e9fcf8bf5bdefaf04acf6181c2a4ec28019f8e63d9cdf1d7cda86d7e",
+      "title": "Test Cases",
+      "page": "components",
+      "w": 1180,
+      "h": 3260
+    },
+    "TicketCard.dc.html": {
+      "bytes": 19995,
+      "sha256": "cd2cdbe283887fdc050bba7c9123bab19b48e1df2b1f3d6dc3c6e4968b9d126f",
+      "title": "Ticket Card",
+      "page": "components",
+      "w": 2232,
+      "h": 488
+    },
+    "TicketDetail.dc.html": {
+      "bytes": 27498,
+      "sha256": "e72a89d895904e5b5c9ca6a2749e7efec4f8c98e52d3ceccf27058bc26e5e6e4",
+      "title": "Ticket Detail",
+      "page": "components",
+      "w": 1150,
+      "h": 1390
+    },
+    "TicketDetailParent.dc.html": {
+      "bytes": 42921,
+      "sha256": "8adf1e756bd5c8e341b1df96c557cd52c5da78a8e18ed51b4cf1d316081d9ec5",
+      "title": "Ticket Detail \u2014 Parent",
+      "page": "components",
+      "w": 1150,
+      "h": 2140
+    },
+    "TimelineView.dc.html": {
+      "bytes": 26316,
+      "sha256": "fa00865ec4ed6ed1a9e8968b9c7d45d53e12501477b96306913f6a5e287ec943",
+      "title": "Timeline View",
+      "page": "screens",
+      "w": 1220,
+      "h": 2740
+    },
+    "Toast.dc.html": {
+      "bytes": 4931,
+      "sha256": "6cf76f03f800ad0c7fd644bf0fbde447b52a04b067ce50893cc61a20c47090cb",
+      "title": "Notification Toast",
+      "page": "components",
+      "w": 620,
+      "h": 620
+    },
+    "Workspace.dc.html": {
+      "bytes": 27502,
+      "sha256": "8b50b8f1e38e331a234bc127d52945eef6a5204f2b6b447999623cba1b59c351",
+      "title": "Workspace",
+      "page": "components",
+      "w": 1180,
+      "h": 2760
+    }
+  }
+}

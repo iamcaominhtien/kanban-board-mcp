@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .ac-row-actions { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
+    .ac-icon-btn { width: 24px; height: 24px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5B6B60; flex-shrink: 0; }
+    .ac-icon-btn:hover { background: #EAF0EC; }
+  </style>
+</helmet>
+
+<div style="width: 640px; height: 820px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 24px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Add / Edit / Delete Acceptance Criterion</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 500px; line-height: 1.5;">No "existing" tab, since a criterion only ever belongs to its own ticket. Edit and delete are hover-revealed on the row itself — no separate menu.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 22px;">
+
+    <!-- Idle -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Idle</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="display: flex; align-items: flex-start; gap: 9px;">
+          <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0; margin-top: 1px;"></div>
+          <span style="font-size: 13px; color: #3A4A3E;">Header stays fixed while its cards scroll underneath</span>
+        </label>
+      </div>
+      <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+        Add criterion
+      </button>
+    </div>
+
+    <!-- New -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Adding a new one</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="display: flex; align-items: flex-start; gap: 9px;">
+          <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0; margin-top: 1px;"></div>
+          <span style="font-size: 13px; color: #3A4A3E;">Header stays fixed while its cards scroll underneath</span>
+        </label>
+        <div style="display: flex; align-items: center; gap: 9px; padding: 5px 8px; border: 1px solid #2E6F40; border-radius: 6px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10);">
+          <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0;"></div>
+          <input placeholder="New criterion…" style="flex-grow: 1; border: none; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #1E2A22; background: none;">
+          <button aria-label="Cancel" style="width: 20px; height: 20px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+          </button>
+          <button aria-label="Save" style="width: 20px; height: 20px; border-radius: 5px; border: none; background: #2E6F40; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13L10 18L19 6"></path></svg>
+          </button>
+        </div>
+        <div style="font-size: 11.5px; color: #9AA8A0; padding-left: 25px;">Enter to save and add another · Esc to cancel</div>
+      </div>
+    </div>
+
+    <!-- Hover: edit/delete -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Row hover — edit / delete</div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <label style="display: flex; align-items: flex-start; gap: 9px; padding: 4px 6px; margin: 0 -6px; border-radius: 5px; background: #F6FAF7;">
+          <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0; margin-top: 4px;"></div>
+          <span style="font-size: 13px; color: #3A4A3E; flex-grow: 1; padding-top: 2px;">Header stays fixed while its cards scroll underneath</span>
+          <span class="ac-row-actions">
+            <button class="ac-icon-btn" aria-label="Edit">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20H21"></path><path d="M16.5 3.5C17.3 2.7 18.6 2.7 19.4 3.5C20.2 4.3 20.2 5.6 19.4 6.4L7 18.8L3 19.8L4 15.8L16.5 3.5Z"></path></svg>
+            </button>
+            <button class="ac-icon-btn" aria-label="Delete">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7H20"></path><path d="M9 7V4.5C9 3.7 9.7 3 10.5 3H13.5C14.3 3 15 3.7 15 4.5V7"></path><path d="M6 7L7 20.5C7 21.3 7.7 22 8.5 22H15.5C16.3 22 17 21.3 17 20.5L18 7"></path></svg>
+            </button>
+          </span>
+        </label>
+      </div>
+      <div style="font-size: 11.5px; color: #9AA8A0;">Icons appear only on hover — the row stays clean at rest. Delete removes the row right away, no confirm step.</div>
+    </div>
+
+    <!-- Icon close-up -->
+    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 4px; border-top: 1px solid #DCE6DF;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Icons at full size</div>
+      <div style="display: flex; gap: 20px;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+          <div style="width: 64px; height: 64px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20H21"></path><path d="M16.5 3.5C17.3 2.7 18.6 2.7 19.4 3.5C20.2 4.3 20.2 5.6 19.4 6.4L7 18.8L3 19.8L4 15.8L16.5 3.5Z"></path></svg>
+          </div>
+          <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Edit</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+          <div style="width: 64px; height: 64px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7H20"></path><path d="M9 7V4.5C9 3.7 9.7 3 10.5 3H13.5C14.3 3 15 3.7 15 4.5V7"></path><path d="M6 7L7 20.5C7 21.3 7.7 22 8.5 22H15.5C16.3 22 17 21.3 17 20.5L18 7"></path></svg>
+          </div>
+          <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Delete</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editing -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Editing an existing one</div>
+      <div style="display: flex; align-items: center; gap: 9px; padding: 5px 8px; border: 1px solid #2E6F40; border-radius: 6px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10);">
+        <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0;"></div>
+        <input value="Header stays fixed while its cards scroll underneath" style="flex-grow: 1; border: none; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #1E2A22; background: none;">
+        <button aria-label="Cancel" style="width: 20px; height: 20px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+        <button aria-label="Save" style="width: 20px; height: 20px; border-radius: 5px; border: none; background: #2E6F40; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13L10 18L19 6"></path></svg>
+        </button>
+      </div>
+      <div style="font-size: 11.5px; color: #9AA8A0; padding-left: 25px;">Same input row as Add — the checkbox stays put so editing never looks like a fresh, unchecked item.</div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":640,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

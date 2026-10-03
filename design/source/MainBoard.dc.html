@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .card-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
+    .tag-pill { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+    .mb-card { width: 100%; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E3E8E5; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .mb-avatar { width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mb-sidebar-item { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    .mb-sidebar-icon-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; border: none; background: none; cursor: pointer; color: #B7C9BE; font-size: 13px; font-weight: 500; width: 100%; box-sizing: border-box; text-align: left; }
+    .mb-chip { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #5B6B60; }
+    .mb-dropdown-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #1E2A22; }
+    .mb-dropdown-btn:hover { background: #F6FAF7; }
+    .sm-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 5px; cursor: pointer; }
+    .sm-item:hover { background: #F6FAF7; }
+    .mb-chip-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .mb-view-btn { padding: 6px 14px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #5B6B60; }
+    .mb-view-btn-active { background: #FFFFFF; color: #1E2A22; box-shadow: 0 1px 2px rgba(30,42,34,0.10); }
+  </style>
+</helmet>
+
+<div style="width: 1880px; height: 3800px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 30px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Screen — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Main Board</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 900px; line-height: 1.5;">The whole app shell — sidebar, top bar, filters, columns — pulled together from the pieces already designed (Ticket Card, Tags, Sub-task Grouping, Drag &amp; Drop). Biggest change from today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">Board.tsx</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">Column.tsx</code>: columns drop the flat neon fill (<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">#F5C518</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">#E8441A</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">#AACC2E</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">#F472B6</code>) for the quiet header-plus-count treatment already established in Sub-task Grouping — a thin color bar carries identity instead of a loud background.</div>
+  </div>
+
+  <!-- Full screen -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Full screen — Board view, KANBAN project (6 columns: Backlog, To Do, In Progress, Review, Testing, Done — matches the Status Menu order)</div>
+    <div style="width: 1768px; height: 940px; border-radius: 14px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; overflow: hidden; display: flex;">
+
+      <!-- Sidebar -->
+      <div style="width: 232px; flex-shrink: 0; background: #253D2C; display: flex; flex-direction: column; padding: 22px 14px; box-sizing: border-box; gap: 22px;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 0 8px;">
+          <div style="width: 22px; height: 22px; border-radius: 6px; background: #2E6F40; position: relative; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 10px; height: 7px; border-radius: 1.5px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-1.2px, 0.8px);"></div>
+            <div style="width: 10px; height: 7px; border-radius: 1.5px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 0 1.2px; box-sizing: border-box; box-shadow: 0 1.5px 3px rgba(0,0,0,0.14);">
+              <div style="width: 60%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+              <div style="width: 85%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+            </div>
+          </div>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #FFFFFF;">KANBAN</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6E8676; padding: 0 12px 4px;">Projects</div>
+
+          <div class="mb-sidebar-item" style="background: #2E6F40;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #AACC2E; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; font-weight: 600; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Kanban Redesign</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; color: #CFFFDC; background: rgba(255,255,255,0.12); padding: 1px 5px; border-radius: 3px;">KAN</span>
+          </div>
+
+          <div class="mb-sidebar-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #5BB8F5; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; font-weight: 500; color: #D7E3DA; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Mobile App</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; color: #8FA396; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px;">MOB</span>
+          </div>
+
+          <div class="mb-sidebar-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #A78BFA; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; font-weight: 500; color: #D7E3DA; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Marketing Site</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; color: #8FA396; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px;">MKT</span>
+          </div>
+        </div>
+
+        <button style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.25); background: none; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #8FA396;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+          New Project
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.05); margin-top: 4px;">
+          <span style="font-size: 11.5px; font-weight: 600; color: #D7E3DA; flex-grow: 1;">Idea Space</span>
+          <div style="position: relative; width: 30px; height: 17px; border-radius: 999px; background: rgba(255,255,255,0.15);">
+            <div style="position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #FFFFFF;"></div>
+          </div>
+        </div>
+
+        <div style="flex-grow: 1;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <button class="mb-sidebar-icon-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2V5"></path><path d="M12 19V22"></path><path d="M4.2 4.2L6.3 6.3"></path><path d="M17.7 17.7L19.8 19.8"></path><path d="M2 12H5"></path><path d="M19 12H22"></path><path d="M4.2 19.8L6.3 17.7"></path><path d="M17.7 6.3L19.8 4.2"></path></svg>
+            Settings
+          </button>
+          <button class="mb-sidebar-icon-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.5 19C3.5 15.5 6 13.5 9 13.5C12 13.5 14.5 15.5 14.5 19"></path><circle cx="17" cy="9" r="2.6"></circle><path d="M15.5 13.6C18 13.6 20 15.3 20.3 18"></path></svg>
+            Members
+          </button>
+          <button class="mb-sidebar-icon-btn" style="position: relative;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H21"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+            Recycle Bin
+            <span style="margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #253D2C; background: #E8B93A; padding: 1px 6px; border-radius: 999px;">3</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div style="flex: 1; min-width: 0; background: #FBFCFB; display: flex; flex-direction: column;">
+
+        <!-- Top bar -->
+        <div style="display: flex; align-items: center; gap: 16px; padding: 20px 28px 16px;">
+          <h2 style="margin: 0; font-size: 21px; font-weight: 700; color: #1E2A22; flex-grow: 1;">Kanban Redesign</h2>
+          <div style="display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: #EEF3EF;">
+            <button class="mb-view-btn mb-view-btn-active">Board</button>
+            <button class="mb-view-btn">List</button>
+            <button class="mb-view-btn">Timeline</button>
+          </div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: none; background: #2E6F40; color: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 600;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            New Ticket
+          </button>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="display: flex; align-items: center; gap: 8px; padding: 0 28px 16px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; width: 220px; box-sizing: border-box;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21L16.5 16.5"></path></svg>
+            <span style="font-size: 12.5px; color: #9AA8A0;">Search tickets…</span>
+          </div>
+          <span style="width: 1px; height: 20px; background: #E3E8E5;"></span>
+          <button class="mb-dropdown-btn">
+            <span style="color: #9AA8A0;">Type:</span> All
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+          <button class="mb-dropdown-btn">
+            <span style="color: #9AA8A0;">Priority:</span> All
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+          <button class="mb-dropdown-btn">
+            <div style="width: 15px; height: 15px; border-radius: 50%; background: #2E6F40; color: #FFFFFF; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+            <span style="color: #9AA8A0;">Assignee:</span> An
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+        </div>
+
+        <!-- Columns -->
+        <div style="flex: 1; min-height: 0; display: flex; gap: 18px; padding: 0 28px 24px; overflow: hidden;">
+
+          <!-- Backlog -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">Backlog</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #9AA8A0; padding: 1px 7px; border-radius: 999px;">3</span>
+              </div>
+              <div style="height: 3px; border-radius: 2px; background: #9AA8A0;"></div>
+            </div>
+            <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 10px; padding: 8px 8px 0 0;">
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-151</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Evaluate virtualized list for 200+ card columns</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="tag-pill" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">perf</span>
+                </div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #DCEEE1; color: #2E6F40;">AN</div>
+                  <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                    <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E8B93A"></rect>
+                    <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E8B93A"></rect>
+                    <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                  </svg>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">2 pt</span>
+                </div>
+              </div>
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z"></path><path d="M10 20.5H14"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Feature</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-149</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Bulk assign tickets from list view</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="tag-pill" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">ui</span>
+                  <span class="tag-pill" style="background: rgba(226,121,61,0.14); color: #B4571F;">perf</span>
+                </div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #E6E9F5; color: #5B5FA8;">HM</div>
+                  <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                    <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E2793D"></rect>
+                    <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E2793D"></rect>
+                    <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#E2793D"></rect>
+                    <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                  </svg>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">5 pt</span>
+                </div>
+              </div>
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2" stroke-linecap="round"><rect x="4" y="4.5" width="4" height="4" rx="1"></rect><path d="M10.5 6.5H20"></path><rect x="4" y="10" width="4" height="4" rx="1"></rect><path d="M10.5 12H20"></path><rect x="4" y="15.5" width="4" height="4" rx="1"></rect><path d="M10.5 17.5H20"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Chore</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-147</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Upgrade dnd-kit to v7</div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #F3E7DC; color: #B4791E;">TV</div>
+                  <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                    <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#9BB3A4"></rect>
+                    <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                  </svg>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">1 pt</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- To Do -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">To Do</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #2F6FB0; padding: 1px 7px; border-radius: 999px;">2</span>
+              </div>
+              <div style="height: 3px; border-radius: 2px; background: #2F6FB0;"></div>
+            </div>
+            <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 10px; padding: 8px 8px 0 0;">
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="5" ry="6.5"></ellipse><circle cx="12" cy="6" r="2.6"></circle><path d="M7 11H4"></path><path d="M7 16H4"></path><path d="M17 11H20"></path><path d="M17 16H20"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Bug</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-152</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Fix ghost card position after cancelled drag</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="tag-pill" style="background: rgba(109,93,211,0.12); color: #6D5DD3;">dnd</span>
+                </div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #E6E9F5; color: #5B5FA8;">HM</div>
+                  <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                    <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E8B93A"></rect>
+                    <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E8B93A"></rect>
+                    <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                  </svg>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">3 pt</span>
+                </div>
+              </div>
+
+              <div style="width: 100%; border-radius: 8px; background: #FFFFFF; border: 1.5px dashed #D9A79A; box-sizing: border-box; padding: 12px 14px; position: relative;">
+                <div style="display: flex; flex-direction: column; gap: 8px; opacity: 0.72;">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                      <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+                    </div>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-153</span>
+                  </div>
+                  <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Publish TC-code lookup endpoint</div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="mb-avatar" style="background: #DCEEE1; color: #2E6F40;">AN</div>
+                    <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                      <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E2793D"></rect>
+                      <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E2793D"></rect>
+                      <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#E2793D"></rect>
+                      <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                    </svg>
+                    <span style="flex-grow: 1;"></span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #C4432A;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10H20.5"></path><path d="M8 3V6.5"></path><path d="M16 3V6.5"></path></svg>
+                      Due Sep 12
+                    </span>
+                  </div>
+                </div>
+                <div title="Blocked by KAN-150" style="position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; border: 1.5px solid #C4432A; box-shadow: 0 1px 3px rgba(30,42,34,0.16); display: flex; align-items: center; justify-content: center;">
+                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="3" y="6.5" width="8" height="6" rx="1.3" stroke="#C4432A" stroke-width="1.4"></rect><path d="M4.6 6.5V4.8A2.4 2.4 0 0 1 9.4 4.8V6.5" stroke="#C4432A" stroke-width="1.4" stroke-linecap="round"></path></svg>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- In Progress -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">In Progress</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #E2793D; padding: 1px 7px; border-radius: 999px;">2</span>
+              </div>
+              <div style="height: 3px; border-radius: 2px; background: #E2793D;"></div>
+            </div>
+            <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 10px; padding: 8px 8px 0 0;">
+
+              <div class="mb-card" style="background: #F1F8F3; border-color: #D7E8DC;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-140</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Redesign board column header</div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #DCEEE1; color: #2E6F40;">AN</div>
+                  <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                    <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                  </svg>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #5B6B60;">1/3</span>
+                </div>
+              </div>
+
+              <div style="padding-left: 18px;">
+                <div class="mb-card">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                      <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+                    </div>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-145</span>
+                  </div>
+                  <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Write unit tests for drag handle</div>
+                  <div>
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; background: #F6FAF7; border: 1px solid #E3E8E5; font-size: 10px; font-weight: 600; color: #5B6B60;">
+                      <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5"></path><path d="M7.5 8.5L10 11L7.5 13.5"></path></svg>
+                      KAN-140
+                    </span>
+                  </div>
+                  <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                    <div class="mb-avatar" style="background: #E6E9F5; color: #5B5FA8;">HM</div>
+                    <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                      <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#DCE6DF"></rect>
+                      <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#DCE6DF"></rect>
+                      <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+                      <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                    </svg>
+                    <span style="flex-grow: 1;"></span>
+                    <span style="font-size: 11px; color: #9AA8A0;">2 pt</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Review -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">Review</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #6D5DD3; padding: 1px 7px; border-radius: 999px;">1</span>
+              </div>
+              <div style="height: 3px; border-radius: 2px; background: #6D5DD3;"></div>
+            </div>
+            <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 10px; padding: 8px 8px 0 0;">
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z"></path><path d="M10 20.5H14"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Feature</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-156</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Keyboard reorder support for columns</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="tag-pill" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">a11y</span>
+                </div>
+                <div style="display: inline-flex; align-items: center; gap: 5px;">
+                  <div style="width: 15px; height: 15px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+                  <span style="font-size: 10.5px; color: #5B6B60;">Review requested — Ha My</span>
+                </div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #F3E7DC; color: #B4791E;">TV</div>
+                  <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                    <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E8B93A"></rect>
+                    <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E8B93A"></rect>
+                    <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                  </svg>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">3 pt</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Testing -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">Testing</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #B4571F; padding: 1px 7px; border-radius: 999px;">1</span>
+              </div>
+              <div style="height: 3px; border-radius: 2px; background: #B4571F;"></div>
+            </div>
+            <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 10px; padding: 8px 8px 0 0;">
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Task</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-155</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Add file attachments to test case fields</div>
+                <div style="display: inline-flex; align-items: center; gap: 5px;">
+                  <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></span>
+                  <span style="font-size: 10.5px; color: #5B6B60;">Test — 2 pass · 1 running · 1 pending</span>
+                </div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #DCEEE1; color: #2E6F40;">AN</div>
+                  <svg width="15" height="14" viewBox="0 0 15 14" fill="none">
+                    <rect x="0" y="10" width="2.6" height="4" rx="1" fill="#E8B93A"></rect>
+                    <rect x="4.2" y="7" width="2.6" height="7" rx="1" fill="#E8B93A"></rect>
+                    <rect x="8.4" y="4" width="2.6" height="10" rx="1" fill="#DCE6DF"></rect>
+                    <rect x="12.6" y="1" width="2.6" height="13" rx="1" fill="#DCE6DF"></rect>
+                  </svg>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">4 pt</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Done -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">Done</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #68BA7F; padding: 1px 7px; border-radius: 999px;">2</span>
+              </div>
+              <div style="height: 3px; border-radius: 2px; background: #68BA7F;"></div>
+            </div>
+            <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 10px; padding: 8px 8px 0 0;">
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.1" stroke-linecap="round"><ellipse cx="12" cy="14" rx="5" ry="6.5"></ellipse><circle cx="12" cy="6" r="2.6"></circle><path d="M7 11H4"></path><path d="M7 16H4"></path><path d="M17 11H20"></path><path d="M17 16H20"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Bug</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; text-decoration: line-through; text-decoration-color: #C7D2CB;">KAN-138</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Fix drag ghost offset on Retina displays</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="tag-pill" style="background: rgba(196,67,42,0.12); color: #C4432A;">urgent</span>
+                </div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #F3E7DC; color: #B4791E;">TV</div>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">2 pt</span>
+                </div>
+              </div>
+
+              <div class="mb-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2" stroke-linecap="round"><rect x="4" y="4.5" width="4" height="4" rx="1"></rect><path d="M10.5 6.5H20"></path><rect x="4" y="10" width="4" height="4" rx="1"></rect><path d="M10.5 12H20"></path><rect x="4" y="15.5" width="4" height="4" rx="1"></rect><path d="M10.5 17.5H20"></path></svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #5B6B60;">Chore</span>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; text-decoration: line-through; text-decoration-color: #C7D2CB;">KAN-131</span>
+                </div>
+                <div class="card-title" style="font-size: 14px; font-weight: 600; color: #1E2A22;">Clean up dead CSS from old column colors</div>
+                <div style="margin-top: auto; display: flex; align-items: center; gap: 8px;">
+                  <div class="mb-avatar" style="background: #DCEEE1; color: #2E6F40;">AN</div>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 11px; color: #9AA8A0;">1 pt</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter dropdowns -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Filter bar — dropdowns instead of chip rows (too many chips at once was noisy)</div>
+    <div style="display: flex; gap: 40px;">
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="position: relative; height: 250px;">
+          <button class="mb-dropdown-btn" style="border-color: #2E6F40;">
+            <span style="color: #9AA8A0;">Type:</span> All
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(180deg);"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+          <div style="position: absolute; top: 38px; left: 0; width: 190px; background: #FFFFFF; border: 1px solid #E3E8E5; border-radius: 8px; box-shadow: 0 12px 28px rgba(30,42,34,0.14); padding: 4px; display: flex; flex-direction: column;">
+            <div class="sm-item" style="background: #F1F8F3;">
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 600;">All</span>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0;"><path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+            <div class="sm-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Task</span>
+            </div>
+            <div class="sm-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.1" stroke-linecap="round" style="flex-shrink: 0;"><ellipse cx="12" cy="14" rx="5" ry="6.5"></ellipse><circle cx="12" cy="6" r="2.6"></circle><path d="M7 11H4"></path><path d="M7 16H4"></path><path d="M17 11H20"></path><path d="M17 16H20"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Bug</span>
+            </div>
+            <div class="sm-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z"></path><path d="M10 20.5H14"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Feature</span>
+            </div>
+            <div class="sm-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" style="flex-shrink: 0;"><rect x="4" y="4.5" width="4" height="4" rx="1"></rect><path d="M10.5 6.5H20"></path><rect x="4" y="10" width="4" height="4" rx="1"></rect><path d="M10.5 12H20"></path><rect x="4" y="15.5" width="4" height="4" rx="1"></rect><path d="M10.5 17.5H20"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Chore</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Type — single-select</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="position: relative; height: 250px;">
+          <button class="mb-dropdown-btn" style="border-color: #2E6F40;">
+            <div style="width: 15px; height: 15px; border-radius: 50%; background: #2E6F40; color: #FFFFFF; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+            <span style="color: #9AA8A0;">Assignee:</span> An
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(180deg);"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+          <div style="position: absolute; top: 38px; left: 0; width: 190px; background: #FFFFFF; border: 1px solid #E3E8E5; border-radius: 8px; box-shadow: 0 12px 28px rgba(30,42,34,0.14); padding: 4px; display: flex; flex-direction: column;">
+            <div class="sm-item">
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">All Assignees</span>
+            </div>
+            <div class="sm-item">
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Unassigned</span>
+            </div>
+            <div class="sm-item" style="background: #F1F8F3;">
+              <div style="width: 18px; height: 18px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 600;">An</span>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0;"><path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+            <div class="sm-item">
+              <div style="width: 18px; height: 18px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Ha My</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Assignee — same menu pattern as Status</div>
+      </div>
+
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 700px;">Same dropdown-menu pattern as Status Menu (checkmark on the active row, not a highlight-only state). Priority opens the same way. Filter state and behavior are unchanged from the chip version — this only changes how it's exposed, so the bar stays one line instead of three.</div>
+  </div>
+
+  <!-- Column states -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Column states</div>
+    <div style="display: flex; gap: 24px;">
+
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 260px;">
+        <div style="width: 260px; height: 200px; border-radius: 10px; background: #FBFCFB; border: 1px solid #E3E8E5; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">Done</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #68BA7F; padding: 1px 7px; border-radius: 999px;">0</span>
+            </div>
+            <div style="height: 3px; border-radius: 2px; background: #68BA7F;"></div>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px dashed #DCE6DF; border-radius: 8px;">
+            <span style="font-size: 20px; color: #C7D2CB;">◻</span>
+            <span style="font-size: 11.5px; color: #9AA8A0;">No tickets</span>
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Empty column</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 260px;">
+        <div style="width: 260px; height: 200px; border-radius: 10px; background: #F6FAF7; border: 2px solid #2E6F40; box-sizing: border-box; padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60; flex-grow: 1;">In Progress</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #E2793D; padding: 1px 7px; border-radius: 999px;">2</span>
+            </div>
+            <div style="height: 3px; border-radius: 2px; background: #E2793D;"></div>
+          </div>
+          <div class="mb-card" style="border-style: dashed; border-color: #B9CBBF; background: #FFFFFF; opacity: 0.6; height: 46px; justify-content: center;">
+            <span style="font-size: 11px; color: #9AA8A0;">Drop here</span>
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">Drag-over (card hovering this column)</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 340px;">
+        <div style="width: 340px; height: 200px; border-radius: 10px; background: #FBFCFB; border: 1px solid #E3E8E5; box-sizing: border-box; padding: 3px; display: flex; align-items: center; justify-content: center;">
+          <div style="display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: #EEF3EF;">
+            <button class="mb-view-btn">Board</button>
+            <button class="mb-view-btn mb-view-btn-active">List</button>
+            <button class="mb-view-btn">Timeline</button>
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E2A22;">View switcher — same segmented control on List/Timeline</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Banners and toasts -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Banners &amp; toasts (rendered over the board, not in the layout flow)</div>
+    <div style="display: flex; flex-direction: column; gap: 10px; width: 760px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-radius: 8px; background: #C4432A; color: #FFFFFF; font-size: 13px;">
+        <span>Create ticket failed: network error, please try again</span>
+        <button style="background: none; border: none; color: #FFFFFF; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px;">×</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: #FEF3C7; border: 1.5px solid #E8B93A; box-shadow: 0 4px 16px rgba(30,42,34,0.12);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B4791E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+        <span style="font-size: 13px; color: #1E2A22; flex-grow: 1;">This ticket is blocked. Move to In Progress anyway?</span>
+        <button style="padding: 6px 14px; border-radius: 8px; border: none; background: #E8B93A; color: #1E2A22; font-size: 12.5px; font-weight: 600; cursor: pointer;">Move Anyway</button>
+        <button style="padding: 6px 14px; border-radius: 8px; border: 1.5px solid #E8B93A; background: none; color: #1E2A22; font-size: 12.5px; font-weight: 600; cursor: pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 900px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: assembly, not new data — every piece here (sidebar, filter chips, column, ticket card) maps 1:1 to <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">App.tsx</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">Board.tsx</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">Column.tsx</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">ProjectSidebar.tsx</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">FilterBar.tsx</code> today, same props and state. Changes are all visual: (1) columns lose their flat neon background — a 3px color bar plus a colored count pill now carries the same at-a-glance identity, freeing every card inside to read the same way regardless of which column it's in (today's saturated fills wash out card contrast, worst on Backlog yellow and Done pink). (2) sidebar goes from the current light theme to the Ink Deep (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">#253D2C</code>) surface from the system doc, project prefix badges and the board-toggle switch keep their exact current behavior. (3) search stays a text input, but priority and assignee move from chip rows to the Status-Menu-style dropdown (single list, checkmark on the active row) — three chip rows side by side read as noisy, one line of dropdown triggers doesn't. This adds a real filter too, not just restyling: a Type dropdown (All / Task / Bug / Feature / Chore, icon + label per row) — <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">FilterBar.tsx</code> only filters by priority and assignee today, so it needs an <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">activeType</code> state plus a <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">t.type === activeType</code> clause alongside the existing priority/assignee checks in <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">App.tsx</code>'s <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">filteredTickets</code>; priority and assignee keep their exact current filtering logic, only the trigger UI changes. (4) the "blocked drag" confirmation keeps its current copy and both actions, restyled to the card/shadow language used for popovers elsewhere. (5) parent tickets keep the tinted-background-plus-indent treatment from Sub-task Grouping, now shown inside a real column. (6) two new columns, Review and Testing, sit between In Progress and Done — this is real, not just visual: <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">Board.tsx</code>'s <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">COLUMNS</code> array needs the two new entries in this order (accent colors <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">#6D5DD3</code> Review, <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">#B4571F</code> Testing, matching Status Menu's dots) and <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">Status</code> needs the two new values already noted on that board. Code review happens first, so the Review card shows who review was requested from; the Testing card shows its Test Cases roll-up inline (pass/running/pending dot, same wording as the header tooltip) since that's the whole point of the column. Recycle Bin, Members and Settings panels, plus List/Timeline views, are unchanged here — each gets its own screen when it's this one's turn.</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1880,"height":3800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
