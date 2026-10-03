@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { markdownToHtml, htmlToMarkdown } from '../utils/markdownWysiwyg';
+import { resolveOrigin } from '../api/resolveOrigin';
 import styles from './MarkdownEditor.module.css';
 
 const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -403,10 +404,8 @@ export function MarkdownEditor({
     setIsLinkPopoverOpen(false);
   }
 
-  async function handleFilePickerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !onUploadImage) return;
-
+  async function handleUploadImageFile(file: File) {
+    if (!onUploadImage || isUploading) return;
     setIsUploading(true);
     try {
       const res = await onUploadImage(file);
@@ -414,26 +413,83 @@ export function MarkdownEditor({
       if (match) {
         const [, alt, src] = match;
         wysiwygRef.current?.focus();
-        document.execCommand('insertImage', false, src);
-        const imgs = wysiwygRef.current?.querySelectorAll('img');
-        if (imgs && imgs.length > 0) {
-          const lastImg = imgs[imgs.length - 1];
-          if (lastImg && !lastImg.getAttribute('alt')) {
-            lastImg.setAttribute('alt', alt);
+
+        const img = document.createElement('img');
+        const resolvedSrc = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
+        img.src = resolvedSrc;
+        img.alt = alt;
+
+        const sel = window.getSelection();
+        const savedRange = savedSelectionRangeRef.current;
+        if (savedRange && wysiwygRef.current?.contains(savedRange.commonAncestorContainer)) {
+          savedRange.deleteContents();
+          savedRange.insertNode(img);
+
+          const newRange = document.createRange();
+          newRange.setStartAfter(img);
+          newRange.collapse(true);
+          sel?.removeAllRanges();
+          sel?.addRange(newRange);
+        } else {
+          let targetP = wysiwygRef.current?.lastElementChild;
+          if (!targetP || targetP.tagName.toLowerCase() !== 'p') {
+            targetP = document.createElement('p');
+            wysiwygRef.current?.appendChild(targetP);
           }
+          targetP.appendChild(img);
         }
+
         syncContent();
       }
       onUploadComplete?.(latestValueRef.current);
-    } catch {
-      // upload error handled in mutation
+    } catch (err) {
+      console.error('Failed to upload image:', err);
     } finally {
       setIsUploading(false);
+      savedSelectionRangeRef.current = null;
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
   }
+
+  async function handleFilePickerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleUploadImageFile(file);
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    if (!onUploadImage || isUploading) return;
+    const file = Array.from(e.clipboardData.items)
+      .find((item) => item.kind === 'file' && SUPPORTED_UPLOAD_IMAGE_TYPES.includes(item.type.toLowerCase()))
+      ?.getAsFile();
+
+    if (file) {
+      e.preventDefault();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode)) {
+        savedSelectionRangeRef.current = sel.getRangeAt(0).cloneRange();
+      }
+      void handleUploadImageFile(file);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    if (!onUploadImage || isUploading) return;
+    const file = Array.from(e.dataTransfer.files).find((f) =>
+      SUPPORTED_UPLOAD_IMAGE_TYPES.includes(f.type.toLowerCase())
+    );
+    if (file) {
+      e.preventDefault();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode)) {
+        savedSelectionRangeRef.current = sel.getRangeAt(0).cloneRange();
+      }
+      void handleUploadImageFile(file);
+    }
+  }
+
 
   function handleKeyDown(e: React.KeyboardEvent) {
     const isMod = e.metaKey || e.ctrlKey;
@@ -682,6 +738,12 @@ export function MarkdownEditor({
                   disabled={isUploading}
                   onMouseDown={(e) => {
                     e.preventDefault();
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode)) {
+                      savedSelectionRangeRef.current = sel.getRangeAt(0).cloneRange();
+                    } else {
+                      savedSelectionRangeRef.current = null;
+                    }
                     if (isFilePickerOpenRef.current) return;
                     isFilePickerOpenRef.current = true;
                     window.addEventListener(
@@ -834,6 +896,8 @@ export function MarkdownEditor({
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          onDrop={handleDrop}
           onBlur={syncContent}
         />
       </div>

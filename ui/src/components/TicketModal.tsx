@@ -12,6 +12,7 @@ import {
   useTicketBranches, useCreateBranch,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
+import { resolveOrigin } from '../api/resolveOrigin';
 import { ActivityLog } from './ActivityLog';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
@@ -831,27 +832,42 @@ export function TicketModal({
                 />
 
                 {/* Consolidated Attachments Zone */}
-                <div className={styles.attachmentsZone}>
-                  <div className={styles.sectionLabel}>
-                    ATTACHMENTS · {ticket.description?.match(/!\[.*?\]\((.*?)\)/g)?.length ?? 0}
-                  </div>
-                  <div className={styles.attachmentsList}>
-                    {/* Parse markdown description image links */}
-                    {(ticket.description?.match(/!\[(.*?)\]\((.*?)\)/g) ?? []).map((match, i) => {
+                {(() => {
+                  const rawAttachments = (ticket.description?.match(/!\[(.*?)\]\((.*?)\)/g) ?? [])
+                    .map((match) => {
                       const exec = /!\[(.*?)\]\((.*?)\)/.exec(match);
                       const alt = exec?.[1] || 'attachment';
                       const src = exec?.[2] || '';
-                      return (
-                        <div key={i} className={styles.attThumbBox}>
-                          <div className={styles.attThumb}>
-                            <img src={src} alt={alt} />
-                          </div>
-                          <span className={styles.attMetaText}>in Description</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                      return { alt, src };
+                    })
+                    .filter((att) => att.src && !att.src.startsWith('uploading:'));
+
+                  return (
+                    <div className={styles.attachmentsZone}>
+                      <div className={styles.sectionLabel}>
+                        ATTACHMENTS · {rawAttachments.length}
+                      </div>
+                      <div className={styles.attachmentsList}>
+                        {rawAttachments.map((att, i) => {
+                          const resolvedSrc = att.src.startsWith('/uploads/') ? `${resolveOrigin()}${att.src}` : att.src;
+                          return (
+                            <div key={i} className={styles.attThumbBox}>
+                              <div
+                                className={styles.attThumb}
+                                onClick={() => window.open(resolvedSrc, '_blank')}
+                                style={{ cursor: 'pointer' }}
+                                title="Click to view full size"
+                              >
+                                <img src={resolvedSrc} alt={att.alt} />
+                              </div>
+                              <span className={styles.attMetaText}>in Description</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <hr className={styles.sectionDivider} />
 

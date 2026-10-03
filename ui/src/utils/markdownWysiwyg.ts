@@ -3,6 +3,8 @@
  * Strictly mirrors the styling and formatting from DescriptionMarkdown.dc.html.
  */
 
+import { resolveOrigin } from '../api/resolveOrigin';
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -12,8 +14,15 @@ function escapeHtml(text: string): string {
 }
 
 function formatInlineMarkdown(text: string): string {
+  // Strip any old uploading:... placeholder
+  text = text.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '');
+
   // Images: ![alt](url)
-  let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+  let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
+    if (url.startsWith('uploading:')) return '';
+    const src = url.startsWith('/uploads/') ? `${resolveOrigin()}${url}` : url;
+    return `<img src="${src}" alt="${alt}" />`;
+  });
 
   // Links: [text](url)
   out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
@@ -33,6 +42,7 @@ function formatInlineMarkdown(text: string): string {
 
   return out;
 }
+
 
 export function markdownToHtml(md: string): string {
   if (!md || !md.trim()) return '<p><br></p>';
@@ -212,7 +222,18 @@ export function htmlToMarkdown(root: HTMLElement): string {
         return `[${childrenText || 'link'}](${href})`;
       }
       case 'img': {
-        const src = el.getAttribute('src') || '';
+        let src = el.getAttribute('src') || '';
+        if (!src || src.startsWith('uploading:')) return '';
+        try {
+          if (src.startsWith('http://') || src.startsWith('https://')) {
+            const urlObj = new URL(src);
+            if (urlObj.pathname.startsWith('/uploads/')) {
+              src = urlObj.pathname;
+            }
+          }
+        } catch {
+          // ignore
+        }
         const alt = el.getAttribute('alt') || '';
         return `![${alt}](${src})`;
       }
