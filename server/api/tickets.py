@@ -635,18 +635,21 @@ async def get_ticket_branches(ticket_id: str, session: Session) -> list[dict]:
 async def post_branch(
     ticket_id: str, body: BranchCreateBody, session: Session
 ) -> TicketRead:
-    ticket = await add_branch(
-        session,
-        ticket_id,
-        name=body.name,
-        branch_from=body.branch_from,
-        status=body.status,
-        pr_url=body.pr_url,
-        commit_hash=body.commit_hash,
-        linked_ticket_id=body.linked_ticket_id,
-        ahead_count=body.ahead_count,
-        behind_count=body.behind_count,
-    )
+    try:
+        ticket = await add_branch(
+            session,
+            ticket_id,
+            name=body.name,
+            branch_from=body.branch_from,
+            status=body.status,
+            pr_url=body.pr_url,
+            commit_hash=body.commit_hash,
+            linked_ticket_id=body.linked_ticket_id,
+            ahead_count=body.ahead_count,
+            behind_count=body.behind_count,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

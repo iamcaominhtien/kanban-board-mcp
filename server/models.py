@@ -18,6 +18,7 @@ class Project(SQLModel, table=True):
     prefix: str = Field(unique=True)  # e.g. "IAM", uppercase, max 6 chars
     color: str  # hex accent color
     ticket_counter: int = Field(default=0)
+    repo_path: Optional[str] = Field(default=None)  # local git repo used for ticket branches
 
 
 class WorkspaceSettings(SQLModel, table=True):
@@ -156,6 +157,7 @@ class ProjectCreate(SQLModel):
 class ProjectUpdate(SQLModel):
     name: Optional[str] = None
     color: Optional[str] = None
+    repo_path: Optional[str] = None  # empty string clears the link
 
 
 class ProjectRead(SQLModel):
@@ -164,6 +166,7 @@ class ProjectRead(SQLModel):
     prefix: str
     color: str
     ticket_counter: int
+    repo_path: Optional[str] = None
 
 
 class MemberCreate(SQLModel):

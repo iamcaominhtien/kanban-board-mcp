@@ -1,7 +1,9 @@
+import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
 
+from git import GitCommandError
 from rapidfuzz import fuzz
 from sqlalchemy import text
 from sqlmodel import select
@@ -10,9 +12,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import (
     ActivityEventRead,
     Member,
+    Project,
     Ticket,
     TicketUpdate,
 )
+from services import git_repo
 
 UTC = timezone.utc
 
@@ -867,7 +871,40 @@ async def list_branches(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
-    return _loads(getattr(ticket, "branches", "[]"))
+    branches = _loads(getattr(ticket, "branches", "[]"))
+    repo_path = await _project_repo_path(session, ticket)
+    if repo_path:
+        branches = await asyncio.to_thread(_sync_branches_with_git, repo_path, branches)
+    return branches
+
+
+async def _project_repo_path(session: AsyncSession, ticket: Ticket) -> str | None:
+    project = await session.get(Project, ticket.project_id)
+    return project.repo_path if project else None
+
+
+def _sync_branches_with_git(repo_path: str, branches: list[dict]) -> list[dict]:
+    """Overlay live commit hash and ahead/behind counts from the git repo."""
+    repo = git_repo.open_repo(repo_path)
+    synced = []
+    for br in branches:
+        br = dict(br)
+        if br.get("status") != "baseline":
+            try:
+                info = git_repo.branch_info(repo, br["name"], br.get("branch_from") or "main")
+            except (git_repo.GitRepoError, GitCommandError):
+                synced.append(br)  # branch missing locally: keep stored values
+                continue
+            br.update(
+                commit_hash=info.commit_hash,
+                commitHash=info.commit_hash,
+                ahead_count=info.ahead_count,
+                aheadCount=info.ahead_count,
+                behind_count=info.behind_count,
+                behindCount=info.behind_count,
+            )
+        synced.append(br)
+    return synced
 
 
 async def add_branch(
@@ -890,6 +927,16 @@ async def add_branch(
             f"Invalid branch status '{status}'. Valid statuses: {sorted(VALID_BRANCH_STATUSES)}"
         )
     branches = _loads(getattr(ticket, "branches", "[]"))
+    repo_path = await _project_repo_path(session, ticket)
+    if repo_path:
+        # Real git repo linked: create the branch there and use its true state.
+        def _create() -> git_repo.BranchInfo:
+            return git_repo.create_branch(git_repo.open_repo(repo_path), name, branch_from)
+
+        info = await asyncio.to_thread(_create)
+        commit_hash = info.commit_hash
+        ahead_count = info.ahead_count
+        behind_count = info.behind_count
     now_iso = datetime.now(UTC).isoformat()
     new_branch = {
         "id": str(uuid.uuid4()),
