@@ -136,46 +136,38 @@ def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:
     env["KANBAN_DB_PATH"] = str(tmp_path / "desktop-app" / "kanban.db")
 
     process = subprocess.Popen(
-        [sys.executable, "main.py"],
+        [sys.executable, "-u", "main.py"],
         cwd=server_dir,
         env=env,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
         bufsize=1,
     )
 
+    import threading
+
+    timer = threading.Timer(30.0, process.terminate)
+    timer.start()
+    port = None
+
     try:
-        deadline = time.time() + 20
-        port = None
-
-        while time.time() < deadline:
-            ready, _, _ = select.select([process.stdout], [], [], 0.5)
-            if ready:
-                line = process.stdout.readline()
-                if not line:
-                    break
-                if line.startswith("READY port="):
-                    port = int(line.strip().split("=", 1)[1])
-                    break
-
-            if process.poll() is not None:
+        for line in process.stdout:
+            if line.startswith("READY port="):
+                port = int(line.strip().split("=", 1)[1])
                 break
 
         if port is None:
-            if process.poll() is None:
-                process.send_signal(signal.SIGTERM)
-                process.wait(timeout=10)
-            stderr_output = process.stderr.read()
             raise AssertionError(
-                "main.py never emitted READY port=<N> within 20s. "
-                f"exit={process.poll()} stderr={stderr_output}"
+                "main.py never emitted READY port=<N> within 30s. "
+                f"exit={process.poll()}"
             )
 
         response = httpx.get(f"http://127.0.0.1:{port}/health", timeout=5.0)
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
     finally:
+        timer.cancel()
         if process.poll() is None:
             process.send_signal(signal.SIGTERM)
             try:

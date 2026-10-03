@@ -12,15 +12,15 @@ _ALEMBIC_INI = Path(__file__).parent / "alembic.ini"
 
 
 def _resolve_db_path() -> Path:
-    configured = app_config.get_data_folder()
-    if configured:
-        configured.mkdir(parents=True, exist_ok=True)
-        return configured / "kanban.db"
     _db_path_env = os.environ.get("KANBAN_DB_PATH", "")
     if _db_path_env:
         p = Path(_db_path_env).resolve()
         p.parent.mkdir(parents=True, exist_ok=True)
         return p
+    configured = app_config.get_data_folder()
+    if configured:
+        configured.mkdir(parents=True, exist_ok=True)
+        return configured / "kanban.db"
     return Path(__file__).parent / "kanban.db"
 
 

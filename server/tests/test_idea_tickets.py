@@ -110,7 +110,7 @@ async def test_create_idea_ticket_all_fields(client: httpx.AsyncClient):
             description="Detailed idea",
             idea_color="blue",
             idea_emoji="🚀",
-            idea_energy="high",
+            idea_energy="hot",
             tags=["growth", "beta"],
             problem_statement="Users cannot find their next best idea.",
         )
@@ -119,7 +119,7 @@ async def test_create_idea_ticket_all_fields(client: httpx.AsyncClient):
     assert created["description"] == "Detailed idea"
     assert created["idea_color"] == "blue"
     assert created["idea_emoji"] == "🚀"
-    assert created["idea_energy"] == "high"
+    assert created["idea_energy"] == "hot"
     assert created["tags"] == ["growth", "beta"]
     assert created["problem_statement"] == "Users cannot find their next best idea."
 
@@ -159,7 +159,7 @@ async def test_update_idea_ticket_fields(client: httpx.AsyncClient):
             json={
                 "title": "[TEST] Updated idea",
                 "description": "Updated description",
-                "idea_energy": "medium",
+                "idea_energy": "concept",
                 "tags": ["updated"],
                 "ice_impact": 5,
                 "ice_effort": 2,
@@ -172,7 +172,7 @@ async def test_update_idea_ticket_fields(client: httpx.AsyncClient):
     updated = response.json()
     assert updated["title"] == "[TEST] Updated idea"
     assert updated["description"] == "Updated description"
-    assert updated["idea_energy"] == "medium"
+    assert updated["idea_energy"] == "concept"
     assert updated["tags"] == ["updated"]
     assert updated["ice_impact"] == 5
     assert updated["ice_effort"] == 2

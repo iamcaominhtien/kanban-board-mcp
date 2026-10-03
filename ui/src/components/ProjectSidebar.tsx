@@ -75,9 +75,12 @@ export function ProjectSidebar({
   }
 
   return (
-    <aside className={styles.sidebar} aria-label="Project navigation">
+    <aside
+      className={`${styles.sidebar} ${showForm ? styles.expanded : ''}`}
+      aria-label="Project navigation"
+    >
       {/* App Brand Header */}
-      <div className={styles.logoArea}>
+      <div className={styles.logoArea} title="Kanban Board">
         <AppLogo size={22} />
         <span className={styles.logoText}>KANBAN</span>
       </div>
@@ -94,6 +97,7 @@ export function ProjectSidebar({
                 key={project.id}
                 role="button"
                 tabIndex={0}
+                title={`${project.name} (${project.prefix})`}
                 className={`${styles.projectItem} ${isActive ? styles.projectItemActive : ''}`}
                 onClick={() => onSelectProject(project.id)}
                 onKeyDown={(e) => {
@@ -179,11 +183,12 @@ export function ProjectSidebar({
           type="button"
           className={styles.newProjectBtn}
           onClick={() => setShowForm(true)}
+          title="New Project"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ flexShrink: 0 }}>
             <path d="M12 5V19M5 12H19" />
           </svg>
-          New Project
+          <span className={styles.newProjectText}>New Project</span>
         </button>
       )}
 
@@ -193,6 +198,7 @@ export function ProjectSidebar({
         onClick={toggleBoard}
         role="button"
         tabIndex={0}
+        title={activeBoard === 'idea' ? 'Idea Space (Active)' : 'Idea Space'}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -200,6 +206,11 @@ export function ProjectSidebar({
           }
         }}
       >
+        <svg className={styles.ideaIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="M9 18h6" />
+          <path d="M10 22h4" />
+          <path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z" />
+        </svg>
         <span className={styles.ideaLabel}>Idea Space</span>
         <div className={`${styles.toggleTrack} ${activeBoard === 'idea' ? styles.toggleTrackActive : ''}`}>
           <div className={`${styles.toggleKnob} ${activeBoard === 'idea' ? styles.toggleKnobActive : ''}`} />
@@ -214,35 +225,38 @@ export function ProjectSidebar({
           type="button"
           className={styles.sidebarIconBtn}
           onClick={onOpenSettings}
+          title="Settings"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <circle cx="12" cy="12" r="3" />
             <path d="M12 2V5M12 19V22M4.2 4.2L6.3 6.3M17.7 17.7L19.8 19.8M2 12H5M19 12H22M4.2 19.8L6.3 17.7M17.7 6.3L19.8 4.2" />
           </svg>
-          Settings
+          <span className={styles.navLabel}>Settings</span>
         </button>
         <button
           type="button"
           className={styles.sidebarIconBtn}
           onClick={onOpenMembers}
+          title="Members"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <circle cx="9" cy="8" r="3.2" />
             <path d="M3.5 19C3.5 15.5 6 13.5 9 13.5C12 13.5 14.5 15.5 14.5 19" />
             <circle cx="17" cy="9" r="2.6" />
             <path d="M15.5 13.6C18 13.6 20 15.3 20.3 18" />
           </svg>
-          Members
+          <span className={styles.navLabel}>Members</span>
         </button>
         <button
           type="button"
           className={styles.sidebarIconBtn}
           onClick={onOpenRecycleBin}
+          title={wontDoCount > 0 ? `Recycle Bin (${wontDoCount})` : 'Recycle Bin'}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <path d="M3 6H21M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
           </svg>
-          Recycle Bin
+          <span className={styles.navLabel}>Recycle Bin</span>
           {wontDoCount > 0 && (
             <span className={styles.badgeCount}>{wontDoCount}</span>
           )}

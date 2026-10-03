@@ -12,6 +12,7 @@ def _reload_database_module():
 
 def test_database_uses_repo_default_path_when_env_missing(monkeypatch) -> None:
     monkeypatch.delenv("KANBAN_DB_PATH", raising=False)
+    monkeypatch.setattr("config.get_data_folder", lambda: None)
 
     database = _reload_database_module()
 
