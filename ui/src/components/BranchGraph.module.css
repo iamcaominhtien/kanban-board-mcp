@@ -42,7 +42,7 @@
 .legendRow { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #EEF3EF; font-size: 12.5px; }
 .legendRow:last-child { border-bottom: none; }
 .legendDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.legendName { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; color: #1E2A22; min-width: 150px; }
+.legendName { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; color: #1E2A22; flex: 0 1 260px; min-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legendMeta { color: #9AA8A0; font-size: 12px; flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legendPath { font-family: var(--font-mono); font-size: 11px; color: #5B6B60; }
 
@@ -57,18 +57,19 @@
 
 /* Graph */
 .scroller { position: relative; border: 1px solid #E3E8E5; border-radius: 8px; background: #FFFFFF; max-height: 460px; overflow: auto; }
-.body { position: relative; display: flex; min-width: max-content; }
+.body { position: relative; display: flex; min-width: 0; }
 .svgCol { flex-shrink: 0; }
-.rows { flex-grow: 1; min-width: 0; }
-.row { display: flex; align-items: center; gap: 8px; padding-right: 14px; font-size: 12.5px; color: #1E2A22; white-space: nowrap; }
+.rows { flex: 1 1 0; min-width: 0; }
+.row { display: flex; align-items: center; gap: 8px; padding-right: 14px; font-size: 12.5px; color: #1E2A22; white-space: nowrap; min-width: 0; overflow: hidden; }
 .row:hover { background: #FAFCFA; }
-.subject { overflow: hidden; text-overflow: ellipsis; max-width: 440px; font-weight: 500; }
-.hash { font-family: var(--font-mono); font-size: 11px; color: #9AA8A0; }
-.author { color: #5B6B60; font-size: 12px; }
-.date { color: #9AA8A0; font-size: 12px; margin-left: auto; padding-left: 12px; }
-.hidden { font-size: 11px; color: #9AA8A0; font-style: italic; }
+/* The subject takes whatever room is left and ellipsizes; everything else keeps its size */
+.subject { flex: 1 1 120px; min-width: 60px; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.hash { font-family: var(--font-mono); font-size: 11px; color: #9AA8A0; flex-shrink: 0; }
+.author { color: #5B6B60; font-size: 12px; flex: 0 1 150px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.date { color: #9AA8A0; font-size: 12px; margin-left: auto; padding-left: 12px; flex-shrink: 0; }
+.hidden { font-size: 11px; color: #9AA8A0; font-style: italic; flex-shrink: 0; }
 
-.chip { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 4px; border: 1px solid transparent; flex-shrink: 0; }
+.chip { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 4px; border: 1px solid transparent; flex: 0 1 auto; max-width: 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chipHead { background: #1E2A22; color: #FFFFFF; }
 .chipBase { background: rgba(46, 111, 64, 0.12); color: #2E6F40; }
 .chipTicket { background: rgba(109, 93, 211, 0.14); color: #6D5DD3; }

@@ -116,12 +116,12 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
 
   const chip = (r: GraphRef) => {
     if (r.type === 'head') return <span key="head" className={`${styles.chip} ${styles.chipHead}`}>HEAD</span>;
-    if (r.type === 'tag') return <span key={`t-${r.name}`} className={`${styles.chip} ${styles.chipTag}`}>{r.name}</span>;
-    if (r.type === 'remote') return <span key={`r-${r.name}`} className={`${styles.chip} ${styles.chipOther}`}>{r.name}</span>;
+    if (r.type === 'tag') return <span key={`t-${r.name}`} className={`${styles.chip} ${styles.chipTag}`} title={r.name}>{r.name}</span>;
+    if (r.type === 'remote') return <span key={`r-${r.name}`} className={`${styles.chip} ${styles.chipOther}`} title={r.name}>{r.name}</span>;
     const cls = ticketSet.has(r.name) ? styles.chipTicket : r.name === data.base ? styles.chipBase : styles.chipOther;
     const wt = branchByName.get(r.name)?.worktreePath;
     return (
-      <span key={`b-${r.name}`} className={`${styles.chip} ${cls}`} title={wt ? `Worktree: ${wt}` : undefined}>
+      <span key={`b-${r.name}`} className={`${styles.chip} ${cls}`} title={wt ? `${r.name}\nWorktree: ${wt}` : r.name}>
         {wt ? '🌳 ' : ''}{r.name}
       </span>
     );
@@ -255,12 +255,12 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
             {visible.map((c, i) => {
               const hiddenAfter = edges.find((e) => e.from === i && !e.secondParent)?.hidden ?? 0;
               return (
-                <div key={c.hash} className={styles.row} style={{ height: ROW_H }} title={`${c.hash}\n${c.author}\n${new Date(c.date).toLocaleString()}`}>
+                <div key={c.hash} className={styles.row} style={{ height: ROW_H }} title={`${c.subject}\n\n${c.hash}\n${c.author}\n${new Date(c.date).toLocaleString()}`}>
                   {c.refs.map(chip)}
                   <span className={styles.subject}>{c.subject}</span>
                   {hiddenAfter > 0 && <span className={styles.hidden}>+{hiddenAfter} commits</span>}
                   <span className={styles.hash}>{c.short}</span>
-                  <span className={styles.author}>{c.author}</span>
+                  <span className={styles.author} title={c.author}>{c.author}</span>
                   <span className={styles.date}>{relativeDate(c.date)}</span>
                 </div>
               );
