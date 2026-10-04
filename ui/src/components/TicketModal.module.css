@@ -118,11 +118,16 @@
   font-size: 13px;
   font-weight: 600;
   color: #1E2A22;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .idBtn:hover {
   background: #F6FAF7;
+  color: #2E6F40;
+}
+
+.idBtn:active {
+  transform: scale(0.96);
 }
 
 /* View switcher tab buttons in header */
@@ -148,17 +153,26 @@
   color: #5B6B60;
   position: relative;
   box-sizing: border-box;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .viewBtn:hover {
   background: #F6FAF7;
+  border-color: #B9CBBF;
+  color: #1E2A22;
+  transform: translateY(-1px);
+}
+
+.viewBtn:active {
+  transform: scale(0.93) translateY(0);
 }
 
 .viewBtnActive {
   border-color: #2E6F40 !important;
   background: #F1F8F3 !important;
-  color: #1E2A22 !important;
+  color: #2E6F40 !important;
+  box-shadow: 0 1px 4px rgba(46, 111, 64, 0.14);
+  transform: translateY(-1px);
 }
 
 .viewDot {
@@ -256,6 +270,22 @@
   max-height: calc(90vh - 75px);
   width: 100%;
   box-sizing: border-box;
+}
+
+.tabFadeSlide {
+  animation: tabFadeSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes tabFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .mainCol {

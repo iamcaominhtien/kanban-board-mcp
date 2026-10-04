@@ -692,7 +692,7 @@ export function TicketModal({
 
         {/* Body */}
         {activeTab === 'main' ? (
-          <div className={styles.detailBody}>
+          <div key="main" className={`${styles.detailBody} ${styles.tabFadeSlide}`}>
             {/* Main Column */}
             <div className={styles.mainCol}>
               <>
@@ -1223,7 +1223,7 @@ export function TicketModal({
           </aside>
         </div>
         ) : (
-          <div className={styles.fullWidthBody}>
+          <div key={activeTab} className={`${styles.fullWidthBody} ${styles.tabFadeSlide}`}>
             {activeTab === 'test_cases' && (
               <TestCasesSection
                 ticketId={ticket.id}
