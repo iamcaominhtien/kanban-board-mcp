@@ -354,3 +354,101 @@ async def test_checkout_branch(client: httpx.AsyncClient, repo_dir):
         assert r.status_code == 200
         assert _git(repo_dir, "branch", "--show-current").strip() == "feat/co"
         assert (await c.get(f"/tickets/{t['id']}/branches")).json()[0]["is_current"] is True
+
+
+def _commit(repo_dir, fname, branch=None):
+    if branch:
+        _git(repo_dir, "checkout", "-q", branch)
+    (repo_dir / fname).write_text(fname)
+    _git(repo_dir, "add", ".")
+    _git(repo_dir, "commit", "-qm", f"add {fname}")
+
+
+def _assert_no_lane_overlap(commits):
+    """No commit may sit on a lane that another edge is still running through."""
+    row = {c["hash"]: i for i, c in enumerate(commits)}
+    for i, c in enumerate(commits):
+        for idx, ph in enumerate(c["parents"]):
+            if ph not in row:
+                continue
+            lane = c["lane"] if idx == 0 else commits[row[ph]]["lane"]
+            if lane == 0:
+                continue
+            for r in range(i + 1, row[ph]):
+                assert commits[r]["lane"] != lane, (
+                    f"{commits[r]['subject']} overlaps edge {c['subject']} -> {commits[row[ph]]['subject']}"
+                )
+
+
+async def test_graph_without_repo_is_not_linked(client: httpx.AsyncClient):
+    async with client as c:
+        p = (await c.post("/projects", json={"name": "G", "prefix": "GIT", "color": "#123456"})).json()
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        g = (await c.get(f"/tickets/{t['id']}/graph")).json()
+        assert g["linked"] is False and g["commits"] == []
+
+
+async def test_graph_shows_real_history_with_multiple_merges_and_branches(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        for name in ("feat/a", "feat/b", "feat/c"):
+            await _branch(c, t, name)
+        # feat/a: 2 commits, stays open
+        _commit(repo_dir, "a1.txt", "feat/a")
+        _commit(repo_dir, "a2.txt")
+        # feat/b: merged into main (branch kept), then main moves on
+        _commit(repo_dir, "b1.txt", "feat/b")
+        _git(repo_dir, "checkout", "-q", "main")
+        _git(repo_dir, "merge", "-q", "--no-ff", "feat/b", "-m", "merge b")
+        _commit(repo_dir, "m1.txt")
+        # feat/c: merged then branch deleted from git
+        _commit(repo_dir, "c1.txt", "feat/c")
+        _git(repo_dir, "checkout", "-q", "main")
+        _git(repo_dir, "merge", "-q", "--no-ff", "feat/c", "-m", "merge c")
+        _git(repo_dir, "branch", "-D", "feat/c")
+
+        g = (await c.get(f"/tickets/{t['id']}/graph")).json()
+        assert g["linked"] is True and g["base"] == "main"
+        by_subject = {x["subject"]: x for x in g["commits"]}
+        # mainline commits sit on lane 0, side work on lanes >= 1
+        for s in ("init", "merge b", "add m1.txt", "merge c"):
+            assert by_subject[s]["lane"] == 0, s
+        for s in ("add a1.txt", "add a2.txt", "add b1.txt", "add c1.txt"):
+            assert by_subject[s]["lane"] >= 1, s
+        # both merges are real two-parent commits
+        assert len(by_subject["merge b"]["parents"]) == 2 and len(by_subject["merge c"]["parents"]) == 2
+        # open branch commits are attributed to feat/a; merged work is no longer 'exclusive'
+        assert by_subject["add a2.txt"]["ticket_branches"] == ["feat/a"]
+        assert by_subject["add b1.txt"]["ticket_branches"] == []
+        # tips carry their ref labels, HEAD on main
+        assert any(r["name"] == "feat/a" for r in by_subject["add a2.txt"]["refs"])
+        assert any(r["name"] == "HEAD" for r in by_subject["merge c"]["refs"])
+        assert g["lane_count"] >= 2
+        _assert_no_lane_overlap(g["commits"])
+
+
+async def test_graph_window_reaches_back_to_branch_fork(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        await _branch(c, t, "feat/old")
+        _commit(repo_dir, "o1.txt", "feat/old")
+        _git(repo_dir, "checkout", "-q", "main")
+        for i in range(30):
+            _commit(repo_dir, f"main{i}.txt")
+        g = (await c.get(f"/tickets/{t['id']}/graph", params={"limit": 5})).json()
+        subjects = [x["subject"] for x in g["commits"]]
+        # window grew past limit=5 so the branch and its fork point are both present
+        assert "add o1.txt" in subjects and "init" in subjects
+        assert len(g["commits"]) >= 32
+
+
+async def test_graph_limit_truncates_when_branch_forked_recently(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        for i in range(12):
+            _commit(repo_dir, f"main{i}.txt")
+        await _branch(c, t, "feat/new")  # forks at the current tip
+        _commit(repo_dir, "n1.txt", "feat/new")
+        _git(repo_dir, "checkout", "-q", "main")
+        g = (await c.get(f"/tickets/{t['id']}/graph", params={"limit": 5})).json()
+        assert len(g["commits"]) == 5 and g["truncated"] is True

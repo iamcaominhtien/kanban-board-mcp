@@ -226,3 +226,125 @@ def checkout_branch(repo: Repo, name: str) -> None:
         repo.git.checkout(name)
     except GitCommandError as exc:
         raise GitRepoError(f"Could not check out '{name}': {exc.stderr.strip()}") from exc
+
+
+def _parse_refs(decoration: str) -> list[dict]:
+    """Parse a ``%D`` decoration string into ``[{name, type}]``."""
+    refs: list[dict] = []
+    for raw in filter(None, (part.strip() for part in decoration.split(","))):
+        if raw.startswith("HEAD -> "):
+            refs.append({"name": "HEAD", "type": "head"})
+            refs.append({"name": raw[len("HEAD -> "):], "type": "branch"})
+        elif raw == "HEAD":
+            refs.append({"name": "HEAD", "type": "head"})
+        elif raw.startswith("tag: "):
+            refs.append({"name": raw[len("tag: "):], "type": "tag"})
+        elif "/" in raw and raw.split("/", 1)[0] == "origin":
+            refs.append({"name": raw, "type": "remote"})
+        else:
+            refs.append({"name": raw, "type": "branch"})
+    return refs
+
+
+HARD_LIMIT = 300
+
+
+def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int = 80) -> dict:
+    """Commit graph over ``bases`` (mainline) and the ticket's ``branches``.
+
+    Returns commits newest-first (topological order) with a ``lane`` per commit:
+    lane 0 is the first base's first-parent chain, side branches/merged work get
+    lanes >= 1 using the classic ``git log --graph`` column algorithm.
+    ``ticket_branches`` lists which of the ticket's branches a commit is exclusive to.
+    """
+    base_refs = [_resolve_ref(repo, b) for b in bases]
+    refs = list(dict.fromkeys(base_refs + [_resolve_ref(repo, b) for b in branches]))
+    if not refs:
+        return {"base": None, "commits": [], "lane_count": 1, "truncated": False}
+
+    fmt = "%H%x1f%P%x1f%an%x1f%aI%x1f%s%x1f%D%x1e"
+    # Always reach back to where the ticket's branches forked off, even if that is
+    # further than ``limit`` commits ago (bounded by HARD_LIMIT).
+    raw = repo.git.log("--topo-order", f"-n{HARD_LIMIT + 1}", f"--format={fmt}", "--decorate=short", *refs, "--")
+    all_records = [r.strip("\n") for r in raw.split("\x1e") if r.strip()]
+    positions = {rec.split("\x1f", 1)[0]: i for i, rec in enumerate(all_records)}
+    window = limit
+    for name in branches:
+        try:
+            fork = repo.git.merge_base(_resolve_ref(repo, name), base_refs[0]).strip()
+        except (GitRepoError, GitCommandError):
+            continue
+        if fork in positions:
+            window = max(window, positions[fork] + 1)
+    window = min(window, HARD_LIMIT)
+    truncated = len(all_records) > window
+    records = all_records[:window]
+
+    commits = []
+    for rec in records:
+        h, parents, author, date, subject, decoration = rec.split("\x1f")
+        commits.append(
+            {
+                "hash": h,
+                "short": h[:7],
+                "parents": parents.split() if parents else [],
+                "author": author,
+                "date": date,
+                "subject": subject,
+                "refs": _parse_refs(decoration),
+            }
+        )
+
+    mainline = set(repo.git.rev_list("--first-parent", f"-n{window + 1}", base_refs[0], "--").split())
+
+    # Which commits belong to which ticket branch (commits not yet in the base)
+    exclusive: dict[str, set[str]] = {}
+    for name in branches:
+        try:
+            ref = _resolve_ref(repo, name)
+            out = repo.git.rev_list(f"-n{window + 1}", ref, f"^{base_refs[0]}", "--")
+        except (GitRepoError, GitCommandError):
+            continue
+        exclusive[name] = set(out.split())
+
+    # Lane assignment (git log --graph columns; column 0 pinned to the mainline)
+    cols: list[str | None] = [None]
+    for c in commits:
+        h = c["hash"]
+        if h in mainline:
+            lane = 0
+        else:
+            lane = next((i for i, e in enumerate(cols) if i > 0 and e == h), None)
+            if lane is None:
+                lane = next((i for i, e in enumerate(cols) if i > 0 and e is None), None)
+                if lane is None:
+                    cols.append(None)
+                    lane = len(cols) - 1
+        for i, e in enumerate(cols):
+            if e == h:
+                cols[i] = None
+        # Keep a column reserved until the parent row so a lane is never reused
+        # while an older edge is still running through it.
+        for idx, p in enumerate(c["parents"]):
+            if idx == 0 and lane > 0:
+                cols[lane] = p
+            elif idx > 0 and any(e == p for e in cols):
+                continue  # another line already heads to this parent
+            elif p in mainline and lane == 0:
+                continue  # mainline-to-mainline needs no column
+            else:
+                free = next((i for i, e in enumerate(cols) if i > 0 and e is None), None)
+                if free is None:
+                    cols.append(p)
+                else:
+                    cols[free] = p
+        c["lane"] = lane
+        c["ticket_branches"] = [n for n, members in exclusive.items() if h in members]
+
+    return {
+        "base": bases[0],
+        "current": current_branch(repo),
+        "commits": commits,
+        "lane_count": max((c["lane"] for c in commits), default=0) + 1,
+        "truncated": truncated,
+    }
