@@ -1,8 +1,16 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1791005836-9c57",
-  "exported": "2026-10-03",
+  "canvas_version": "1791083427-1a86",
+  "exported": "2026-10-04",
   "files": {
+    "AccountMenu.dc.html": {
+      "bytes": 17393,
+      "sha256": "ca35b207d59b38efc53a82f457b0c48a39edd0fe5e2558e5eed3ab12ea6d6168",
+      "title": "Account Menu",
+      "page": "components",
+      "w": 1100,
+      "h": 1160
+    },
     "Activity.dc.html": {
       "bytes": 31260,
       "sha256": "af140c0ef8e32e19556b935b44d410c13932db3f28c1a98b29ec1686e4af47d9",
@@ -26,6 +34,14 @@
       "page": "components",
       "w": 680,
       "h": 620
+    },
+    "AppLoading.dc.html": {
+      "bytes": 94480,
+      "sha256": "b233f3fd6e06e513aa04e14015d7af2169a5a0c347a87e0a9d0bb0e687539132",
+      "title": "App loading (web)",
+      "page": "screens",
+      "w": 1560,
+      "h": 3026
     },
     "Attachments.dc.html": {
       "bytes": 10377,
@@ -99,6 +115,14 @@
       "w": 960,
       "h": 520
     },
+    "Login.dc.html": {
+      "bytes": 42068,
+      "sha256": "6d6153a58d884bb9e14e56716674d1871e3fce2e20f6de14b0b2b0fc4f5f759a",
+      "title": "Login",
+      "page": "screens",
+      "w": 1440,
+      "h": 3000
+    },
     "Main.dc.html": {
       "bytes": 22628,
       "sha256": "7884fbe8b88b596a8e04c29d13c515c8f1e31b6813d592f7b4524c18264dc927",
@@ -131,6 +155,14 @@
       "w": 900,
       "h": 1560
     },
+    "PasswordReset.dc.html": {
+      "bytes": 24170,
+      "sha256": "3a2473e7fa4957839a9be1483a55dcdc7b15ea054687f0cecacda36cc864a0b4",
+      "title": "Forgot / Reset Password",
+      "page": "screens",
+      "w": 1440,
+      "h": 2160
+    },
     "Relations.dc.html": {
       "bytes": 14224,
       "sha256": "17f7fa101ac225f1ea4fc0d6bcd12493c19fb6b2bffe24aa6556acb295f361c0",
@@ -146,6 +178,30 @@
       "page": "screens",
       "w": 1220,
       "h": 2020
+    },
+    "SignUp.dc.html": {
+      "bytes": 47719,
+      "sha256": "7dcf4cf7b3504eadbe5f63422a6461096c32c9d62a3827fa188fe90ae132dc61",
+      "title": "Sign Up",
+      "page": "screens",
+      "w": 1440,
+      "h": 3700
+    },
+    "Splash.dc.html": {
+      "bytes": 34402,
+      "sha256": "c3d02b283ff835b11f52557b82d476fe89c39185b9d6d5efd7bd1d5774d61904",
+      "title": "Splash (web)",
+      "page": "screens",
+      "w": 1560,
+      "h": 3800
+    },
+    "SplashAnimation.dc.html": {
+      "bytes": 16061,
+      "sha256": "987a577ef4a1d6d86555975b51c9bbd18f196dc932f961f093535c6920fc4474",
+      "title": "Splash — Cards animation (live)",
+      "page": "screens",
+      "w": 1560,
+      "h": 1280
     },
     "StatusMenu.dc.html": {
       "bytes": 6999,
