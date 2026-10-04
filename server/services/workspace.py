@@ -14,6 +14,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Ticket, WorkspaceSettings
+from services import activity as act
 
 
 async def get_workspace_settings(session: AsyncSession) -> WorkspaceSettings:
@@ -220,6 +221,12 @@ async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[st
     }
 
 
+def _retention_label(days: Optional[int]) -> str:
+    if days is None:
+        return "default"
+    return "forever" if days == 0 else f"{days} days"
+
+
 async def set_ticket_workspace_retention(
     session: AsyncSession, ticket_id: str, retention_days: Optional[int]
 ) -> Ticket | None:
@@ -228,6 +235,13 @@ async def set_ticket_workspace_retention(
         return None
     if retention_days is not None and retention_days < 0:
         raise WorkspaceError("Retention must be 0 (forever) or a positive number of days")
+    if ticket.workspace_retention_days != retention_days:
+        act.record(
+            ticket,
+            "workspace_retention",
+            _retention_label(ticket.workspace_retention_days),
+            _retention_label(retention_days),
+        )
     ticket.workspace_retention_days = retention_days
     ticket.updated_at = datetime.now(timezone.utc).isoformat()
     session.add(ticket)

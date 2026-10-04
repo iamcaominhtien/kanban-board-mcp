@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from mcp.server.fastmcp import FastMCP
@@ -20,6 +20,7 @@ from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
 import database
 from database import init_db
+from services import activity as svc_activity
 from services import workspace as svc_workspace
 from uploads import resolve_upload_path
 
@@ -68,6 +69,17 @@ app.add_middleware(
         "Last-Event-ID",
     ],
 )
+
+@app.middleware("http")
+async def record_activity_actor(request: Request, call_next):
+    """REST calls are attributed to the person using the board, or to X-Actor if sent."""
+    header = (request.headers.get("x-actor") or "").strip()[:80]
+    token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
+    try:
+        return await call_next(request)
+    finally:
+        svc_activity.reset_actor(token)
+
 
 app.mount("/mcp", mcp.streamable_http_app())
 

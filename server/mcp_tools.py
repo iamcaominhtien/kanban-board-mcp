@@ -12,6 +12,7 @@ from sqlalchemy.exc import NoResultFound
 import services.idea_tickets as svc_idea_tickets
 import services.members as svc_members
 import services.projects as svc_projects
+import services.activity as svc_activity
 import services.tickets as svc_tickets
 import services.workspace as svc_workspace
 from database import async_session
@@ -64,7 +65,12 @@ def notify_on_success(func):
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        result = await func(*args, **kwargs)
+        # Changes made through MCP tools are attributed to the AI agent
+        token = svc_activity.set_actor(svc_activity.AGENT_ACTOR)
+        try:
+            result = await func(*args, **kwargs)
+        finally:
+            svc_activity.reset_actor(token)
         if result is not None:
             await board_events.publish(board_events.INVALIDATE)
         return result

@@ -16,6 +16,7 @@ from models import (
     Ticket,
     TicketUpdate,
 )
+from services import activity as act
 from services import git_repo
 
 UTC = timezone.utc
@@ -168,6 +169,7 @@ async def create_ticket(
         tags=_dumps(tags),
         created_by=created_by,
         assignee=assignee,
+        activity_log=_dumps([act.entry("created", None, None, ref=title)]),
     )
     session.add(ticket)
     await session.commit()
@@ -186,6 +188,9 @@ _AUDITABLE = (
     "description",
     "assignee",
     "tags",
+    "parent_id",
+    "wont_do_reason",
+    "repo_path",
 )
 
 
@@ -250,25 +255,20 @@ async def update_ticket(
             new_tags = new_val if isinstance(new_val, list) else (_loads(new_val) if new_val else [])
             if old_tags != new_tags:
                 activity.append(
-                    {
-                        "field": "tags",
-                        "from": old_tags if old_tags else None,
-                        "to": new_tags if new_tags else None,
-                        "at": datetime.now(UTC).isoformat(),
-                    }
+                    act.entry("tags", old_tags if old_tags else None, new_tags if new_tags else None)
                 )
             setattr(ticket, field, _dumps(new_tags))
         elif field in _AUDITABLE:
             old_val = getattr(ticket, field)
-            if old_val != new_val:
-                activity.append(
-                    {
-                        "field": field,
-                        "from": old_val,
-                        "to": new_val,
-                        "at": datetime.now(UTC).isoformat(),
-                    }
-                )
+            # Clearing the reason on the way out of Won't Do is noise next to the status entry
+            clearing_reason = (
+                field == "wont_do_reason" and not new_val and "status" in update_data
+            )
+            if old_val != new_val and not clearing_reason:
+                if field == "description":
+                    activity.append(act.entry(field, old_val, new_val))
+                else:
+                    activity.append(act.entry(field, act.clip(old_val), act.clip(new_val)))
             setattr(ticket, field, new_val)
         else:
             setattr(ticket, field, new_val)
@@ -311,6 +311,7 @@ async def add_comment(
             "at": datetime.now(UTC).isoformat(),
         }
     )
+    act.record(ticket, "comment", None, text, actor=act.author_actor(author))
     ticket.comments = _dumps(comments)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -326,6 +327,9 @@ async def delete_comment(
     if ticket is None:
         return None
     comments = _loads(ticket.comments)
+    removed = next((c for c in comments if c.get("id") == comment_id), None)
+    if removed is not None:
+        act.record(ticket, "comment", removed.get("text"), None)
     ticket.comments = _dumps([c for c in comments if c.get("id") != comment_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -344,6 +348,8 @@ async def update_comment(
     found = False
     for c in comments:
         if c.get("id") == comment_id:
+            if c.get("text") != text:
+                act.record(ticket, "comment", c.get("text"), text)
             c["text"] = text
             found = True
             break
@@ -370,6 +376,7 @@ async def add_acceptance_criterion(
         return None
     acs = _loads(ticket.acceptance_criteria)
     acs.append({"id": str(uuid.uuid4()), "text": text, "done": False})
+    act.record(ticket, "acceptance_criterion", None, text)
     ticket.acceptance_criteria = _dumps(acs)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -388,6 +395,13 @@ async def toggle_acceptance_criterion(
     for ac in acs:
         if ac.get("id") == criterion_id:
             ac["done"] = not ac.get("done", False)
+            act.record(
+                ticket,
+                "acceptance_criterion",
+                "open" if ac["done"] else "done",
+                "done" if ac["done"] else "open",
+                ref=ac.get("text"),
+            )
             break
     ticket.acceptance_criteria = _dumps(acs)
     ticket.updated_at = datetime.now(UTC).isoformat()
@@ -404,6 +418,9 @@ async def delete_acceptance_criterion(
     if ticket is None:
         return None
     acs = _loads(ticket.acceptance_criteria)
+    removed = next((a for a in acs if a.get("id") == criterion_id), None)
+    if removed is not None:
+        act.record(ticket, "acceptance_criterion", removed.get("text"), None)
     ticket.acceptance_criteria = _dumps([a for a in acs if a.get("id") != criterion_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -451,6 +468,7 @@ async def add_work_log(
             "updated_at": now_iso,
         }
     )
+    act.record(ticket, "work_log", None, note, ref=role, actor=act.author_actor(author))
     ticket.work_log = _dumps(logs)
     ticket.updated_at = now_iso
     session.add(ticket)
@@ -480,6 +498,8 @@ async def update_work_log(
     for lg in logs:
         if lg.get("id") == log_id:
             found = True
+            if note is not None and note != lg.get("note"):
+                act.record(ticket, "work_log", lg.get("note"), note, ref=lg.get("role"))
             if note is not None:
                 lg["note"] = note
             if kind is not None:
@@ -517,6 +537,9 @@ async def delete_work_log(
     if ticket is None:
         return None
     logs = _loads(ticket.work_log)
+    removed = next((lg for lg in logs if lg.get("id") == log_id), None)
+    if removed is not None:
+        act.record(ticket, "work_log", removed.get("note"), None, ref=removed.get("role"))
     ticket.work_log = _dumps([lg for lg in logs if lg.get("id") != log_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -578,6 +601,7 @@ async def add_test_case(
         "test_data_files": test_data_files or [],
     }
     tcs.append(new_tc)
+    act.record(ticket, "test_case", None, title, ref=tc_code)
     ticket.test_cases = _dumps(tcs)
     ticket.updated_at = now_iso
     session.add(ticket)
@@ -607,6 +631,11 @@ async def update_test_case(
     for tc in tcs:
         if tc.get("id") == tc_id:
             old_status = tc.get("status")
+            label = f"{tc.get('code') or ''} {tc.get('title') or ''}".strip()
+            if status is not None and status != old_status:
+                act.record(ticket, "test_case_status", old_status, status, ref=label)
+            if title is not None and title != tc.get("title"):
+                act.record(ticket, "test_case", tc.get("title"), title, ref=tc.get("code"))
             if status is not None:
                 tc["status"] = status
                 if status == "running" and old_status != "running":
@@ -644,6 +673,9 @@ async def delete_test_case(
     if ticket is None:
         return None
     tcs = _loads(ticket.test_cases)
+    removed = next((t for t in tcs if t.get("id") == tc_id), None)
+    if removed is not None:
+        act.record(ticket, "test_case", removed.get("title"), None, ref=removed.get("code"))
     ticket.test_cases = _dumps([t for t in tcs if t.get("id") != tc_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -668,6 +700,8 @@ async def get_project_activities(
             )
         )
         for entry in _loads(ticket.activity_log):
+            if entry.get("field") in ("created", "comment"):
+                continue  # already reported as their own timeline events
             events.append(
                 ActivityEventRead(
                     ticketId=ticket.id,
@@ -710,6 +744,8 @@ async def link_block(
     blocker_blocks = _loads(blocker.blocks)
     if blocked_id not in blocker_blocks:
         blocker_blocks.append(blocked_id)
+        act.record(blocker, "blocks", None, blocked_id)
+        act.record(blocked, "blocked_by", None, blocker_id)
     blocker.blocks = _dumps(blocker_blocks)
     blocker.updated_at = datetime.now(UTC).isoformat()
 
@@ -737,6 +773,9 @@ async def unlink_block(
         return None
 
     blocker_blocks = _loads(blocker.blocks)
+    if blocked_id in blocker_blocks:
+        act.record(blocker, "blocks", blocked_id, None)
+        act.record(blocked, "blocked_by", blocker_id, None)
     blocker.blocks = _dumps([x for x in blocker_blocks if x != blocked_id])
     blocker.updated_at = datetime.now(UTC).isoformat()
 
@@ -767,6 +806,10 @@ _INVERSE_RELATION: dict[str, str] = {
     "duplicates": "duplicated_by",
     "duplicated_by": "duplicates",
 }
+
+
+def _link_label(relation_type: str, ticket_id: str | None) -> str:
+    return f"{(relation_type or '').replace('_', ' ')} {ticket_id or ''}".strip()
 
 
 def _update_ticket_links(
@@ -815,6 +858,7 @@ async def add_ticket_link(
         "relation_type": relation_type,
     }
     ticket_links.append(new_link)
+    act.record(ticket, "link", None, _link_label(relation_type, target_id))
     _update_ticket_links(session, ticket, ticket_links)
 
     # Inverse link on target ticket
@@ -825,6 +869,7 @@ async def add_ticket_link(
         for lk in target_links
     )
     if not already_has_inverse:
+        act.record(target, "link", None, _link_label(inverse_type, ticket_id))
         target_links.append(
             {
                 "id": str(uuid.uuid4()),
@@ -856,6 +901,7 @@ async def remove_ticket_link(
     relation_type = link_to_remove.get("relation_type")
 
     links_after = [lk for lk in ticket_links if lk.get("id") != link_id]
+    act.record(ticket, "link", _link_label(relation_type, target_id), None)
     _update_ticket_links(session, ticket, links_after)
 
     # Remove inverse link from target
@@ -872,6 +918,8 @@ async def remove_ticket_link(
                     and lk.get("relation_type") == inverse_type
                 )
             ]
+            if len(target_after) != len(target_links):
+                act.record(target, "link", _link_label(inverse_type, ticket_id), None)
             _update_ticket_links(session, target, target_after)
 
     await session.commit()
@@ -1031,14 +1079,7 @@ async def add_branch(
     ticket.branches = _dumps(branches)
 
     activity = _loads(ticket.activity_log)
-    activity.append(
-        {
-            "field": "branch",
-            "from": None,
-            "to": name,
-            "at": now_iso,
-        }
-    )
+    activity.append(act.entry("branch", None, name, at=now_iso))
     ticket.activity_log = _dumps(activity)
 
     ticket.updated_at = now_iso
@@ -1095,6 +1136,7 @@ async def update_branch(
     for br in branches:
         if br.get("id") == branch_id:
             found = True
+            old_name, old_status, had_worktree = br.get("name"), br.get("status"), br.get("worktree_path")
             if repo_for_git and br.get("status") != "baseline":
                 await asyncio.to_thread(
                     _git_guard_update,
@@ -1141,6 +1183,12 @@ async def update_branch(
                 br["worktreePath"] = br["worktree_path"]
             br["updated_at"] = now_iso
             br["updatedAt"] = now_iso
+            if name is not None and name != old_name:
+                act.record(ticket, "branch", old_name, name)
+            if status is not None and status != old_status:
+                act.record(ticket, "branch_status", old_status, status, ref=br.get("name"))
+            if had_worktree and not br.get("worktree_path"):
+                act.record(ticket, "branch_worktree", had_worktree, None, ref=br.get("name"))
             break
     if not found:
         return None
@@ -1177,6 +1225,8 @@ async def delete_branch(
 
         await asyncio.to_thread(_git_cleanup)
 
+    if target:
+        act.record(ticket, "branch", target.get("name"), None)
     ticket.branches = _dumps([br for br in branches if br.get("id") != branch_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -1200,6 +1250,10 @@ async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str)
     await asyncio.to_thread(
         lambda: git_repo.checkout_branch(git_repo.open_repo(repo_path), target["name"])
     )
+    act.record(ticket, "branch_checkout", None, target["name"])
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
     return ticket
 
 
