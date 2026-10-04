@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { TestCase, TestCaseStatus, TestCaseFileData } from '../types';
+import { uploadAttachment, uploadUrl } from '../api/tickets';
+import { extractError } from '../api/extractError';
 import styles from './TestCasesSection.module.css';
 
 interface ChildTestCaseSource {
@@ -67,6 +69,29 @@ function TestCaseRowItem({
 
   // Edit sub-fields
   const [editingField, setEditingField] = useState<'desc' | 'exp' | 'notes' | null>(null);
+  const [fileBusy, setFileBusy] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function attachFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setFileBusy(true);
+    setFileError(null);
+    try {
+      const uploaded: TestCaseFileData[] = [];
+      for (const file of Array.from(files)) uploaded.push(await uploadAttachment(file));
+      onUpdate({
+        ...tc,
+        testDataFiles: [...(tc.testDataFiles || []), ...uploaded],
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      setFileError(extractError(err));
+    } finally {
+      setFileBusy(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
 
   const codeDisplay = tc.code || `TC-${index + 1}`;
 
@@ -257,48 +282,73 @@ function TestCaseRowItem({
           <div className={styles.fieldGroup}>
             <span className={styles.fieldLabel}>Test data</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {(tc.testDataFiles ?? []).map((file, i) => (
-                <div key={file.id || i} className={styles.fileChip}>
-                  <div className={styles.fileIcon} style={{ background: '#F1F8F3' }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z" />
-                      <path d="M14 3V8H19" />
-                    </svg>
+              {(tc.testDataFiles ?? []).map((file, i) => {
+                const href = uploadUrl(file.url);
+                const chip = (
+                  <>
+                    <div className={styles.fileIcon} style={{ background: '#F1F8F3' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z" />
+                        <path d="M14 3V8H19" />
+                      </svg>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file.name}</span>
+                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>{file.size ? `${Math.round(file.size / 1024)} KB` : 'file'}</span>
+                    </div>
+                  </>
+                );
+                return (
+                  <div key={file.id || i} className={styles.fileChip}>
+                    {href ? (
+                      <a href={href} download={file.name} title={`Download ${file.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+                        {chip}
+                      </a>
+                    ) : chip}
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className={styles.fileRemoveBtn}
+                        aria-label={`Remove ${file.name}`}
+                        onClick={() =>
+                          onUpdate({
+                            ...tc,
+                            testDataFiles: (tc.testDataFiles ?? []).filter((f) => f !== file),
+                            updatedAt: new Date().toISOString(),
+                          })
+                        }
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file.name}</span>
-                    <span style={{ fontSize: 10, color: '#9AA8A0' }}>{file.size ? `${Math.round(file.size / 1024)} KB` : 'file'}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {!readOnly && (
-                <button
-                  type="button"
-                  className={styles.fileAddBtn}
-                  onClick={() => {
-                    const fname = prompt('Enter fixture / test file name (e.g. test-data.json):');
-                    if (fname) {
-                      const newFile: TestCaseFileData = {
-                        id: `${Date.now()}`,
-                        name: fname,
-                        url: '#',
-                        size: 4096,
-                      };
-                      onUpdate({
-                        ...tc,
-                        testDataFiles: [...(tc.testDataFiles || []), newFile],
-                        updatedAt: new Date().toISOString(),
-                      });
-                    }
-                  }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                    <path d="M12 5V19" /><path d="M5 12H19" />
-                  </svg>
-                  Attach file
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={styles.fileAddBtn}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={fileBusy}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                      <path d="M12 5V19" /><path d="M5 12H19" />
+                    </svg>
+                    {fileBusy ? 'Uploading…' : 'Attach file'}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    hidden
+                    data-testid="tc-attach-input"
+                    onChange={(e) => attachFiles(e.target.files)}
+                  />
+                </>
               )}
             </div>
+            {fileError && <span style={{ fontSize: 11.5, color: '#A93226' }} role="alert">{fileError}</span>}
           </div>
 
           {/* Notes */}

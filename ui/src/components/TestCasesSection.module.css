@@ -529,3 +529,22 @@
   color: #9AA8A0;
   font-size: 13px;
 }
+
+.fileRemoveBtn {
+  border: none;
+  background: none;
+  color: #9AA8A0;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.fileRemoveBtn:hover {
+  color: #C4432A;
+}
+
+.fileAddBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

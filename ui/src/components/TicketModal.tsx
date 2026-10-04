@@ -370,10 +370,16 @@ export function TicketModal({
   const tcTooltip = tcParts.length > 0 ? `Test — ${tcParts.join(' · ')}` : 'Test Cases';
 
   const wlList = ticket?.workLog ?? [];
-  const blockedLog = wlList.some((w) => w.kind === 'blocked');
-  const wlDotColor = blockedLog ? '#C4432A' : wlList.length > 0 ? '#2E6F40' : undefined;
+  // A "blocked" entry stops counting once a later "resolved" entry exists
+  const latestResolvedAt = wlList
+    .filter((w) => w.kind === 'resolved')
+    .reduce((max, w) => Math.max(max, new Date(w.at).getTime()), 0);
+  const blockedCount = wlList.filter(
+    (w) => w.kind === 'blocked' && new Date(w.at).getTime() > latestResolvedAt,
+  ).length;
+  const wlDotColor = blockedCount > 0 ? '#C4432A' : wlList.length > 0 ? '#2E6F40' : undefined;
   const wlTooltip = wlList.length > 0
-    ? `Debug — ${wlList.length} entries${blockedLog ? ' · 1 blocked' : ''}`
+    ? `Debug — ${wlList.length} ${wlList.length === 1 ? 'entry' : 'entries'}${blockedCount > 0 ? ` · ${blockedCount} blocked` : ''}`
     : 'Debug Space';
 
   // ══════════════════════════════════════════════════════════════
@@ -1332,25 +1338,32 @@ export function TicketModal({
               <DebugSpaceSection
                 ticketId={ticket.id}
                 entries={ticket.workLog ?? []}
+                branchNames={rawBranches.map((b) => b.name)}
+                testCases={(ticket.testCases ?? [])
+                  .filter((t) => t.code)
+                  .map((t) => ({ code: t.code as string, title: t.title }))}
+                memberNames={members.map((m) => m.name)}
                 onAdd={async (entry) => {
                   await addWorkLogMutation.mutateAsync({
                     ticketId: ticket.id,
                     data: entry,
                   });
                 }}
-                onUpdate={(entryId, data) =>
-                  updateWorkLogMutation.mutate({
+                onUpdate={async (entryId, data) => {
+                  await updateWorkLogMutation.mutateAsync({
                     ticketId: ticket.id,
                     entryId,
                     data,
-                  })
-                }
-                onDelete={(entryId) =>
-                  deleteWorkLogMutation.mutate({
+                  });
+                }}
+                onDelete={async (entryId) => {
+                  await deleteWorkLogMutation.mutateAsync({
                     ticketId: ticket.id,
                     entryId,
-                  })
-                }
+                  });
+                }}
+                onOpenBranch={() => setActiveTab('branches')}
+                onOpenTestCase={() => setActiveTab('test_cases')}
               />
             )}
             {activeTab === 'workspace' && workspaceEnabled && (

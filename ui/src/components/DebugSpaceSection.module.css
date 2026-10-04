@@ -491,3 +491,106 @@
   color: #9AA8A0;
   font-size: 13px;
 }
+
+.editBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #C7D2CB;
+  flex-shrink: 0;
+}
+.editBtn:hover { color: #2F6FB0; }
+
+.editedTag { color: #B4791E; }
+
+.attachBtn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px dashed #9AA8A0;
+  background: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5B6B60;
+  cursor: pointer;
+}
+.attachBtn:hover:not(:disabled) { border-color: #2E6F40; color: #2E6F40; }
+.attachBtn:disabled { opacity: 0.6; cursor: default; }
+
+.attName {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1E2A22;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attSize { font-size: 10px; color: #9AA8A0; }
+.attLink { text-decoration: none; cursor: pointer; }
+.attLink:hover { border-color: #2E6F40; background: #F6FAF7; }
+
+.chipRemove {
+  border: none;
+  background: none;
+  color: #9AA8A0;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.chipRemove:hover { color: #C4432A; }
+
+.linkChipBtn { cursor: pointer; font-family: 'JetBrains Mono', monospace; }
+.linkChipBtn:hover { border-color: #2E6F40; color: #2E6F40; background: #FFFFFF; }
+.linkChipMissing { opacity: 0.6; text-decoration: line-through; }
+
+.formError {
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #FDEEEC;
+  border: 1px solid #F2C4BE;
+  color: #A93226;
+  font-size: 12px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(30, 42, 34, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog {
+  width: min(420px, calc(100vw - 32px));
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dialogTitle { font-size: 14px; font-weight: 700; color: #1E2A22; }
+.dialogBody { font-size: 12.5px; color: #5B6B60; word-break: break-word; }
+.dialogQuote { color: #1E2A22; font-weight: 600; }
+.dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.btnDanger {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #C0392B;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btnDanger:hover:not(:disabled) { background: #A93226; }
+.btnDanger:disabled { opacity: 0.6; cursor: default; }

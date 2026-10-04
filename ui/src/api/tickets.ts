@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import { resolveOrigin } from './resolveOrigin';
-import type { BranchGraphData, CommitDetail, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceFilePreview, WorkspaceSettings, WorkspaceSweepResult } from '../types/ticket';
+import type { BranchGraphData, DebugAttachment, CommitDetail, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceFilePreview, WorkspaceSettings, WorkspaceSweepResult } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -84,6 +84,19 @@ export async function uploadDescriptionImage(file: File): Promise<DescriptionIma
   formData.append('file', file);
   const res = await client.post<DescriptionImageUpload>('/uploads/images', formData);
   return res.data;
+}
+
+/** Upload any file (log, trace, fixture…) so it can be attached to an entry by url. */
+export async function uploadAttachment(file: File): Promise<DebugAttachment> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await client.post<DebugAttachment>('/uploads/files', formData);
+  return res.data;
+}
+
+/** Absolute URL for a stored upload (the UI may be served from another origin). */
+export function uploadUrl(url: string): string {
+  return url.startsWith('/uploads/') ? `${resolveOrigin()}${url}` : '';
 }
 
 export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
