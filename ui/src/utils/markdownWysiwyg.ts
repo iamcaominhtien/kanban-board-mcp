@@ -507,6 +507,6 @@ export function htmlToMarkdown(root: HTMLElement): string {
     }
   }
 
-  const rawBlocks = Array.from(root.childNodes).map(serializeBlock).join('');
-  return rawBlocks.trim();
+  // Inline runs typed directly at the root (no <p>) must stay in one paragraph
+  return serializeMixed(root).trim();
 }
