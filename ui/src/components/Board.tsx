@@ -111,7 +111,12 @@ export function Board({
                 Timeline
               </button>
             </div>
-            <button type="button" className={styles.newButton} onClick={onNewTicket}>+ New Ticket</button>
+            <button type="button" className={styles.newButton} onClick={onNewTicket}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>New Ticket</span>
+            </button>
           </div>
         </div>
 
