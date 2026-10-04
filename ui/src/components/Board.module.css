@@ -1,7 +1,7 @@
 .board {
   height: 100%;
   min-height: 0;
-  padding: 20px 28px 24px;
+  padding: 0 28px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -83,6 +83,11 @@
 
 .newButton:hover {
   opacity: 0.92;
+}
+
+.newButton:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .columns {
@@ -223,3 +228,10 @@
   padding-left: 18px;
 }
 
+
+/* Reserved row for the loading pill: always there, so the pill never pushes the top bar */
+.statusRow {
+  height: 28px;
+  flex-shrink: 0;
+  margin-bottom: -16px;
+}

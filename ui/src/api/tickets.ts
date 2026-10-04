@@ -15,7 +15,7 @@ export async function listTickets(
   projectId: string,
   params?: { status?: string; priority?: string; q?: string },
 ): Promise<Ticket[]> {
-  const res = await client.get<Ticket[]>(`/projects/${projectId}/tickets`, { params });
+  const res = await client.get<Ticket[]>(`/projects/${projectId}/tickets`, { params, timeout: 15000 });
   return res.data;
 }
 
@@ -402,6 +402,7 @@ export function useTickets(
     queryKey: [...ticketKeys.all(projectId), params],
     queryFn: () => listTickets(projectId, params),
     enabled: !!projectId,
+    retry: false,
     // `q` changes on every search keystroke (debounced), which changes the
     // query key — keep showing the previous results while the new query
     // fetches instead of flashing a loading state / unmounting the board.

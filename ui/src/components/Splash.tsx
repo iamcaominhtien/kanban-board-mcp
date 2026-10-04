@@ -149,6 +149,11 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
     if (view === 'unreachable' || view === 'failed') retryBtnRef.current?.focus();
   }, [view, rootEl, gone]);
 
+  // Tell the app behind the splash that it can take focus now (inert has just been lifted)
+  useEffect(() => {
+    if (gone) window.dispatchEvent(new Event('kb-splash-gone'));
+  }, [gone]);
+
   const leave = useCallback(() => {
     if (!rootEl) return;
     const remove = () => {

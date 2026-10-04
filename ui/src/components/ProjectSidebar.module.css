@@ -531,3 +531,82 @@
   padding: 1px 6px;
   pointer-events: auto;
 }
+
+/* ── Loading / error states of the project list ── */
+.sidebarLoading .ideaCard,
+.sidebarLoading .bottomNav {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.projectSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px; /* same row height as a real project item */
+  padding: 0 12px;
+}
+
+.skelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.skelBar {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 37%, rgba(255,255,255,0.08) 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.projectError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px;
+  font-size: 12px;
+  color: #F3B1A4;
+  white-space: nowrap;
+}
+
+.projectRetry {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #CFFFDC;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skelBar {
+    animation: none;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.errorMark {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #C4432A;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar:hover .projectRetry,
+.sidebar:focus-within .projectRetry {
+  max-width: 60px;
+}

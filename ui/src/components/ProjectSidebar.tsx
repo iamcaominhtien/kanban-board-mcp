@@ -16,6 +16,9 @@ interface ProjectSidebarProps {
   wontDoCount: number;
   activeBoard: 'main' | 'idea';
   onBoardChange: (board: 'main' | 'idea') => void;
+  /** 'loading': skeleton rows, static items dimmed; 'error': inline retry row; 'empty': only "New project". */
+  loadState?: 'loading' | 'error' | 'empty';
+  onRetryProjects?: () => void;
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
@@ -32,6 +35,8 @@ export function ProjectSidebar({
   wontDoCount,
   activeBoard,
   onBoardChange,
+  loadState,
+  onRetryProjects,
 }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
@@ -76,7 +81,7 @@ export function ProjectSidebar({
 
   return (
     <aside
-      className={`${styles.sidebar} ${showForm ? styles.expanded : ''}`}
+      className={`${styles.sidebar} ${showForm ? styles.expanded : ''} ${loadState === 'loading' ? styles.sidebarLoading : ''}`}
       aria-label="Project navigation"
     >
       {/* App Brand Header */}
@@ -86,11 +91,28 @@ export function ProjectSidebar({
       </div>
 
       {/* Projects List */}
+      {loadState !== 'empty' && (
       <div className={styles.projectSection}>
         <div className={styles.sectionLabel}>Projects</div>
 
-        <nav className={styles.projectList}>
-          {projects.map((project) => {
+        <nav className={styles.projectList} aria-busy={loadState === 'loading' ? true : undefined}>
+          {loadState === 'loading' &&
+            [0, 1, 2].map((i) => (
+              <div key={i} className={styles.projectSkeleton} aria-hidden="true">
+                <span className={styles.skelDot} />
+                <span className={styles.skelBar} style={{ width: `${70 - i * 12}%` }} />
+              </div>
+            ))}
+          {loadState === 'error' && (
+            <div className={styles.projectError} title="Couldn't load projects">
+              <span className={styles.errorMark} aria-hidden="true">!</span>
+              <span className={styles.navLabel}>Couldn&apos;t load projects</span>
+              <button type="button" className={`${styles.projectRetry} ${styles.navLabel}`} onClick={onRetryProjects}>
+                Retry
+              </button>
+            </div>
+          )}
+          {!loadState && projects.map((project) => {
             const isActive = project.id === currentProjectId;
             return (
               <div
@@ -125,6 +147,7 @@ export function ProjectSidebar({
           })}
         </nav>
       </div>
+      )}
 
       {/* New Project Button or Form */}
       {showForm ? (

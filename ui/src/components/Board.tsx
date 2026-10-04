@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import type { Column as ColumnType, IssueType, Member, Priority, Status, Ticket } from '../types';
@@ -8,6 +8,7 @@ import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
+import loadingStyles from './AppLoading.module.css';
 
 const COLUMNS: ColumnType[] = [
   { id: 'backlog',     label: 'Backlog',      accentColor: 'var(--color-backlog)' },
@@ -37,7 +38,15 @@ interface BoardProps {
   members?: Member[];
   activeAssignee?: string | 'all';
   onAssigneeChange?: (id: string | 'all') => void;
+  /** 'projects': project list still loading (placeholders); 'tickets': real shell, skeleton cards. */
+  loadState?: 'projects' | 'tickets';
+  /** Replaces the lanes (e.g. the "couldn't load" panel). */
+  lanesOverride?: ReactNode;
+  /** Content of the reserved status row at the top right (the loading pill). */
+  statusSlot?: ReactNode;
 }
+
+const SKELETON_COUNTS = [2, 2, 1, 1, 1, 1];
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'review', 'testing', 'done']);
 
@@ -60,6 +69,9 @@ export function Board({
   members = [],
   activeAssignee = 'all',
   onAssigneeChange,
+  loadState,
+  lanesOverride,
+  statusSlot,
 }: BoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -84,9 +96,16 @@ export function Board({
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={styles.board}>
+      <div className={styles.board} aria-busy={loadState ? true : undefined}>
+        <div className={styles.statusRow}>{statusSlot}</div>
         <div className={styles.topBar}>
-          <h1 className={styles.title}>{projectName}</h1>
+          {loadState === 'projects' ? (
+            <h1 className={styles.title} aria-label="Loading project">
+              <span className={`${loadingStyles.skel} ${loadingStyles.skelTitle}`} style={{ display: 'block' }} aria-hidden="true" />
+            </h1>
+          ) : (
+            <h1 className={styles.title}>{projectName}</h1>
+          )}
           <div className={styles.topBarRight}>
             <div className={styles.viewSwitcher}>
               <button
@@ -111,7 +130,7 @@ export function Board({
                 Timeline
               </button>
             </div>
-            <button type="button" className={styles.newButton} onClick={onNewTicket}>
+            <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
                 <path d="M12 5v14M5 12h14" />
               </svg>
@@ -120,6 +139,7 @@ export function Board({
           </div>
         </div>
 
+        <div {...(loadState === 'projects' ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } } : {})}>
         <FilterBar
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
@@ -131,8 +151,30 @@ export function Board({
           activeAssignee={activeAssignee}
           onAssigneeChange={onAssigneeChange ?? (() => {})}
         />
+        </div>
 
-        {viewMode === 'list' ? (
+        {lanesOverride ? (
+          <div className={styles.columns}>{lanesOverride}</div>
+        ) : loadState === 'projects' ? (
+          <div className={styles.columns} aria-hidden="true">
+            {COLUMNS.map((col) => (
+              <div key={col.id} className={loadingStyles.ghostLane} />
+            ))}
+          </div>
+        ) : loadState === 'tickets' ? (
+          <div className={styles.columns}>
+            {COLUMNS.map((col, i) => (
+              <Column
+                key={col.id}
+                column={col}
+                tickets={[]}
+                onCardClick={onCardClick}
+                memberMap={memberMap}
+                skeletonCards={SKELETON_COUNTS[i]}
+              />
+            ))}
+          </div>
+        ) : viewMode === 'list' ? (
           <ListView tickets={tickets} onCardClick={onCardClick} />
         ) : viewMode === 'timeline' ? (
           <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} />

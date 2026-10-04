@@ -2,8 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { Project } from '../types/ticket';
 
+/** A first-load request that takes longer than this is abandoned and the error state is shown. */
+export const LIST_TIMEOUT_MS = 15000;
+
 export async function listProjects(): Promise<Project[]> {
-  const res = await client.get<Project[]>('/projects');
+  const res = await client.get<Project[]>('/projects', { timeout: LIST_TIMEOUT_MS });
   return res.data;
 }
 
@@ -48,6 +51,7 @@ export function useProjects() {
   return useQuery({
     queryKey: projectKeys.all,
     queryFn: listProjects,
+    retry: false, // a failure is shown (with Try again) instead of retrying silently for a long time
   });
 }
 

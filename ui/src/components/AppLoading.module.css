@@ -1,0 +1,299 @@
+/* ── Status pill (reserved row, top right of the main area) ── */
+.statusRow {
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid #DCE6DF;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3A4A3E;
+  animation: pillIn 150ms ease-out both;
+}
+
+.pillLeaving {
+  animation: pillOut 150ms ease-out both;
+}
+
+.pillSlow {
+  border-color: #F0D9A8;
+  background: #FFFBF1;
+}
+
+.pillDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #E2A33D;
+}
+
+.pillRetry {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2E6F40;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ring {
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.8px solid #DCE6DF;
+  border-top-color: #2E6F40;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes pillIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pillOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ── Skeletons (same size constants as the real cards, so nothing moves when data arrives) ── */
+.skel {
+  background: linear-gradient(90deg, #EEF3EF 25%, #F6FAF7 37%, #EEF3EF 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skelBadge {
+  width: 26px;
+  height: 16px; /* same height as the real count badge, so the lane header does not grow */
+  border-radius: 999px;
+}
+
+.skelCard {
+  width: 100%;
+  min-height: 140px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: #FFFFFF;
+  border: 1px solid #E3E8E5;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ghostLane {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1.5px dashed #E1E9E3;
+  border-radius: 10px;
+  min-height: 160px;
+}
+
+.skelTitle {
+  height: 24px;
+  width: 190px;
+  border-radius: 6px;
+}
+
+/* ── Error panel (projects / tickets failed to load) ── */
+.errorPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 16px 56px;
+  gap: 0;
+}
+
+.errorTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1E2A22;
+}
+
+.errorText {
+  margin: 8px 0 0;
+  max-width: 400px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5B6B60;
+}
+
+.btn {
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #276036;
+}
+
+.btn:focus-visible {
+  outline: 2px solid #68BA7F;
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.chip {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #F1F3F1;
+  border: 1px solid #DCE6DF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #3A4A3E;
+}
+
+.chipDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #C4432A;
+}
+
+/* ── First run ── */
+.firstRun {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px 56px;
+}
+
+.firstRunCard {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.firstRunTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1E2A22;
+}
+
+.firstRunText {
+  margin: -6px 0 0;
+  font-size: 13px;
+  color: #5B6B60;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3A4A3E;
+}
+
+.input {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #C7D2CB;
+  background: #FFFFFF;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1E2A22;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2E6F40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.18);
+}
+
+.inputError {
+  border-color: #C4432A;
+}
+
+.hint {
+  font-size: 11.5px;
+  color: #5B6B60;
+}
+
+.fieldError {
+  font-size: 12px;
+  color: #C4432A;
+}
+
+.firstRunBtn {
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.firstRunBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel {
+    animation: none;
+    background: #EEF3EF;
+  }
+  .ring {
+    animation: none;
+  }
+  .pill,
+  .pillLeaving {
+    animation: none;
+  }
+}

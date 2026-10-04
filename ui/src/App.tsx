@@ -14,7 +14,10 @@ import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
 import { extractError } from './api/extractError';
 import { useToast } from './components/Toast';
-import { FullPageSpinner } from './components/LoadingStates';
+import { LoadingPill } from './components/LoadingPill';
+import { LoadError } from './components/LoadError';
+import { FirstRun } from './components/FirstRun';
+import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
 import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
 
@@ -25,7 +28,8 @@ const EMPTY_MEMBERS: Member[] = [];
 export default function App() {
   useSSEInvalidation();
   const { status: backendStatus, errorMessage: backendError, retry: retryBackend } = useBackendStatus();
-  const { data: apiProjects = EMPTY_PROJECTS, isLoading: projectsLoading } = useProjects();
+  const projectsQuery = useProjects();
+  const { data: apiProjects = EMPTY_PROJECTS, isLoading: projectsLoading } = projectsQuery;
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
 
@@ -82,10 +86,11 @@ export default function App() {
     [debouncedSearchQuery]
   );
 
-  const { data: tickets = EMPTY_TICKETS, isLoading: ticketsLoading } = useTickets(
+  const ticketsQuery = useTickets(
     currentProjectId ?? '',
     ticketQueryParams
   );
+  const { data: tickets = EMPTY_TICKETS, isLoading: ticketsLoading } = ticketsQuery;
   const { data: wontDoTickets = EMPTY_TICKETS } = useWontDoTickets(currentProjectId ?? '');
   const createTicketMutation = useCreateTicket(currentProjectId ?? '');
   const deleteTicketMutation = useDeleteTicket(currentProjectId ?? '');
@@ -265,6 +270,38 @@ export default function App() {
     openTicketModal(ticket.id);
   }
 
+  // ── Loading phases (see design/screens/app-loading.md) ──
+  const projectsPhase = projectsLoading && apiProjects.length === 0;
+  const projectsError = projectsQuery.isError && apiProjects.length === 0;
+  const noProjects = projectsQuery.isSuccess && apiProjects.length === 0;
+  const projectsOk = !projectsPhase && !projectsError && !noProjects;
+  const ticketsPhase = projectsOk && ticketsLoading;
+  const ticketsError = projectsOk && ticketsQuery.isError && tickets.length === 0 && !ticketsLoading;
+  const pillPhase = projectsPhase ? 'projects' : ticketsPhase && activeBoard === 'main' ? 'tickets' : null;
+  const pillState = useLoadingPill(pillPhase);
+  const boardLoadState: 'projects' | 'tickets' | undefined =
+    projectsPhase || projectsError ? 'projects' : ticketsPhase || ticketsError ? 'tickets' : undefined;
+  const lanesOverride = projectsError ? (
+    <LoadError
+      title="Couldn't load your projects"
+      onRetry={() => void projectsQuery.refetch()}
+      lastAttempt={projectsQuery.errorUpdatedAt ? new Date(projectsQuery.errorUpdatedAt) : null}
+    />
+  ) : ticketsError ? (
+    <LoadError
+      title="Couldn't load your tickets"
+      onRetry={() => void ticketsQuery.refetch()}
+      lastAttempt={ticketsQuery.errorUpdatedAt ? new Date(ticketsQuery.errorUpdatedAt) : null}
+    />
+  ) : undefined;
+  const loadingPill = (
+    <LoadingPill
+      state={pillState}
+      what={pillPhase ?? 'projects'}
+      onRetry={() => void (projectsPhase ? projectsQuery.refetch() : ticketsQuery.refetch())}
+    />
+  );
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Splash status={backendStatus} errorMessage={backendError} onRetryBackend={retryBackend} />
@@ -280,6 +317,8 @@ export default function App() {
         wontDoCount={wontDoTickets.length}
         activeBoard={activeBoard}
         onBoardChange={setActiveBoard}
+        loadState={projectsPhase ? 'loading' : projectsError ? 'error' : noProjects ? 'empty' : undefined}
+        onRetryProjects={() => void projectsQuery.refetch()}
       />
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {globalError && (
@@ -297,12 +336,15 @@ export default function App() {
         )}
 
         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {projectsLoading && apiProjects.length === 0 ? (
-          <FullPageSpinner message="Loading projects…" />
-        ) : activeBoard === 'idea' ? (
+        {noProjects ? (
+          <FirstRun
+            onCreate={async (data) => {
+              const created = await createProjectMutation.mutateAsync(data);
+              setCurrentProjectId(created.id);
+            }}
+          />
+        ) : activeBoard === 'idea' && !boardLoadState ? (
           <IdeaBoard projectId={currentProjectId ?? ''} />
-        ) : ticketsLoading ? (
-          <FullPageSpinner message="Loading board…" />
         ) : (
           <>
             <Board
@@ -324,8 +366,11 @@ export default function App() {
                 members={members}
                 activeAssignee={activeAssignee}
                 onAssigneeChange={setActiveAssignee}
+                loadState={boardLoadState}
+                lanesOverride={lanesOverride}
+                statusSlot={loadingPill}
               />
-            {modalState && (
+            {!boardLoadState && modalState && (
               modalState.mode === 'create' ? (
                 <TicketModal
                   key="create"
@@ -349,28 +394,28 @@ export default function App() {
                 />
               ) : null
             )}
-            {recycleBinOpen && (
-              <RecycleBin
-                tickets={wontDoTickets}
-                onRestore={(id) => restoreTicketMutation.mutate(id)}
-                onClose={() => setRecycleBinOpen(false)}
-              />
-            )}
-            {membersPanelOpen && currentProjectId && (
-              <MembersPanel
-                projectId={currentProjectId}
-                members={members}
-                onClose={() => setMembersPanelOpen(false)}
-              />
-            )}
-            {settingsPanelOpen && (
-              <SettingsPanel
-                onClose={() => setSettingsPanelOpen(false)}
-                theme={theme}
-                onToggleTheme={toggleTheme}
-              />
-            )}
           </>
+        )}
+        {recycleBinOpen && (
+          <RecycleBin
+            tickets={wontDoTickets}
+            onRestore={(id) => restoreTicketMutation.mutate(id)}
+            onClose={() => setRecycleBinOpen(false)}
+          />
+        )}
+        {membersPanelOpen && currentProjectId && (
+          <MembersPanel
+            projectId={currentProjectId}
+            members={members}
+            onClose={() => setMembersPanelOpen(false)}
+          />
+        )}
+        {settingsPanelOpen && (
+          <SettingsPanel
+            onClose={() => setSettingsPanelOpen(false)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
         )}
         </div>
       </div>

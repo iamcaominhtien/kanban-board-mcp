@@ -2,6 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import type { Column as ColumnType, Member, Ticket } from '../types';
 import { DraggableTicketCard } from './DraggableTicketCard';
 import styles from './Board.module.css';
+import loading from './AppLoading.module.css';
 
 interface ColumnProps {
   column: ColumnType;
@@ -9,9 +10,11 @@ interface ColumnProps {
   allTickets?: Ticket[];
   onCardClick: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
+  /** Tickets are still loading: real lane header, skeleton cards (same size as real cards, so nothing moves). */
+  skeletonCards?: number;
 }
 
-export function Column({ column, tickets, allTickets, onCardClick, memberMap }: ColumnProps) {
+export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -53,13 +56,17 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap }: 
       <div className={styles.columnHeaderContainer}>
         <div className={styles.columnHeaderTop}>
           <span className={styles.columnLabel}>{column.label}</span>
-          <span
-            className={styles.columnBadge}
-            style={{ backgroundColor: column.accentColor }}
-            aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
-          >
-            {tickets.length}
-          </span>
+          {skeletonCards !== undefined ? (
+            <span className={`${loading.skel} ${loading.skelBadge}`} aria-hidden="true" />
+          ) : (
+            <span
+              className={styles.columnBadge}
+              style={{ backgroundColor: column.accentColor }}
+              aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
+            >
+              {tickets.length}
+            </span>
+          )}
         </div>
         <div
           className={styles.columnBar}
@@ -67,8 +74,17 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap }: 
         />
       </div>
 
-      <div className={styles.columnBody}>
-        {ordered.length === 0 && !isOver && (
+      <div className={styles.columnBody} aria-hidden={skeletonCards !== undefined ? true : undefined}>
+        {skeletonCards !== undefined &&
+          Array.from({ length: skeletonCards }).map((_, i) => (
+            <div key={i} className={loading.skelCard} style={{ opacity: i > 0 ? 0.75 : 1 }}>
+              <div className={loading.skel} style={{ width: 64, height: 10 }} />
+              <div className={loading.skel} style={{ width: 90, height: 16, borderRadius: 999 }} />
+              <div className={loading.skel} style={{ width: '100%', height: 12 }} />
+              <div className={loading.skel} style={{ width: '70%', height: 12 }} />
+            </div>
+          ))}
+        {skeletonCards === undefined && ordered.length === 0 && !isOver && (
           <div className={styles.emptyState}>
             <span className={styles.emptyIcon} aria-hidden="true">◻</span>
             <span className={styles.emptyText}>No tickets</span>
