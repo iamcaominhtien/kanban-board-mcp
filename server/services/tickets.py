@@ -183,6 +183,9 @@ _AUDITABLE = (
     "estimate",
     "due_date",
     "start_date",
+    "description",
+    "assignee",
+    "tags",
 )
 
 
@@ -242,19 +245,31 @@ async def update_ticket(
     activity = _loads(ticket.activity_log)
 
     for field, new_val in update_data.items():
-        old_val = getattr(ticket, field)
-        if field in _AUDITABLE and old_val != new_val:
-            activity.append(
-                {
-                    "field": field,
-                    "from": old_val,
-                    "to": new_val,
-                    "at": datetime.now(UTC).isoformat(),
-                }
-            )
-        # JSON list fields need serialization
         if field == "tags":
-            setattr(ticket, field, _dumps(new_val))
+            old_tags = _loads(ticket.tags) if isinstance(ticket.tags, str) else (ticket.tags or [])
+            new_tags = new_val if isinstance(new_val, list) else (_loads(new_val) if new_val else [])
+            if old_tags != new_tags:
+                activity.append(
+                    {
+                        "field": "tags",
+                        "from": old_tags if old_tags else None,
+                        "to": new_tags if new_tags else None,
+                        "at": datetime.now(UTC).isoformat(),
+                    }
+                )
+            setattr(ticket, field, _dumps(new_tags))
+        elif field in _AUDITABLE:
+            old_val = getattr(ticket, field)
+            if old_val != new_val:
+                activity.append(
+                    {
+                        "field": field,
+                        "from": old_val,
+                        "to": new_val,
+                        "at": datetime.now(UTC).isoformat(),
+                    }
+                )
+            setattr(ticket, field, new_val)
         else:
             setattr(ticket, field, new_val)
 
@@ -1014,6 +1029,18 @@ async def add_branch(
     }
     branches.append(new_branch)
     ticket.branches = _dumps(branches)
+
+    activity = _loads(ticket.activity_log)
+    activity.append(
+        {
+            "field": "branch",
+            "from": None,
+            "to": name,
+            "at": now_iso,
+        }
+    )
+    ticket.activity_log = _dumps(activity)
+
     ticket.updated_at = now_iso
     session.add(ticket)
     await session.commit()

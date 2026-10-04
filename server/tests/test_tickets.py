@@ -113,6 +113,27 @@ async def test_update_ticket_status_logs_activity(client: httpx.AsyncClient):
     )
 
 
+async def test_update_ticket_description_and_tags_logs_activity(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        r = await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"description": "Updated description content", "tags": ["FRONTEND", "UI"]},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["description"] == "Updated description content"
+    assert any(
+        e["field"] == "description" and e["to"] == "Updated description content"
+        for e in body["activity_log"]
+    )
+    assert any(
+        e["field"] == "tags" and e["to"] == ["FRONTEND", "UI"]
+        for e in body["activity_log"]
+    )
+
+
 async def test_delete_ticket_then_404(client: httpx.AsyncClient):
     async with client as c:
         project = await _create_project(c)

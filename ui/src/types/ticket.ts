@@ -32,8 +32,8 @@ export interface AcceptanceCriterion {
 
 export interface ActivityEntry {
   field: string;
-  from: string | null;
-  to: string | null;
+  from: any;
+  to: any;
   at: string; // ISO datetime
 }
 

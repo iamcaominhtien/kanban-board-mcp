@@ -13,7 +13,7 @@ import {
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
-import { ActivityLog } from './ActivityLog';
+import { ActivitySection } from './ActivitySection';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
@@ -132,7 +132,7 @@ export function TicketModal({
   members = [],
 }: TicketModalProps) {
   const localMode = initialMode;
-  const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches'>('main');
+  const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity'>('main');
 
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -664,6 +664,19 @@ export function TicketModal({
               </svg>
               <span className={styles.viewTooltip}>Branches</span>
             </button>
+
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${activeTab === 'activity' ? styles.viewBtnActive : ''}`}
+              onClick={() => setActiveTab(activeTab === 'activity' ? 'main' : 'activity')}
+              aria-label="Activity"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7V12L15 14" />
+              </svg>
+              <span className={styles.viewTooltip}>Activity — {ticket?.activityLog?.length ?? 0} changes</span>
+            </button>
           </div>
 
           <div className={styles.headerRight}>
@@ -900,11 +913,6 @@ export function TicketModal({
                   onEdit={(cId, t) => updateCommentMutation.mutate({ ticketId: ticket.id, commentId: cId, text: t })}
                   onDelete={(cId) => deleteCommentMutation.mutate({ ticketId: ticket.id, commentId: cId })}
                 />
-
-                <hr className={styles.sectionDivider} />
-
-                {/* Activity Log */}
-                <ActivityLog entries={ticket.activityLog ?? []} />
               </>
           </div>
 
@@ -1337,6 +1345,13 @@ export function TicketModal({
             )}
             {activeTab === 'branches' && (
               <BranchesSection ticketId={ticket.id} />
+            )}
+            {activeTab === 'activity' && (
+              <ActivitySection
+                ticketId={ticket.id}
+                entries={ticket.activityLog ?? []}
+                members={members}
+              />
             )}
           </div>
         )}
