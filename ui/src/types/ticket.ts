@@ -162,6 +162,7 @@ export interface TicketBranch {
   behindCount?: number;
   /** false when a git repo is linked but this branch doesn't exist in it */
   inRepo?: boolean;
+  worktreePath?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -173,6 +174,8 @@ export interface Project {
   color: string;
   ticketCounter: number;
   repoPath?: string | null;
+  worktreeTemplate?: string | null;
+  worktreeByDefault?: boolean;
 }
 
 export interface Column {

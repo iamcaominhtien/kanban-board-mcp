@@ -610,6 +610,8 @@ class BranchCreateBody(BaseModel):
     linked_ticket_id: str | None = None
     ahead_count: int = 0
     behind_count: int = 0
+    create_worktree: bool = False
+    worktree_path: str | None = None
 
 
 class BranchUpdateBody(BaseModel):
@@ -621,6 +623,8 @@ class BranchUpdateBody(BaseModel):
     linked_ticket_id: str | None = None
     ahead_count: int | None = None
     behind_count: int | None = None
+    remove_worktree: bool = False
+    worktree_path: str | None = None
 
 
 @router.get("/tickets/{ticket_id}/branches")
@@ -647,6 +651,8 @@ async def post_branch(
             linked_ticket_id=body.linked_ticket_id,
             ahead_count=body.ahead_count,
             behind_count=body.behind_count,
+            create_worktree=body.create_worktree,
+            worktree_path=body.worktree_path,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -672,6 +678,8 @@ async def patch_branch(
         linked_ticket_id=body.linked_ticket_id,
         ahead_count=body.ahead_count,
         behind_count=body.behind_count,
+        remove_worktree=body.remove_worktree,
+        worktree_path=body.worktree_path,
     )
     if ticket is None:
         _404()
@@ -681,9 +689,9 @@ async def patch_branch(
 
 @router.delete("/tickets/{ticket_id}/branches/{branch_id}", response_model=TicketRead)
 async def del_branch(
-    ticket_id: str, branch_id: str, session: Session
+    ticket_id: str, branch_id: str, session: Session, remove_worktree: bool = False
 ) -> TicketRead:
-    ticket = await delete_branch(session, ticket_id, branch_id)
+    ticket = await delete_branch(session, ticket_id, branch_id, remove_worktree=remove_worktree)
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

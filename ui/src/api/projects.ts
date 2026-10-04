@@ -23,7 +23,13 @@ export async function createProject(data: {
 
 export async function updateProject(
   id: string,
-  data: { name?: string; color?: string; repo_path?: string },
+  data: {
+    name?: string;
+    color?: string;
+    repo_path?: string | null;
+    worktree_template?: string | null;
+    worktree_by_default?: boolean;
+  },
 ): Promise<Project> {
   const res = await client.patch<Project>(`/projects/${id}`, data);
   return res.data;
@@ -66,7 +72,7 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; name?: string; color?: string; repo_path?: string }) =>
+    mutationFn: ({ id, ...data }: { id: string } & Parameters<typeof updateProject>[1]) =>
       updateProject(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });

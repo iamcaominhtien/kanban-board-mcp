@@ -930,6 +930,8 @@ async def add_branch(
     linked_ticket_id: str | None = None,
     ahead_count: int = 0,
     behind_count: int = 0,
+    create_worktree: bool = False,
+    worktree_path: str | None = None,
 ) -> Ticket | None:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
@@ -940,6 +942,7 @@ async def add_branch(
         )
     branches = _loads(getattr(ticket, "branches", "[]"))
     repo_path = await _project_repo_path(session, ticket)
+    resolved_worktree_path: str | None = None
     if repo_path:
         # Real git repo linked: create the branch there and use its true state.
         def _create() -> git_repo.BranchInfo:
@@ -949,6 +952,30 @@ async def add_branch(
         commit_hash = info.commit_hash
         ahead_count = info.ahead_count
         behind_count = info.behind_count
+
+        if create_worktree:
+            project = await session.get(Project, ticket.project_id)
+            prefix = project.prefix if project else "PRJ"
+            template = (
+                worktree_path.strip()
+                if worktree_path and worktree_path.strip()
+                else (
+                    project.worktree_template
+                    if project and project.worktree_template
+                    else "../worktrees/{project}/{ticket_id}-{branch}"
+                )
+            )
+            target_wt = git_repo.resolve_worktree_path(
+                template, repo_path, prefix, ticket.id, name
+            )
+
+            def _make_wt() -> str:
+                return git_repo.add_worktree(git_repo.open_repo(repo_path), target_wt, name)
+
+            resolved_worktree_path = await asyncio.to_thread(_make_wt)
+    elif worktree_path and worktree_path.strip():
+        resolved_worktree_path = worktree_path.strip()
+
     now_iso = datetime.now(UTC).isoformat()
     new_branch = {
         "id": str(uuid.uuid4()),
@@ -966,6 +993,8 @@ async def add_branch(
         "aheadCount": ahead_count,
         "behind_count": behind_count,
         "behindCount": behind_count,
+        "worktree_path": resolved_worktree_path,
+        "worktreePath": resolved_worktree_path,
         "created_at": now_iso,
         "createdAt": now_iso,
         "updated_at": now_iso,
@@ -992,6 +1021,8 @@ async def update_branch(
     linked_ticket_id: str | None = None,
     ahead_count: int | None = None,
     behind_count: int | None = None,
+    remove_worktree: bool = False,
+    worktree_path: str | None = None,
 ) -> Ticket | None:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
@@ -1028,6 +1059,21 @@ async def update_branch(
             if behind_count is not None:
                 br["behind_count"] = behind_count
                 br["behindCount"] = behind_count
+            if remove_worktree and br.get("worktree_path"):
+                repo_path = await _project_repo_path(session, ticket)
+                if repo_path:
+                    wt = br["worktree_path"]
+                    def _rm():
+                        try:
+                            git_repo.remove_worktree(git_repo.open_repo(repo_path), wt, force=True)
+                        except Exception:
+                            pass
+                    await asyncio.to_thread(_rm)
+                br["worktree_path"] = None
+                br["worktreePath"] = None
+            elif worktree_path is not None:
+                br["worktree_path"] = worktree_path if worktree_path.strip() else None
+                br["worktreePath"] = br["worktree_path"]
             br["updated_at"] = now_iso
             br["updatedAt"] = now_iso
             break
@@ -1042,12 +1088,24 @@ async def update_branch(
 
 
 async def delete_branch(
-    session: AsyncSession, ticket_id: str, branch_id: str
+    session: AsyncSession, ticket_id: str, branch_id: str, remove_worktree: bool = False
 ) -> Ticket | None:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     branches = _loads(getattr(ticket, "branches", "[]"))
+    target = next((b for b in branches if b.get("id") == branch_id), None)
+    if remove_worktree and target and target.get("worktree_path"):
+        repo_path = await _project_repo_path(session, ticket)
+        if repo_path:
+            wt = target["worktree_path"]
+            def _rm():
+                try:
+                    git_repo.remove_worktree(git_repo.open_repo(repo_path), wt, force=True)
+                except Exception:
+                    pass
+            await asyncio.to_thread(_rm)
+
     ticket.branches = _dumps([br for br in branches if br.get("id") != branch_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)

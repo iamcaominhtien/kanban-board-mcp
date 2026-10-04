@@ -598,6 +598,18 @@
   color: #C4432A;
 }
 
+.branchWorktreePill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  cursor: help;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(46, 111, 64, 0.08);
+  flex-shrink: 0;
+}
+
+
 .branchPopoverFooter {
   border-top: 1px solid #EEF3EF;
   display: flex;

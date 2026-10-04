@@ -223,3 +223,66 @@
   background: #F6FAF7;
   color: #1E2A22;
 }
+
+.worktreeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #F6FAF7;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #2E6F40;
+  cursor: pointer;
+  margin: 0;
+}
+
+.checkboxText {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.worktreeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.worktreeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resetBtn {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2E6F40;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.resetBtn:hover {
+  color: #245833;
+}
+

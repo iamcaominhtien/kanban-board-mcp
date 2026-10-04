@@ -241,6 +241,8 @@ export async function createBranch(
     linked_ticket_id?: string | null;
     ahead_count?: number;
     behind_count?: number;
+    create_worktree?: boolean;
+    worktree_path?: string | null;
   },
 ): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/branches`, data);
@@ -250,7 +252,7 @@ export async function createBranch(
 export async function updateBranch(
   ticketId: string,
   branchId: string,
-  data: Partial<TicketBranch>,
+  data: Partial<TicketBranch> & { remove_worktree?: boolean; worktree_path?: string | null },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/branches/${branchId}`, data);
   return res.data;
@@ -259,8 +261,11 @@ export async function updateBranch(
 export async function deleteBranch(
   ticketId: string,
   branchId: string,
+  removeWorktree?: boolean,
 ): Promise<Ticket> {
-  const res = await client.delete<Ticket>(`/tickets/${ticketId}/branches/${branchId}`);
+  const res = await client.delete<Ticket>(`/tickets/${ticketId}/branches/${branchId}`, {
+    params: removeWorktree ? { remove_worktree: true } : undefined,
+  });
   return res.data;
 }
 
@@ -700,10 +705,12 @@ export function useDeleteBranch() {
     mutationFn: ({
       ticketId,
       branchId,
+      removeWorktree,
     }: {
       ticketId: string;
       branchId: string;
-    }) => deleteBranch(ticketId, branchId),
+      removeWorktree?: boolean;
+    }) => deleteBranch(ticketId, branchId, removeWorktree),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });

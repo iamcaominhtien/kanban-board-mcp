@@ -17,6 +17,26 @@ interface CreateBranchModalProps {
   branches?: BranchOption[];
   initialBranchFrom?: string;
   onSuccess?: (newBranchName: string) => void;
+  defaultWorktreeTemplate?: string | null;
+  defaultWorktreeEnabled?: boolean;
+  projectPrefix?: string;
+  hasRepoLinked?: boolean;
+}
+
+export function computeDefaultWorktreePath(
+  template: string | null | undefined,
+  projectPrefix: string = '',
+  ticketId: string = '',
+  branchName: string = ''
+): string {
+  const tpl = template && template.trim() ? template.trim() : '../worktrees/{project}/{ticket_id}-{branch}';
+  const sanitizedBranch = branchName ? branchName.replace(/\//g, '-').trim() : '{branch}';
+  return tpl
+    .replace(/\{project\}/g, projectPrefix || 'PROJ')
+    .replace(/\{ticket_id\}/g, ticketId || 'TICKET')
+    .replace(/\{ticket\}/g, ticketId || 'TICKET')
+    .replace(/\{branch\}/g, sanitizedBranch)
+    .replace(/\{repo\}/g, 'repo');
 }
 
 export function CreateBranchModal({
@@ -26,10 +46,17 @@ export function CreateBranchModal({
   branches = [],
   initialBranchFrom = 'main',
   onSuccess,
+  defaultWorktreeTemplate,
+  defaultWorktreeEnabled = false,
+  projectPrefix = '',
+  hasRepoLinked = true,
 }: CreateBranchModalProps) {
   const [branchName, setBranchName] = useState('');
   const [branchFrom, setBranchFrom] = useState(initialBranchFrom);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [createWorktree, setCreateWorktree] = useState(Boolean(defaultWorktreeEnabled));
+  const [customWorktreePath, setCustomWorktreePath] = useState('');
+  const [isCustomWorktreePathTouched, setIsCustomWorktreePathTouched] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -42,11 +69,14 @@ export function CreateBranchModal({
       setBranchName('');
       setBranchFrom(initialBranchFrom || 'main');
       setIsDropdownOpen(false);
+      setCreateWorktree(Boolean(defaultWorktreeEnabled));
+      setCustomWorktreePath('');
+      setIsCustomWorktreePathTouched(false);
       setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
     }
-  }, [isOpen, initialBranchFrom]);
+  }, [isOpen, initialBranchFrom, defaultWorktreeEnabled]);
 
   // Handle ESC key
   useEffect(() => {
@@ -86,10 +116,26 @@ export function CreateBranchModal({
   });
   const branchOptions = Array.from(branchNamesSet);
 
+  const computedWorktreePath = computeDefaultWorktreePath(
+    defaultWorktreeTemplate,
+    projectPrefix,
+    ticketId,
+    branchName
+  );
+  const currentWorktreePath = isCustomWorktreePathTouched
+    ? customWorktreePath
+    : computedWorktreePath;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = branchName.trim();
     if (!trimmed) return;
+
+    const effectiveWorktreePath = createWorktree
+      ? (isCustomWorktreePathTouched
+          ? customWorktreePath.trim()
+          : computeDefaultWorktreePath(defaultWorktreeTemplate, projectPrefix, ticketId, trimmed))
+      : undefined;
 
     try {
       await createBranchMutation.mutateAsync({
@@ -98,9 +144,14 @@ export function CreateBranchModal({
           name: trimmed,
           branch_from: branchFrom || 'main',
           status: 'open',
+          create_worktree: createWorktree,
+          worktree_path: effectiveWorktreePath || null,
         },
       });
-      toast.success('Branch created', trimmed);
+      toast.success(
+        createWorktree ? 'Branch & worktree created' : 'Branch created',
+        trimmed
+      );
       onSuccess?.(trimmed);
       onClose();
     } catch (err) {
@@ -200,6 +251,61 @@ export function CreateBranchModal({
           <span className={styles.helperText}>
             Any existing branch works too, not just main — spins up a new ticket that carries the parent&apos;s description/AC as a starting point.
           </span>
+        </div>
+
+        {/* Field 3: Git Worktree */}
+        <div className={styles.worktreeSection}>
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              className={styles.checkbox}
+              checked={createWorktree}
+              onChange={(e) => setCreateWorktree(e.target.checked)}
+            />
+            <span className={styles.checkboxText}>
+              Create git worktree for this branch
+            </span>
+          </label>
+
+          {createWorktree && (
+            <div className={styles.worktreeGroup}>
+              <div className={styles.worktreeHeader}>
+                <span className={styles.fieldLabel}>Worktree directory path</span>
+                {isCustomWorktreePathTouched && (
+                  <button
+                    type="button"
+                    className={styles.resetBtn}
+                    onClick={() => {
+                      setIsCustomWorktreePathTouched(false);
+                      setCustomWorktreePath('');
+                    }}
+                  >
+                    Reset to template
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                className={styles.textInput}
+                value={currentWorktreePath}
+                onChange={(e) => {
+                  setIsCustomWorktreePathTouched(true);
+                  setCustomWorktreePath(e.target.value);
+                }}
+                placeholder="../worktrees/{project}/{ticket_id}-{branch}"
+                autoComplete="off"
+              />
+              {!hasRepoLinked ? (
+                <span className={styles.helperText} style={{ color: '#C4432A' }}>
+                  Note: Git repository path is not configured on project or ticket. Git worktree creation requires a linked repository path.
+                </span>
+              ) : (
+                <span className={styles.helperText}>
+                  Resolved relative to git repo root. Creates an isolated directory for concurrent development.
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Actions */}

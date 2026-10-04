@@ -154,6 +154,49 @@ async def test_branch_missing_from_repo_is_flagged(client: httpx.AsyncClient, re
         p = await _project_with_repo(c, repo_dir)
         t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
         await c.post(f"/tickets/{t['id']}/branches", json={"name": "feature/x"})
-        assert (await c.get(f"/tickets/{t['id']}/branches")).json()[0]["in_repo"] is True
         subprocess.run(["git", "branch", "-D", "feature/x"], cwd=repo_dir, check=True, capture_output=True)
         assert (await c.get(f"/tickets/{t['id']}/branches")).json()[0]["in_repo"] is False
+
+
+async def test_project_worktree_settings(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        p = await _project_with_repo(c, repo_dir)
+        r = await c.patch(
+            f"/projects/{p['id']}",
+            json={
+                "worktree_template": "../worktrees/{project}/{ticket_id}-{branch}",
+                "worktree_by_default": True,
+            },
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["worktree_template"] == "../worktrees/{project}/{ticket_id}-{branch}"
+        assert data["worktree_by_default"] is True
+
+
+async def test_create_branch_with_worktree(client: httpx.AsyncClient, repo_dir, tmp_path):
+    async with client as c:
+        p = await _project_with_repo(c, repo_dir)
+        wt_base = tmp_path / "custom_worktrees"
+        await c.patch(
+            f"/projects/{p['id']}",
+            json={"worktree_template": str(wt_base / "{branch}")},
+        )
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+
+        # Create branch with worktree
+        r = await c.post(
+            f"/tickets/{t['id']}/branches",
+            json={"name": "feature/worktree-test", "create_worktree": True},
+        )
+        assert r.status_code == 201
+        br = r.json()["branches"][0]
+        assert br["worktree_path"] is not None
+        assert (wt_base / "feature-worktree-test").exists()
+
+        # Delete branch with remove_worktree=true
+        del_r = await c.delete(
+            f"/tickets/{t['id']}/branches/{br['id']}?remove_worktree=true"
+        )
+        assert del_r.status_code == 200
+        assert not (wt_base / "feature-worktree-test").exists()

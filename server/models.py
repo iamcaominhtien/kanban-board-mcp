@@ -19,6 +19,8 @@ class Project(SQLModel, table=True):
     color: str  # hex accent color
     ticket_counter: int = Field(default=0)
     repo_path: Optional[str] = Field(default=None)  # local git repo used for ticket branches
+    worktree_template: Optional[str] = Field(default=None)  # template for branch worktrees
+    worktree_by_default: bool = Field(default=False)
 
 
 class WorkspaceSettings(SQLModel, table=True):
@@ -159,6 +161,8 @@ class ProjectUpdate(SQLModel):
     name: Optional[str] = None
     color: Optional[str] = None
     repo_path: Optional[str] = None  # empty string clears the link
+    worktree_template: Optional[str] = None
+    worktree_by_default: Optional[bool] = None
 
 
 class ProjectRead(SQLModel):
@@ -168,6 +172,8 @@ class ProjectRead(SQLModel):
     color: str
     ticket_counter: int
     repo_path: Optional[str] = None
+    worktree_template: Optional[str] = None
+    worktree_by_default: bool = False
 
 
 class MemberCreate(SQLModel):

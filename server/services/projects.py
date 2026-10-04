@@ -54,6 +54,9 @@ async def update_project(
         raw_path = update_data["repo_path"].strip()
         # Empty string unlinks the repository; anything else must be a real git repo.
         update_data["repo_path"] = normalize_repo_path(raw_path) if raw_path else None
+    if "worktree_template" in update_data:
+        raw_tmpl = update_data["worktree_template"].strip() if update_data["worktree_template"] else ""
+        update_data["worktree_template"] = raw_tmpl if raw_tmpl else None
     for field, value in update_data.items():
         setattr(project, field, value)
 

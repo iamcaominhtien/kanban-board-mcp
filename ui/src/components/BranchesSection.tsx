@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { TicketBranch, BranchStatus } from '../types';
-import { useTicketBranches, useUpdateBranch } from '../api/tickets';
+import { useTicketBranches, useUpdateBranch, useDeleteBranch, useTicket } from '../api/tickets';
+import { useProject } from '../api/projects';
+import { useToast } from './Toast';
+import { extractError } from '../api/extractError';
 import { CreateBranchModal } from './CreateBranchModal';
 import styles from './BranchesSection.module.css';
 
@@ -55,14 +58,69 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: branches = [], isLoading } = useTicketBranches(ticketId);
+  const { data: ticket } = useTicket(ticketId);
+  const { data: project } = useProject(ticket?.projectId ?? '');
   const updateBranchMutation = useUpdateBranch();
+  const deleteBranchMutation = useDeleteBranch();
+  const toast = useToast();
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    action: 'delete' | 'merge' | 'archive';
+    branch: TicketBranch;
+  } | null>(null);
+  const [removeWorktreeChecked, setRemoveWorktreeChecked] = useState(true);
 
   function handleStatusChange(branch: TicketBranch, nextStatus: BranchStatus) {
-    updateBranchMutation.mutate({
-      ticketId,
-      branchId: branch.id,
-      data: { status: nextStatus },
-    });
+    if (branch.worktreePath) {
+      setConfirmDialog({
+        action: nextStatus === 'merged' ? 'merge' : 'archive',
+        branch,
+      });
+      setRemoveWorktreeChecked(true);
+      return;
+    }
+    updateBranchMutation.mutate(
+      {
+        ticketId,
+        branchId: branch.id,
+        data: { status: nextStatus },
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Branch marked as ${nextStatus}`);
+        },
+        onError: (err) => {
+          toast.error("Couldn't update branch", extractError(err));
+        },
+      }
+    );
+  }
+
+  function handleDeleteClick(branch: TicketBranch) {
+    if (branch.worktreePath) {
+      setConfirmDialog({
+        action: 'delete',
+        branch,
+      });
+      setRemoveWorktreeChecked(true);
+      return;
+    }
+    if (window.confirm(`Delete branch "${branch.name}"?`)) {
+      deleteBranchMutation.mutate(
+        {
+          ticketId,
+          branchId: branch.id,
+        },
+        {
+          onSuccess: () => {
+            toast.success(`Deleted branch ${branch.name}`);
+          },
+          onError: (err) => {
+            toast.error("Couldn't delete branch", extractError(err));
+          },
+        }
+      );
+    }
   }
 
   if (isLoading) {
@@ -188,11 +246,11 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         <div className={styles.tableCard}>
           <div className={styles.tableHeader}>
             <span style={{ width: 8, flexShrink: 0 }} />
-            <span style={{ width: 190, flexShrink: 0 }}>Branch</span>
-            <span style={{ flexGrow: 1 }}>Origin / Ahead-Behind</span>
+            <span style={{ width: 170, flexShrink: 0 }}>Branch</span>
+            <span style={{ flexGrow: 1 }}>Origin / Ahead-Behind / Worktree</span>
             <span style={{ width: 70, flexShrink: 0 }}>Created</span>
             <span style={{ width: 80, flexShrink: 0 }}>Status</span>
-            <span style={{ width: 65, flexShrink: 0 }} />
+            <span style={{ width: 90, flexShrink: 0 }} />
           </div>
 
           {allBranches.map((br) => {
@@ -204,16 +262,24 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                   {br.name}
                 </span>
 
-                <span className={styles.branchMeta}>
-                  {br.status === 'baseline' ? (
-                    'baseline'
-                  ) : (
-                    <>
-                      from <span className={styles.metaMono}>{br.branchFrom || 'main'}</span>
-                      {br.aheadCount !== undefined && ` · ${br.aheadCount} ahead, ${br.behindCount ?? 0} behind`}
-                    </>
+                <div className={styles.branchMeta}>
+                  <div>
+                    {br.status === 'baseline' ? (
+                      'baseline'
+                    ) : (
+                      <>
+                        from <span className={styles.metaMono}>{br.branchFrom || 'main'}</span>
+                        {br.aheadCount !== undefined && ` · ${br.aheadCount} ahead, ${br.behindCount ?? 0} behind`}
+                      </>
+                    )}
+                  </div>
+                  {br.worktreePath && (
+                    <div className={styles.worktreeInfo} title={`Worktree: ${br.worktreePath}`}>
+                      <span className={styles.worktreeBadge}>🌳 worktree</span>
+                      <span className={styles.worktreePathMono}>{br.worktreePath}</span>
+                    </div>
                   )}
-                </span>
+                </div>
 
                 <span className={styles.dateCol}>{formatDate(br.createdAt)}</span>
 
@@ -229,6 +295,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                       type="button"
                       className={styles.actionBtn}
                       onClick={() => handleStatusChange(br, 'merged')}
+                      title="Merge branch"
                     >
                       Merge
                     </button>
@@ -238,8 +305,22 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                       type="button"
                       className={styles.actionBtn}
                       onClick={() => handleStatusChange(br, 'archived')}
+                      title="Archive branch"
                     >
                       Archive
+                    </button>
+                  )}
+                  {!readOnly && br.status !== 'baseline' && (
+                    <button
+                      type="button"
+                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                      onClick={() => handleDeleteClick(br)}
+                      title="Delete branch"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
                     </button>
                   )}
                 </span>
@@ -263,12 +344,132 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         </button>
       )}
 
+      {/* Confirmation Dialog for branch actions with worktree */}
+      {confirmDialog && (
+        <div
+          className={styles.dialogBackdrop}
+          onClick={() => setConfirmDialog(null)}
+        >
+          <div
+            className={styles.dialogCard}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <h4 className={styles.dialogTitle}>
+              {confirmDialog.action === 'delete'
+                ? 'Delete branch'
+                : confirmDialog.action === 'merge'
+                ? 'Merge branch'
+                : 'Archive branch'}
+            </h4>
+            <p className={styles.dialogPrompt}>
+              {confirmDialog.action === 'delete' ? (
+                <>
+                  Are you sure you want to delete branch <strong>{confirmDialog.branch.name}</strong>?
+                </>
+              ) : confirmDialog.action === 'merge' ? (
+                <>
+                  Mark branch <strong>{confirmDialog.branch.name}</strong> as merged?
+                </>
+              ) : (
+                <>
+                  Archive branch <strong>{confirmDialog.branch.name}</strong>?
+                </>
+              )}
+            </p>
+
+            {confirmDialog.branch.worktreePath && (
+              <label className={styles.dialogCheckboxLabel}>
+                <input
+                  type="checkbox"
+                  className={styles.dialogCheckbox}
+                  checked={removeWorktreeChecked}
+                  onChange={(e) => setRemoveWorktreeChecked(e.target.checked)}
+                />
+                <div className={styles.dialogCheckboxContent}>
+                  <span className={styles.dialogCheckboxTitle}>
+                    Clean up worktree directory
+                  </span>
+                  <code className={styles.dialogWorktreePath}>
+                    {confirmDialog.branch.worktreePath}
+                  </code>
+                </div>
+              </label>
+            )}
+
+            <div className={styles.dialogActions}>
+              <button
+                type="button"
+                className={
+                  confirmDialog.action === 'delete'
+                    ? styles.dialogBtnDanger
+                    : styles.dialogBtnPrimary
+                }
+                disabled={
+                  deleteBranchMutation.isPending || updateBranchMutation.isPending
+                }
+                onClick={async () => {
+                  try {
+                    if (confirmDialog.action === 'delete') {
+                      await deleteBranchMutation.mutateAsync({
+                        ticketId,
+                        branchId: confirmDialog.branch.id,
+                        removeWorktree: removeWorktreeChecked,
+                      });
+                      toast.success(`Deleted branch ${confirmDialog.branch.name}`);
+                    } else {
+                      const nextStatus =
+                        confirmDialog.action === 'merge' ? 'merged' : 'archived';
+                      await updateBranchMutation.mutateAsync({
+                        ticketId,
+                        branchId: confirmDialog.branch.id,
+                        data: {
+                          status: nextStatus,
+                          remove_worktree: removeWorktreeChecked,
+                        },
+                      });
+                      toast.success(`Branch marked as ${nextStatus}`);
+                    }
+                    setConfirmDialog(null);
+                  } catch (err) {
+                    toast.error(
+                      confirmDialog.action === 'delete'
+                        ? "Couldn't delete branch"
+                        : "Couldn't update branch",
+                      extractError(err)
+                    );
+                  }
+                }}
+              >
+                {deleteBranchMutation.isPending || updateBranchMutation.isPending
+                  ? 'Processing...'
+                  : confirmDialog.action === 'delete'
+                  ? 'Delete branch'
+                  : 'Confirm'}
+              </button>
+              <button
+                type="button"
+                className={styles.dialogBtnCancel}
+                onClick={() => setConfirmDialog(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CreateBranchModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         ticketId={ticketId}
         branches={allBranches}
         initialBranchFrom="main"
+        defaultWorktreeTemplate={project?.worktreeTemplate}
+        defaultWorktreeEnabled={project?.worktreeByDefault}
+        projectPrefix={project?.prefix}
+        hasRepoLinked={Boolean(ticket?.repoPath || project?.repoPath)}
       />
     </div>
   );

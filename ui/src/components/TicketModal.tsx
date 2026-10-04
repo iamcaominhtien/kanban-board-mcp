@@ -962,6 +962,14 @@ export function TicketModal({
                           <span className={`${styles.branchRowName} ${isActive ? styles.branchRowNameActive : ''}`}>
                             {b.name}
                           </span>
+                          {b.worktreePath && (
+                            <span
+                              className={styles.branchWorktreePill}
+                              title={`Worktree: ${b.worktreePath}`}
+                            >
+                              🌳
+                            </span>
+                          )}
                           {isActive ? (
                             <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
                               <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
@@ -1302,6 +1310,10 @@ export function TicketModal({
           ticketId={ticket.id}
           branches={branchesList}
           initialBranchFrom={activeBranch?.inRepo === false ? 'main' : (activeBranchName || 'main')}
+          defaultWorktreeTemplate={project?.worktreeTemplate}
+          defaultWorktreeEnabled={project?.worktreeByDefault}
+          projectPrefix={project?.prefix}
+          hasRepoLinked={Boolean(effectiveRepoPath)}
           onSuccess={(newBranch) => {
             setSelectedBranchName(newBranch);
           }}

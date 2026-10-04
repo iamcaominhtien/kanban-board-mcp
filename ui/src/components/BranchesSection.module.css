@@ -288,3 +288,201 @@
   color: #9AA8A0;
   font-size: 13px;
 }
+
+.actionBtnDanger:hover {
+  border-color: #C4432A;
+  color: #C4432A;
+  background: rgba(196, 67, 42, 0.06);
+}
+
+.worktreeInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  max-width: 100%;
+}
+
+.worktreeBadge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #2E6F40;
+  background: rgba(46, 111, 64, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.worktreePathMono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #5B6B60;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Confirmation Dialog */
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.35);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1400;
+  animation: fadeIn 0.12s ease-out;
+}
+
+.dialogCard {
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  background: #FFFFFF;
+  border: 1px solid #E3E8E5;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: scaleIn 0.12s ease-out;
+}
+
+.dialogTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E2A22;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.dialogPrompt {
+  font-size: 13px;
+  color: #5B6B60;
+  margin: 0;
+  line-height: 1.4;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.dialogCheckboxLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #F6FAF7;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dialogCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #2E6F40;
+  cursor: pointer;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.dialogCheckboxContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dialogCheckboxTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E2A22;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.dialogWorktreePath {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #5B6B60;
+  word-break: break-all;
+}
+
+.dialogActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.dialogBtnDanger {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #C4432A;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.12s;
+}
+
+.dialogBtnDanger:hover:not(:disabled) {
+  background: #A8331D;
+}
+
+.dialogBtnDanger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dialogBtnPrimary {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.12s;
+}
+
+.dialogBtnPrimary:hover:not(:disabled) {
+  background: #245833;
+}
+
+.dialogBtnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dialogBtnCancel {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  background: none;
+  color: #5B6B60;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.dialogBtnCancel:hover {
+  background: #F6FAF7;
+  color: #1E2A22;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
