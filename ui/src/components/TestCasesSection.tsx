@@ -255,7 +255,7 @@ function TestCaseRowItem({
 
           {/* Test Data */}
           <div className={styles.fieldGroup}>
-            <span className={styles.fieldLabel}>Test data / Files</span>
+            <span className={styles.fieldLabel}>Test data</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {(tc.testDataFiles ?? []).map((file, i) => (
                 <div key={file.id || i} className={styles.fileChip}>
@@ -303,7 +303,7 @@ function TestCaseRowItem({
 
           {/* Notes */}
           <div className={styles.fieldGroup}>
-            <span className={styles.fieldLabel}>Notes / Run observations</span>
+            <span className={styles.fieldLabel}>Notes</span>
             {editingField === 'notes' && !readOnly ? (
               <textarea
                 className={styles.fieldBox}
@@ -348,6 +348,8 @@ export function TestCasesSection({
 }: TestCasesSectionProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | TestCaseStatus>('all');
   const [rollupSource, setRollupSource] = useState<string>('all');
+  const [rollupDropdownOpen, setRollupDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addTitle, setAddTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -359,6 +361,18 @@ export function TestCasesSection({
     }
   }, [showAddForm]);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setRollupDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const hasChildren = childTestCaseSources.length > 0;
 
   // Counts across all test cases
@@ -367,10 +381,26 @@ export function TestCasesSection({
     ...childTestCaseSources.flatMap((c) => c.testCases),
   ];
 
-  const passCount = allTestCases.filter((tc) => tc.status === 'pass').length;
-  const failCount = allTestCases.filter((tc) => tc.status === 'fail').length;
-  const runningCount = allTestCases.filter((tc) => tc.status === 'running').length;
-  const pendingCount = allTestCases.filter((tc) => tc.status === 'pending').length;
+  // Active source list according to rollup selection
+  const sourceTestCases = !hasChildren
+    ? testCases
+    : rollupSource === 'all'
+    ? allTestCases
+    : rollupSource === 'parent'
+    ? testCases
+    : childTestCaseSources.find((c) => c.ticketId === rollupSource)?.testCases ?? [];
+
+  const passCount = sourceTestCases.filter((tc) => tc.status === 'pass').length;
+  const failCount = sourceTestCases.filter((tc) => tc.status === 'fail').length;
+  const runningCount = sourceTestCases.filter((tc) => tc.status === 'running').length;
+  const pendingCount = sourceTestCases.filter((tc) => tc.status === 'pending').length;
+
+  const currentRollupLabel =
+    rollupSource === 'all'
+      ? `All (${allTestCases.length})`
+      : rollupSource === 'parent'
+      ? `Parent only (${testCases.length})`
+      : `Child: ${rollupSource} (${childTestCaseSources.find((c) => c.ticketId === rollupSource)?.testCases.length ?? 0})`;
 
   function filterList(list: TestCase[]) {
     if (statusFilter === 'all') return list;
@@ -414,43 +444,102 @@ export function TestCasesSection({
 
   return (
     <div className={styles.container}>
-      {/* Top Bar: Count & Add Button */}
-      <div className={styles.topBar}>
-        <span className={styles.tcLabel}>
-          {allTestCases.length} TEST CASES · {ticketId}
-        </span>
-        {!readOnly && (
-          <button
-            type="button"
-            className={styles.tcAddBtn}
-            onClick={() => setShowAddForm(true)}
-            disabled={disabled || showAddForm}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-              <path d="M12 5V19" /><path d="M5 12H19" />
-            </svg>
-            Add test case
-          </button>
-        )}
-      </div>
+      {/* Top Bar: Count & Add Button (or Rollup Show row if parent ticket) */}
+      {hasChildren ? (
+        <div className={styles.topBar}>
+          <div className={styles.rollupShowGroup}>
+            <span className={styles.rollupShowLabel}>Show</span>
+            <div className={styles.rollupDropdownWrapper} ref={dropdownRef}>
+              <button
+                type="button"
+                className={styles.rollupDropdownBtn}
+                onClick={() => setRollupDropdownOpen((prev) => !prev)}
+                aria-haspopup="listbox"
+                aria-expanded={rollupDropdownOpen}
+              >
+                {currentRollupLabel}
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9L12 15L18 9" />
+                </svg>
+              </button>
+              {rollupDropdownOpen && (
+                <div className={styles.rollupDropdownMenu} role="listbox">
+                  <button
+                    type="button"
+                    className={`${styles.rollupMenuItem} ${rollupSource === 'all' ? styles.rollupMenuItemActive : ''}`}
+                    onClick={() => {
+                      setRollupSource('all');
+                      setRollupDropdownOpen(false);
+                    }}
+                  >
+                    All ({allTestCases.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.rollupMenuItem} ${rollupSource === 'parent' ? styles.rollupMenuItemActive : ''}`}
+                    onClick={() => {
+                      setRollupSource('parent');
+                      setRollupDropdownOpen(false);
+                    }}
+                  >
+                    Parent only ({testCases.length})
+                  </button>
+                  {childTestCaseSources.map((child) => (
+                    <button
+                      key={child.ticketId}
+                      type="button"
+                      className={`${styles.rollupMenuItem} ${rollupSource === child.ticketId ? styles.rollupMenuItemActive : ''}`}
+                      onClick={() => {
+                        setRollupSource(child.ticketId);
+                        setRollupDropdownOpen(false);
+                      }}
+                    >
+                      Child: {child.ticketId} ({child.testCases.length})
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <span className={styles.rollupSep}>·</span>
+            <span className={styles.rollupBreakdown}>
+              Parent only ({testCases.length})
+              {childTestCaseSources.map((c) => ` · Child: ${c.ticketId} (${c.testCases.length})`).join('')}
+            </span>
+          </div>
 
-      {/* Rollup Source Selector (if parent ticket) */}
-      {hasChildren && (
-        <div className={styles.rollupBar}>
-          <span>Show:</span>
-          <select
-            className={styles.rollupSelect}
-            value={rollupSource}
-            onChange={(e) => setRollupSource(e.target.value)}
-          >
-            <option value="all">All ({allTestCases.length})</option>
-            <option value="parent">Parent only ({testCases.length})</option>
-            {childTestCaseSources.map((child) => (
-              <option key={child.ticketId} value={child.ticketId}>
-                Child: {child.ticketId} ({child.testCases.length})
-              </option>
-            ))}
-          </select>
+          {!readOnly && (
+            <button
+              type="button"
+              className={styles.tcAddBtn}
+              title={`Adds to ${ticketId} itself — open a sub-ticket's own Test Cases panel to add one there`}
+              onClick={() => setShowAddForm(true)}
+              disabled={disabled || showAddForm}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M12 5V19" /><path d="M5 12H19" />
+              </svg>
+              Add test case
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className={styles.topBar}>
+          <span className={styles.tcLabel}>
+            {testCases.length} test cases · {ticketId}
+          </span>
+          {!readOnly && (
+            <button
+              type="button"
+              className={styles.tcAddBtn}
+              onClick={() => setShowAddForm(true)}
+              disabled={disabled || showAddForm}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M12 5V19" /><path d="M5 12H19" />
+              </svg>
+              Add test case
+            </button>
+          )}
         </div>
       )}
 
@@ -461,7 +550,7 @@ export function TestCasesSection({
           className={`${styles.filterChip} ${statusFilter === 'all' ? styles.filterChipActive : ''}`}
           onClick={() => setStatusFilter('all')}
         >
-          All ({allTestCases.length})
+          All ({sourceTestCases.length})
         </button>
         <button
           type="button"
@@ -471,14 +560,16 @@ export function TestCasesSection({
           <span className={styles.filterDot} style={{ background: '#2E6F40' }} />
           Pass ({passCount})
         </button>
-        <button
-          type="button"
-          className={`${styles.filterChip} ${statusFilter === 'fail' ? styles.filterChipActive : ''}`}
-          onClick={() => setStatusFilter('fail')}
-        >
-          <span className={styles.filterDot} style={{ background: '#C4432A' }} />
-          Fail ({failCount})
-        </button>
+        {(failCount > 0 || statusFilter === 'fail') && (
+          <button
+            type="button"
+            className={`${styles.filterChip} ${statusFilter === 'fail' ? styles.filterChipActive : ''}`}
+            onClick={() => setStatusFilter('fail')}
+          >
+            <span className={styles.filterDot} style={{ background: '#C4432A' }} />
+            Fail ({failCount})
+          </button>
+        )}
         <button
           type="button"
           className={`${styles.filterChip} ${statusFilter === 'running' ? styles.filterChipActive : ''}`}

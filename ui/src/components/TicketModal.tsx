@@ -353,15 +353,21 @@ export function TicketModal({
   const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
 
   // View switchers tooltips & status dots
-  const tcList = ticket?.testCases ?? [];
-  const passCount = tcList.filter((tc) => tc.status === 'pass').length;
-  const failCount = tcList.filter((tc) => tc.status === 'fail').length;
-  const runningCount = tcList.filter((tc) => tc.status === 'running').length;
-  const pendingCount = tcList.filter((tc) => tc.status === 'pending').length;
+  const allRelevantTestCases = [
+    ...(ticket?.testCases ?? []),
+    ...childTickets.flatMap((ct) => ct.testCases ?? []),
+  ];
+  const passCount = allRelevantTestCases.filter((tc) => tc.status === 'pass').length;
+  const failCount = allRelevantTestCases.filter((tc) => tc.status === 'fail').length;
+  const runningCount = allRelevantTestCases.filter((tc) => tc.status === 'running').length;
+  const pendingCount = allRelevantTestCases.filter((tc) => tc.status === 'pending').length;
   const tcDotColor = failCount > 0 ? '#C4432A' : runningCount > 0 ? '#2F6FB0' : passCount > 0 ? '#2E6F40' : undefined;
-  const tcTooltip = tcList.length > 0
-    ? `Test — ${passCount} pass · ${failCount} fail · ${runningCount} running · ${pendingCount} pending`
-    : 'Test Cases';
+  const tcParts: string[] = [];
+  if (passCount > 0) tcParts.push(`${passCount} pass`);
+  if (failCount > 0) tcParts.push(`${failCount} fail`);
+  if (runningCount > 0) tcParts.push(`${runningCount} running`);
+  if (pendingCount > 0) tcParts.push(`${pendingCount} pending`);
+  const tcTooltip = tcParts.length > 0 ? `Test — ${tcParts.join(' · ')}` : 'Test Cases';
 
   const wlList = ticket?.workLog ?? [];
   const blockedLog = wlList.some((w) => w.kind === 'blocked');
@@ -1272,13 +1278,11 @@ export function TicketModal({
               <TestCasesSection
                 ticketId={ticket.id}
                 testCases={ticket.testCases ?? []}
-                childTestCaseSources={childTickets
-                  .filter((st) => (st.testCases?.length ?? 0) > 0)
-                  .map((st) => ({
-                    ticketId: st.id,
-                    ticketTitle: st.title,
-                    testCases: st.testCases ?? [],
-                  }))}
+                childTestCaseSources={childTickets.map((st) => ({
+                  ticketId: st.id,
+                  ticketTitle: st.title,
+                  testCases: st.testCases ?? [],
+                }))}
                 disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
                 onAdd={(tCase) =>
                   new Promise<void>((resolve, reject) =>

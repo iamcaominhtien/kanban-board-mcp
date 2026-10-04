@@ -92,6 +92,13 @@
   color: #5B6B60;
 }
 
+.typeLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #5B6B60;
+  text-transform: capitalize;
+}
+
 .headerDivider {
   width: 1px;
   height: 14px;
