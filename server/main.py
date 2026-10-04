@@ -18,7 +18,9 @@ from api.settings import router as settings_router
 from api.data import router as data_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
+import database
 from database import init_db
+from services import workspace as svc_workspace
 from uploads import resolve_upload_path
 
 
@@ -36,7 +38,17 @@ async def lifespan(app: FastAPI):
     # "RuntimeError: Task group is not initialized. Make sure to use run()."
     async with mcp.session_manager.run():
         await init_db()
-        yield
+        sweeper = asyncio.create_task(
+            svc_workspace.sweep_loop(lambda: database.async_session())
+        )
+        try:
+            yield
+        finally:
+            sweeper.cancel()
+            try:
+                await sweeper
+            except asyncio.CancelledError:
+                pass
 
 
 app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)

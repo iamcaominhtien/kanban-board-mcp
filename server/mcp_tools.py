@@ -13,6 +13,7 @@ import services.idea_tickets as svc_idea_tickets
 import services.members as svc_members
 import services.projects as svc_projects
 import services.tickets as svc_tickets
+import services.workspace as svc_workspace
 from database import async_session
 from models import (
     IDEA_COLORS,
@@ -181,7 +182,23 @@ async def get_ticket(ticket_id: str) -> dict | None:
         ticket = await svc_tickets.get_ticket(session, ticket_id)
         if ticket is None:
             return None
-        return TicketRead.from_ticket(ticket).model_dump()
+        data = TicketRead.from_ticket(ticket).model_dump()
+        info = await svc_workspace.get_workspace_path(session, ticket_id, create=False)
+        if info is not None and info["enabled"]:
+            data["workspace_path"] = info["path"]
+        return data
+
+
+async def get_ticket_workspace_path(ticket_id: str) -> dict | None:
+    """Get the local scratch folder for a ticket (e.g. 'IAM-1').
+
+    The folder is created if missing. Read and write files in it directly with
+    your own file tools - temporary logs, repro scripts, screenshots, drafts.
+    Returns {enabled, path, exists}, or None if the ticket does not exist.
+    When enabled is false the Workspace feature is turned off; do not use it.
+    """
+    async with async_session() as session:
+        return await svc_workspace.get_workspace_path(session, ticket_id, create=True)
 
 
 @notify_on_success
@@ -974,6 +991,7 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(list_tickets)
     mcp.tool()(create_ticket)
     mcp.tool()(get_ticket)
+    mcp.tool()(get_ticket_workspace_path)
     mcp.tool()(update_ticket_status)
     mcp.tool()(update_ticket)
     mcp.tool()(add_comment)
