@@ -894,9 +894,11 @@ async def _project_repo_path(session: AsyncSession, ticket: Ticket) -> str | Non
 def _sync_branches_with_git(repo_path: str, branches: list[dict]) -> list[dict]:
     """Overlay live commit hash and ahead/behind counts from the git repo."""
     repo = git_repo.open_repo(repo_path)
+    current = git_repo.current_branch(repo)
     synced = []
     for br in branches:
         br = dict(br)
+        br.update(is_current=br.get("name") == current, isCurrent=br.get("name") == current)
         if br.get("status") != "baseline":
             try:
                 info = git_repo.branch_info(repo, br["name"], br.get("branch_from") or "main")
@@ -1019,6 +1021,24 @@ async def add_branch(
     return ticket
 
 
+def _git_guard_update(
+    repo_path: str, br: dict, new_name: str | None, new_status: str | None, base: str | None
+) -> None:
+    """Apply/verify the git side of a branch update before the board record changes."""
+    repo = git_repo.open_repo(repo_path)
+    old_name = br["name"]
+    if not git_repo.branch_exists(repo, old_name):
+        return  # branch isn't in this repo (e.g. repo changed): board-only update
+    if new_status == "merged" and br.get("status") != "merged":
+        base_ref = base or "main"
+        if not git_repo.is_merged(repo, old_name, base_ref):
+            raise git_repo.GitRepoError(
+                f"'{old_name}' still has commits that are not in '{base_ref}'; merge it in git first"
+            )
+    if new_name and new_name != old_name:
+        git_repo.rename_branch(repo, old_name, new_name)
+
+
 async def update_branch(
     session: AsyncSession,
     ticket_id: str,
@@ -1044,9 +1064,19 @@ async def update_branch(
     branches = _loads(getattr(ticket, "branches", "[]"))
     found = False
     now_iso = datetime.now(UTC).isoformat()
+    repo_for_git = await _project_repo_path(session, ticket)
     for br in branches:
         if br.get("id") == branch_id:
             found = True
+            if repo_for_git and br.get("status") != "baseline":
+                await asyncio.to_thread(
+                    _git_guard_update,
+                    repo_for_git,
+                    br,
+                    name,
+                    status,
+                    branch_from if branch_from is not None else br.get("branch_from"),
+                )
             if name is not None:
                 br["name"] = name
             if status is not None:
@@ -1125,4 +1155,22 @@ async def delete_branch(
     session.add(ticket)
     await session.commit()
     await session.refresh(ticket)
+    return ticket
+
+
+async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str) -> Ticket | None:
+    """Check out a ticket branch in the linked repository's main working tree."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    branches = _loads(getattr(ticket, "branches", "[]"))
+    target = next((b for b in branches if b.get("id") == branch_id), None)
+    if target is None:
+        return None
+    repo_path = await _project_repo_path(session, ticket)
+    if not repo_path:
+        raise ValueError("Link a git repository to this project or ticket before checking out branches")
+    await asyncio.to_thread(
+        lambda: git_repo.checkout_branch(git_repo.open_repo(repo_path), target["name"])
+    )
     return ticket

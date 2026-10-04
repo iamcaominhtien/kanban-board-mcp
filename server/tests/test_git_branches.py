@@ -289,3 +289,68 @@ async def test_delete_branch_can_also_delete_git_branch(client: httpx.AsyncClien
         )
         assert res.status_code == 200
         assert "feat/e" not in git_repo.list_local_branches(repo)
+
+
+async def _branch(c, t, name):
+    r = await c.post(f"/tickets/{t['id']}/branches", json={"name": name})
+    assert r.status_code == 201
+    return [b for b in r.json()["branches"] if b["name"] == name][0]["id"]
+
+
+def _commit_on(repo_dir, branch, fname):
+    _git(repo_dir, "checkout", "-q", branch)
+    (repo_dir / fname).write_text(fname)
+    _git(repo_dir, "add", ".")
+    _git(repo_dir, "commit", "-qm", fname)
+    _git(repo_dir, "checkout", "-q", "main")
+
+
+async def test_mark_merged_is_verified_against_git(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        bid = await _branch(c, t, "feat/m")
+        _commit_on(repo_dir, "feat/m", "m.txt")
+        # not merged in git yet -> refused, board unchanged
+        r = await c.patch(f"/tickets/{t['id']}/branches/{bid}", json={"status": "merged"})
+        assert r.status_code == 400 and "not in 'main'" in r.json()["detail"]
+        assert (await c.get(f"/tickets/{t['id']}/branches")).json()[0]["status"] == "open"
+        # merge in git, then marking merged is accepted
+        _git(repo_dir, "merge", "-q", "--no-ff", "feat/m", "-m", "merge")
+        r = await c.patch(f"/tickets/{t['id']}/branches/{bid}", json={"status": "merged"})
+        assert r.status_code == 200 and r.json()["branches"][0]["status"] == "merged"
+
+
+async def test_rename_branch_renames_in_git(client: httpx.AsyncClient, repo_dir):
+    repo = git_repo.open_repo(str(repo_dir))
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        bid = await _branch(c, t, "feat/old")
+        await _branch(c, t, "feat/taken")
+        # name collision is refused and nothing changes
+        r = await c.patch(f"/tickets/{t['id']}/branches/{bid}", json={"name": "feat/taken"})
+        assert r.status_code == 400
+        r = await c.patch(f"/tickets/{t['id']}/branches/{bid}", json={"name": "feat/new"})
+        assert r.status_code == 200
+        names = git_repo.list_local_branches(repo)
+        assert "feat/new" in names and "feat/old" not in names
+        assert [b["name"] for b in (await c.get(f"/tickets/{t['id']}/branches")).json()][0] == "feat/new"
+
+
+async def test_checkout_branch(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        bid = await _branch(c, t, "feat/co")
+        branches = (await c.get(f"/tickets/{t['id']}/branches")).json()
+        assert branches[0]["is_current"] is False
+
+        # dirty working tree -> refused, HEAD stays on main
+        (repo_dir / "a.txt").write_text("changed")
+        r = await c.post(f"/tickets/{t['id']}/branches/{bid}/checkout")
+        assert r.status_code == 400 and "uncommitted" in r.json()["detail"]
+        assert _git(repo_dir, "branch", "--show-current").strip() == "main"
+
+        _git(repo_dir, "checkout", "--", "a.txt")
+        r = await c.post(f"/tickets/{t['id']}/branches/{bid}/checkout")
+        assert r.status_code == 200
+        assert _git(repo_dir, "branch", "--show-current").strip() == "feat/co"
+        assert (await c.get(f"/tickets/{t['id']}/branches")).json()[0]["is_current"] is True

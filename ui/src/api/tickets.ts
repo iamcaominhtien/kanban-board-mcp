@@ -271,6 +271,11 @@ export async function deleteBranch(
   return res.data;
 }
 
+export async function checkoutBranch(ticketId: string, branchId: string): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/branches/${branchId}/checkout`);
+  return res.data;
+}
+
 // Workspace
 export async function getWorkspaceSettings(): Promise<WorkspaceSettings> {
   const res = await client.get<WorkspaceSettings>('/workspace/settings');
@@ -694,6 +699,18 @@ export function useUpdateBranch() {
       branchId: string;
       data: Parameters<typeof updateBranch>[2];
     }) => updateBranch(ticketId, branchId, data),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useCheckoutBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticketId, branchId }: { ticketId: string; branchId: string }) =>
+      checkoutBranch(ticketId, branchId),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });

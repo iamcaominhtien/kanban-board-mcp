@@ -179,3 +179,50 @@ def list_worktrees(repo: Repo) -> list[dict]:
     if current:
         worktrees.append(current)
     return worktrees
+
+
+def is_merged(repo: Repo, name: str, base: str) -> bool:
+    """True if every commit of ``name`` is already reachable from ``base``."""
+    branch_ref = _resolve_ref(repo, name)
+    base_ref = _resolve_ref(repo, base)
+    try:
+        repo.git.merge_base("--is-ancestor", branch_ref, base_ref)
+        return True
+    except GitCommandError as exc:
+        if exc.status == 1:
+            return False
+        raise GitRepoError(f"Could not compare '{name}' with '{base}': {exc.stderr.strip()}") from exc
+
+
+def rename_branch(repo: Repo, old: str, new: str) -> None:
+    validate_branch_name(repo, new)
+    if branch_exists(repo, new):
+        raise GitRepoError(f"Branch '{new}' already exists")
+    try:
+        repo.git.branch("-m", old, new)
+    except GitCommandError as exc:
+        raise GitRepoError(f"Could not rename branch '{old}': {exc.stderr.strip()}") from exc
+
+
+def current_branch(repo: Repo) -> str | None:
+    """Name of the checked-out branch in the main working tree (None if detached)."""
+    try:
+        return repo.active_branch.name
+    except TypeError:
+        return None
+
+
+def checkout_branch(repo: Repo, name: str) -> None:
+    """Check out local branch ``name`` in the main working tree, never losing local changes."""
+    if not branch_exists(repo, name):
+        raise GitRepoError(f"Branch '{name}' does not exist in the repository")
+    if current_branch(repo) == name:
+        return
+    if repo.is_dirty(untracked_files=False):
+        raise GitRepoError(
+            "The working tree has uncommitted changes; commit or stash them before switching branches"
+        )
+    try:
+        repo.git.checkout(name)
+    except GitCommandError as exc:
+        raise GitRepoError(f"Could not check out '{name}': {exc.stderr.strip()}") from exc

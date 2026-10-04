@@ -157,10 +157,11 @@
 }
 
 .actionCol {
-  width: 65px;
+  width: 215px;
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
+  gap: 4px;
 }
 
 .actionBtn {

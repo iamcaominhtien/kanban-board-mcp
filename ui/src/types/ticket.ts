@@ -162,6 +162,8 @@ export interface TicketBranch {
   behindCount?: number;
   /** false when a git repo is linked but this branch doesn't exist in it */
   inRepo?: boolean;
+  /** true when this branch is checked out in the repo's main working tree */
+  isCurrent?: boolean;
   worktreePath?: string | null;
   createdAt: string;
   updatedAt: string;

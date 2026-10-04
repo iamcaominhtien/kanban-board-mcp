@@ -20,6 +20,7 @@ from uploads import (
 from services.tickets import (
     add_acceptance_criterion,
     add_branch,
+    checkout_branch,
     add_comment,
     add_test_case,
     add_ticket_link,
@@ -708,6 +709,18 @@ async def del_branch(
             delete_git_branch=delete_git_branch,
             force=force,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.post("/tickets/{ticket_id}/branches/{branch_id}/checkout", response_model=TicketRead)
+async def post_checkout_branch(ticket_id: str, branch_id: str, session: Session) -> TicketRead:
+    try:
+        ticket = await checkout_branch(session, ticket_id, branch_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:

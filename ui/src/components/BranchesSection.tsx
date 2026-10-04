@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TicketBranch, BranchStatus } from '../types';
-import { useTicketBranches, useUpdateBranch, useDeleteBranch, useTicket } from '../api/tickets';
+import { useTicketBranches, useUpdateBranch, useDeleteBranch, useCheckoutBranch, useTicket } from '../api/tickets';
 import { useProject } from '../api/projects';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
@@ -62,6 +62,9 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
   const { data: project } = useProject(ticket?.projectId ?? '');
   const updateBranchMutation = useUpdateBranch();
   const deleteBranchMutation = useDeleteBranch();
+  const checkoutMutation = useCheckoutBranch();
+  const [renameTarget, setRenameTarget] = useState<TicketBranch | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
   const toast = useToast();
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -97,6 +100,36 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         },
       }
     );
+  }
+
+  function handleCheckout(branch: TicketBranch) {
+    checkoutMutation.mutate(
+      { ticketId, branchId: branch.id },
+      {
+        onSuccess: () => toast.success(`Checked out ${branch.name}`),
+        onError: (err) => toast.error("Couldn't check out branch", extractError(err)),
+      },
+    );
+  }
+
+  async function submitRename() {
+    if (!renameTarget) return;
+    const next = renameDraft.trim();
+    if (!next || next === renameTarget.name) {
+      setRenameTarget(null);
+      return;
+    }
+    try {
+      await updateBranchMutation.mutateAsync({
+        ticketId,
+        branchId: renameTarget.id,
+        data: { name: next },
+      });
+      toast.success(`Renamed to ${next}`);
+      setRenameTarget(null);
+    } catch (err) {
+      toast.error("Couldn't rename branch", extractError(err));
+    }
   }
 
   function handleDeleteClick(branch: TicketBranch) {
@@ -256,7 +289,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
             <span style={{ flexGrow: 1 }}>Origin / Ahead-Behind / Worktree</span>
             <span style={{ width: 70, flexShrink: 0 }}>Created</span>
             <span style={{ width: 80, flexShrink: 0 }}>Status</span>
-            <span style={{ width: 90, flexShrink: 0 }} />
+            <span style={{ width: 215, flexShrink: 0 }} />
           </div>
 
           {allBranches.map((br) => {
@@ -266,6 +299,9 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                 <span className={styles.statusDot} style={{ background: cfg.dot }} />
                 <span className={styles.branchName} title={br.name}>
                   {br.name}
+                  {br.isCurrent && (
+                    <span className={styles.worktreeBadge} style={{ marginLeft: 6 }}>HEAD</span>
+                  )}
                 </span>
 
                 <div className={styles.branchMeta}>
@@ -296,12 +332,36 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                 </span>
 
                 <span className={styles.actionCol}>
+                  {!readOnly && hasRepo && br.inRepo && !br.isCurrent && br.status !== 'baseline' && (
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => handleCheckout(br)}
+                      disabled={checkoutMutation.isPending}
+                      title="Check out this branch in the repository"
+                    >
+                      Checkout
+                    </button>
+                  )}
+                  {!readOnly && br.status !== 'baseline' && (
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => {
+                        setRenameTarget(br);
+                        setRenameDraft(br.name);
+                      }}
+                      title="Rename branch"
+                    >
+                      Rename
+                    </button>
+                  )}
                   {!readOnly && br.status === 'open' && (
                     <button
                       type="button"
                       className={styles.actionBtn}
                       onClick={() => handleStatusChange(br, 'merged')}
-                      title="Merge branch"
+                      title={hasRepo ? 'Mark as merged (verified in git)' : 'Mark as merged'}
                     >
                       Merge
                     </button>
@@ -377,6 +437,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
               ) : confirmDialog.action === 'merge' ? (
                 <>
                   Mark branch <strong>{confirmDialog.branch.name}</strong> as merged?
+                  {hasRepo && confirmDialog.branch.inRepo !== false && ' Git must already contain all its commits in the origin branch.'}
                 </>
               ) : (
                 <>
@@ -501,6 +562,47 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {renameTarget && (
+        <div className={styles.dialogBackdrop} onClick={() => setRenameTarget(null)}>
+          <div
+            className={styles.dialogCard}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <h4 className={styles.dialogTitle}>Rename branch</h4>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitRename();
+              }}
+            >
+              <input
+                type="text"
+                className={styles.dialogInput}
+                style={{ width: '100%', boxSizing: 'border-box', margin: '8px 0 12px', padding: '6px 10px', fontFamily: 'monospace' }}
+                value={renameDraft}
+                onChange={(e) => setRenameDraft(e.target.value)}
+                autoFocus
+                aria-label="New branch name"
+              />
+              <div className={styles.dialogActions}>
+                <button
+                  type="submit"
+                  className={styles.dialogBtnPrimary}
+                  disabled={updateBranchMutation.isPending || !renameDraft.trim()}
+                >
+                  {updateBranchMutation.isPending ? 'Renaming...' : 'Rename'}
+                </button>
+                <button type="button" className={styles.dialogBtnCancel} onClick={() => setRenameTarget(null)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
