@@ -587,26 +587,14 @@ export function TicketModal({
               </>
             )}
 
-            {activeTab === 'branches' ? (
-              <button
-                type="button"
-                className={styles.idBtn}
-                onClick={() => setActiveTab('main')}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#2E6F40', fontWeight: 600 }}
-                title="Back to Details"
-              >
-                ← Back to {ticket.id}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={styles.idBtn}
-                onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
-                title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
-              >
-                {ticket.id}
-              </button>
-            )}
+            <button
+              type="button"
+              className={styles.idBtn}
+              onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
+              title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
+            >
+              {ticket.id}
+            </button>
           </div>
 
           {/* View switcher tabs */}
