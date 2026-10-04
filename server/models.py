@@ -83,6 +83,7 @@ class Ticket(SQLModel, table=True):
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
     branches: str = Field(default="[]")  # JSON: list of {id, name, status, branch_from, ...}
     workspace_retention_days: Optional[int] = Field(default=None)
+    repo_path: Optional[str] = Field(default=None)  # overrides Project.repo_path when set
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -241,6 +242,7 @@ class TicketUpdate(SQLModel):
     assignee: Optional[str] = None
     block_done_if_acs_incomplete: Optional[bool] = None
     block_done_if_tcs_incomplete: Optional[bool] = None
+    repo_path: Optional[str] = None  # empty/null clears the ticket override
 
 
 class TicketRead(SQLModel):
@@ -271,6 +273,7 @@ class TicketRead(SQLModel):
     links: list[Any] = []
     branches: list[Any] = []
     workspace_retention_days: Optional[int] = None
+    repo_path: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -304,6 +307,7 @@ class TicketRead(SQLModel):
             links=_parse_json_list(ticket.links),
             branches=_parse_json_list(getattr(ticket, "branches", "[]")),
             workspace_retention_days=getattr(ticket, "workspace_retention_days", None),
+            repo_path=getattr(ticket, "repo_path", None),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

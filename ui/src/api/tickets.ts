@@ -59,6 +59,7 @@ export async function updateTicket(
     assignee?: string | null;
     blockDoneIfAcsIncomplete?: boolean;
     blockDoneIfTcsIncomplete?: boolean;
+    repoPath?: string | null;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);

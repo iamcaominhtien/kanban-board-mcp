@@ -24,7 +24,7 @@ import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
 import { BranchesSection } from './BranchesSection';
 import { CreateBranchModal } from './CreateBranchModal';
-import { useProject, useUpdateProject } from '../api/projects';
+import { useProject } from '../api/projects';
 import { SubTicketsSection } from './SubTicketsSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
@@ -170,8 +170,23 @@ export function TicketModal({
 
   const { data: ticketBranches = [] } = useTicketBranches(ticket?.id ?? '');
   const { data: project } = useProject(ticket?.projectId ?? '');
-  const updateProjectMutation = useUpdateProject();
   const [repoPathDraft, setRepoPathDraft] = useState('');
+  const [isEditingRepo, setIsEditingRepo] = useState(false);
+  const effectiveRepoPath = ticket?.repoPath || project?.repoPath || null;
+
+  async function saveTicketRepo(path: string) {
+    if (!ticket) return;
+    try {
+      await updateTicketMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: { repoPath: path.trim() ? path : null },
+      });
+      setIsEditingRepo(false);
+      toast.success(path.trim() ? 'Ticket repository set' : 'Using project repository');
+    } catch (err) {
+      toast.error("Couldn't set repository", extractError(err));
+    }
+  }
 
   const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
   const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
@@ -964,41 +979,75 @@ export function TicketModal({
                     })}
                   </div>
 
-                  {!project?.repoPath && (
-                    <form
-                      className={styles.branchCreateInline}
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const path = repoPathDraft.trim();
-                        if (!path || !ticket) return;
-                        try {
-                          await updateProjectMutation.mutateAsync({ id: ticket.projectId, repo_path: path });
-                          setRepoPathDraft('');
-                          toast.success('Git repository linked', path);
-                        } catch (err) {
-                          toast.error("Couldn't link repository", extractError(err));
-                        }
-                      }}
-                    >
-                      <input
-                        type="text"
-                        className={styles.branchCreateInput}
-                        placeholder="Link git repo: /path/to/repo"
-                        value={repoPathDraft}
-                        onChange={(e) => setRepoPathDraft(e.target.value)}
-                      />
-                      <div className={styles.branchCreateActions}>
+                  <div className={styles.branchCreateInline}>
+                    <div style={{ fontSize: 11, color: '#9AA8A0', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <span>
+                        Git repo · {ticket.repoPath ? 'ticket override' : project?.repoPath ? 'from project' : 'not set'}
+                      </span>
+                      {!isEditingRepo && (
                         <button
-                          type="submit"
-                          className={styles.btnPri}
-                          style={{ padding: '4px 10px', fontSize: 11 }}
-                          disabled={updateProjectMutation.isPending || !repoPathDraft.trim()}
+                          type="button"
+                          className={styles.branchCreateCancel}
+                          onClick={() => {
+                            setRepoPathDraft(ticket.repoPath ?? project?.repoPath ?? '');
+                            setIsEditingRepo(true);
+                          }}
                         >
-                          Link repo
+                          {effectiveRepoPath ? 'Change' : 'Set'}
                         </button>
-                      </div>
-                    </form>
-                  )}
+                      )}
+                    </div>
+                    {isEditingRepo ? (
+                      <form
+                        style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          saveTicketRepo(repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft);
+                        }}
+                      >
+                        <input
+                          type="text"
+                          className={styles.branchCreateInput}
+                          placeholder="/path/to/repo"
+                          value={repoPathDraft}
+                          onChange={(e) => setRepoPathDraft(e.target.value)}
+                          autoFocus
+                        />
+                        <div className={styles.branchCreateActions}>
+                          {ticket.repoPath && (
+                            <button
+                              type="button"
+                              className={styles.btnSec}
+                              style={{ padding: '4px 8px', fontSize: 11 }}
+                              onClick={() => saveTicketRepo('')}
+                            >
+                              Use project default
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={styles.btnSec}
+                            style={{ padding: '4px 8px', fontSize: 11 }}
+                            onClick={() => setIsEditingRepo(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className={styles.btnPri}
+                            style={{ padding: '4px 10px', fontSize: 11 }}
+                            disabled={updateTicketMutation.isPending || !repoPathDraft.trim()}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <span className={styles.branchRowName} title={effectiveRepoPath ?? ''} style={{ fontSize: 11.5 }}>
+                        {effectiveRepoPath ?? 'Branches are only stored on the board'}
+                      </span>
+                    )}
+                  </div>
 
                   <div className={styles.branchPopoverFooter}>
                     <button
@@ -1252,7 +1301,7 @@ export function TicketModal({
           onClose={() => setIsCreateBranchModalOpen(false)}
           ticketId={ticket.id}
           branches={branchesList}
-          initialBranchFrom={activeBranchName || 'main'}
+          initialBranchFrom={activeBranch?.inRepo === false ? 'main' : (activeBranchName || 'main')}
           onSuccess={(newBranch) => {
             setSelectedBranchName(newBranch);
           }}

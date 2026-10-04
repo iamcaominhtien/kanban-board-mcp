@@ -2,8 +2,62 @@ import { useRef, useState, useEffect } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
+import { useProjects, useUpdateProject } from '../api/projects';
+import { extractError } from '../api/extractError';
 import type { Theme } from '../types';
 import styles from './SettingsPanel.module.css';
+
+function ProjectRepoRow({ id, name, repoPath }: { id: string; name: string; repoPath?: string | null }) {
+  const updateProject = useUpdateProject();
+  const [draft, setDraft] = useState(repoPath ?? '');
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(repoPath ?? '');
+  }, [repoPath]);
+
+  async function save(path: string) {
+    setStatus(null);
+    try {
+      await updateProject.mutateAsync({ id, repo_path: path });
+      setStatus(path ? '✓ Repository linked' : '✓ Repository unlinked');
+    } catch (err) {
+      setStatus(`✗ ${extractError(err)}`);
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span className={styles.hint}>{name}</span>
+      <div className={styles.inputRow}>
+        <input
+          className={styles.input}
+          type="text"
+          placeholder="/path/to/git/repo"
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setStatus(null);
+          }}
+        />
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnPrimary}`}
+          disabled={updateProject.isPending || !draft.trim() || draft.trim() === (repoPath ?? '')}
+          onClick={() => save(draft.trim())}
+        >
+          Save
+        </button>
+        {repoPath && (
+          <button type="button" className={styles.btn} disabled={updateProject.isPending} onClick={() => save('')}>
+            Unlink
+          </button>
+        )}
+      </div>
+      {status && <span className={status.startsWith('✓') ? styles.statusOk : styles.statusErr}>{status}</span>}
+    </div>
+  );
+}
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -14,6 +68,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelProps) {
   const { data: settings, isLoading } = useSettings();
   const setDataPath = useSetDataPath();
+  const { data: projects = [] } = useProjects();
   const [folderInput, setFolderInput] = useState('');
   const [folderStatus, setFolderStatus] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -181,6 +236,19 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
                 {folderStatus}
               </span>
             )}
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* Git Repositories Section (per project; tickets can override) */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Git Repositories</span>
+            <div className={styles.hint}>
+              Branches created on a ticket are created in this repository. A ticket can override it from its branch menu.
+            </div>
+            {projects.map((p) => (
+              <ProjectRepoRow key={p.id} id={p.id} name={p.name} repoPath={p.repoPath} />
+            ))}
           </div>
 
           <div className={styles.divider} />

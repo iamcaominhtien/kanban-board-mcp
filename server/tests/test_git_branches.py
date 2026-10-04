@@ -117,3 +117,43 @@ async def test_branches_without_repo_stay_db_only(client: httpx.AsyncClient):
         r = await c.post(f"/tickets/{t['id']}/branches", json={"name": "feature/x", "ahead_count": 3})
         assert r.status_code == 201
         assert r.json()["branches"][0]["ahead_count"] == 3
+
+
+async def test_ticket_repo_overrides_project_repo(client: httpx.AsyncClient, repo_dir, tmp_path_factory):
+    other = tmp_path_factory.mktemp("other")
+    for args in (["init", "-b", "main"], ["config", "user.email", "t@e.com"], ["config", "user.name", "T"]):
+        subprocess.run(["git", *args], cwd=other, check=True, capture_output=True)
+    (other / "z.txt").write_text("z")
+    subprocess.run(["git", "add", "."], cwd=other, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=other, check=True, capture_output=True)
+
+    async with client as c:
+        p = await _project_with_repo(c, repo_dir)
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        assert t["repo_path"] is None  # inherits from project
+
+        # Invalid override is rejected
+        bad = await c.patch(f"/tickets/{t['id']}", json={"repo_path": str(repo_dir / "nope")})
+        assert bad.status_code in (400, 422)
+
+        r = await c.patch(f"/tickets/{t['id']}", json={"repo_path": str(other)})
+        assert r.status_code == 200 and r.json()["repo_path"] == str(other.resolve())
+        await c.post(f"/tickets/{t['id']}/branches", json={"name": "only-in-other"})
+        assert "only-in-other" in git_repo.list_local_branches(git_repo.open_repo(str(other)))
+        assert "only-in-other" not in git_repo.list_local_branches(git_repo.open_repo(str(repo_dir)))
+
+        # Clearing the override falls back to the project repo
+        r = await c.patch(f"/tickets/{t['id']}", json={"repo_path": ""})
+        assert r.json()["repo_path"] is None
+        await c.post(f"/tickets/{t['id']}/branches", json={"name": "in-project"})
+        assert "in-project" in git_repo.list_local_branches(git_repo.open_repo(str(repo_dir)))
+
+
+async def test_branch_missing_from_repo_is_flagged(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        p = await _project_with_repo(c, repo_dir)
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        await c.post(f"/tickets/{t['id']}/branches", json={"name": "feature/x"})
+        assert (await c.get(f"/tickets/{t['id']}/branches")).json()[0]["in_repo"] is True
+        subprocess.run(["git", "branch", "-D", "feature/x"], cwd=repo_dir, check=True, capture_output=True)
+        assert (await c.get(f"/tickets/{t['id']}/branches")).json()[0]["in_repo"] is False
