@@ -1201,3 +1201,54 @@ async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str)
         lambda: git_repo.checkout_branch(git_repo.open_repo(repo_path), target["name"])
     )
     return ticket
+
+
+async def get_branch_graph(session: AsyncSession, ticket_id: str, limit: int = 80) -> dict | None:
+    """Real commit graph for the ticket's branches; ``linked`` is False without a repo."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    repo_path = await _project_repo_path(session, ticket)
+    if not repo_path:
+        return {"linked": False, "commits": [], "lane_count": 1, "truncated": False}
+    branches = _loads(getattr(ticket, "branches", "[]"))
+    limit = max(1, min(limit, git_repo.HARD_LIMIT))
+
+    def _build() -> dict:
+        repo = git_repo.open_repo(repo_path)
+        names = [b["name"] for b in branches if b.get("status") != "baseline"]
+        present = [n for n in names if git_repo.branch_exists(repo, n)]
+        bases: list[str] = []
+        for b in branches:
+            base = b.get("branch_from") or ""
+            if base and base not in bases and base not in present:
+                try:
+                    git_repo._resolve_ref(repo, base)
+                    bases.append(base)
+                except git_repo.GitRepoError:
+                    pass
+        if not bases:
+            for candidate in ("main", "master", git_repo.current_branch(repo)):
+                if candidate and git_repo.branch_exists(repo, candidate):
+                    bases.append(candidate)
+                    break
+        if not bases:
+            return {"linked": True, "commits": [], "lane_count": 1, "truncated": False}
+        graph = git_repo.commit_graph(repo, bases, present, limit)
+        graph["linked"] = True
+        graph["branches"] = present
+        return graph
+
+    return await asyncio.to_thread(_build)
+
+
+async def get_commit_detail(session: AsyncSession, ticket_id: str, rev: str) -> dict | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    repo_path = await _project_repo_path(session, ticket)
+    if not repo_path:
+        raise ValueError("Link a git repository to this project or ticket first")
+    return await asyncio.to_thread(
+        lambda: git_repo.commit_detail(git_repo.open_repo(repo_path), rev)
+    )

@@ -250,3 +250,57 @@ export interface IdeaTicket {
   // Feature 7 — Problem Statement
   problemStatement?: string;
 }
+
+export interface GraphRef {
+  name: string;
+  type: 'head' | 'branch' | 'remote' | 'tag';
+}
+
+export interface GraphCommit {
+  hash: string;
+  short: string;
+  parents: string[];
+  author: string;
+  date: string;
+  subject: string;
+  refs: GraphRef[];
+  lane: number;
+  ticketBranches: string[];
+}
+
+export interface BranchGraphData {
+  linked: boolean;
+  base?: string | null;
+  current?: string | null;
+  branches?: string[];
+  commits: GraphCommit[];
+  laneCount: number;
+  truncated: boolean;
+}
+
+export interface CommitFileChange {
+  status: 'A' | 'M' | 'D' | 'R' | 'C' | 'T' | string;
+  path: string;
+  oldPath?: string | null;
+  additions: number;
+  deletions: number;
+  binary: boolean;
+}
+
+export interface CommitDetail {
+  hash: string;
+  short: string;
+  parents: string[];
+  author: string;
+  authorEmail: string;
+  date: string;
+  committer: string;
+  committerDate: string;
+  subject: string;
+  body: string;
+  files: CommitFileChange[];
+  fileCount: number;
+  additions: number;
+  deletions: number;
+  filesTruncated: boolean;
+}

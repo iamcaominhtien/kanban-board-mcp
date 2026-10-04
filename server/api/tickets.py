@@ -28,6 +28,8 @@ from services.tickets import (
     create_ticket,
     delete_acceptance_criterion,
     delete_branch,
+    get_branch_graph,
+    get_commit_detail,
     delete_comment,
     delete_test_case,
     delete_ticket,
@@ -626,6 +628,28 @@ class BranchUpdateBody(BaseModel):
     behind_count: int | None = None
     remove_worktree: bool = False
     worktree_path: str | None = None
+
+
+@router.get("/tickets/{ticket_id}/graph")
+async def get_ticket_graph(ticket_id: str, session: Session, limit: int = 80) -> dict:
+    try:
+        graph = await get_branch_graph(session, ticket_id, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if graph is None:
+        _404()
+    return graph
+
+
+@router.get("/tickets/{ticket_id}/commits/{rev}")
+async def get_ticket_commit(ticket_id: str, rev: str, session: Session) -> dict:
+    try:
+        detail = await get_commit_detail(session, ticket_id, rev)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if detail is None:
+        _404()
+    return detail
 
 
 @router.get("/tickets/{ticket_id}/branches")

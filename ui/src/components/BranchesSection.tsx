@@ -5,6 +5,7 @@ import { useProject } from '../api/projects';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
 import { CreateBranchModal } from './CreateBranchModal';
+import { BranchGraph } from './BranchGraph';
 import styles from './BranchesSection.module.css';
 
 interface BranchesSectionProps {
@@ -216,69 +217,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
       </div>
 
       {/* Graph Tab */}
-      {activeTab === 'graph' && (
-        <div className={styles.graphCard}>
-          <svg width="100%" height="240" viewBox="0 0 920 240" style={{ overflow: 'visible' }}>
-            {/* Lane Labels */}
-            <text x="10" y="84" fontFamily="JetBrains Mono, monospace" fontSize="11" fill="#2E6F40" fontWeight="600">
-              main (baseline)
-            </text>
-            <text x="10" y="164" fontFamily="JetBrains Mono, monospace" fontSize="11" fill="#6D5DD3" fontWeight="600">
-              feature branches
-            </text>
-
-            {/* Main Baseline Track */}
-            <path d="M160 80 L840 80" stroke="#2E6F40" strokeWidth="3" fill="none" strokeLinecap="round" />
-
-            {/* Fork to Feature branch */}
-            <path
-              d="M300 80 C340 80 340 160 380 160 L680 160"
-              stroke="#6D5DD3"
-              strokeWidth="2.5"
-              fill="none"
-              strokeLinecap="round"
-            />
-
-            {/* Merge back line */}
-            <path
-              d="M680 160 C720 160 720 80 760 80"
-              stroke="#2F6FB0"
-              strokeWidth="2.5"
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray="4 4"
-            />
-
-            {/* Main Baseline Nodes */}
-            <circle cx="200" cy="80" r="7" fill="#2E6F40" />
-            <text x="200" y="106" fontFamily="JetBrains Mono, monospace" fontSize="10.5" fill="#5B6B60" textAnchor="middle">
-              {ticketId}
-            </text>
-
-            <circle cx="760" cy="80" r="8" fill="#2E6F40" />
-            <path d="M756 80 L759 83 L765 76" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <text x="760" y="106" fontFamily="JetBrains Mono, monospace" fontSize="10.5" fill="#5B6B60" textAnchor="middle">
-              merge
-            </text>
-
-            <circle cx="840" cy="80" r="7" fill="#2E6F40" />
-            <text x="840" y="106" fontFamily="JetBrains Mono, monospace" fontSize="10.5" fill="#1E2A22" fontWeight="600" textAnchor="middle">
-              HEAD
-            </text>
-
-            {/* Feature Branch Nodes */}
-            <circle cx="480" cy="160" r="6" fill="#6D5DD3" stroke="#1E2A22" strokeWidth="1.5" />
-            <text x="480" y="186" fontFamily="JetBrains Mono, monospace" fontSize="10.5" fill="#1E2A22" fontWeight="600" textAnchor="middle">
-              {ticketId} work
-            </text>
-
-            <circle cx="680" cy="160" r="7" fill="none" stroke="#6D5DD3" strokeWidth="2" />
-            <text x="680" y="186" fontFamily="JetBrains Mono, monospace" fontSize="10.5" fill="#6D5DD3" fontWeight="600" textAnchor="middle">
-              open branch
-            </text>
-          </svg>
-        </div>
-      )}
+      {activeTab === 'graph' && <BranchGraph ticketId={ticketId} />}
 
       {/* List Tab */}
       {activeTab === 'list' && (
