@@ -142,6 +142,12 @@ async def test_upload_any_file_and_serve_it_as_a_download(client, tmp_path):
         assert "attachment" in got.headers["content-disposition"]
         assert got.headers["x-content-type-options"] == "nosniff"
 
+        # ?name= offers the original file name instead of the stored one
+        named = await c.get(up["url"], params={"name": "../trace log.txt"})
+        assert "trace%20log.txt" in named.headers["content-disposition"]  # RFC 5987 form
+        bad = await c.get(up["url"], params={"name": "a\r\nSet-Cookie: x=1"})
+        assert "\n" not in bad.headers["content-disposition"] and "Set-Cookie" not in bad.headers
+
         # active content is never rendered inline in the app's origin
         r = await c.post("/uploads/files", files={"file": ("../evil.html", b"<script>alert(1)</script>", "text/html")})
         assert r.status_code == 201 and ".." not in r.json()["url"]

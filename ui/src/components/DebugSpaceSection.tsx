@@ -604,7 +604,7 @@ export function DebugSpaceSection({
                             )
                           )}
                           {attachments.map((att: DebugAttachment) => {
-                            const href = uploadUrl(att.url);
+                            const href = uploadUrl(att.url, att.name);
                             const inner = (
                               <>
                                 <span className={styles.tcFileIcon} style={{ background: '#F1F1F1' }}>

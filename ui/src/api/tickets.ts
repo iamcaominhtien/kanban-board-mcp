@@ -95,8 +95,11 @@ export async function uploadAttachment(file: File): Promise<DebugAttachment> {
 }
 
 /** Absolute URL for a stored upload (the UI may be served from another origin). */
-export function uploadUrl(url: string): string {
-  return url.startsWith('/uploads/') ? `${resolveOrigin()}${url}` : '';
+export function uploadUrl(url: string, downloadName?: string): string {
+  if (!url.startsWith('/uploads/')) return '';
+  const base = `${resolveOrigin()}${url}`;
+  // ?name= makes the server offer the original file name (the stored one has a random suffix)
+  return downloadName ? `${base}?name=${encodeURIComponent(downloadName)}` : base;
 }
 
 export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {

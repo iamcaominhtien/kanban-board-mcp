@@ -98,7 +98,7 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/uploads/{file_path:path}")
-async def serve_upload(file_path: str):
+async def serve_upload(file_path: str, name: str | None = None):
     resolved = resolve_upload_path(file_path)
     if resolved is None:
         raise HTTPException(status_code=400, detail="Invalid path")
@@ -109,10 +109,13 @@ async def serve_upload(file_path: str):
         return FileResponse(resolved, headers=headers)
     # Anything that is not a known image is only ever offered as a download, so an
     # uploaded .html/.svg can never run script in the app's origin.
+    # ?name= lets the page offer the original file name; the stored name carries a random suffix
+    download_name = Path((name or "").replace("\\", "/")).name
+    download_name = "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
     return FileResponse(
         resolved,
         media_type="application/octet-stream",
-        filename=resolved.name,
+        filename=download_name,
         headers=headers,
     )
 

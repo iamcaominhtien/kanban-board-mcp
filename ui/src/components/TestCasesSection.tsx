@@ -283,7 +283,7 @@ function TestCaseRowItem({
             <span className={styles.fieldLabel}>Test data</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {(tc.testDataFiles ?? []).map((file, i) => {
-                const href = uploadUrl(file.url);
+                const href = uploadUrl(file.url, file.name);
                 const chip = (
                   <>
                     <div className={styles.fileIcon} style={{ background: '#F1F8F3' }}>
