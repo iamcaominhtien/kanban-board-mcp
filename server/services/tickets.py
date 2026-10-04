@@ -943,6 +943,11 @@ async def add_branch(
     branches = _loads(getattr(ticket, "branches", "[]"))
     repo_path = await _project_repo_path(session, ticket)
     resolved_worktree_path: str | None = None
+    wants_worktree = create_worktree or bool(worktree_path and worktree_path.strip())
+    if wants_worktree and not repo_path:
+        raise ValueError(
+            "A git worktree needs a linked repository: set a repo path on the project or ticket first"
+        )
     if repo_path:
         # Real git repo linked: create the branch there and use its true state.
         def _create() -> git_repo.BranchInfo:
@@ -972,9 +977,14 @@ async def add_branch(
             def _make_wt() -> str:
                 return git_repo.add_worktree(git_repo.open_repo(repo_path), target_wt, name)
 
-            resolved_worktree_path = await asyncio.to_thread(_make_wt)
-    elif worktree_path and worktree_path.strip():
-        resolved_worktree_path = worktree_path.strip()
+            try:
+                resolved_worktree_path = await asyncio.to_thread(_make_wt)
+            except Exception:
+                # Don't leave an orphan branch behind when the worktree can't be made
+                await asyncio.to_thread(
+                    git_repo.delete_branch, git_repo.open_repo(repo_path), name, True
+                )
+                raise
 
     now_iso = datetime.now(UTC).isoformat()
     new_branch = {
@@ -1063,12 +1073,10 @@ async def update_branch(
                 repo_path = await _project_repo_path(session, ticket)
                 if repo_path:
                     wt = br["worktree_path"]
-                    def _rm():
-                        try:
-                            git_repo.remove_worktree(git_repo.open_repo(repo_path), wt, force=True)
-                        except Exception:
-                            pass
-                    await asyncio.to_thread(_rm)
+                    # Errors propagate: the board must not claim the worktree is gone
+                    await asyncio.to_thread(
+                        git_repo.remove_worktree, git_repo.open_repo(repo_path), wt, True
+                    )
                 br["worktree_path"] = None
                 br["worktreePath"] = None
             elif worktree_path is not None:
@@ -1088,23 +1096,29 @@ async def update_branch(
 
 
 async def delete_branch(
-    session: AsyncSession, ticket_id: str, branch_id: str, remove_worktree: bool = False
+    session: AsyncSession,
+    ticket_id: str,
+    branch_id: str,
+    remove_worktree: bool = False,
+    delete_git_branch: bool = False,
+    force: bool = False,
 ) -> Ticket | None:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     branches = _loads(getattr(ticket, "branches", "[]"))
     target = next((b for b in branches if b.get("id") == branch_id), None)
-    if remove_worktree and target and target.get("worktree_path"):
-        repo_path = await _project_repo_path(session, ticket)
-        if repo_path:
-            wt = target["worktree_path"]
-            def _rm():
-                try:
-                    git_repo.remove_worktree(git_repo.open_repo(repo_path), wt, force=True)
-                except Exception:
-                    pass
-            await asyncio.to_thread(_rm)
+    repo_path = await _project_repo_path(session, ticket)
+    if repo_path and target:
+        # Git first: if any step fails, raise before the board record is touched.
+        def _git_cleanup() -> None:
+            repo = git_repo.open_repo(repo_path)
+            if remove_worktree and target.get("worktree_path"):
+                git_repo.remove_worktree(repo, target["worktree_path"], True)
+            if delete_git_branch and target.get("status") != "baseline":
+                git_repo.delete_branch(repo, target["name"], force)
+
+        await asyncio.to_thread(_git_cleanup)
 
     ticket.branches = _dumps([br for br in branches if br.get("id") != branch_id])
     ticket.updated_at = datetime.now(UTC).isoformat()

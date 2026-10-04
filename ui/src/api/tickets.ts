@@ -261,11 +261,13 @@ export async function updateBranch(
 export async function deleteBranch(
   ticketId: string,
   branchId: string,
-  removeWorktree?: boolean,
+  opts: { removeWorktree?: boolean; deleteGitBranch?: boolean; force?: boolean } = {},
 ): Promise<Ticket> {
-  const res = await client.delete<Ticket>(`/tickets/${ticketId}/branches/${branchId}`, {
-    params: removeWorktree ? { remove_worktree: true } : undefined,
-  });
+  const params: Record<string, boolean> = {};
+  if (opts.removeWorktree) params.remove_worktree = true;
+  if (opts.deleteGitBranch) params.delete_git_branch = true;
+  if (opts.force) params.force = true;
+  const res = await client.delete<Ticket>(`/tickets/${ticketId}/branches/${branchId}`, { params });
   return res.data;
 }
 
@@ -705,12 +707,14 @@ export function useDeleteBranch() {
     mutationFn: ({
       ticketId,
       branchId,
-      removeWorktree,
+      ...opts
     }: {
       ticketId: string;
       branchId: string;
       removeWorktree?: boolean;
-    }) => deleteBranch(ticketId, branchId, removeWorktree),
+      deleteGitBranch?: boolean;
+      force?: boolean;
+    }) => deleteBranch(ticketId, branchId, opts),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });

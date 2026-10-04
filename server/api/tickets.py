@@ -666,21 +666,24 @@ async def post_branch(
 async def patch_branch(
     ticket_id: str, branch_id: str, body: BranchUpdateBody, session: Session
 ) -> TicketRead:
-    ticket = await update_branch(
-        session,
-        ticket_id,
-        branch_id,
-        name=body.name,
-        status=body.status,
-        branch_from=body.branch_from,
-        pr_url=body.pr_url,
-        commit_hash=body.commit_hash,
-        linked_ticket_id=body.linked_ticket_id,
-        ahead_count=body.ahead_count,
-        behind_count=body.behind_count,
-        remove_worktree=body.remove_worktree,
-        worktree_path=body.worktree_path,
-    )
+    try:
+        ticket = await update_branch(
+            session,
+            ticket_id,
+            branch_id,
+            name=body.name,
+            status=body.status,
+            branch_from=body.branch_from,
+            pr_url=body.pr_url,
+            commit_hash=body.commit_hash,
+            linked_ticket_id=body.linked_ticket_id,
+            ahead_count=body.ahead_count,
+            behind_count=body.behind_count,
+            remove_worktree=body.remove_worktree,
+            worktree_path=body.worktree_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -689,9 +692,24 @@ async def patch_branch(
 
 @router.delete("/tickets/{ticket_id}/branches/{branch_id}", response_model=TicketRead)
 async def del_branch(
-    ticket_id: str, branch_id: str, session: Session, remove_worktree: bool = False
+    ticket_id: str,
+    branch_id: str,
+    session: Session,
+    remove_worktree: bool = False,
+    delete_git_branch: bool = False,
+    force: bool = False,
 ) -> TicketRead:
-    ticket = await delete_branch(session, ticket_id, branch_id, remove_worktree=remove_worktree)
+    try:
+        ticket = await delete_branch(
+            session,
+            ticket_id,
+            branch_id,
+            remove_worktree=remove_worktree,
+            delete_git_branch=delete_git_branch,
+            force=force,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

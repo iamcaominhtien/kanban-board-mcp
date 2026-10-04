@@ -124,7 +124,11 @@ def add_worktree(repo: Repo, path: str, branch: str) -> str:
 
 
 def remove_worktree(repo: Repo, path: str, force: bool = False) -> None:
-    """Remove a git worktree at ``path``."""
+    """Remove the git worktree at ``path``.
+
+    A worktree that is already gone from disk is not an error (we just prune
+    the stale registration); any other failure is raised so it is not hidden.
+    """
     resolved = os.path.realpath(os.path.expanduser(path.strip()))
     args = ["remove"]
     if force:
@@ -132,12 +136,27 @@ def remove_worktree(repo: Repo, path: str, force: bool = False) -> None:
     args.append(resolved)
     try:
         repo.git.worktree(*args)
-    except GitCommandError:
-        pass
+    except GitCommandError as exc:
+        if os.path.exists(resolved):
+            raise GitRepoError(
+                f"Could not remove worktree '{resolved}': {exc.stderr.strip()}"
+            ) from exc
     try:
         repo.git.worktree("prune")
     except GitCommandError:
         pass
+
+
+def delete_branch(repo: Repo, name: str, force: bool = False) -> None:
+    """Delete local branch ``name``. Without ``force`` git refuses unmerged branches."""
+    if not branch_exists(repo, name):
+        return  # already gone, nothing to delete
+    try:
+        repo.git.branch("-D" if force else "-d", name)
+    except GitCommandError as exc:
+        raise GitRepoError(
+            f"Could not delete git branch '{name}': {exc.stderr.strip()}"
+        ) from exc
 
 
 def list_worktrees(repo: Repo) -> list[dict]:

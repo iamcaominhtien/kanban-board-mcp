@@ -200,3 +200,92 @@ async def test_create_branch_with_worktree(client: httpx.AsyncClient, repo_dir, 
         )
         assert del_r.status_code == 200
         assert not (wt_base / "feature-worktree-test").exists()
+
+
+def _git(cwd, *args):
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout
+
+
+async def _ticket_with_repo(c, repo_dir):
+    p = await _project_with_repo(c, repo_dir)
+    return (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+
+
+async def test_failed_worktree_rolls_back_branch(client: httpx.AsyncClient, repo_dir, tmp_path):
+    taken = tmp_path / "taken"
+    taken.mkdir()
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        r = await c.post(
+            f"/tickets/{t['id']}/branches",
+            json={"name": "feat/b", "create_worktree": True, "worktree_path": str(taken)},
+        )
+        assert r.status_code == 400
+        assert "feat/b" not in git_repo.list_local_branches(git_repo.open_repo(str(repo_dir)))
+        # retrying with a free path now works (no orphan branch blocking the name)
+        ok = await c.post(
+            f"/tickets/{t['id']}/branches",
+            json={"name": "feat/b", "create_worktree": True, "worktree_path": str(tmp_path / "free")},
+        )
+        assert ok.status_code == 201 and (tmp_path / "free").is_dir()
+
+
+async def test_worktree_requires_linked_repo(client: httpx.AsyncClient):
+    async with client as c:
+        p = (await c.post("/projects", json={"name": "G", "prefix": "GIT", "color": "#123456"})).json()
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        r = await c.post(
+            f"/tickets/{t['id']}/branches",
+            json={"name": "feat/c", "create_worktree": True, "worktree_path": "/tmp/nowhere-xyz"},
+        )
+        assert r.status_code == 400
+        assert (await c.get(f"/tickets/{t['id']}/branches")).json() == []
+
+
+async def test_worktree_removal_failure_is_not_hidden(client: httpx.AsyncClient, repo_dir, tmp_path):
+    wt = tmp_path / "wt"
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        r = await c.post(
+            f"/tickets/{t['id']}/branches",
+            json={"name": "feat/d", "create_worktree": True, "worktree_path": str(wt)},
+        )
+        bid = r.json()["branches"][0]["id"]
+        # make the worktree impossible to remove: a locked worktree refuses even --force once
+        _git(repo_dir, "worktree", "lock", str(wt))
+        res = await c.patch(f"/tickets/{t['id']}/branches/{bid}", json={"status": "merged", "remove_worktree": True})
+        assert res.status_code == 400
+        br = (await c.get(f"/tickets/{t['id']}/branches")).json()[0]
+        assert br["worktree_path"] and br["status"] == "open"  # board unchanged
+        _git(repo_dir, "worktree", "unlock", str(wt))
+
+
+async def test_delete_branch_can_also_delete_git_branch(client: httpx.AsyncClient, repo_dir, tmp_path):
+    repo = git_repo.open_repo(str(repo_dir))
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        r = await c.post(f"/tickets/{t['id']}/branches", json={"name": "feat/e"})
+        bid = r.json()["branches"][0]["id"]
+        # default: board record removed, git branch kept
+        await c.post(f"/tickets/{t['id']}/branches", json={"name": "feat/keep"})
+        keep_id = [b for b in (await c.get(f"/tickets/{t['id']}/branches")).json() if b["name"] == "feat/keep"][0]["id"]
+        assert (await c.delete(f"/tickets/{t['id']}/branches/{keep_id}")).status_code == 200
+        assert "feat/keep" in git_repo.list_local_branches(repo)
+
+        # unmerged work: safe delete refuses and leaves the board record in place
+        _git(repo_dir, "checkout", "-q", "feat/e")
+        (repo_dir / "n.txt").write_text("n")
+        _git(repo_dir, "add", ".")
+        _git(repo_dir, "commit", "-qm", "unmerged")
+        _git(repo_dir, "checkout", "-q", "main")
+        res = await c.delete(f"/tickets/{t['id']}/branches/{bid}", params={"delete_git_branch": True})
+        assert res.status_code == 400 and "not fully merged" in res.json()["detail"]
+        assert len((await c.get(f"/tickets/{t['id']}/branches")).json()) == 1
+        assert "feat/e" in git_repo.list_local_branches(repo)
+
+        # force removes both
+        res = await c.delete(
+            f"/tickets/{t['id']}/branches/{bid}", params={"delete_git_branch": True, "force": True}
+        )
+        assert res.status_code == 200
+        assert "feat/e" not in git_repo.list_local_branches(repo)

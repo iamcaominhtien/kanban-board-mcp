@@ -69,6 +69,9 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
     branch: TicketBranch;
   } | null>(null);
   const [removeWorktreeChecked, setRemoveWorktreeChecked] = useState(true);
+  const [deleteGitBranchChecked, setDeleteGitBranchChecked] = useState(false);
+  const [forceDeleteChecked, setForceDeleteChecked] = useState(false);
+  const hasRepo = Boolean(ticket?.repoPath || project?.repoPath);
 
   function handleStatusChange(branch: TicketBranch, nextStatus: BranchStatus) {
     if (branch.worktreePath) {
@@ -97,12 +100,15 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
   }
 
   function handleDeleteClick(branch: TicketBranch) {
-    if (branch.worktreePath) {
+    // With a linked repo the dialog also offers to delete the real git branch
+    if (branch.worktreePath || (hasRepo && branch.inRepo !== false && branch.status !== 'baseline')) {
       setConfirmDialog({
         action: 'delete',
         branch,
       });
       setRemoveWorktreeChecked(true);
+      setDeleteGitBranchChecked(false);
+      setForceDeleteChecked(false);
       return;
     }
     if (window.confirm(`Delete branch "${branch.name}"?`)) {
@@ -398,6 +404,39 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
               </label>
             )}
 
+            {confirmDialog.action === 'delete' && hasRepo && confirmDialog.branch.inRepo !== false && confirmDialog.branch.status !== 'baseline' && (
+              <>
+                <label className={styles.dialogCheckboxLabel}>
+                  <input
+                    type="checkbox"
+                    className={styles.dialogCheckbox}
+                    checked={deleteGitBranchChecked}
+                    onChange={(e) => setDeleteGitBranchChecked(e.target.checked)}
+                  />
+                  <div className={styles.dialogCheckboxContent}>
+                    <span className={styles.dialogCheckboxTitle}>Also delete the git branch</span>
+                    <code className={styles.dialogWorktreePath}>{confirmDialog.branch.name}</code>
+                  </div>
+                </label>
+                {deleteGitBranchChecked && (
+                  <label className={styles.dialogCheckboxLabel}>
+                    <input
+                      type="checkbox"
+                      className={styles.dialogCheckbox}
+                      checked={forceDeleteChecked}
+                      onChange={(e) => setForceDeleteChecked(e.target.checked)}
+                    />
+                    <div className={styles.dialogCheckboxContent}>
+                      <span className={styles.dialogCheckboxTitle}>Force delete (discard unmerged commits)</span>
+                      <span className={styles.dialogWorktreePath}>
+                        Without this, git refuses to delete a branch that is not fully merged.
+                      </span>
+                    </div>
+                  </label>
+                )}
+              </>
+            )}
+
             <div className={styles.dialogActions}>
               <button
                 type="button"
@@ -415,9 +454,15 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                       await deleteBranchMutation.mutateAsync({
                         ticketId,
                         branchId: confirmDialog.branch.id,
-                        removeWorktree: removeWorktreeChecked,
+                        removeWorktree: Boolean(confirmDialog.branch.worktreePath) && removeWorktreeChecked,
+                        deleteGitBranch: deleteGitBranchChecked,
+                        force: deleteGitBranchChecked && forceDeleteChecked,
                       });
-                      toast.success(`Deleted branch ${confirmDialog.branch.name}`);
+                      toast.success(
+                        deleteGitBranchChecked
+                          ? `Deleted branch ${confirmDialog.branch.name} and its git branch`
+                          : `Deleted branch ${confirmDialog.branch.name}`,
+                      );
                     } else {
                       const nextStatus =
                         confirmDialog.action === 'merge' ? 'merged' : 'archived';
