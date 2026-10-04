@@ -10,7 +10,7 @@ interface ActivitySectionProps {
   isLoading?: boolean;
 }
 
-type FilterGroup = 'all' | 'status' | 'assignee' | 'priority' | 'other';
+type FilterGroup = 'all' | 'status' | 'assignee' | 'priority' | 'comments' | 'branch' | 'other';
 
 interface DiffRow {
   type: 'added' | 'removed' | 'normal';
@@ -250,7 +250,49 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
   startDate: 'Start date',
   estimate: 'Estimate',
   type: 'Type',
+  created: 'Created',
+  comment: 'Comment',
+  acceptance_criterion: 'Acceptance criterion',
+  work_log: 'Work log',
+  test_case: 'Test case',
+  test_case_status: 'Test case',
+  blocks: 'Blocks',
+  blocked_by: 'Blocked by',
+  link: 'Link',
+  parent_id: 'Parent',
+  wont_do_reason: "Won't do reason",
+  repo_path: 'Repository',
+  workspace_retention: 'Workspace retention',
+  branch_status: 'Branch status',
+  branch_checkout: 'Checkout',
+  branch_worktree: 'Worktree',
 };
+
+const COMMENT_FIELDS = new Set(['comment', 'work_log']);
+const isBranchField = (field: string) => field === 'branch' || field.startsWith('branch_');
+
+/** Fields whose entries read as "added / removed" rather than "old → new". */
+const EVENT_FIELDS = new Set([
+  'comment',
+  'work_log',
+  'acceptance_criterion',
+  'test_case',
+  'blocks',
+  'blocked_by',
+  'link',
+  'branch',
+  'branch_checkout',
+  'branch_worktree',
+]);
+
+const MONO_FIELDS = new Set(['branch', 'branch_status', 'branch_checkout', 'branch_worktree', 'repo_path', 'blocks', 'blocked_by', 'parent_id']);
+
+function actorLabel(actor: string | undefined, members: Member[]): string | null {
+  if (!actor) return null;
+  if (actor === 'user') return 'You';
+  if (actor === 'agent') return 'AI agent';
+  return members.find((m) => m.id === actor)?.name ?? actor;
+}
 
 export function ActivitySection({ ticketId, entries, members = [], isLoading = false }: ActivitySectionProps) {
   const [filter, setFilter] = useState<FilterGroup>('all');
@@ -266,12 +308,16 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
     let status = 0;
     let assignee = 0;
     let priority = 0;
+    let comments = 0;
+    let branch = 0;
     let other = 0;
 
     for (const e of entries) {
       if (e.field === 'status') status++;
       else if (e.field === 'assignee') assignee++;
       else if (e.field === 'priority') priority++;
+      else if (COMMENT_FIELDS.has(e.field)) comments++;
+      else if (isBranchField(e.field)) branch++;
       else other++;
     }
 
@@ -280,6 +326,8 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
       status,
       assignee,
       priority,
+      comments,
+      branch,
       other,
     };
   }, [entries]);
@@ -291,7 +339,11 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
       if (filter === 'status') return e.field === 'status';
       if (filter === 'assignee') return e.field === 'assignee';
       if (filter === 'priority') return e.field === 'priority';
-      if (filter === 'other') return !['status', 'assignee', 'priority'].includes(e.field);
+      if (filter === 'comments') return COMMENT_FIELDS.has(e.field);
+      if (filter === 'branch') return isBranchField(e.field);
+      if (filter === 'other') {
+        return !['status', 'assignee', 'priority'].includes(e.field) && !COMMENT_FIELDS.has(e.field) && !isBranchField(e.field);
+      }
       return true;
     });
 
@@ -372,6 +424,10 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
           </div>
         );
       case 'branch':
+      case 'branch_status':
+      case 'branch_checkout':
+      case 'branch_worktree':
+      case 'repo_path':
         return (
           <div className={styles.acBubble} style={{ background: '#ECE9FA', color: '#6D5DD3' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -397,6 +453,26 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
             </svg>
           </div>
         );
+      case 'comment':
+        return iconBubble('#E1EEFB', '#2F6FB0', ['M4 5H20V16H9L5 20V16H4Z']);
+      case 'work_log':
+        return iconBubble('#ECE9FA', '#6D5DD3', ['M4 5H20V19H4Z', 'M8 10L11 12L8 14', 'M13 14H16']);
+      case 'acceptance_criterion':
+      case 'test_case':
+      case 'test_case_status':
+        return iconBubble('#DCEEE1', '#2E6F40', ['M4 12L9 17L20 6']);
+      case 'blocks':
+      case 'blocked_by':
+      case 'link':
+        return iconBubble('#FBF1DC', '#B4791E', ['M10 14A4 4 0 0 0 15.7 14.3L18.7 11.3A4 4 0 0 0 13 5.7L12 6.7', 'M14 10A4 4 0 0 0 8.3 9.7L5.3 12.7A4 4 0 0 0 11 18.3L12 17.3']);
+      case 'parent_id':
+        return iconBubble('#F1F3F1', '#5B6B60', ['M6 4V14A4 4 0 0 0 10 18H18', 'M14 14L18 18L14 22']);
+      case 'workspace_retention':
+        return iconBubble('#F1F3F1', '#5B6B60', ['M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z']);
+      case 'wont_do_reason':
+        return iconBubble('#F1F3F1', '#8C9BAE', ['M5 5L19 19', 'M12 3A9 9 0 1 0 12 21A9 9 0 0 0 12 3Z']);
+      case 'created':
+        return iconBubble('#DCEEE1', '#2E6F40', ['M12 5V19', 'M5 12H19']);
       default:
         return (
           <div className={styles.acBubble} style={{ background: '#F1F3F1', color: '#5B6B60' }}>
@@ -408,6 +484,14 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
         );
     }
   };
+
+  const iconBubble = (bg: string, color: string, paths: string[]) => (
+    <div className={styles.acBubble} style={{ background: bg, color }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {paths.map((d) => <path key={d} d={d} />)}
+      </svg>
+    </div>
+  );
 
   // Render chip value
   const renderValueChip = (field: string, val: any, isOldTitle = false) => {
@@ -487,15 +571,15 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
       );
     }
 
-    if (field === 'branch') {
+    if (MONO_FIELDS.has(field)) {
       return (
-        <span className={styles.acChip} style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>
+        <span className={styles.acChip} style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }} title={String(val)}>
           {String(val)}
         </span>
       );
     }
 
-    if (field === 'title' && isOldTitle) {
+    if ((field === 'title' || EVENT_FIELDS.has(field)) && isOldTitle) {
       return (
         <span
           className={styles.acChip}
@@ -525,7 +609,7 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
       }
     }
 
-    return <span className={styles.acChip}>{String(val)}</span>;
+    return <span className={styles.acChip} title={String(val)}>{String(val)}</span>;
   };
 
   if (isLoading) {
@@ -558,41 +642,24 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
           {counts.all} changes · {ticketId}
         </span>
         <div className={styles.filterList}>
-          <button
-            type="button"
-            className={`${styles.acFilter} ${filter === 'all' ? styles.acFilterActive : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All ({counts.all})
-          </button>
-          <button
-            type="button"
-            className={`${styles.acFilter} ${filter === 'status' ? styles.acFilterActive : ''}`}
-            onClick={() => setFilter('status')}
-          >
-            Status ({counts.status})
-          </button>
-          <button
-            type="button"
-            className={`${styles.acFilter} ${filter === 'assignee' ? styles.acFilterActive : ''}`}
-            onClick={() => setFilter('assignee')}
-          >
-            Assignee ({counts.assignee})
-          </button>
-          <button
-            type="button"
-            className={`${styles.acFilter} ${filter === 'priority' ? styles.acFilterActive : ''}`}
-            onClick={() => setFilter('priority')}
-          >
-            Priority ({counts.priority})
-          </button>
-          <button
-            type="button"
-            className={`${styles.acFilter} ${filter === 'other' ? styles.acFilterActive : ''}`}
-            onClick={() => setFilter('other')}
-          >
-            Other ({counts.other})
-          </button>
+          {([
+            ['all', 'All'],
+            ['status', 'Status'],
+            ['assignee', 'Assignee'],
+            ['priority', 'Priority'],
+            ['comments', 'Comments'],
+            ['branch', 'Branch'],
+            ['other', 'Other'],
+          ] as [FilterGroup, string][]).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`${styles.acFilter} ${filter === key ? styles.acFilterActive : ''}`}
+              onClick={() => setFilter(key)}
+            >
+              {label} ({counts[key]})
+            </button>
+          ))}
         </div>
       </div>
 
@@ -607,7 +674,7 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
           </div>
           <div className={styles.emptyTitle}>No activity yet</div>
           <div className={styles.emptyDesc}>
-            Changes to status, assignee, priority and other fields will show up here.
+            Changes to fields, comments, test cases, links and branches will show up here.
           </div>
         </div>
       ) : (
@@ -643,7 +710,10 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
                         {renderBubble(entry.field)}
 
                         <div className={styles.acMain}>
-                          <span className={styles.acField}>{fieldName}</span>
+                          <span className={styles.acField}>
+                            {fieldName}
+                            {entry.ref && <span className={styles.acRef}> · {entry.ref}</span>}
+                          </span>
 
                           {isDescription && diffData ? (
                             <>
@@ -711,6 +781,19 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
                                 </div>
                               )}
                             </>
+                          ) : entry.field === 'created' ? (
+                            <div className={styles.acChange}>
+                              <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>Ticket created</span>
+                            </div>
+                          ) : EVENT_FIELDS.has(entry.field) && (entry.from == null || entry.to == null) ? (
+                            <div className={styles.acChange}>
+                              <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
+                                {entry.to == null ? 'removed' : entry.field === 'branch_checkout' ? 'checked out' : 'added'}
+                              </span>
+                              {entry.to == null
+                                ? renderValueChip(entry.field, entry.from, true)
+                                : renderValueChip(entry.field, entry.to, false)}
+                            </div>
                           ) : (
                             <div className={styles.acChange}>
                               {renderValueChip(entry.field, entry.from, entry.field === 'title')}
@@ -729,6 +812,9 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
                           className={styles.acTime}
                           style={isDescription ? { paddingTop: '2px' } : undefined}
                         >
+                          {actorLabel(entry.actor, members) && (
+                            <span className={styles.acActor}>{actorLabel(entry.actor, members)} · </span>
+                          )}
                           {isToday ? formatRelative(entry.at) : formatClockTime(entry.at)}
                           <span className={styles.acTt}>
                             {fullDate}

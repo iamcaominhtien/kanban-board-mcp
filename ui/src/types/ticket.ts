@@ -35,6 +35,10 @@ export interface ActivityEntry {
   from: any;
   to: any;
   at: string; // ISO datetime
+  /** Who made the change: 'user', 'agent', or a name. Absent on older entries. */
+  actor?: string;
+  /** Subject of the change, e.g. a test case code or branch name. */
+  ref?: string;
 }
 
 export type WorkLogRole = 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';

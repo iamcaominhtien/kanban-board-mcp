@@ -371,3 +371,16 @@
     opacity: 0.45;
   }
 }
+
+.acRef {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #5B6B60;
+}
+
+.acActor {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 600;
+  color: #5B6B60;
+}
