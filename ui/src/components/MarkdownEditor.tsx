@@ -20,26 +20,38 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   onBlur?: (value: string) => void;
+  onSubmit?: () => void;
+  onCancel?: () => void;
   onUploadImage?: (file: File) => Promise<{ markdown: string }>;
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
   startInEditMode?: boolean;
+  disableClickOutside?: boolean;
   placeholderText?: string;
   editAriaLabel?: string;
   viewClassName?: string;
+  compact?: boolean;
+  showHint?: boolean;
+  actions?: React.ReactNode;
 }
 
 export function MarkdownEditor({
   value,
   onChange,
   onBlur,
+  onSubmit,
+  onCancel,
   onUploadImage,
   onUploadComplete,
   readOnly = false,
   startInEditMode = false,
+  disableClickOutside = false,
   placeholderText = 'Add a description…',
   editAriaLabel = 'Edit description',
   viewClassName,
+  compact = false,
+  showHint = false,
+  actions,
 }: Props) {
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
@@ -67,11 +79,18 @@ export function MarkdownEditor({
     latestValueRef.current = value;
   }, [value]);
 
-  // Initial populate of contentEditable when entering edit mode
+  // Populate or update contentEditable when entering edit mode or when value changes externally
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
-      const html = markdownToHtml(latestValueRef.current);
-      wysiwygRef.current.innerHTML = html; // html is escaped by markdownToHtml
+      const currentMd = htmlToMarkdown(wysiwygRef.current);
+      if (value !== currentMd) {
+        wysiwygRef.current.innerHTML = markdownToHtml(value);
+      }
+    }
+  }, [value, isEditing]);
+
+  useEffect(() => {
+    if (isEditing && wysiwygRef.current) {
       requestAnimationFrame(() => {
         wysiwygRef.current?.focus();
       });
@@ -80,7 +99,7 @@ export function MarkdownEditor({
 
   // Click outside listener to exit edit mode and save
   useEffect(() => {
-    if (!isEditing) return;
+    if (!isEditing || disableClickOutside) return;
 
     function handleClickOutside(e: MouseEvent) {
       if (isFilePickerOpenRef.current) return;
@@ -98,7 +117,7 @@ export function MarkdownEditor({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isEditing, isLinkPopoverOpen]);
+  }, [isEditing, isLinkPopoverOpen, disableClickOutside]);
 
   function syncContent() {
     if (!wysiwygRef.current) return;
@@ -510,6 +529,23 @@ export function MarkdownEditor({
 
   function handleKeyDown(e: React.KeyboardEvent) {
     const isMod = e.metaKey || e.ctrlKey;
+    if (isMod && e.key === 'Enter') {
+      e.preventDefault();
+      syncContent();
+      if (onSubmit) {
+        onSubmit();
+      } else {
+        finishEditing();
+      }
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (onCancel) {
+        e.preventDefault();
+        onCancel();
+        return;
+      }
+    }
     if (isMod && !e.shiftKey && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       handleUndo();
@@ -538,7 +574,7 @@ export function MarkdownEditor({
   if (!isEditing) {
     return (
       <div
-        className={`${styles.viewArea} ${readOnly ? styles.viewAreaReadOnly : ''} ${viewClassName || ''}`}
+        className={`${styles.viewArea} ${compact ? styles.viewAreaCompact : ''} ${readOnly ? styles.viewAreaReadOnly : ''} ${viewClassName || ''}`}
         onClick={startEditing}
         role="button"
         tabIndex={readOnly ? -1 : 0}
@@ -566,9 +602,9 @@ export function MarkdownEditor({
 
   return (
     <div ref={containerRef} style={{ width: '100%' }}>
-      <div className={styles.editContainer}>
+      <div className={`${styles.editContainer} ${compact ? styles.editContainerCompact : ''}`}>
         {/* Toolbar Header (no Write/Preview tabs in Approach B) */}
-        <div className={styles.toolbarHeader}>
+        <div className={`${styles.toolbarHeader} ${compact ? styles.toolbarHeaderCompact : ''}`}>
           <div className={styles.toolsGroup}>
             {/* Undo (Hoàn tác) */}
             <button
@@ -904,7 +940,7 @@ export function MarkdownEditor({
           ref={wysiwygRef}
           contentEditable={!readOnly}
           suppressContentEditableWarning
-          className={styles.wysiwygArea}
+          className={`${styles.wysiwygArea} ${compact ? styles.wysiwygAreaCompact : ''}`}
           data-placeholder={placeholderText}
           onInput={() => {
             syncContent();
@@ -917,11 +953,15 @@ export function MarkdownEditor({
           onDrop={handleDrop}
           onBlur={syncContent}
         />
+
+        {actions && <div className={styles.editorActions}>{actions}</div>}
       </div>
 
-      <div className={styles.hintText}>
-        Same toolbar as Approach A, same buttons — the only difference is what&apos;s underneath it: rendered content you type straight into, instead of raw Markdown text. Select a word, hit Bold, it turns bold right there.
-      </div>
+      {showHint && (
+        <div className={styles.hintText}>
+          Same toolbar as Approach A, same buttons — the only difference is what&apos;s underneath it: rendered content you type straight into, instead of raw Markdown text. Select a word, hit Bold, it turns bold right there.
+        </div>
+      )}
     </div>
   );
 }

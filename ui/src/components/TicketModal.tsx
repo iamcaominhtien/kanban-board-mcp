@@ -1290,10 +1290,10 @@ export function TicketModal({
                   testCases: st.testCases ?? [],
                 }))}
                 disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
-                onAdd={(tCase) =>
+                onAdd={(tTitle, tDesc) =>
                   new Promise<void>((resolve, reject) =>
                     addTestCaseMutation.mutate(
-                      { ticketId: ticket.id, title: tCase },
+                      { ticketId: ticket.id, title: tTitle, description: tDesc },
                       {
                         onSuccess: () => resolve(),
                         onError: (err: unknown) => reject(err),

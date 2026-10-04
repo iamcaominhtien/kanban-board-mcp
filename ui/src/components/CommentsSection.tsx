@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { Comment, Member } from '../types/ticket';
 import { getAvatarColors } from './MemberAvatar';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { MarkdownEditor } from './MarkdownEditor';
+import { uploadDescriptionImage } from '../api/tickets';
 import styles from './CommentsSection.module.css';
 
 interface CommentsSectionProps {
@@ -51,14 +53,7 @@ export function CommentsSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isExpanded) {
-      textareaRef.current?.focus();
-    }
-  }, [isExpanded]);
 
   function handleAdd() {
     if (!text.trim()) return;
@@ -156,37 +151,39 @@ export function CommentsSection({
                 {/* Content */}
                 {editingId === c.id ? (
                   <div className={styles.editBox}>
-                    <textarea
-                      className={styles.editTextarea}
+                    <MarkdownEditor
                       value={editingText}
-                      onChange={(e) => setEditingText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                          saveEdit(c.id);
-                        }
-                        if (e.key === 'Escape') {
-                          cancelEdit();
-                        }
+                      onChange={setEditingText}
+                      startInEditMode={true}
+                      disableClickOutside={true}
+                      compact={true}
+                      placeholderText="Edit comment… (Markdown supported)"
+                      onUploadImage={async (f: File) => {
+                        const res = await uploadDescriptionImage(f);
+                        return { markdown: `![${f.name}](${res.url})` };
                       }}
-                      autoFocus
+                      onSubmit={() => saveEdit(c.id)}
+                      onCancel={cancelEdit}
+                      actions={
+                        <>
+                          <button
+                            type="button"
+                            className={styles.btnCancel}
+                            onClick={cancelEdit}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.btnSubmit}
+                            onClick={() => saveEdit(c.id)}
+                            disabled={!editingText.trim()}
+                          >
+                            Save
+                          </button>
+                        </>
+                      }
                     />
-                    <div className={styles.editActions}>
-                      <button
-                        type="button"
-                        className={styles.btnCancel}
-                        onClick={cancelEdit}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.btnSubmit}
-                        onClick={() => saveEdit(c.id)}
-                        disabled={!editingText.trim()}
-                      >
-                        Save
-                      </button>
-                    </div>
                   </div>
                 ) : (
                   <div className={styles.commentContent}>
@@ -244,45 +241,47 @@ export function CommentsSection({
           {currentUserInfo.initials}
         </div>
 
-        <div className={styles.composerBox}>
+        <div className={isExpanded ? styles.composerBoxExpanded : styles.composerBox}>
           {isExpanded ? (
-            <>
-              <textarea
-                ref={textareaRef}
-                className={styles.expandedTextarea}
-                placeholder="Add a comment…"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    handleAdd();
-                  }
-                  if (e.key === 'Escape' && !text.trim()) {
-                    setIsExpanded(false);
-                  }
-                }}
-              />
-              <div className={styles.composerActions}>
-                <button
-                  type="button"
-                  className={styles.btnCancel}
-                  onClick={() => {
-                    setText('');
-                    setIsExpanded(false);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className={styles.btnSubmit}
-                  onClick={handleAdd}
-                  disabled={!text.trim()}
-                >
-                  Comment
-                </button>
-              </div>
-            </>
+            <MarkdownEditor
+              value={text}
+              onChange={setText}
+              startInEditMode={true}
+              disableClickOutside={true}
+              compact={true}
+              placeholderText="Add a comment… (Markdown supported)"
+              onUploadImage={async (f: File) => {
+                const res = await uploadDescriptionImage(f);
+                return { markdown: `![${f.name}](${res.url})` };
+              }}
+              onSubmit={handleAdd}
+              onCancel={() => {
+                setText('');
+                setIsExpanded(false);
+              }}
+              actions={
+                <>
+                  <button
+                    type="button"
+                    className={styles.btnCancel}
+                    onClick={() => {
+                      setText('');
+                      setIsExpanded(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnSubmit}
+                    onClick={handleAdd}
+                    disabled={!text.trim()}
+                  >
+                    Comment
+                  </button>
+                </>
+              }
+            />
           ) : (
             <input
               ref={inputRef}
@@ -291,6 +290,7 @@ export function CommentsSection({
               placeholder="Add a comment…"
               value={text}
               onFocus={() => setIsExpanded(true)}
+              onClick={() => setIsExpanded(true)}
               readOnly
             />
           )}

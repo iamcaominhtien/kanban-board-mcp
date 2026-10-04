@@ -205,6 +205,10 @@
   box-sizing: border-box;
 }
 
+.inlineAddEditor {
+  width: 100%;
+}
+
 .inlineAddActions {
   display: flex;
   align-items: center;

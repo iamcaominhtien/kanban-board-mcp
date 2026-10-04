@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import type { TestCase, TestCaseStatus, TestCaseFileData } from '../types';
-import { uploadAttachment, uploadUrl } from '../api/tickets';
+import { uploadAttachment, uploadUrl, uploadDescriptionImage } from '../api/tickets';
 import { extractError } from '../api/extractError';
+import { MarkdownEditor } from './MarkdownEditor';
 import styles from './TestCasesSection.module.css';
 
 interface ChildTestCaseSource {
@@ -14,7 +15,7 @@ interface TestCasesSectionProps {
   ticketId?: string;
   testCases: TestCase[];
   onChange: (updated: TestCase[]) => void;
-  onAdd?: (title: string) => Promise<void>;
+  onAdd?: (title: string, description?: string) => Promise<void>;
   readOnly?: boolean;
   disabled?: boolean;
   childTestCaseSources?: ChildTestCaseSource[];
@@ -73,8 +74,6 @@ function TestCaseRowItem({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(tc.title);
 
-  // Edit sub-fields
-  const [editingField, setEditingField] = useState<'desc' | 'exp' | 'notes' | null>(null);
   const [fileBusy, setFileBusy] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +97,6 @@ function TestCaseRowItem({
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
-
   const codeDisplay = tc.code || `TC-${index + 1}`;
 
   function cycleStatus() {
@@ -239,49 +237,33 @@ function TestCaseRowItem({
           {/* Description */}
           <div className={styles.fieldGroup}>
             <span className={styles.fieldLabel}>Description</span>
-            {editingField === 'desc' && !readOnly ? (
-              <textarea
-                className={styles.fieldBox}
-                style={{ width: '100%', boxSizing: 'border-box', minHeight: 70, outline: 'none' }}
-                value={tc.description || ''}
-                autoFocus
-                placeholder="What does this test case cover?"
-                onChange={(e) => onUpdate({ ...tc, description: e.target.value })}
-                onBlur={() => setEditingField(null)}
-              />
-            ) : (
-              <div
-                className={styles.fieldBox}
-                onClick={() => !readOnly && setEditingField('desc')}
-                title={readOnly ? undefined : 'Click to edit description'}
-              >
-                {tc.description || <span style={{ color: '#9AA8A0', fontStyle: 'italic' }}>Click to add description...</span>}
-              </div>
-            )}
+            <MarkdownEditor
+              value={tc.description || ''}
+              onChange={(val) => onUpdate({ ...tc, description: val, updatedAt: new Date().toISOString() })}
+              placeholderText="What does this test case cover?"
+              readOnly={readOnly || disabled}
+              compact={true}
+              onUploadImage={async (f: File) => {
+                const res = await uploadDescriptionImage(f);
+                return { markdown: `![${f.name}](${res.url})` };
+              }}
+            />
           </div>
 
           {/* Expected Result */}
           <div className={styles.fieldGroup}>
             <span className={styles.fieldLabel}>Expected result</span>
-            {editingField === 'exp' && !readOnly ? (
-              <textarea
-                className={styles.fieldBox}
-                style={{ width: '100%', boxSizing: 'border-box', minHeight: 70, outline: 'none' }}
-                value={tc.expectedResult || ''}
-                autoFocus
-                placeholder="What is the expected behavior or pass bar?"
-                onChange={(e) => onUpdate({ ...tc, expectedResult: e.target.value })}
-                onBlur={() => setEditingField(null)}
-              />
-            ) : (
-              <div
-                className={styles.fieldBox}
-                onClick={() => !readOnly && setEditingField('exp')}
-                title={readOnly ? undefined : 'Click to edit expected result'}
-              >
-                {tc.expectedResult || <span style={{ color: '#9AA8A0', fontStyle: 'italic' }}>Click to add expected result...</span>}
-              </div>
-            )}
+            <MarkdownEditor
+              value={tc.expectedResult || ''}
+              onChange={(val) => onUpdate({ ...tc, expectedResult: val, updatedAt: new Date().toISOString() })}
+              placeholderText="What is the expected behavior or pass bar?"
+              readOnly={readOnly || disabled}
+              compact={true}
+              onUploadImage={async (f: File) => {
+                const res = await uploadDescriptionImage(f);
+                return { markdown: `![${f.name}](${res.url})` };
+              }}
+            />
           </div>
 
           {/* Test Data */}
@@ -360,25 +342,17 @@ function TestCaseRowItem({
           {/* Notes */}
           <div className={styles.fieldGroup}>
             <span className={styles.fieldLabel}>Notes</span>
-            {editingField === 'notes' && !readOnly ? (
-              <textarea
-                className={styles.fieldBox}
-                style={{ width: '100%', boxSizing: 'border-box', minHeight: 60, outline: 'none' }}
-                value={tc.notes || tc.note || ''}
-                autoFocus
-                placeholder="Additional notes, screenshots, or environment details..."
-                onChange={(e) => onUpdate({ ...tc, notes: e.target.value, note: e.target.value })}
-                onBlur={() => setEditingField(null)}
-              />
-            ) : (
-              <div
-                className={styles.fieldBox}
-                onClick={() => !readOnly && setEditingField('notes')}
-                title={readOnly ? undefined : 'Click to edit notes'}
-              >
-                {tc.notes || tc.note || <span style={{ color: '#9AA8A0', fontStyle: 'italic' }}>Click to add run notes...</span>}
-              </div>
-            )}
+            <MarkdownEditor
+              value={tc.notes || tc.note || ''}
+              onChange={(val) => onUpdate({ ...tc, notes: val, note: val, updatedAt: new Date().toISOString() })}
+              placeholderText="Additional notes, screenshots, or environment details..."
+              readOnly={readOnly || disabled}
+              compact={true}
+              onUploadImage={async (f: File) => {
+                const res = await uploadDescriptionImage(f);
+                return { markdown: `![${f.name}](${res.url})` };
+              }}
+            />
           </div>
 
           {/* Footer Info */}
@@ -408,6 +382,7 @@ export function TestCasesSection({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addTitle, setAddTitle] = useState('');
+  const [addDescription, setAddDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const addInputRef = useRef<HTMLInputElement>(null);
 
@@ -470,13 +445,14 @@ export function TestCasesSection({
     setIsSubmitting(true);
     try {
       if (onAdd) {
-        await onAdd(trimmed);
+        await onAdd(trimmed, addDescription.trim() || undefined);
       } else {
         const nextCode = `TC-${testCases.length + 1}`;
         const newTC: TestCase = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           code: nextCode,
           title: trimmed,
+          description: addDescription.trim() || undefined,
           status: 'pending',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -484,6 +460,7 @@ export function TestCasesSection({
         onChange([...testCases, newTC]);
       }
       setAddTitle('');
+      setAddDescription('');
       setShowAddForm(false);
     } finally {
       setIsSubmitting(false);
@@ -655,6 +632,18 @@ export function TestCasesSection({
             onChange={(e) => setAddTitle(e.target.value)}
             disabled={isSubmitting}
           />
+          <div className={styles.inlineAddEditor}>
+            <MarkdownEditor
+              value={addDescription}
+              onChange={setAddDescription}
+              compact={true}
+              placeholderText="Description (optional, markdown supported)…"
+              onUploadImage={async (f: File) => {
+                const res = await uploadDescriptionImage(f);
+                return { markdown: `![${f.name}](${res.url})` };
+              }}
+            />
+          </div>
           <div className={styles.inlineAddActions}>
             <button
               type="submit"
@@ -669,6 +658,7 @@ export function TestCasesSection({
               onClick={() => {
                 setShowAddForm(false);
                 setAddTitle('');
+                setAddDescription('');
               }}
             >
               Cancel

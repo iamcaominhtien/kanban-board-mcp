@@ -559,8 +559,12 @@ export function useDeleteWorkLog() {
 
 export function useAddTestCase() {
   return useTicketSubMutation(
-    ({ ticketId, title }: { ticketId: string; title: string }) =>
-      addTestCase(ticketId, title),
+    ({
+      ticketId,
+      title,
+      ...extra
+    }: { ticketId: string; title: string } & Partial<TestCase>) =>
+      addTestCase(ticketId, title, extra),
   );
 }
 
