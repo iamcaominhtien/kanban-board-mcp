@@ -340,6 +340,7 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
+  padding-bottom: 28px;
 }
 
 .titleArea {
@@ -512,6 +513,7 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  padding-bottom: 28px;
 }
 
 .sidebarRow {
