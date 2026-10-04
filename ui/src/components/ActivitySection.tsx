@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ActivityEntry, Member } from '../types';
+import { getAvatarColors } from './MemberAvatar';
 import styles from './ActivitySection.module.css';
 
 interface ActivitySectionProps {
@@ -441,8 +442,7 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
       const member = members.find((m) => m.id === val || m.name === val);
       const name = member?.name || String(val);
       const initials = getInitials(name);
-      const bg = member?.color || '#E6E9F5';
-      const color = '#5B5FA8';
+      const { bg, color } = getAvatarColors(member?.color || '#6D5DD3');
 
       return (
         <span className={styles.acChip}>

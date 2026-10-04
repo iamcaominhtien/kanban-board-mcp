@@ -1211,7 +1211,9 @@ export function TicketModal({
                   <path d="M8 3V6.5" />
                   <path d="M16 3V6.5" />
                 </svg>
-                <span>{dueDate ? formatDueDate(dueDate) : 'Sep 24'}</span>
+                <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
+                  {dueDate ? formatDueDate(dueDate) : '–'}
+                </span>
                 <input
                   ref={dateInputRef}
                   type="date"
@@ -1230,7 +1232,9 @@ export function TicketModal({
             <div className={styles.sidebarRow}>
               <span className={styles.sidebarLabel}>Estimate</span>
               <div className={styles.sidebarItemInteractive} title="Click to change estimate">
-                <span>{estimate !== null ? `${estimate} pt` : '2 pt'}</span>
+                <span style={estimate === null ? { color: '#9AA8A0' } : undefined}>
+                  {estimate !== null ? `${estimate} pt` : '–'}
+                </span>
                 <select
                   className={styles.sidebarSelect}
                   value={estimate ?? ''}
