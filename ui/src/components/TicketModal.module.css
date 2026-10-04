@@ -27,7 +27,7 @@
   flex-direction: column;
   max-height: 90vh;
   transform: translateY(16px);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: default;
   overflow: hidden;
   box-sizing: border-box;
@@ -40,6 +40,8 @@
 .panelDetail {
   width: 1040px;
   max-width: 100%;
+  height: min(85vh, 760px);
+  min-height: 560px;
 }
 
 .panelNew {
@@ -260,13 +262,16 @@
   gap: 32px;
   padding: 24px 28px 28px;
   overflow-y: auto;
-  max-height: calc(90vh - 75px);
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .fullWidthBody {
   padding: 20px 28px 28px;
   overflow-y: auto;
-  max-height: calc(90vh - 75px);
+  flex: 1;
+  min-height: 0;
   width: 100%;
   box-sizing: border-box;
 }
