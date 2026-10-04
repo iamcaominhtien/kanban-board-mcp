@@ -6,6 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Splash screen**: the first thing painted when the app opens (web and desktop). The logo, wordmark and progress bar are in `index.html`, so they show from the first frame, before any JavaScript loads. The cards intro (1.2 s) plays once per cold start; reloads skip it. The splash stays at least 600 ms, fades into the app in 200 ms, and honours `prefers-reduced-motion`.
+- **Server unreachable state**: if the server does not answer within 8 s the splash shows "Can't reach the server" with a Try again button, the last attempt time and a retry countdown (every 10 s, then backing off), and opens the app by itself once the server is back.
+- Desktop: **Try again** after a backend start-up failure (new `retry-backend` IPC).
+
+### Fixed
+- Desktop: reloading the window after the backend was already up left the UI waiting for a ready event that never came again; it now asks for the backend port directly.
+
+---
+
 ## [1.4.5] - 2026-09-16
 
 ### Fixed

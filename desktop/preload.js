@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('backend-error', handler);
   },
 
+  // Starts the backend again after a startup failure (events are re-sent to the renderer).
+  retryBackend: () => ipcRenderer.invoke('retry-backend'),
+
   // Opens a native folder picker; returns the selected path or null
   selectFolder: () => ipcRenderer.invoke('select-folder'),
 
