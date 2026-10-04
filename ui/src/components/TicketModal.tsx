@@ -249,6 +249,34 @@ export function TicketModal({
     setTimeout(onClose, 150);
   }
 
+  // Description edits are debounced (one PATCH per pause, not per keystroke) and flushed on blur/close/switch
+  const pendingDescRef = useRef<{ ticketId: string; value: string } | null>(null);
+  const descTimerRef = useRef<number | null>(null);
+  const flushDescRef = useRef<() => void>(() => {});
+  flushDescRef.current = () => {
+    if (descTimerRef.current !== null) {
+      window.clearTimeout(descTimerRef.current);
+      descTimerRef.current = null;
+    }
+    const pending = pendingDescRef.current;
+    pendingDescRef.current = null;
+    if (!pending) return;
+    updateTicketMutation.mutate(
+      { ticketId: pending.ticketId, data: { description: pending.value } },
+      { onError: (err) => toast.error("Couldn't save changes", extractError(err)) }
+    );
+  };
+  function scheduleDescriptionSave(value: string) {
+    if (!ticket) return;
+    pendingDescRef.current = { ticketId: ticket.id, value };
+    if (descTimerRef.current !== null) window.clearTimeout(descTimerRef.current);
+    descTimerRef.current = window.setTimeout(() => flushDescRef.current(), 800);
+  }
+  const currentTicketId = ticket?.id;
+  useEffect(() => {
+    return () => flushDescRef.current();
+  }, [currentTicketId]);
+
   // Fast inline update for properties in View mode
   function autoSaveField<K extends keyof Ticket>(field: K, val: Ticket[K]) {
     if (!ticket) return;
@@ -818,8 +846,9 @@ export function TicketModal({
                     value={description}
                     onChange={(nextDesc) => {
                       setDescription(nextDesc);
-                      autoSaveField('description', nextDesc);
+                      scheduleDescriptionSave(nextDesc);
                     }}
+                    onBlur={() => flushDescRef.current()}
                     onUploadImage={async (f: File) => {
                       const res = await uploadDescriptionImage(f);
                       return { markdown: `![${f.name}](${res.url})` };

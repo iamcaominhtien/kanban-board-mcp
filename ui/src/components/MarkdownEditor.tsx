@@ -16,6 +16,15 @@ function normalizeUrl(url: string): string | null {
   }
 }
 
+function uploadErrorMessage(err: unknown): string {
+  const e = err as { response?: { status?: number; data?: { detail?: unknown } } };
+  const status = e?.response?.status;
+  const detail = e?.response?.data?.detail;
+  if (status === 413) return 'Image is too large to upload.';
+  if (typeof detail === 'string' && detail) return `Upload failed: ${detail}`;
+  return 'Image upload failed. Please try again.';
+}
+
 interface Props {
   value: string;
   onChange: (value: string) => void;
@@ -62,6 +71,10 @@ export function MarkdownEditor({
   const linkBtnRef = useRef<HTMLButtonElement>(null);
   const isFilePickerOpenRef = useRef(false);
   const latestValueRef = useRef(value);
+  // Only write back to the caller when the user actually changed something:
+  // the HTML round-trip can normalise Markdown, so opening/closing must be a no-op.
+  const dirtyRef = useRef(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     latestValueRef.current = value;
@@ -70,6 +83,7 @@ export function MarkdownEditor({
   // Initial populate of contentEditable when entering edit mode
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
+      dirtyRef.current = false;
       const html = markdownToHtml(latestValueRef.current);
       wysiwygRef.current.innerHTML = html; // html is escaped by markdownToHtml
       requestAnimationFrame(() => {
@@ -102,6 +116,7 @@ export function MarkdownEditor({
 
   function syncContent() {
     if (!wysiwygRef.current) return;
+    dirtyRef.current = true;
     const md = htmlToMarkdown(wysiwygRef.current);
     latestValueRef.current = md;
     onChange(md);
@@ -135,9 +150,13 @@ export function MarkdownEditor({
       setIsLinkPopoverOpen(false);
       return;
     }
-    const md = htmlToMarkdown(wysiwygRef.current);
-    latestValueRef.current = md;
-    onChange(md);
+    let md = latestValueRef.current;
+    if (dirtyRef.current) {
+      md = htmlToMarkdown(wysiwygRef.current);
+      latestValueRef.current = md;
+      onChange(md);
+    }
+    dirtyRef.current = false;
     setIsEditing(false);
     setIsLinkPopoverOpen(false);
     onBlur?.(md);
@@ -157,11 +176,12 @@ export function MarkdownEditor({
     updateToolbarState();
   }
 
-  function toggleBold() {
+  /** Toggle bold/italic at the caret or over the selection without disturbing the caret. */
+  function toggleInlineFormat(cmd: 'bold' | 'italic', selector: string) {
     wysiwygRef.current?.focus();
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) {
-      document.execCommand('bold', false);
+      document.execCommand(cmd, false);
       syncContent();
       updateToolbarState();
       return;
@@ -169,20 +189,30 @@ export function MarkdownEditor({
 
     const range = sel.getRangeAt(0);
 
-    // If collapsed, check if cursor is inside a bold element (b, strong)
     if (range.collapsed) {
       let node: Node | null = range.startContainer;
       if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
-      const boldEl = (node as HTMLElement)?.closest('b, strong');
-      if (boldEl && wysiwygRef.current?.contains(boldEl)) {
-        // Unwrap this bold element directly (toggle off)
-        const text = boldEl.textContent || '';
+      const fmtEl = (node as HTMLElement)?.closest(selector);
+      if (fmtEl && wysiwygRef.current?.contains(fmtEl)) {
+        const toEnd = document.createRange();
+        toEnd.selectNodeContents(fmtEl);
+        toEnd.setStart(range.startContainer, range.startOffset);
+        if (toEnd.toString() === '') {
+          // Caret is at the end of the formatted run: just switch the format off for what comes next
+          document.execCommand(cmd, false);
+          updateToolbarState();
+          return;
+        }
+        // Caret is inside the run: unwrap it and put the caret back at the same character position
+        const toCaret = document.createRange();
+        toCaret.selectNodeContents(fmtEl);
+        toCaret.setEnd(range.startContainer, range.startOffset);
+        const caretOffset = toCaret.toString().length;
+        const text = fmtEl.textContent || '';
         const textNode = document.createTextNode(text);
-        const parent = boldEl.parentNode;
-        parent?.replaceChild(textNode, boldEl);
-        // Restore cursor
+        fmtEl.parentNode?.replaceChild(textNode, fmtEl);
         const newRange = document.createRange();
-        newRange.setStart(textNode, Math.min(range.startOffset, text.length));
+        newRange.setStart(textNode, Math.min(caretOffset, text.length));
         newRange.collapse(true);
         sel.removeAllRanges();
         sel.addRange(newRange);
@@ -191,7 +221,7 @@ export function MarkdownEditor({
         return;
       }
 
-      // Otherwise select the word under cursor so user can bold/unbold with 1 click
+      // Not inside a formatted run: format the word under the caret, or arm the format if on whitespace
       const textNode = range.startContainer;
       if (textNode.nodeType === Node.TEXT_NODE) {
         const text = textNode.nodeValue || '';
@@ -210,17 +240,14 @@ export function MarkdownEditor({
       }
     }
 
-    // Toggle bold using execCommand
-    const wasBold = document.queryCommandState('bold');
-    document.execCommand('bold', false);
+    const was = document.queryCommandState(cmd);
+    document.execCommand(cmd, false);
 
-    // If it was already bold, ensure all <strong> / <b> inside or covering selection get unwrapped
-    if (wasBold) {
-      const allBolds = wysiwygRef.current?.querySelectorAll('strong, b');
-      allBolds?.forEach((el) => {
+    // If it was already formatted, make sure every wrapper covering the selection is removed
+    if (was) {
+      wysiwygRef.current?.querySelectorAll(selector).forEach((el) => {
         if (sel.containsNode(el, true)) {
-          const text = el.textContent || '';
-          el.replaceWith(document.createTextNode(text));
+          el.replaceWith(document.createTextNode(el.textContent || ''));
         }
       });
     }
@@ -229,69 +256,12 @@ export function MarkdownEditor({
     updateToolbarState();
   }
 
+  function toggleBold() {
+    toggleInlineFormat('bold', 'strong, b');
+  }
+
   function toggleItalic() {
-    wysiwygRef.current?.focus();
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) {
-      document.execCommand('italic', false);
-      syncContent();
-      updateToolbarState();
-      return;
-    }
-
-    const range = sel.getRangeAt(0);
-
-    if (range.collapsed) {
-      let node: Node | null = range.startContainer;
-      if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
-      const italicEl = (node as HTMLElement)?.closest('i, em');
-      if (italicEl && wysiwygRef.current?.contains(italicEl)) {
-        const text = italicEl.textContent || '';
-        const textNode = document.createTextNode(text);
-        italicEl.parentNode?.replaceChild(textNode, italicEl);
-        const newRange = document.createRange();
-        newRange.setStart(textNode, Math.min(range.startOffset, text.length));
-        newRange.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(newRange);
-        syncContent();
-        updateToolbarState();
-        return;
-      }
-
-      const textNode = range.startContainer;
-      if (textNode.nodeType === Node.TEXT_NODE) {
-        const text = textNode.nodeValue || '';
-        const offset = range.startOffset;
-        let start = offset;
-        let end = offset;
-        while (start > 0 && /\S/.test(text[start - 1])) start--;
-        while (end < text.length && /\S/.test(text[end])) end++;
-        if (end > start) {
-          const wordRange = document.createRange();
-          wordRange.setStart(textNode, start);
-          wordRange.setEnd(textNode, end);
-          sel.removeAllRanges();
-          sel.addRange(wordRange);
-        }
-      }
-    }
-
-    const wasItalic = document.queryCommandState('italic');
-    document.execCommand('italic', false);
-
-    if (wasItalic) {
-      const allItalics = wysiwygRef.current?.querySelectorAll('em, i');
-      allItalics?.forEach((el) => {
-        if (sel.containsNode(el, true)) {
-          const text = el.textContent || '';
-          el.replaceWith(document.createTextNode(text));
-        }
-      });
-    }
-
-    syncContent();
-    updateToolbarState();
+    toggleInlineFormat('italic', 'em, i');
   }
 
   function executeFormat(cmd: string, val: string = '') {
@@ -419,6 +389,12 @@ export function MarkdownEditor({
 
   async function handleUploadImageFile(file: File) {
     if (!onUploadImage || isUploading) return;
+    setUploadError(null);
+    if (!SUPPORTED_UPLOAD_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+      setUploadError('Only PNG, JPEG, GIF or WebP images can be inserted.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     setIsUploading(true);
     try {
       const res = await onUploadImage(file);
@@ -461,6 +437,7 @@ export function MarkdownEditor({
       onUploadComplete?.(latestValueRef.current);
     } catch (err) {
       console.error('Failed to upload image:', err);
+      setUploadError(uploadErrorMessage(err));
     } finally {
       setIsUploading(false);
       savedSelectionRangeRef.current = null;
@@ -898,6 +875,11 @@ export function MarkdownEditor({
         </div>
 
         {isUploading && <div className={styles.uploadStatus}>Uploading image...</div>}
+        {uploadError && (
+          <div className={styles.uploadError} role="alert">
+            {uploadError}
+          </div>
+        )}
 
         {/* Approach B: WYSIWYG Content Area */}
         <div
@@ -915,13 +897,16 @@ export function MarkdownEditor({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onDrop={handleDrop}
-          onBlur={syncContent}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).tagName === 'INPUT') syncContent();
+          }}
+          onBlur={() => {
+            if (dirtyRef.current) syncContent();
+          }}
         />
       </div>
 
-      <div className={styles.hintText}>
-        Same toolbar as Approach A, same buttons — the only difference is what&apos;s underneath it: rendered content you type straight into, instead of raw Markdown text. Select a word, hit Bold, it turns bold right there.
-      </div>
+
     </div>
   );
 }

@@ -164,12 +164,6 @@
   box-sizing: border-box;
 }
 
-.hintText {
-  font-size: 11.5px;
-  color: #9AA8A0;
-  margin-top: 6px;
-}
-
 .uploadStatus {
   padding: 6px 14px;
   font-size: 11.5px;
@@ -177,6 +171,15 @@
   color: #2E6F40;
   background: #F1F8F3;
   border-bottom: 1px solid #D7E8DC;
+}
+
+.uploadError {
+  padding: 6px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #B3261E;
+  background: #FDF1F0;
+  border-bottom: 1px solid #F3C9C5;
 }
 
 .fileInput {
@@ -405,4 +408,44 @@
 
 .popoverApplyBtn:hover {
   background: #245833;
+}
+
+.wysiwygArea table {
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  width: 100%;
+}
+
+.wysiwygArea th,
+.wysiwygArea td {
+  border: 1px solid #D7E8DC;
+  padding: 5px 9px;
+  text-align: left;
+  min-width: 40px;
+}
+
+.wysiwygArea th {
+  background: #F1F8F3;
+  font-weight: 700;
+}
+
+.wysiwygArea hr {
+  border: 0;
+  border-top: 1px solid #D7E8DC;
+  margin: 14px 0;
+}
+
+.wysiwygArea del {
+  color: #7A8A80;
+}
+
+.wysiwygArea li[data-task] {
+  list-style: none;
+  margin-left: -18px;
+}
+
+.wysiwygArea li[data-task] > input[type='checkbox'] {
+  margin-right: 6px;
+  accent-color: #2E6F40;
+  cursor: pointer;
 }
