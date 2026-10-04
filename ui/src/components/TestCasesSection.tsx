@@ -270,8 +270,16 @@ function TestCaseRowItem({
           <div className={styles.fieldGroup}>
             <span className={styles.fieldLabel}>Test data</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {(tc.testDataFiles ?? []).map((file, i) => {
-                const href = uploadUrl(file.url, file.name);
+              {(tc.testDataFiles ?? []).map((rawFile, i) => {
+                const file: TestCaseFileData = typeof rawFile === 'string'
+                  ? {
+                      id: `legacy-${i}`,
+                      name: (rawFile as string).split('/').pop() || (rawFile as string),
+                      url: rawFile as string,
+                      size: undefined,
+                    }
+                  : rawFile;
+                const href = file?.url ? uploadUrl(file.url, file.name) : '';
                 const chip = (
                   <>
                     <div className={styles.fileIcon} style={{ background: '#F1F8F3' }}>
@@ -281,15 +289,15 @@ function TestCaseRowItem({
                       </svg>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file.name}</span>
-                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>{file.size ? formatFileSize(file.size) : 'file'}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file?.name || 'file'}</span>
+                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>{file?.size ? formatFileSize(file.size) : 'file'}</span>
                     </div>
                   </>
                 );
                 return (
-                  <div key={file.id || i} className={styles.fileChip}>
+                  <div key={file?.id || i} className={styles.fileChip}>
                     {href ? (
-                      <a href={href} download={file.name} title={`Download ${file.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+                      <a href={href} download={file?.name} title={`Download ${file?.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
                         {chip}
                       </a>
                     ) : chip}
@@ -297,11 +305,11 @@ function TestCaseRowItem({
                       <button
                         type="button"
                         className={styles.fileRemoveBtn}
-                        aria-label={`Remove ${file.name}`}
+                        aria-label={`Remove ${file?.name || 'file'}`}
                         onClick={() =>
                           onUpdate({
                             ...tc,
-                            testDataFiles: (tc.testDataFiles ?? []).filter((f) => f !== file),
+                            testDataFiles: (tc.testDataFiles ?? []).filter((f) => f !== rawFile),
                             updatedAt: new Date().toISOString(),
                           })
                         }
