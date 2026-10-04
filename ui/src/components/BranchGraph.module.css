@@ -1,27 +1,79 @@
-.wrap { display: flex; flex-direction: column; gap: 10px; }
-.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.toggle { display: inline-flex; background: #F6FAF7; border: 1px solid #E3E8E5; border-radius: 8px; padding: 2px; }
-.toggleBtn { border: none; background: none; padding: 4px 10px; font-size: 12px; font-family: inherit; color: #5B6B60; border-radius: 6px; cursor: pointer; }
-.toggleBtnActive { background: #FFFFFF; color: #1E2A22; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
-.meta { font-size: 11.5px; color: #9AA8A0; flex-grow: 1; }
-.linkBtn { border: 1px solid #E3E8E5; background: #FFFFFF; border-radius: 6px; padding: 3px 9px; font-size: 11.5px; cursor: pointer; font-family: inherit; color: #2E6F40; }
-.linkBtn:disabled { opacity: 0.5; cursor: default; }
-.scroller { position: relative; border: 1px solid #E3E8E5; border-radius: 10px; background: #FFFFFF; max-height: 460px; overflow: auto; }
+/* Typography matches the rest of the ticket modal: Plus Jakarta Sans for prose,
+   JetBrains Mono for branch names, hashes and paths. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--font-body);
+  color: #1E2A22;
+}
+
+/* Segmented control — same look as the Graph / List tabs */
+.controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toggle { display: inline-flex; gap: 3px; padding: 3px; background: #F6FAF7; border-radius: 8px; }
+.toggleBtn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #9AA8A0;
+  transition: all 0.12s;
+}
+.toggleBtnActive { background: #FFFFFF; box-shadow: 0 1px 2px rgba(30, 42, 34, 0.08); font-weight: 600; color: #1E2A22; }
+.meta { font-size: 12px; color: #9AA8A0; flex-grow: 1; }
+.linkBtn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px dashed #C7D2CB;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: #9AA8A0;
+}
+.linkBtn:hover { border-color: #2E6F40; color: #2E6F40; }
+
+/* Branch legend: every branch created for the ticket */
+.legend { display: flex; flex-direction: column; border: 1px solid #E3E8E5; border-radius: 8px; background: #FFFFFF; overflow: hidden; }
+.legendRow { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #EEF3EF; font-size: 12.5px; }
+.legendRow:last-child { border-bottom: none; }
+.legendDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legendName { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; color: #1E2A22; min-width: 150px; }
+.legendMeta { color: #9AA8A0; font-size: 12px; flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legendPath { font-family: var(--font-mono); font-size: 11px; color: #5B6B60; }
+
+.badge { font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 4px; flex-shrink: 0; white-space: nowrap; }
+.badgeHead { background: #1E2A22; color: #FFFFFF; }
+.badgeWorktree { background: rgba(46, 111, 64, 0.08); color: #2E6F40; }
+.badgeOpen { background: rgba(109, 93, 211, 0.14); color: #6D5DD3; }
+.badgeMerged { background: rgba(46, 111, 64, 0.12); color: #2E6F40; }
+.badgeStale { background: rgba(196, 67, 42, 0.1); color: #C4432A; }
+.badgeArchived { background: #F6FAF7; color: #9AA8A0; }
+.badgeMissing { background: rgba(196, 67, 42, 0.1); color: #C4432A; }
+
+/* Graph */
+.scroller { position: relative; border: 1px solid #E3E8E5; border-radius: 8px; background: #FFFFFF; max-height: 460px; overflow: auto; }
 .body { position: relative; display: flex; min-width: max-content; }
 .svgCol { flex-shrink: 0; }
 .rows { flex-grow: 1; min-width: 0; }
 .row { display: flex; align-items: center; gap: 8px; padding-right: 14px; font-size: 12.5px; color: #1E2A22; white-space: nowrap; }
-.row:hover { background: #F6FAF7; }
-.subject { overflow: hidden; text-overflow: ellipsis; max-width: 460px; }
-.hash { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; }
-.author { color: #5B6B60; font-size: 11.5px; }
-.date { color: #9AA8A0; font-size: 11.5px; margin-left: auto; padding-left: 12px; }
-.chip { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; padding: 1px 6px; border-radius: 999px; border: 1px solid transparent; }
+.row:hover { background: #FAFCFA; }
+.subject { overflow: hidden; text-overflow: ellipsis; max-width: 440px; font-weight: 500; }
+.hash { font-family: var(--font-mono); font-size: 11px; color: #9AA8A0; }
+.author { color: #5B6B60; font-size: 12px; }
+.date { color: #9AA8A0; font-size: 12px; margin-left: auto; padding-left: 12px; }
+.hidden { font-size: 11px; color: #9AA8A0; font-style: italic; }
+
+.chip { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 4px; border: 1px solid transparent; flex-shrink: 0; }
 .chipHead { background: #1E2A22; color: #FFFFFF; }
-.chipBase { background: rgba(46,111,64,0.12); color: #2E6F40; border-color: rgba(46,111,64,0.3); }
-.chipTicket { background: rgba(109,93,211,0.14); color: #6D5DD3; border-color: rgba(109,93,211,0.35); font-weight: 600; }
-.chipOther { background: #F1F4F2; color: #5B6B60; border-color: #E3E8E5; }
-.chipTag { background: rgba(183,121,31,0.12); color: #B7791F; border-color: rgba(183,121,31,0.3); }
-.hidden { font-size: 10.5px; color: #9AA8A0; font-style: italic; }
-.empty { border: 1px dashed #E3E8E5; border-radius: 10px; padding: 28px; text-align: center; color: #5B6B60; font-size: 13px; line-height: 1.6; background: #FFFFFF; }
-.error { color: #C4432A; font-size: 12.5px; }
+.chipBase { background: rgba(46, 111, 64, 0.12); color: #2E6F40; }
+.chipTicket { background: rgba(109, 93, 211, 0.14); color: #6D5DD3; }
+.chipOther { background: #F6FAF7; color: #5B6B60; border-color: #E3E8E5; font-weight: 500; }
+.chipTag { background: rgba(180, 87, 31, 0.1); color: #B4571F; }
+
+.empty { border: 1px dashed #C7D2CB; border-radius: 8px; padding: 28px; text-align: center; color: #5B6B60; font-size: 13px; line-height: 1.6; background: #FFFFFF; font-family: var(--font-body); }
+.error { color: #C4432A; font-size: 12.5px; font-family: var(--font-body); }

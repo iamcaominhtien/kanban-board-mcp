@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useBranchGraph } from '../api/tickets';
+import { useBranchGraph, useTicketBranches } from '../api/tickets';
 import { extractError } from '../api/extractError';
-import type { GraphCommit, GraphRef } from '../types';
+import type { BranchStatus, GraphCommit, GraphRef, TicketBranch } from '../types';
 import styles from './BranchGraph.module.css';
 
 const ROW_H = 30;
@@ -35,6 +35,7 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
   const [mode, setMode] = useState<'overview' | 'all'>('overview');
   const [limit, setLimit] = useState(PAGE);
   const { data, isLoading, error } = useBranchGraph(ticketId, limit);
+  const { data: ticketBranches = [] } = useTicketBranches(ticketId);
 
   const layout = useMemo(() => {
     if (!data || !data.linked) return null;
@@ -98,13 +99,32 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
   const x = (lane: number) => PAD + lane * LANE_W + LANE_W / 2;
   const y = (row: number) => row * ROW_H + ROW_H / 2;
   const ticketSet = new Set(data.branches ?? []);
+  const branchByName = new Map<string, TicketBranch>(ticketBranches.map((b) => [b.name, b]));
+  // lane colour of a branch = lane of the commit that is exclusive to it (open work)
+  const laneOfBranch = (name: string): number | null => {
+    const tip = data.commits.find((c) => c.ticketBranches.includes(name));
+    return tip ? tip.lane : null;
+  };
+  const statusBadge: Record<BranchStatus, string> = {
+    baseline: styles.badgeMerged,
+    open: styles.badgeOpen,
+    merged: styles.badgeMerged,
+    stale: styles.badgeStale,
+    archived: styles.badgeArchived,
+  };
+  const legendBranches = ticketBranches.filter((b) => b.status !== 'baseline');
 
   const chip = (r: GraphRef) => {
     if (r.type === 'head') return <span key="head" className={`${styles.chip} ${styles.chipHead}`}>HEAD</span>;
     if (r.type === 'tag') return <span key={`t-${r.name}`} className={`${styles.chip} ${styles.chipTag}`}>{r.name}</span>;
     if (r.type === 'remote') return <span key={`r-${r.name}`} className={`${styles.chip} ${styles.chipOther}`}>{r.name}</span>;
     const cls = ticketSet.has(r.name) ? styles.chipTicket : r.name === data.base ? styles.chipBase : styles.chipOther;
-    return <span key={`b-${r.name}`} className={`${styles.chip} ${cls}`}>{r.name}</span>;
+    const wt = branchByName.get(r.name)?.worktreePath;
+    return (
+      <span key={`b-${r.name}`} className={`${styles.chip} ${cls}`} title={wt ? `Worktree: ${wt}` : undefined}>
+        {wt ? '🌳 ' : ''}{r.name}
+      </span>
+    );
   };
 
   const edgePath = (e: Edge) => {
@@ -152,6 +172,49 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
           </button>
         )}
       </div>
+
+      {legendBranches.length > 0 && (
+        <div className={styles.legend} aria-label="Branches of this ticket">
+          {legendBranches.map((b) => {
+            const lane = laneOfBranch(b.name);
+            const color = lane !== null ? laneColor(lane) : '#9AA8A0';
+            return (
+              <div key={b.id} className={styles.legendRow}>
+                <span className={styles.legendDot} style={{ background: color }} />
+                <span className={styles.legendName} title={b.name}>{b.name}</span>
+                <span className={`${styles.badge} ${statusBadge[b.status]}`}>
+                  {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                </span>
+                {b.isCurrent && (
+                  <span className={`${styles.badge} ${styles.badgeHead}`} title="Checked out in the repository's main working tree">
+                    HEAD · checked out
+                  </span>
+                )}
+                {b.worktreePath && (
+                  <span className={`${styles.badge} ${styles.badgeWorktree}`} title={b.worktreePath}>
+                    🌳 worktree
+                  </span>
+                )}
+                {b.inRepo === false && (
+                  <span className={`${styles.badge} ${styles.badgeMissing}`} title="This branch doesn't exist in the linked repository">
+                    not in repo
+                  </span>
+                )}
+                <span className={styles.legendMeta}>
+                  from <span className={styles.legendPath}>{b.branchFrom || 'main'}</span>
+                  {b.aheadCount !== undefined && ` · ${b.aheadCount} ahead, ${b.behindCount ?? 0} behind`}
+                  {b.worktreePath && (
+                    <>
+                      {' · '}
+                      <span className={styles.legendPath}>{b.worktreePath}</span>
+                    </>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className={styles.scroller}>
         <div className={styles.body}>
