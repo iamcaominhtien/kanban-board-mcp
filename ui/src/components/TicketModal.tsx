@@ -987,15 +987,31 @@ export function TicketModal({
                     })}
                   </div>
 
-                  <div className={styles.branchCreateInline}>
-                    <div style={{ fontSize: 11, color: '#9AA8A0', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <span>
-                        Git repo · {ticket.repoPath ? 'ticket override' : project?.repoPath ? 'from project' : 'not set'}
-                      </span>
+                  <div className={styles.repoConfigBox}>
+                    <div className={styles.repoConfigHeader}>
+                      <div className={styles.repoConfigTitle}>
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={styles.repoIcon}
+                        >
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span>Local Git repo</span>
+                        <span className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}>
+                          {ticket.repoPath ? 'override' : project?.repoPath ? 'project' : 'not linked'}
+                        </span>
+                      </div>
                       {!isEditingRepo && (
                         <button
                           type="button"
-                          className={styles.branchCreateCancel}
+                          className={styles.repoActionBtn}
                           onClick={() => {
                             setRepoPathDraft(ticket.repoPath ?? project?.repoPath ?? '');
                             setIsEditingRepo(true);
@@ -1005,9 +1021,10 @@ export function TicketModal({
                         </button>
                       )}
                     </div>
+
                     {isEditingRepo ? (
                       <form
-                        style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                        className={styles.repoEditForm}
                         onSubmit={(e) => {
                           e.preventDefault();
                           saveTicketRepo(repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft);
@@ -1015,35 +1032,32 @@ export function TicketModal({
                       >
                         <input
                           type="text"
-                          className={styles.branchCreateInput}
-                          placeholder="/path/to/repo"
+                          className={styles.repoInput}
+                          placeholder="/absolute/path/to/local/git-repo"
                           value={repoPathDraft}
                           onChange={(e) => setRepoPathDraft(e.target.value)}
                           autoFocus
                         />
-                        <div className={styles.branchCreateActions}>
+                        <div className={styles.repoFormActions}>
                           {ticket.repoPath && (
                             <button
                               type="button"
-                              className={styles.btnSec}
-                              style={{ padding: '4px 8px', fontSize: 11 }}
+                              className={styles.repoBtnSecondary}
                               onClick={() => saveTicketRepo('')}
                             >
-                              Use project default
+                              Reset to project
                             </button>
                           )}
                           <button
                             type="button"
-                            className={styles.btnSec}
-                            style={{ padding: '4px 8px', fontSize: 11 }}
+                            className={styles.repoBtnSecondary}
                             onClick={() => setIsEditingRepo(false)}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className={styles.btnPri}
-                            style={{ padding: '4px 10px', fontSize: 11 }}
+                            className={styles.repoBtnPrimary}
                             disabled={updateTicketMutation.isPending || !repoPathDraft.trim()}
                           >
                             Save
@@ -1051,9 +1065,17 @@ export function TicketModal({
                         </div>
                       </form>
                     ) : (
-                      <span className={styles.branchRowName} title={effectiveRepoPath ?? ''} style={{ fontSize: 11.5 }}>
-                        {effectiveRepoPath ?? 'Branches are only stored on the board'}
-                      </span>
+                      <div className={styles.repoStatusBody}>
+                        {effectiveRepoPath ? (
+                          <span className={styles.repoPathMono} title={effectiveRepoPath}>
+                            {effectiveRepoPath}
+                          </span>
+                        ) : (
+                          <span className={styles.repoEmptyDesc}>
+                            Branches only exist on this board until a local repository is linked.
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
 
