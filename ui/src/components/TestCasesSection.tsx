@@ -27,6 +27,12 @@ const STATUS_CYCLE: Record<TestCaseStatus, TestCaseStatus> = {
   fail: 'pending',
 };
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function formatTimeAgo(isoString?: string | null): string {
   if (!isoString) return '';
   const date = new Date(isoString);
@@ -294,7 +300,7 @@ function TestCaseRowItem({
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file.name}</span>
-                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>{file.size ? `${Math.round(file.size / 1024)} KB` : 'file'}</span>
+                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>{file.size ? formatFileSize(file.size) : 'file'}</span>
                     </div>
                   </>
                 );
