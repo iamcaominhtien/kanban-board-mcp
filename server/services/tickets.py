@@ -433,6 +433,70 @@ async def delete_acceptance_criterion(
 # Sub-entity: work log
 # ---------------------------------------------------------------------------
 
+WORK_LOG_KINDS = ("investigation", "fix_attempt", "root_cause", "blocked", "resolved")
+WORK_LOG_ROLES = ("PM", "Developer", "BA", "Tester", "Designer", "Other")
+MAX_WORK_LOG_NOTE = 20_000
+
+
+def _clean_attachments(attachments: list | None) -> list[dict]:
+    """Attachments must point at files stored by /uploads/files (or images)."""
+    out: list[dict] = []
+    for raw in attachments or []:
+        if not isinstance(raw, dict):
+            raise ValueError("Each attachment must be an object")
+        url = str(raw.get("url") or "")
+        name = str(raw.get("name") or "").strip()
+        if not url.startswith("/uploads/") or ".." in url or not name:
+            raise ValueError("Attachments need a name and a /uploads/ url (upload the file first)")
+        item = {"id": str(raw.get("id") or uuid.uuid4()), "name": name[:200], "url": url}
+        if isinstance(raw.get("size"), int):
+            item["size"] = raw["size"]
+        if raw.get("type"):
+            item["type"] = str(raw["type"])[:100]
+        out.append(item)
+    return out
+
+
+def _resolve_work_log_links(
+    ticket: Ticket, linked_branch: str | None, linked_test_case: str | None
+) -> tuple[str | None, str | None]:
+    """Links must point at a real branch / test case of this ticket ("" clears)."""
+    branch = (linked_branch or "").strip() or None
+    if branch is not None:
+        names = {b.get("name") for b in _loads(getattr(ticket, "branches", "[]"))}
+        if branch not in names:
+            raise ValueError(f"Branch '{branch}' does not exist on this ticket")
+    tc_ref = (linked_test_case or "").strip() or None
+    if tc_ref is not None:
+        match = next(
+            (
+                t
+                for t in _loads(ticket.test_cases)
+                if tc_ref in (t.get("code"), t.get("id"))
+            ),
+            None,
+        )
+        if match is None:
+            raise ValueError(f"Test case '{tc_ref}' does not exist on this ticket")
+        tc_ref = match.get("code") or match.get("id")
+    return branch, tc_ref
+
+
+def _validate_work_log_fields(
+    *, author: str | None, role: str | None, note: str | None, kind: str | None
+) -> None:
+    if author is not None and not author.strip():
+        raise ValueError("Author must not be empty")
+    if role is not None and role not in WORK_LOG_ROLES:
+        raise ValueError(f"Invalid role '{role}'. Valid roles: {list(WORK_LOG_ROLES)}")
+    if note is not None:
+        if not note.strip():
+            raise ValueError("Note must not be empty")
+        if len(note) > MAX_WORK_LOG_NOTE:
+            raise ValueError(f"Note is longer than {MAX_WORK_LOG_NOTE} characters")
+    if kind is not None and kind not in WORK_LOG_KINDS:
+        raise ValueError(f"Invalid kind '{kind}'. Valid kinds: {list(WORK_LOG_KINDS)}")
+
 
 async def add_work_log(
     session: AsyncSession,
@@ -449,6 +513,11 @@ async def add_work_log(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
+    _validate_work_log_fields(author=author, role=role, note=note, kind=kind)
+    linked_branch, linked_test_case = _resolve_work_log_links(
+        ticket, linked_branch, linked_test_case
+    )
+    attachments = _clean_attachments(attachments)
     logs = _loads(ticket.work_log)
     now_iso = datetime.now(UTC).isoformat()
     logs.append(
@@ -456,11 +525,11 @@ async def add_work_log(
             "id": str(uuid.uuid4()),
             "author": author,
             "role": role,
-            "note": note,
+            "note": note.strip(),
             "at": now_iso,
             "kind": kind,
             "pinned": pinned,
-            "attachments": attachments or [],
+            "attachments": attachments,
             "linked_branch": linked_branch,
             "linkedBranch": linked_branch,
             "linked_test_case": linked_test_case,
@@ -493,6 +562,13 @@ async def update_work_log(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
+    _validate_work_log_fields(author=author, role=role, note=note, kind=kind)
+    if linked_branch is not None or linked_test_case is not None:
+        resolved_branch, resolved_tc = _resolve_work_log_links(ticket, linked_branch, linked_test_case)
+    if attachments is not None:
+        attachments = _clean_attachments(attachments)
+    if note is not None:
+        note = note.strip()
     logs = _loads(ticket.work_log)
     found = False
     for lg in logs:
@@ -509,11 +585,11 @@ async def update_work_log(
             if attachments is not None:
                 lg["attachments"] = attachments
             if linked_branch is not None:
-                lg["linked_branch"] = linked_branch
-                lg["linkedBranch"] = linked_branch
+                lg["linked_branch"] = resolved_branch
+                lg["linkedBranch"] = resolved_branch
             if linked_test_case is not None:
-                lg["linked_test_case"] = linked_test_case
-                lg["linkedTestCase"] = linked_test_case
+                lg["linked_test_case"] = resolved_tc
+                lg["linkedTestCase"] = resolved_tc
             if author is not None:
                 lg["author"] = author
             if role is not None:

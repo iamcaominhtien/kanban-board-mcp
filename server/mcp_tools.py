@@ -376,6 +376,17 @@ async def update_work_log(
 
 
 @notify_on_success
+async def delete_work_log(ticket_id: str, log_id: str) -> dict | None:
+    """Delete a work or debug entry from a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.delete_work_log(session, ticket_id, log_id)
+        if ticket is None:
+            return None
+        result = TicketRead.from_ticket(ticket).model_dump()
+    return result
+
+
+@notify_on_success
 async def add_test_case(
     ticket_id: str,
     title: str,
@@ -1005,6 +1016,7 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(delete_comment)
     mcp.tool()(add_work_log)
     mcp.tool()(update_work_log)
+    mcp.tool()(delete_work_log)
     mcp.tool()(add_test_case)
     mcp.tool()(update_test_case)
     mcp.tool()(create_child_ticket)

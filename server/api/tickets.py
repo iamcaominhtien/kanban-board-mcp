@@ -9,6 +9,7 @@ import events as board_events
 from database import get_session
 from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
 from uploads import (
+    MAX_ATTACHMENT_BYTES,
     MAX_DESCRIPTION_IMAGE_BYTES,
     MIME_BY_EXTENSION,
     SUPPORTED_IMAGE_EXTENSIONS,
@@ -139,6 +140,48 @@ async def upload_description_image(
         filename=stored_filename,
         content_type=content_type,
         size=len(payload),
+    )
+
+
+class AttachmentUploadResponse(BaseModel):
+    id: str
+    url: str
+    name: str
+    size: int
+    type: str
+
+
+@router.post("/uploads/files", response_model=AttachmentUploadResponse, status_code=201)
+async def upload_attachment(file: UploadFile = File(...)) -> AttachmentUploadResponse:
+    """Store any file (log, trace, fixture...) so an entry can attach it by url."""
+    original = file.filename or ""
+    if not Path(original).name:
+        raise HTTPException(status_code=400, detail="File name is required.")
+    chunks: list[bytes] = []
+    total = 0
+    try:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > MAX_ATTACHMENT_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File exceeds the {MAX_ATTACHMENT_BYTES // (1024 * 1024)}MB upload limit.",
+                )
+            chunks.append(chunk)
+    finally:
+        await file.close()
+
+    stored = build_upload_filename(original)
+    (get_uploads_dir() / stored).write_bytes(b"".join(chunks))
+    return AttachmentUploadResponse(
+        id=Path(stored).stem[-12:],
+        url=f"/uploads/{stored}",
+        name=Path(original).name[:200],
+        size=total,
+        type=(file.content_type or "application/octet-stream")[:100],
     )
 
 
@@ -344,11 +387,15 @@ async def del_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketR
 # ---------------------------------------------------------------------------
 
 
+WorkLogKind = Literal["investigation", "fix_attempt", "root_cause", "blocked", "resolved"]
+WorkLogRole = Literal["PM", "Developer", "BA", "Tester", "Designer", "Other"]
+
+
 class WorkLogBody(BaseModel):
     author: str
-    role: str
+    role: WorkLogRole
     note: str
-    kind: str = "investigation"
+    kind: WorkLogKind = "investigation"
     pinned: bool = False
     attachments: list[dict[str, Any]] = []
     linked_branch: str | None = None
@@ -357,9 +404,9 @@ class WorkLogBody(BaseModel):
 
 class WorkLogUpdateBody(BaseModel):
     author: str | None = None
-    role: str | None = None
+    role: WorkLogRole | None = None
     note: str | None = None
-    kind: str | None = None
+    kind: WorkLogKind | None = None
     pinned: bool | None = None
     attachments: list[dict[str, Any]] | None = None
     linked_branch: str | None = None
@@ -370,18 +417,21 @@ class WorkLogUpdateBody(BaseModel):
 async def post_work_log(
     ticket_id: str, body: WorkLogBody, session: Session
 ) -> TicketRead:
-    ticket = await add_work_log(
-        session,
-        ticket_id,
-        author=body.author,
-        role=body.role,
-        note=body.note,
-        kind=body.kind,
-        pinned=body.pinned,
-        attachments=body.attachments,
-        linked_branch=body.linked_branch,
-        linked_test_case=body.linked_test_case,
-    )
+    try:
+        ticket = await add_work_log(
+            session,
+            ticket_id,
+            author=body.author,
+            role=body.role,
+            note=body.note,
+            kind=body.kind,
+            pinned=body.pinned,
+            attachments=body.attachments,
+            linked_branch=body.linked_branch,
+            linked_test_case=body.linked_test_case,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -392,19 +442,22 @@ async def post_work_log(
 async def patch_work_log(
     ticket_id: str, log_id: str, body: WorkLogUpdateBody, session: Session
 ) -> TicketRead:
-    ticket = await update_work_log(
-        session,
-        ticket_id,
-        log_id,
-        note=body.note,
-        kind=body.kind,
-        pinned=body.pinned,
-        attachments=body.attachments,
-        linked_branch=body.linked_branch,
-        linked_test_case=body.linked_test_case,
-        author=body.author,
-        role=body.role,
-    )
+    try:
+        ticket = await update_work_log(
+            session,
+            ticket_id,
+            log_id,
+            note=body.note,
+            kind=body.kind,
+            pinned=body.pinned,
+            attachments=body.attachments,
+            linked_branch=body.linked_branch,
+            linked_test_case=body.linked_test_case,
+            author=body.author,
+            role=body.role,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

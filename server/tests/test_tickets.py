@@ -280,7 +280,7 @@ async def test_add_work_log(client: httpx.AsyncClient):
         ticket = await _create_ticket(c, project["id"])
         r = await c.post(
             f"/tickets/{ticket['id']}/work-log",
-            json={"author": "bob", "role": "dev", "note": "Did stuff"},
+            json={"author": "bob", "role": "Developer", "note": "Did stuff"},
         )
     assert r.status_code == 200
     wl = r.json()["work_log"]
@@ -294,7 +294,7 @@ async def test_delete_work_log(client: httpx.AsyncClient):
         ticket = await _create_ticket(c, project["id"])
         r_add = await c.post(
             f"/tickets/{ticket['id']}/work-log",
-            json={"author": "alice", "role": "qa", "note": "Reviewed"},
+            json={"author": "alice", "role": "Tester", "note": "Reviewed"},
         )
         assert r_add.status_code == 200
         log_id = r_add.json()["work_log"][0]["id"]
@@ -307,6 +307,9 @@ async def test_debug_space_extended_work_log_and_update(client: httpx.AsyncClien
     async with client as c:
         project = await _create_project(c)
         ticket = await _create_ticket(c, project["id"])
+        # Links must point at a real branch and test case of the ticket
+        await c.post(f"/tickets/{ticket['id']}/branches", json={"name": "fix/jwt-decode"})
+        await c.post(f"/tickets/{ticket['id']}/test-cases", json={"title": "jwt decode"})
 
         # Add rich debug entry
         r_add = await c.post(

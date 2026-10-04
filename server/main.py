@@ -22,7 +22,7 @@ import database
 from database import init_db
 from services import activity as svc_activity
 from services import workspace as svc_workspace
-from uploads import resolve_upload_path
+from uploads import MIME_BY_EXTENSION, resolve_upload_path
 
 
 mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
@@ -104,9 +104,16 @@ async def serve_upload(file_path: str):
         raise HTTPException(status_code=400, detail="Invalid path")
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="File not found")
+    headers = {"X-Content-Type-Options": "nosniff"}
+    if resolved.suffix.lower() in MIME_BY_EXTENSION:
+        return FileResponse(resolved, headers=headers)
+    # Anything that is not a known image is only ever offered as a download, so an
+    # uploaded .html/.svg can never run script in the app's origin.
     return FileResponse(
         resolved,
-        headers={"X-Content-Type-Options": "nosniff"},
+        media_type="application/octet-stream",
+        filename=resolved.name,
+        headers=headers,
     )
 
 
