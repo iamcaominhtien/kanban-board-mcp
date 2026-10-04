@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useBranchGraph, useTicketBranches } from '../api/tickets';
+import { useBranchGraph, useCommitDetail, useTicketBranches } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import type { BranchStatus, GraphCommit, GraphRef, TicketBranch } from '../types';
 import styles from './BranchGraph.module.css';
@@ -34,6 +34,7 @@ interface Edge {
 export function BranchGraph({ ticketId }: { ticketId: string }) {
   const [mode, setMode] = useState<'overview' | 'all'>('overview');
   const [limit, setLimit] = useState(PAGE);
+  const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const { data, isLoading, error } = useBranchGraph(ticketId, limit);
   const { data: ticketBranches = [] } = useTicketBranches(ticketId);
 
@@ -255,7 +256,22 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
             {visible.map((c, i) => {
               const hiddenAfter = edges.find((e) => e.from === i && !e.secondParent)?.hidden ?? 0;
               return (
-                <div key={c.hash} className={styles.row} style={{ height: ROW_H }} title={`${c.subject}\n\n${c.hash}\n${c.author}\n${new Date(c.date).toLocaleString()}`}>
+                <div
+                  key={c.hash}
+                  className={`${styles.row} ${styles.rowClickable} ${selectedHash === c.hash ? styles.rowSelected : ''}`}
+                  style={{ height: ROW_H }}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedHash === c.hash}
+                  onClick={() => setSelectedHash(selectedHash === c.hash ? null : c.hash)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedHash(selectedHash === c.hash ? null : c.hash);
+                    }
+                  }}
+                  title={`${c.subject}\n\n${c.hash}\n${c.author}\n${new Date(c.date).toLocaleString()}`}
+                >
                   {c.refs.map(chip)}
                   <span className={styles.subject}>{c.subject}</span>
                   {hiddenAfter > 0 && <span className={styles.hidden}>+{hiddenAfter} commits</span>}
@@ -268,6 +284,154 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
           </div>
         </div>
       </div>
+      {selectedHash && (
+        <CommitPanel
+          ticketId={ticketId}
+          hash={selectedHash}
+          graphCommit={data.commits.find((c) => c.hash === selectedHash)}
+          knownHashes={new Set(data.commits.map((c) => c.hash))}
+          renderChip={chip}
+          onSelect={setSelectedHash}
+          onClose={() => setSelectedHash(null)}
+        />
+      )}
     </div>
   );
+}
+
+
+function CommitPanel({
+  ticketId,
+  hash,
+  graphCommit,
+  knownHashes,
+  renderChip,
+  onSelect,
+  onClose,
+}: {
+  ticketId: string;
+  hash: string;
+  graphCommit?: GraphCommit;
+  knownHashes: Set<string>;
+  renderChip: (r: GraphRef) => JSX.Element;
+  onSelect: (hash: string) => void;
+  onClose: () => void;
+}) {
+  const { data, isLoading, error } = useCommitDetail(ticketId, hash);
+  const [copied, setCopied] = useState(false);
+
+  async function copyHash() {
+    try {
+      await navigator.clipboard.writeText(hash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard unavailable (e.g. insecure context): nothing to do
+    }
+  }
+
+  return (
+    <div className={styles.panel} aria-label="Commit details">
+      {isLoading && <div className={styles.panelLoading}>Loading commit…</div>}
+      {error && (
+        <div className={styles.panelHead}>
+          <div className={styles.error}>Couldn't load this commit: {extractError(error)}</div>
+          <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">×</button>
+        </div>
+      )}
+      {data && (
+        <>
+          <div className={styles.panelHead}>
+            <div className={styles.panelSubject}>{data.subject}</div>
+            <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">×</button>
+          </div>
+
+          <div className={styles.panelMeta}>
+            <span>
+              <span className={styles.metaStrong}>{data.author}</span>
+              {data.authorEmail && <span className={styles.metaMono}> &lt;{data.authorEmail}&gt;</span>}
+            </span>
+            <span title={new Date(data.date).toLocaleString()}>
+              {new Date(data.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} · {relativeDate(data.date)}
+            </span>
+            {data.committer && data.committer !== data.author && (
+              <span>committed by <span className={styles.metaStrong}>{data.committer}</span></span>
+            )}
+            <span>
+              <span className={styles.metaMono}>{data.hash}</span>{' '}
+              <button type="button" className={styles.copyBtn} onClick={copyHash}>{copied ? 'Copied' : 'Copy'}</button>
+            </span>
+            {data.parents.length > 0 && (
+              <span>
+                {data.parents.length > 1 ? 'parents' : 'parent'}{' '}
+                {data.parents.map((p, i) => (
+                  <span key={p}>
+                    {i > 0 && ', '}
+                    {knownHashes.has(p) ? (
+                      <button type="button" className={styles.parentLink} onClick={() => onSelect(p)}>{p.slice(0, 7)}</button>
+                    ) : (
+                      <span className={styles.parentText}>{p.slice(0, 7)}</span>
+                    )}
+                  </span>
+                ))}
+              </span>
+            )}
+          </div>
+
+          {graphCommit && graphCommit.refs.length > 0 && (
+            <div className={styles.panelChips}>{graphCommit.refs.map(renderChip)}</div>
+          )}
+
+          {data.body && <pre className={styles.panelBody}>{data.body}</pre>}
+
+          <div className={styles.panelSection}>
+            <div className={styles.filesHead}>
+              <span>
+                {data.fileCount} file{data.fileCount === 1 ? '' : 's'} changed
+                {data.parents.length > 1 ? ' (vs first parent)' : ''}
+              </span>
+              <span className={styles.add}>+{data.additions}</span>
+              <span className={styles.del}>−{data.deletions}</span>
+            </div>
+            {data.files.length > 0 ? (
+              <div className={styles.files}>
+                {data.files.map((f) => (
+                  <div key={`${f.status}-${f.path}`} className={styles.fileRow}>
+                    <span className={`${styles.fileStatus} ${styles['st' + f.status] ?? styles.stM}`} title={statusLabel(f.status)}>
+                      {f.status}
+                    </span>
+                    <span className={styles.filePath} title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}>
+                      {f.oldPath && <span className={styles.fileOld}>{f.oldPath} → </span>}
+                      {f.path}
+                    </span>
+                    <span className={styles.fileStats}>
+                      {f.binary ? (
+                        <span className={styles.metaMono}>binary</span>
+                      ) : (
+                        <>
+                          <span className={styles.add}>+{f.additions}</span>
+                          <span className={styles.del}>−{f.deletions}</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.panelNote}>No file changes in this commit.</div>
+            )}
+            {data.filesTruncated && (
+              <div className={styles.panelNote}>Showing the first {data.files.length} of {data.fileCount} files.</div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function statusLabel(status: string): string {
+  return (
+    { A: 'Added', M: 'Modified', D: 'Deleted', R: 'Renamed', C: 'Copied', T: 'Type changed' } as Record<string, string>
+  )[status] ?? status;
 }

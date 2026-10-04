@@ -452,3 +452,68 @@ async def test_graph_limit_truncates_when_branch_forked_recently(client: httpx.A
         _git(repo_dir, "checkout", "-q", "main")
         g = (await c.get(f"/tickets/{t['id']}/graph", params={"limit": 5})).json()
         assert len(g["commits"]) == 5 and g["truncated"] is True
+
+
+async def test_commit_detail_message_and_file_changes(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        # root commit: a.txt added
+        root = _git(repo_dir, "rev-parse", "HEAD").strip()
+        d = (await c.get(f"/tickets/{t['id']}/commits/{root}")).json()
+        assert d["subject"] == "init" and d["body"] == "" and d["parents"] == []
+        assert [(f["status"], f["path"]) for f in d["files"]] == [("A", "a.txt")]
+
+        # modify + add + delete + rename + binary in one multi-line commit
+        (repo_dir / "a.txt").write_text("a\nline2\nline3\n")
+        (repo_dir / "new.txt").write_text("n1\nn2\n")
+        (repo_dir / "gone.txt").write_text("x")
+        _git(repo_dir, "add", ".")
+        _git(repo_dir, "commit", "-qm", "seed")
+        _git(repo_dir, "rm", "-q", "gone.txt")
+        _git(repo_dir, "mv", "new.txt", "renamed.txt")
+        (repo_dir / "img.bin").write_bytes(b"\x00\x01\x02\x03")
+        _git(repo_dir, "add", ".")
+        _git(repo_dir, "commit", "-q", "-m", "Big change", "-m", "Body paragraph one.\n\nSecond paragraph.")
+        sha = _git(repo_dir, "rev-parse", "HEAD").strip()
+        d = (await c.get(f"/tickets/{t['id']}/commits/{sha[:10]}")).json()  # short hash works
+        assert d["hash"] == sha and d["subject"] == "Big change"
+        assert d["body"] == "Body paragraph one.\n\nSecond paragraph."
+        assert d["author"] == "Tester" and d["author_email"] == "t@example.com"
+        by = {f["path"]: f for f in d["files"]}
+        assert by["gone.txt"]["status"] == "D"
+        assert by["renamed.txt"]["status"] == "R" and by["renamed.txt"]["old_path"] == "new.txt"
+        assert by["img.bin"]["binary"] is True and by["img.bin"]["additions"] == 0
+        assert d["file_count"] == 3 and d["files_truncated"] is False
+
+        # the earlier 'seed' commit reports line counts
+        seed = _git(repo_dir, "rev-parse", "HEAD~1").strip()
+        s = (await c.get(f"/tickets/{t['id']}/commits/{seed}")).json()
+        a = {f["path"]: f for f in s["files"]}
+        # "a" (no trailing newline) became "a\nline2\nline3\n": git counts +3 -1
+        assert a["a.txt"]["status"] == "M" and a["a.txt"]["additions"] == 3 and a["a.txt"]["deletions"] == 1
+        assert a["new.txt"]["additions"] == 2 and a["gone.txt"]["additions"] == 1
+        assert s["additions"] == 6 and s["deletions"] == 1
+
+
+async def test_commit_detail_merge_uses_first_parent_and_validates_input(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        t = await _ticket_with_repo(c, repo_dir)
+        await _branch(c, t, "feat/mm")
+        _commit(repo_dir, "side.txt", "feat/mm")
+        _git(repo_dir, "checkout", "-q", "main")
+        _git(repo_dir, "merge", "-q", "--no-ff", "feat/mm", "-m", "merge side")
+        sha = _git(repo_dir, "rev-parse", "HEAD").strip()
+        d = (await c.get(f"/tickets/{t['id']}/commits/{sha}")).json()
+        assert len(d["parents"]) == 2
+        assert [(f["status"], f["path"]) for f in d["files"]] == [("A", "side.txt")]
+
+        assert (await c.get(f"/tickets/{t['id']}/commits/not-a-hash")).status_code == 400
+        assert (await c.get(f"/tickets/{t['id']}/commits/{'0' * 40}")).status_code == 400
+        assert (await c.get(f"/tickets/{t['id']}/commits/--output=x")).status_code in (400, 404)
+
+
+async def test_commit_detail_requires_linked_repo(client: httpx.AsyncClient):
+    async with client as c:
+        p = (await c.post("/projects", json={"name": "G", "prefix": "GIT", "color": "#123456"})).json()
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        assert (await c.get(f"/tickets/{t['id']}/commits/abcdef1")).status_code == 400

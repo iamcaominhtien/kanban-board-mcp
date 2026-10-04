@@ -1213,3 +1213,15 @@ async def get_branch_graph(session: AsyncSession, ticket_id: str, limit: int = 8
         return graph
 
     return await asyncio.to_thread(_build)
+
+
+async def get_commit_detail(session: AsyncSession, ticket_id: str, rev: str) -> dict | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    repo_path = await _project_repo_path(session, ticket)
+    if not repo_path:
+        raise ValueError("Link a git repository to this project or ticket first")
+    return await asyncio.to_thread(
+        lambda: git_repo.commit_detail(git_repo.open_repo(repo_path), rev)
+    )

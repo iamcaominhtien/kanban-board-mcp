@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { BranchGraphData, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceSettings } from '../types/ticket';
+import type { BranchGraphData, CommitDetail, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceSettings } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -273,6 +273,11 @@ export async function deleteBranch(
 
 export async function getBranchGraph(ticketId: string, limit: number): Promise<BranchGraphData> {
   const res = await client.get<BranchGraphData>(`/tickets/${ticketId}/graph`, { params: { limit } });
+  return res.data;
+}
+
+export async function getCommitDetail(ticketId: string, rev: string): Promise<CommitDetail> {
+  const res = await client.get<CommitDetail>(`/tickets/${ticketId}/commits/${rev}`);
   return res.data;
 }
 
@@ -682,6 +687,15 @@ export function useBranchGraph(ticketId: string, limit: number) {
     queryFn: () => getBranchGraph(ticketId, limit),
     enabled: !!ticketId,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useCommitDetail(ticketId: string, rev: string | null) {
+  return useQuery({
+    queryKey: ['ticket_branches', ticketId, 'commit', rev],
+    queryFn: () => getCommitDetail(ticketId, rev as string),
+    enabled: !!ticketId && !!rev,
+    staleTime: Infinity, // a commit never changes
   });
 }
 

@@ -5,6 +5,7 @@ should run them with ``asyncio.to_thread``.
 """
 
 import os
+import re
 from dataclasses import dataclass
 
 from git import GitCommandError, InvalidGitRepositoryError, NoSuchPathError, Repo
@@ -347,4 +348,84 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
         "commits": commits,
         "lane_count": max((c["lane"] for c in commits), default=0) + 1,
         "truncated": truncated,
+    }
+
+
+_REV_RE = re.compile(r"^[0-9a-fA-F]{4,40}$")
+MAX_DETAIL_FILES = 200
+
+
+def commit_detail(repo: Repo, rev: str, max_files: int = MAX_DETAIL_FILES) -> dict:
+    """Full message, author and changed files of one commit.
+
+    For merge commits the file list is the diff against the first parent
+    (what the merge brought into the target branch).
+    """
+    if not _REV_RE.match(rev):
+        raise GitRepoError("Invalid commit id")
+    try:
+        full = repo.git.rev_parse("--verify", "--quiet", f"{rev}^{{commit}}").strip()
+    except GitCommandError as exc:
+        raise GitRepoError(f"Commit '{rev}' not found in the repository") from exc
+
+    fmt = "%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%cn%x1f%cI%x1f%B"
+    head = repo.git.show("-s", f"--format={fmt}", full, "--")
+    h, parents, an, ae, adate, cn, cdate, message = head.split("\x1f", 7)
+    message = message.strip("\n")
+    subject, _, body = message.partition("\n")
+
+    name_status = repo.git.show("--first-parent", "-M", "--name-status", "-z", "--format=", full, "--")
+    numstat = repo.git.show("--first-parent", "-M", "--numstat", "-z", "--format=", full, "--")
+
+    files: list[dict] = []
+    tokens = [t for t in name_status.split("\0")]
+    i = 0
+    while i < len(tokens) and tokens[i]:
+        status = tokens[i]
+        kind = status[0]
+        if kind in "RC":
+            files.append({"status": kind, "old_path": tokens[i + 1], "path": tokens[i + 2]})
+            i += 3
+        else:
+            files.append({"status": kind, "old_path": None, "path": tokens[i + 1]})
+            i += 2
+
+    stats = numstat.split("\0")
+    j = 0
+    for f in files:
+        if j >= len(stats) or not stats[j]:
+            break
+        parts = stats[j].split("\t")
+        add, dele = parts[0], parts[1]
+        # renames/copies carry empty path here and two extra tokens (old, new)
+        j += 3 if f["status"] in "RC" else 1
+        binary = add == "-"
+        f["additions"] = 0 if binary else int(add)
+        f["deletions"] = 0 if binary else int(dele)
+        f["binary"] = binary
+
+    for f in files:
+        f.setdefault("additions", 0)
+        f.setdefault("deletions", 0)
+        f.setdefault("binary", False)
+
+    total_add = sum(f["additions"] for f in files)
+    total_del = sum(f["deletions"] for f in files)
+    truncated = len(files) > max_files
+    return {
+        "hash": h,
+        "short": h[:7],
+        "parents": parents.split() if parents else [],
+        "author": an,
+        "author_email": ae,
+        "date": adate,
+        "committer": cn,
+        "committer_date": cdate,
+        "subject": subject,
+        "body": body.strip("\n"),
+        "files": files[:max_files],
+        "file_count": len(files),
+        "additions": total_add,
+        "deletions": total_del,
+        "files_truncated": truncated,
     }
