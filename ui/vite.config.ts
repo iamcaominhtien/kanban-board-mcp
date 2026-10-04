@@ -16,6 +16,7 @@ export default defineConfig({
       '/uploads': 'http://localhost:8000',
       '/settings': 'http://127.0.0.1:8000',
       '/data': 'http://127.0.0.1:8000',
+      '/workspace': 'http://localhost:8000',
     },
   },
 })

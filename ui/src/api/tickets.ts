@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { BranchGraphData, CommitDetail, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceSettings } from '../types/ticket';
+import { resolveOrigin } from './resolveOrigin';
+import type { BranchGraphData, CommitDetail, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceFilePreview, WorkspaceSettings, WorkspaceSweepResult } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -312,6 +313,55 @@ export async function setTicketWorkspaceRetention(
     `/tickets/${ticketId}/workspace/retention`,
     { retention_days: retentionDays },
   );
+  return res.data;
+}
+
+export async function initTicketWorkspace(ticketId: string): Promise<void> {
+  await client.post(`/tickets/${ticketId}/workspace/init`);
+}
+
+export async function openTicketWorkspace(ticketId: string): Promise<void> {
+  await client.post(`/tickets/${ticketId}/workspace/open`);
+}
+
+export async function createWorkspaceFolder(ticketId: string, path: string): Promise<void> {
+  await client.post(`/tickets/${ticketId}/workspace/folders`, { path });
+}
+
+export async function uploadWorkspaceFile(
+  ticketId: string,
+  file: File,
+  directory = '',
+): Promise<void> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('directory', directory);
+  await client.post(`/tickets/${ticketId}/workspace/files`, formData);
+}
+
+export async function deleteWorkspaceEntry(ticketId: string, path: string): Promise<void> {
+  await client.delete(`/tickets/${ticketId}/workspace/entry`, { params: { path } });
+}
+
+export async function getWorkspacePreview(
+  ticketId: string,
+  path: string,
+): Promise<WorkspaceFilePreview> {
+  const res = await client.get<WorkspaceFilePreview>(`/tickets/${ticketId}/workspace/file`, {
+    params: { path },
+  });
+  return res.data;
+}
+
+/** URL of a workspace file, usable in <img src> or as a download link. */
+export function workspaceFileUrl(ticketId: string, path: string, download = false): string {
+  const qs = new URLSearchParams({ path });
+  if (download) qs.set('download', 'true');
+  return `${resolveOrigin()}/tickets/${encodeURIComponent(ticketId)}/workspace/file?${qs}`;
+}
+
+export async function sweepWorkspaces(dryRun: boolean): Promise<WorkspaceSweepResult> {
+  const res = await client.post<WorkspaceSweepResult>('/workspace/sweep', { dry_run: dryRun });
   return res.data;
 }
 
@@ -652,6 +702,43 @@ export function useTicketWorkspace(ticketId: string) {
     queryKey: ['ticket_workspace', ticketId],
     queryFn: () => getTicketWorkspace(ticketId),
     enabled: !!ticketId,
+  });
+}
+
+export function useWorkspacePreview(ticketId: string, path: string, enabled = true) {
+  return useQuery({
+    queryKey: ['ticket_workspace', ticketId, 'preview', path],
+    queryFn: () => getWorkspacePreview(ticketId, path),
+    enabled,
+  });
+}
+
+export function useWorkspaceSettings() {
+  return useQuery({ queryKey: ['workspace_settings'], queryFn: getWorkspaceSettings });
+}
+
+export function useUpdateWorkspaceSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<WorkspaceSettings>) => updateWorkspaceSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspace_settings'] });
+      queryClient.invalidateQueries({ queryKey: ['ticket_workspace'] });
+    },
+  });
+}
+
+/** Run a workspace mutation and refresh that ticket's file listing afterwards. */
+export function useWorkspaceAction<TVars>(
+  ticketId: string,
+  fn: (vars: TVars) => Promise<void>,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_workspace', ticketId] });
+    },
   });
 }
 

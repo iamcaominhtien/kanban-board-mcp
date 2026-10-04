@@ -133,7 +133,9 @@ export interface WorkspaceSettings {
 }
 
 export interface WorkspaceFile {
+  /** Path relative to the ticket folder, using "/" separators. */
   name: string;
+  isDir: boolean;
   size: number;
   modifiedAt: string;
 }
@@ -142,10 +144,29 @@ export interface TicketWorkspaceInfo {
   enabled: boolean;
   path: string;
   exists: boolean;
-  retentionDays: number | null;
+  /** Effective retention in days; 0 = keep forever. */
+  retentionDays: number;
+  /** The ticket's own override; null = inherits the app default. */
+  retentionOverride: number | null;
+  /** Only closed (Done / Won't do) tickets are swept. */
+  sweepEligible: boolean;
+  expiresAt: string | null;
   files: WorkspaceFile[];
   fileCount: number;
   totalBytes: number;
+  truncated: boolean;
+}
+
+export interface WorkspaceFilePreview {
+  binary: boolean;
+  text: string;
+  truncated: boolean;
+  size: number;
+}
+
+export interface WorkspaceSweepResult {
+  dryRun: boolean;
+  removed: { ticketId: string; path: string; bytes: number }[];
 }
 
 export type BranchStatus = 'baseline' | 'open' | 'merged' | 'stale' | 'archived';

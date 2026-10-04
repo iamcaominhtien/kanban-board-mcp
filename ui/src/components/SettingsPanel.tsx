@@ -3,11 +3,12 @@ import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
 import { useProjects, useUpdateProject } from '../api/projects';
+import { sweepWorkspaces, useUpdateWorkspaceSettings, useWorkspaceSettings } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import type { Theme } from '../types';
 import styles from './SettingsPanel.module.css';
 
-import type { Project } from '../types/ticket';
+import type { Project, WorkspaceSweepResult } from '../types/ticket';
 
 function ProjectRepoRow({ project }: { project: Project }) {
   const updateProject = useUpdateProject();
@@ -163,6 +164,157 @@ function ProjectRepoRow({ project }: { project: Project }) {
   );
 }
 
+function WorkspaceSettingsSection() {
+  const { data: settings } = useWorkspaceSettings();
+  const update = useUpdateWorkspaceSettings();
+  const [rootDraft, setRootDraft] = useState('');
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [sweepPreview, setSweepPreview] = useState<WorkspaceSweepResult | null>(null);
+  const [sweeping, setSweeping] = useState(false);
+  const isElectron = !!(window as any).electronAPI?.selectFolder;
+
+  useEffect(() => {
+    if (settings) setRootDraft(settings.rootPath);
+  }, [settings]);
+
+  if (!settings) return null;
+
+  function save(data: Parameters<typeof update.mutate>[0], okText?: string) {
+    setStatus(null);
+    update.mutate(data, {
+      onSuccess: () => okText && setStatus({ ok: true, text: okText }),
+      onError: (err) => {
+        setStatus({ ok: false, text: extractError(err) });
+        setRootDraft(settings?.rootPath ?? '');
+      },
+    });
+  }
+
+  async function browse() {
+    const folder = await (window as any).electronAPI?.selectFolder?.();
+    if (folder) {
+      setRootDraft(folder);
+      save({ rootPath: folder }, 'Root path saved');
+    }
+  }
+
+  async function previewSweep() {
+    setStatus(null);
+    try {
+      setSweepPreview(await sweepWorkspaces(true));
+    } catch (err) {
+      setStatus({ ok: false, text: extractError(err) });
+    }
+  }
+
+  async function runSweep() {
+    setSweeping(true);
+    try {
+      const res = await sweepWorkspaces(false);
+      setSweepPreview(null);
+      setStatus({ ok: true, text: `Deleted ${res.removed.length} folder(s)` });
+    } catch (err) {
+      setStatus({ ok: false, text: extractError(err) });
+    } finally {
+      setSweeping(false);
+    }
+  }
+
+  const retention = settings.defaultRetentionDays ?? 0;
+  const rootChanged = rootDraft.trim() !== settings.rootPath;
+
+  return (
+    <>
+      <div className={styles.section}>
+        <div className={styles.sectionHeaderRow}>
+          <span className={styles.sectionTitle} style={{ flexGrow: 1 }}>Workspace</span>
+          <div
+            className={`${styles.toggleTrack} ${settings.enabled ? styles.toggleTrackActive : ''}`}
+            onClick={() => save({ enabled: !settings.enabled })}
+            role="switch"
+            aria-checked={settings.enabled}
+            aria-label="Enable workspace"
+          >
+            <div className={`${styles.toggleDot} ${settings.enabled ? styles.toggleDotActive : ''}`} />
+          </div>
+        </div>
+        <div className={styles.hint}>
+          A local scratch folder per ticket. AI agents get its path from the MCP server and read and write it directly; the Workspace tab on a ticket shows what is on disk. Turning this off hides the Workspace tab everywhere.
+        </div>
+
+        {settings.enabled && (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className={styles.fieldLabel}>Root path</span>
+              <div className={styles.inputRow}>
+                <input
+                  className={styles.input}
+                  value={rootDraft}
+                  aria-label="Workspace root path"
+                  onChange={(e) => setRootDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && rootChanged) save({ rootPath: rootDraft }, 'Root path saved'); }}
+                />
+                {isElectron && (
+                  <button type="button" className={styles.btn} onClick={browse}>Browse…</button>
+                )}
+                <button type="button" className={styles.btn} disabled={!rootChanged || update.isPending} onClick={() => save({ rootPath: rootDraft }, 'Root path saved')}>
+                  Save
+                </button>
+              </div>
+              <span className={styles.hint} style={{ fontSize: '11px' }}>
+                Existing ticket folders are not moved when the root changes.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className={styles.fieldLabel}>Default retention</span>
+              <div className={styles.retentionRow}>
+                {[
+                  { value: 7, label: '7 days' },
+                  { value: 14, label: '14 days' },
+                  { value: 30, label: '30 days' },
+                  { value: 90, label: '90 days' },
+                  { value: 0, label: 'Forever' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`${styles.retentionOpt} ${retention === opt.value ? styles.retentionOptActive : ''}`}
+                    onClick={() => save({ defaultRetentionDays: opt.value })}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <span className={styles.hint} style={{ fontSize: '11px' }}>
+                A background sweep (hourly) deletes the folder of a Done / Won&apos;t do ticket once it has been idle this long. Open tickets and tickets set to &quot;Forever&quot; are never touched. A ticket can override this from its own Workspace tab.
+              </span>
+              <div className={styles.inputRow}>
+                <button type="button" className={styles.btn} onClick={previewSweep}>Clean now…</button>
+              </div>
+              {sweepPreview && (
+                <div className={styles.hint} role="status">
+                  {sweepPreview.removed.length === 0 ? (
+                    'Nothing is due for cleanup.'
+                  ) : (
+                    <>
+                      {sweepPreview.removed.length} folder(s) would be deleted: {sweepPreview.removed.map((r) => r.ticketId).join(', ')}.{' '}
+                      <button type="button" className={styles.btn} disabled={sweeping} onClick={runSweep}>Delete them</button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {status && (
+          <div className={styles.hint} role="status" style={{ color: status.ok ? undefined : '#C0392B' }}>{status.text}</div>
+        )}
+      </div>
+    </>
+  );
+}
+
 interface SettingsPanelProps {
   onClose: () => void;
   theme: Theme;
@@ -179,42 +331,12 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
-  // App-wide workspace configuration state (persisted to localStorage)
-  const [workspaceEnabled, setWorkspaceEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('kanban_workspace_enabled') !== 'false';
-  });
-  const [workspaceRoot, setWorkspaceRoot] = useState<string>(() => {
-    return localStorage.getItem('kanban_workspace_root') || '~/kanban-workspace';
-  });
-  const [defaultRetention, setDefaultRetention] = useState<string>(() => {
-    return localStorage.getItem('kanban_workspace_retention') || '30';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('kanban_workspace_enabled', String(workspaceEnabled));
-  }, [workspaceEnabled]);
-
-  useEffect(() => {
-    localStorage.setItem('kanban_workspace_root', workspaceRoot);
-  }, [workspaceRoot]);
-
-  useEffect(() => {
-    localStorage.setItem('kanban_workspace_retention', defaultRetention);
-  }, [defaultRetention]);
-
   const isElectron = !!(window as any).electronAPI?.selectFolder;
 
   async function handleBrowse() {
     if ((window as any).electronAPI?.selectFolder) {
       const folder = await (window as any).electronAPI.selectFolder();
       if (folder) setFolderInput(folder);
-    }
-  }
-
-  async function handleBrowseWorkspace() {
-    if ((window as any).electronAPI?.selectFolder) {
-      const folder = await (window as any).electronAPI.selectFolder();
-      if (folder) setWorkspaceRoot(folder);
     }
   }
 
@@ -357,67 +479,7 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
 
           <div className={styles.divider} />
 
-          {/* Workspace Section (App-wide) */}
-          <div className={styles.section}>
-            <div className={styles.sectionHeaderRow}>
-              <span className={styles.sectionTitle} style={{ flexGrow: 1 }}>Workspace</span>
-              <div
-                className={`${styles.toggleTrack} ${workspaceEnabled ? styles.toggleTrackActive : ''}`}
-                onClick={() => setWorkspaceEnabled((v) => !v)}
-                role="switch"
-                aria-checked={workspaceEnabled}
-              >
-                <div className={`${styles.toggleDot} ${workspaceEnabled ? styles.toggleDotActive : ''}`} />
-              </div>
-            </div>
-            <div className={styles.hint}>
-              Local scratch folder per task, no API — the Workspace tab on a ticket lists whatever's on disk under this root. Turning this off hides the Workspace tab everywhere.
-            </div>
-
-            {workspaceEnabled && (
-              <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span className={styles.fieldLabel}>Root path</span>
-                  <div className={styles.inputRow}>
-                    <input
-                      className={styles.input}
-                      value={workspaceRoot}
-                      onChange={(e) => setWorkspaceRoot(e.target.value)}
-                    />
-                    {isElectron && (
-                      <button type="button" className={styles.btn} onClick={handleBrowseWorkspace}>
-                        Browse…
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span className={styles.fieldLabel}>Default retention for new tasks</span>
-                  <div className={styles.retentionRow}>
-                    {[
-                      { value: '7', label: '7 days' },
-                      { value: '30', label: '30 days' },
-                      { value: '90', label: '90 days' },
-                      { value: 'forever', label: 'Forever' },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        className={`${styles.retentionOpt} ${defaultRetention === opt.value ? styles.retentionOptActive : ''}`}
-                        onClick={() => setDefaultRetention(opt.value)}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  <span className={styles.hint} style={{ fontSize: '11px' }}>
-                    Applies to new task folders only — a task can override this from its own Workspace tab. A background sweep deletes folders past their window; anything overridden to "Forever" is skipped.
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
+          <WorkspaceSettingsSection />
 
           <div className={styles.divider} />
 

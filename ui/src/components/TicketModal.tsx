@@ -10,6 +10,7 @@ import {
   useAddTicketLink, useRemoveTicketLink,
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
   useTicketBranches,
+  useWorkspaceSettings,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
@@ -133,6 +134,8 @@ export function TicketModal({
 }: TicketModalProps) {
   const localMode = initialMode;
   const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity'>('main');
+  const { data: workspaceSettings } = useWorkspaceSettings();
+  const workspaceEnabled = workspaceSettings?.enabled !== false;
 
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -637,6 +640,7 @@ export function TicketModal({
               <span className={styles.viewTooltip}>{wlTooltip}</span>
             </button>
 
+            {workspaceEnabled && (
             <button
               type="button"
               className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
@@ -648,6 +652,7 @@ export function TicketModal({
               </svg>
               <span className={styles.viewTooltip}>Workspace</span>
             </button>
+            )}
 
             <button
               type="button"
@@ -1340,7 +1345,7 @@ export function TicketModal({
                 }
               />
             )}
-            {activeTab === 'workspace' && (
+            {activeTab === 'workspace' && workspaceEnabled && (
               <WorkspaceSection ticketId={ticket.id} />
             )}
             {activeTab === 'branches' && (
