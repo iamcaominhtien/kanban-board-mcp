@@ -230,7 +230,8 @@ export function TicketModal({
   useEffect(() => {
     if (ticket) {
       setTitle(ticket.title);
-      setDescription(ticket.description);
+      // Don't clobber a description that is still waiting to be saved
+      if (pendingDescRef.current?.ticketId !== ticket.id) setDescription(ticket.description);
       setStatus(ticket.status);
       setPriority(ticket.priority);
       setTags(ticket.tags);
@@ -1319,10 +1320,10 @@ export function TicketModal({
                   testCases: st.testCases ?? [],
                 }))}
                 disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
-                onAdd={(tCase) =>
+                onAdd={(tTitle, tDesc) =>
                   new Promise<void>((resolve, reject) =>
                     addTestCaseMutation.mutate(
-                      { ticketId: ticket.id, title: tCase },
+                      { ticketId: ticket.id, title: tTitle, description: tDesc },
                       {
                         onSuccess: () => resolve(),
                         onError: (err: unknown) => reject(err),

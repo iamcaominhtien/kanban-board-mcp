@@ -95,8 +95,8 @@ export async function uploadAttachment(file: File): Promise<DebugAttachment> {
 }
 
 /** Absolute URL for a stored upload (the UI may be served from another origin). */
-export function uploadUrl(url: string, downloadName?: string): string {
-  if (!url.startsWith('/uploads/')) return '';
+export function uploadUrl(url?: string | null, downloadName?: string): string {
+  if (!url || typeof url !== 'string' || !url.startsWith('/uploads/')) return '';
   const base = `${resolveOrigin()}${url}`;
   // ?name= makes the server offer the original file name (the stored one has a random suffix)
   return downloadName ? `${base}?name=${encodeURIComponent(downloadName)}` : base;
@@ -559,8 +559,12 @@ export function useDeleteWorkLog() {
 
 export function useAddTestCase() {
   return useTicketSubMutation(
-    ({ ticketId, title }: { ticketId: string; title: string }) =>
-      addTestCase(ticketId, title),
+    ({
+      ticketId,
+      title,
+      ...extra
+    }: { ticketId: string; title: string } & Partial<TestCase>) =>
+      addTestCase(ticketId, title, extra),
   );
 }
 

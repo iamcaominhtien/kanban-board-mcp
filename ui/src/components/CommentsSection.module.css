@@ -153,6 +153,12 @@
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.08);
 }
 
+.composerBoxExpanded {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .collapsedInput {
   width: 100%;
   border: none;
@@ -163,6 +169,7 @@
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
+  cursor: pointer;
 }
 
 .collapsedInput::placeholder {

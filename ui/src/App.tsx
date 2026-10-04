@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Board } from './components/Board';
 import { IdeaBoard } from './components/IdeaBoard';
 import { MembersPanel } from './components/MembersPanel';
@@ -15,12 +15,16 @@ import { useTheme } from './hooks/useTheme';
 import { extractError } from './api/extractError';
 import { useToast } from './components/Toast';
 import { FullPageSpinner } from './components/LoadingStates';
-import type { IssueType, Priority, Status, Ticket } from './types';
+import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
+
+const EMPTY_PROJECTS: Project[] = [];
+const EMPTY_TICKETS: Ticket[] = [];
+const EMPTY_MEMBERS: Member[] = [];
 
 export default function App() {
   useSSEInvalidation();
   const { status: backendStatus, errorMessage: backendError } = useBackendStatus();
-  const { data: apiProjects = [], isLoading: projectsLoading } = useProjects();
+  const { data: apiProjects = EMPTY_PROJECTS, isLoading: projectsLoading } = useProjects();
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
 
@@ -40,7 +44,7 @@ export default function App() {
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
 
-  const { data: members = [] } = useMembers(currentProjectId ?? '');
+  const { data: members = EMPTY_MEMBERS } = useMembers(currentProjectId ?? '');
   const toast = useToast();
 
   useEffect(() => {
@@ -72,10 +76,16 @@ export default function App() {
 
   const currentProject = apiProjects.find((p) => p.id === currentProjectId);
 
-  const { data: tickets = [], isLoading: ticketsLoading } = useTickets(currentProjectId ?? '', {
-    q: debouncedSearchQuery || undefined,
-  });
-  const { data: wontDoTickets = [] } = useWontDoTickets(currentProjectId ?? '');
+  const ticketQueryParams = useMemo(
+    () => (debouncedSearchQuery ? { q: debouncedSearchQuery } : undefined),
+    [debouncedSearchQuery]
+  );
+
+  const { data: tickets = EMPTY_TICKETS, isLoading: ticketsLoading } = useTickets(
+    currentProjectId ?? '',
+    ticketQueryParams
+  );
+  const { data: wontDoTickets = EMPTY_TICKETS } = useWontDoTickets(currentProjectId ?? '');
   const createTicketMutation = useCreateTicket(currentProjectId ?? '');
   const deleteTicketMutation = useDeleteTicket(currentProjectId ?? '');
   const updateStatusMutation = useUpdateTicketStatus();

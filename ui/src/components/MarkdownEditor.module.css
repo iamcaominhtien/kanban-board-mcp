@@ -36,6 +36,22 @@
   user-select: none;
 }
 
+.viewAreaCompact {
+  padding: 6px 10px;
+  min-height: 32px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  background: #FAFCFA;
+  margin: 0;
+}
+
+.viewAreaCompact:hover {
+  background-color: #F1F8F3;
+  border-color: #B9CBBF;
+}
+
 /* ── Edit Container (Approach A) ── */
 
 .editContainer {
@@ -50,6 +66,10 @@
   box-sizing: border-box;
 }
 
+.editContainerCompact {
+  border-radius: 8px;
+}
+
 .toolbarHeader {
   display: flex;
   align-items: center;
@@ -61,6 +81,12 @@
   position: relative;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.toolbarHeaderCompact {
+  padding: 4px 6px;
+  gap: 3px;
+  border-radius: 7px 7px 0 0;
 }
 
 .tabs {
@@ -198,6 +224,13 @@
   font-size: 14px;
   line-height: 1.65;
   color: #3A4A3E;
+}
+
+.wysiwygAreaCompact {
+  padding: 8px 12px 10px;
+  min-height: 60px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .wysiwygArea:empty::before {
@@ -448,4 +481,15 @@
   margin-right: 6px;
   accent-color: #2E6F40;
   cursor: pointer;
+}
+
+.editorActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  border-top: 1px solid #EEF3EF;
+  background: #FAFCFA;
+  border-radius: 0 0 7px 7px;
 }
