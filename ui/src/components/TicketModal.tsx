@@ -1207,7 +1207,7 @@ export function TicketModal({
                   <path d="M16 3V6.5" />
                 </svg>
                 <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
-                  {dueDate ? formatDueDate(dueDate) : 'None'}
+                  {dueDate ? formatDueDate(dueDate) : '–'}
                 </span>
                 <input
                   ref={dateInputRef}
