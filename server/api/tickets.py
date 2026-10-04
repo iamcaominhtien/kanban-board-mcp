@@ -313,7 +313,10 @@ class CommentUpdateBody(BaseModel):
 async def post_comment(
     ticket_id: str, body: CommentBody, session: Session
 ) -> TicketRead:
-    ticket = await add_comment(session, ticket_id, body.text, body.author)
+    try:
+        ticket = await add_comment(session, ticket_id, body.text, body.author)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -324,7 +327,10 @@ async def post_comment(
 async def patch_comment(
     ticket_id: str, comment_id: str, body: CommentUpdateBody, session: Session
 ) -> TicketRead:
-    ticket = await update_comment(session, ticket_id, comment_id, body.text)
+    try:
+        ticket = await update_comment(session, ticket_id, comment_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -351,7 +357,10 @@ class ACBody(BaseModel):
 
 @router.post("/tickets/{ticket_id}/acceptance-criteria", response_model=TicketRead)
 async def post_ac(ticket_id: str, body: ACBody, session: Session) -> TicketRead:
-    ticket = await add_acceptance_criterion(session, ticket_id, body.text)
+    try:
+        ticket = await add_acceptance_criterion(session, ticket_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -506,19 +515,22 @@ class TestCaseUpdateBody(BaseModel):
 async def post_test_case(
     ticket_id: str, body: TestCaseCreateBody, session: Session
 ) -> TicketRead:
-    ticket = await add_test_case(
-        session,
-        ticket_id,
-        title=body.title,
-        status=body.status,
-        proof=body.proof,
-        note=body.note,
-        description=body.description,
-        expected_result=body.expected_result,
-        notes=body.notes,
-        assignee=body.assignee,
-        test_data_files=body.test_data_files,
-    )
+    try:
+        ticket = await add_test_case(
+            session,
+            ticket_id,
+            title=body.title,
+            status=body.status,
+            proof=body.proof,
+            note=body.note,
+            description=body.description,
+            expected_result=body.expected_result,
+            notes=body.notes,
+            assignee=body.assignee,
+            test_data_files=body.test_data_files,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -529,20 +541,23 @@ async def post_test_case(
 async def patch_test_case(
     ticket_id: str, tc_id: str, body: TestCaseUpdateBody, session: Session
 ) -> TicketRead:
-    ticket = await update_test_case(
-        session,
-        ticket_id,
-        tc_id,
-        title=body.title,
-        status=body.status,
-        proof=body.proof,
-        note=body.note,
-        description=body.description,
-        expected_result=body.expected_result,
-        notes=body.notes,
-        assignee=body.assignee,
-        test_data_files=body.test_data_files,
-    )
+    try:
+        ticket = await update_test_case(
+            session,
+            ticket_id,
+            tc_id,
+            title=body.title,
+            status=body.status,
+            proof=body.proof,
+            note=body.note,
+            description=body.description,
+            expected_result=body.expected_result,
+            notes=body.notes,
+            assignee=body.assignee,
+            test_data_files=body.test_data_files,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

@@ -266,6 +266,17 @@ async def init_ticket_workspace(session: AsyncSession, ticket_id: str) -> Path:
     return folder
 
 
+async def remove_ticket_workspace(session: AsyncSession, ticket_id: str) -> None:
+    """Best-effort removal of a deleted ticket's scratch folder; never raises."""
+    try:
+        settings = await get_workspace_settings(session)
+        folder = _resolve_workspace_path(settings.root_path, ticket_id)
+        if folder.is_dir() and not folder.is_symlink():
+            await asyncio.to_thread(shutil.rmtree, folder)
+    except Exception:  # noqa: BLE001 - cleanup must not fail the delete
+        logger.warning("Could not remove workspace of %s", ticket_id, exc_info=True)
+
+
 async def get_workspace_path(
     session: AsyncSession, ticket_id: str, create: bool = True
 ) -> dict[str, Any] | None:

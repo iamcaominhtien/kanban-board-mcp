@@ -148,6 +148,8 @@ export function TicketModal({
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
   const [startDate, setStartDate] = useState<string | null>(ticket?.startDate ?? null);
+  const [blockAcs, setBlockAcs] = useState(ticket?.blockDoneIfAcsIncomplete ?? false);
+  const [blockTcs, setBlockTcs] = useState(ticket?.blockDoneIfTcsIncomplete ?? false);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
   const [assignee, setAssignee] = useState<string | null>(ticket?.assignee ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -226,22 +228,30 @@ export function TicketModal({
     }
   }, [isAddingTag]);
 
+  // Copy server state into the local form state (also used to roll back a rejected edit)
+  function applyTicket(ticket: Ticket) {
+    setTitle(ticket.title);
+    // Don't clobber a description that is still waiting to be saved
+    if (pendingDescRef.current?.ticketId !== ticket.id) setDescription(ticket.description);
+    setStatus(ticket.status);
+    setPriority(ticket.priority);
+    setTags(ticket.tags);
+    setType(ticket.type);
+    setDueDate(ticket.dueDate ?? null);
+    setStartDate(ticket.startDate ?? null);
+    setEstimate(ticket.estimate ?? null);
+    setAssignee(ticket.assignee ?? null);
+    setBlockAcs(ticket.blockDoneIfAcsIncomplete);
+    setBlockTcs(ticket.blockDoneIfTcsIncomplete);
+  }
+
   // Keep in sync if ticket changes
   useEffect(() => {
     if (ticket) {
-      setTitle(ticket.title);
-      // Don't clobber a description that is still waiting to be saved
-      if (pendingDescRef.current?.ticketId !== ticket.id) setDescription(ticket.description);
-      setStatus(ticket.status);
-      setPriority(ticket.priority);
-      setTags(ticket.tags);
-      setType(ticket.type);
-      setDueDate(ticket.dueDate ?? null);
-      setStartDate(ticket.startDate ?? null);
-      setEstimate(ticket.estimate ?? null);
-      setAssignee(ticket.assignee ?? null);
+      applyTicket(ticket);
       setIsFullscreen(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket]);
 
   function handleClose() {
@@ -286,6 +296,7 @@ export function TicketModal({
       {
         onError: (err) => {
           toast.error("Couldn't save changes", extractError(err));
+          applyTicket(ticket); // the server refused the edit: show what is really saved
         },
       }
     );
@@ -956,7 +967,7 @@ export function TicketModal({
                   comments={ticket.comments ?? []}
                   members={members}
                   currentMember={assigneeMember}
-                  onAdd={(t) => addCommentMutation.mutate({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'An Nguyen' })}
+                  onAdd={(t) => addCommentMutation.mutate({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'user' })}
                   onEdit={(cId, t) => updateCommentMutation.mutate({ ticketId: ticket.id, commentId: cId, text: t })}
                   onDelete={(cId) => deleteCommentMutation.mutate({ ticketId: ticket.id, commentId: cId })}
                 />
@@ -1293,16 +1304,50 @@ export function TicketModal({
               </div>
             </div>
 
+            {/* 6b. Done guards */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Done requires</span>
+              <div className={styles.doneGuards}>
+                <label className={styles.guardOption} title="Block moving to Done until every acceptance criterion is checked">
+                  <input
+                    type="checkbox"
+                    checked={blockAcs}
+                    onChange={(e) => {
+                      setBlockAcs(e.target.checked);
+                      autoSaveField('blockDoneIfAcsIncomplete', e.target.checked);
+                    }}
+                  />
+                  All acceptance criteria met
+                </label>
+                <label className={styles.guardOption} title="Block moving to Done until every test case passes">
+                  <input
+                    type="checkbox"
+                    checked={blockTcs}
+                    onChange={(e) => {
+                      setBlockTcs(e.target.checked);
+                      autoSaveField('blockDoneIfTcsIncomplete', e.target.checked);
+                    }}
+                  />
+                  All test cases passed
+                </label>
+              </div>
+            </div>
+
             {/* 7. Divider */}
             <div className={styles.sidebarDivider} />
 
             {/* 8. Audit Metadata */}
             <div className={styles.auditMeta}>
               <div>
-                Created {formatRelativeTime(ticket.createdAt)} by{' '}
-                <span style={{ color: '#5B6B60', fontWeight: 500 }}>
-                  {members.find((m) => m.id === ticket.createdBy)?.name || ticket.createdBy || 'Ha My'}
-                </span>
+                Created {formatRelativeTime(ticket.createdAt)}
+                {(() => {
+                  const creator = members.find((m) => m.id === ticket.createdBy)?.name;
+                  return creator ? (
+                    <>
+                      {' '}by <span style={{ color: '#5B6B60', fontWeight: 500 }}>{creator}</span>
+                    </>
+                  ) : null;
+                })()}
               </div>
               <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
             </div>

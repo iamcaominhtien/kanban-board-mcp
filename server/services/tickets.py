@@ -1,7 +1,7 @@
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from git import GitCommandError
 from rapidfuzz import fuzz
@@ -18,6 +18,7 @@ from models import (
 )
 from services import activity as act
 from services import git_repo
+from services.workspace import remove_ticket_workspace
 
 UTC = timezone.utc
 
@@ -40,6 +41,100 @@ def _loads(value: str) -> list:
 
 def _dumps(value: list) -> str:
     return json.dumps(value)
+
+
+MAX_TITLE = 300
+MAX_TAGS = 30
+MAX_TAG_LEN = 50
+MAX_ESTIMATE = 100_000
+MAX_COMMENT = 50_000
+MAX_AC_TEXT = 1_000
+
+
+def _clean_title(value: str | None) -> str:
+    title = (value or "").strip()
+    if not title:
+        raise ValueError("Title must not be empty")
+    if len(title) > MAX_TITLE:
+        raise ValueError(f"Title must be at most {MAX_TITLE} characters")
+    return title
+
+
+def _clean_date(value: str | None, label: str) -> str | None:
+    """Accept an ISO date (or datetime); empty/None clears the field."""
+    if value is None or not str(value).strip():
+        return None
+    raw = str(value).strip()
+    try:
+        if len(raw) == 10:
+            date.fromisoformat(raw)
+        else:
+            datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError(f"{label} must be an ISO date (YYYY-MM-DD)") from None
+    return raw
+
+
+def _clean_estimate(value: float | None) -> float | None:
+    if value is None:
+        return None
+    if value != value or value < 0 or value > MAX_ESTIMATE:  # NaN, negative, absurd
+        raise ValueError(f"Estimate must be between 0 and {MAX_ESTIMATE}")
+    return value
+
+
+def _clean_tags(value: list | None) -> list[str]:
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for raw in value or []:
+        if not isinstance(raw, str):
+            raise ValueError("Tags must be strings")
+        tag = raw.strip()
+        if not tag:
+            continue
+        if len(tag) > MAX_TAG_LEN:
+            raise ValueError(f"A tag must be at most {MAX_TAG_LEN} characters")
+        if tag.lower() in seen:
+            continue
+        seen.add(tag.lower())
+        cleaned.append(tag)
+    if len(cleaned) > MAX_TAGS:
+        raise ValueError(f"A ticket can have at most {MAX_TAGS} tags")
+    return cleaned
+
+
+def _clean_text(value: str | None, label: str, limit: int) -> str:
+    text_value = (value or "").strip()
+    if not text_value:
+        raise ValueError(f"{label} must not be empty")
+    if len(text_value) > limit:
+        raise ValueError(f"{label} must be at most {limit} characters")
+    return text_value
+
+
+def _check_date_order(start: str | None, due: str | None) -> None:
+    if start and due and start[:10] > due[:10]:
+        raise ValueError("Start date must not be after the due date")
+
+
+async def _validate_parent(
+    session: AsyncSession, parent_id: str, project_id: str, self_id: str | None
+) -> None:
+    if self_id is not None and parent_id == self_id:
+        raise ValueError("A ticket cannot be its own parent")
+    parent = await session.get(Ticket, parent_id)
+    if parent is None:
+        raise ValueError(f"Parent ticket '{parent_id}' not found")
+    if parent.project_id != project_id:
+        raise ValueError("Parent must belong to the same project")
+    if parent.parent_id is not None:
+        raise ValueError("Cannot nest tickets more than 1 level deep")
+    if self_id is not None:
+        has_children = await session.exec(
+            select(Ticket.id).where(Ticket.parent_id == self_id).limit(1)
+        )
+        if has_children.first() is not None:
+            raise ValueError("Cannot nest tickets more than 1 level deep")
 
 
 def _fuzzy_score(ticket: Ticket, query: str) -> float:
@@ -119,15 +214,15 @@ async def create_ticket(
     created_by: str | None = None,
     assignee: str | None = None,
 ) -> Ticket:
-    if tags is None:
-        tags = []
+    title = _clean_title(title)
+    tags = _clean_tags(tags)
+    estimate = _clean_estimate(estimate)
+    due_date = _clean_date(due_date, "Due date")
+    start_date = _clean_date(start_date, "Start date")
+    _check_date_order(start_date, due_date)
 
     if parent_id is not None:
-        parent = await session.get(Ticket, parent_id)
-        if parent is None:
-            raise ValueError(f"Parent ticket '{parent_id}' not found")
-        if parent.parent_id is not None:
-            raise ValueError("Cannot nest tickets more than 1 level deep")
+        await _validate_parent(session, parent_id, project_id, None)
 
     # Validate assignee belongs to this project
     if assignee is not None:
@@ -202,6 +297,26 @@ async def update_ticket(
         return None
 
     update_data = data.model_dump(exclude_unset=True)
+
+    if "title" in update_data:
+        update_data["title"] = _clean_title(update_data["title"])
+    if "estimate" in update_data:
+        update_data["estimate"] = _clean_estimate(update_data["estimate"])
+    if "tags" in update_data:
+        update_data["tags"] = _clean_tags(update_data["tags"])
+    if "due_date" in update_data:
+        update_data["due_date"] = _clean_date(update_data["due_date"], "Due date")
+    if "start_date" in update_data:
+        update_data["start_date"] = _clean_date(update_data["start_date"], "Start date")
+    if "due_date" in update_data or "start_date" in update_data:
+        _check_date_order(
+            update_data.get("start_date", ticket.start_date),
+            update_data.get("due_date", ticket.due_date),
+        )
+    if update_data.get("parent_id") is not None:
+        await _validate_parent(
+            session, update_data["parent_id"], ticket.project_id, ticket.id
+        )
 
     if (
         update_data.get("status") == "wont_do"
@@ -286,8 +401,31 @@ async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
+
+    # Don't leave dangling references behind: detach children, drop block/link entries
+    now = datetime.now(UTC).isoformat()
+    children = await session.exec(select(Ticket).where(Ticket.parent_id == ticket_id))
+    for child in children.all():
+        child.parent_id = None
+        child.updated_at = now
+        session.add(child)
+    others = await session.exec(
+        select(Ticket).where(Ticket.project_id == ticket.project_id, Ticket.id != ticket_id)
+    )
+    for other in others.all():
+        blocks = _loads(other.blocks)
+        blocked_by = _loads(other.blocked_by)
+        links = _loads(other.links)
+        new_links = [lk for lk in links if lk.get("target_id") != ticket_id]
+        if ticket_id in blocks or ticket_id in blocked_by or len(new_links) != len(links):
+            other.blocks = _dumps([b for b in blocks if b != ticket_id])
+            other.blocked_by = _dumps([b for b in blocked_by if b != ticket_id])
+            other.links = _dumps(new_links)
+            other.updated_at = now
+            session.add(other)
     await session.delete(ticket)
     await session.commit()
+    await remove_ticket_workspace(session, ticket_id)
     return True
 
 
@@ -302,6 +440,7 @@ async def add_comment(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
+    text = _clean_text(text, "Comment", MAX_COMMENT)
     comments = _loads(ticket.comments)
     comments.append(
         {
@@ -344,6 +483,7 @@ async def update_comment(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
+    text = _clean_text(text, "Comment", MAX_COMMENT)
     comments = _loads(ticket.comments)
     found = False
     for c in comments:
@@ -374,6 +514,7 @@ async def add_acceptance_criterion(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
+    text = _clean_text(text, "Acceptance criterion", MAX_AC_TEXT)
     acs = _loads(ticket.acceptance_criteria)
     acs.append({"id": str(uuid.uuid4()), "text": text, "done": False})
     act.record(ticket, "acceptance_criterion", None, text)
@@ -645,6 +786,7 @@ async def add_test_case(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
+    title = _clean_text(title, "Test case title", MAX_TITLE)
     tcs = _loads(ticket.test_cases)
     # Determine human-readable TC code (TC-1, TC-2, ...)
     max_num = 0
@@ -703,6 +845,8 @@ async def update_test_case(
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
+    if title is not None:
+        title = _clean_text(title, "Test case title", MAX_TITLE)
     tcs = _loads(ticket.test_cases)
     for tc in tcs:
         if tc.get("id") == tc_id:
@@ -806,6 +950,25 @@ async def get_project_activities(
 # ---------------------------------------------------------------------------
 
 
+async def _blocks_transitively(
+    session: AsyncSession, start: Ticket, target_id: str
+) -> bool:
+    """True if `start` blocks `target_id`, directly or through a chain of blocks."""
+    seen: set[str] = {start.id}
+    stack = list(_loads(start.blocks))
+    while stack:
+        current_id = stack.pop()
+        if current_id == target_id:
+            return True
+        if current_id in seen:
+            continue
+        seen.add(current_id)
+        current = await session.get(Ticket, current_id)
+        if current is not None:
+            stack.extend(_loads(current.blocks))
+    return False
+
+
 async def link_block(
     session: AsyncSession, blocker_id: str, blocked_id: str
 ) -> tuple[Ticket, Ticket] | None:
@@ -816,6 +979,12 @@ async def link_block(
     blocked = await session.get(Ticket, blocked_id)
     if blocker is None or blocked is None:
         return None
+    if blocker.project_id != blocked.project_id:
+        raise ValueError("Tickets must belong to the same project")
+    if await _blocks_transitively(session, blocked, blocker_id):
+        raise ValueError(
+            f"{blocked_id} already blocks {blocker_id}: this would create a circular dependency"
+        )
 
     blocker_blocks = _loads(blocker.blocks)
     if blocked_id not in blocker_blocks:

@@ -102,10 +102,11 @@ export function CommentsSection({
         color: colors.color,
       };
     }
-    // Default fallback based on name initials
+    // Default fallback based on name initials ("user" is the GUI's anonymous author)
+    const display = author.toLowerCase() === 'user' ? 'You' : author;
     return {
-      name: author,
-      initials: getInitials(author),
+      name: display,
+      initials: getInitials(display),
       bg: '#E6E9F5',
       color: '#5B5FA8',
     };

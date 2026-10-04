@@ -211,25 +211,33 @@ async def get_ticket_workspace_path(ticket_id: str) -> dict | None:
 async def update_ticket_status(
     ticket_id: str,
     status: Literal[
-        "backlog", "todo", "in-progress", "review", "testing", "done"
+        "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
     ],
+    wont_do_reason: str | None = None,
 ) -> dict | None:
-    """Update the status of a ticket. Valid statuses: backlog, todo, in-progress, review, testing, done.
+    """Update the status of a ticket. Valid statuses: backlog, todo, in-progress, review, testing, done, wont_do.
 
+    `wont_do_reason` is required when status is "wont_do" (child tickets cannot be set to wont_do).
     Automatically appends a status change entry to the ticket's activity log.
     Returns the updated ticket or None if not found.
     """
+    data: dict = {"status": status}
+    if wont_do_reason is not None:
+        data["wont_do_reason"] = wont_do_reason
     try:
         async with async_session() as session:
-            ticket = await svc_tickets.update_ticket(
-                session, ticket_id, TicketUpdate(status=status)
-            )
+            ticket = await svc_tickets.update_ticket(session, ticket_id, TicketUpdate(**data))
             if ticket is None:
                 return None
             result = TicketRead.from_ticket(ticket).model_dump()
     except ValidationError as exc:
         raise ValueError(str(exc)) from exc
     return result
+
+
+_CLEARABLE_FIELDS = frozenset(
+    {"estimate", "due_date", "start_date", "parent_id", "assignee", "repo_path", "wont_do_reason"}
+)
 
 
 @notify_on_success
@@ -241,19 +249,30 @@ async def update_ticket(
     priority: Literal["low", "medium", "high", "critical"] | None = None,
     status: (
         Literal[
-            "backlog", "todo", "in-progress", "review", "testing", "done"
+            "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
         ]
         | None
     ) = None,
     estimate: float | None = None,
     due_date: str | None = None,
+    start_date: str | None = None,
     parent_id: str | None = None,
     tags: list[str] | None = None,
+    assignee: str | None = None,
+    repo_path: str | None = None,
+    wont_do_reason: str | None = None,
+    block_done_if_acs_incomplete: bool | None = None,
+    block_done_if_tcs_incomplete: bool | None = None,
+    clear_fields: list[str] | None = None,
 ) -> dict | None:
-    """Update one or more core fields on a ticket. Only provided (non-None) fields are updated.
+    """Update one or more fields on a ticket. Only provided (non-None) fields are updated.
     Returns the updated ticket dict, or None if not found.
 
-    Note: nullable fields (estimate, due_date, parent_id) cannot be cleared to None via this tool — passing None is treated as 'do not update'.
+    - `assignee` is a member id of the ticket's project (see list_members).
+    - `status="wont_do"` requires `wont_do_reason` (child tickets cannot be set to wont_do).
+    - `block_done_if_*_incomplete` make moving to Done fail until all acceptance criteria / test cases pass.
+    - Passing None means "leave unchanged". To empty a nullable field, list it in `clear_fields`
+      (any of: estimate, due_date, start_date, parent_id, assignee, repo_path, wont_do_reason).
     """
     fields = {
         "title": title,
@@ -263,10 +282,24 @@ async def update_ticket(
         "status": status,
         "estimate": estimate,
         "due_date": due_date,
+        "start_date": start_date,
         "parent_id": parent_id,
         "tags": tags,
+        "assignee": assignee,
+        "repo_path": repo_path,
+        "wont_do_reason": wont_do_reason,
+        "block_done_if_acs_incomplete": block_done_if_acs_incomplete,
+        "block_done_if_tcs_incomplete": block_done_if_tcs_incomplete,
     }
     update_data = {k: v for k, v in fields.items() if v is not None}
+    for name in clear_fields or []:
+        if name not in _CLEARABLE_FIELDS:
+            raise ValueError(
+                f"Cannot clear '{name}'. Clearable fields: {sorted(_CLEARABLE_FIELDS)}"
+            )
+        if name in update_data:
+            raise ValueError(f"'{name}' was both set and listed in clear_fields")
+        update_data[name] = None
     try:
         async with async_session() as session:
             ticket = await svc_tickets.update_ticket(
@@ -278,6 +311,87 @@ async def update_ticket(
     except ValidationError as exc:
         raise ValueError(str(exc)) from exc
     return result
+
+
+@notify_on_success
+async def delete_ticket(ticket_id: str) -> dict | None:
+    """Permanently delete a ticket. Child tickets are detached, and block/link references
+    to it are removed from other tickets. Returns {"deleted": ticket_id} or None if not found."""
+    async with async_session() as session:
+        found = await svc_tickets.delete_ticket(session, ticket_id)
+    return {"deleted": ticket_id} if found else None
+
+
+@notify_on_success
+async def block_ticket(blocker_id: str, blocked_id: str) -> dict | None:
+    """Make `blocker_id` block `blocked_id` (same project, no circular chains).
+    Returns both updated tickets, or None if either is missing."""
+    async with async_session() as session:
+        result = await svc_tickets.link_block(session, blocker_id, blocked_id)
+        if result is None:
+            return None
+        blocker, blocked = result
+        return {
+            "blocker": TicketRead.from_ticket(blocker).model_dump(),
+            "blocked": TicketRead.from_ticket(blocked).model_dump(),
+        }
+
+
+@notify_on_success
+async def unblock_ticket(blocker_id: str, blocked_id: str) -> dict | None:
+    """Remove the block between `blocker_id` and `blocked_id`. Returns both updated tickets."""
+    async with async_session() as session:
+        result = await svc_tickets.unlink_block(session, blocker_id, blocked_id)
+        if result is None:
+            return None
+        blocker, blocked = result
+        return {
+            "blocker": TicketRead.from_ticket(blocker).model_dump(),
+            "blocked": TicketRead.from_ticket(blocked).model_dump(),
+        }
+
+
+@notify_on_success
+async def link_tickets(
+    ticket_id: str,
+    target_id: str,
+    relation_type: Literal[
+        "relates_to", "causes", "caused_by", "duplicates", "duplicated_by"
+    ],
+) -> dict:
+    """Link two tickets of the same project (the inverse link is added on the target).
+    Returns the created link {id, target_id, relation_type}."""
+    async with async_session() as session:
+        return await svc_tickets.add_ticket_link(session, ticket_id, target_id, relation_type)
+
+
+@notify_on_success
+async def unlink_tickets(ticket_id: str, link_id: str) -> dict | None:
+    """Remove a link (and its inverse on the other ticket). Returns {"removed": link_id} or None."""
+    async with async_session() as session:
+        removed = await svc_tickets.remove_ticket_link(session, ticket_id, link_id)
+    return {"removed": link_id} if removed else None
+
+
+@notify_on_success
+async def delete_test_case(ticket_id: str, test_case_id: str) -> dict | None:
+    """Delete a test case from a ticket. Returns the updated ticket."""
+    async with async_session() as session:
+        ticket = await svc_tickets.delete_test_case(session, ticket_id, test_case_id)
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
+
+
+@notify_on_success
+async def checkout_branch(ticket_id: str, branch_id: str) -> dict | None:
+    """Check out a ticket branch in the linked git repository's working tree.
+    Returns the updated ticket, or None if not found."""
+    async with async_session() as session:
+        ticket = await svc_tickets.checkout_branch(session, ticket_id, branch_id)
+        if ticket is None:
+            return None
+        return TicketRead.from_ticket(ticket).model_dump()
 
 
 @notify_on_success
@@ -1011,6 +1125,13 @@ def register(mcp: FastMCP) -> None:
     mcp.tool()(get_ticket_workspace_path)
     mcp.tool()(update_ticket_status)
     mcp.tool()(update_ticket)
+    mcp.tool()(delete_ticket)
+    mcp.tool()(block_ticket)
+    mcp.tool()(unblock_ticket)
+    mcp.tool()(link_tickets)
+    mcp.tool()(unlink_tickets)
+    mcp.tool()(delete_test_case)
+    mcp.tool()(checkout_branch)
     mcp.tool()(add_comment)
     mcp.tool()(update_comment)
     mcp.tool()(delete_comment)
