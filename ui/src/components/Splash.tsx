@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { isElectron, type BackendStatus } from '../hooks/useBackendStatus';
+import { compareSemver } from '../utils/semver';
 import styles from './Splash.module.css';
 
 /**
@@ -52,7 +53,32 @@ function formatClock(d: Date): string {
   return d.toLocaleTimeString([], { hour12: false });
 }
 
-type View = 'loading' | 'unreachable' | 'slow' | 'failed';
+type View = 'loading' | 'unreachable' | 'slow' | 'failed' | 'update';
+
+interface UpdateInfo {
+  current: string;
+  latest: string;
+}
+
+/** GET /version. Anything unexpected (old server without the endpoint, network hiccup) means "no update required". */
+async function checkUpdateRequired(): Promise<UpdateInfo | null> {
+  const ctl = new AbortController();
+  const timer = window.setTimeout(() => ctl.abort(), SPLASH_TIMING.probeTimeoutMs);
+  try {
+    const res = await fetch(`${resolveOrigin()}/version`, { cache: 'no-store', signal: ctl.signal });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { latest?: string; version?: string; min_supported_version?: string };
+    const min = body.min_supported_version;
+    if (min && compareSemver(__APP_VERSION__, min) < 0) {
+      return { current: __APP_VERSION__, latest: body.latest ?? body.version ?? min };
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
 
 interface SplashProps {
   status: BackendStatus;
@@ -75,16 +101,37 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
   const probeNowRef = useRef<() => void>(() => {});
   const retryBtnRef = useRef<HTMLButtonElement>(null);
 
-  const ready = electron ? status === 'ready' : healthy;
-  const view: View = electron
-    ? status === 'error'
-      ? 'failed'
-      : timedOut && !ready
-        ? 'slow'
-        : 'loading'
-    : timedOut && !ready
-      ? 'unreachable'
-      : 'loading';
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [versionChecked, setVersionChecked] = useState(false);
+
+  const reachable = electron ? status === 'ready' : healthy;
+  // Only leave once we know the build is new enough: an out-of-date build must not open the app
+  const ready = reachable && versionChecked && !update;
+  const view: View = update
+    ? 'update'
+    : electron
+      ? status === 'error'
+        ? 'failed'
+        : timedOut && !reachable
+          ? 'slow'
+          : 'loading'
+      : timedOut && !reachable
+        ? 'unreachable'
+        : 'loading';
+
+  // Once the server is reachable, ask whether this UI build is still supported
+  useEffect(() => {
+    if (!reachable || versionChecked || gone) return;
+    let cancelled = false;
+    void checkUpdateRequired().then((info) => {
+      if (cancelled) return;
+      setUpdate(info);
+      setVersionChecked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reachable, versionChecked, gone]);
 
   // The page behind the splash must not be reachable by keyboard or screen reader while it is up
   useEffect(() => {
@@ -96,10 +143,10 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
 
   // Loading -> error after the maximum wait (the checks keep going in the background)
   useEffect(() => {
-    if (ready || gone) return;
+    if (reachable || gone) return;
     const t = window.setTimeout(() => setTimedOut(true), Math.max(0, SPLASH_TIMING.maxWaitMs - performance.now()));
     return () => window.clearTimeout(t);
-  }, [ready, gone]);
+  }, [reachable, gone]);
 
   // Web: poll GET /health until the server answers. (Electron waits for the backend-ready event instead.)
   useEffect(() => {
@@ -146,7 +193,7 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
   useEffect(() => {
     if (!rootEl || gone) return;
     rootEl.classList.toggle('kb-state-alt', view !== 'loading');
-    if (view === 'unreachable' || view === 'failed') retryBtnRef.current?.focus();
+    if (view === 'unreachable' || view === 'failed' || view === 'update') retryBtnRef.current?.focus();
   }, [view, rootEl, gone]);
 
   // Tell the app behind the splash that it can take focus now (inert has just been lifted)
@@ -187,17 +234,21 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
 
   const secondsLeft = nextAt === null ? null : Math.max(0, Math.ceil((nextAt - now) / 1000));
   const title =
-    view === 'unreachable'
-      ? "Can't reach the server"
-      : view === 'slow'
-        ? 'Kanban is taking longer than usual to start'
-        : "Can't start the local server";
+    view === 'update'
+      ? 'A new version is available'
+      : view === 'unreachable'
+        ? "Can't reach the server"
+        : view === 'slow'
+          ? 'Kanban is taking longer than usual to start'
+          : "Can't start the local server";
   const text =
-    view === 'unreachable'
-      ? "Check your connection. We'll keep trying every 10 seconds."
-      : view === 'slow'
-        ? 'Hang on. Kanban will open as soon as its local server is ready.'
-        : "Kanban couldn't start its local server. Try again, or restart the app if the problem persists.";
+    view === 'update'
+      ? 'This version of Kanban is out of date. Reload to continue.'
+      : view === 'unreachable'
+        ? "Check your connection. We'll keep trying every 10 seconds."
+        : view === 'slow'
+          ? 'Hang on. Kanban will open as soon as its local server is ready.'
+          : "Kanban couldn't start its local server. Try again, or restart the app if the problem persists.";
 
   return createPortal(
     <div className={styles.panel}>
@@ -208,20 +259,32 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
           <div className={styles.markLine} style={{ width: '85%' }} />
         </div>
       </div>
-      <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div
+        role={view === 'update' ? 'alertdialog' : 'alert'}
+        aria-label={view === 'update' ? 'Update required' : undefined}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      >
         <h1 className={styles.title}>{title}</h1>
         <p className={styles.text}>{text}</p>
       </div>
+      {view === 'update' && update && (
+        <span className={styles.chip} style={{ marginTop: 16 }}>
+          v{update.current} -&gt; v{update.latest}
+        </span>
+      )}
       {view === 'failed' && errorMessage && <pre className={styles.detail}>{errorMessage}</pre>}
-      {(view === 'unreachable' || view === 'failed') && (
+      {(view === 'unreachable' || view === 'failed' || view === 'update') && (
         <button
           ref={retryBtnRef}
           type="button"
           className={styles.btn}
-          onClick={() => (view === 'failed' ? onRetryBackend() : probeNowRef.current())}
+          onClick={() => (view === 'update' ? window.location.reload() : view === 'failed' ? onRetryBackend() : probeNowRef.current())}
         >
-          Try again
+          {view === 'update' ? 'Reload now' : 'Try again'}
         </button>
+      )}
+      {view === 'update' && (
+        <div className={styles.footer}>Required so Kanban stays compatible with the server. This can&apos;t be dismissed.</div>
       )}
       {view === 'unreachable' && (
         <div className={styles.chips}>

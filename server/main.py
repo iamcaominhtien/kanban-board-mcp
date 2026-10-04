@@ -19,6 +19,7 @@ from api.data import router as data_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
 import database
+from version import version_info
 from database import init_db
 from services import activity as svc_activity
 from services import workspace as svc_workspace
@@ -95,6 +96,12 @@ app.include_router(workspace_router)
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/version")
+async def version() -> dict[str, str]:
+    """Server version and the oldest UI build it supports (no auth, like /health)."""
+    return version_info()
 
 
 @app.get("/uploads/{file_path:path}")
