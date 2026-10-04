@@ -343,16 +343,22 @@ def read_text_preview(path: Path) -> dict[str, Any]:
 async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
     folder = await _enabled_folder(session, ticket_id)
     await asyncio.to_thread(folder.mkdir, 0o755, True, True)
+    # The folder is passed as the working directory and "." as the only argument,
+    # so no configurable path ever becomes part of the command line.
     if sys.platform == "darwin":
-        cmd = ["open", str(folder)]
+        opener = "open"
     elif sys.platform.startswith("win"):
-        cmd = ["explorer", str(folder)]
+        opener = "explorer"
     else:
-        cmd = ["xdg-open", str(folder)]
-    if shutil.which(cmd[0]) is None:
+        opener = "xdg-open"
+    if shutil.which(opener) is None:
         raise WorkspaceError("No file manager available on this machine; copy the path instead")
-    subprocess.Popen(  # noqa: S603 - fixed argv, path validated above
-        cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True
+    subprocess.Popen(  # noqa: S603 - fixed argv
+        [opener, "."],
+        cwd=folder,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
     )
     return str(folder)
 

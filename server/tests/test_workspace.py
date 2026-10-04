@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from collections.abc import AsyncGenerator
 
@@ -254,3 +255,24 @@ async def test_mcp_tool_returns_path_and_creates_folder(tmp_path):
     full = await mcp_tools.get_ticket(t["id"])
     assert full["workspace_path"] == str(tmp_path / t["id"])
     assert await mcp_tools.get_ticket_workspace_path("../etc") is None
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="uses a fake xdg-open")
+async def test_open_runs_file_manager_in_ticket_folder(client, tmp_path, monkeypatch):
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    marker = tmp_path / "opened"
+    opener = bindir / "xdg-open"
+    opener.write_text(f'#!/bin/sh\necho "$PWD|$1" > {marker}\n')
+    opener.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bindir}{os.pathsep}{os.environ['PATH']}")
+    async with client as c:
+        t = await _setup(c, tmp_path / "root")
+        r = await c.post(f"/tickets/{t['id']}/workspace/open")
+        assert r.status_code == 200
+        for _ in range(50):
+            if marker.exists() and marker.read_text().strip():
+                break
+            time.sleep(0.05)
+        cwd, arg = marker.read_text().strip().split("|")
+        assert cwd == os.path.realpath(tmp_path / "root" / t["id"]) and arg == "."
