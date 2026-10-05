@@ -16,6 +16,7 @@ Fixes for opening and importing backups made by older builds.
 
 ### Fixed
 - **Databases created by pre-release builds could not be opened** ("Try again" on the splash, or a failed import): they are stamped with a migration (`f6a7b8c9d0e1`, "add_idea_board_fields") that was removed before 1.4.2, and alembic stopped with "Can't locate revision". Such databases are now re-stamped to the nearest existing revision and upgraded normally; all projects and tickets are kept (checked with a real 217-ticket backup).
+- **Data folder check recognised by code scanning**: `POST /settings/data-path` still only accepts folders inside your home directory, now written in the form CodeQL understands, which clears 8 "uncontrolled data used in path expression" alerts that this change would otherwise raise. The home folder itself is no longer accepted, only folders inside it.
 - **Import of a backup failed with "database disk image is malformed"**: the old `kanban.db-wal` / `-shm` files were left next to the replaced database. Import now checks the uploaded database first (a broken file is rejected with a clear message before anything is changed), removes the old WAL files when swapping, and flushes the WAL into the backup it keeps for rollback.
 
 ---
