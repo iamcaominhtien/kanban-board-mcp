@@ -3,7 +3,7 @@
 import os
 
 # Keep in sync with desktop/package.json and ui/package.json when releasing.
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.0.1"
 
 # The oldest UI build that still works with this server. Raise it when the API changes in a way
 # an old, still-open browser tab cannot cope with; that tab then shows "A new version is available".

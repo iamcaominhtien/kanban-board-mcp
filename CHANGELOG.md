@@ -8,6 +8,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+---
+
+## [2.0.1] - 2026-10-05
+
+Fixes for the 2.0.0 desktop app, found on a fresh install.
+
 ### Fixed
 - **Desktop app icon was still the old one**: `icon.icns`, `icon.ico` and `icon.png` are regenerated from the current logo, and `generate-icons.js` now reads `ui/public/logo.svg` (the app logo). macOS may keep showing the old icon from its cache until the app is reinstalled or the Dock is restarted (`killall Dock`).
 - **Desktop: existing data not loaded after upgrading to 2.0.0** (the app opened on "Create your first project"). A data folder chosen in Settings must win over the desktop's default `KANBAN_DB_PATH`, as it did before 2.0.0; the order was accidentally reversed. Your data was not deleted: it is still in your data folder.
