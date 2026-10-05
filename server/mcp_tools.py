@@ -401,7 +401,7 @@ def _clip_activity(entries: list[dict]) -> list[dict]:
 
 async def get_ticket(
     ticket_id: TicketId,
-    include_activity: Annotated[bool, Field(description=f"true: return the WHOLE change history with full texts (large). By default only the {DEFAULT_ACTIVITY_ENTRIES} most recent entries are returned, long texts shortened.")] = False,
+    include_activity: Annotated[bool, Field(description=f"true: return the WHOLE change history with full texts (large) and ignore activity_limit / activity_since. By default only the {DEFAULT_ACTIVITY_ENTRIES} most recent entries are returned, long texts shortened.")] = False,
     activity_limit: Annotated[int | None, Field(ge=0, le=1000, description=f"Return only the N most recent activity entries (default {DEFAULT_ACTIVITY_ENTRIES}). 0 = leave the history out entirely.")] = None,
     activity_since: Annotated[str | None, Field(description="Only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z' ('what changed since I last looked'). Combine with activity_limit to cap how many.")] = None,
 ) -> dict:
@@ -421,14 +421,16 @@ async def get_ticket(
             data["workspace_path"] = info["path"]
     log = data.get("activity_log") or []
     data["activity_total"] = len(log)
+    if include_activity:
+        return data  # the whole history, full texts; activity_limit / activity_since are ignored
     if since is not None:
         log = [e for e in log if (_entry_time(e) or since) > since]
     limit = activity_limit
-    if limit is None and since is None and not include_activity:
+    if limit is None and since is None:
         limit = DEFAULT_ACTIVITY_ENTRIES
     if limit is not None:
         log = log[-limit:] if limit > 0 else []
-    data["activity_log"] = log if include_activity and activity_limit is None else _clip_activity(log)
+    data["activity_log"] = _clip_activity(log)
     return data
 
 

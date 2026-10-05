@@ -297,3 +297,6 @@ async def test_default_activity_is_capped_and_long_texts_are_shortened(client):
     full = await mcp_tools.get_ticket(i, include_activity=True)
     assert len([e for e in full["activity_log"] if e["field"] == "description"][0]["to"]) == 5000  # ...whole with include_activity
     assert len(full["activity_log"]) == full["activity_total"]
+    # include_activity=true wins over the narrowing options: everything, in full
+    both = await mcp_tools.get_ticket(i, include_activity=True, activity_limit=1, activity_since="2999-01-01")
+    assert both["activity_log"] == full["activity_log"]
