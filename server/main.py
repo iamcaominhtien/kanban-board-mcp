@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from mcp.server.fastmcp import FastMCP
@@ -17,14 +17,40 @@ from api.members import router as members_router
 from api.settings import router as settings_router
 from api.data import router as data_router
 from api.idea_tickets import router as idea_tickets_router
+from api.workspace import router as workspace_router
+import database
+from version import version_info
 from database import init_db
-from uploads import resolve_upload_path
+from services import activity as svc_activity
+from services import workspace as svc_workspace
+from uploads import MIME_BY_EXTENSION, resolve_upload_path
+
+
+mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS, stateless_http=True, streamable_http_path="/")
+
+_mcp_tools.register(mcp)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
-    yield
+    # `mcp.streamable_http_app()` (mounted below) carries its own lifespan that
+    # starts its session manager's task group, but FastAPI/Starlette does not
+    # propagate a mounted sub-app's lifespan from the parent's `Mount` - so it
+    # must be started explicitly here, or every /mcp request raises
+    # "RuntimeError: Task group is not initialized. Make sure to use run()."
+    async with mcp.session_manager.run():
+        await init_db()
+        sweeper = asyncio.create_task(
+            svc_workspace.sweep_loop(lambda: database.async_session())
+        )
+        try:
+            yield
+        finally:
+            sweeper.cancel()
+            try:
+                await sweeper
+            except asyncio.CancelledError:
+                pass
 
 
 app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
@@ -45,9 +71,16 @@ app.add_middleware(
     ],
 )
 
-mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
+@app.middleware("http")
+async def record_activity_actor(request: Request, call_next):
+    """REST calls are attributed to the person using the board, or to X-Actor if sent."""
+    header = (request.headers.get("x-actor") or "").strip()[:80]
+    token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
+    try:
+        return await call_next(request)
+    finally:
+        svc_activity.reset_actor(token)
 
-_mcp_tools.register(mcp)
 
 app.mount("/mcp", mcp.streamable_http_app())
 
@@ -57,6 +90,7 @@ app.include_router(members_router)
 app.include_router(settings_router)
 app.include_router(data_router)
 app.include_router(idea_tickets_router)
+app.include_router(workspace_router)
 
 
 @app.get("/health")
@@ -64,16 +98,32 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/version")
+async def version() -> dict[str, str]:
+    """Server version and the oldest UI build it supports (no auth, like /health)."""
+    return version_info()
+
+
 @app.get("/uploads/{file_path:path}")
-async def serve_upload(file_path: str):
+async def serve_upload(file_path: str, name: str | None = None):
     resolved = resolve_upload_path(file_path)
     if resolved is None:
         raise HTTPException(status_code=400, detail="Invalid path")
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="File not found")
+    headers = {"X-Content-Type-Options": "nosniff"}
+    if resolved.suffix.lower() in MIME_BY_EXTENSION:
+        return FileResponse(resolved, headers=headers)
+    # Anything that is not a known image is only ever offered as a download, so an
+    # uploaded .html/.svg can never run script in the app's origin.
+    # ?name= lets the page offer the original file name; the stored name carries a random suffix
+    download_name = Path((name or "").replace("\\", "/")).name
+    download_name = "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
     return FileResponse(
         resolved,
-        headers={"X-Content-Type-Options": "nosniff"},
+        media_type="application/octet-stream",
+        filename=download_name,
+        headers=headers,
     )
 
 

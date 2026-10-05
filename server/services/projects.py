@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from services.git_repo import normalize_repo_path
 from models import Member, Project, ProjectCreate, ProjectUpdate, Ticket
 from services.members import create_member as _create_member
 
@@ -49,6 +50,13 @@ async def update_project(
         return None
 
     update_data = data.model_dump(exclude_none=True)
+    if "repo_path" in update_data:
+        raw_path = update_data["repo_path"].strip()
+        # Empty string unlinks the repository; anything else must be a real git repo.
+        update_data["repo_path"] = normalize_repo_path(raw_path) if raw_path else None
+    if "worktree_template" in update_data:
+        raw_tmpl = update_data["worktree_template"].strip() if update_data["worktree_template"] else ""
+        update_data["worktree_template"] = raw_tmpl if raw_tmpl else None
     for field, value in update_data.items():
         setattr(project, field, value)
 

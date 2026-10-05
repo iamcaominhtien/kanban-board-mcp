@@ -1,0 +1,179 @@
+/* Error / offline panel of the splash (the first-paint CSS lives in index.html) */
+.panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 26px;
+  text-align: center;
+}
+
+.mark {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: #2E6F40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.markBack {
+  position: absolute;
+  width: 20px;
+  height: 14px;
+  border-radius: 3px;
+  background: #1E4A2C;
+  opacity: 0.55;
+  transform: rotate(-9deg) translate(-2.8px, 2px);
+}
+
+.markFront {
+  position: relative;
+  width: 20px;
+  height: 14px;
+  border-radius: 3px;
+  background: #F3F8F4;
+  box-shadow: 0 1.2px 2.4px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.8px;
+  padding: 0 2.8px;
+  box-sizing: border-box;
+}
+
+.markLine {
+  height: 2px;
+  border-radius: 2px;
+  background: #B7D9C0;
+}
+
+.title {
+  margin: 18px 0 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1E2A22;
+}
+
+.text {
+  margin: 8px 0 0;
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5B6B60;
+}
+
+.detail {
+  margin: 12px 0 0;
+  max-width: 460px;
+  max-height: 96px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #F1F3F1;
+  border: 1px solid #DCE6DF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #3A4A3E;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.btn {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #276036;
+}
+
+.btn:focus-visible {
+  outline: 2px solid #68BA7F;
+  outline-offset: 2px;
+}
+
+.chips {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #F1F3F1;
+  border: 1px solid #DCE6DF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #3A4A3E;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #C4432A;
+}
+
+.retrying {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #5B6B60;
+}
+
+.ring {
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.8px solid #DCE6DF;
+  border-top-color: #2E6F40;
+  animation: spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+  }
+}
+
+.footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  text-align: center;
+  font-size: 11.5px;
+  color: #5B6B60;
+}

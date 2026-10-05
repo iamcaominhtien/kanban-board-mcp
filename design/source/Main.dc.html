@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  </style>
+</helmet>
+
+<div style="width: 1240px; height: 2140px; box-sizing: border-box; padding: 72px; background: #FFFFFF; display: flex; flex-direction: column; gap: 48px; color: #1E2A22;">
+
+  <!-- Header -->
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Kanban Board — Design System</div>
+    <h1 style="margin: 0; font-size: 44px; font-weight: 800; letter-spacing: -0.02em; color: #1E2A22;">Theme &amp; Typography</h1>
+    <div style="font-size: 16px; font-weight: 400; color: #5B6B60; max-width: 760px; line-height: 1.5;">Unified color palette and type scale for the app. Greens carry brand and status meaning; neutrals stay quiet so content leads.</div>
+  </div>
+
+  <!-- Brand colors -->
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Brand colors</div>
+    <div style="display: flex; gap: 20px;">
+
+      <div style="width: 259px; height: 220px; border-radius: 16px; background: #2E6F40; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box;">
+        <div style="font-size: 13px; font-weight: 600; color: #CFFFDC;">Primary — Forest</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500; color: #FFFFFF; margin-top: 4px;">#2E6F40</div>
+      </div>
+
+      <div style="width: 259px; height: 220px; border-radius: 16px; background: #CFFFDC; border: 1px solid #DCE6DF; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box;">
+        <div style="font-size: 13px; font-weight: 600; color: #2E6F40;">Primary Tint — Mint</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500; color: #1E2A22; margin-top: 4px;">#CFFFDC</div>
+      </div>
+
+      <div style="width: 259px; height: 220px; border-radius: 16px; background: #68BA7F; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box;">
+        <div style="font-size: 13px; font-weight: 600; color: #253D2C;">Secondary — Sage</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500; color: #FFFFFF; margin-top: 4px;">#68BA7F</div>
+      </div>
+
+      <div style="width: 259px; height: 220px; border-radius: 16px; background: #253D2C; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box;">
+        <div style="font-size: 13px; font-weight: 600; color: #68BA7F;">Ink — Deep</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500; color: #FFFFFF; margin-top: 4px;">#253D2C</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Neutrals -->
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Neutrals</div>
+    <div style="display: flex; gap: 16px;">
+
+      <div style="width: 206px; height: 140px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DCE6DF; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; box-sizing: border-box;">
+        <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Surface</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #1E2A22;">#FFFFFF</div>
+      </div>
+
+      <div style="width: 206px; height: 140px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; box-sizing: border-box;">
+        <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Background</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #1E2A22;">#F6FAF7</div>
+      </div>
+
+      <div style="width: 206px; height: 140px; border-radius: 14px; background: #DCE6DF; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; box-sizing: border-box;">
+        <div style="font-size: 12px; font-weight: 600; color: #3F4B45;">Border</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #1E2A22;">#DCE6DF</div>
+      </div>
+
+      <div style="width: 206px; height: 140px; border-radius: 14px; background: #5B6B60; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; box-sizing: border-box;">
+        <div style="font-size: 12px; font-weight: 600; color: #CFFFDC;">Text Secondary</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #FFFFFF;">#5B6B60</div>
+      </div>
+
+      <div style="width: 206px; height: 140px; border-radius: 14px; background: #1E2A22; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; box-sizing: border-box;">
+        <div style="font-size: 12px; font-weight: 600; color: #68BA7F;">Text Primary</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #FFFFFF;">#1E2A22</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Usage mapping -->
+  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #F6FAF7; border: 1px solid #DCE6DF;">
+      <div style="width: 10px; height: 10px; border-radius: 50%; background: #2E6F40;"></div>
+      <div style="font-size: 13px; font-weight: 500; color: #1E2A22;">Primary actions, active states</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #F6FAF7; border: 1px solid #DCE6DF;">
+      <div style="width: 10px; height: 10px; border-radius: 50%; background: #CFFFDC; border: 1px solid #68BA7F;"></div>
+      <div style="font-size: 13px; font-weight: 500; color: #1E2A22;">Hover, selection, tinted surfaces</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #F6FAF7; border: 1px solid #DCE6DF;">
+      <div style="width: 10px; height: 10px; border-radius: 50%; background: #68BA7F;"></div>
+      <div style="font-size: 13px; font-weight: 500; color: #1E2A22;">Tags, success, "Done" column</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #F6FAF7; border: 1px solid #DCE6DF;">
+      <div style="width: 10px; height: 10px; border-radius: 50%; background: #253D2C;"></div>
+      <div style="font-size: 13px; font-weight: 500; color: #1E2A22;">Headings, dark surfaces, nav</div>
+    </div>
+  </div>
+
+  <!-- Typography -->
+  <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Typography</div>
+      <div style="font-size: 13px; color: #5B6B60;">UI — Plus Jakarta Sans &nbsp;·&nbsp; Code / data — JetBrains Mono</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column;">
+
+      <div style="display: flex; align-items: baseline; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+        <div style="width: 120px; font-size: 12px; font-weight: 500; color: #5B6B60;">Display / 800</div>
+        <div style="font-size: 44px; font-weight: 800; letter-spacing: -0.02em; color: #1E2A22;">Board title</div>
+      </div>
+
+      <div style="display: flex; align-items: baseline; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+        <div style="width: 120px; font-size: 12px; font-weight: 500; color: #5B6B60;">H1 / 700</div>
+        <div style="font-size: 32px; font-weight: 700; color: #1E2A22;">Column heading</div>
+      </div>
+
+      <div style="display: flex; align-items: baseline; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+        <div style="width: 120px; font-size: 12px; font-weight: 500; color: #5B6B60;">H2 / 600</div>
+        <div style="font-size: 24px; font-weight: 600; color: #1E2A22;">Card title</div>
+      </div>
+
+      <div style="display: flex; align-items: baseline; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+        <div style="width: 120px; font-size: 12px; font-weight: 500; color: #5B6B60;">Body / 500</div>
+        <div style="font-size: 17px; font-weight: 500; color: #1E2A22;">Assignee, due date, priority</div>
+      </div>
+
+      <div style="display: flex; align-items: baseline; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+        <div style="width: 120px; font-size: 12px; font-weight: 500; color: #5B6B60;">Body / 400</div>
+        <div style="font-size: 15px; font-weight: 400; color: #3F4B45;">Ticket description text runs here, comfortable for reading.</div>
+      </div>
+
+      <div style="display: flex; align-items: baseline; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+        <div style="width: 120px; font-size: 12px; font-weight: 500; color: #5B6B60;">Caption / 500</div>
+        <div style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #5B6B60;">Backlog · 4 tickets</div>
+      </div>
+
+      <div style="display: flex; align-items: baseline; gap: 24px; padding: 14px 0;">
+        <div style="width: 120px; font-size: 12px; font-weight: 500; color: #5B6B60;">Code / mono</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 400; color: #253D2C; background: #F6FAF7; padding: 3px 8px; border-radius: 6px;">KAN-142</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- App Icon -->
+  <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">App icon</div>
+      <div style="font-size: 13px; color: #5B6B60;">Card stack — final</div>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; gap: 28px;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div style="width: 168px; height: 168px; border-radius: 37px; background: linear-gradient(160deg, #2E6F40 0%, #1E4A2C 100%); box-shadow: 0 18px 36px rgba(30,42,34,0.28), inset 0 1.5px 0 rgba(255,255,255,0.18); position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 81px; height: 58px; border-radius: 12px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-9px, 8px);"></div>
+          <div style="width: 81px; height: 58px; border-radius: 12px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 0 12px; box-sizing: border-box; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+            <div style="width: 60%; height: 7px; border-radius: 4px; background: #B7D9C0;"></div>
+            <div style="width: 85%; height: 7px; border-radius: 4px; background: #B7D9C0;"></div>
+          </div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5B6B60;">512</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div style="width: 96px; height: 96px; border-radius: 21px; background: linear-gradient(160deg, #2E6F40 0%, #1E4A2C 100%); box-shadow: 0 8px 18px rgba(30,42,34,0.22); position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 46px; height: 33px; border-radius: 7px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-5px, 4px);"></div>
+          <div style="width: 46px; height: 33px; border-radius: 7px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 7px; box-sizing: border-box; box-shadow: 0 5px 10px rgba(0,0,0,0.18);">
+            <div style="width: 60%; height: 4px; border-radius: 2px; background: #B7D9C0;"></div>
+            <div style="width: 85%; height: 4px; border-radius: 2px; background: #B7D9C0;"></div>
+          </div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5B6B60;">128</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div style="width: 56px; height: 56px; border-radius: 13px; background: linear-gradient(160deg, #2E6F40 0%, #1E4A2C 100%); box-shadow: 0 4px 10px rgba(30,42,34,0.18); position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 27px; height: 19px; border-radius: 4px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-3px, 2px);"></div>
+          <div style="width: 27px; height: 19px; border-radius: 4px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 2.5px; padding: 0 4px; box-sizing: border-box; box-shadow: 0 3px 6px rgba(0,0,0,0.16);">
+            <div style="width: 60%; height: 2.5px; border-radius: 1.5px; background: #B7D9C0;"></div>
+            <div style="width: 85%; height: 2.5px; border-radius: 1.5px; background: #B7D9C0;"></div>
+          </div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5B6B60;">64</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #2E6F40; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 15px; height: 11px; border-radius: 2.5px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-1.8px, 1.2px);"></div>
+          <div style="width: 15px; height: 11px; border-radius: 2.5px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 1.3px; padding: 0 2px; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.16);">
+            <div style="width: 60%; height: 1.3px; border-radius: 0.8px; background: #B7D9C0;"></div>
+            <div style="width: 85%; height: 1.3px; border-radius: 0.8px; background: #B7D9C0;"></div>
+          </div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5B6B60;">32</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div style="width: 16px; height: 16px; border-radius: 4px; background: #2E6F40; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 8px; height: 6px; border-radius: 1.5px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-1px, 0.7px);"></div>
+          <div style="width: 8px; height: 6px; border-radius: 1.5px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 0 1px; box-sizing: border-box;">
+            <div style="width: 60%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+            <div style="width: 85%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+          </div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5B6B60;">16</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 28px; padding-top: 6px;">
+
+      <!-- Browser tab context -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11.5px; font-weight: 600; color: #5B6B60;">Browser tab</div>
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px 8px 10px; border-radius: 8px 8px 0 0; background: #F1F3F1; border: 1px solid #E3E8E5; border-bottom: none;">
+          <div style="width: 14px; height: 14px; border-radius: 4px; background: #2E6F40; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div style="position: absolute; width: 7px; height: 5px; border-radius: 1.3px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-0.9px, 0.6px);"></div>
+            <div style="width: 7px; height: 5px; border-radius: 1.3px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 0 0.8px; box-sizing: border-box;">
+              <div style="width: 60%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+              <div style="width: 85%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+            </div>
+          </div>
+          <span style="font-size: 11.5px; font-weight: 500; color: #3F4B45;">Kanban Redesign</span>
+        </div>
+      </div>
+
+      <!-- Sidebar chip context (existing usage, updated to match) -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11.5px; font-weight: 600; color: #5B6B60;">Sidebar (updated to match)</div>
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; background: #253D2C;">
+          <div style="width: 22px; height: 22px; border-radius: 6px; background: #2E6F40; position: relative; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 10px; height: 7px; border-radius: 1.5px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-1.2px, 0.8px);"></div>
+            <div style="width: 10px; height: 7px; border-radius: 1.5px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 0 1.2px; box-sizing: border-box; box-shadow: 0 1.5px 3px rgba(0,0,0,0.14);">
+              <div style="width: 60%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+              <div style="width: 85%; height: 1px; border-radius: 0.5px; background: #B7D9C0;"></div>
+            </div>
+          </div>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #FFFFFF;">KANBAN</span>
+        </div>
+      </div>
+
+      <!-- Dock/app-grid context -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11.5px; font-weight: 600; color: #5B6B60;">Dock / app grid</div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; background: rgba(37,61,44,0.06);">
+          <div style="width: 46px; height: 46px; border-radius: 11px; background: linear-gradient(160deg, #2E6F40 0%, #1E4A2C 100%); box-shadow: 0 6px 14px rgba(30,42,34,0.24); position: relative; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 22px; height: 16px; border-radius: 4px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-2.5px, 2px);"></div>
+            <div style="width: 22px; height: 16px; border-radius: 4px; background: #F3F8F4; display: flex; flex-direction: column; justify-content: center; gap: 2.2px; padding: 0 3px; box-sizing: border-box; box-shadow: 0 3px 6px rgba(0,0,0,0.16);">
+              <div style="width: 60%; height: 2.2px; border-radius: 1.2px; background: #B7D9C0;"></div>
+              <div style="width: 85%; height: 2.2px; border-radius: 1.2px; background: #B7D9C0;"></div>
+            </div>
+          </div>
+          <div style="width: 46px; height: 46px; border-radius: 11px; background: #D7DEDA; opacity: 0.5;"></div>
+          <div style="width: 46px; height: 46px; border-radius: 11px; background: #D7DEDA; opacity: 0.5;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size: 12px; color: #B4571F; line-height: 1.5; max-width: 900px;">Note: final mark — two-card stack (back card at 55% opacity, rotated -9° behind the front card), forest-to-deep-green gradient, replaces <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">ui/public/logo.svg</code> (the old 3-column neon glyph that Main Board's redesign already retired) as the favicon. Bug fixed here: at 22–32px, an axis-aligned back card barely offset from the front one reads as a thin border/frame around a single box, not a stack — the rotation is what actually separates the two shapes at a glance, so the -9° tilt is kept all the way down to 22px instead of being dropped in favor of a flat single rect. Content lines now hold at every size down to 16px too (they were dropped below 64px before — sub-pixel line heights, ~1.3px at 32px and ~0.8px at 16px, still render fine since browsers subpixel-antialias, so "not enough room" wasn't actually a hard limit). Only the 14px browser-tab favicon keeps a plain card front — a 7x5px card genuinely has no room left once the tilted back layer and card padding are accounted for. The tilted back layer itself holds at every size shown, including 14px — dropping it anywhere smaller was the same mistake repeated at a smaller scale each time, so every instance gets the same -9° two-layer treatment rather than picking a cutoff to flatten below. The sidebar logo chip is updated to the same mark so the app's icon and its in-app logo stay identical.</div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1240,"height":2140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

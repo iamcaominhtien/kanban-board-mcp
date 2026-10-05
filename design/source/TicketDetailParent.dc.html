@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .td-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .tag-pill { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+    .tag-pill-edit { display: inline-flex; align-items: center; gap: 4px; padding: 2px 5px 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; border: none; cursor: pointer; }
+    .tag-pill-remove { opacity: 0.55; display: flex; }
+    .tag-pill-edit:hover .tag-pill-remove { opacity: 1; }
+    .tag-add-btn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 3px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #9AA8A0; }
+    .td-sidebar-row { display: flex; flex-direction: column; gap: 6px; }
+    .td-sub-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px; background: #FFFFFF; }
+    .td-rel-row { position: relative; }
+    .td-rel-remove { opacity: 0; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); }
+    .td-rel-row:hover .td-rel-remove { opacity: 1; }
+    .td-rel-remove:hover { background: #FBE7E4; color: #C4432A; }
+    .td-wave-badge { cursor: pointer; padding: 0; }
+    .td-wave-badge:hover { box-shadow: 0 0 0 3px rgba(46,111,64,0.15); }
+    .td-wave-step { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; border: 1px solid #C7D2CB; background: #FFFFFF; cursor: pointer; color: #5B6B60; }
+    .td-wave-step:hover { background: #F6FAF7; border-color: #9AA8A0; }
+    .dt-view-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; color: #5B6B60; position: relative; box-sizing: border-box; }
+    .dt-view-btn:hover { background: #F6FAF7; }
+    .dt-view-btn-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .dt-view-dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+    .dt-view-tooltip { position: absolute; top: 36px; left: 0; padding: 5px 9px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; }
+    .dt-view-btn:hover .dt-view-tooltip { opacity: 1; }
+    .dt-tab-counts { display: inline-flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
+    .dt-id-btn { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 3px 5px; margin: -3px -5px; border-radius: 5px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #1E2A22; }
+    .dt-id-btn:hover { background: #F6FAF7; }
+    .tc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .tc-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF; }
+    .tc-status { display: inline-flex; align-items: center; justify-content: center; padding: 3px 9px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; border: none; cursor: pointer; flex-shrink: 0; width: 62px; box-sizing: border-box; }
+    .tc-status-pending { background: #F1F3F1; color: #5B6B60; }
+    .tc-status-pass { background: #DCEEE1; color: #2E6F40; }
+    .tc-status-fail { background: rgba(196,67,42,0.12); color: #C4432A; }
+    .tc-icon-btn { width: 24px; height: 24px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0; }
+    .tc-icon-btn:hover { background: #F6FAF7; color: #5B6B60; }
+    .tc-add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 6px; border: none; background: #2E6F40; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+    .tc-source-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #9AA8A0; background: #F6FAF7; border: 1px solid #E3E8E5; padding: 1px 6px; border-radius: 3px; flex-shrink: 0; }
+  </style>
+</helmet>
+
+<div style="width: 1150px; height: 2140px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 24px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — same panel, parent ticket</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Ticket Detail — with Sub-tickets</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 760px; line-height: 1.5;">Each sub-ticket keeps its own live status mark, and the header rolls those up into a "done" count — only tickets actually in Done count toward it, In Progress doesn't move the bar.</div>
+  </div>
+
+  <!-- Panel mockup -->
+  <div style="width: 1038px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+    <!-- Header -->
+    <div style="display: flex; align-items: center; gap: 24px; padding: 20px 28px; border-bottom: 1px solid #E3E8E5;">
+      <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <span style="font-size: 13px; font-weight: 500; color: #5B6B60;">Task</span>
+        </div>
+        <span style="width: 1px; height: 14px; background: #E3E8E5;"></span>
+        <button class="dt-id-btn">KAN-140</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px; flex-grow: 1; overflow: hidden;">
+        <button class="dt-view-btn" aria-label="Test Cases">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+          <span class="dt-view-dot" style="background: #C4432A;"></span>
+          <span class="dt-view-tooltip">Test — 5 pass · 1 fail · 1 running · 2 pending</span>
+        </button>
+        <button class="dt-view-btn" aria-label="Debug Space">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9L10 12L7 15"></path><path d="M12 15H17"></path></svg>
+          <span class="dt-view-dot" style="background: #C4432A;"></span>
+          <span class="dt-view-tooltip">Debug — 5 entries · 1 blocked</span>
+        </button>
+        <button class="dt-view-btn" aria-label="Workspace">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+          <span class="dt-view-tooltip">Workspace — 9 files · 31 MB</span>
+        </button>
+      </div>
+
+      <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <!-- Body: two columns -->
+    <div style="display: flex; gap: 32px; padding: 24px 28px 28px; position: relative">
+
+      <!-- Main column -->
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px;">
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 21px; font-weight: 700; line-height: 1.3; color: #1E2A22;">Redesign board column header</h2>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="tag-pill-edit" style="background: rgba(46,111,64,0.12); color: #2E6F40;">
+              UI
+              <svg class="tag-pill-remove" width="9" height="9" viewBox="0 0 12 12"><path d="M3 3L9 9M9 3L3 9" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round"></path></svg>
+            </button>
+            <button class="tag-pill-edit" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">
+              FRONTEND
+              <svg class="tag-pill-remove" width="9" height="9" viewBox="0 0 12 12"><path d="M3 3L9 9M9 3L3 9" stroke="#2F6FB0" stroke-width="1.6" stroke-linecap="round"></path></svg>
+            </button>
+            <button class="tag-add-btn" aria-label="Add tag">
+              <svg width="9" height="9" viewBox="0 0 12 12"><path d="M6 2V10M2 6H10" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round"></path></svg>
+              Add tag
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="td-label">Description</div>
+          <div style="font-size: 14px; line-height: 1.6; color: #3A4A3E;">Column headers need a sticky drag handle and a live count. Splitting the work below into per-column tickets so drag support, header tests and snapshot updates can land independently.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">SUB-TASKS</div>
+            <div style="flex-grow: 1; height: 4px; border-radius: 2px; background: #DCE6DF; overflow: hidden; max-width: 120px;">
+              <div style="width: 50%; height: 100%; background: #2E6F40;"></div>
+            </div>
+            <span style="font-size: 11px; font-weight: 600; color: #5B6B60;">1/2</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF; border-bottom: 1px solid #EEF3EF;">
+              <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.4"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #5B6B60; text-decoration: line-through; text-decoration-color: #C7D2CB;">Confirm sticky header spec with design</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF;">
+              <div style="width: 16px; height: 16px; border-radius: 50%; border: 1.4px solid #C7D2CB; box-sizing: border-box;"></div>
+              <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Roll up estimate once all sub-tickets are sized</span>
+            </div>
+          </div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add sub-task
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">SUB-TICKETS · 4</div>
+            <div style="flex-grow: 1; height: 4px; border-radius: 2px; background: #DCE6DF; overflow: hidden; max-width: 120px;">
+              <div style="width: 25%; height: 100%; background: #2E6F40;"></div>
+            </div>
+            <span style="font-size: 11px; font-weight: 600; color: #5B6B60;">1/4 done</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+
+            <div class="td-sub-row" style="border-bottom: 1px solid #EEF3EF;">
+              <button class="td-wave-badge" style="display: flex; align-items: center; justify-content: center; width: 19px; height: 19px; border-radius: 50%; background: #DCEEE1; border: none; color: #2E6F40; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; flex-shrink: 0;">1</button>
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0;"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.6"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; text-decoration: line-through; text-decoration-color: #C7D2CB;">Update column header snapshot tests</span>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 62px; text-align: right; text-decoration: line-through; text-decoration-color: #C7D2CB;">KAN-141</span>
+            </div>
+
+            <div class="td-sub-row" style="border-bottom: 1px solid #EEF3EF; background: #F6FAF7;">
+              <button class="td-wave-badge" style="display: flex; align-items: center; justify-content: center; width: 19px; height: 19px; border-radius: 50%; background: #FFFFFF; border: 1.4px solid #2F6FB0; color: #2F6FB0; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; flex-shrink: 0; box-sizing: border-box;">2</button>
+              <div style="width: 15px; height: 15px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 500;">Write unit tests for drag handle</span>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 62px; text-align: right;">KAN-145</span>
+            </div>
+
+            <div class="td-sub-row" style="border-bottom: 1px solid #EEF3EF;">
+              <button class="td-wave-badge" style="display: flex; align-items: center; justify-content: center; width: 19px; height: 19px; border-radius: 50%; background: #FFFFFF; border: 1.4px solid #2F6FB0; color: #2F6FB0; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; flex-shrink: 0; box-sizing: border-box;">2</button>
+              <div style="width: 15px; height: 15px; border-radius: 50%; border: 1.6px solid #9AA8A0; box-sizing: border-box; flex-shrink: 0;"></div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Update Storybook docs for column header</span>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 62px; text-align: right;">KAN-147</span>
+            </div>
+
+            <div class="td-sub-row">
+              <button class="td-wave-badge" style="display: flex; align-items: center; justify-content: center; width: 19px; height: 19px; border-radius: 50%; background: #FFFFFF; border: 1.4px dashed #C7D2CB; color: #9AA8A0; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; flex-shrink: 0; box-sizing: border-box;">3</button>
+              <div style="width: 15px; height: 15px; border-radius: 50%; border: 1.6px solid #9AA8A0; box-sizing: border-box; flex-shrink: 0;"></div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                <span style="font-size: 13px; color: #1E2A22;">Add integration test for header drag</span>
+                <span style="display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; padding: 2px 7px 2px 6px; border-radius: 3px; background: rgba(196,67,42,0.10); color: #C4432A; font-size: 10px; font-weight: 700;">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+                  Blocked by KAN-145
+                </span>
+              </div>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 62px; text-align: right;">KAN-146</span>
+            </div>
+
+          </div>
+          <div style="font-size: 11px; color: #9AA8A0; line-height: 1.5;">Circled number = execution wave, read top to bottom — same number can be worked in parallel, the next number waits on that wave's blockers to clear. The red chip flags a sub-ticket that can't start yet because another one isn't done.</div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add sub-ticket
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">ACCEPTANCE CRITERIA</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: flex-start; gap: 9px;">
+              <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0; margin-top: 1px;"></div>
+              <span style="font-size: 13px; color: #3A4A3E;">Header stays fixed at the top of the column while its cards scroll underneath</span>
+            </label>
+            <label style="display: flex; align-items: flex-start; gap: 9px;">
+              <div style="width: 16px; height: 16px; border-radius: 4px; border: 1.4px solid #C7D2CB; box-sizing: border-box; flex-shrink: 0; margin-top: 1px;"></div>
+              <span style="font-size: 13px; color: #3A4A3E;">Card count updates live as tickets move in or out of the column</span>
+            </label>
+          </div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add criterion
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid #EEF3EF;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">RELATIONS</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="font-size: 10.5px; font-weight: 600; color: #9AA8A0;">Blocks</div>
+              <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+                <div class="td-rel-row" style="display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: #FFFFFF;">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 62px; flex-shrink: 0;">KAN-099</span>
+                  <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Migrate column config to new schema</span>
+                  <button style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 8px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; flex-shrink: 0;">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #C7D2CB;"></span>
+                    <span style="font-size: 11.5px; font-weight: 600; color: #1E2A22;">To Do</span>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+                  </button>
+                  <button class="td-rel-remove" aria-label="Remove relation" style="width: 20px; height: 20px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="font-size: 10.5px; font-weight: 600; color: #9AA8A0;">Relates to</div>
+              <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+                <div class="td-rel-row" style="display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: #FFFFFF;">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 62px; flex-shrink: 0;">KAN-088</span>
+                  <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Column header redesign — v1 spike</span>
+                  <button style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 8px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; flex-shrink: 0;">
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.4"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <span style="font-size: 11.5px; font-weight: 600; color: #1E2A22;">Done</span>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+                  </button>
+                  <button class="td-rel-remove" aria-label="Remove relation" style="width: 20px; height: 20px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <button style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add link
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #EEF3EF;">
+          <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">ATTACHMENTS · 3</div>
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="width: 76px; height: 76px; border-radius: 8px; overflow: hidden; border: 1px solid #E3E8E5; flex-shrink: 0;">
+                <svg width="76" height="76" viewBox="0 0 76 76"><rect width="76" height="76" fill="#FBE7E4"></rect><circle cx="38" cy="30" r="10" fill="#F3D4CE"></circle><path d="M14 62L30 42L44 56L52 46L64 62Z" fill="#F3D4CE"></path></svg>
+              </div>
+              <span style="font-size: 9.5px; color: #9AA8A0;">in Description</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="width: 76px; height: 76px; border-radius: 8px; overflow: hidden; border: 1px solid #E3E8E5; flex-shrink: 0;">
+                <svg width="76" height="76" viewBox="0 0 76 76"><rect width="76" height="76" fill="#F1F8F3"></rect><rect x="10" y="14" width="56" height="38" rx="4" fill="#FFFFFF" stroke="#D7E8DC"></rect><rect x="16" y="20" width="30" height="6" rx="3" fill="#9AA8A0"></rect><rect x="16" y="30" width="44" height="16" rx="4" fill="#F6FAF7" stroke="#E3E8E5"></rect></svg>
+              </div>
+              <span style="font-size: 9.5px; color: #9AA8A0;">in Description</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #E3E8E5; border-radius: 7px; background: #FFFFFF;">
+                <div style="width: 26px; height: 26px; border-radius: 5px; background: #EEF1EE; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path><path d="M9 13H15"></path><path d="M9 17H13"></path></svg>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">migration-plan.docx</span>
+                  <span style="font-size: 10.5px; color: #9AA8A0;">61 KB</span>
+                </div>
+              </div>
+              <span style="font-size: 9.5px; color: #9AA8A0; padding-left: 2px;">in Description</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid #EEF3EF;">
+          <div class="td-label" style="text-transform: none; letter-spacing: 0.06em;">COMMENTS</div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+            <div style="flex-grow: 1; padding: 8px 12px; border-radius: 7px; border: 1px solid #E3E8E5; font-size: 13px; color: #9AA8A0;">Add a comment…</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sidebar -->
+      <div style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 18px;">
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Status</div>
+          <button style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #F6FAF7; cursor: pointer;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0;"></span>
+            <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">In Progress</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Branch</div>
+          <button style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #F6FAF7; cursor: pointer;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M6 8.5V15.5"></path><path d="M8.5 6H13A5 5 0 0 1 18 11V15.5"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #1E2A22;">main</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          </button>
+          <span style="font-size: 11px; color: #9AA8A0; padding-left: 2px;">baseline · 1 branch open</span>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Assignee</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 22px; height: 22px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">HM</div>
+            <span style="font-size: 13px; color: #1E2A22; font-weight: 500;">Ha My</span>
+          </div>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Priority</div>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <svg width="16" height="15" viewBox="0 0 26 24" fill="none">
+              <rect x="0" y="17" width="4.4" height="7" rx="1.5" fill="#E8B93A"></rect>
+              <rect x="7.2" y="12" width="4.4" height="12" rx="1.5" fill="#E8B93A"></rect>
+              <rect x="14.4" y="7" width="4.4" height="17" rx="1.5" fill="#DCE6DF"></rect>
+              <rect x="21.6" y="2" width="4.4" height="22" rx="1.5" fill="#DCE6DF"></rect>
+            </svg>
+            <span style="font-size: 13px; color: #1E2A22; font-weight: 500;">Medium</span>
+          </div>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Due date</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10H20.5"></path><path d="M8 3V6.5"></path><path d="M16 3V6.5"></path></svg>
+            <span style="font-size: 13px; color: #1E2A22;">Sep 26</span>
+          </div>
+        </div>
+
+        <div class="td-sidebar-row">
+          <div class="td-label">Estimate</div>
+          <span style="font-size: 13px; color: #1E2A22;">8 pt <span style="color: #9AA8A0; font-weight: 400;">(rolled up)</span></span>
+        </div>
+
+        <div style="height: 1px; background: #EEF3EF; margin: 2px 0;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: #9AA8A0; line-height: 1.6;">
+          <div>Created 5 days ago by <span style="color: #5B6B60; font-weight: 500;">Ha My</span></div>
+          <div>Updated 2 hours ago</div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Clicking a wave badge -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking a wave badge — reassign the wave</div>
+    <div style="position: relative; width: 700px; height: 160px;">
+      <div style="display: flex; align-items: center; gap: 9px; padding: 10px 12px; width: 640px; box-sizing: border-box; border: 1px solid #E3E8E5; border-radius: 8px; background: #F6FAF7;">
+        <button class="td-wave-badge" style="display: flex; align-items: center; justify-content: center; width: 19px; height: 19px; border-radius: 50%; background: #FFFFFF; border: 1.4px solid #2F6FB0; color: #2F6FB0; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; flex-shrink: 0; box-sizing: border-box; box-shadow: 0 0 0 3px rgba(47,111,176,0.18);">2</button>
+        <div style="width: 15px; height: 15px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></div>
+        <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 500;">Write unit tests for drag handle</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0;">KAN-145</span>
+      </div>
+      <div style="position: absolute; left: 0; top: 46px; width: 190px; border: 1px solid #E3E8E5; border-radius: 8px; background: #FFFFFF; box-shadow: 0 12px 28px rgba(30,42,34,0.16); box-sizing: border-box; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9AA8A0;">Wave</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="td-wave-step">−</span>
+          <span style="flex-grow: 1; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #1E2A22;">2</span>
+          <span class="td-wave-step">+</span>
+        </div>
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #5B6B60; padding-top: 6px; border-top: 1px solid #EEF3EF;">
+          <div style="width: 13px; height: 13px; border-radius: 3px; background: #2E6F40; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="9" height="9" viewBox="0 0 12 12"><path d="M2.5 6.2L4.8 8.5L9.5 3.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+          Auto-set from Blocked by
+        </label>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 620px;">By default the wave is computed from the Blocked by / Blocks links (same data as the Relations section). "Auto-set" stays checked normally; unchecking it lets someone pin a sub-ticket to an earlier or later wave than its links imply — e.g. to flag it as safe to start early despite a soft dependency.</div>
+    <div style="font-size: 11.5px; color: #B4571F; line-height: 1.5; max-width: 620px; display: flex; align-items: flex-start; gap: 6px;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+      <span>Note: changing a sub-ticket's wave also re-sorts its position in the list (rows are always ordered by wave, top to bottom). The algorithm that auto-computes wave + position from the Blocked by / Blocks graph — including how it breaks ties within the same wave — is left to dev to design and implement; this screen only specifies the resulting UI and the manual-override affordance.</span>
+    </div>
+  </div>
+
+  <!-- Header button: chosen design -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Header button — final: icon only, hover for the breakdown (real hover works live in this canvas)</div>
+    <div style="display: flex; gap: 24px; align-items: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="padding: 16px; border: 1px solid #E3E8E5; border-radius: 8px; background: #F6FAF7;">
+          <button class="dt-view-btn" style="position: static;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+            <span class="dt-view-dot" style="background: #C4432A;"></span>
+          </button>
+        </div>
+        <div style="font-size: 11px; color: #9AA8A0;">Idle</div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="padding: 16px; border: 1px solid #2E6F40; border-radius: 8px; background: #FFFFFF;">
+          <button class="dt-view-btn dt-view-btn-active" style="position: static;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+            <span class="dt-view-dot" style="background: #C4432A;"></span>
+          </button>
+        </div>
+        <div style="font-size: 11px; color: #9AA8A0;">Active (Test Cases open)</div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="padding: 16px; border: 1px solid #E3E8E5; border-radius: 8px; background: #F6FAF7; display: flex; flex-direction: column; gap: 8px;">
+          <button class="dt-view-btn" style="position: static; align-self: flex-start;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+            <span class="dt-view-dot" style="background: #C4432A;"></span>
+          </button>
+          <div style="align-self: flex-start; padding: 5px 9px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 11px; white-space: nowrap;">Test — 5 pass · 1 fail · 1 running · 2 pending</div>
+        </div>
+        <div style="font-size: 11px; color: #9AA8A0;">Hover</div>
+      </div>
+    </div>
+  </div>
+  <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 700px; margin-top: -12px;">Clicking it swaps the whole panel body for the test list (rolled up across sub-tickets, filterable) — see the dedicated <strong style="color: #5B6B60;">Test Cases</strong> board for that full state.</div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1150,"height":2140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

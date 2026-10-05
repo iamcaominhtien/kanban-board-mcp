@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .dt-id-btn { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 3px 5px; margin: -3px -5px; border-radius: 5px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #1E2A22; }
+    .dt-id-btn:hover { background: #F6FAF7; }
+    .dt-view-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; color: #5B6B60; position: relative; box-sizing: border-box; }
+    .dt-view-btn:hover { background: #F6FAF7; }
+    .dt-view-btn-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .dt-view-dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+    .dt-view-tooltip { position: absolute; top: 36px; left: 0; padding: 5px 9px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; }
+    .dt-view-btn:hover .dt-view-tooltip { opacity: 1; }
+    .tc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .tc-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FFFFFF; }
+    .tc-status-ic { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: none; background: none; cursor: pointer; padding: 0; box-sizing: border-box; }
+    .tc-status-dot { width: 15px; height: 15px; border-radius: 50%; box-sizing: border-box; position: relative; }
+    .tc-status-dot-pending { border: 1.6px solid #9AA8A0; }
+    .tc-status-dot-running { background: #2F6FB0; }
+    .tc-status-dot-running::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid rgba(47,111,176,0.55); animation: tc-ring 1.4s ease-out infinite; }
+    @keyframes tc-ring { 0% { transform: scale(0.7); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+    .tc-icon-btn { width: 24px; height: 24px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0; }
+    .tc-icon-btn:hover { background: #F6FAF7; color: #5B6B60; }
+    .tc-add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 6px; border: none; background: #2E6F40; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+    .tc-source-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #9AA8A0; background: #F6FAF7; border: 1px solid #E3E8E5; padding: 1px 6px; border-radius: 3px; flex-shrink: 0; }
+    .tc-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9AA8A0; }
+    .tc-md { font-size: 12.5px; color: #3A4A3E; line-height: 1.6; padding: 8px 10px; border-radius: 6px; background: #F6FAF7; border: 1px solid #E3E8E5; }
+    .tc-md code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #EEF3EF; padding: 1px 5px; border-radius: 3px; color: #2E6F40; }
+    .tc-file-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 9px; border: 1px solid #E3E8E5; border-radius: 7px; background: #FFFFFF; }
+    .tc-file-icon { width: 22px; height: 22px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .tc-file-add-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px 5px 7px; border-radius: 7px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 11.5px; color: #9AA8A0; }
+    .tc-filter-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #5B6B60; }
+    .tc-filter-chip:hover { background: #F6FAF7; }
+    .tc-filter-chip-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .tc-filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; height: 3260px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — rev. 2</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Test Cases</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 860px; line-height: 1.5;">Grounded in the app's existing <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">TestCasesSection.tsx</code>, extended with richer fields (see the note at the bottom). Opened from the icon-only "Test Cases" button in Ticket Detail's header — clicking it swaps the whole panel body for this list; clicking the ticket id goes back to Details. Status cycles pending → running → pass/fail, title is click-to-edit, each row expands to show what it checks, the pass bar, and notes. On a parent ticket it rolls up the sub-tickets' test cases too, filterable.</div>
+  </div>
+
+  <!-- Leaf ticket, own test cases only -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Leaf ticket — own test cases only (KAN-145)</div>
+    <div style="width: 1038px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+      <div style="display: flex; align-items: center; gap: 24px; padding: 20px 28px; border-bottom: 1px solid #E3E8E5;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 13px; font-weight: 500; color: #5B6B60;">Task</span>
+          </div>
+          <span style="width: 1px; height: 14px; background: #E3E8E5;"></span>
+          <button style="display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9AA8A0;">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5"></path><path d="M7.5 8.5L10 11L7.5 13.5"></path></svg>
+            KAN-140
+          </button>
+          <span style="font-size: 13px; color: #C7D2CB;">/</span>
+          <button class="dt-id-btn" title="Back to Details">KAN-145</button>
+        </div>
+
+        <div style="display: flex; align-items: center; flex-grow: 1; overflow: hidden;">
+          <button class="dt-view-btn dt-view-btn-active" aria-label="Test Cases">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+            <span class="dt-view-dot" style="background: #2F6FB0;"></span>
+            <span class="dt-view-tooltip">Test — 1 pass · 1 running · 2 pending</span>
+          </button>
+        </div>
+
+        <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <div style="padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span class="tc-label" style="font-size: 11px;">4 test cases · KAN-145</span>
+          <button class="tc-add-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add test case
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button class="tc-filter-chip tc-filter-chip-active">All (4)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #2E6F40;"></span>Pass (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #2F6FB0;"></span>Running (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #9AA8A0;"></span>Pending (2)</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+
+          <div class="tc-row" style="border: 1px solid #E3E8E5; border-radius: 8px 8px 0 0; border-bottom: none;">
+            <button class="tc-status-ic" title="Pass" aria-label="Status: Pass"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.6"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-1</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Pointer-down starts drag after 4px threshold</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">passed 2d ago</span>
+            <div style="width: 20px; height: 20px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+            <button class="tc-icon-btn" aria-label="Expand details">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+            </button>
+            <button class="tc-icon-btn" aria-label="Delete test case">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H21"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+            </button>
+          </div>
+
+          <div class="tc-row" style="border: 1px solid #E3E8E5; border-top: none; background: #F6FAF7;">
+            <button class="tc-status-ic" title="Running" aria-label="Status: Running"><span class="tc-status-dot tc-status-dot-running"></span></button>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-2</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 500;">Card re-parents to target column on drop</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">started 4m ago</span>
+            <div style="width: 20px; height: 20px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+            <button class="tc-icon-btn" style="color: #5B6B60; background: #EEF3EF;" aria-label="Collapse details">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15L12 9L6 15"></path></svg>
+            </button>
+            <button class="tc-icon-btn" aria-label="Delete test case">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H21"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+            </button>
+          </div>
+          <div style="border: 1px solid #E3E8E5; border-top: none; background: #F6FAF7; padding: 4px 16px 16px 78px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span class="tc-field-label">Description</span>
+              <div class="tc-md">Drag a card from one column and drop it on another — checks the card actually moves data-side, not just visually. Covers <code>DraggableTicketCard</code> only, not the column header drop zone.</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span class="tc-field-label">Expected result</span>
+              <div class="tc-md">Card's <code>columnId</code> updates to the target column and the card renders there after drop; source column's count decrements.</div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+                <div class="tc-file-chip">
+                  <div class="tc-file-icon" style="background: #FBE9E1;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 1px;">
+                    <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">expected-drop-state.png</span>
+                    <span style="font-size: 10px; color: #9AA8A0;">86 KB · reference screenshot</span>
+                  </div>
+                </div>
+                <button class="tc-file-add-btn">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+                  Attach file
+                </button>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span class="tc-field-label">Test data</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div class="tc-file-chip">
+                  <div class="tc-file-icon" style="background: #F1F8F3;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 1px;">
+                    <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">drag-fixture.json</span>
+                    <span style="font-size: 10px; color: #9AA8A0;">4 KB · seed board state</span>
+                  </div>
+                </div>
+                <button class="tc-file-add-btn">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+                  Attach file
+                </button>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span class="tc-field-label">Notes</span>
+              <div class="tc-md">Ghost stays on the source column through the whole drag on Firefox — screen recording attached. Chrome and Safari pass; <strong>Firefox-only, filed as KAN-151</strong>.</div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+                <div class="tc-file-chip">
+                  <div class="tc-file-icon" style="background: #E6E9F5;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5B5FA8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="15" height="12" rx="2"></rect><path d="M22 9L17 12L22 15V9Z"></path></svg>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 1px;">
+                    <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">firefox-ghost-bug.mov</span>
+                    <span style="font-size: 10px; color: #9AA8A0;">2.1 MB · screen recording</span>
+                  </div>
+                </div>
+                <button class="tc-file-add-btn">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+                  Attach file
+                </button>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 10.5px; color: #9AA8A0; padding-top: 2px; border-top: 1px solid #EEF3EF;">
+              <span>Started 4m ago by Ha My</span>
+              <span>·</span>
+              <span>Last edited 1m ago</span>
+            </div>
+          </div>
+
+          <div class="tc-row" style="border: 1px solid #E3E8E5; border-top: none;">
+            <button class="tc-status-ic" title="Pending" aria-label="Status: Pending"><span class="tc-status-dot tc-status-dot-pending"></span></button>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-3</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Source slot's ghost state clears after drop</span>
+            <div style="width: 20px; height: 20px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+            <button class="tc-icon-btn" aria-label="Expand details">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+            </button>
+            <button class="tc-icon-btn" aria-label="Delete test case">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H21"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+            </button>
+          </div>
+
+          <div class="tc-row" style="border: 1px solid #E3E8E5; border-top: none; border-radius: 0 0 8px 8px;">
+            <button class="tc-status-ic" title="Pending" aria-label="Status: Pending"><span class="tc-status-dot tc-status-dot-pending"></span></button>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-4</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Escape cancels an in-progress drag</span>
+            <div style="width: 20px; height: 20px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+            <button class="tc-icon-btn" aria-label="Expand details">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+            </button>
+            <button class="tc-icon-btn" aria-label="Delete test case">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H21"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parent ticket, rollup -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Parent ticket — rolled up across sub-tickets (KAN-140)</div>
+    <div style="width: 1038px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+      <div style="display: flex; align-items: center; gap: 24px; padding: 20px 28px; border-bottom: 1px solid #E3E8E5;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 13px; font-weight: 500; color: #5B6B60;">Task</span>
+          </div>
+          <span style="width: 1px; height: 14px; background: #E3E8E5;"></span>
+          <button class="dt-id-btn" title="Back to Details">KAN-140</button>
+        </div>
+
+        <div style="display: flex; align-items: center; flex-grow: 1; overflow: hidden;">
+          <button class="dt-view-btn dt-view-btn-active" aria-label="Test Cases">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+            <span class="dt-view-dot" style="background: #C4432A;"></span>
+            <span class="dt-view-tooltip">Test — 5 pass · 1 fail · 1 running · 2 pending</span>
+          </button>
+        </div>
+
+        <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <div style="padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 11px; color: #9AA8A0;">Show</span>
+            <button style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12px; color: #1E2A22;">
+              All (9)
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+            </button>
+            <span style="font-size: 11px; color: #C7D2CB;">·</span>
+            <span style="font-size: 11px; color: #9AA8A0;">Parent only (4) · Child: KAN-146 (3) · Child: KAN-145 (2)</span>
+          </div>
+          <button class="tc-add-btn" title="Adds to KAN-140 itself — open a sub-ticket's own Test Cases panel to add one there">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Add test case
+          </button>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 5px; font-size: 10.5px; color: #B4571F; line-height: 1.4;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+          <span>Design note, not real UI copy: "Add test case" here always adds to KAN-140 itself (lands in the "this ticket" group below) — never to a sub-ticket. To add one to KAN-145 or KAN-146, open that ticket's own Test Cases panel.</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button class="tc-filter-chip tc-filter-chip-active">All (9)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #2E6F40;"></span>Pass (5)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #C4432A;"></span>Fail (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #2F6FB0;"></span>Running (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #9AA8A0;"></span>Pending (2)</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+          <!-- Group: own -->
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9AA8A0;">KAN-140 — this ticket</div>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+
+              <div class="tc-row" style="border: 1px solid #E3E8E5; border-radius: 8px 8px 0 0; border-bottom: none;">
+                <button class="tc-status-ic" title="Pass" aria-label="Status: Pass"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.6"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-1</span>
+                <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Drag handle appears on hover, not on touch</span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">passed 1d ago</span>
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+                <button class="tc-icon-btn" aria-label="Expand details">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+                </button>
+                <button class="tc-icon-btn" aria-label="Delete test case">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H21"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+                </button>
+              </div>
+
+              <div class="tc-row" style="border: 1px solid #E3E8E5; border-top: none; background: #F6FAF7;">
+                <button class="tc-status-ic" title="Fail" aria-label="Status: Fail"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#C4432A" stroke-width="1.6"></circle><path d="M5 5L9 9M9 5L5 9" stroke="#C4432A" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-2</span>
+                <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 500;">Column re-renders without flicker on 50+ cards</span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">failed 3h ago</span>
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: #E6E9F5; color: #5B5FA8; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">HM</div>
+                <button class="tc-icon-btn" style="color: #5B6B60; background: #EEF3EF;" aria-label="Collapse details">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15L12 9L6 15"></path></svg>
+                </button>
+                <button class="tc-icon-btn" aria-label="Delete test case">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H21"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+                </button>
+              </div>
+              <div style="border: 1px solid #E3E8E5; border-top: none; background: #F6FAF7; border-radius: 0 0 8px 8px; padding: 4px 16px 16px 78px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span class="tc-field-label">Description</span>
+                  <div class="tc-md">Checks that virtualized scrolling holds up once a column is loaded past the point where the old non-virtualized list started dropping frames. <strong>Perf-sensitive</strong> — run with dev tools closed.</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span class="tc-field-label">Expected result</span>
+                  <div class="tc-md">Scroll stays at 60fps with 200 cards; no layout shift when new cards stream in via <code>useVirtualizer</code>.</div>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+                    <div class="tc-file-chip">
+                      <div class="tc-file-icon" style="background: #FBE9E1;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 1px;">
+                        <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">expected-fps-graph.png</span>
+                        <span style="font-size: 10px; color: #9AA8A0;">54 KB · reference screenshot</span>
+                      </div>
+                    </div>
+                    <button class="tc-file-add-btn">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+                      Attach file
+                    </button>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span class="tc-field-label">Test data</span>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div class="tc-file-chip">
+                      <div class="tc-file-icon" style="background: #F1F8F3;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 1px;">
+                        <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">200-cards-seed.json</span>
+                        <span style="font-size: 10px; color: #9AA8A0;">61 KB · seed data</span>
+                      </div>
+                    </div>
+                    <div class="tc-file-chip">
+                      <div class="tc-file-icon" style="background: #E1EEFB;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2F6FB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 1px;">
+                        <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">cpu-profile.json</span>
+                        <span style="font-size: 10px; color: #9AA8A0;">312 KB · run output</span>
+                      </div>
+                    </div>
+                    <button class="tc-file-add-btn">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+                      Attach file
+                    </button>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span class="tc-field-label">Notes</span>
+                  <div class="tc-md">Profiled at 52 cards — <strong>drop to ~48fps around card #170</strong>, likely the drag-preview layer re-rendering on every scroll tick. Recording attached.</div>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+                    <div class="tc-file-chip">
+                      <div class="tc-file-icon" style="background: #E6E9F5;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5B5FA8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="15" height="12" rx="2"></rect><path d="M22 9L17 12L22 15V9Z"></path></svg>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 1px;">
+                        <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">profile-recording.mov</span>
+                        <span style="font-size: 10px; color: #9AA8A0;">4.6 MB · screen recording</span>
+                      </div>
+                    </div>
+                    <button class="tc-file-add-btn">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+                      Attach file
+                    </button>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 10.5px; color: #9AA8A0; padding-top: 2px; border-top: 1px solid #EEF3EF;">
+                  <span>Failed 3h ago by Ha My</span>
+                  <span>·</span>
+                  <span>Retest after the virtualization change lands</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Group: sub-ticket KAN-145 -->
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: baseline; gap: 6px;">
+              <span style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9AA8A0;">KAN-145</span>
+              <span style="font-size: 10.5px; color: #C7D2CB;">·</span>
+              <span style="font-size: 10.5px; color: #9AA8A0;">Write unit tests for drag handle — read-only here</span>
+            </div>
+            <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+              <div class="tc-row">
+                <button class="tc-status-ic" title="Running" aria-label="Status: Running"><span class="tc-status-dot tc-status-dot-running"></span></button>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-5</span>
+                <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Undo restores card to its exact prior index</span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">started 1m ago</span>
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+                <button class="tc-icon-btn" aria-label="Expand details">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Group: sub-ticket KAN-146 -->
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: baseline; gap: 6px;">
+              <span style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9AA8A0;">KAN-146</span>
+              <span style="font-size: 10.5px; color: #C7D2CB;">·</span>
+              <span style="font-size: 10.5px; color: #9AA8A0;">Add integration test for header drag — read-only here</span>
+            </div>
+            <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+              <div class="tc-row">
+                <button class="tc-status-ic" title="Pending" aria-label="Status: Pending"><span class="tc-status-dot tc-status-dot-pending"></span></button>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-3</span>
+                <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Keyboard reorder (space to pick up, arrows to move)</span>
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: #DCEEE1; color: #2E6F40; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">AN</div>
+                <span style="width: 24px;"></span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div style="font-size: 11px; color: #9AA8A0;">Grouped by ticket instead of a flat mixed list — own test cases first, then each sub-ticket's in its own block. Sub-ticket groups are read-only here; edited from that ticket's own Test Cases board.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clicking Add test case -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking "Add test case" — not a popup, an inline row pushed onto the top of the same list</div>
+    <div style="width: 700px; border: 1px solid #E3E8E5; border-radius: 12px; box-shadow: 0 16px 40px rgba(30,42,34,0.10); box-sizing: border-box; overflow: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #E3E8E5;">
+        <span class="tc-label" style="font-size: 11px;">4 test cases · KAN-145</span>
+        <button class="tc-add-btn" style="opacity: 0.5;" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+          Add test case
+        </button>
+      </div>
+      <div style="padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 1px;">
+        <div style="border: 1px solid #2E6F40; border-radius: 8px 8px 0 0; box-sizing: border-box; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10); background: #FFFFFF; position: relative; z-index: 1;">
+          <input value="Undo restores card to its exact prior index" placeholder="Test case title…" readonly style="padding: 7px 9px; border-radius: 6px; border: 1px solid #B9CBBF; font-size: 12.5px; color: #1E2A22; font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 0 0 2px rgba(46,111,64,0.12); box-sizing: border-box;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button style="padding: 5px 11px; border-radius: 6px; border: none; background: #2E6F40; color: #FFFFFF; font-size: 12px; font-weight: 600; cursor: pointer;">Add</button>
+            <button style="padding: 5px 11px; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; color: #5B6B60; font-size: 12px; cursor: pointer;">Cancel</button>
+          </div>
+        </div>
+        <div class="tc-row" style="border: 1px solid #E3E8E5; border-top: none; opacity: 0.55;">
+          <button class="tc-status-ic" title="Pass" aria-label="Status: Pass"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.6"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-1</span>
+          <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Pointer-down starts drag after 4px threshold</span>
+        </div>
+        <div class="tc-row" style="border: 1px solid #E3E8E5; border-top: none; border-radius: 0 0 8px 8px; opacity: 0.55;">
+          <button class="tc-status-ic" title="Running" aria-label="Status: Running"><span class="tc-status-dot tc-status-dot-running"></span></button>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9AA8A0; flex-shrink: 0; width: 26px; box-sizing: border-box;">TC-2</span>
+          <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Card re-parents to target column on drop</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 700px;">No modal — the form drops into the same panel, above the existing rows (dimmed here just to show it's the same list, not literally dimmed live). Title only at creation; everything else (Description, Expected result, Test data, Notes) gets filled in later by expanding the row. New test cases always start Pending. Same "type title, hit Add" pattern as the current app, just extended for the new fields.</div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 900px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: model changes vs. today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">TestCase</code> (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">id, title, status, proof, note</code>). (1) <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">status</code> gains a 4th value, <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">running</code> (pending → running → pass/fail), with a <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">startedAt</code> timestamp. (2) new <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">description</code> — what the test covers. (3) new <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">expectedResult</code> — the pass bar, set once when the case is written. (4) <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">proof</code> + <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">note</code> merge into one <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">notes</code> field. All three of these — description, expectedResult, notes — are markdown (same editor as Description on the ticket itself, images included), not plain text. (5) <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">updatedAt</code> for "last edited". (6) file attachments on <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">expectedResult</code> and <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">notes</code> too (screenshots, recordings), on top of the dedicated <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">testDataFiles</code> for raw fixtures/seed data/run output — same upload flow as Attachments, attached per-field so it's clear whether a file is "what we expected" vs "what happened" vs raw input data, not one shared bucket. (7) the per-row assignee avatar is also new — no assignee field exists today. (8) new short human-readable code (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">TC-1</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">TC-2</code>…), numbered per ticket — the internal <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">id</code> is a uuid, not something anyone can reference by hand; this gives a bug ticket something stable to point back to ("failed TC-2 on KAN-145") instead of quoting the title, which can change. List-row width stays compact (status · title · meta); the richer fields only show once a row is expanded. Open questions I can't settle from a design pass alone: whether Expected result should be structured (Given/When/Then) or free text, whether a case needs run history beyond the latest run, and who's allowed to set "Running" — worth a quick check with whoever owns QA workflow before locking the data model.</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1180,"height":3260}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

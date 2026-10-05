@@ -18,6 +18,24 @@ class Project(SQLModel, table=True):
     prefix: str = Field(unique=True)  # e.g. "IAM", uppercase, max 6 chars
     color: str  # hex accent color
     ticket_counter: int = Field(default=0)
+    repo_path: Optional[str] = Field(default=None)  # local git repo used for ticket branches
+    worktree_template: Optional[str] = Field(default=None)  # template for branch worktrees
+    worktree_by_default: bool = Field(default=False)
+
+
+class WorkspaceSettings(SQLModel, table=True):
+    __tablename__ = "workspace_settings"
+
+    id: int = Field(default=1, primary_key=True)
+    enabled: bool = Field(default=True)
+    root_path: str = Field(default="~/kanban-workspace")
+    default_retention_days: Optional[int] = Field(default=14)
+
+
+class WorkspaceSettingsUpdate(SQLModel):
+    enabled: Optional[bool] = None
+    root_path: Optional[str] = None
+    default_retention_days: Optional[int] = None
 
 
 class IdeaCounter(SQLModel, table=True):
@@ -65,6 +83,9 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
+    branches: str = Field(default="[]")  # JSON: list of {id, name, status, branch_from, ...}
+    workspace_retention_days: Optional[int] = Field(default=None)
+    repo_path: Optional[str] = Field(default=None)  # overrides Project.repo_path when set
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -139,6 +160,9 @@ class ProjectCreate(SQLModel):
 class ProjectUpdate(SQLModel):
     name: Optional[str] = None
     color: Optional[str] = None
+    repo_path: Optional[str] = None  # empty string clears the link
+    worktree_template: Optional[str] = None
+    worktree_by_default: Optional[bool] = None
 
 
 class ProjectRead(SQLModel):
@@ -147,6 +171,9 @@ class ProjectRead(SQLModel):
     prefix: str
     color: str
     ticket_counter: int
+    repo_path: Optional[str] = None
+    worktree_template: Optional[str] = None
+    worktree_by_default: bool = False
 
 
 class MemberCreate(SQLModel):
@@ -180,6 +207,8 @@ class TicketCreate(SQLModel):
     activity_log: list[Any] = []
     work_log: list[Any] = []
     test_cases: list[Any] = []
+    branches: list[Any] = []
+    workspace_retention_days: Optional[int] = None
     created_by: Optional[str] = None
     assignee: Optional[str] = None
 
@@ -189,7 +218,9 @@ class TicketCreateBody(SQLModel):
     description: str = ""
     type: Literal["bug", "feature", "task", "chore"] = "task"
     priority: Literal["low", "medium", "high", "critical"] = "medium"
-    status: Literal["backlog", "todo", "in-progress", "done", "wont_do"] = "backlog"
+    status: Literal[
+        "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
+    ] = "backlog"
     estimate: Optional[float] = None
     due_date: Optional[str] = None
     start_date: Optional[str] = None
@@ -202,9 +233,11 @@ class TicketUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
     type: Optional[Literal["bug", "feature", "task", "chore"]] = None
-    status: Optional[Literal["backlog", "todo", "in-progress", "done", "wont_do"]] = (
-        None
-    )
+    status: Optional[
+        Literal[
+            "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
+        ]
+    ] = None
     priority: Optional[Literal["low", "medium", "high", "critical"]] = None
     estimate: Optional[float] = None
     due_date: Optional[str] = None
@@ -215,6 +248,7 @@ class TicketUpdate(SQLModel):
     assignee: Optional[str] = None
     block_done_if_acs_incomplete: Optional[bool] = None
     block_done_if_tcs_incomplete: Optional[bool] = None
+    repo_path: Optional[str] = None  # empty/null clears the ticket override
 
 
 class TicketRead(SQLModel):
@@ -243,6 +277,9 @@ class TicketRead(SQLModel):
     block_done_if_acs_incomplete: bool = False
     block_done_if_tcs_incomplete: bool = False
     links: list[Any] = []
+    branches: list[Any] = []
+    workspace_retention_days: Optional[int] = None
+    repo_path: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -274,6 +311,9 @@ class TicketRead(SQLModel):
             block_done_if_acs_incomplete=ticket.block_done_if_acs_incomplete,
             block_done_if_tcs_incomplete=ticket.block_done_if_tcs_incomplete,
             links=_parse_json_list(ticket.links),
+            branches=_parse_json_list(getattr(ticket, "branches", "[]")),
+            workspace_retention_days=getattr(ticket, "workspace_retention_days", None),
+            repo_path=getattr(ticket, "repo_path", None),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

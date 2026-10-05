@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Board } from './components/Board';
 import { IdeaBoard } from './components/IdeaBoard';
 import { MembersPanel } from './components/MembersPanel';
@@ -13,12 +13,23 @@ import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
 import { extractError } from './api/extractError';
-import type { Priority, Status, Ticket } from './types';
+import { useToast } from './components/Toast';
+import { LoadingPill } from './components/LoadingPill';
+import { LoadError } from './components/LoadError';
+import { FirstRun } from './components/FirstRun';
+import { useLoadingPill } from './hooks/useLoadingPill';
+import { Splash } from './components/Splash';
+import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
+
+const EMPTY_PROJECTS: Project[] = [];
+const EMPTY_TICKETS: Ticket[] = [];
+const EMPTY_MEMBERS: Member[] = [];
 
 export default function App() {
   useSSEInvalidation();
-  const { status: backendStatus, errorMessage: backendError } = useBackendStatus();
-  const { data: apiProjects = [], isLoading: projectsLoading } = useProjects();
+  const { status: backendStatus, errorMessage: backendError, retry: retryBackend } = useBackendStatus();
+  const projectsQuery = useProjects();
+  const { data: apiProjects = EMPTY_PROJECTS, isLoading: projectsLoading } = projectsQuery;
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
 
@@ -27,6 +38,7 @@ export default function App() {
     () => localStorage.getItem('activeProjectId') ?? ''
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -37,13 +49,21 @@ export default function App() {
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
 
-  const { data: members = [] } = useMembers(currentProjectId ?? '');
+  const { data: members = EMPTY_MEMBERS } = useMembers(currentProjectId ?? '');
+  const toast = useToast();
 
   useEffect(() => {
     if (!globalError) return;
     const timer = setTimeout(() => setGlobalError(null), 5000);
     return () => clearTimeout(timer);
   }, [globalError]);
+
+  // Debounce search input before sending it to the server (fuzzy match happens there)
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (currentProjectId) {
@@ -61,8 +81,17 @@ export default function App() {
 
   const currentProject = apiProjects.find((p) => p.id === currentProjectId);
 
-  const { data: tickets = [], isLoading: ticketsLoading } = useTickets(currentProjectId ?? '');
-  const { data: wontDoTickets = [] } = useWontDoTickets(currentProjectId ?? '');
+  const ticketQueryParams = useMemo(
+    () => (debouncedSearchQuery ? { q: debouncedSearchQuery } : undefined),
+    [debouncedSearchQuery]
+  );
+
+  const ticketsQuery = useTickets(
+    currentProjectId ?? '',
+    ticketQueryParams
+  );
+  const { data: tickets = EMPTY_TICKETS, isLoading: ticketsLoading } = ticketsQuery;
+  const { data: wontDoTickets = EMPTY_TICKETS } = useWontDoTickets(currentProjectId ?? '');
   const createTicketMutation = useCreateTicket(currentProjectId ?? '');
   const deleteTicketMutation = useDeleteTicket(currentProjectId ?? '');
   const updateStatusMutation = useUpdateTicketStatus();
@@ -76,16 +105,16 @@ export default function App() {
     setLocalTickets(tickets);
   }, [tickets]);
 
-  const q = searchQuery.toLowerCase();
+  // Search is applied server-side via `q`; only chip filters remain here
   const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
     .filter((t) => {
-      const matchesSearch = !q || t.title.toLowerCase().includes(q) || t.tags.some((tag) => tag.toLowerCase().includes(q));
+      const matchesType = activeType === 'all' || t.type === activeType;
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
       const matchesAssignee =
         activeAssignee === 'all' ||
         (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
-      return matchesSearch && matchesPriority && matchesAssignee;
+      return matchesType && matchesPriority && matchesAssignee;
     });
 
   const [modalState, setModalState] = useState<
@@ -128,8 +157,8 @@ export default function App() {
       : undefined;
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
+    const dragged = localTickets.find((t) => t.id === ticketId);
     if (newStatus === 'in-progress') {
-      const dragged = localTickets.find((t) => t.id === ticketId);
       if (dragged && (dragged.blockedBy ?? []).length > 0) {
         setBlockedDragPending({ ticketId, newStatus });
         return;
@@ -143,16 +172,22 @@ export default function App() {
     
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
+      if (newStatus === 'done' && dragged) {
+        toast.success('Moved to Done', `${dragged.id} · ${dragged.title}`);
+      }
     } catch (err) {
       // Rollback local state on error
       setLocalTickets(tickets);
-      setGlobalError(extractError(err));
+      const errMsg = extractError(err);
+      setGlobalError(errMsg);
+      toast.error("Couldn't save changes", errMsg);
     }
   }
 
   async function proceedBlockedDrag() {
     if (!blockedDragPending) return;
     const { ticketId, newStatus } = blockedDragPending;
+    const dragged = localTickets.find((t) => t.id === ticketId);
     setBlockedDragPending(null);
     
     // Update local state synchronously to prevent snap-back
@@ -162,10 +197,15 @@ export default function App() {
     
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
+      if (newStatus === 'done' && dragged) {
+        toast.success('Moved to Done', `${dragged.id} · ${dragged.title}`);
+      }
     } catch (err) {
       // Rollback local state on error
       setLocalTickets(tickets);
-      setGlobalError(extractError(err));
+      const errMsg = extractError(err);
+      setGlobalError(errMsg);
+      toast.error("Couldn't save changes", errMsg);
     }
   }
 
@@ -194,6 +234,7 @@ export default function App() {
   function handleSelectProject(id: string) {
     setCurrentProjectId(id);
     setSearchQuery('');
+    setActiveType('all');
     setActivePriority('all');
     setActiveAssignee('all');
     closeModal();
@@ -229,47 +270,41 @@ export default function App() {
     openTicketModal(ticket.id);
   }
 
+  // ── Loading phases (see design/screens/app-loading.md) ──
+  const projectsPhase = projectsLoading && apiProjects.length === 0;
+  const projectsError = projectsQuery.isError && apiProjects.length === 0;
+  const noProjects = projectsQuery.isSuccess && apiProjects.length === 0;
+  const projectsOk = !projectsPhase && !projectsError && !noProjects;
+  const ticketsPhase = projectsOk && ticketsLoading;
+  const ticketsError = projectsOk && ticketsQuery.isError && tickets.length === 0 && !ticketsLoading;
+  const pillPhase = projectsPhase ? 'projects' : ticketsPhase && activeBoard === 'main' ? 'tickets' : null;
+  const pillState = useLoadingPill(pillPhase);
+  const boardLoadState: 'projects' | 'tickets' | undefined =
+    projectsPhase || projectsError ? 'projects' : ticketsPhase || ticketsError ? 'tickets' : undefined;
+  const lanesOverride = projectsError ? (
+    <LoadError
+      title="Couldn't load your projects"
+      onRetry={() => void projectsQuery.refetch()}
+      lastAttempt={projectsQuery.errorUpdatedAt ? new Date(projectsQuery.errorUpdatedAt) : null}
+    />
+  ) : ticketsError ? (
+    <LoadError
+      title="Couldn't load your tickets"
+      onRetry={() => void ticketsQuery.refetch()}
+      lastAttempt={ticketsQuery.errorUpdatedAt ? new Date(ticketsQuery.errorUpdatedAt) : null}
+    />
+  ) : undefined;
+  const loadingPill = (
+    <LoadingPill
+      state={pillState}
+      what={pillPhase ?? 'projects'}
+      onRetry={() => void (projectsPhase ? projectsQuery.refetch() : ticketsQuery.refetch())}
+    />
+  );
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Backend connecting / error overlay — only shown in Electron before Python is ready */}
-      {backendStatus !== 'ready' && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'var(--color-bg)',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          gap: '20px',
-        }}>
-          {backendStatus === 'connecting' ? (
-            <>
-              <div style={{
-                width: 40, height: 40,
-                border: '4px solid var(--color-dark)',
-                borderTopColor: 'transparent',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }} />
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', color: 'var(--color-dark)', fontWeight: 500 }}>
-                Starting backend…
-              </p>
-            </>
-          ) : (
-            <>
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: '1.1rem', color: '#DC2626', fontWeight: 700 }}>
-                Backend failed to start
-              </p>
-              {backendError && (
-                <pre style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-dark)', maxWidth: 520, whiteSpace: 'pre-wrap', textAlign: 'left', background: '#eee', padding: '12px', borderRadius: 8 }}>
-                  {backendError}
-                </pre>
-              )}
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', color: 'var(--color-dark)' }}>
-                Please restart the app. If the problem persists, check the logs.
-              </p>
-            </>
-          )}
-        </div>
-      )}
+      <Splash status={backendStatus} errorMessage={backendError} onRetryBackend={retryBackend} />
       <ProjectSidebar
         projects={apiProjects}
         currentProjectId={currentProjectId}
@@ -282,6 +317,8 @@ export default function App() {
         wontDoCount={wontDoTickets.length}
         activeBoard={activeBoard}
         onBoardChange={setActiveBoard}
+        loadState={projectsPhase ? 'loading' : projectsError ? 'error' : noProjects ? 'empty' : undefined}
+        onRetryProjects={() => void projectsQuery.refetch()}
       />
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {globalError && (
@@ -299,16 +336,15 @@ export default function App() {
         )}
 
         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {projectsLoading && apiProjects.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
-            Loading projects…
-          </div>
-        ) : activeBoard === 'idea' ? (
+        {noProjects ? (
+          <FirstRun
+            onCreate={async (data) => {
+              const created = await createProjectMutation.mutateAsync(data);
+              setCurrentProjectId(created.id);
+            }}
+          />
+        ) : activeBoard === 'idea' && !boardLoadState ? (
           <IdeaBoard projectId={currentProjectId ?? ''} />
-        ) : ticketsLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
-            Loading tickets…
-          </div>
         ) : (
           <>
             <Board
@@ -319,6 +355,8 @@ export default function App() {
                 onCardClick={handleOpenView}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                activeType={activeType}
+                onTypeChange={setActiveType}
                 activePriority={activePriority}
                 onPriorityChange={setActivePriority}
                 projectName={currentProject?.name ?? ''}
@@ -328,8 +366,11 @@ export default function App() {
                 members={members}
                 activeAssignee={activeAssignee}
                 onAssigneeChange={setActiveAssignee}
+                loadState={boardLoadState}
+                lanesOverride={lanesOverride}
+                statusSlot={loadingPill}
               />
-            {modalState && (
+            {!boardLoadState && modalState && (
               modalState.mode === 'create' ? (
                 <TicketModal
                   key="create"
@@ -353,28 +394,28 @@ export default function App() {
                 />
               ) : null
             )}
-            {recycleBinOpen && (
-              <RecycleBin
-                tickets={wontDoTickets}
-                onRestore={(id) => restoreTicketMutation.mutate(id)}
-                onClose={() => setRecycleBinOpen(false)}
-              />
-            )}
-            {membersPanelOpen && currentProjectId && (
-              <MembersPanel
-                projectId={currentProjectId}
-                members={members}
-                onClose={() => setMembersPanelOpen(false)}
-              />
-            )}
-            {settingsPanelOpen && (
-              <SettingsPanel
-                onClose={() => setSettingsPanelOpen(false)}
-                theme={theme}
-                onToggleTheme={toggleTheme}
-              />
-            )}
           </>
+        )}
+        {recycleBinOpen && (
+          <RecycleBin
+            tickets={wontDoTickets}
+            onRestore={(id) => restoreTicketMutation.mutate(id)}
+            onClose={() => setRecycleBinOpen(false)}
+          />
+        )}
+        {membersPanelOpen && currentProjectId && (
+          <MembersPanel
+            projectId={currentProjectId}
+            members={members}
+            onClose={() => setMembersPanelOpen(false)}
+          />
+        )}
+        {settingsPanelOpen && (
+          <SettingsPanel
+            onClose={() => setSettingsPanelOpen(false)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
         )}
         </div>
       </div>

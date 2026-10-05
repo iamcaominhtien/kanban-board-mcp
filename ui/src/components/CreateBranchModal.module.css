@@ -1,0 +1,288 @@
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.28);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1300;
+  animation: fadeIn 0.12s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalCard {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  background: #FFFFFF;
+  border: 1px solid #E3E8E5;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: scaleIn 0.12s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E2A22;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA8A0;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.textInput {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #B9CBBF;
+  background: #FFFFFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #1E2A22;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.textInput:focus {
+  border-color: #2E6F40;
+  box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
+}
+
+.textInput::placeholder {
+  color: #B9CBBF;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.branchSelectContainer {
+  position: relative;
+  align-self: flex-start;
+}
+
+.branchSelectTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  background: #F6FAF7;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+
+.branchSelectTrigger:hover {
+  background: #EEF4F0;
+  border-color: #B9CBBF;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2E6F40;
+  flex-shrink: 0;
+}
+
+.branchDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(30, 42, 34, 0.12);
+  padding: 4px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #1E2A22;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dropdownItem:hover {
+  background: #F6FAF7;
+  color: #2E6F40;
+}
+
+.dropdownItemActive {
+  background: #F6FAF7;
+  color: #2E6F40;
+  font-weight: 600;
+}
+
+.helperText {
+  font-size: 11px;
+  color: #9AA8A0;
+  line-height: 1.45;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.btnPrimary {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.12s;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #245833;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  background: none;
+  color: #5B6B60;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.btnSecondary:hover {
+  background: #F6FAF7;
+  color: #1E2A22;
+}
+
+.worktreeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #F6FAF7;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #2E6F40;
+  cursor: pointer;
+  margin: 0;
+}
+
+.checkboxText {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.worktreeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.worktreeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resetBtn {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2E6F40;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.resetBtn:hover {
+  color: #245833;
+}
+

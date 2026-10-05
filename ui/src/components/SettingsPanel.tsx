@@ -1,9 +1,319 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
+import { useProjects, useUpdateProject } from '../api/projects';
+import { sweepWorkspaces, useUpdateWorkspaceSettings, useWorkspaceSettings } from '../api/tickets';
+import { extractError } from '../api/extractError';
 import type { Theme } from '../types';
 import styles from './SettingsPanel.module.css';
+
+import type { Project, WorkspaceSweepResult } from '../types/ticket';
+
+function ProjectRepoRow({ project }: { project: Project }) {
+  const updateProject = useUpdateProject();
+  const [draftRepo, setDraftRepo] = useState(project.repoPath ?? '');
+  const [draftTemplate, setDraftTemplate] = useState(project.worktreeTemplate ?? '');
+  const [worktreeByDefault, setWorktreeByDefault] = useState(project.worktreeByDefault ?? false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraftRepo(project.repoPath ?? '');
+    setDraftTemplate(project.worktreeTemplate ?? '');
+    setWorktreeByDefault(project.worktreeByDefault ?? false);
+  }, [project.repoPath, project.worktreeTemplate, project.worktreeByDefault]);
+
+  async function saveRepo(path: string) {
+    setStatus(null);
+    try {
+      await updateProject.mutateAsync({ id: project.id, repo_path: path });
+      setStatus(path ? '✓ Repository linked' : '✓ Repository unlinked');
+    } catch (err) {
+      setStatus(`✗ ${extractError(err)}`);
+    }
+  }
+
+  async function saveWorktreeSettings() {
+    setStatus(null);
+    try {
+      await updateProject.mutateAsync({
+        id: project.id,
+        worktree_template: draftTemplate.trim() || null,
+        worktree_by_default: worktreeByDefault,
+      });
+      setStatus('✓ Worktree settings saved');
+    } catch (err) {
+      setStatus(`✗ ${extractError(err)}`);
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', background: '#F8FAF8', borderRadius: 8, border: '1px solid #E3E8E5' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>{project.name} ({project.prefix})</span>
+        {project.repoPath && (
+          <span style={{ fontSize: 11, color: '#2E6F40', background: 'rgba(46,111,64,0.1)', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+            Git linked
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>Repository path</span>
+        <div className={styles.inputRow}>
+          <input
+            className={styles.input}
+            type="text"
+            placeholder="/path/to/git/repo"
+            value={draftRepo}
+            onChange={(e) => {
+              setDraftRepo(e.target.value);
+              setStatus(null);
+            }}
+          />
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            disabled={updateProject.isPending || !draftRepo.trim() || draftRepo.trim() === (project.repoPath ?? '')}
+            onClick={() => saveRepo(draftRepo.trim())}
+          >
+            Save repo
+          </button>
+          {project.repoPath && (
+            <button type="button" className={styles.btn} disabled={updateProject.isPending} onClick={() => saveRepo('')}>
+              Unlink
+            </button>
+          )}
+        </div>
+      </div>
+
+      {project.repoPath && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 6, borderTop: '1px dashed #D5DED8' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
+              Default Worktree Template
+            </span>
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="../worktrees/{project}/{ticket_id}-{branch}"
+              value={draftTemplate}
+              onChange={(e) => {
+                setDraftTemplate(e.target.value);
+                setStatus(null);
+              }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+              <span style={{ fontSize: 11, color: '#9AA8A0' }}>Tokens:</span>
+              {['{project}', '{ticket_id}', '{branch}'].map((token) => (
+                <button
+                  key={token}
+                  type="button"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #D5DED8',
+                    borderRadius: 4,
+                    padding: '1px 6px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: 10.5,
+                    color: '#2E6F40',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setDraftTemplate((prev) => prev + token)}
+                  title={`Insert ${token}`}
+                >
+                  +{token}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12.5, color: '#1E2A22' }}>
+            <input
+              type="checkbox"
+              checked={worktreeByDefault}
+              onChange={(e) => {
+                setWorktreeByDefault(e.target.checked);
+                setStatus(null);
+              }}
+              style={{ accentColor: '#2E6F40' }}
+            />
+            <span>Create git worktree by default when creating a branch</span>
+          </label>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 }}>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              style={{ fontSize: 12, padding: '5px 12px' }}
+              disabled={
+                updateProject.isPending ||
+                (draftTemplate === (project.worktreeTemplate ?? '') &&
+                  worktreeByDefault === (project.worktreeByDefault ?? false))
+              }
+              onClick={saveWorktreeSettings}
+            >
+              Save worktree settings
+            </button>
+          </div>
+        </div>
+      )}
+
+      {status && <span className={status.startsWith('✓') ? styles.statusOk : styles.statusErr}>{status}</span>}
+    </div>
+  );
+}
+
+function WorkspaceSettingsSection() {
+  const { data: settings } = useWorkspaceSettings();
+  const update = useUpdateWorkspaceSettings();
+  const [rootDraft, setRootDraft] = useState('');
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [sweepPreview, setSweepPreview] = useState<WorkspaceSweepResult | null>(null);
+  const [sweeping, setSweeping] = useState(false);
+  const isElectron = !!(window as any).electronAPI?.selectFolder;
+
+  useEffect(() => {
+    if (settings) setRootDraft(settings.rootPath);
+  }, [settings]);
+
+  if (!settings) return null;
+
+  function save(data: Parameters<typeof update.mutate>[0], okText?: string) {
+    setStatus(null);
+    update.mutate(data, {
+      onSuccess: () => okText && setStatus({ ok: true, text: okText }),
+      onError: (err) => {
+        setStatus({ ok: false, text: extractError(err) });
+        setRootDraft(settings?.rootPath ?? '');
+      },
+    });
+  }
+
+  async function browse() {
+    const folder = await (window as any).electronAPI?.selectFolder?.();
+    if (folder) {
+      setRootDraft(folder);
+      save({ rootPath: folder }, 'Root path saved');
+    }
+  }
+
+  async function previewSweep() {
+    setStatus(null);
+    try {
+      setSweepPreview(await sweepWorkspaces(true));
+    } catch (err) {
+      setStatus({ ok: false, text: extractError(err) });
+    }
+  }
+
+  async function runSweep() {
+    setSweeping(true);
+    try {
+      const res = await sweepWorkspaces(false);
+      setSweepPreview(null);
+      setStatus({ ok: true, text: `Deleted ${res.removed.length} folder(s)` });
+    } catch (err) {
+      setStatus({ ok: false, text: extractError(err) });
+    } finally {
+      setSweeping(false);
+    }
+  }
+
+  const retention = settings.defaultRetentionDays ?? 0;
+  const rootChanged = rootDraft.trim() !== settings.rootPath;
+
+  return (
+    <>
+      <div className={styles.section}>
+        <div className={styles.sectionHeaderRow}>
+          <span className={styles.sectionTitle} style={{ flexGrow: 1 }}>Workspace</span>
+          <div
+            className={`${styles.toggleTrack} ${settings.enabled ? styles.toggleTrackActive : ''}`}
+            onClick={() => save({ enabled: !settings.enabled })}
+            role="switch"
+            aria-checked={settings.enabled}
+            aria-label="Enable workspace"
+          >
+            <div className={`${styles.toggleDot} ${settings.enabled ? styles.toggleDotActive : ''}`} />
+          </div>
+        </div>
+        <div className={styles.hint}>
+          A local scratch folder per ticket. AI agents get its path from the MCP server and read and write it directly; the Workspace tab on a ticket shows what is on disk. Turning this off hides the Workspace tab everywhere.
+        </div>
+
+        {settings.enabled && (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className={styles.fieldLabel}>Root path</span>
+              <div className={styles.inputRow}>
+                <input
+                  className={styles.input}
+                  value={rootDraft}
+                  aria-label="Workspace root path"
+                  onChange={(e) => setRootDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && rootChanged) save({ rootPath: rootDraft }, 'Root path saved'); }}
+                />
+                {isElectron && (
+                  <button type="button" className={styles.btn} onClick={browse}>Browse…</button>
+                )}
+                <button type="button" className={styles.btn} disabled={!rootChanged || update.isPending} onClick={() => save({ rootPath: rootDraft }, 'Root path saved')}>
+                  Save
+                </button>
+              </div>
+              <span className={styles.hint} style={{ fontSize: '11px' }}>
+                Existing ticket folders are not moved when the root changes.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className={styles.fieldLabel}>Default retention</span>
+              <div className={styles.retentionRow}>
+                {[
+                  { value: 7, label: '7 days' },
+                  { value: 14, label: '14 days' },
+                  { value: 30, label: '30 days' },
+                  { value: 90, label: '90 days' },
+                  { value: 0, label: 'Forever' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`${styles.retentionOpt} ${retention === opt.value ? styles.retentionOptActive : ''}`}
+                    onClick={() => save({ defaultRetentionDays: opt.value })}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <span className={styles.hint} style={{ fontSize: '11px' }}>
+                A background sweep (hourly) deletes the folder of a Done / Won&apos;t do ticket once it has been idle this long. Open tickets and tickets set to &quot;Forever&quot; are never touched. A ticket can override this from its own Workspace tab.
+              </span>
+              <div className={styles.inputRow}>
+                <button type="button" className={styles.btn} onClick={previewSweep}>Clean now…</button>
+              </div>
+              {sweepPreview && (
+                <div className={styles.hint} role="status">
+                  {sweepPreview.removed.length === 0 ? (
+                    'Nothing is due for cleanup.'
+                  ) : (
+                    <>
+                      {sweepPreview.removed.length} folder(s) would be deleted: {sweepPreview.removed.map((r) => r.ticketId).join(', ')}.{' '}
+                      <button type="button" className={styles.btn} disabled={sweeping} onClick={runSweep}>Delete them</button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {status && (
+          <div className={styles.hint} role="status" style={{ color: status.ok ? undefined : '#C0392B' }}>{status.text}</div>
+        )}
+      </div>
+    </>
+  );
+}
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -14,6 +324,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelProps) {
   const { data: settings, isLoading } = useSettings();
   const setDataPath = useSetDataPath();
+  const { data: projects = [] } = useProjects();
   const [folderInput, setFolderInput] = useState('');
   const [folderStatus, setFolderStatus] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -23,8 +334,10 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
   const isElectron = !!(window as any).electronAPI?.selectFolder;
 
   async function handleBrowse() {
-    const folder = await (window as any).electronAPI.selectFolder();
-    if (folder) setFolderInput(folder);
+    if ((window as any).electronAPI?.selectFolder) {
+      const folder = await (window as any).electronAPI.selectFolder();
+      if (folder) setFolderInput(folder);
+    }
   }
 
   async function handleApplyFolder() {
@@ -100,95 +413,130 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
   return (
     <div className={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-label="Settings">
       <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>Settings</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close settings">
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M6 6L18 18M18 6L6 18" />
+            </svg>
           </button>
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Data Folder</h3>
-          {isLoading ? (
-            <p className={styles.hint}>Loading...</p>
-          ) : (
-            <p className={styles.hint}>
-              Current: <code className={styles.code}>{settings?.dataFolder}</code>
-            </p>
-          )}
-          <div className={styles.folderRow}>
-            <input
-              className={styles.input}
-              type="text"
-              placeholder="New folder path (e.g. /Users/you/kanban-data)"
-              value={folderInput}
-              onChange={(e) => { setFolderInput(e.target.value); setFolderStatus(null); }}
-            />
-            {isElectron && (
-              <button type="button" className={styles.browseBtn} onClick={handleBrowse}>
-                Browse…
-              </button>
+        {/* Scrollable Body */}
+        <div className={styles.body}>
+          {/* Data Folder Section */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Data Folder</span>
+            <div className={styles.hint}>
+              Current: <span className={styles.code}>{isLoading ? 'Loading…' : (settings?.dataFolder || 'Default')}</span>
+            </div>
+            <div className={styles.inputRow}>
+              <input
+                className={styles.input}
+                type="text"
+                placeholder="New folder path (e.g. /Users/you/kanban-data)"
+                value={folderInput}
+                onChange={(e) => {
+                  setFolderInput(e.target.value);
+                  setFolderStatus(null);
+                }}
+              />
+              {isElectron && (
+                <button type="button" className={styles.btn} onClick={handleBrowse}>
+                  Browse…
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              style={{ alignSelf: 'flex-start' }}
+              disabled={!folderInput.trim() || setDataPath.isPending}
+              onClick={handleApplyFolder}
+            >
+              {setDataPath.isPending ? 'Moving…' : 'Apply'}
+            </button>
+            {folderStatus && (
+              <span className={folderStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>
+                {folderStatus}
+              </span>
             )}
           </div>
-          <button
-            type="button"
-            className={styles.applyBtn}
-            disabled={!folderInput.trim() || setDataPath.isPending}
-            onClick={handleApplyFolder}
-          >
-            {setDataPath.isPending ? 'Moving…' : 'Apply'}
-          </button>
-          {folderStatus && (
-            <p className={`${styles.status} ${folderStatus.startsWith('✓') ? styles.statusSuccess : styles.statusError}`}>
-              {folderStatus}
-            </p>
-          )}
-        </div>
 
-        <div className={styles.divider} />
+          <div className={styles.divider} />
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Theme</h3>
-          <p className={styles.hint}>
-            Switch between color and black & white TV mode.
-          </p>
-          <button
-            type="button"
-            className={styles.applyBtn}
-            onClick={onToggleTheme}
-            style={{ marginTop: '8px' }}
-          >
-            {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
-          </button>
-        </div>
-
-        <div className={styles.divider} />
-
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Import / Export</h3>
-          <p className={styles.hint}>
-            Export all data (database + attachments) as a ZIP file. Use the same file to import and
-            restore.
-          </p>
-          <div className={styles.importExportRow}>
-            <button type="button" className={styles.exportBtn} onClick={handleExport}>
-              ⬇ Export Data
-            </button>
-            <button type="button" className={styles.importBtn} onClick={() => importRef.current?.click()}>
-              ⬆ Import Data
-            </button>
-            <input ref={importRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handleImport} />
+          {/* Git Repositories Section (per project; tickets can override) */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Git Repositories</span>
+            <div className={styles.hint}>
+              Branches created on a ticket are created in this repository. A ticket can override it from its branch menu.
+            </div>
+            {projects.map((p) => (
+              <ProjectRepoRow key={p.id} project={p} />
+            ))}
           </div>
-          {exportStatus && (
-            <p className={`${styles.status} ${exportStatus.startsWith('✓') ? styles.statusSuccess : styles.statusError}`}>
-              {exportStatus}
-            </p>
-          )}
-          {importStatus && (
-            <p className={`${styles.status} ${importStatus.startsWith('✓') ? styles.statusSuccess : importStatus === 'Importing...' ? styles.statusInfo : styles.statusError}`}>
-              {importStatus}
-            </p>
-          )}
+
+          <div className={styles.divider} />
+
+          <WorkspaceSettingsSection />
+
+          <div className={styles.divider} />
+
+          {/* Theme Section */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Theme</span>
+            <div className={styles.hint}>Switch between color and black &amp; white TV mode.</div>
+            <button
+              type="button"
+              className={styles.btn}
+              onClick={onToggleTheme}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
+            </button>
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* Import / Export Section */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Import / Export</span>
+            <div className={styles.hint}>
+              Export all data (database + attachments) as a ZIP file. Use the same file to import and restore.
+            </div>
+            <div className={styles.inputRow}>
+              <button type="button" className={styles.btn} onClick={handleExport}>
+                ⬇ Export Data
+              </button>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDangerOutline}`}
+                onClick={() => importRef.current?.click()}
+              >
+                ⬆ Import Data
+              </button>
+              <input ref={importRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handleImport} />
+            </div>
+            {exportStatus && (
+              <span className={exportStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>
+                {exportStatus}
+              </span>
+            )}
+            {importStatus && (
+              <span
+                className={
+                  importStatus.startsWith('✓')
+                    ? styles.statusOk
+                    : importStatus === 'Importing...'
+                    ? styles.statusInfo
+                    : styles.statusErr
+                }
+              >
+                {importStatus}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

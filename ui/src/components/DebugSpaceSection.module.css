@@ -1,0 +1,596 @@
+/* Debug Space component styles matching design/source/DebugSpace.dc.html */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tcLabel {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9AA8A0;
+}
+
+.tcAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.tcAddBtn:hover:not(:disabled) {
+  background: #235832;
+}
+
+.tcAddBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Filter chips */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5B6B60;
+  transition: all 0.12s;
+}
+
+.filterChip:hover {
+  background: #F6FAF7;
+}
+
+.filterChipActive {
+  border-color: #2E6F40;
+  background: #F1F8F3;
+  color: #1E2A22;
+}
+
+.filterDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Pinned entries strip */
+.pinnedSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9AA8A0;
+}
+
+.dbgPinRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #FDF8E9;
+  border: 1px solid #F0E1AA;
+}
+
+.pinText {
+  flex-grow: 1;
+  font-size: 12.5px;
+  color: #1E2A22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pinMeta {
+  font-size: 10.5px;
+  color: #9AA8A0;
+  white-space: nowrap;
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dbgItem {
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+
+.dbgRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 13px;
+  flex-shrink: 0;
+}
+
+.dbgDot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+  box-sizing: border-box;
+  border: 2.5px solid #FFFFFF;
+  box-shadow: 0 0 0 1px #E3E8E5;
+}
+
+.dbgLine {
+  width: 2px;
+  flex-grow: 1;
+  background: #E3E8E5;
+  margin-top: 2px;
+  min-height: 12px;
+}
+
+.dbgCard {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  transition: border-color 0.12s;
+}
+
+.dbgCard:hover {
+  border-color: #C7D2CB;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dbgKindBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.dbgAvatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.authorName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E2A22;
+}
+
+.dbgRoleBadge {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.timestamp {
+  font-size: 10.5px;
+  color: #9AA8A0;
+  white-space: nowrap;
+}
+
+.dbgPinBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #C7D2CB;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+
+.dbgPinBtn:hover {
+  color: #C7A339;
+}
+
+.dbgPinBtnPinned {
+  color: #C7A339 !important;
+}
+
+.deleteBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #C7D2CB;
+  flex-shrink: 0;
+}
+
+.deleteBtn:hover {
+  color: #C4432A;
+}
+
+.tcMd {
+  font-size: 12.5px;
+  color: #3A4A3E;
+  line-height: 1.6;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #F6FAF7;
+  border: 1px solid #E3E8E5;
+}
+
+.tcMd code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: #EEF3EF;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #2E6F40;
+}
+
+.chipsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dbgLinkChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #F6FAF7;
+  border: 1px solid #E3E8E5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: #5B6B60;
+}
+
+.tcFileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid #E3E8E5;
+  border-radius: 6px;
+  background: #FFFFFF;
+}
+
+.tcFileIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Inline Log Entry Form */
+.inlineForm {
+  padding: 14px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #2E6F40;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+
+.kindPicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.kindOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  border: 1px solid #E3E8E5;
+  background: #F6FAF7;
+  color: #9AA8A0;
+  transition: all 0.12s;
+}
+
+.kindOptionSelected {
+  border-width: 1.5px;
+}
+
+.authorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.authorInput {
+  flex: 1;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid #C7D2CB;
+  font-size: 12.5px;
+  color: #1E2A22;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.roleSelect {
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid #C7D2CB;
+  font-size: 12.5px;
+  color: #1E2A22;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  outline: none;
+  background: #FFFFFF;
+}
+
+.noteInputBox {
+  border-radius: 6px;
+  border: 1px solid #C7D2CB;
+  overflow: hidden;
+}
+
+.noteTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  color: #1E2A22;
+  border: none;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.extraLinksRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.smallInput {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #5B6B60;
+  outline: none;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btnCancel {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  color: #5B6B60;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btnSubmit {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnSubmit:hover:not(:disabled) {
+  background: #235832;
+}
+
+.btnSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emptyMsg {
+  padding: 24px;
+  text-align: center;
+  color: #9AA8A0;
+  font-size: 13px;
+}
+
+.editBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #C7D2CB;
+  flex-shrink: 0;
+}
+.editBtn:hover { color: #2F6FB0; }
+
+.editedTag { color: #B4791E; }
+
+.attachBtn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px dashed #9AA8A0;
+  background: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5B6B60;
+  cursor: pointer;
+}
+.attachBtn:hover:not(:disabled) { border-color: #2E6F40; color: #2E6F40; }
+.attachBtn:disabled { opacity: 0.6; cursor: default; }
+
+.attName {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1E2A22;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attSize { font-size: 10px; color: #9AA8A0; }
+.attLink { text-decoration: none; cursor: pointer; }
+.attLink:hover { border-color: #2E6F40; background: #F6FAF7; }
+
+.chipRemove {
+  border: none;
+  background: none;
+  color: #9AA8A0;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.chipRemove:hover { color: #C4432A; }
+
+.linkChipBtn { cursor: pointer; font-family: 'JetBrains Mono', monospace; }
+.linkChipBtn:hover { border-color: #2E6F40; color: #2E6F40; background: #FFFFFF; }
+.linkChipMissing { opacity: 0.6; text-decoration: line-through; }
+
+.formError {
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #FDEEEC;
+  border: 1px solid #F2C4BE;
+  color: #A93226;
+  font-size: 12px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(30, 42, 34, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog {
+  width: min(420px, calc(100vw - 32px));
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dialogTitle { font-size: 14px; font-weight: 700; color: #1E2A22; }
+.dialogBody { font-size: 12.5px; color: #5B6B60; word-break: break-word; }
+.dialogQuote { color: #1E2A22; font-weight: 600; }
+.dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.btnDanger {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #C0392B;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btnDanger:hover:not(:disabled) { background: #A93226; }
+.btnDanger:disabled { opacity: 0.6; cursor: default; }

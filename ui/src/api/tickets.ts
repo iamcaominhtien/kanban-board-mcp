@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { IssueType, Priority, RelationType, Status, Ticket, TicketLink, WorkLogRole } from '../types/ticket';
+import { resolveOrigin } from './resolveOrigin';
+import type { BranchGraphData, DebugAttachment, CommitDetail, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceFilePreview, WorkspaceSettings, WorkspaceSweepResult } from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -14,7 +15,7 @@ export async function listTickets(
   projectId: string,
   params?: { status?: string; priority?: string; q?: string },
 ): Promise<Ticket[]> {
-  const res = await client.get<Ticket[]>(`/projects/${projectId}/tickets`, { params });
+  const res = await client.get<Ticket[]>(`/projects/${projectId}/tickets`, { params, timeout: 15000 });
   return res.data;
 }
 
@@ -59,6 +60,7 @@ export async function updateTicket(
     assignee?: string | null;
     blockDoneIfAcsIncomplete?: boolean;
     blockDoneIfTcsIncomplete?: boolean;
+    repoPath?: string | null;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);
@@ -84,6 +86,22 @@ export async function uploadDescriptionImage(file: File): Promise<DescriptionIma
   return res.data;
 }
 
+/** Upload any file (log, trace, fixture…) so it can be attached to an entry by url. */
+export async function uploadAttachment(file: File): Promise<DebugAttachment> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await client.post<DebugAttachment>('/uploads/files', formData);
+  return res.data;
+}
+
+/** Absolute URL for a stored upload (the UI may be served from another origin). */
+export function uploadUrl(url?: string | null, downloadName?: string): string {
+  if (!url || typeof url !== 'string' || !url.startsWith('/uploads/')) return '';
+  const base = `${resolveOrigin()}${url}`;
+  // ?name= makes the server offer the original file name (the stored one has a random suffix)
+  return downloadName ? `${base}?name=${encodeURIComponent(downloadName)}` : base;
+}
+
 export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
   const res = await client.get<Ticket[]>(`/projects/${projectId}/tickets`, {
     params: { include_wont_do: true, status: 'wont_do' },
@@ -98,6 +116,15 @@ export async function addComment(
   author = 'user',
 ): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author });
+  return res.data;
+}
+
+export async function updateComment(
+  ticketId: string,
+  commentId: string,
+  text: string,
+): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/comments/${commentId}`, { text });
   return res.data;
 }
 
@@ -141,9 +168,18 @@ export async function deleteAcceptanceCriterion(
 // Work log
 export async function addWorkLog(
   ticketId: string,
-  data: { author: string; role: WorkLogRole; note: string },
+  data: { author: string; role: WorkLogRole | string; note: string } & Partial<WorkLogEntry>,
 ): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/work-log`, data);
+  return res.data;
+}
+
+export async function updateWorkLog(
+  ticketId: string,
+  entryId: string,
+  data: Partial<WorkLogEntry>,
+): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/work-log/${entryId}`, data);
   return res.data;
 }
 
@@ -159,15 +195,16 @@ export async function deleteWorkLog(
 export async function addTestCase(
   ticketId: string,
   title: string,
+  extra?: Partial<TestCase>,
 ): Promise<Ticket> {
-  const res = await client.post<Ticket>(`/tickets/${ticketId}/test-cases`, { title });
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/test-cases`, { title, ...extra });
   return res.data;
 }
 
 export async function updateTestCase(
   ticketId: string,
   testCaseId: string,
-  data: { title?: string; status?: string; proof?: string | null; note?: string | null },
+  data: Partial<TestCase>,
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(
     `/tickets/${ticketId}/test-cases/${testCaseId}`,
@@ -204,6 +241,146 @@ export async function removeTicketLink(
   await client.delete(`/tickets/${ticketId}/links/${linkId}`);
 }
 
+// Branches
+export async function listBranches(ticketId: string): Promise<TicketBranch[]> {
+  const res = await client.get<TicketBranch[]>(`/tickets/${ticketId}/branches`);
+  return res.data;
+}
+
+export async function createBranch(
+  ticketId: string,
+  data: {
+    name: string;
+    branch_from?: string;
+    status?: string;
+    pr_url?: string | null;
+    commit_hash?: string | null;
+    linked_ticket_id?: string | null;
+    ahead_count?: number;
+    behind_count?: number;
+    create_worktree?: boolean;
+    worktree_path?: string | null;
+  },
+): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/branches`, data);
+  return res.data;
+}
+
+export async function updateBranch(
+  ticketId: string,
+  branchId: string,
+  data: Partial<TicketBranch> & { remove_worktree?: boolean; worktree_path?: string | null },
+): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/branches/${branchId}`, data);
+  return res.data;
+}
+
+export async function deleteBranch(
+  ticketId: string,
+  branchId: string,
+  opts: { removeWorktree?: boolean; deleteGitBranch?: boolean; force?: boolean } = {},
+): Promise<Ticket> {
+  const params: Record<string, boolean> = {};
+  if (opts.removeWorktree) params.remove_worktree = true;
+  if (opts.deleteGitBranch) params.delete_git_branch = true;
+  if (opts.force) params.force = true;
+  const res = await client.delete<Ticket>(`/tickets/${ticketId}/branches/${branchId}`, { params });
+  return res.data;
+}
+
+export async function getBranchGraph(ticketId: string, limit: number): Promise<BranchGraphData> {
+  const res = await client.get<BranchGraphData>(`/tickets/${ticketId}/graph`, { params: { limit } });
+  return res.data;
+}
+
+export async function getCommitDetail(ticketId: string, rev: string): Promise<CommitDetail> {
+  const res = await client.get<CommitDetail>(`/tickets/${ticketId}/commits/${rev}`);
+  return res.data;
+}
+
+export async function checkoutBranch(ticketId: string, branchId: string): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/branches/${branchId}/checkout`);
+  return res.data;
+}
+
+// Workspace
+export async function getWorkspaceSettings(): Promise<WorkspaceSettings> {
+  const res = await client.get<WorkspaceSettings>('/workspace/settings');
+  return res.data;
+}
+
+export async function updateWorkspaceSettings(
+  data: Partial<WorkspaceSettings>,
+): Promise<WorkspaceSettings> {
+  const res = await client.patch<WorkspaceSettings>('/workspace/settings', data);
+  return res.data;
+}
+
+export async function getTicketWorkspace(ticketId: string): Promise<TicketWorkspaceInfo> {
+  const res = await client.get<TicketWorkspaceInfo>(`/tickets/${ticketId}/workspace`);
+  return res.data;
+}
+
+export async function setTicketWorkspaceRetention(
+  ticketId: string,
+  retentionDays: number | null,
+): Promise<Ticket> {
+  const res = await client.patch<Ticket>(
+    `/tickets/${ticketId}/workspace/retention`,
+    { retention_days: retentionDays },
+  );
+  return res.data;
+}
+
+export async function initTicketWorkspace(ticketId: string): Promise<void> {
+  await client.post(`/tickets/${ticketId}/workspace/init`);
+}
+
+export async function openTicketWorkspace(ticketId: string): Promise<void> {
+  await client.post(`/tickets/${ticketId}/workspace/open`);
+}
+
+export async function createWorkspaceFolder(ticketId: string, path: string): Promise<void> {
+  await client.post(`/tickets/${ticketId}/workspace/folders`, { path });
+}
+
+export async function uploadWorkspaceFile(
+  ticketId: string,
+  file: File,
+  directory = '',
+): Promise<void> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('directory', directory);
+  await client.post(`/tickets/${ticketId}/workspace/files`, formData);
+}
+
+export async function deleteWorkspaceEntry(ticketId: string, path: string): Promise<void> {
+  await client.delete(`/tickets/${ticketId}/workspace/entry`, { params: { path } });
+}
+
+export async function getWorkspacePreview(
+  ticketId: string,
+  path: string,
+): Promise<WorkspaceFilePreview> {
+  const res = await client.get<WorkspaceFilePreview>(`/tickets/${ticketId}/workspace/file`, {
+    params: { path },
+  });
+  return res.data;
+}
+
+/** URL of a workspace file, usable in <img src> or as a download link. */
+export function workspaceFileUrl(ticketId: string, path: string, download = false): string {
+  const qs = new URLSearchParams({ path });
+  if (download) qs.set('download', 'true');
+  return `${resolveOrigin()}/tickets/${encodeURIComponent(ticketId)}/workspace/file?${qs}`;
+}
+
+export async function sweepWorkspaces(dryRun: boolean): Promise<WorkspaceSweepResult> {
+  const res = await client.post<WorkspaceSweepResult>('/workspace/sweep', { dry_run: dryRun });
+  return res.data;
+}
+
 // ---------------------------------------------------------------------------
 // Query key factory
 // ---------------------------------------------------------------------------
@@ -225,6 +402,11 @@ export function useTickets(
     queryKey: [...ticketKeys.all(projectId), params],
     queryFn: () => listTickets(projectId, params),
     enabled: !!projectId,
+    retry: false,
+    // `q` changes on every search keystroke (debounced), which changes the
+    // query key — keep showing the previous results while the new query
+    // fetches instead of flashing a loading state / unmounting the board.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -313,6 +495,13 @@ export function useAddComment() {
   );
 }
 
+export function useUpdateComment() {
+  return useTicketSubMutation(
+    ({ ticketId, commentId, text }: { ticketId: string; commentId: string; text: string }) =>
+      updateComment(ticketId, commentId, text),
+  );
+}
+
 export function useDeleteComment() {
   return useTicketSubMutation(
     ({ ticketId, commentId }: { ticketId: string; commentId: string }) =>
@@ -348,6 +537,20 @@ export function useAddWorkLog() {
   );
 }
 
+export function useUpdateWorkLog() {
+  return useTicketSubMutation(
+    ({
+      ticketId,
+      entryId,
+      data,
+    }: {
+      ticketId: string;
+      entryId: string;
+      data: Parameters<typeof updateWorkLog>[2];
+    }) => updateWorkLog(ticketId, entryId, data),
+  );
+}
+
 export function useDeleteWorkLog() {
   return useTicketSubMutation(
     ({ ticketId, entryId }: { ticketId: string; entryId: string }) =>
@@ -357,8 +560,12 @@ export function useDeleteWorkLog() {
 
 export function useAddTestCase() {
   return useTicketSubMutation(
-    ({ ticketId, title }: { ticketId: string; title: string }) =>
-      addTestCase(ticketId, title),
+    ({
+      ticketId,
+      title,
+      ...extra
+    }: { ticketId: string; title: string } & Partial<TestCase>) =>
+      addTestCase(ticketId, title, extra),
   );
 }
 
@@ -510,3 +717,163 @@ export function useRemoveTicketLink(projectId: string) {
     },
   });
 }
+
+export function useTicketWorkspace(ticketId: string) {
+  return useQuery({
+    queryKey: ['ticket_workspace', ticketId],
+    queryFn: () => getTicketWorkspace(ticketId),
+    enabled: !!ticketId,
+  });
+}
+
+export function useWorkspacePreview(ticketId: string, path: string, enabled = true) {
+  return useQuery({
+    queryKey: ['ticket_workspace', ticketId, 'preview', path],
+    queryFn: () => getWorkspacePreview(ticketId, path),
+    enabled,
+  });
+}
+
+export function useWorkspaceSettings() {
+  return useQuery({ queryKey: ['workspace_settings'], queryFn: getWorkspaceSettings });
+}
+
+export function useUpdateWorkspaceSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<WorkspaceSettings>) => updateWorkspaceSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspace_settings'] });
+      queryClient.invalidateQueries({ queryKey: ['ticket_workspace'] });
+    },
+  });
+}
+
+/** Run a workspace mutation and refresh that ticket's file listing afterwards. */
+export function useWorkspaceAction<TVars>(
+  ticketId: string,
+  fn: (vars: TVars) => Promise<void>,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_workspace', ticketId] });
+    },
+  });
+}
+
+export function useSetTicketWorkspaceRetention() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      retentionDays,
+    }: {
+      ticketId: string;
+      retentionDays: number | null;
+    }) => setTicketWorkspaceRetention(ticketId, retentionDays),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_workspace', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useTicketBranches(ticketId: string) {
+  return useQuery({
+    queryKey: ['ticket_branches', ticketId],
+    queryFn: () => listBranches(ticketId),
+    enabled: !!ticketId,
+  });
+}
+
+export function useBranchGraph(ticketId: string, limit: number) {
+  return useQuery({
+    // shares the ['ticket_branches', ticketId] prefix so branch mutations refresh it too
+    queryKey: ['ticket_branches', ticketId, 'graph', limit],
+    queryFn: () => getBranchGraph(ticketId, limit),
+    enabled: !!ticketId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCommitDetail(ticketId: string, rev: string | null) {
+  return useQuery({
+    queryKey: ['ticket_branches', ticketId, 'commit', rev],
+    queryFn: () => getCommitDetail(ticketId, rev as string),
+    enabled: !!ticketId && !!rev,
+    staleTime: Infinity, // a commit never changes
+  });
+}
+
+export function useCreateBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      data,
+    }: {
+      ticketId: string;
+      data: Parameters<typeof createBranch>[1];
+    }) => createBranch(ticketId, data),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useUpdateBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      branchId,
+      data,
+    }: {
+      ticketId: string;
+      branchId: string;
+      data: Parameters<typeof updateBranch>[2];
+    }) => updateBranch(ticketId, branchId, data),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useCheckoutBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticketId, branchId }: { ticketId: string; branchId: string }) =>
+      checkoutBranch(ticketId, branchId),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+export function useDeleteBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      branchId,
+      ...opts
+    }: {
+      ticketId: string;
+      branchId: string;
+      removeWorktree?: boolean;
+      deleteGitBranch?: boolean;
+      force?: boolean;
+    }) => deleteBranch(ticketId, branchId, opts),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+

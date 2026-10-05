@@ -10,31 +10,29 @@ export function useSSEInvalidation() {
     let retryTimeout: ReturnType<typeof setTimeout>;
     let mounted = true;
 
-    async function init() {
-      const origin = await resolveOrigin();
-      if (!mounted) return;
-
-      function handleMessage(_event: MessageEvent<string>) {
-        queryClient.invalidateQueries();
-      }
-
-      function connect() {
-        if (!mounted) return;
-        es = new EventSource(`${origin}/events`);
-        queryClient.invalidateQueries();
-
-        es.onmessage = handleMessage;
-
-        es.onerror = () => {
-          if (es) es.close();
-          retryTimeout = setTimeout(connect, 3000);
-        };
-      }
-
-      connect();
+    function handleMessage(_event: MessageEvent<string>) {
+      queryClient.invalidateQueries();
     }
 
-    init();
+    function connect() {
+      if (!mounted) return;
+      // Re-resolve on every attempt (not just once) - in Electron the real
+      // port is only known after the backend-ready IPC event fires, which
+      // can happen after this effect first runs. Re-resolving on each retry
+      // means a stale/wrong origin self-corrects instead of looping forever.
+      const origin = resolveOrigin();
+      es = new EventSource(`${origin}/events`);
+      queryClient.invalidateQueries();
+
+      es.onmessage = handleMessage;
+
+      es.onerror = () => {
+        if (es) es.close();
+        retryTimeout = setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
 
     return () => {
       mounted = false;

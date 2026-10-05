@@ -2,15 +2,19 @@ import { useDroppable } from '@dnd-kit/core';
 import type { Column as ColumnType, Member, Ticket } from '../types';
 import { DraggableTicketCard } from './DraggableTicketCard';
 import styles from './Board.module.css';
+import loading from './AppLoading.module.css';
 
 interface ColumnProps {
   column: ColumnType;
   tickets: Ticket[];
+  allTickets?: Ticket[];
   onCardClick: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
+  /** Tickets are still loading: real lane header, skeleton cards (same size as real cards, so nothing moves). */
+  skeletonCards?: number;
 }
 
-export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps) {
+export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -47,26 +51,40 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
   return (
     <div
       ref={setNodeRef}
-      className={styles.column}
-      style={{
-        backgroundColor: column.accentColor,
-        filter: isOver ? 'brightness(0.88)' : undefined,
-        outline: isOver ? '2px solid rgba(0,0,0,0.2)' : undefined,
-        transition: 'filter 0.15s ease, outline 0.15s ease',
-      }}
+      className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}
     >
-      <div className={styles.columnHeader}>
-        <span className={styles.columnLabel}>{column.label}</span>
-        <span
-          className={styles.badge}
-          style={{ background: 'var(--color-dark)', color: 'var(--color-bg)' }}
-          aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
-        >
-          {tickets.length}
-        </span>
+      <div className={styles.columnHeaderContainer}>
+        <div className={styles.columnHeaderTop}>
+          <span className={styles.columnLabel}>{column.label}</span>
+          {skeletonCards !== undefined ? (
+            <span className={`${loading.skel} ${loading.skelBadge}`} aria-hidden="true" />
+          ) : (
+            <span
+              className={styles.columnBadge}
+              style={{ backgroundColor: column.accentColor }}
+              aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
+            >
+              {tickets.length}
+            </span>
+          )}
+        </div>
+        <div
+          className={styles.columnBar}
+          style={{ backgroundColor: column.accentColor }}
+        />
       </div>
-      <div className={styles.columnBody}>
-        {ordered.length === 0 && (
+
+      <div className={styles.columnBody} aria-hidden={skeletonCards !== undefined ? true : undefined}>
+        {skeletonCards !== undefined &&
+          Array.from({ length: skeletonCards }).map((_, i) => (
+            <div key={i} className={loading.skelCard} style={{ opacity: i > 0 ? 0.75 : 1 }}>
+              <div className={loading.skel} style={{ width: 64, height: 10 }} />
+              <div className={loading.skel} style={{ width: 90, height: 16, borderRadius: 999 }} />
+              <div className={loading.skel} style={{ width: '100%', height: 12 }} />
+              <div className={loading.skel} style={{ width: '70%', height: 12 }} />
+            </div>
+          ))}
+        {skeletonCards === undefined && ordered.length === 0 && !isOver && (
           <div className={styles.emptyState}>
             <span className={styles.emptyIcon} aria-hidden="true">◻</span>
             <span className={styles.emptyText}>No tickets</span>
@@ -74,14 +92,38 @@ export function Column({ column, tickets, onCardClick, memberMap }: ColumnProps)
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
+          const childTicketsForThis = (allTickets ?? tickets).filter((t) => t.parentId === ticket.id);
+          const subtaskStats = childTicketsForThis.length > 0
+            ? {
+                total: childTicketsForThis.length,
+                completed: childTicketsForThis.filter((c) => c.status === 'done').length,
+              }
+            : undefined;
+
           return indented ? (
             <div key={ticket.id} className={styles.childIndent}>
-              <DraggableTicketCard ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+              <DraggableTicketCard
+                ticket={ticket}
+                onCardClick={onCardClick}
+                memberMap={memberMap}
+                subtaskStats={subtaskStats}
+              />
             </div>
           ) : (
-            <DraggableTicketCard key={ticket.id} ticket={ticket} onCardClick={onCardClick} memberMap={memberMap} />
+            <DraggableTicketCard
+              key={ticket.id}
+              ticket={ticket}
+              onCardClick={onCardClick}
+              memberMap={memberMap}
+              subtaskStats={subtaskStats}
+            />
           );
         })}
+        {isOver && (
+          <div className={styles.dropTargetGhost}>
+            Drop here
+          </div>
+        )}
       </div>
     </div>
   );

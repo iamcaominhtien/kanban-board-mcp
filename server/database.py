@@ -12,6 +12,9 @@ _ALEMBIC_INI = Path(__file__).parent / "alembic.ini"
 
 
 def _resolve_db_path() -> Path:
+    # A data folder chosen in Settings wins over KANBAN_DB_PATH. The desktop app always sets
+    # KANBAN_DB_PATH to its default location, so letting it win would hide the data of anyone
+    # who moved their data folder (the board would look empty after an upgrade).
     configured = app_config.get_data_folder()
     if configured:
         configured.mkdir(parents=True, exist_ok=True)

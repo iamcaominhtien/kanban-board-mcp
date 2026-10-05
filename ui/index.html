@@ -5,11 +5,66 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <title>Kanban Board</title>
+    <style>
+      /* Critical splash CSS: this is the first thing painted, before any JS bundle loads. */
+      .kb-splash { position: fixed; inset: 0; z-index: 10000; background: #FBFCFB; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; color: #1E2A22; opacity: 1; transition: opacity 200ms ease-out; }
+      .kb-splash.kb-leave { opacity: 0; pointer-events: none; }
+      .kb-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 42%, rgba(104,186,127,0.16) 0%, rgba(104,186,127,0) 62%); }
+      .kb-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding-bottom: 28px; }
+      .kb-alt { position: absolute; inset: 0; display: none; }
+      .kb-splash.kb-state-alt .kb-center { display: none; }
+      .kb-splash.kb-state-alt .kb-alt { display: block; }
+      .kb-tile { position: relative; width: 120px; height: 120px; border-radius: 32px; background: #2E6F40; display: flex; align-items: center; justify-content: center; }
+      .kb-back { position: absolute; width: 54px; height: 38px; border-radius: 9px; background: #1E4A2C; opacity: 0.55; transform: rotate(-9deg) translate(-5.4px, 4.2px); }
+      .kb-front { position: relative; width: 54px; height: 38px; border-radius: 9px; background: #F3F8F4; box-shadow: 0 6px 14px rgba(0,0,0,0.18); display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 7px; box-sizing: border-box; }
+      .kb-line { height: 3px; border-radius: 2px; background: #B7D9C0; transform-origin: left center; }
+      .kb-word { font-size: 34px; font-weight: 800; letter-spacing: -0.01em; color: #1E2A22; }
+      .kb-bar { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+      .kb-track { position: relative; width: 180px; height: 3px; border-radius: 2px; background: #DCE6DF; overflow: hidden; }
+      .kb-slide { position: absolute; left: 0; top: 0; height: 3px; width: 40%; border-radius: 2px; background: #68BA7F; animation: kb-slide 1.4s ease-in-out infinite; }
+      .kb-status { font-size: 13px; color: #5B6B60; }
+      @keyframes kb-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+      /* Intro (cold start only): 1200 ms, played once, then it simply holds on the resting frame */
+      @keyframes kb-tile { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+      @keyframes kb-back { 0% { opacity: 0; transform: rotate(0deg) translate(-70px, 26px); } 80% { opacity: 0.55; transform: rotate(-12deg) translate(-4px, 4px); } 100% { opacity: 0.55; transform: rotate(-9deg) translate(-5.4px, 4.2px); } }
+      @keyframes kb-front { 0% { opacity: 0; transform: translateY(-22px) scale(0.96); } 75% { opacity: 1; transform: translateY(3px) scale(1.02); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+      @keyframes kb-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+      @keyframes kb-word { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes kb-fade { from { opacity: 0; } to { opacity: 1; } }
+      html[data-splash="cold"] .kb-tile { animation: kb-tile 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+      html[data-splash="cold"] .kb-back { animation: kb-back 500ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both; }
+      html[data-splash="cold"] .kb-front { animation: kb-front 400ms cubic-bezier(0.22, 1, 0.36, 1) 500ms both; }
+      html[data-splash="cold"] .kb-line { animation: kb-line 200ms ease-out 800ms both; }
+      html[data-splash="cold"] .kb-word { animation: kb-word 200ms ease-out 1000ms both; }
+      html[data-splash="cold"] .kb-bar { animation: kb-fade 100ms linear 1300ms both; }
+      @media (prefers-reduced-motion: reduce) {
+        .kb-splash { transition: none; }
+        html[data-splash] .kb-tile, html[data-splash] .kb-back, html[data-splash] .kb-front, html[data-splash] .kb-line, html[data-splash] .kb-word, html[data-splash] .kb-bar { animation: none; }
+        .kb-slide { animation: none; left: 0; width: 100%; opacity: 0.6; }
+      }
+    </style>
+    <script src="./boot.js"></script>
   </head>
   <body>
     <div id="root"></div>
+    <div id="kb-splash" class="kb-splash">
+      <div class="kb-glow" aria-hidden="true"></div>
+      <div class="kb-center">
+        <div class="kb-tile" aria-hidden="true">
+          <div class="kb-back"></div>
+          <div class="kb-front"><div class="kb-line" style="width: 60%"></div><div class="kb-line" style="width: 85%"></div></div>
+        </div>
+        <div class="kb-word">Kanban</div>
+        <div class="kb-bar">
+          <div class="kb-track" aria-hidden="true"><div class="kb-slide"></div></div>
+          <div class="kb-status" role="status" aria-live="polite">Loading your boards...</div>
+        </div>
+      </div>
+      <div id="kb-splash-alt" class="kb-alt"></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

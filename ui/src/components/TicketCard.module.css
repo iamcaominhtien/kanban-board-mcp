@@ -1,156 +1,228 @@
 .card {
-  background: var(--color-dark);
-  color: var(--color-bg);
-  border-radius: var(--radius-card);
-  border-left: 3px solid transparent;
-  padding: 10px 12px 10px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: #FFFFFF;
+  border: 1px solid #E3E8E5;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  user-select: none;
+  min-height: 140px;
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  opacity: 0.95;
+  border-color: #B9CBBF;
+  box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
+}
+
+.cardParent {
+  background: #F1F8F3 !important;
+  border-color: #D7E8DC !important;
+}
+
+.subtaskProgressBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subtaskTrack {
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #DCE6DF;
+  overflow: hidden;
+}
+
+.subtaskFill {
+  height: 100%;
+  background: #2E6F40;
+}
+
+.subtaskText {
+  font-size: 10px;
+  font-weight: 600;
+  color: #5B6B60;
+  white-space: nowrap;
 }
 
 .card:hover .dragHandle {
-  opacity: 0.6;
+  opacity: 1;
+}
+
+.cardDragging {
+  border-color: #DCE6DF !important;
+  box-shadow: 0 12px 24px rgba(30, 42, 34, 0.18) !important;
+  transform: rotate(1deg);
+}
+
+.cardBlocked {
+  border: 1.5px dashed #D9A79A !important;
+}
+
+.cardBlocked .cardContent {
+  opacity: 0.72;
+}
+
+.blockedBadge {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1.5px solid #C4432A;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.cardDone .cardTitle {
+  color: #5B6B60;
+}
+
+.cardDone .cardId {
+  text-decoration: line-through;
+  text-decoration-color: #C7D2CB;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  flex: 1;
 }
 
 .cardHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
 }
 
-.cardHeaderRight {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.cardId {
-  font-size: 10px;
-  font-weight: 500;
-  opacity: 0.45;
-  letter-spacing: 0.04em;
-  font-family: monospace;
-}
-
-.dragHandle {
-  font-size: 14px;
-  line-height: 1;
-  opacity: 0;
-  color: var(--color-bg);
-  transition: opacity 0.15s;
-  cursor: grab;
-  user-select: none;
-}
-
-.badgeRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.typeBadge {
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 2px 7px;
-  white-space: nowrap;
-}
-
-.blockedBadge {
-  font-size: 12px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.parentBadge {
-  font-size: 10px;
-  font-weight: 600;
-  background: rgba(245, 239, 224, 0.12);
-  color: rgba(245, 239, 224, 0.6);
-  border-radius: 999px;
-  padding: 2px 6px;
-  white-space: nowrap;
-}
-
-.cardTitle {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.cardFooter {
+.typeContainer {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.typeLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5B6B60;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardId {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #9AA8A0;
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: #B7C4BC;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E2A22;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.tagsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
-  min-width: 0;
+}
+
+.tagOverflow {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA8A0;
+}
+
+.parentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #F6FAF7;
+  border: 1px solid #E3E8E5;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5B6B60;
+  width: fit-content;
+}
+
+.cardFooter {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .footerSpacer {
-  flex: 1;
+  flex-grow: 1;
 }
 
-.priorityDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
+.estimate {
+  font-size: 11px;
+  color: #9AA8A0;
 }
 
-.tag {
-  font-size: 10px;
-  font-weight: 500;
-  background: rgba(245, 239, 224, 0.1);
-  color: rgba(245, 239, 224, 0.7);
-  border-radius: 999px;
-  padding: 1px 6px;
-  white-space: nowrap;
+.subtasksProgress {
+  font-size: 11px;
+  color: #5B6B60;
 }
 
-.estimateBadge {
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(245, 239, 224, 0.55);
-  white-space: nowrap;
+.subtasksDone {
+  font-size: 11px;
+  color: #2E6F40;
+  font-weight: 600;
 }
 
 .dueDate {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 500;
-  color: rgba(245, 239, 224, 0.55);
-  white-space: nowrap;
+  color: #5B6B60;
 }
 
 .dueDateOverdue {
-  font-size: 10px;
-  font-weight: 700;
-  color: #FCA5A5;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #C4432A;
 }
-
-.subTasksProgress {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(245, 239, 224, 0.5);
-  white-space: nowrap;
-}
-
-.subTasksDone {
-  font-size: 10px;
-  font-weight: 700;
-  color: #86EFAC;
-  white-space: nowrap;
-}
-

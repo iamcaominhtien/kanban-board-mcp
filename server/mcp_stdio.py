@@ -15,7 +15,7 @@ from mcp.server.fastmcp import FastMCP
 import mcp_tools as _mcp_tools
 from database import init_db
 
-mcp = FastMCP("kanban-mcp")
+mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS)
 _mcp_tools.register(mcp)
 
 

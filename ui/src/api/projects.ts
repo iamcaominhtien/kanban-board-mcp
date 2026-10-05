@@ -2,8 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { Project } from '../types/ticket';
 
+/** A first-load request that takes longer than this is abandoned and the error state is shown. */
+export const LIST_TIMEOUT_MS = 15000;
+
 export async function listProjects(): Promise<Project[]> {
-  const res = await client.get<Project[]>('/projects');
+  const res = await client.get<Project[]>('/projects', { timeout: LIST_TIMEOUT_MS });
   return res.data;
 }
 
@@ -23,7 +26,13 @@ export async function createProject(data: {
 
 export async function updateProject(
   id: string,
-  data: { name?: string; color?: string },
+  data: {
+    name?: string;
+    color?: string;
+    repo_path?: string | null;
+    worktree_template?: string | null;
+    worktree_by_default?: boolean;
+  },
 ): Promise<Project> {
   const res = await client.patch<Project>(`/projects/${id}`, data);
   return res.data;
@@ -42,6 +51,7 @@ export function useProjects() {
   return useQuery({
     queryKey: projectKeys.all,
     queryFn: listProjects,
+    retry: false, // a failure is shown (with Try again) instead of retrying silently for a long time
   });
 }
 
@@ -66,7 +76,7 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; name?: string; color?: string }) =>
+    mutationFn: ({ id, ...data }: { id: string } & Parameters<typeof updateProject>[1]) =>
       updateProject(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
