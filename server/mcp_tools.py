@@ -382,34 +382,53 @@ def _entry_time(entry: dict) -> datetime | None:
     return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
+DEFAULT_ACTIVITY_ENTRIES = 10
+_ACTIVITY_TEXT_CLIP = 300
+
+
+def _clip_activity(entries: list[dict]) -> list[dict]:
+    """Description edits store the whole old and new text; for a quick look the start of each is enough."""
+    out = []
+    for entry in entries:
+        entry = dict(entry)
+        for key in ("from", "to"):
+            value = entry.get(key)
+            if isinstance(value, str) and len(value) > _ACTIVITY_TEXT_CLIP:
+                entry[key] = value[:_ACTIVITY_TEXT_CLIP] + f"… [{len(value) - _ACTIVITY_TEXT_CLIP} more chars]"
+        out.append(entry)
+    return out
+
+
 async def get_ticket(
     ticket_id: TicketId,
-    include_activity: Annotated[bool, Field(description="Also return the whole change history (`activity_log`: who changed what and when). Large; off by default. Prefer activity_limit / activity_since when you only need recent changes.")] = False,
-    activity_limit: Annotated[int | None, Field(ge=0, le=1000, description="Return only the N most recent activity entries (oldest of them first). Implies include_activity.")] = None,
-    activity_since: Annotated[str | None, Field(description="Return only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z': 'what changed since I last looked'. Implies include_activity; can be combined with activity_limit.")] = None,
+    include_activity: Annotated[bool, Field(description=f"true: return the WHOLE change history with full texts (large). By default only the {DEFAULT_ACTIVITY_ENTRIES} most recent entries are returned, long texts shortened.")] = False,
+    activity_limit: Annotated[int | None, Field(ge=0, le=1000, description=f"Return only the N most recent activity entries (default {DEFAULT_ACTIVITY_ENTRIES}). 0 = leave the history out entirely.")] = None,
+    activity_since: Annotated[str | None, Field(description="Only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z' ('what changed since I last looked'). Combine with activity_limit to cap how many.")] = None,
 ) -> dict:
     """Get one ticket in full: Markdown description, acceptance criteria, test cases, comments, work log (debug notes),
     branches, relations (blocks / blocked_by / links) and `workspace_path` when the Workspace feature is on.
-    Sub-item ids (comment, test case, branch, ...) used by the other tools come from here. The change history is left
-    out unless you ask for it; when included, `activity_total` tells you how many entries the ticket has in all."""
+    Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
+    `activity_log` holds the most recent changes (who changed what and when, oldest first); `activity_total` is how many
+    entries the ticket has in all, so you can tell when more exist (use activity_limit, activity_since or include_activity)."""
     since = _parse_since(activity_since) if activity_since else None
-    want_activity = include_activity or activity_limit is not None or since is not None
     async with async_session() as session:
         ticket = await svc_tickets.get_ticket(session, ticket_id)
         if ticket is None:
             raise _missing_ticket(ticket_id)
-        data = _ticket_to_dict(ticket, include_activity=want_activity)
+        data = _ticket_to_dict(ticket, include_activity=True)
         info = await svc_workspace.get_workspace_path(session, ticket_id, create=False)
         if info is not None and info["enabled"]:
             data["workspace_path"] = info["path"]
-    if want_activity:
-        log = data.get("activity_log") or []
-        data["activity_total"] = len(log)
-        if since is not None:
-            log = [e for e in log if (_entry_time(e) or since) > since]
-        if activity_limit is not None:
-            log = log[-activity_limit:] if activity_limit > 0 else []
-        data["activity_log"] = log
+    log = data.get("activity_log") or []
+    data["activity_total"] = len(log)
+    if since is not None:
+        log = [e for e in log if (_entry_time(e) or since) > since]
+    limit = activity_limit
+    if limit is None and since is None and not include_activity:
+        limit = DEFAULT_ACTIVITY_ENTRIES
+    if limit is not None:
+        log = log[-limit:] if limit > 0 else []
+    data["activity_log"] = log if include_activity and activity_limit is None else _clip_activity(log)
     return data
 
 
@@ -1206,7 +1225,7 @@ _INSTRUCTIONS_TAIL = """\
 
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry.
-- Tools that change a ticket return the updated ticket without its activity log; get_ticket can add it (include_activity, or just the recent part with activity_limit / activity_since).
+- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that, include_activity gives all).
 - Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields{ideas_null}.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.
