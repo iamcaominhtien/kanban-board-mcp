@@ -238,3 +238,44 @@ async def test_unlink_explains_that_each_side_of_a_link_has_its_own_id(client):
     with pytest.raises(ValueError, match="different id on each"):
         await mcp_tools.unlink_tickets(b, link["id"])  # the other side of the link
     assert await mcp_tools.unlink_tickets(a["id"], link["id"]) == {"removed": link["id"]}
+
+
+async def test_get_ticket_can_return_only_the_recent_activity(client):
+    import asyncio
+
+    async with client as c:
+        _, t = await _ticket(c)
+        i = t["id"]
+        for n in range(5):
+            await c.patch(f"/tickets/{i}", json={"title": f"t{n}"})
+            await asyncio.sleep(0.01)
+    plain = await mcp_tools.get_ticket(i)
+    assert "activity_log" not in plain and "activity_total" not in plain
+
+    everything = await mcp_tools.get_ticket(i, include_activity=True)
+    total = len(everything["activity_log"])
+    assert total >= 6 and everything["activity_total"] == total
+
+    latest = await mcp_tools.get_ticket(i, activity_limit=2)  # implies include_activity
+    assert [e["to"] for e in latest["activity_log"]] == ["t3", "t4"]  # the newest two, oldest first
+    assert latest["activity_total"] == total
+
+    assert (await mcp_tools.get_ticket(i, activity_limit=0))["activity_log"] == []
+
+    cutoff = everything["activity_log"][-3]["at"]  # entries strictly after the third-from-last
+    newer = await mcp_tools.get_ticket(i, activity_since=cutoff)
+    assert [e["to"] for e in newer["activity_log"]] == ["t3", "t4"]
+    both = await mcp_tools.get_ticket(i, activity_since=everything["activity_log"][0]["at"], activity_limit=1)
+    assert [e["to"] for e in both["activity_log"]] == ["t4"]
+    assert (await mcp_tools.get_ticket(i, activity_since="2999-01-01"))["activity_log"] == []
+    with pytest.raises(ValueError, match="ISO"):
+        await mcp_tools.get_ticket(i, activity_since="yesterday")
+
+
+async def test_activity_limit_is_validated_by_the_schema():
+    from mcp.server.fastmcp.exceptions import ToolError
+
+    with pytest.raises(ToolError):
+        await mcp.call_tool("get_ticket", {"ticket_id": "X-1", "activity_limit": -1})
+    props = (await _tools())["get_ticket"].inputSchema["properties"]
+    assert {"include_activity", "activity_limit", "activity_since"} <= set(props)

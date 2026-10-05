@@ -72,7 +72,7 @@ The server exposes 33 tools for AI agents over MCP (selected highlights below �
 
 **Tickets**
 - `list_tickets` — compact, paginated summaries (`status`, `priority`, `q`, `limit`/`offset`; `detail=true` for full objects)
-- `get_ticket` — everything about one ticket (`include_activity=true` adds the change history)
+- `get_ticket` — everything about one ticket; the change history is opt-in: `include_activity=true` for all of it, `activity_limit=N` for the latest N entries, `activity_since=<ISO time>` for what changed since then
 - `create_ticket`, `create_child_ticket`, `update_ticket` (incl. assignee, dates, repo path, "Done requires" guards, `clear_fields`), `update_ticket_status`, `delete_ticket`
 - `block_ticket`, `unblock_ticket`, `link_tickets`, `unlink_tickets`
 - `get_ticket_workspace_path` — the ticket's scratch folder (read/write it with your own file tools)

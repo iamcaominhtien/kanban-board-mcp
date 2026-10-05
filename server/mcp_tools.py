@@ -364,22 +364,53 @@ async def create_ticket(
         raise ValueError(f"Project not found: {project_id}. Use list_projects to see project ids.")
 
 
+def _parse_since(value: str) -> datetime:
+    try:
+        moment = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError(
+            f"activity_since must be an ISO date or time such as '2026-10-05T08:00:00Z' (got '{value}')."
+        ) from None
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+
+
+def _entry_time(entry: dict) -> datetime | None:
+    try:
+        moment = datetime.fromisoformat(str(entry.get("at", "")).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+
+
 async def get_ticket(
     ticket_id: TicketId,
-    include_activity: Annotated[bool, Field(description="Also return the change history (`activity_log`: who changed what and when). Large; off by default.")] = False,
+    include_activity: Annotated[bool, Field(description="Also return the whole change history (`activity_log`: who changed what and when). Large; off by default. Prefer activity_limit / activity_since when you only need recent changes.")] = False,
+    activity_limit: Annotated[int | None, Field(ge=0, le=1000, description="Return only the N most recent activity entries (oldest of them first). Implies include_activity.")] = None,
+    activity_since: Annotated[str | None, Field(description="Return only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z': 'what changed since I last looked'. Implies include_activity; can be combined with activity_limit.")] = None,
 ) -> dict:
     """Get one ticket in full: Markdown description, acceptance criteria, test cases, comments, work log (debug notes),
     branches, relations (blocks / blocked_by / links) and `workspace_path` when the Workspace feature is on.
-    Sub-item ids (comment, test case, branch, ...) used by the other tools come from here."""
+    Sub-item ids (comment, test case, branch, ...) used by the other tools come from here. The change history is left
+    out unless you ask for it; when included, `activity_total` tells you how many entries the ticket has in all."""
+    since = _parse_since(activity_since) if activity_since else None
+    want_activity = include_activity or activity_limit is not None or since is not None
     async with async_session() as session:
         ticket = await svc_tickets.get_ticket(session, ticket_id)
         if ticket is None:
             raise _missing_ticket(ticket_id)
-        data = _ticket_to_dict(ticket, include_activity=include_activity)
+        data = _ticket_to_dict(ticket, include_activity=want_activity)
         info = await svc_workspace.get_workspace_path(session, ticket_id, create=False)
         if info is not None and info["enabled"]:
             data["workspace_path"] = info["path"]
-        return data
+    if want_activity:
+        log = data.get("activity_log") or []
+        data["activity_total"] = len(log)
+        if since is not None:
+            log = [e for e in log if (_entry_time(e) or since) > since]
+        if activity_limit is not None:
+            log = log[-activity_limit:] if activity_limit > 0 else []
+        data["activity_log"] = log
+    return data
 
 
 async def get_ticket_workspace_path(ticket_id: TicketId) -> dict:
@@ -1175,7 +1206,7 @@ _INSTRUCTIONS_TAIL = """\
 
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry.
-- Tools that change a ticket return the updated ticket without its activity log (get_ticket include_activity=true shows it).
+- Tools that change a ticket return the updated ticket without its activity log; get_ticket can add it (include_activity, or just the recent part with activity_limit / activity_since).
 - Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields{ideas_null}.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.
