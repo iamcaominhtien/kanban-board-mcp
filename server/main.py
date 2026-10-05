@@ -110,7 +110,6 @@ async def version() -> dict[str, str]:
 
 
 @app.get("/uploads/{file_path:path}")
-@app.get("/api/uploads/{file_path:path}")
 async def serve_upload(
     file_path: str,
     name: str | None = None,

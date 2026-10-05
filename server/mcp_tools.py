@@ -18,7 +18,6 @@ import events as board_events
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field, ValidationError
-from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
 import services.idea_tickets as svc_idea_tickets
@@ -1267,6 +1266,7 @@ Conventions
 - Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).
 - Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields{ideas_null}.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
+- File attachments and images use standard root-relative path '/uploads/{{filename}}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.
 - delete_* tools are permanent; prefer status 'wont_do'{ideas_drop} to retire things.
 """
