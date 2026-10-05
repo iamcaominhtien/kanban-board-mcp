@@ -80,6 +80,15 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   // Clean up any stray uploading:... placeholders before rendering, and preprocess raw <img> tags
   let cleanedContent = children ? children.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '') : '';
+  // Support both /api/uploads/ and /uploads/ interchangeably
+  cleanedContent = cleanedContent.replace(/\/api\/uploads\//g, '/uploads/');
+
+  // Convert Pandoc/Kramdown/Obsidian style image attributes: ![alt](url){width=...} -> ![alt|width](url)
+  cleanedContent = cleanedContent.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)\{(?:width=)?(\d+(?:%|px)?)[^}]*\}/gi,
+    (_match, alt, url, width) => `![${alt ? `${alt}|${width}` : width}](${url})`,
+  );
+
   if (cleanedContent.includes('<img')) {
     cleanedContent = cleanedContent.replace(/<img\s+([^>]*?)>/gi, (_match, attrs) => {
       const srcMatch = attrs.match(/src=["']([^"']+)["']/i);

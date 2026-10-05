@@ -24,6 +24,15 @@ function formatInlineMarkdown(text: string): string {
   // Strip any old uploading:... placeholder
   text = text.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '');
 
+  // Normalize /api/uploads/ to /uploads/
+  text = text.replace(/\/api\/uploads\//g, '/uploads/');
+
+  // Convert Pandoc/Kramdown/Obsidian style image attributes: ![alt](url){width=...} -> ![alt|width](url)
+  text = text.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)\{(?:width=)?(\d+(?:%|px)?)[^}]*\}/gi,
+    (_match, alt, url, width) => `![${alt ? `${alt}|${width}` : width}](${url})`,
+  );
+
   // Escape raw HTML first so user text can never inject markup
   text = escapeHtml(text);
 
