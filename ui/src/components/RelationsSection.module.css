@@ -103,7 +103,7 @@
 }
 
 .removeBtn {
-  opacity: 0;
+  opacity: 1;
   width: 20px;
   height: 20px;
   border-radius: 5px;
@@ -116,10 +116,6 @@
   color: #9AA8A0;
   flex-shrink: 0;
   transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
-}
-
-.row:hover .removeBtn {
-  opacity: 1;
 }
 
 .removeBtn:hover {
