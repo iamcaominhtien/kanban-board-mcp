@@ -9,6 +9,12 @@ export interface TicketLink {
   relationType: RelationType;
 }
 
+export interface SubTask {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export interface Member {
   id: string;
   projectId: string;
@@ -111,6 +117,7 @@ export interface Ticket {
   parentId: string | null;
   comments: Comment[];
   acceptanceCriteria: AcceptanceCriterion[];
+  subTasks: SubTask[];
   activityLog: ActivityEntry[];
   workLog: WorkLogEntry[];
   testCases: TestCase[];

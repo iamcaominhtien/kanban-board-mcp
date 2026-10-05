@@ -24,6 +24,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Opens a native folder picker; returns the selected path or null
   selectFolder: () => ipcRenderer.invoke('select-folder'),
 
+  // Opens a local file using the OS default application (e.g. Excel for .xlsx, Word for .docx)
+  openPath: (filePath) => ipcRenderer.invoke('open-path', filePath),
+
+  // Opens an external URL in the default web browser
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+
   // Platform info
   platform: process.platform,
 });

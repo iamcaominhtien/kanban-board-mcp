@@ -20,6 +20,7 @@ from uploads import (
 )
 from services.tickets import (
     add_acceptance_criterion,
+    add_sub_task,
     add_branch,
     checkout_branch,
     add_comment,
@@ -28,6 +29,7 @@ from services.tickets import (
     add_work_log,
     create_ticket,
     delete_acceptance_criterion,
+    delete_sub_task,
     delete_branch,
     get_branch_graph,
     get_commit_detail,
@@ -42,6 +44,7 @@ from services.tickets import (
     list_tickets,
     remove_ticket_link,
     toggle_acceptance_criterion,
+    toggle_sub_task,
     unlink_block,
     update_branch,
     update_comment,
@@ -149,11 +152,12 @@ class AttachmentUploadResponse(BaseModel):
     name: str
     size: int
     type: str
+    markdown: str = ""
 
 
 @router.post("/uploads/files", response_model=AttachmentUploadResponse, status_code=201)
 async def upload_attachment(file: UploadFile = File(...)) -> AttachmentUploadResponse:
-    """Store any file (log, trace, fixture...) so an entry can attach it by url."""
+    """Store any file (log, trace, fixture, excel, word, ppt, json...) and return its url & markdown snippet."""
     original = file.filename or ""
     if not Path(original).name:
         raise HTTPException(status_code=400, detail="File name is required.")
@@ -176,12 +180,20 @@ async def upload_attachment(file: UploadFile = File(...)) -> AttachmentUploadRes
 
     stored = build_upload_filename(original)
     (get_uploads_dir() / stored).write_bytes(b"".join(chunks))
+
+    url = f"/uploads/{stored}"
+    clean_name = Path(original).name[:200]
+    ext = Path(original).suffix.lower()
+    is_img = ext in SUPPORTED_IMAGE_EXTENSIONS
+    md = f"![{clean_name}]({url})" if is_img else f"[{clean_name}]({url})"
+
     return AttachmentUploadResponse(
         id=Path(stored).stem[-12:],
-        url=f"/uploads/{stored}",
-        name=Path(original).name[:200],
+        url=url,
+        name=clean_name,
         size=total,
         type=(file.content_type or "application/octet-stream")[:100],
+        markdown=md,
     )
 
 
@@ -385,6 +397,57 @@ async def toggle_ac(ticket_id: str, criterion_id: str, session: Session) -> Tick
 )
 async def del_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketRead:
     ticket = await delete_acceptance_criterion(session, ticket_id, criterion_id)
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+# ---------------------------------------------------------------------------
+# Sub-tasks (checklist items)
+# ---------------------------------------------------------------------------
+
+
+class SubTaskBody(BaseModel):
+    text: str
+
+
+@router.post("/tickets/{ticket_id}/sub-tasks", response_model=TicketRead)
+async def post_sub_task(
+    ticket_id: str, body: SubTaskBody, session: Session
+) -> TicketRead:
+    try:
+        ticket = await add_sub_task(session, ticket_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch(
+    "/tickets/{ticket_id}/sub-tasks/{sub_task_id}/toggle",
+    response_model=TicketRead,
+)
+async def toggle_sub_task_route(
+    ticket_id: str, sub_task_id: str, session: Session
+) -> TicketRead:
+    ticket = await toggle_sub_task(session, ticket_id, sub_task_id)
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.delete(
+    "/tickets/{ticket_id}/sub-tasks/{sub_task_id}",
+    response_model=TicketRead,
+)
+async def del_sub_task(
+    ticket_id: str, sub_task_id: str, session: Session
+) -> TicketRead:
+    ticket = await delete_sub_task(session, ticket_id, sub_task_id)
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

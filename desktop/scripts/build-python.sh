@@ -24,7 +24,7 @@ else
 fi
 
 # Install pyinstaller in the venv if not present
-"$VENV_PYTHON" -c "import PyInstaller" 2>/dev/null || "$VENV_PYTHON" -m pip install pyinstaller --quiet
+"$VENV_PYTHON" -c "import PyInstaller" 2>/dev/null || (command -v uv >/dev/null && uv pip install pyinstaller --directory "$SERVER_DIR") || "$VENV_PYTHON" -m pip install pyinstaller --quiet
 
 mkdir -p "$OUTPUT_DIR"
 

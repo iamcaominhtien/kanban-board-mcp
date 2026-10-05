@@ -439,11 +439,26 @@
   margin: 0;
 }
 
-/* Consolidated Attachments Zone */
+/* Consolidated Attachments Zone matching Attachments.dc.html */
 .attachmentsZone {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-top: 18px;
+  margin-top: 8px;
+  border-top: 1px solid #EEF3EF;
+}
+
+:global(.dark) .attachmentsZone {
+  border-top-color: #2D3E33;
+}
+
+.attachmentsLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9AA8A0;
 }
 
 .attachmentsList {
@@ -470,6 +485,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+:global(.dark) .attThumb {
+  background: #1B2920;
+  border-color: #2D3E33;
+}
+
+.attThumb:hover {
+  border-color: #68BA7F;
+  transform: translateY(-1px);
 }
 
 .attThumb img {
@@ -482,26 +510,122 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border: 1px solid #E3E8E5;
   border-radius: 7px;
   background: #FFFFFF;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px;
+}
+
+:global(.dark) .attFileChip {
+  background: #1E2A22;
+  border-color: #2D3E33;
+}
+
+.attFileChip:hover {
+  border-color: #68BA7F;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .attFileIcon {
   width: 26px;
   height: 26px;
   border-radius: 5px;
-  background: #E1EEFB;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
+.attFileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.attFileName {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(.dark) .attFileName {
+  color: #F6FAF7;
+}
+
+.attFileSize {
+  font-size: 10.5px;
+  color: #9AA8A0;
+}
+
+.attDownloadBtn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9AA8A0;
+  margin-left: 4px;
+  border-radius: 4px;
+  transition: color 0.12s ease, background-color 0.12s ease;
+  text-decoration: none;
+}
+
+.attDownloadBtn:hover {
+  color: #1E2A22;
+  background: #EEF3EF;
+}
+
+:global(.dark) .attDownloadBtn:hover {
+  color: #F6FAF7;
+  background: #2D3E33;
+}
+
+.attAddBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 8px;
+  border: 1px dashed #C7D2CB;
+  background: none;
+  cursor: pointer;
+  color: #9AA8A0;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+:global(.dark) .attAddBtn {
+  border-color: #3F5246;
+}
+
+.attAddBtn:hover {
+  border-color: #68BA7F;
+  color: #2E6F40;
+  background: #F6FAF7;
+}
+
+:global(.dark) .attAddBtn:hover {
+  background: #1B2920;
+  color: #68BA7F;
+}
+
 .attMetaText {
   font-size: 9.5px;
   color: #9AA8A0;
+  padding-left: 2px;
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -43,7 +43,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     ideas = {f.__name__ for f, _ in mcp_tools.IDEA_TOOL_TABLE}
     assert not core & ideas
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 47
+    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 50
 
 
 async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(monkeypatch):
@@ -111,7 +111,7 @@ async def test_the_tool_list_stays_compact():
         return sum(len(t.description or "") + len(json.dumps(t.inputSchema, separators=(",", ":"))) for t in tools.values())
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    assert default < 28_500, f"default tool list is {default} characters (about {default // 4} tokens)"
+    assert default < 29_500, f"default tool list is {default} characters (about {default // 4} tokens)"
     assert full < 40_000, f"full tool list is {full} characters (about {full // 4} tokens)"
     assert default < full
 

@@ -191,12 +191,35 @@
 }
 
 .uploadStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px 14px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #2E6F40;
+  color: var(--color-forest, #2E6F40);
   background: #F1F8F3;
   border-bottom: 1px solid #D7E8DC;
+}
+
+:global(.dark) .uploadStatus {
+  color: var(--color-sage, #68BA7F);
+  background: rgba(46, 111, 64, 0.15);
+  border-bottom-color: rgba(46, 111, 64, 0.25);
+}
+
+.uploadSpinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(46, 111, 64, 0.25);
+  border-top-color: var(--color-forest, #2E6F40);
+  border-radius: 50%;
+  animation: uploadSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes uploadSpin {
+  to { transform: rotate(360deg); }
 }
 
 .uploadError {
@@ -492,4 +515,171 @@
   border-top: 1px solid #EEF3EF;
   background: #FAFCFA;
   border-radius: 0 0 7px 7px;
+}
+
+/* ── Interactive Image Resizer ── */
+
+.imageResizerOverlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  box-sizing: border-box;
+}
+
+.resizerBorder {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--color-forest, #2E6F40);
+  border-radius: 6px;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.resizerToolbar {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #DCE6DF);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(30, 42, 34, 0.16);
+  pointer-events: auto;
+  user-select: none;
+  white-space: nowrap;
+}
+
+:global(.dark) .resizerToolbar {
+  background: #18261D;
+  border-color: #2D4233;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.resizerDimBadge {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-forest, #2E6F40);
+  background: #F1F8F3;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+:global(.dark) .resizerDimBadge {
+  color: var(--color-sage, #68BA7F);
+  background: rgba(46, 111, 64, 0.2);
+}
+
+.resizerDivider {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border, #DCE6DF);
+  margin: 0 2px;
+}
+
+:global(.dark) .resizerDivider {
+  background: #2D4233;
+}
+
+.resizerBtn {
+  border: none;
+  background: transparent;
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-body, #3F4B45);
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  line-height: 1;
+}
+
+.resizerBtn:hover {
+  background: #F1F8F3;
+  color: var(--color-forest, #2E6F40);
+}
+
+:global(.dark) .resizerBtn {
+  color: #C7D2CB;
+}
+
+:global(.dark) .resizerBtn:hover {
+  background: rgba(46, 111, 64, 0.25);
+  color: #85D69C;
+}
+
+.resizerDeleteBtn {
+  color: #C4432A !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+}
+
+.resizerDeleteBtn:hover {
+  background: #FDF1F0 !important;
+}
+
+:global(.dark) .resizerDeleteBtn:hover {
+  background: rgba(196, 67, 42, 0.2) !important;
+}
+
+/* Handles */
+.resizeHandle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #FFFFFF;
+  border: 2px solid var(--color-forest, #2E6F40);
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
+  pointer-events: auto;
+  box-sizing: border-box;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.resizeHandle:hover {
+  background: var(--color-forest, #2E6F40);
+  transform: scale(1.2);
+}
+
+.handleNW {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+
+.handleNE {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+
+.handleSE {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+
+.handleSW {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+.handleW {
+  top: calc(50% - 5px);
+  left: -5px;
+  cursor: ew-resize;
+}
+
+.handleE {
+  top: calc(50% - 5px);
+  right: -5px;
+  cursor: ew-resize;
 }

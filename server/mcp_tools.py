@@ -18,7 +18,6 @@ import events as board_events
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field, ValidationError
-from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
 import services.idea_tickets as svc_idea_tickets
@@ -54,6 +53,7 @@ TicketId = Annotated[str, Field(description="Ticket ID such as 'IAM-12' (not a U
 IdeaId = Annotated[str, Field(description="Idea ticket ID such as 'IDEA-3'.")]
 CommentId = Annotated[str, Field(description="Comment id (UUID) from the ticket's `comments` list.")]
 CriterionId = Annotated[str, Field(description="Acceptance criterion id (UUID) from the ticket's `acceptance_criteria` list.")]
+SubTaskId = Annotated[str, Field(description="Sub-task id (UUID) from the ticket's `sub_tasks` list.")]
 WorkLogId = Annotated[str, Field(description="Work log entry id (UUID) from the ticket's `work_log` list.")]
 TestCaseRef = Annotated[str, Field(description="Test case id (UUID) or its code such as 'TC-2' (from the ticket's `test_cases` list).")]
 BranchRef = Annotated[str, Field(description="Branch id (UUID) or branch name (from the ticket's `branches` list).")]
@@ -171,6 +171,7 @@ def _missing_idea(ticket_id: str) -> ValueError:
 _ITEM_KINDS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "comment": ("comments", "Comment", ("id",)),
     "criterion": ("acceptance_criteria", "Acceptance criterion", ("id",)),
+    "sub_task": ("sub_tasks", "Sub-task", ("id",)),
     "work_log": ("work_log", "Work log entry", ("id",)),
     "test_case": ("test_cases", "Test case", ("id", "code")),
     "branch": ("branches", "Branch", ("id", "name")),
@@ -953,6 +954,41 @@ async def delete_acceptance_criterion(ticket_id: TicketId, criterion_id: Criteri
 
 
 # ---------------------------------------------------------------------------
+# Sub-tasks
+# ---------------------------------------------------------------------------
+
+
+@notify_on_success
+async def add_sub_task(
+    ticket_id: TicketId,
+    text: Annotated[str, Field(description="One small step, e.g. 'Confirm spec with design' (max 500 chars).")],
+) -> dict:
+    """Add a sub-task: a checklist step inside this ticket (not a ticket; for real child tickets use parent_id).
+    Returns the updated ticket."""
+    return await _edit_ticket(ticket_id, lambda s: svc_tickets.add_sub_task(s, ticket_id, text=text))
+
+
+@notify_on_success
+async def toggle_sub_task(ticket_id: TicketId, sub_task_id: SubTaskId) -> dict:
+    """Flip a sub-task between not-done and done. Returns the updated ticket."""
+    return await _edit_ticket(
+        ticket_id,
+        lambda s, sid: svc_tickets.toggle_sub_task(s, ticket_id, sid),
+        ("sub_task", sub_task_id),
+    )
+
+
+@notify_on_success
+async def delete_sub_task(ticket_id: TicketId, sub_task_id: SubTaskId) -> dict:
+    """Delete a sub-task. Returns the updated ticket."""
+    return await _edit_ticket(
+        ticket_id,
+        lambda s, sid: svc_tickets.delete_sub_task(s, ticket_id, sid),
+        ("sub_task", sub_task_id),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Members
 # ---------------------------------------------------------------------------
 
@@ -1216,7 +1252,7 @@ add_test_case / toggle_acceptance_criterion -> update_ticket_status('done').
 
 Concepts
 - Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, \
-review, testing, done, wont_do. A ticket owns acceptance criteria, test cases, comments, a work log, branches and \
+review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and \
 relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.
 """
 _INSTRUCTIONS_IDEAS = """\
@@ -1230,6 +1266,7 @@ Conventions
 - Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).
 - Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields{ideas_null}.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
+- File attachments and images use standard root-relative path '/uploads/{{filename}}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.
 - delete_* tools are permanent; prefer status 'wont_do'{ideas_drop} to retire things.
 """
@@ -1293,6 +1330,9 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (add_acceptance_criterion, _WRITE),
     (toggle_acceptance_criterion, _WRITE),
     (delete_acceptance_criterion, _DELETE),
+    (add_sub_task, _WRITE),
+    (toggle_sub_task, _WRITE),
+    (delete_sub_task, _DELETE),
     (add_branch, _WRITE),
     (update_branch, _UPDATE),
     (delete_branch, _DELETE),

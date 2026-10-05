@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { WorkLogEntry } from '../types';
-import { uploadDescriptionImage } from '../api/tickets';
+import { uploadAnyFile } from '../api/tickets';
 import { MarkdownEditor } from './MarkdownEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import styles from './WorkLogSection.module.css';
@@ -113,10 +113,8 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
               value={note}
               onChange={setNote}
               onBlur={setNote}
-              onUploadImage={async (file) => {
-                const result = await uploadDescriptionImage(file);
-                return { markdown: result.markdown };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
               onUploadComplete={setNote}
             />
             <div className={styles.submitRow}>

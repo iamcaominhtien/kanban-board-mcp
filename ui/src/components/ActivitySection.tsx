@@ -253,6 +253,7 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
   created: 'Created',
   comment: 'Comment',
   acceptance_criterion: 'Acceptance criterion',
+  sub_task: 'Sub-task',
   work_log: 'Work log',
   test_case: 'Test case',
   test_case_status: 'Test case',
@@ -276,6 +277,7 @@ const EVENT_FIELDS = new Set([
   'comment',
   'work_log',
   'acceptance_criterion',
+  'sub_task',
   'test_case',
   'blocks',
   'blocked_by',
@@ -458,6 +460,7 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
       case 'work_log':
         return iconBubble('#ECE9FA', '#6D5DD3', ['M4 5H20V19H4Z', 'M8 10L11 12L8 14', 'M13 14H16']);
       case 'acceptance_criterion':
+      case 'sub_task':
       case 'test_case':
       case 'test_case_status':
         return iconBubble('#DCEEE1', '#2E6F40', ['M4 12L9 17L20 6']);
