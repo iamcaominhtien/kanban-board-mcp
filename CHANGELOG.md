@@ -15,6 +15,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - **App loading states**: while data loads the app shows a real shell with skeleton rows and cards of the same size as the real ones (no layout shift), a small status pill (after 300 ms; "Still loading... Check your connection" + Retry after 3 s), "Couldn't load your projects/tickets" with Try again after 15 s, and "Create your first project" when there are no projects.
 - **Update required screen**: new `GET /version` (`version`, `latest`, `min_supported_version`); a UI build older than the minimum shows a non-dismissible "A new version is available" screen with Reload now. `KANBAN_MIN_UI_VERSION` overrides the minimum.
 
+### Changed
+- **MCP tools reworked for AI use** (47 tools, still the same names): every description now says when to use the tool, what the arguments mean and what comes back; parameters carry schema descriptions and real enums (`idea_energy` was documented as `low|medium|high` but the valid values are `seed|concept|hot|big_bet`); all tools have read-only / destructive / idempotent annotations; the server sends usage instructions on connect (HTTP and stdio).
+- **Failures are errors, not `null`**: not-found, validation and workflow errors (e.g. "Done requires…", idea transitions) are raised with a message that says how to fix the call and lists the valid ids; previously some returned `None` or `{"error": …}`, and deleting an unknown comment/criterion "succeeded" silently.
+- **Smaller responses**: the activity log (about 80% of a typical ticket) is no longer returned by default (`get_ticket(include_activity=true)` for history), duplicate camelCase keys on branches are dropped, and redundant schema titles are removed. `list_tickets` returns paginated compact summaries `{total, count, offset, has_more, tickets}` (`detail=true` for full objects).
+- Test cases can be addressed by code (`TC-2`) and branches by name as well as by id.
+- New MCP tool `update_project` (name, color, linked git repo, worktree defaults) — branch tools need a linked repo and there was no way to set one. `create_ticket` also accepts `assignee` and `start_date`; `add_branch` accepts `create_worktree` / `worktree_path`; `delete_branch` accepts `remove_worktree` / `delete_git_branch` / `force`.
+
 ### Fixed
 - Desktop: reloading the window after the backend was already up left the UI waiting for a ready event that never came again; it now asks for the backend port directly.
 

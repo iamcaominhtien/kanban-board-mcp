@@ -168,4 +168,5 @@ async def test_mcp_block_link_test_case_and_delete_tools(client):
     after = await mcp_tools.delete_test_case(a["id"], tc["test_cases"][0]["id"])
     assert after["test_cases"] == []
     assert await mcp_tools.delete_ticket(b) == {"deleted": b}
-    assert await mcp_tools.delete_ticket(b) is None
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.delete_ticket(b)

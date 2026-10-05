@@ -26,7 +26,7 @@ from services import workspace as svc_workspace
 from uploads import MIME_BY_EXTENSION, resolve_upload_path
 
 
-mcp = FastMCP("kanban-mcp", stateless_http=True, streamable_http_path="/")
+mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS, stateless_http=True, streamable_http_path="/")
 
 _mcp_tools.register(mcp)
 

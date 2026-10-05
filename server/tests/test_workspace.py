@@ -251,10 +251,12 @@ async def test_mcp_tool_returns_path_and_creates_folder(tmp_path):
     info = await mcp_tools.get_ticket_workspace_path(t["id"])
     assert info == {"enabled": True, "path": str(tmp_path / t["id"]), "exists": True}
     assert (tmp_path / t["id"]).is_dir()
-    assert await mcp_tools.get_ticket_workspace_path("NOPE-1") is None
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.get_ticket_workspace_path("NOPE-1")
     full = await mcp_tools.get_ticket(t["id"])
     assert full["workspace_path"] == str(tmp_path / t["id"])
-    assert await mcp_tools.get_ticket_workspace_path("../etc") is None
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.get_ticket_workspace_path("../etc")
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="uses a fake xdg-open")

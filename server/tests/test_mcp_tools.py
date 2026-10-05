@@ -98,8 +98,9 @@ async def test_create_ticket_appears_in_list_tickets():
     assert ticket["title"] == "My first ticket"
     assert ticket["id"].startswith("LTST-")
 
-    tickets = await mcp_tools.list_tickets(project_id=project["id"])
-    assert any(t["id"] == ticket["id"] for t in tickets)
+    listing = await mcp_tools.list_tickets(project_id=project["id"])
+    assert listing["total"] == 1 and listing["count"] == 1 and listing["has_more"] is False
+    assert any(t["id"] == ticket["id"] for t in listing["tickets"])
 
 
 async def test_list_tickets_filter_by_status():
@@ -111,9 +112,9 @@ async def test_list_tickets_filter_by_status():
         project_id=project["id"], title="Backlog ticket", status="backlog"
     )
 
-    in_progress = await mcp_tools.list_tickets(
-        project_id=project["id"], status="in-progress"
-    )
+    in_progress = (
+        await mcp_tools.list_tickets(project_id=project["id"], status="in-progress")
+    )["tickets"]
     assert all(t["status"] == "in-progress" for t in in_progress)
     assert len(in_progress) == 1
 
@@ -132,9 +133,9 @@ async def test_get_ticket_returns_ticket():
     assert result["title"] == "Fetch me"
 
 
-async def test_get_ticket_returns_none_for_missing_id():
-    result = await mcp_tools.get_ticket("MISSING-9999")
-    assert result is None
+async def test_get_ticket_raises_for_missing_id():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.get_ticket("MISSING-9999")
 
 
 # ---------------------------------------------------------------------------
@@ -156,9 +157,9 @@ async def test_update_ticket_status_changes_status():
     assert fetched["status"] == "done"
 
 
-async def test_update_ticket_status_returns_none_for_missing():
-    result = await mcp_tools.update_ticket_status("MISSING-0", "done")
-    assert result is None
+async def test_update_ticket_status_raises_for_missing():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.update_ticket_status("MISSING-0", "done")
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +183,7 @@ async def test_list_tickets_percent_is_literal_not_wildcard():
     await mcp_tools.create_ticket(project_id=project["id"], title="50% done")
     await mcp_tools.create_ticket(project_id=project["id"], title="no percent here")
 
-    results = await mcp_tools.list_tickets(project_id=project["id"], q="%")
+    results = (await mcp_tools.list_tickets(project_id=project["id"], q="%"))["tickets"]
     assert len(results) == 1
     assert "%" in results[0]["title"]
 
@@ -200,9 +201,9 @@ async def test_update_ticket_title():
     assert updated["title"] == "New Title"
 
 
-async def test_update_ticket_unknown_id_returns_none():
-    result = await mcp_tools.update_ticket("MISSING-0", title="x")
-    assert result is None
+async def test_update_ticket_unknown_id_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.update_ticket("MISSING-0", title="x")
 
 
 # ---------------------------------------------------------------------------
@@ -225,9 +226,9 @@ async def test_add_comment():
     )
 
 
-async def test_add_comment_unknown_ticket_returns_none():
-    result = await mcp_tools.add_comment("MISSING-0", text="hi", author="bob")
-    assert result is None
+async def test_add_comment_unknown_ticket_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.add_comment("MISSING-0", text="hi", author="bob")
 
 
 # ---------------------------------------------------------------------------
@@ -252,18 +253,18 @@ async def test_update_comment():
     assert updated["author"] == "alice"
 
 
-async def test_update_comment_unknown_ticket_returns_none():
-    result = await mcp_tools.update_comment("MISSING-0", "some-id", text="hi")
-    assert result is None
+async def test_update_comment_unknown_ticket_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.update_comment("MISSING-0", "some-id", text="hi")
 
 
-async def test_update_comment_unknown_comment_returns_none():
+async def test_update_comment_unknown_comment_raises():
     project = await _seed_project(prefix="UCM2")
     ticket = await mcp_tools.create_ticket(
         project_id=project["id"], title="Commentable"
     )
-    result = await mcp_tools.update_comment(ticket["id"], "missing-comment", text="hi")
-    assert result is None
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.update_comment(ticket["id"], "missing-comment", text="hi")
 
 
 # ---------------------------------------------------------------------------
@@ -284,9 +285,9 @@ async def test_delete_comment():
     assert result["comments"] == []
 
 
-async def test_delete_comment_unknown_ticket_returns_none():
-    result = await mcp_tools.delete_comment("MISSING-0", "some-id")
-    assert result is None
+async def test_delete_comment_unknown_ticket_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.delete_comment("MISSING-0", "some-id")
 
 
 # ---------------------------------------------------------------------------
@@ -309,11 +310,11 @@ async def test_add_work_log():
     )
 
 
-async def test_add_work_log_unknown_ticket_returns_none():
-    result = await mcp_tools.add_work_log(
-        "MISSING-0", author="x", role="Other", note="n"
-    )
-    assert result is None
+async def test_add_work_log_unknown_ticket_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.add_work_log(
+            "MISSING-0", author="x", role="Other", note="n"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -336,9 +337,9 @@ async def test_add_test_case():
     )
 
 
-async def test_add_test_case_unknown_ticket_returns_none():
-    result = await mcp_tools.add_test_case("MISSING-0", title="x")
-    assert result is None
+async def test_add_test_case_unknown_ticket_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.add_test_case("MISSING-0", title="x")
 
 
 # ---------------------------------------------------------------------------
@@ -360,11 +361,11 @@ async def test_update_test_case_status():
     assert tc["proof"] == "screenshot.png"
 
 
-async def test_update_test_case_unknown_ticket_returns_none():
-    result = await mcp_tools.update_test_case(
-        "MISSING-0", test_case_id="fake-id", status="pass"
-    )
-    assert result is None
+async def test_update_test_case_unknown_ticket_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.update_test_case(
+            "MISSING-0", test_case_id="fake-id", status="pass"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -385,24 +386,24 @@ async def test_create_child_ticket():
     assert child["title"] == "Child ticket"
 
 
-async def test_create_child_ticket_unknown_parent_returns_none():
-    result = await mcp_tools.create_child_ticket(
-        parent_ticket_id="MISSING-9999", title="orphan"
-    )
-    assert result is None
+async def test_create_child_ticket_unknown_parent_raises():
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.create_child_ticket(
+            parent_ticket_id="MISSING-9999", title="orphan"
+        )
 
 
-async def test_create_child_ticket_depth_violation_returns_none():
+async def test_create_child_ticket_depth_violation_raises():
     project = await _seed_project(prefix="DEEP")
     parent = await mcp_tools.create_ticket(project_id=project["id"], title="Parent")
     child = await mcp_tools.create_child_ticket(
         parent_ticket_id=parent["id"], title="Child"
     )
     assert child is not None
-    result = await mcp_tools.create_child_ticket(
-        parent_ticket_id=child["id"], title="Grandchild"
-    )
-    assert result is None
+    with pytest.raises(ValueError, match="1 level"):
+        await mcp_tools.create_child_ticket(
+            parent_ticket_id=child["id"], title="Grandchild"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -410,17 +411,17 @@ async def test_create_child_ticket_depth_violation_returns_none():
 # ---------------------------------------------------------------------------
 
 
-async def test_update_test_case_unknown_id_returns_none():
+async def test_update_test_case_unknown_id_raises():
     project = await _seed_project(prefix="UTCU")
     ticket = await mcp_tools.create_ticket(
         project_id=project["id"], title="TC unknown id"
     )
-    result = await mcp_tools.update_test_case(
-        ticket_id=ticket["id"],
-        test_case_id=str(uuid.uuid4()),
-        status="pass",
-    )
-    assert result is None
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.update_test_case(
+            ticket_id=ticket["id"],
+            test_case_id=str(uuid.uuid4()),
+            status="pass",
+        )
 
 
 # --- SSE publish tests ---
@@ -493,7 +494,7 @@ async def test_add_comment_publishes_sse():
 @pytest.mark.asyncio
 async def test_update_ticket_nonexistent_does_not_publish_sse():
     with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
-        result = await mcp_tools.update_ticket("MISSING-9999", description="ghost")
+        with pytest.raises(ValueError, match="not found"):
+            await mcp_tools.update_ticket("MISSING-9999", description="ghost")
 
-    assert result is None
     mock_publish.assert_not_called()

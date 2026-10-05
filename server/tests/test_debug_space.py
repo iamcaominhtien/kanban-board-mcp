@@ -128,7 +128,8 @@ async def test_mcp_can_delete_work_log_and_is_validated():
         await mcp_tools.add_work_log(t["id"], author="a", role="Wizard", note="n")
     result = await mcp_tools.delete_work_log(t["id"], lid)
     assert result["work_log"] == []
-    assert await mcp_tools.delete_work_log("NOPE-1", lid) is None
+    with pytest.raises(ValueError, match="not found"):
+        await mcp_tools.delete_work_log("NOPE-1", lid)
 
 
 async def test_upload_any_file_and_serve_it_as_a_download(client, tmp_path):
