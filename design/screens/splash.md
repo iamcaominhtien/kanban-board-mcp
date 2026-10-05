@@ -99,7 +99,7 @@ Source: [Splash.dc.html](../source/Splash.dc.html) › `<div>` strip 1448×275 o
 
 ## Note
 
-- Timing. Minimum display 600 ms, so the splash never flashes. Maximum wait 8 s for the session and /health checks; after that the Error / offline state replaces the loading state. Once ready (and 600 ms elapsed) it cross-fades to Login or Board in 200 ms.
+- Timing. Minimum display 600 ms, so the splash never flashes. Maximum wait 30 s for the session and /health checks; after that the Error / offline state replaces the loading state. Once ready (and 600 ms elapsed) it cross-fades to Login or Board in 200 ms.
 - Intro. 1200 ms, played once per cold start. t=0 ghost outline; 0-300 ms the tile fades in and the back card slides in from the lower left (ease-out, cubic-bezier(0.22, 1, 0.36, 1)) to -9deg at 55% opacity; 300-700 ms the front card drops onto it with a slight settle (ease-out, 4 px overshoot) and its two lines draw in; 700-1200 ms the wordmark fades up 6 px (ease-in-out). It then holds on the resting frame; the progress bar loops (1.5 s, linear-ish ease-in-out) until the app is ready. The intro is skipped on warm reloads and the resting frame is shown directly. If loading finishes during the intro, the intro still completes before the hand-off (minimum display is therefore max(600 ms, intro)).
 - Reduced motion. With prefers-reduced-motion: reduce there is no animation at all: static logo, wordmark and the status text. The bar becomes a static, half-opacity full-width line, the spinner a static ring, and the intro is skipped: it goes straight to the resting frame.
 - Progress is indeterminate. There is no real percentage, so the bar and ring carry no value (role=progressbar without aria-valuenow). Never show a fake number.

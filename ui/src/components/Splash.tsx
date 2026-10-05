@@ -15,7 +15,7 @@ import styles from './Splash.module.css';
 export const SPLASH_TIMING = {
   minShowMs: 600, // never flash: the splash stays at least this long
   introMs: 1200, // on a cold start the intro plays once, so it also has to finish
-  maxWaitMs: 8000, // after this the loading state is replaced by the error state
+  maxWaitMs: 30000, // a cold desktop start can take a while; after this the loading state is replaced by the error state
   probeTimeoutMs: 4000,
   fastRetryMs: 1000, // while still within the first maxWaitMs
   retryMs: 10000, // fixed retry while the splash is up (first minute)

@@ -134,6 +134,7 @@ def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:
     server_dir = Path(__file__).resolve().parents[1]
     env = os.environ.copy()
     env["KANBAN_DB_PATH"] = str(tmp_path / "desktop-app" / "kanban.db")
+    env["HOME"] = str(tmp_path)  # no ~/.kanban-board/config.json from the developer machine
 
     process = subprocess.Popen(
         [sys.executable, "-u", "main.py"],
