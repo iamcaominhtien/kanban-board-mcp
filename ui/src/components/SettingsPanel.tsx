@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
+import { McpIntegrations } from './McpIntegrations';
 import { useProjects, useUpdateProject } from '../api/projects';
 import { sweepWorkspaces, useUpdateWorkspaceSettings, useWorkspaceSettings } from '../api/tickets';
 import { extractError } from '../api/extractError';
@@ -480,6 +481,10 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
           <div className={styles.divider} />
 
           <WorkspaceSettingsSection />
+
+          <div className={styles.divider} />
+
+          <McpIntegrations />
 
           <div className={styles.divider} />
 

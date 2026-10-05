@@ -120,6 +120,10 @@ The server exposes 34 tools for AI agents over MCP (47 with the Idea Space tools
 
 ## Connecting AI Agents
 
+### Easiest — Settings → MCP integrations
+
+Open **Settings** in the app and use **MCP integrations** to install the server into **Claude Code** (runs `claude mcp add` in the User, Project or Local scope) or **Antigravity** (merges a `kanban` entry into `~/.gemini/config/mcp_config.json` or `.agents/mcp_config.json`). Each row also offers Copy command / Copy JSON, Test connection and Remove, and only ever touches the `kanban` entry. The manual options below do the same thing by hand.
+
 ### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 
 The server launches as a subprocess — no manual startup needed. The database schema is created automatically on first run.
