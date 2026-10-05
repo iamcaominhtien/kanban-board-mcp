@@ -38,3 +38,32 @@ export function useSetDataPath() {
     },
   });
 }
+
+export interface McpClientStatus {
+  id: 'claude-code' | 'antigravity';
+  label: string;
+  configPath: string;
+  installed: boolean;
+  upToDate: boolean;
+  error: string | null;
+}
+
+export function useMcpClients() {
+  return useQuery<McpClientStatus[]>({
+    queryKey: ['settings', 'mcp-clients'],
+    queryFn: async () => (await client.get('/settings/mcp-clients')).data,
+  });
+}
+
+export function useSetMcpClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, install }: { id: string; install: boolean }) => {
+      const res = install
+        ? await client.post(`/settings/mcp-clients/${id}`)
+        : await client.delete(`/settings/mcp-clients/${id}`);
+      return res.data as McpClientStatus;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'mcp-clients'] }),
+  });
+}

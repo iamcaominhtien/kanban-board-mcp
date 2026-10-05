@@ -3,12 +3,13 @@ import os
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 import config as app_config
 import database as db
 import uploads as uploads_module
+from services import mcp_clients
 
 logger = logging.getLogger(__name__)
 
@@ -133,3 +134,37 @@ async def set_data_path(req: DataPathRequest):
         "uploads_dir": str(new_uploads),
         "warning": "If you use VS Code MCP integration, restart the MCP server to pick up the new data path.",
     }
+
+
+def _mcp_client_or_404(client_id: str) -> mcp_clients.McpClient:
+    client = mcp_clients.CLIENTS.get(client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail=f"Unknown MCP client '{client_id}'")
+    return client
+
+
+@router.get("/mcp-clients")
+async def list_mcp_clients():
+    """Whether the Kanban MCP server is registered in Claude Code / Antigravity."""
+    db_path = db.get_db_path()
+    return [mcp_clients.get_status(c, db_path) for c in mcp_clients.CLIENTS.values()]
+
+
+@router.post("/mcp-clients/{client_id}")
+async def install_mcp_client(client_id: str):
+    """Add (or refresh) the Kanban MCP server entry in the client's config file."""
+    client = _mcp_client_or_404(client_id)
+    try:
+        return mcp_clients.install(client, db.get_db_path())
+    except mcp_clients.McpConfigError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.delete("/mcp-clients/{client_id}")
+async def uninstall_mcp_client(client_id: str):
+    """Remove the Kanban MCP server entry from the client's config file."""
+    client = _mcp_client_or_404(client_id)
+    try:
+        return mcp_clients.uninstall(client, db.get_db_path())
+    except mcp_clients.McpConfigError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
