@@ -33,8 +33,20 @@
 ### Board View
 ![Board View](docs/screenshots/board-overview.png)
 
-### Ticket Detail
+### Ticket Detail — WYSIWYG Markdown with images
+Write rich text (tables, task lists, code, pasted images); it is stored as plain Markdown.
+
 ![Ticket Detail](docs/screenshots/ticket-modal.png)
+
+### Test Cases
+Track pass / fail / running per ticket, including child tickets, and optionally block *Done* until every case passes.
+
+![Test Cases](docs/screenshots/test-cases.png)
+
+### Git Branches
+Link a ticket to a real branch, see its commits against `main`, and check it out from the UI.
+
+![Git Branches](docs/screenshots/git-branches.png)
 
 ### List View
 ![List View](docs/screenshots/list-view.png)
