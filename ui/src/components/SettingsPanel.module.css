@@ -1,0 +1,267 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(37, 61, 44, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.panel {
+  width: 620px;
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid #E3E8E5;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.28);
+  background: #FFFFFF;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #E3E8E5;
+  box-sizing: border-box;
+}
+
+.title {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E2A22;
+  margin: 0;
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9AA8A0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.closeBtn:hover {
+  background: #EEF3EF;
+  color: #1E2A22;
+}
+
+.body {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 700px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E2A22;
+  margin: 0;
+}
+
+.hint {
+  font-size: 12px;
+  color: #5B6B60;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  background: #F6FAF7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #2E6F40;
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid #C7D2CB;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: #1E2A22;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus {
+  border-color: #2E6F40;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+  transition: background 0.12s ease, opacity 0.12s ease;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  background: #F6FAF7;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btnPrimary {
+  border: none;
+  background: #2E6F40;
+  color: #FFFFFF;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #275e36;
+}
+
+.btnDangerOutline {
+  border-color: #F0C4B8;
+  color: #C4432A;
+}
+
+.btnDangerOutline:hover:not(:disabled) {
+  background: #FDF4F2;
+}
+
+.statusOk {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2E6F40;
+}
+
+.statusErr {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #C4432A;
+}
+
+.statusInfo {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #5B6B60;
+}
+
+.divider {
+  height: 1px;
+  background: #E3E8E5;
+}
+
+.fieldLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9AA8A0;
+}
+
+.toggleTrack {
+  position: relative;
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: #D7DEDA;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.toggleTrackActive {
+  background: #2E6F40;
+}
+
+.toggleDot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.25);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggleDotActive {
+  transform: translateX(15px);
+}
+
+.retentionRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.retentionOpt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5B6B60;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.retentionOpt:hover:not(.retentionOptActive) {
+  background: #F6FAF7;
+}
+
+.retentionOptActive {
+  border-color: #2E6F40;
+  background: #F1F8F3;
+  color: #1E2A22;
+}

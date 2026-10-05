@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .rel-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .rel-group-label { font-size: 10.5px; font-weight: 600; color: #9AA8A0; }
+    .rel-row { display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: #FFFFFF; position: relative; }
+    .rel-remove { opacity: 0; width: 20px; height: 20px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); }
+    .rel-row:hover .rel-remove { opacity: 1; }
+    .rel-remove:hover { background: #FBE7E4; color: #C4432A; }
+    .rel-add-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 12px; color: #9AA8A0; }
+    .rel-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #FFFFFF; border: none; width: 100%; text-align: left; cursor: pointer; border-bottom: 1px solid #EEF3EF; }
+    .rel-dropdown-item:hover { background: #F6FAF7; }
+    .rel-dropdown-item:last-child { border-bottom: none; }
+  </style>
+</helmet>
+
+<div style="width: 1080px; height: 1220px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Relations</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 820px; line-height: 1.5;">Grouped by relation type — Blocks, Blocked by, Relates to, Causes / Caused by, Duplicates / Duplicated by (from <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">ticket.blocks</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">blockedBy</code> and <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">links[]</code>). Each row shows the target's live status; hover reveals remove, no confirm step, same pattern as Acceptance Criteria.</div>
+  </div>
+
+  <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+
+    <!-- Grouped, populated -->
+    <div style="display: flex; flex-direction: column; gap: 10px; width: 440px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Grouped by type — populated</div>
+      <div style="border: 1px solid #E3E8E5; border-radius: 10px; padding: 20px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;">
+        <div class="rel-label" style="text-transform: none; letter-spacing: 0.06em;">RELATIONS</div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="rel-group-label">Blocks</div>
+          <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+            <div class="rel-row">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 60px; flex-shrink: 0;">KAN-099</span>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Migrate column config to new schema</span>
+              <button style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 8px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; flex-shrink: 0;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #C7D2CB;"></span>
+                <span style="font-size: 11.5px; font-weight: 600; color: #1E2A22;">To Do</span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"/></svg>
+              </button>
+              <button class="rel-remove" aria-label="Remove relation">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"/><path d="M18 6L6 18"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="rel-group-label">Blocked by</div>
+          <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+            <div class="rel-row">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 60px; flex-shrink: 0;">KAN-146</span>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Add integration test for header drag</span>
+              <button style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 8px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; flex-shrink: 0;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0;"></span>
+                <span style="font-size: 11.5px; font-weight: 600; color: #1E2A22;">In Progress</span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"/></svg>
+              </button>
+              <button class="rel-remove" aria-label="Remove relation">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"/><path d="M18 6L6 18"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="rel-group-label">Relates to</div>
+          <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+            <div class="rel-row">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 60px; flex-shrink: 0;">KAN-088</span>
+              <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Column header redesign — v1 spike</span>
+              <button style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 8px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; flex-shrink: 0;">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.4"/><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span style="font-size: 11.5px; font-weight: 600; color: #1E2A22;">Done</span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"/></svg>
+              </button>
+              <button class="rel-remove" aria-label="Remove relation">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"/><path d="M18 6L6 18"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="rel-group-label">Duplicates</div>
+          <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+            <div class="rel-row">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 60px; flex-shrink: 0;">KAN-071</span>
+              <span style="flex-grow: 1; font-size: 13px; color: #9AA8A0; text-decoration: line-through; text-decoration-color: #C7D2CB;">Sticky header breaks on Safari zoom</span>
+              <button style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 8px; border-radius: 5px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; flex-shrink: 0;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #DCE6DF; border: 1px solid #C7D2CB;"></span>
+                <span style="font-size: 11.5px; font-weight: 600; color: #1E2A22;">Won't Do</span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"/></svg>
+              </button>
+              <button class="rel-remove" aria-label="Remove relation">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"/><path d="M18 6L6 18"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button class="rel-add-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"/><path d="M5 12H19"/></svg>
+          Add link
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div style="display: flex; flex-direction: column; gap: 10px; width: 440px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Empty</div>
+      <div style="border: 1px solid #E3E8E5; border-radius: 10px; padding: 20px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px;">
+        <div class="rel-label" style="text-transform: none; letter-spacing: 0.06em;">RELATIONS</div>
+        <span style="font-size: 13px; color: #9AA8A0;">No links</span>
+        <button class="rel-add-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5V19"/><path d="M5 12H19"/></svg>
+          Add link
+        </button>
+      </div>
+      <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5;">"+ Add link" replaces the type-grouped list when there are no relations yet — same dashed-button pattern used everywhere else (sub-tasks, criteria, sub-tickets).</div>
+    </div>
+
+  </div>
+
+  <!-- Add link form -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking "+ Add link" — type + search, same row as Add Sub-ticket's "Existing" tab</div>
+    <div style="width: 560px; border: 1px solid #E3E8E5; border-radius: 10px; padding: 20px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px;">
+      <div class="rel-label" style="text-transform: none; letter-spacing: 0.06em;">RELATIONS</div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <select style="padding: 7px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; font-size: 12.5px; color: #1E2A22; font-family: 'Plus Jakarta Sans', sans-serif;">
+          <option>Blocks</option>
+          <option>Blocked by</option>
+          <option selected>Relates to</option>
+          <option>Causes</option>
+          <option>Caused by</option>
+          <option>Duplicates</option>
+          <option>Duplicated by</option>
+        </select>
+        <div style="flex-grow: 1; padding: 7px 10px; border-radius: 6px; border: 1px solid #B9CBBF; background: #FFFFFF; font-size: 12.5px; color: #1E2A22; box-shadow: 0 0 0 2px rgba(46,111,64,0.12);">redesign</div>
+        <button aria-label="Close" style="width: 26px; height: 26px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6L18 18"/><path d="M18 6L6 18"/></svg>
+        </button>
+      </div>
+
+      <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+        <button class="rel-dropdown-item">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 60px; flex-shrink: 0;">#KAN-088</span>
+          <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Column header <mark style="background: #DCEEE1; color: inherit; border-radius: 2px;">redesign</mark> — v1 spike</span>
+        </button>
+        <button class="rel-dropdown-item">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 60px; flex-shrink: 0;">#KAN-052</span>
+          <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">Column header <mark style="background: #DCEEE1; color: inherit; border-radius: 2px;">redesign</mark> — nav bar follow-up</span>
+        </button>
+      </div>
+      <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5;">Search excludes the ticket itself and anything already linked to it (any relation type) — the same eligible-tickets rule as Add Sub-ticket's search.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1080,"height":1220}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

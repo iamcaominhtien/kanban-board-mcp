@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated, Literal, NoReturn, Optional
+from typing import Annotated, Any, Literal, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
@@ -9,6 +9,7 @@ import events as board_events
 from database import get_session
 from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
 from uploads import (
+    MAX_ATTACHMENT_BYTES,
     MAX_DESCRIPTION_IMAGE_BYTES,
     MIME_BY_EXTENSION,
     SUPPORTED_IMAGE_EXTENSIONS,
@@ -19,11 +20,17 @@ from uploads import (
 )
 from services.tickets import (
     add_acceptance_criterion,
+    add_branch,
+    checkout_branch,
     add_comment,
     add_test_case,
+    add_ticket_link,
     add_work_log,
     create_ticket,
     delete_acceptance_criterion,
+    delete_branch,
+    get_branch_graph,
+    get_commit_detail,
     delete_comment,
     delete_test_case,
     delete_ticket,
@@ -31,11 +38,16 @@ from services.tickets import (
     get_project_activities,
     get_ticket,
     link_block,
+    list_branches,
     list_tickets,
+    remove_ticket_link,
     toggle_acceptance_criterion,
     unlink_block,
+    update_branch,
+    update_comment,
     update_test_case,
     update_ticket,
+    update_work_log,
 )
 
 router = APIRouter(tags=["tickets"])
@@ -131,6 +143,48 @@ async def upload_description_image(
     )
 
 
+class AttachmentUploadResponse(BaseModel):
+    id: str
+    url: str
+    name: str
+    size: int
+    type: str
+
+
+@router.post("/uploads/files", response_model=AttachmentUploadResponse, status_code=201)
+async def upload_attachment(file: UploadFile = File(...)) -> AttachmentUploadResponse:
+    """Store any file (log, trace, fixture...) so an entry can attach it by url."""
+    original = file.filename or ""
+    if not Path(original).name:
+        raise HTTPException(status_code=400, detail="File name is required.")
+    chunks: list[bytes] = []
+    total = 0
+    try:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > MAX_ATTACHMENT_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File exceeds the {MAX_ATTACHMENT_BYTES // (1024 * 1024)}MB upload limit.",
+                )
+            chunks.append(chunk)
+    finally:
+        await file.close()
+
+    stored = build_upload_filename(original)
+    (get_uploads_dir() / stored).write_bytes(b"".join(chunks))
+    return AttachmentUploadResponse(
+        id=Path(stored).stem[-12:],
+        url=f"/uploads/{stored}",
+        name=Path(original).name[:200],
+        size=total,
+        type=(file.content_type or "application/octet-stream")[:100],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Core CRUD
 # ---------------------------------------------------------------------------
@@ -220,14 +274,21 @@ async def del_ticket(ticket_id: str, session: Session) -> None:
 
 
 class StatusBody(BaseModel):
-    status: Literal["backlog", "todo", "in-progress", "done"]
+    status: Literal[
+        "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
+    ]
 
 
 @router.patch("/tickets/{ticket_id}/status", response_model=TicketRead)
 async def patch_status(
     ticket_id: str, body: StatusBody, session: Session
 ) -> TicketRead:
-    ticket = await update_ticket(session, ticket_id, TicketUpdate(status=body.status))
+    try:
+        ticket = await update_ticket(
+            session, ticket_id, TicketUpdate(status=body.status)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -244,11 +305,32 @@ class CommentBody(BaseModel):
     author: str = "user"
 
 
+class CommentUpdateBody(BaseModel):
+    text: str
+
+
 @router.post("/tickets/{ticket_id}/comments", response_model=TicketRead)
 async def post_comment(
     ticket_id: str, body: CommentBody, session: Session
 ) -> TicketRead:
-    ticket = await add_comment(session, ticket_id, body.text, body.author)
+    try:
+        ticket = await add_comment(session, ticket_id, body.text, body.author)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch("/tickets/{ticket_id}/comments/{comment_id}", response_model=TicketRead)
+async def patch_comment(
+    ticket_id: str, comment_id: str, body: CommentUpdateBody, session: Session
+) -> TicketRead:
+    try:
+        ticket = await update_comment(session, ticket_id, comment_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -275,7 +357,10 @@ class ACBody(BaseModel):
 
 @router.post("/tickets/{ticket_id}/acceptance-criteria", response_model=TicketRead)
 async def post_ac(ticket_id: str, body: ACBody, session: Session) -> TicketRead:
-    ticket = await add_acceptance_criterion(session, ticket_id, body.text)
+    try:
+        ticket = await add_acceptance_criterion(session, ticket_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -311,17 +396,77 @@ async def del_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketR
 # ---------------------------------------------------------------------------
 
 
+WorkLogKind = Literal["investigation", "fix_attempt", "root_cause", "blocked", "resolved"]
+WorkLogRole = Literal["PM", "Developer", "BA", "Tester", "Designer", "Other"]
+
+
 class WorkLogBody(BaseModel):
     author: str
-    role: str
+    role: WorkLogRole
     note: str
+    kind: WorkLogKind = "investigation"
+    pinned: bool = False
+    attachments: list[dict[str, Any]] = []
+    linked_branch: str | None = None
+    linked_test_case: str | None = None
+
+
+class WorkLogUpdateBody(BaseModel):
+    author: str | None = None
+    role: WorkLogRole | None = None
+    note: str | None = None
+    kind: WorkLogKind | None = None
+    pinned: bool | None = None
+    attachments: list[dict[str, Any]] | None = None
+    linked_branch: str | None = None
+    linked_test_case: str | None = None
 
 
 @router.post("/tickets/{ticket_id}/work-log", response_model=TicketRead)
 async def post_work_log(
     ticket_id: str, body: WorkLogBody, session: Session
 ) -> TicketRead:
-    ticket = await add_work_log(session, ticket_id, body.author, body.role, body.note)
+    try:
+        ticket = await add_work_log(
+            session,
+            ticket_id,
+            author=body.author,
+            role=body.role,
+            note=body.note,
+            kind=body.kind,
+            pinned=body.pinned,
+            attachments=body.attachments,
+            linked_branch=body.linked_branch,
+            linked_test_case=body.linked_test_case,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch("/tickets/{ticket_id}/work-log/{log_id}", response_model=TicketRead)
+async def patch_work_log(
+    ticket_id: str, log_id: str, body: WorkLogUpdateBody, session: Session
+) -> TicketRead:
+    try:
+        ticket = await update_work_log(
+            session,
+            ticket_id,
+            log_id,
+            note=body.note,
+            kind=body.kind,
+            pinned=body.pinned,
+            attachments=body.attachments,
+            linked_branch=body.linked_branch,
+            linked_test_case=body.linked_test_case,
+            author=body.author,
+            role=body.role,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -344,24 +489,48 @@ async def del_work_log(ticket_id: str, log_id: str, session: Session) -> TicketR
 
 class TestCaseCreateBody(BaseModel):
     title: str
-    status: Literal["pending", "pass", "fail"] = "pending"
+    status: Literal["pending", "running", "pass", "fail"] = "pending"
     proof: Optional[str] = None
     note: Optional[str] = None
+    description: Optional[str] = None
+    expected_result: Optional[str] = None
+    notes: Optional[str] = None
+    assignee: Optional[str] = None
+    test_data_files: list[dict[str, Any]] = []
 
 
 class TestCaseUpdateBody(BaseModel):
-    status: Literal["pending", "pass", "fail"]
+    title: Optional[str] = None
+    status: Optional[Literal["pending", "running", "pass", "fail"]] = None
     proof: Optional[str] = None
     note: Optional[str] = None
+    description: Optional[str] = None
+    expected_result: Optional[str] = None
+    notes: Optional[str] = None
+    assignee: Optional[str] = None
+    test_data_files: Optional[list[dict[str, Any]]] = None
 
 
 @router.post("/tickets/{ticket_id}/test-cases", response_model=TicketRead)
 async def post_test_case(
     ticket_id: str, body: TestCaseCreateBody, session: Session
 ) -> TicketRead:
-    ticket = await add_test_case(
-        session, ticket_id, body.title, body.status, body.proof, body.note
-    )
+    try:
+        ticket = await add_test_case(
+            session,
+            ticket_id,
+            title=body.title,
+            status=body.status,
+            proof=body.proof,
+            note=body.note,
+            description=body.description,
+            expected_result=body.expected_result,
+            notes=body.notes,
+            assignee=body.assignee,
+            test_data_files=body.test_data_files,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -372,9 +541,23 @@ async def post_test_case(
 async def patch_test_case(
     ticket_id: str, tc_id: str, body: TestCaseUpdateBody, session: Session
 ) -> TicketRead:
-    ticket = await update_test_case(
-        session, ticket_id, tc_id, body.status, body.proof, body.note
-    )
+    try:
+        ticket = await update_test_case(
+            session,
+            ticket_id,
+            tc_id,
+            title=body.title,
+            status=body.status,
+            proof=body.proof,
+            note=body.note,
+            description=body.description,
+            expected_result=body.expected_result,
+            notes=body.notes,
+            assignee=body.assignee,
+            test_data_files=body.test_data_files,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -437,3 +620,202 @@ async def delete_block(
     blocker, blocked = result
     await board_events.publish("invalidate")
     return BlockPairRead(blocker=_read(blocker), blocked=_read(blocked))
+
+
+# ---------------------------------------------------------------------------
+# Extended link relationships
+# ---------------------------------------------------------------------------
+
+
+class TicketLinkBody(BaseModel):
+    target_id: str
+    relation_type: Literal[
+        "relates_to", "causes", "caused_by", "duplicates", "duplicated_by"
+    ]
+
+
+class TicketLinkRead(BaseModel):
+    id: str
+    target_id: str
+    relation_type: Literal[
+        "relates_to", "causes", "caused_by", "duplicates", "duplicated_by"
+    ]
+
+
+@router.post(
+    "/tickets/{ticket_id}/links", response_model=TicketLinkRead, status_code=201
+)
+async def post_ticket_link(
+    ticket_id: str, body: TicketLinkBody, session: Session
+) -> TicketLinkRead:
+    try:
+        link = await add_ticket_link(
+            session, ticket_id, body.target_id, body.relation_type
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return TicketLinkRead(**link)
+
+
+@router.delete("/tickets/{ticket_id}/links/{link_id}")
+async def delete_ticket_link(ticket_id: str, link_id: str, session: Session) -> dict:
+    found = await remove_ticket_link(session, ticket_id, link_id)
+    if not found:
+        _404("Link not found")
+    await board_events.publish("invalidate")
+    return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Branches
+# ---------------------------------------------------------------------------
+
+
+class BranchCreateBody(BaseModel):
+    name: str
+    branch_from: str = "main"
+    status: Literal["baseline", "open", "merged", "stale", "archived"] = "open"
+    pr_url: str | None = None
+    commit_hash: str | None = None
+    linked_ticket_id: str | None = None
+    ahead_count: int = 0
+    behind_count: int = 0
+    create_worktree: bool = False
+    worktree_path: str | None = None
+
+
+class BranchUpdateBody(BaseModel):
+    name: str | None = None
+    branch_from: str | None = None
+    status: Literal["baseline", "open", "merged", "stale", "archived"] | None = None
+    pr_url: str | None = None
+    commit_hash: str | None = None
+    linked_ticket_id: str | None = None
+    ahead_count: int | None = None
+    behind_count: int | None = None
+    remove_worktree: bool = False
+    worktree_path: str | None = None
+
+
+@router.get("/tickets/{ticket_id}/graph")
+async def get_ticket_graph(ticket_id: str, session: Session, limit: int = 80) -> dict:
+    try:
+        graph = await get_branch_graph(session, ticket_id, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if graph is None:
+        _404()
+    return graph
+
+
+@router.get("/tickets/{ticket_id}/commits/{rev}")
+async def get_ticket_commit(ticket_id: str, rev: str, session: Session) -> dict:
+    try:
+        detail = await get_commit_detail(session, ticket_id, rev)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if detail is None:
+        _404()
+    return detail
+
+
+@router.get("/tickets/{ticket_id}/branches")
+async def get_ticket_branches(ticket_id: str, session: Session) -> list[dict]:
+    branches = await list_branches(session, ticket_id)
+    if branches is None:
+        _404()
+    return branches
+
+
+@router.post("/tickets/{ticket_id}/branches", response_model=TicketRead, status_code=201)
+async def post_branch(
+    ticket_id: str, body: BranchCreateBody, session: Session
+) -> TicketRead:
+    try:
+        ticket = await add_branch(
+            session,
+            ticket_id,
+            name=body.name,
+            branch_from=body.branch_from,
+            status=body.status,
+            pr_url=body.pr_url,
+            commit_hash=body.commit_hash,
+            linked_ticket_id=body.linked_ticket_id,
+            ahead_count=body.ahead_count,
+            behind_count=body.behind_count,
+            create_worktree=body.create_worktree,
+            worktree_path=body.worktree_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch("/tickets/{ticket_id}/branches/{branch_id}", response_model=TicketRead)
+async def patch_branch(
+    ticket_id: str, branch_id: str, body: BranchUpdateBody, session: Session
+) -> TicketRead:
+    try:
+        ticket = await update_branch(
+            session,
+            ticket_id,
+            branch_id,
+            name=body.name,
+            status=body.status,
+            branch_from=body.branch_from,
+            pr_url=body.pr_url,
+            commit_hash=body.commit_hash,
+            linked_ticket_id=body.linked_ticket_id,
+            ahead_count=body.ahead_count,
+            behind_count=body.behind_count,
+            remove_worktree=body.remove_worktree,
+            worktree_path=body.worktree_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.delete("/tickets/{ticket_id}/branches/{branch_id}", response_model=TicketRead)
+async def del_branch(
+    ticket_id: str,
+    branch_id: str,
+    session: Session,
+    remove_worktree: bool = False,
+    delete_git_branch: bool = False,
+    force: bool = False,
+) -> TicketRead:
+    try:
+        ticket = await delete_branch(
+            session,
+            ticket_id,
+            branch_id,
+            remove_worktree=remove_worktree,
+            delete_git_branch=delete_git_branch,
+            force=force,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.post("/tickets/{ticket_id}/branches/{branch_id}/checkout", response_model=TicketRead)
+async def post_checkout_branch(ticket_id: str, branch_id: str, session: Session) -> TicketRead:
+    try:
+        ticket = await checkout_branch(session, ticket_id, branch_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)

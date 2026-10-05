@@ -11,9 +11,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-0.135-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/MCP-1.27-FF6B35?style=flat-square" alt="MCP" />
   <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
@@ -21,11 +20,24 @@
 
 ---
 
+## Features
+
+- **Board, List and Timeline** views with drag and drop, filters (type, priority, assignee), search, and **Review / Testing** statuses.
+- **Rich ticket detail**: WYSIWYG Markdown description (tables, task lists, code, pasted or uploaded images), acceptance criteria, sub-tickets, comments, blocks and links, estimates, dates, assignees and "Done requires" guards.
+- **Test cases** with pass / fail / running state per ticket and child ticket.
+- **Real git branches**: link a ticket to a branch, see its commit graph against `main`, check it out, and use git worktrees.
+- **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
+- **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
+- **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
+- **MCP server for AI agents**: 34 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
+- **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
+
 ## What's Inside
 
 | | |
 |---|---|
-| **UI** | React 18 + Vite + TypeScript, Tailwind CSS, drag-and-drop (`@dnd-kit`) |
+| **UI** | React 18 + Vite + TypeScript, CSS Modules, drag-and-drop (`@dnd-kit`) |
 | **Server** | Python, FastAPI, MCP (Model Context Protocol), SQLite via SQLModel |
 | **Storage** | Local-first — SQLite, no external services |
 
@@ -34,8 +46,20 @@
 ### Board View
 ![Board View](docs/screenshots/board-overview.png)
 
-### Ticket Detail
+### Ticket Detail — WYSIWYG Markdown with images
+Write rich text (tables, task lists, code, pasted images); it is stored as plain Markdown.
+
 ![Ticket Detail](docs/screenshots/ticket-modal.png)
+
+### Test Cases
+Track pass / fail / running per ticket, including child tickets, and optionally block *Done* until every case passes.
+
+![Test Cases](docs/screenshots/test-cases.png)
+
+### Git Branches
+Link a ticket to a real branch, see its commits against `main`, and check it out from the UI.
+
+![Git Branches](docs/screenshots/git-branches.png)
 
 ### List View
 ![List View](docs/screenshots/list-view.png)
@@ -54,7 +78,7 @@ npm run dev        # http://localhost:5173
 
 ### MCP Server (Backend)
 
-Requires [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). The database is created and migrated automatically on first start.
 
 ```bash
 cd server
@@ -64,28 +88,35 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 15 tools for AI agents over MCP:
+The server exposes 34 tools for AI agents over MCP (47 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
 
 **Projects & Members**
-- `list_projects` — list all projects
-- `create_project` — create a new project
-- `list_members` — list project members
-- `add_member` — add a member to a project
-- `remove_member` — remove a member
+- `list_projects`, `create_project`, `update_project` (name, color, linked git repo, worktree defaults)
+- `list_members`, `add_member`, `remove_member`
 
 **Tickets**
-- `create_ticket` — create a ticket (auto-generates ID like `PREFIX-N`)
-- `list_tickets` — list & filter tickets by status, priority, or search query
-- `get_ticket` — get full ticket details
-- `update_ticket` — update title, description, type, priority, etc.
-- `update_ticket_status` — change ticket status
-- `create_child_ticket` — create a subtask under a parent ticket
+- `list_tickets` — compact, paginated summaries (`status`, `priority`, `q`, `limit`/`offset`; `detail=true` for full objects)
+- `get_ticket` — everything about one ticket plus its 10 most recent activity entries (long texts shortened); `activity_limit=N` for a different number (0 = none, negative = the whole history in full), `activity_since=<ISO time>` for what changed since then
+- `create_ticket`, `create_child_ticket`, `update_ticket` (incl. assignee, dates, repo path, "Done requires" guards, `clear_fields`), `update_ticket_status`, `delete_ticket`
+- `block_ticket`, `unblock_ticket`, `link_tickets`, `unlink_tickets`
+- `get_ticket_workspace_path` — the ticket's scratch folder (read/write it with your own file tools)
 
-**Annotations**
-- `add_comment` — add a comment to a ticket
-- `add_work_log` — log work with role and note
-- `add_test_case` — attach a test case to a ticket
-- `update_test_case` — update test case status and proof
+**Working on a ticket**
+- `add_comment`, `update_comment`, `delete_comment`
+- `add_work_log`, `update_work_log`, `delete_work_log` — the Debug Space journal
+- `add_test_case`, `update_test_case`, `delete_test_case`
+- `add_acceptance_criterion`, `toggle_acceptance_criterion`, `delete_acceptance_criterion`
+- `add_branch`, `update_branch`, `delete_branch`, `checkout_branch` — real git branches when the project has a linked repo
+
+**Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)
+- `list_idea_tickets`, `get_idea_ticket`, `get_idea_activity_trail`, `create_idea_ticket`, `update_idea_ticket`, `update_idea_status`, `promote_idea_to_ticket`, `delete_idea_ticket`
+- `add_assumption`, `update_assumption_status`, `delete_assumption`, `add_microthought`, `delete_microthought`
+
+**Conventions agents can rely on**
+- The server sends usage instructions on connect (IDs, statuses, flow), and every tool carries read-only / destructive / idempotent annotations.
+- Failures are real tool errors (`isError`) whose message says how to fix the call (and lists the valid ids); nothing fails silently.
+- Tools that change a ticket return it without its activity log (large); sub-items can be addressed by id, test-case code (`TC-2`) or branch name.
+- Omitted optional arguments mean "unchanged"; use `clear_fields` to empty a field. Changes are attributed to the AI agent in the Activity tab.
 
 ## Connecting AI Agents
 
@@ -113,7 +144,7 @@ Start the server first:
 cd server && uv run uvicorn main:app --port 8000
 ```
 
-Then connect any MCP-compatible client to `http://localhost:8000/mcp`.
+Then connect any MCP-compatible client to `http://localhost:8000/mcp/` (note the trailing slash — the mount only matches with it).
 
 ## Desktop App Release Status
 
@@ -121,7 +152,7 @@ The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) 
 
 | Platform | Status | Artifact |
 |---|---|---|
-| **macOS** (x64 + arm64) | Available | DMG — see [v1.2.6 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v1.2.6) |
+| **macOS** (x64 + arm64) | Available | DMG — see [v1.4.5 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v1.4.5) |
 | **Windows** (NSIS) | Not yet uploaded | Build from source: `./build-desktop.sh` |
 | **Linux** | Not yet supported | — |
 
@@ -130,6 +161,6 @@ The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) 
 ## More Docs
 - [Server README](server/README.md)
 - [UI README](ui/README.md)
-- [Architecture](docs/backend-architecture.md)
+- [Architecture](docs/arch/backend-architecture.md)
 - [Changelog](CHANGELOG.md)
 

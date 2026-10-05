@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idea Ticket - The 7 Features Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: '#F5EFE0',
+            dark: '#3D0C11',
+            yellow: '#F5C518',
+            orange: '#E8441A',
+            lime: '#AACC2E',
+            pink: '#F472B6',
+            blue: '#5BB8F5',
+            purple: '#8B5CF6',
+            teal: '#14B8A6'
+          },
+          fontFamily: {
+            display: ['Fraunces', 'serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          boxShadow: {
+            brutal: '4px 4px 0px rgba(61, 12, 17, 1)',
+            'brutal-sm': '2px 2px 0px rgba(61, 12, 17, 1)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: theme('colors.bg');
+      color: theme('colors.dark');
+      font-family: theme('fontFamily.body');
+      /* Neo-brutal universal border color */
+      --border-dark: #3D0C11;
+    }
+    .brutal-border {
+      border: 2px solid var(--border-dark);
+    }
+    
+    .pill {
+      border-radius: 99px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body class="p-8 bg-bg flex flex-col gap-12 font-body text-dark items-center">
+
+  <div class="max-w-[860px] w-full text-center">
+    <h1 class="font-display font-black text-5xl mb-4 text-orange brutal-border shadow-brutal inline-block px-8 py-4 bg-bg rounded-lg">Idea Ticket: 7 Features</h1>
+    <p class="text-xl font-bold">Neo-Brutal Hi-Fi Mockups</p>
+  </div>
+
+  <!-- Shared Modal Base Styling Template Wrapper -->
+  <style>
+    .modal-base {
+      width: 860px;
+      background: #F5EFE0;
+      border: 3px solid #3D0C11;
+      border-radius: 12px;
+      box-shadow: 8px 8px 0px #3D0C11;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header-gradient {
+      background: linear-gradient(90deg, #F5C518, #E8441A);
+      border-bottom: 2px solid #3D0C11;
+      height: 12px;
+    }
+    .modal-body {
+      display: flex;
+      flex: 1;
+    }
+    .col-left {
+      width: 60%;
+      border-right: 2px solid #3D0C11;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .col-right {
+      width: 40%;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background-color: #FDF9EC;
+    }
+    .modal-footer {
+      border-top: 2px solid #3D0C11;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #F5EFE0;
+    }
+    .input-brutal {
+      background: #FFF;
+      border: 2px solid #3D0C11;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 500;
+      box-shadow: 2px 2px 0px #3D0C11;
+    }
+    .input-brutal:focus {
+      outline: none;
+      box-shadow: 4px 4px 0px #3D0C11;
+      transform: translate(-2px, -2px);
+      transition: all 0.1s ease;
+    }
+  </style>
+
+  <!-- FEATURE 7: Problem Statement Gate -->
+  <div class="w-full flex justify-center flex-col items-center">
+    <h2 class="font-display font-bold text-3xl mb-4 self-start bg-lime brutal-border shadow-brutal-sm px-4 py-2 pill inline-block">1/ Feature 7: Problem Statement Gate</h2>
+    <div class="modal-base">
+      <div class="modal-header-gradient"></div>
+      <div class="modal-body">
+        <div class="col-left">
+          <div class="flex gap-2 items-center">
+            <span class="bg-yellow brutal-border px-3 py-1 text-xs pill shadow-brutal-sm uppercase">Idea</span>
+          </div>
+          <h3 class="font-display font-extrabold text-3xl">One-click social login</h3>
+          
+          <!-- Feature 7 Core -->
+          <div class="bg-blue/20 brutal-border p-4 rounded-lg shadow-brutal-sm relative mt-2">
+            <label class="absolute -top-3 left-3 bg-blue brutal-border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider pill z-10 text-white">Problem Statement *</label>
+            <textarea class="w-full bg-transparent resize-none outline-none font-bold text-lg placeholder-dark/50" rows="2" placeholder="The problem is..."></textarea>
+          </div>
+          <!-- HTML Comment: By elevating the problem statement early with distinct visual weight, we force users to anchor the feature to a user pain point before writing execution details. -->
+
+          <div>
+            <textarea class="w-full h-32 input-brutal mt-4" placeholder="Description of the solution..."></textarea>
+          </div>
+        </div>
+        <div class="col-right">
+          <h4 class="font-bold text-sm uppercase opacity-50 tracking-wider">Properties</h4>
+          <!-- standard right col contents -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 3: Impact / Effort / Confidence -->
+  <div class="w-full flex justify-center flex-col items-center">
+    <h2 class="font-display font-bold text-3xl mb-4 self-start bg-pink brutal-border shadow-brutal-sm px-4 py-2 pill inline-block">2/ Feature 3: Priority Score Formula</h2>
+    <div class="modal-base">
+      <div class="modal-header-gradient" style="background: linear-gradient(90deg, #F472B6, #8B5CF6)"></div>
+      <div class="modal-body">
+        <div class="col-left">
+          <h3 class="font-display font-extrabold text-2xl">Refactor Data Pipeline</h3>
+          <p class="opacity-80">Currently too slow.</p>
+        </div>
+        <div class="col-right">
+          
+          <!-- Feature 3 Core -->
+          <div class="brutal-border rounded-xl bg-purple/10 p-4 relative shadow-brutal-sm">
+            <div class="flex justify-between items-center mb-3">
+              <span class="font-bold text-sm">ICE Priority</span>
+              <div class="bg-purple brutal-border text-white text-xl font-display font-black px-3 py-1 rounded-md shadow-brutal-sm">
+                4.5
+              </div>
+            </div>
+            
+            <div class="flex justify-between gap-2">
+              <div class="flex flex-col gap-1 items-center">
+                <label class="text-[10px] font-bold uppercase text-dark/60">Impact</label>
+                <input type="number" value="3" min="1" max="5" class="w-12 h-12 text-center text-lg font-black brutal-border rounded-full bg-white shadow-brutal-sm focus:outline-none">
+              </div>
+              <div class="h-12 flex items-center text-lg font-black text-dark/40">&divide;</div>
+              <div class="flex flex-col gap-1 items-center">
+                <label class="text-[10px] font-bold uppercase text-dark/60">Effort</label>
+                <input type="number" value="2" min="1" max="5" class="w-12 h-12 text-center text-lg font-black brutal-border rounded-full bg-white shadow-brutal-sm focus:outline-none">
+              </div>
+              <div class="h-12 flex items-center text-lg font-black text-dark/40">&times;</div>
+              <div class="flex flex-col gap-1 items-center">
+                <label class="text-[10px] font-bold uppercase text-dark/60">Conf.</label>
+                <input type="number" value="3" min="1" max="5" class="w-12 h-12 text-center text-lg font-black brutal-border rounded-full bg-white shadow-brutal-sm focus:outline-none">
+              </div>
+            </div>
+            <!-- HTML Comment: ICE inputs as bold interactive circles feel like mechanical dials, framing prioritization as an objective formula rather than a feeling. -->
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 4: Assumption Tracker -->
+  <div class="w-full flex justify-center flex-col items-center">
+    <h2 class="font-display font-bold text-3xl mb-4 self-start bg-teal brutal-border shadow-brutal-sm px-4 py-2 pill text-white inline-block">3/ Feature 4: Assumption Tracker</h2>
+    <div class="modal-base">
+      <div class="modal-header-gradient" style="background: linear-gradient(90deg, #14B8A6, #5BB8F5)"></div>
+      <div class="modal-body">
+        <div class="col-left">
+          <h3 class="font-display font-extrabold text-2xl">AI Chatbot Wrapper</h3>
+        </div>
+        <div class="col-right">
+          
+          <!-- Feature 4 Core -->
+          <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-end border-b-2 border-dark pb-1">
+              <h4 class="font-bold text-sm uppercase tracking-wider">Assumptions</h4>
+              <button class="text-xs font-bold underline hover:text-teal">Add</button>
+            </div>
+            <ul class="flex flex-col gap-2 mt-1">
+              <li class="flex items-start gap-2 bg-white brutal-border p-2 rounded-md shadow-brutal-sm">
+                <div class="w-3 h-3 rounded-full border-2 border-dark mt-1 flex-shrink-0 bg-yellow" title="Untested"></div>
+                <span class="text-sm font-medium leading-tight">Users want to talk instead of clicking buttons.</span>
+              </li>
+              <li class="flex items-start gap-2 bg-white brutal-border p-2 rounded-md shadow-brutal-sm opacity-60">
+                <div class="w-3 h-3 rounded-full border-2 border-dark mt-1 flex-shrink-0 bg-pink" title="Invalidated"></div>
+                <span class="text-sm font-medium leading-tight line-through">Latency under 1s is required.</span>
+              </li>
+              <li class="flex items-start gap-2 bg-white brutal-border p-2 rounded-md shadow-brutal-sm">
+                <div class="w-3 h-3 rounded-full border-2 border-dark mt-1 flex-shrink-0 bg-lime" title="Validated"></div>
+                <span class="text-sm font-medium leading-tight">API costs won't exceed $50/mo.</span>
+              </li>
+            </ul>
+            <!-- HTML Comment: Using traffic-light color dots in a structured list forces product-builders to confront untested leaps of faith explicitly. -->
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 2: Microthoughts / Sticky Notes -->
+  <div class="w-full flex justify-center flex-col items-center">
+    <h2 class="font-display font-bold text-3xl mb-4 self-start bg-yellow brutal-border shadow-brutal-sm px-4 py-2 pill inline-block">4/ Feature 2: Microthoughts</h2>
+    <div class="modal-base" style="height: 600px;">
+      <div class="modal-header-gradient" style="background: linear-gradient(90deg, #F5EFE0, #F5C518)"></div>
+      <div class="modal-body overflow-hidden">
+        <div class="col-left flex flex-col h-full">
+          <h3 class="font-display font-extrabold text-2xl flex-shrink-0">Redesign Payment Page</h3>
+          <p class="text-sm opacity-80 flex-shrink-0">Description goes here, abbreviated...</p>
+          
+          <!-- Feature 2 Core -->
+          <div class="mt-4 flex-1 flex flex-col bg-yellow/40 brutal-border rounded-xl shadow-brutal-sm p-4 overflow-hidden relative">
+            <h4 class="font-bold text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span class="bg-yellow brutal-border w-6 h-6 flex items-center justify-center rounded-sm rotate-3 shadow-brutal-sm">📌</span>
+              Scratchpad
+            </h4>
+            
+            <div class="flex-1 overflow-y-auto flex flex-col gap-3 pr-2 mb-3">
+              <!-- Note item -->
+              <div class="bg-[#FFF4C4] brutal-border p-3 shadow-[2px_2px_0px_rgba(61,12,17,1)] relative pb-6 transform rotate-[-1deg]">
+                <p class="text-sm font-medium">Wait, does Stripe handle VAT automatically? Need to check docs.</p>
+                <span class="absolute bottom-1 right-2 text-[10px] font-bold opacity-40">10:45 AM</span>
+              </div>
+              <div class="bg-[#FFF8D6] brutal-border p-3 shadow-[2px_2px_0px_rgba(61,12,17,1)] relative pb-6 transform rotate-[1deg]">
+                <p class="text-sm font-medium">Maybe we just skip Paypal for v1.</p>
+                <span class="absolute bottom-1 right-2 text-[10px] font-bold opacity-40">11:12 AM</span>
+              </div>
+            </div>
+
+            <div class="flex gap-2">
+              <input type="text" class="flex-1 input-brutal bg-white" placeholder="Add a quick thought...">
+              <button class="bg-yellow brutal-border px-3 py-1 font-bold shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all">Add</button>
+            </div>
+            <!-- HTML Comment: Designed like messy analog sticky notes inside the digital card to encourage raw, unpolished brain-dumps without polluting the main spec. -->
+          </div>
+
+        </div>
+        <div class="col-right"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 1: Activity Trail -->
+  <div class="w-full flex justify-center flex-col items-center">
+    <h2 class="font-display font-bold text-3xl mb-4 self-start bg-bg brutal-border shadow-brutal-sm px-4 py-2 pill inline-block">5/ Feature 1: Activity Trail</h2>
+    <div class="modal-base">
+      <div class="modal-header-gradient" style="background: linear-gradient(90deg, #AACC2E, #5BB8F5)"></div>
+      <div class="modal-body">
+        <div class="col-left">
+          <h3 class="font-display font-extrabold text-2xl">Bulk Actions</h3>
+        </div>
+        <div class="col-right flex flex-col justify-end">
+          
+          <!-- Feature 1 Core (Bottom right column) -->
+          <div class="flex flex-col gap-0 border-t-2 border-dark pt-3 mt-auto">
+            <button class="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-dark/70 mb-2 hover:text-dark transition-colors group">
+              Activity Trail
+              <span class="bg-dark text-white rounded px-1.5 py-0.5 text-[9px] group-hover:bg-blue">Show</span>
+            </button>
+            
+            <div class="relative pl-3 border-l-2 border-dark/20 flex flex-col gap-3 py-1">
+              <div class="relative">
+                <div class="absolute -left-[18px] top-1 w-3 h-3 rounded-full bg-lime brutal-border shadow-brutal-sm"></div>
+                <p class="text-xs">Moved to <strong class="bg-lime/30 px-1 rounded">In Progress</strong></p>
+                <p class="text-[10px] opacity-50 font-bold mt-0.5">Apr 25, 2:30 PM</p>
+              </div>
+              <div class="relative">
+                <div class="absolute -left-[18px] top-1 w-3 h-3 rounded-full bg-white brutal-border"></div>
+                <p class="text-xs">Impact score changed to <strong>5</strong></p>
+                <p class="text-[10px] opacity-50 font-bold mt-0.5">Apr 24, 10:15 AM</p>
+              </div>
+              <div class="relative">
+                <div class="absolute -left-[18px] top-1 w-3 h-3 rounded-full bg-white brutal-border"></div>
+                <p class="text-xs">Idea created</p>
+                <p class="text-[10px] opacity-50 font-bold mt-0.5">Apr 22, 9:00 AM</p>
+              </div>
+            </div>
+            <!-- HTML Comment: Compact timeline embedded at the bottom right. Vertical line builds a sense of history without eating up primary reading real estate. -->
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 5: Revisit Date + Staleness -->
+  <div class="w-full flex justify-center flex-col items-center">
+    <h2 class="font-display font-bold text-3xl mb-4 self-start bg-orange text-white brutal-border shadow-brutal-sm px-4 py-2 pill inline-block">6/ Feature 5: Revisit & Staleness</h2>
+    <div class="modal-base relative">
+      <div class="modal-header-gradient" style="background: linear-gradient(90deg, #E8441A, #F5C518)"></div>
+      
+      <!-- Feature 5 Header Badge -->
+      <div class="absolute top-4 right-4 flex items-center gap-2">
+        <div class="bg-orange/10 brutal-border px-2 py-1 rounded shadow-[2px_2px_0px_#E8441A] flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
+          <span class="text-xs font-bold text-orange uppercase tracking-wider">Stale 14 Days</span>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="col-left">
+          <h3 class="font-display font-extrabold text-2xl pr-32">Mobile App Deep Links</h3>
+        </div>
+        <div class="col-right pt-12">
+          
+          <!-- Feature 5 Footer/Property -->
+          <div class="bg-white brutal-border rounded-lg p-3 shadow-brutal-sm">
+            <label class="text-xs font-bold uppercase text-dark/50 block mb-1">Revisit By</label>
+            <div class="flex items-center justify-between">
+              <span class="font-black text-lg">May 10, 2026</span>
+              <button class="bg-bg brutal-border p-1.5 rounded hover:bg-orange/20 transition-colors">📅</button>
+            </div>
+          </div>
+          <!-- HTML Comment: "Staleness" is aggressively color-coded and pulsed at the top right to guilt the user into action, while Revisit gives a mechanical due date. -->
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 6: Promotion Trail -->
+  <div class="w-full flex justify-center flex-col items-center mb-24">
+    <h2 class="font-display font-bold text-3xl mb-4 self-start bg-purple brutal-border shadow-brutal-sm px-4 py-2 text-white pill inline-block">7/ Feature 6: Promotion Trail</h2>
+    <div class="modal-base relative border-purple">
+      <div class="modal-header-gradient" style="background: linear-gradient(90deg, #8B5CF6, #F472B6)"></div>
+      <div class="modal-body relative overflow-hidden">
+        
+        <!-- Big Watermark for Promoted state -->
+        <div class="absolute -right-10 top-10 font-display font-black text-[120px] text-purple opacity-5 overflow-hidden w-full text-right pointer-events-none">PROMOTED</div>
+        
+        <div class="col-left pb-24 border-r-purple">
+          <h3 class="font-display font-extrabold text-2xl line-through opacity-70">Custom Themes</h3>
+          
+          <!-- Feature 6 Banner -->
+          <div class="bg-purple text-white p-4 rounded-xl brutal-border shadow-brutal-sm mt-4 transform -rotate-1">
+            <div class="flex items-center gap-3">
+              <div class="bg-white text-purple text-xl brutal-border w-10 h-10 flex items-center justify-center rounded-full font-black shadow-[2px_2px_0px_#F472B6]">🚀</div>
+              <div>
+                <h4 class="font-bold text-lg">Idea Promoted!</h4>
+                <p class="text-sm opacity-90 font-medium">Tracking in Dev Ticket <a href="#" class="underline font-black hover:text-pink transition-colors">#142</a> since Apr 25, 2026</p>
+              </div>
+            </div>
+          </div>
+          <!-- HTML Comment: The promotion banner is unapologetically celebratory (purple, bold, rotated) giving the user a dopamine hit for shipping an idea to the backlog. -->
+
+        </div>
+        <div class="col-right bg-purple/5">
+        </div>
+      </div>
+      
+      <div class="modal-footer bg-purple/10 border-t-purple">
+        <div class="text-xs font-bold text-dark/50">Created Mar 1</div>
+        <button class="bg-white text-purple brutal-border px-6 py-2 pill font-black shadow-brutal-sm opacity-50 cursor-not-allowed">Read Only Mode</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

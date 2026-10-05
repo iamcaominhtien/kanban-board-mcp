@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .lv-group-header { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; background: #F6FAF7; border-radius: 7px; }
+    .lv-group-header:hover { background: #EEF3EF; }
+    .lv-row { display: flex; align-items: center; gap: 14px; padding: 9px 12px; cursor: pointer; border-bottom: 1px solid #EEF3EF; }
+    .lv-row:hover { background: #F6FAF7; }
+    .lv-row:last-child { border-bottom: none; }
+    .lv-chip { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+    .mb-dropdown-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #1E2A22; }
+    .mb-dropdown-btn:hover { background: #F6FAF7; }
+    .lv-toggle-btn { padding: 6px 12px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12px; font-weight: 600; color: #5B6B60; }
+    .lv-toggle-btn-active { background: #FFFFFF; color: #1E2A22; box-shadow: 0 1px 2px rgba(30,42,34,0.10); }
+    .sm-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 5px; cursor: pointer; }
+    .sm-item:hover { background: #F6FAF7; }
+  </style>
+</helmet>
+
+<div style="width: 1220px; height: 2260px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Screen — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">List View</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 860px; line-height: 1.5;">Opens from the "List" segment in Main Board's view switcher — same tickets, same filters, grouped and sorted instead of columned. Maps 1:1 to today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">ListView.tsx</code>: group by Status / Priority / Tag, sort by Due Date / Created, per-group collapse plus Expand/Collapse All. Rows keep exactly the fields the component renders today — id, title, priority, due date, status — restyled to the rest of the system's chips and spacing. The Search/Type/Priority/Assignee bar from Main Board sits above this panel too, unchanged — <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">Board.tsx</code> renders it once, above the Board/List/Timeline switch, so it already narrows what List sees. This screen adds one new control of its own — Status — since grouping by status can't narrow which statuses show.</div>
+  </div>
+
+  <!-- Shared filter bar, same as Main Board -->
+  <div style="width: 1080px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 8px; border: 1px solid #E3E8E5; background: #FFFFFF; width: 220px; box-sizing: border-box;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21L16.5 16.5"></path></svg>
+      <span style="font-size: 12.5px; color: #9AA8A0;">Search tickets…</span>
+    </div>
+    <span style="width: 1px; height: 20px; background: #E3E8E5;"></span>
+    <button class="mb-dropdown-btn"><span style="color: #9AA8A0;">Type:</span> All<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M6 9L12 15L18 9"></path></svg></button>
+    <button class="mb-dropdown-btn"><span style="color: #9AA8A0;">Priority:</span> All<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M6 9L12 15L18 9"></path></svg></button>
+    <button class="mb-dropdown-btn"><span style="color: #9AA8A0;">Assignee:</span> All<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M6 9L12 15L18 9"></path></svg></button>
+    <span style="font-size: 11px; color: #C7D2CB; margin-left: 4px;">↑ shared with Board view, not part of this screen</span>
+  </div>
+
+  <!-- Full panel -->
+  <div style="width: 1080px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #E3E8E5; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span style="font-size: 12px; font-weight: 600; color: #9AA8A0;">Group by</span>
+        <button class="mb-dropdown-btn">
+          Status
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+        </button>
+        <span style="width: 1px; height: 20px; background: #E3E8E5;"></span>
+        <button class="mb-dropdown-btn">
+          <span style="color: #9AA8A0;">Status:</span> All
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 12px; font-weight: 600; color: #9AA8A0;">Sort</span>
+        <div style="display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: #EEF3EF;">
+          <button class="lv-toggle-btn lv-toggle-btn-active">Due Date</button>
+          <button class="lv-toggle-btn">Created</button>
+        </div>
+        <span style="width: 1px; height: 20px; background: #E3E8E5;"></span>
+        <button class="mb-dropdown-btn" style="font-weight: 500; color: #5B6B60;">Collapse All</button>
+      </div>
+    </div>
+
+    <div style="padding: 18px 24px 24px; display: flex; flex-direction: column; gap: 10px;">
+
+      <!-- Group: Backlog -->
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="lv-group-header">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #9AA8A0; flex-shrink: 0;"></span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          <span style="flex-grow: 1; font-size: 13.5px; font-weight: 700; color: #1E2A22;">Backlog</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #5B6B60;">3</span>
+        </div>
+        <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-151</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Evaluate virtualized list for 200+ card columns</span>
+            <span class="lv-chip" style="background: rgba(232,185,58,0.18); color: #9A7B14;">Medium</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(154,168,160,0.18); color: #5B6B60; width: 76px; justify-content: center;">Backlog</span>
+          </div>
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-149</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Bulk assign tickets from list view</span>
+            <span class="lv-chip" style="background: rgba(226,121,61,0.16); color: #B4571F;">High</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(154,168,160,0.18); color: #5B6B60; width: 76px; justify-content: center;">Backlog</span>
+          </div>
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-147</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Upgrade dnd-kit to v7</span>
+            <span class="lv-chip" style="background: rgba(155,179,164,0.20); color: #4E6459;">Low</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(154,168,160,0.18); color: #5B6B60; width: 76px; justify-content: center;">Backlog</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group: To Do -->
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="lv-group-header">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          <span style="flex-grow: 1; font-size: 13.5px; font-weight: 700; color: #1E2A22;">To Do</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #5B6B60;">2</span>
+        </div>
+        <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-153</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Publish TC-code lookup endpoint</span>
+            <span class="lv-chip" style="background: rgba(226,121,61,0.16); color: #B4571F;">High</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: #C4432A; width: 78px; justify-content: flex-end; flex-shrink: 0;">Sep 12</span>
+            <span class="lv-chip" style="background: rgba(47,111,176,0.14); color: #2F6FB0; width: 76px; justify-content: center;">To Do</span>
+          </div>
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-152</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Fix ghost card position after cancelled drag</span>
+            <span class="lv-chip" style="background: rgba(232,185,58,0.18); color: #9A7B14;">Medium</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(47,111,176,0.14); color: #2F6FB0; width: 76px; justify-content: center;">To Do</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group: In Progress -->
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="lv-group-header">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #E2793D; flex-shrink: 0;"></span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          <span style="flex-grow: 1; font-size: 13.5px; font-weight: 700; color: #1E2A22;">In Progress</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #5B6B60;">2</span>
+        </div>
+        <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-140</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Redesign board column header</span>
+            <span class="lv-chip" style="background: rgba(154,168,160,0.18); color: #5B6B60;">—</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(226,121,61,0.16); color: #B4571F; width: 76px; justify-content: center;">In Progress</span>
+          </div>
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-145</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Write unit tests for drag handle</span>
+            <span class="lv-chip" style="background: rgba(154,168,160,0.18); color: #5B6B60;">—</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(226,121,61,0.16); color: #B4571F; width: 76px; justify-content: center;">In Progress</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group: Review — collapsed -->
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="lv-group-header">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #6D5DD3; flex-shrink: 0;"></span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(-90deg);"><path d="M6 9L12 15L18 9"></path></svg>
+          <span style="flex-grow: 1; font-size: 13.5px; font-weight: 700; color: #1E2A22;">Review</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #5B6B60;">1</span>
+        </div>
+      </div>
+
+      <!-- Group: Testing -->
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="lv-group-header">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #B4571F; flex-shrink: 0;"></span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          <span style="flex-grow: 1; font-size: 13.5px; font-weight: 700; color: #1E2A22;">Testing</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #5B6B60;">1</span>
+        </div>
+        <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0;">KAN-155</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Add file attachments to test case fields</span>
+            <span class="lv-chip" style="background: rgba(232,185,58,0.18); color: #9A7B14;">Medium</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(180,87,31,0.16); color: #B4571F; width: 76px; justify-content: center;">Testing</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group: Done -->
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="lv-group-header">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #2E6F40; flex-shrink: 0;"></span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+          <span style="flex-grow: 1; font-size: 13.5px; font-weight: 700; color: #1E2A22;">Done</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #5B6B60;">2</span>
+        </div>
+        <div style="border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0; text-decoration: line-through; text-decoration-color: #C7D2CB;">KAN-138</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Fix drag ghost offset on Retina displays</span>
+            <span class="lv-chip" style="background: rgba(226,121,61,0.16); color: #B4571F;">High</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(46,111,64,0.14); color: #2E6F40; width: 76px; justify-content: center;">Done</span>
+          </div>
+          <div class="lv-row">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9AA8A0; width: 68px; flex-shrink: 0; text-decoration: line-through; text-decoration-color: #C7D2CB;">KAN-131</span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Clean up dead CSS from old column colors</span>
+            <span class="lv-chip" style="background: rgba(155,179,164,0.20); color: #4E6459;">Low</span>
+            <span style="font-size: 11.5px; color: #9AA8A0; width: 78px; text-align: right; flex-shrink: 0;">—</span>
+            <span class="lv-chip" style="background: rgba(46,111,64,0.14); color: #2E6F40; width: 76px; justify-content: center;">Done</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Group by dropdown open -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking "Group by"</div>
+    <div style="position: relative; height: 190px;">
+      <button class="mb-dropdown-btn" style="border-color: #2E6F40;">
+        Status
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(180deg);"><path d="M6 9L12 15L18 9"></path></svg>
+      </button>
+      <div style="position: absolute; top: 38px; left: 0; width: 170px; background: #FFFFFF; border: 1px solid #E3E8E5; border-radius: 8px; box-shadow: 0 12px 28px rgba(30,42,34,0.14); padding: 4px; display: flex; flex-direction: column;">
+        <div class="sm-item" style="background: #F1F8F3;">
+          <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 600;">By Status</span>
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0;"><path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <div class="sm-item">
+          <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">By Priority</span>
+        </div>
+        <div class="sm-item">
+          <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">By Tag</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status filter dropdown open -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking "Status:" — multi-select, unlike Group by</div>
+    <div style="display: flex; gap: 40px;">
+
+      <div style="position: relative; height: 250px;">
+        <button class="mb-dropdown-btn" style="border-color: #2E6F40;">
+          <span style="color: #9AA8A0;">Status:</span> 2 selected
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(180deg);"><path d="M6 9L12 15L18 9"></path></svg>
+        </button>
+        <div style="position: absolute; top: 38px; left: 0; width: 190px; background: #FFFFFF; border: 1px solid #E3E8E5; border-radius: 8px; box-shadow: 0 12px 28px rgba(30,42,34,0.14); padding: 4px; display: flex; flex-direction: column;">
+          <div class="sm-item">
+            <span style="width: 15px; height: 15px; border-radius: 4px; border: 1.6px solid #C7D2CB; flex-shrink: 0;"></span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #9AA8A0; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Backlog</span>
+          </div>
+          <div class="sm-item">
+            <span style="width: 15px; height: 15px; border-radius: 4px; border: 1.6px solid #C7D2CB; flex-shrink: 0;"></span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">To Do</span>
+          </div>
+          <div class="sm-item" style="background: #F1F8F3;">
+            <span style="width: 15px; height: 15px; border-radius: 4px; background: #2E6F40; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #6D5DD3; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 600;">Review</span>
+          </div>
+          <div class="sm-item" style="background: #F1F8F3;">
+            <span style="width: 15px; height: 15px; border-radius: 4px; background: #2E6F40; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #B4571F; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 600;">Testing</span>
+          </div>
+          <div class="sm-item">
+            <span style="width: 15px; height: 15px; border-radius: 4px; border: 1.6px solid #C7D2CB; flex-shrink: 0;"></span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2E6F40; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Done</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 780px;">Checkboxes, not a single-select like Group by — narrowing to "Review + Testing" while grouped by Priority is a real use case (QA sweep across priorities). The button label summarizes the selection ("2 selected" past one, "All" with nothing checked). Type filtering already happens one row up, in the shared bar — no second Type control needed here.</div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 900px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: (1) purely visual pass on <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">ListView.tsx</code> — Group by moves from a native <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">&lt;select&gt;</code> to the same dropdown-menu pattern as the Filter bar and Status Menu; Sort stays the same segmented toggle, just restyled; Expand/Collapse All keeps its current single-button toggle behavior. Rows and group headers carry the exact fields the component reads today, nothing added. (2) this file's own <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">STATUS_ORDER</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">STATUS_LABELS</code>/<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">STATUS_CHIP_CLASS</code> need the same Review/Testing additions already noted on Status Menu and Main Board's <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">COLUMNS</code> — shown here grouped in that order (Review collapsed, to also show the collapsed-group state). (3) rows with no due date show "—" rather than an empty cell, matching <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">formatDate</code>'s existing fallback; a ticket with no priority set (parent tickets, still true from Ticket Card) shows the same neutral "—" chip used there. (4) one new filter in this toolbar: Status, a checkbox multi-select, new local state in <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">ListView.tsx</code> (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">activeStatuses: Set&lt;Status&gt;</code>, filters before grouping) — useful because Group-by-status can't itself narrow which statuses show. Type filtering needed no new control: <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">Board.tsx</code> already renders the shared Filter bar once, above the Board/List/Timeline switch, so the Type dropdown proposed there (see Main Board) already narrows what reaches this screen — shown above as the same bar, not duplicated in the panel's own toolbar.</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1220,"height":2260}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

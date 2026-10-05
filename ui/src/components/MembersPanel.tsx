@@ -4,13 +4,22 @@ import type { Member } from '../types/ticket';
 import { useAddMember, useRemoveMember } from '../api/members';
 import styles from './MembersPanel.module.css';
 
+const PRESET_MEMBER_COLORS = [
+  '#2E6F40', // forest green
+  '#5B5FA8', // muted indigo
+  '#B4791E', // warm amber
+  '#B0446E', // soft berry
+  '#2F6FB0', // classic blue
+  '#6D5DD3', // purple
+  '#C4432A', // brick red
+];
+
 function memberInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .map((w) => w[0] ?? '')
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
 }
 
 interface MembersPanelProps {
@@ -21,7 +30,7 @@ interface MembersPanelProps {
 
 export function MembersPanel({ projectId, members, onClose }: MembersPanelProps) {
   const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState('#3B82F6');
+  const [newColor, setNewColor] = useState(PRESET_MEMBER_COLORS[0]);
   const [addError, setAddError] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
@@ -47,65 +56,102 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
       await removeMemberMutation.mutateAsync(memberId);
     } catch (err: unknown) {
       const detail = (err as AxiosError<{ detail: string }>)?.response?.data?.detail;
-      setRemoveError(detail ?? 'Failed to remove member');
+      setRemoveError(detail ?? 'Failed to remove member. If assigned to open tickets, reassign first.');
     }
   }
 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className={styles.header}>
-          <h2 className={styles.title}>Project Members</h2>
-          <button type="button" className={styles.closeBtn} onClick={onClose}>×</button>
+          <h2 className={styles.title}>
+            Project Members
+            <span className={styles.countBadge}>{members.length}</span>
+          </h2>
+          <button
+            type="button"
+            className={styles.closeBtn}
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M6 6L18 18M18 6L6 18" />
+            </svg>
+          </button>
         </div>
 
-        <ul className={styles.memberList}>
-          {members.map((m) => (
-            <li key={m.id} className={styles.memberRow}>
-              <span className={styles.avatar} style={{ background: m.color }}>
-                {memberInitials(m.name)}
-              </span>
-              <span className={styles.memberName}>{m.name}</span>
-              <button
-                type="button"
-                className={styles.removeBtn}
-                onClick={() => handleRemove(m.id)}
-                aria-label={`Remove ${m.name}`}
-              >
-                ×
-              </button>
-            </li>
-          ))}
-          {members.length === 0 && (
-            <li className={styles.empty}>No members yet.</li>
-          )}
-        </ul>
-        {removeError && <p className={styles.errorText}>{removeError}</p>}
+        {/* Content */}
+        <div className={styles.content}>
+          <div className={styles.memberList}>
+            {members.map((m, idx) => (
+              <div key={m.id}>
+                <div className={styles.memberRow}>
+                  <div className={styles.avatar} style={{ background: m.color || '#2E6F40' }}>
+                    {memberInitials(m.name)}
+                  </div>
+                  <span className={styles.memberName}>{m.name}</span>
+                  <button
+                    type="button"
+                    className={styles.removeBtn}
+                    onClick={() => handleRemove(m.id)}
+                    aria-label={`Remove ${m.name}`}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                      <path d="M6 6L18 18M18 6L6 18" />
+                    </svg>
+                  </button>
+                </div>
+                {idx < members.length - 1 && <div className={styles.rowDivider} />}
+              </div>
+            ))}
 
-        <form className={styles.addForm} onSubmit={handleAdd}>
-          <input
-            className={styles.nameInput}
-            type="text"
-            placeholder="Member name…"
-            value={newName}
-            onChange={(e) => { setNewName(e.target.value); setAddError(null); }}
-          />
-          <input
-            className={styles.colorInput}
-            type="color"
-            value={newColor}
-            onChange={(e) => setNewColor(e.target.value)}
-            title="Avatar color"
-          />
-          <button
-            type="submit"
-            className={styles.addBtn}
-            disabled={!newName.trim() || addMemberMutation.isPending}
-          >
-            {addMemberMutation.isPending ? '…' : 'Add'}
-          </button>
-        </form>
-        {addError && <p className={styles.errorText}>{addError}</p>}
+            {members.length === 0 && (
+              <div className={styles.emptyState}>No members yet.</div>
+            )}
+          </div>
+
+          {removeError && <div className={styles.errorText}>{removeError}</div>}
+
+          <div className={styles.sectionDivider} />
+
+          {/* Add member section */}
+          <form className={styles.addSection} onSubmit={handleAdd}>
+            <span className={styles.fieldLabel}>Add member</span>
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="Member name…"
+              value={newName}
+              onChange={(e) => {
+                setNewName(e.target.value);
+                setAddError(null);
+              }}
+            />
+            <div className={styles.swatchesAndBtn}>
+              <div className={styles.swatchesRow}>
+                {PRESET_MEMBER_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`${styles.swatch} ${newColor === color ? styles.swatchActive : ''}`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setNewColor(color)}
+                    aria-label={`Color ${color}`}
+                  />
+                ))}
+              </div>
+              <button
+                type="submit"
+                className={styles.addBtn}
+                disabled={!newName.trim() || addMemberMutation.isPending}
+              >
+                {addMemberMutation.isPending ? '…' : 'Add'}
+              </button>
+            </div>
+            {addError && <div className={styles.errorText}>{addError}</div>}
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -4,136 +4,213 @@
   gap: 10px;
 }
 
-.sectionHeader {
-  font-weight: 900;
-  font-size: 13px;
+.label {
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-dark);
+  color: #9AA8A0;
 }
 
 .empty {
   font-size: 13px;
+  color: #9AA8A0;
   font-style: italic;
-  color: #9CA3AF;
 }
 
 .list {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .row {
   display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: 5px;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.row:hover {
+  background: #F6FAF7;
+}
+
+.checkboxBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(61, 12, 17, 0.08);
+  justify-content: center;
+  margin-top: 1px;
+  flex-shrink: 0;
 }
 
-.row:last-child {
-  border-bottom: none;
+.uncheckedSquare {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.4px solid #C7D2CB;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
 }
 
-.checkbox {
+.checkboxBtn:hover .uncheckedSquare {
+  border-color: #2E6F40;
+}
+
+.checkedCircle {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  accent-color: var(--color-dark);
-  cursor: pointer;
 }
 
 .text {
   flex: 1;
-  font-size: 14px;
-  color: var(--color-dark);
+  font-size: 13px;
+  color: #3A4A3E;
   line-height: 1.4;
   cursor: pointer;
+  word-break: break-word;
+  padding-top: 1px;
 }
 
 .textCompleted {
   flex: 1;
-  font-size: 14px;
-  color: #9CA3AF;
+  font-size: 13px;
+  color: #9AA8A0;
   line-height: 1.4;
   text-decoration: line-through;
+  text-decoration-color: #C7D2CB;
   cursor: pointer;
+  word-break: break-word;
+  padding-top: 1px;
 }
 
-.deleteBtn {
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.row:hover .rowActions {
+  opacity: 1;
+}
+
+.iconBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
   background: none;
-  border: none;
-  font-size: 18px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  color: color-mix(in srgb, var(--color-dark) 65%, transparent);
-  padding: 0 2px;
+  color: #5B6B60;
   flex-shrink: 0;
-  transition: color 0.15s;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.deleteBtn:hover {
-  color: #DC2626;
+.iconBtn:hover {
+  background: #EAF0EC;
 }
 
-.addArea {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.iconBtnDelete:hover {
+  background: #FBE7E4;
+  color: #C4432A;
 }
 
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.input {
-  border: 2px solid var(--color-dark);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--color-dark);
-  width: 100%;
-  outline: none;
-  background: white;
-  transition: border-color 0.15s;
-}
-
-.input:focus {
-  border-color: var(--color-orange);
-}
-
-.addRow {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.addBtn {
-  background: var(--color-dark);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-card);
-  padding: 8px 20px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 700;
+/* Dashed Add Button */
+.addDashedBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px dashed #C7D2CB;
+  background: none;
   cursor: pointer;
-  transition: opacity 0.15s;
+  font-size: 12px;
+  color: #9AA8A0;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.addBtn:hover:not(:disabled) {
-  opacity: 0.85;
+.addDashedBtn:hover {
+  border-color: #2E6F40;
+  color: #2E6F40;
 }
 
-.addBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+/* Inline Input Box */
+.inputBox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border: 1px solid #2E6F40;
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
+  background: #FFFFFF;
+}
+
+.inputField {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: #1E2A22;
+  background: none;
+}
+
+.actionBtnCancel {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9AA8A0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.actionBtnCancel:hover {
+  background: #EEF3EF;
+  color: #5B6B60;
+}
+
+.actionBtnSave {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: none;
+  background: #2E6F40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #FFFFFF;
+  transition: opacity 0.15s ease;
+}
+
+.actionBtnSave:hover {
+  opacity: 0.9;
+}
+
+.helperText {
+  font-size: 11.5px;
+  color: #9AA8A0;
+  padding-left: 25px;
 }

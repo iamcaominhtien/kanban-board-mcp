@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .ic-running-ring { position: absolute; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid rgba(47,111,176,0.55); animation: ic-ring 1.4s ease-out infinite; }
+    @keyframes ic-ring { 0% { transform: scale(0.7); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+  </style>
+</helmet>
+
+<div style="width: 900px; height: 1660px; box-sizing: border-box; padding: 64px; background: #FFFFFF; display: flex; flex-direction: column; gap: 32px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — final</div>
+    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1E2A22;">Ticket Type Icons</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 700px; line-height: 1.5;">Literal marks, applied on the Ticket Card. Each shown at its full size and at the card's 15px — the bug and chore marks drop detail at that size to stay legible.</div>
+  </div>
+
+  <!-- Type icon rows -->
+  <div style="display: flex; flex-direction: column; gap: 18px;">
+
+    <!-- Task -->
+    <div style="display: flex; align-items: center; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+      <div style="width: 84px; font-size: 13px; font-weight: 600; color: #1E2A22;">Task</div>
+      <div style="width: 72px; height: 72px; border-radius: 16px; background: #E1EEFB; display: flex; align-items: center; justify-content: center;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="1.7"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2.2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <span style="font-size: 12px; color: #5B6B60;">at card size (15px)</span>
+      </div>
+    </div>
+
+    <!-- Bug -->
+    <div style="display: flex; align-items: center; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+      <div style="width: 84px; font-size: 13px; font-weight: 600; color: #1E2A22;">Bug</div>
+      <div style="width: 72px; height: 72px; border-radius: 16px; background: #FBE7E4; display: flex; align-items: center; justify-content: center;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="1.5" stroke-linecap="round">
+          <ellipse cx="12" cy="14" rx="4.5" ry="6"></ellipse>
+          <circle cx="12" cy="6.5" r="2.2"></circle>
+          <path d="M12 4.3L9.5 1.5"></path><path d="M12 4.3L14.5 1.5"></path>
+          <path d="M7.5 10.5H4.5"></path><path d="M7.5 14H4"></path><path d="M7.5 17.5H4.5"></path>
+          <path d="M16.5 10.5H19.5"></path><path d="M16.5 14H20"></path><path d="M16.5 17.5H19.5"></path>
+        </svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="2.2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="5" ry="6.5"></ellipse><circle cx="12" cy="6" r="2.6"></circle><path d="M7 11H4"></path><path d="M7 16H4"></path><path d="M17 11H20"></path><path d="M17 16H20"></path></svg>
+        <span style="font-size: 12px; color: #5B6B60;">at card size — simplified (15px)</span>
+      </div>
+    </div>
+
+    <!-- Feature -->
+    <div style="display: flex; align-items: center; gap: 24px; padding: 14px 0; border-bottom: 1px solid #EEF3EF;">
+      <div style="width: 84px; font-size: 13px; font-weight: 600; color: #1E2A22;">Feature</div>
+      <div style="width: 72px; height: 72px; border-radius: 16px; background: #EDE9F9; display: flex; align-items: center; justify-content: center;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z"></path>
+          <path d="M10 20.5H14"></path>
+          <path d="M10.5 17.5H13.5"></path>
+        </svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z"></path><path d="M10 20.5H14"></path></svg>
+        <span style="font-size: 12px; color: #5B6B60;">at card size (15px)</span>
+      </div>
+    </div>
+
+    <!-- Chore -->
+    <div style="display: flex; align-items: center; gap: 24px; padding: 14px 0;">
+      <div style="width: 84px; font-size: 13px; font-weight: 600; color: #1E2A22;">Chore</div>
+      <div style="width: 72px; height: 72px; border-radius: 16px; background: #EEF1EE; display: flex; align-items: center; justify-content: center;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.5" stroke-linecap="round">
+          <rect x="4" y="4.5" width="4" height="4" rx="1"></rect>
+          <path d="M10.5 6.5H20"></path>
+          <rect x="4" y="10" width="4" height="4" rx="1"></rect>
+          <path d="M10.5 12H20"></path>
+          <rect x="4" y="15.5" width="4" height="4" rx="1"></rect>
+          <path d="M10.5 17.5H20"></path>
+          <path d="M4.8 12L5.7 12.9L7.2 11.2" stroke-width="1.3"></path>
+        </svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2" stroke-linecap="round"><rect x="4" y="6" width="4" height="4" rx="1"></rect><path d="M10.5 8H20"></path><rect x="4" y="14" width="4" height="4" rx="1"></rect><path d="M10.5 16H20"></path></svg>
+        <span style="font-size: 12px; color: #5B6B60;">at card size — simplified (15px)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Priority + blocked -->
+  <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Priority &amp; status marks</div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="20" viewBox="0 0 26 24" fill="none">
+            <rect x="0" y="17" width="4.4" height="7" rx="1.5" fill="#9BB3A4"></rect>
+            <rect x="7.2" y="12" width="4.4" height="12" rx="1.5" fill="#DCE6DF"></rect>
+            <rect x="14.4" y="7" width="4.4" height="17" rx="1.5" fill="#DCE6DF"></rect>
+            <rect x="21.6" y="2" width="4.4" height="22" rx="1.5" fill="#DCE6DF"></rect>
+          </svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Low</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="20" viewBox="0 0 26 24" fill="none">
+            <rect x="0" y="17" width="4.4" height="7" rx="1.5" fill="#E8B93A"></rect>
+            <rect x="7.2" y="12" width="4.4" height="12" rx="1.5" fill="#E8B93A"></rect>
+            <rect x="14.4" y="7" width="4.4" height="17" rx="1.5" fill="#DCE6DF"></rect>
+            <rect x="21.6" y="2" width="4.4" height="22" rx="1.5" fill="#DCE6DF"></rect>
+          </svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Medium</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="20" viewBox="0 0 26 24" fill="none">
+            <rect x="0" y="17" width="4.4" height="7" rx="1.5" fill="#E2793D"></rect>
+            <rect x="7.2" y="12" width="4.4" height="12" rx="1.5" fill="#E2793D"></rect>
+            <rect x="14.4" y="7" width="4.4" height="17" rx="1.5" fill="#E2793D"></rect>
+            <rect x="21.6" y="2" width="4.4" height="22" rx="1.5" fill="#DCE6DF"></rect>
+          </svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">High</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="20" viewBox="0 0 26 24" fill="none">
+            <rect x="0" y="17" width="4.4" height="7" rx="1.5" fill="#D64545"></rect>
+            <rect x="7.2" y="12" width="4.4" height="12" rx="1.5" fill="#D64545"></rect>
+            <rect x="14.4" y="7" width="4.4" height="17" rx="1.5" fill="#D64545"></rect>
+            <rect x="21.6" y="2" width="4.4" height="22" rx="1.5" fill="#D64545"></rect>
+          </svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Critical</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10H20.5"></path><path d="M8 3V6.5"></path><path d="M16 3V6.5"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Due date</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #FBE7E4; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C4432A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10H20.5"></path><path d="M8 3V6.5"></path><path d="M16 3V6.5"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Overdue</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #FBE7E4; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#C4432A" stroke-width="1.5"></rect><path d="M8 11V8A4 4 0 0 1 16 8V11" stroke="#C4432A" stroke-width="1.5" stroke-linecap="round"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Blocked</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="12" height="20" viewBox="0 0 10 16" fill="#9AA8A0"><circle cx="2" cy="2" r="1.3"></circle><circle cx="8" cy="2" r="1.3"></circle><circle cx="2" cy="8" r="1.3"></circle><circle cx="8" cy="8" r="1.3"></circle><circle cx="2" cy="14" r="1.3"></circle><circle cx="8" cy="14" r="1.3"></circle></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Drag handle</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Test case marks -->
+  <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Test case marks</div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Test Cases tab</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#2E6F40" stroke-width="1.6"></circle><path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Pass</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#C4432A" stroke-width="1.6"></circle><path d="M5 5L9 9M9 5L5 9" stroke="#C4432A" stroke-width="1.6" stroke-linecap="round"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Fail</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center; position: relative;">
+          <span class="ic-running-ring"></span>
+          <svg width="15" height="15" viewBox="0 0 15 15"><circle cx="7.5" cy="7.5" r="7.5" fill="#2F6FB0"></circle></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Running — pulses live</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="15" height="15" viewBox="0 0 15 15"><circle cx="7.5" cy="7.5" r="6.7" fill="none" stroke="#9AA8A0" stroke-width="1.6"></circle></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Pending</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Debug Space marks -->
+  <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Debug Space marks</div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9L10 12L7 15"></path><path d="M12 15H17"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Debug Space tab</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <span style="width: 13px; height: 13px; border-radius: 50%; background: #2F6FB0;"></span>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Investigation</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <span style="width: 13px; height: 13px; border-radius: 50%; background: #E2793D;"></span>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Fix attempt</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <span style="width: 13px; height: 13px; border-radius: 50%; background: #6D5DD3;"></span>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Root cause</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <span style="width: 13px; height: 13px; border-radius: 50%; background: #C4432A;"></span>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Blocked</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <span style="width: 13px; height: 13px; border-radius: 50%; background: #2E6F40;"></span>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Resolved</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Workspace marks -->
+  <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Workspace marks</div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #F6FAF7; border: 1px solid #DCE6DF; display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Workspace tab</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: rgba(226,121,61,0.14); display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7V12L15.5 14.5"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Auto-delete pending</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="width: 84px; height: 68px; border-radius: 14px; background: #DCEEE1; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z"></path></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #5B6B60;">Kept forever</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":1660}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

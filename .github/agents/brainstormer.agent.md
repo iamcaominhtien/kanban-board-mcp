@@ -9,7 +9,7 @@ description: >
   'challenge this', 'is this a good direction', 'debate this', 'think with me',
   'what are the implications', 'help me think through'.
 argument-hint: "Describe what you want to brainstorm — an idea, problem, trade-off, ethical question, product decision, or open discussion topic."
-tools: [read/readFile, agent, edit/editFiles, todo]
+tools: [vscode/memory, vscode/resolveMemoryFileUri, vscode/askQuestions, read, agent, edit, search, 'memory/*', todo]
 model: Claude Sonnet 4.6 (copilot)
 ---
 

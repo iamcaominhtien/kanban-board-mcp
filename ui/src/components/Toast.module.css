@@ -1,0 +1,142 @@
+.toastContainer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 9999;
+  width: 360px;
+  max-width: calc(100vw - 48px);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1px solid #DCE6DF;
+  box-shadow: 0 10px 24px rgba(30, 42, 34, 0.1);
+  animation: toastSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateY(12px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.iconSuccess {
+  background: #CFFFDC;
+  color: #2E6F40;
+}
+
+.iconError {
+  background: #FBE7E4;
+  color: #C4432A;
+}
+
+.iconWarning {
+  background: #FCEFD9;
+  color: #B4791E;
+}
+
+.iconInfo {
+  background: #EAF2FB;
+  color: #2F6FB0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E2A22;
+  line-height: 1.35;
+}
+
+.message {
+  font-size: 13px;
+  color: #5B6B60;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.closeButton {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #B7C4BC;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.closeButton:hover {
+  background: #F6FAF7;
+  color: #5B6B60;
+}
+
+/* Inline Banner Variant */
+.inlineBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #F6FAF7;
+  border: 1px solid #DCE6DF;
+}
+
+.bannerIcon {
+  color: #2E6F40;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.bannerText {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1E2A22;
+}

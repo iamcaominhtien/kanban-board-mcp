@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .sm-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; cursor: pointer; }
+    .sm-item:hover { background: #F6FAF7; }
+  </style>
+</helmet>
+
+<div style="width: 640px; height: 760px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 24px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Status Menu</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 500px; line-height: 1.5;">Opens from the Status control in Ticket Detail's sidebar. Each status keeps the dot color it already has on the board (column accents); the current one is checked, not just highlighted.</div>
+  </div>
+
+  <div style="display: flex; gap: 32px; align-items: flex-start;">
+
+    <!-- Closed state -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Closed</div>
+      <button style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #F6FAF7; cursor: pointer;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0;"></span>
+        <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">In Progress</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9L12 15L18 9"></path></svg>
+      </button>
+    </div>
+
+    <!-- Open state -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Open</div>
+      <div style="position: relative; height: 300px;">
+        <button style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 6px; border: 1px solid #2E6F40; background: #FFFFFF; cursor: pointer;">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0;"></span>
+          <span style="font-size: 12.5px; font-weight: 600; color: #1E2A22;">In Progress</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(180deg);"><path d="M6 9L12 15L18 9"></path></svg>
+        </button>
+        <div style="position: absolute; top: 34px; left: 0; width: 188px; background: #FFFFFF; border: 1px solid #E3E8E5; border-radius: 8px; box-shadow: 0 12px 28px rgba(30,42,34,0.14); padding: 4px; display: flex; flex-direction: column;">
+
+          <div class="sm-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #C7D2CB; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Backlog</span>
+          </div>
+
+          <div class="sm-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #9AA8A0; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">To Do</span>
+          </div>
+
+          <div class="sm-item" style="background: #F1F8F3;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2F6FB0; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 600;">In Progress</span>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0;"><path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+
+          <div class="sm-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #6D5DD3; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Review</span>
+          </div>
+
+          <div class="sm-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #B4571F; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Testing</span>
+          </div>
+
+          <div class="sm-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2E6F40; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Done</span>
+          </div>
+
+          <div style="height: 1px; background: #EEF3EF; margin: 4px 6px;"></div>
+
+          <div class="sm-item">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #C4432A; flex-shrink: 0;"></span>
+            <span style="flex-grow: 1; font-size: 13px; color: #3A4A3E;">Won't Do</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 520px; box-sizing: border-box;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: "Testing" and "Review" are two new statuses, added between In Progress and Done — <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">Status</code> today is only <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">backlog | todo | in-progress | done | wont_do</code>. Intent: a ticket moves to Review once the code is up and ready for a look, then to Testing once review passes and its test cases are ready to run (pairs with the Test Cases tab), before Done. Board column set, column-count rollups and any other place that reads Status will need updating for dev to wire these in.</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":640,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

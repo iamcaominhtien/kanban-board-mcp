@@ -1,5 +1,11 @@
 import asyncio
 
+# ---------------------------------------------------------------------------
+# Event type constants
+# ---------------------------------------------------------------------------
+
+INVALIDATE = "invalidate"
+
 # Global set of subscriber queues
 _subscribers: set[asyncio.Queue] = set()
 

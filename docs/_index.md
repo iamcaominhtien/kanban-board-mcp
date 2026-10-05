@@ -1,12 +1,19 @@
 # Documentation Index
 _Auto-generated. Do not edit manually. Run `python .github/skills/doc-writer/generate_docs_index.py` to refresh._
 
-_Last updated: 2026-04-13_
+_Last updated: 2026-04-25_
+
+## Architecture
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [arch/arch-idea-board-technical.md](arch/arch-idea-board-technical.md) | IAM-100: Idea Board — Technical Architecture | stable | 1.0.0 | 2026-04-21 |
 
 ## Business Analysis
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
+| [ba/idea-board-backend.md](ba/idea-board-backend.md) | BA Planning: Idea Board Backend Integration | stable | 1.0.0 | 2026-04-25 |
 | [specs/iam-87-description-upload.md](specs/iam-87-description-upload.md) | BA Spec: Cải thiện Mô tả - Dán ảnh và Tải tệp (IAM-87) | draft | 1.0.0 | 2026-04-13 |
 | [specs/kanban-ui.md](specs/kanban-ui.md) | BA Spec: Kanban UI (Bento Grid Style) | draft | 1.2.0 | 2026-04-03 |
 
@@ -14,35 +21,88 @@ _Last updated: 2026-04-13_
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
+| [drafts/testing-plan-draft.md](drafts/testing-plan-draft.md) | Test Plan Draft: IAM-100 Idea Board | draft | 1.0.0 | 2026-04-21 |
 | [test-logs/iam-35-comments.md](test-logs/iam-35-comments.md) | Test Plan: Comments Cleanup (IAM-35) | stable | 1.0.1 | 2026-04-04 |
 | [test-logs/iam-36-block-relations.md](test-logs/iam-36-block-relations.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | in-progress | 1.0.1 | 2026-04-08 |
 | [test-logs/iam-39-members.md](test-logs/iam-39-members.md) | Test Plan: Assignee, Created By, and Project Members (IAM-39) | stable | 1.0.1 | 2026-04-08 |
 | [test-logs/iam-40-timeline-view.md](test-logs/iam-40-timeline-view.md) | Test Plan: Project Timeline View (IAM-40) | review | 1.0.2 | 2026-04-08 |
 | [test-logs/iam-71-mcp-e2e.md](test-logs/iam-71-mcp-e2e.md) | Test Plan: IAM-71 MCP End-to-End Verification | stable | 1.1.0 | 2026-04-09 |
 | [test-logs/iam-72-proof-note.md](test-logs/iam-72-proof-note.md) | Test Plan: IAM-72 Test Case Proof and Note Rendering | stable | 1.0.1 | 2026-04-09 |
+| [test-plans/266e30b2-block-done.md](test-plans/266e30b2-block-done.md) | Test Plan: IAM-99 Block Done Transition | stable | 1.0.2 | 2026-04-17 |
 | [test-plans/753a6a27-sse-auto-refresh.md](test-plans/753a6a27-sse-auto-refresh.md) | Test Plan: SSE Auto-Refresh for MCP Mutations (753a6a27) | stable | 1.3.0 | 2026-04-11 |
+| [test-plans/IAM-106.md](test-plans/IAM-106.md) | Test Plan: IAM-106 Drag-and-Drop Optimistic Status Update | draft | 1.0.0 | 2026-04-18 |
 | [test-plans/IAM-74.md](test-plans/IAM-74.md) | Test Plan: IAM-74 Desktop App (Electron + PyInstaller + VS Code MCP Auto-Setup) | stable | 1.0.0 | 2026-04-11 |
 | [test-plans/IAM-85.md](test-plans/IAM-85.md) | Test Plan: IAM-85 Use Repo Logo in Desktop App and Web UI | stable | 1.0.1 | 2026-04-11 |
+| [test-plans/IAM-87-test-plan.md](test-plans/IAM-87-test-plan.md) | Test Plan: IAM-87 Fix Image Upload and Paste Overflow in MarkdownEditor | review | 1.0.1 | 2026-04-14 |
 | [test-plans/IAM-87.md](test-plans/IAM-87.md) | Test Plan: IAM-87 Description Image Paste and Upload | stable | 1.1.0 | 2026-04-13 |
+| [test-plans/IAM-88-89.md](test-plans/IAM-88-89.md) | Test Plan: IAM-88 and IAM-89 Markdown and Image Support | review | 1.0.2 | 2026-04-17 |
+| [test-plans/IAM-93.md](test-plans/IAM-93.md) | Test Plan: IAM-93 CI/CD Auto Release Pipeline | stable | 1.0.1 | 2026-04-15 |
+| [test-plans/IAM-95.md](test-plans/IAM-95.md) | Test Plan: IAM-95 Improve Desktop App Startup Time | review | 1.0.1 | 2026-04-16 |
+| [test-plans/ce4cc488-ticket-links.md](test-plans/ce4cc488-ticket-links.md) | Test Plan: IAM-98 Ticket Links - Extended Relationship Types | stable | 1.1.0 | 2026-04-17 |
+| [test-plans/iam-100-idea-board-demo.md](test-plans/iam-100-idea-board-demo.md) | Test Plan: IAM-100 Idea Board Live Demo | review | 1.1.0 | 2026-04-22 |
+| [test-plans/iam-111.md](test-plans/iam-111.md) | Test Plan: IAM-111 Ticket Card Redesign | stable | 1.0.1 | 2026-04-18 |
+| [test-plans/iam-114.md](test-plans/iam-114.md) | Test Plan: IAM-114 Board Layout Improvements | stable | 1.0.2 | 2026-04-18 |
+| [test-plans/iam-115.md](test-plans/iam-115.md) | Test Plan: IAM-115 Ticket Detail Modal and Create Form UI Polish | stable | 1.0.1 | 2026-04-18 |
+| [test-plans/iam-117.md](test-plans/iam-117.md) | Test Plan: IAM-117 Idea Board Data Model | stable | 1.0.1 | 2026-04-22 |
+| [test-plans/iam-118.md](test-plans/iam-118.md) | Test Plan: IAM-118 MCP Tools for Idea Board | stable | 1.0.1 | 2026-04-22 |
+| [test-plans/iam-119.md](test-plans/iam-119.md) | Test Plan: IAM-119 Blocker Re-run | review | 1.0.1 | 2026-04-22 |
+| [test-plans/iam-121.md](test-plans/iam-121.md) | Test Plan: IAM-121 BoardSwitcher + Routing | review | 1.0.1 | 2026-04-22 |
 | [test-plans/iam-36.md](test-plans/iam-36.md) | Test Plan: IAM-36 Block / Blocked-by Relationships | stable | 1.1.0 | 2026-04-08 |
 | [test-plans/iam-37.md](test-plans/iam-37.md) | IAM-37 Test Plan — Grouped List View | stable | 1.1.5 | 2026-04-08 |
 | [test-plans/iam-55.md](test-plans/iam-55.md) | Test Plan: Create Child Ticket Inline Form (IAM-55) | stable | 1.2.0 | 2026-04-07 |
+| [test-plans/iam-97.md](test-plans/iam-97.md) | Test Plan: IAM-97 UI improvements: ticket ordering & terminology | stable | 1.0.1 | 2026-04-16 |
+| [test-plans/idea-board-backend-tests.md](test-plans/idea-board-backend-tests.md) | Idea Board Backend — Test Plan | review | 1.2.1 | 2026-04-25 |
+| [test-plans/pr-95-bw-theme-toggle.md](test-plans/pr-95-bw-theme-toggle.md) | Test Plan: PR-95 B&W TV Theme Toggle | stable | 1.1.0 | 2026-04-18 |
 | [test-plans/test-ac-mcp-tools.md](test-plans/test-ac-mcp-tools.md) | Test Plan: Acceptance Criteria MCP Tools | stable | 1.1.0 | 2026-04-09 |
+| [test-plans/ui-ux-audit-screenshots.md](test-plans/ui-ux-audit-screenshots.md) | Test Plan: UI/UX Screenshot Audit | in-progress | 1.0.0 | 2026-04-17 |
 
 ## Developer Guides
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
 | [README.md](README.md) | README | — | — | — |
+| [specs/IAM-93-cicd-auto-release.md](specs/IAM-93-cicd-auto-release.md) | IAM-93-cicd-auto-release | — | — | — |
+| [specs/IAM-95-macos-startup-optimization.md](specs/IAM-95-macos-startup-optimization.md) | IAM-95-macos-startup-optimization | — | — | — |
 | [specs/api-contract.md](specs/api-contract.md) | api-contract | — | — | — |
+| [specs/ce4cc488-ticket-links.md](specs/ce4cc488-ticket-links.md) | ce4cc488-ticket-links | — | — | — |
 | [specs/desktop-app.md](specs/desktop-app.md) | desktop-app | — | — | — |
+| [test-idea-board-e2e-rerun-2026-04-25.md](test-idea-board-e2e-rerun-2026-04-25.md) | test-idea-board-e2e-rerun-2026-04-25 | — | — | — |
 | [test-logs/iam-38-recycle-bin.md](test-logs/iam-38-recycle-bin.md) | iam-38-recycle-bin | — | — | — |
+| [ui-audit/UI-IMPROVEMENT-PLAN.md](ui-audit/UI-IMPROVEMENT-PLAN.md) | UI-IMPROVEMENT-PLAN | — | — | — |
+| [ui-audit/screenshots/initial-snapshot.md](ui-audit/screenshots/initial-snapshot.md) | initial-snapshot | — | — | — |
+| [ui-audit/ui-analysis-brainstormer.md](ui-audit/ui-analysis-brainstormer.md) | ui-analysis-brainstormer | — | — | — |
 
 ## Architecture
 
 | File | Title | Status | Version | Updated |
 |---|---|---|---|---|
 | [arch/backend-architecture.md](arch/backend-architecture.md) | Backend Architecture & Implementation Plan | approved | 1.0.0 | 2026-04-04 |
+
+## Ba-Spec-Draft
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [drafts/ba-spec-draft.md](drafts/ba-spec-draft.md) | IAM-100 Idea Board — BA Specification Draft | draft | — | — |
+
+## Design
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [design/idea-board-design.md](design/idea-board-design.md) | Idea Board Design | stable | 1.0.0 | 2026-04-21 |
+| [design/idea-board-visual-concept.md](design/idea-board-visual-concept.md) | Idea Board — Concept 2: Playful/Toy-like Visual Design | stable | 1.0.0 | 2026-04-22 |
+| [design/idea-ticket-7-features-visual-concept.md](design/idea-ticket-7-features-visual-concept.md) | Idea Ticket - 7 Features Extension | draft | — | 2026-04-25 |
+
+## Spec
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [specs/IAM-100-idea-board-spec.md](specs/IAM-100-idea-board-spec.md) | IAM-100: Idea Board — Implementation & Testing Plan | stable | 1.0.0 | 2026-04-21 |
+
+## Technical-Analysis
+
+| File | Title | Status | Version | Updated |
+|---|---|---|---|---|
+| [drafts/tech-analysis-draft.md](drafts/tech-analysis-draft.md) | Idea Board Feature — Comprehensive Technical Analysis | draft | 1.0.0 | — |
 
 ## Test-Plan
 

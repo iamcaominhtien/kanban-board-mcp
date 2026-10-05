@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .md { font-size: 14px; line-height: 1.65; color: #3A4A3E; }
+    .md h2 { font-size: 17px; font-weight: 700; color: #1E2A22; margin: 0 0 4px; }
+    .md h3 { font-size: 14.5px; font-weight: 700; color: #1E2A22; margin: 0 0 2px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .md p { margin: 0 0 12px; }
+    .md ul { margin: 0 0 12px; padding-left: 20px; }
+    .md li { margin-bottom: 3px; }
+    .md code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40; }
+    .md mark { background: rgba(232,185,58,0.35); color: #1E2A22; padding: 0 2px; border-radius: 2px; }
+    .md blockquote { margin: 0 0 12px; padding: 2px 14px; border-left: 2.5px solid #DCE6DF; color: #5B6B60; font-style: italic; }
+    .md a { color: #2E6F40; text-decoration: underline; text-decoration-color: rgba(46,111,64,0.35); }
+    .md img { max-width: 100%; border-radius: 8px; border: 1px solid #E3E8E5; display: block; margin: 4px 0 12px; }
+    .md-callout { display: flex; gap: 9px; padding: 10px 12px; border-radius: 7px; background: #FEF6E7; border: 1px solid #F0DBA8; margin: 0 0 12px; }
+    .md-align-center { text-align: center; }
+    .md-align-center img { margin-left: auto; margin-right: auto; }
+    .md-align-right { text-align: right; }
+    .md-toolbar-btn { width: 26px; height: 26px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5B6B60; }
+    .md-toolbar-btn:hover { background: #EAF0EC; }
+    .md-tab { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: none; }
+    .md-raw { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.7; color: #3A4A3E; white-space: pre-wrap; width: 100%; border: none; outline: none; resize: none; background: none; }
+    .md-selected { background: rgba(47,111,176,0.22); border-radius: 2px; }
+    .bubble-btn { width: 26px; height: 26px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #EEF3EF; }
+    .bubble-btn:hover { background: rgba(255,255,255,0.12); }
+  </style>
+</helmet>
+
+<div style="width: 900px; height: 2820px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Description — Markdown</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 700px; line-height: 1.5;">Two directions for the same field, both still open: A) edit the raw Markdown source directly, or B) edit the rendered content itself and never see Markdown syntax. Same rendered look either way — only the editing mechanic differs.</div>
+  </div>
+
+  <!-- ═══ APPROACH A ═══ -->
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #2E6F40; background: #F1F8F3; padding: 4px 10px; border-radius: 5px;">Approach A</div>
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">Raw Markdown — technical, exact, copy-pasteable</div>
+  </div>
+
+  <!-- View (rendered, read-only) -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">View — click anywhere to edit</div>
+    <div style="width: 788px; border: 1px solid #E3E8E5; border-radius: 10px; padding: 24px 28px; box-sizing: border-box;">
+      <div class="md">
+        <h2>Rollout plan</h2>
+        <p>Ship the new column header behind a flag. <strong>Do not</strong> enable it for the whole workspace on day one — <em>staged rollout only</em>. Once QA signs off, flip <code>headerRedesign</code> to <code>true</code> for everyone.</p>
+        <div class="md-callout">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M12 9V13"></path><circle cx="12" cy="16.5" r="0.6" fill="#B8860B"></circle><path d="M10.3 3.9L2.5 17.5C1.9 18.6 2.7 20 4 20H19.9C21.2 20 22.1 18.6 21.4 17.5L13.7 3.9C13 2.7 11.1 2.7 10.3 3.9Z"></path></svg>
+          <span><mark>Heads up:</mark> this touches the same DOM node <code>DraggableTicketCard</code> reads during drag — coordinate with KAN-142 before merging.</span>
+        </div>
+        <h3>Checklist</h3>
+        <ul>
+          <li>Feature flag added and defaulted off</li>
+          <li>Snapshot tests updated for the new header height</li>
+          <li>Rollback plan documented in the <a href="#">runbook</a></li>
+        </ul>
+        <blockquote>"Ship it small, ship it twice." — team motto, not mine.</blockquote>
+        <div class="md-align-center">
+          <div style="width: 100%; max-width: 720px; height: 220px; border-radius: 8px; border: 1px solid #E3E8E5; background: #F6FAF7; margin: 0 auto 4px; overflow: hidden; box-sizing: border-box; position: relative;">
+            <svg width="100%" height="100%" viewBox="0 0 720 220" preserveAspectRatio="xMidYMid slice">
+              <rect x="24" y="20" width="672" height="28" rx="6" fill="#FFFFFF" stroke="#E3E8E5"></rect>
+              <rect x="36" y="30" width="90" height="8" rx="4" fill="#DCE6DF"></rect>
+              <rect x="150" y="30" width="14" height="14" rx="3" fill="#2F6FB0" opacity="0.15"></rect>
+              <rect x="24" y="64" width="210" height="136" rx="8" fill="#FFFFFF" stroke="#E3E8E5"></rect>
+              <rect x="24" y="64" width="210" height="24" rx="6" fill="none"></rect>
+              <rect x="36" y="76" width="60" height="7" rx="3.5" fill="#9AA8A0"></rect>
+              <rect x="36" y="100" width="186" height="46" rx="6" fill="#F6FAF7" stroke="#E3E8E5"></rect>
+              <rect x="46" y="110" width="70" height="6" rx="3" fill="#C7D2CB"></rect>
+              <rect x="46" y="122" width="120" height="6" rx="3" fill="#DCE6DF"></rect>
+              <rect x="36" y="154" width="186" height="34" rx="6" fill="#F1F8F3" stroke="#D7E8DC"></rect>
+              <rect x="46" y="163" width="90" height="6" rx="3" fill="#68BA7F"></rect>
+              <rect x="255" y="64" width="210" height="136" rx="8" fill="#FFFFFF" stroke="#2E6F40" stroke-width="1.6"></rect>
+              <rect x="267" y="76" width="60" height="7" rx="3.5" fill="#9AA8A0"></rect>
+              <rect x="267" y="100" width="186" height="46" rx="6" fill="#F6FAF7" stroke="#E3E8E5"></rect>
+              <rect x="277" y="110" width="90" height="6" rx="3" fill="#C7D2CB"></rect>
+              <rect x="277" y="122" width="60" height="6" rx="3" fill="#DCE6DF"></rect>
+              <rect x="267" y="154" width="186" height="34" rx="6" fill="#F6FAF7" stroke="#E3E8E5"></rect>
+              <rect x="277" y="163" width="70" height="6" rx="3" fill="#C7D2CB"></rect>
+              <rect x="486" y="64" width="210" height="136" rx="8" fill="#FFFFFF" stroke="#E3E8E5"></rect>
+              <rect x="498" y="76" width="60" height="7" rx="3.5" fill="#9AA8A0"></rect>
+              <rect x="498" y="100" width="186" height="46" rx="6" fill="#F6FAF7" stroke="#E3E8E5"></rect>
+              <rect x="508" y="110" width="80" height="6" rx="3" fill="#C7D2CB"></rect>
+              <rect x="508" y="122" width="140" height="6" rx="3" fill="#DCE6DF"></rect>
+            </svg>
+            <div style="position: absolute; top: 8px; right: 10px; display: flex; align-items: center; gap: 4px; padding: 2px 7px; background: rgba(30,42,34,0.72); border-radius: 4px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#EEF3EF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+              <span style="font-size: 9px; font-weight: 600; color: #EEF3EF;">header-redesign.png</span>
+            </div>
+          </div>
+        </div>
+        <p class="md-align-right" style="margin-bottom: 0;">Reviewed by <strong>@hoangnv</strong> — approved Sep 16.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editing — Write -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Editing — Write (raw Markdown)</div>
+    <div style="width: 788px; border: 1px solid #2E6F40; border-radius: 10px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10); overflow: hidden; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #E3E8E5; background: #F6FAF7;">
+        <div style="display: flex; align-items: center; gap: 2px;">
+          <button class="md-tab" style="background: #FFFFFF; color: #1E2A22; box-shadow: 0 1px 2px rgba(30,42,34,0.08);">Write</button>
+          <button class="md-tab" style="color: #9AA8A0;">Preview</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 2px;">
+          <button class="md-toolbar-btn" aria-label="Bold"><span style="font-size: 14px; font-weight: 800;">B</span></button>
+          <button class="md-toolbar-btn" aria-label="Italic"><span style="font-size: 14px; font-style: italic; font-weight: 600;">i</span></button>
+          <button class="md-toolbar-btn" aria-label="Highlight">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L15 5L19 9L13 15"></path><path d="M9 11L13 15L7 19H3V15L9 11Z"></path></svg>
+          </button>
+          <span style="width: 1px; height: 16px; background: #DCE6DF; margin: 0 4px;"></span>
+          <button class="md-toolbar-btn" aria-label="Heading"><span style="font-size: 12px; font-weight: 700;">H2</span></button>
+          <button class="md-toolbar-btn" aria-label="Bulleted list">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="4.5" cy="6" r="1"></circle><circle cx="4.5" cy="12" r="1"></circle><circle cx="4.5" cy="18" r="1"></circle><path d="M9 6H20"></path><path d="M9 12H20"></path><path d="M9 18H20"></path></svg>
+          </button>
+          <button class="md-toolbar-btn" aria-label="Quote">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15C9 15 10 13.5 10 11.5C10 9.5 8.5 8 6.5 8C4.5 8 3 9.5 3 11.5C3 14.5 5 17 8 18"></path><path d="M17 15C19 15 20 13.5 20 11.5C20 9.5 18.5 8 16.5 8C14.5 8 13 9.5 13 11.5C13 14.5 15 17 18 18"></path></svg>
+          </button>
+          <button class="md-toolbar-btn" aria-label="Code">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6L2 12L8 18"></path><path d="M16 6L22 12L16 18"></path></svg>
+          </button>
+          <button class="md-toolbar-btn" aria-label="Link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9"></path><path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1"></path></svg>
+          </button>
+          <button class="md-toolbar-btn" aria-label="Image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+          </button>
+          <span style="width: 1px; height: 16px; background: #DCE6DF; margin: 0 4px;"></span>
+          <button class="md-toolbar-btn" aria-label="Align left" style="background: #EAF0EC;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M3 12H15"></path><path d="M3 18H18"></path></svg>
+          </button>
+          <button class="md-toolbar-btn" aria-label="Align center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M6 12H18"></path><path d="M4.5 18H19.5"></path></svg>
+          </button>
+          <button class="md-toolbar-btn" aria-label="Align right">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M9 12H21"></path><path d="M6 18H21"></path></svg>
+          </button>
+        </div>
+      </div>
+      <textarea class="md-raw" rows="18" style="padding: 16px 18px; box-sizing: border-box;">## Rollout plan
+
+Ship the new column header behind a flag. **Do not** enable it for the whole workspace on day one — *staged rollout only*. Once QA signs off, flip `headerRedesign` to `true` for everyone.
+
+&gt; **Heads up:** this touches the same DOM node `DraggableTicketCard` reads during drag — coordinate with KAN-142 before merging.
+
+### Checklist
+- Feature flag added and defaulted off
+- Snapshot tests updated for the new header height
+- Rollback plan documented in the [runbook](#)
+
+&gt; "Ship it small, ship it twice." — team motto, not mine.
+
+::: center
+![Column header mock](attachment.png)
+:::
+
+::: right
+Reviewed by @hoangnv — approved Sep 16.
+:::</textarea>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0;">Toolbar buttons insert Markdown syntax at the cursor — they don't format live text like a rich editor.</div>
+  </div>
+
+  <!-- Editing — Preview -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Editing — Preview tab</div>
+    <div style="width: 788px; border: 1px solid #2E6F40; border-radius: 10px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10); overflow: hidden; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; padding: 8px 10px; border-bottom: 1px solid #E3E8E5; background: #F6FAF7;">
+        <div style="display: flex; align-items: center; gap: 2px;">
+          <button class="md-tab" style="color: #9AA8A0;">Write</button>
+          <button class="md-tab" style="background: #FFFFFF; color: #1E2A22; box-shadow: 0 1px 2px rgba(30,42,34,0.08);">Preview</button>
+        </div>
+      </div>
+      <div class="md" style="padding: 20px 22px;">
+        <h2>Rollout plan</h2>
+        <p>Ship the new column header behind a flag. <strong>Do not</strong> enable it for the whole workspace on day one — <em>staged rollout only</em>.</p>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0;">Same render as View — the toolbar hides here since there's nothing to type into. Switching back to Write keeps the cursor where it was.</div>
+  </div>
+
+  <!-- ═══ APPROACH B ═══ -->
+  <div style="display: flex; align-items: center; gap: 10px; padding-top: 8px; border-top: 1px solid #DCE6DF;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #2F6FB0; background: #E1EEFB; padding: 4px 10px; border-radius: 5px;">Approach B</div>
+    <div style="font-size: 14px; font-weight: 600; color: #1E2A22;">WYSIWYG — no Markdown syntax ever visible</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Editing — content stays rendered, same toolbar as Approach A</div>
+    <div style="width: 788px; border: 1px solid #2E6F40; border-radius: 10px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10); overflow: hidden; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; gap: 2px; padding: 8px 10px; border-bottom: 1px solid #E3E8E5; background: #F6FAF7;">
+        <button class="md-toolbar-btn" aria-label="Bold"><span style="font-size: 14px; font-weight: 800;">B</span></button>
+        <button class="md-toolbar-btn" aria-label="Italic"><span style="font-size: 14px; font-style: italic; font-weight: 600;">i</span></button>
+        <button class="md-toolbar-btn" aria-label="Highlight">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L15 5L19 9L13 15"></path><path d="M9 11L13 15L7 19H3V15L9 11Z"></path></svg>
+        </button>
+        <span style="width: 1px; height: 16px; background: #DCE6DF; margin: 0 4px;"></span>
+        <button class="md-toolbar-btn" aria-label="Heading"><span style="font-size: 12px; font-weight: 700;">H2</span></button>
+        <button class="md-toolbar-btn" aria-label="Bulleted list">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="4.5" cy="6" r="1"></circle><circle cx="4.5" cy="12" r="1"></circle><circle cx="4.5" cy="18" r="1"></circle><path d="M9 6H20"></path><path d="M9 12H20"></path><path d="M9 18H20"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Quote">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15C9 15 10 13.5 10 11.5C10 9.5 8.5 8 6.5 8C4.5 8 3 9.5 3 11.5C3 14.5 5 17 8 18"></path><path d="M17 15C19 15 20 13.5 20 11.5C20 9.5 18.5 8 16.5 8C14.5 8 13 9.5 13 11.5C13 14.5 15 17 18 18"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Code">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6L2 12L8 18"></path><path d="M16 6L22 12L16 18"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9"></path><path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Image">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+        </button>
+        <span style="width: 1px; height: 16px; background: #DCE6DF; margin: 0 4px;"></span>
+        <button class="md-toolbar-btn" aria-label="Align left" style="background: #EAF0EC;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M3 12H15"></path><path d="M3 18H18"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Align center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M6 12H18"></path><path d="M4.5 18H19.5"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Align right">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M9 12H21"></path><path d="M6 18H21"></path></svg>
+        </button>
+      </div>
+      <div style="padding: 20px 22px 24px;">
+        <div class="md">
+          <h2>Rollout plan</h2>
+          <p>Ship the new column header behind a flag. <span class="md-selected">Do not enable it for the whole workspace on day one</span> — <em>staged rollout only</em>. Once QA signs off, flip <code>headerRedesign</code> to <code>true</code> for everyone.<span style="display: inline-block; width: 1.5px; height: 15px; background: #2E6F40; vertical-align: -2px; margin-left: 1px;"></span></p>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0;">Same toolbar as Approach A, same buttons — the only difference is what's underneath it: rendered content you type straight into, instead of raw Markdown text. Select a word, hit Bold, it turns bold right there.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking Link — popover under the toolbar button</div>
+    <div style="width: 788px; border: 1px solid #2E6F40; border-radius: 10px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10); overflow: visible; box-sizing: border-box;">
+      <div style="position: relative; display: flex; align-items: center; gap: 2px; padding: 8px 10px; border-bottom: 1px solid #E3E8E5; background: #F6FAF7; border-radius: 10px 10px 0 0;">
+        <button class="md-toolbar-btn" aria-label="Bold"><span style="font-size: 14px; font-weight: 800;">B</span></button>
+        <button class="md-toolbar-btn" aria-label="Italic"><span style="font-size: 14px; font-style: italic; font-weight: 600;">i</span></button>
+        <button class="md-toolbar-btn" aria-label="Highlight">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L15 5L19 9L13 15"></path><path d="M9 11L13 15L7 19H3V15L9 11Z"></path></svg>
+        </button>
+        <span style="width: 1px; height: 16px; background: #DCE6DF; margin: 0 4px;"></span>
+        <button class="md-toolbar-btn" aria-label="Heading"><span style="font-size: 12px; font-weight: 700;">H2</span></button>
+        <button class="md-toolbar-btn" aria-label="Bulleted list">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="4.5" cy="6" r="1"></circle><circle cx="4.5" cy="12" r="1"></circle><circle cx="4.5" cy="18" r="1"></circle><path d="M9 6H20"></path><path d="M9 12H20"></path><path d="M9 18H20"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Quote">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15C9 15 10 13.5 10 11.5C10 9.5 8.5 8 6.5 8C4.5 8 3 9.5 3 11.5C3 14.5 5 17 8 18"></path><path d="M17 15C19 15 20 13.5 20 11.5C20 9.5 18.5 8 16.5 8C14.5 8 13 9.5 13 11.5C13 14.5 15 17 18 18"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Code">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6L2 12L8 18"></path><path d="M16 6L22 12L16 18"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Link" style="background: #EAF0EC; color: #2E6F40;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9"></path><path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Image">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+        </button>
+        <span style="width: 1px; height: 16px; background: #DCE6DF; margin: 0 4px;"></span>
+        <button class="md-toolbar-btn" aria-label="Align left" style="background: #EAF0EC;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M3 12H15"></path><path d="M3 18H18"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Align center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M6 12H18"></path><path d="M4.5 18H19.5"></path></svg>
+        </button>
+        <button class="md-toolbar-btn" aria-label="Align right">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6H21"></path><path d="M9 12H21"></path><path d="M6 18H21"></path></svg>
+        </button>
+
+        <div style="position: absolute; top: 40px; left: 200px; width: 280px; background: #FFFFFF; border: 1px solid #E3E8E5; border-radius: 8px; box-shadow: 0 12px 28px rgba(30,42,34,0.16); padding: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 1;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9"></path><path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1"></path></svg>
+            <input placeholder="https://…" value="" style="flex-grow: 1; border: none; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px; color: #1E2A22; background: none;">
+          </div>
+          <div style="height: 1px; background: #EEF3EF;"></div>
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #9AA8A0;">Text</div>
+          <div style="font-size: 12.5px; color: #1E2A22; padding: 5px 7px; background: #F6FAF7; border-radius: 5px;">runbook</div>
+          <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 2px;">
+            <button style="font-size: 11.5px; font-weight: 600; color: #9AA8A0; background: none; border: none; padding: 4px 8px; cursor: pointer;">Cancel</button>
+            <button style="font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: #2E6F40; border: none; border-radius: 5px; padding: 4px 10px; cursor: pointer;">Apply</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 20px 22px 24px;">
+        <div class="md">
+          <h3 style="margin-bottom: 8px;">Checklist</h3>
+          <ul style="margin-bottom: 0;">
+            <li>Feature flag added and defaulted off</li>
+            <li>Snapshot tests updated for the new header height</li>
+            <li>Rollback plan documented in the <span class="md-selected">runbook</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0;">Select text first ("runbook"), then Link — the popover shows that text read-only as the label and just asks for the URL. Clicking Link with nothing selected instead asks for both label and URL.</div>
+  </div>
+
+  <div style="font-size: 13px; color: #5B6B60; line-height: 1.6; max-width: 700px;">Both approaches render to the exact same look — B just never shows the person raw syntax. Which one ships is an engineering call (see the earlier thread on TipTap/Lexical), not a visual one.</div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":2820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

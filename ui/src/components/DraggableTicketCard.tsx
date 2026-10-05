@@ -8,9 +8,10 @@ interface DraggableTicketCardProps {
   ticket: Ticket;
   onCardClick?: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
+  subtaskStats?: { total: number; completed: number };
 }
 
-export function DraggableTicketCard({ ticket, onCardClick, memberMap }: DraggableTicketCardProps) {
+export function DraggableTicketCard({ ticket, onCardClick, memberMap, subtaskStats }: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,
   });
@@ -23,9 +24,24 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap }: Draggabl
     }
   }, [isDragging]);
 
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={{
+          minHeight: 118,
+          borderRadius: 8,
+          border: '1.5px dashed #C7D2CB',
+          boxSizing: 'border-box',
+          opacity: 0.75,
+          margin: '2px 0',
+        }}
+      />
+    );
+  }
+
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : undefined,
     cursor: 'grab',
   };
 
@@ -39,7 +55,7 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap }: Draggabl
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={handleClick}>
-      <TicketCard ticket={ticket} memberMap={memberMap} />
+      <TicketCard ticket={ticket} memberMap={memberMap} subtaskStats={subtaskStats} />
     </div>
   );
 }

@@ -14,7 +14,6 @@
   cursor: pointer;
   width: 100%;
   text-align: left;
-  border-bottom: 1px solid rgba(61, 12, 17, 0.1);
 }
 
 .header:hover {

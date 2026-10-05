@@ -1,0 +1,402 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "type": "text", "id": "t3_title", "x": 60, "y": 20,
+      "width": 600, "height": 35, "text": "Empty States Redesign — Board · List · Timeline · Recycle Bin",
+      "originalText": "Empty States Redesign — Board · List · Timeline · Recycle Bin",
+      "fontSize": 26, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30001, "version": 1, "versionNonce": 40001,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "t3_sub", "x": 60, "y": 58,
+      "width": 700, "height": 20, "text": "Principle: each empty state has a unique illustration, contextual copy, and a direct CTA — no blank columns",
+      "originalText": "Principle: each empty state has a unique illustration, contextual copy, and a direct CTA — no blank columns",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#666666", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30002, "version": 1, "versionNonce": 40002,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_board", "x": 60, "y": 85,
+      "width": 320, "height": 380,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30003, "version": 1, "versionNonce": 40003,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_board_lbl", "x": 75, "y": 95,
+      "width": 200, "height": 20, "text": "BOARD EMPTY STATE",
+      "originalText": "BOARD EMPTY STATE",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30004, "version": 1, "versionNonce": 40004,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "ellipse", "id": "es_board_illus", "x": 145, "y": 125,
+      "width": 150, "height": 100,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "hachure",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 2, "opacity": 100,
+      "angle": 0, "seed": 30005, "version": 1, "versionNonce": 40005,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_board_illus_txt", "x": 172, "y": 162,
+      "width": 96, "height": 25, "text": "[ kanban\nsketch ]",
+      "originalText": "[ kanban\nsketch ]",
+      "fontSize": 11, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30006, "version": 1, "versionNonce": 40006,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_board_h", "x": 80, "y": 245,
+      "width": 280, "height": 30, "text": "Your board is a blank canvas.",
+      "originalText": "Your board is a blank canvas.",
+      "fontSize": 18, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30007, "version": 1, "versionNonce": 40007,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_board_body", "x": 80, "y": 283,
+      "width": 280, "height": 50, "text": "Drop your first idea here — a bug to fix,\na feature to build, or a question to answer.",
+      "originalText": "Drop your first idea here — a bug to fix,\na feature to build, or a question to answer.",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#666666", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30008, "version": 1, "versionNonce": 40008,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_board_cta", "x": 110, "y": 345,
+      "width": 180, "height": 40,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "cross-hatch",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 2, "opacity": 100,
+      "angle": 0, "seed": 30009, "version": 1, "versionNonce": 40009,
+      "isDeleted": false, "groupIds": [], "boundElements": [{"id": "es_board_cta_t", "type": "text"}], "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_board_cta_t", "x": 120, "y": 357,
+      "width": 160, "height": 20, "text": "+ Create first ticket",
+      "originalText": "+ Create first ticket",
+      "fontSize": 14, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30010, "version": 1, "versionNonce": 40010,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "es_board_cta", "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_board_hint", "x": 80, "y": 398,
+      "width": 280, "height": 18, "text": "or press  N  to start",
+      "originalText": "or press  N  to start",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#aaaaaa", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30011, "version": 1, "versionNonce": 40011,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_list", "x": 410, "y": 85,
+      "width": 320, "height": 380,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30012, "version": 1, "versionNonce": 40012,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_list_lbl", "x": 425, "y": 95,
+      "width": 200, "height": 20, "text": "LIST VIEW EMPTY STATE",
+      "originalText": "LIST VIEW EMPTY STATE",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30013, "version": 1, "versionNonce": 40013,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_list_row1", "x": 425, "y": 130,
+      "width": 290, "height": 18,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 50,
+      "angle": 0, "seed": 30014, "version": 1, "versionNonce": 40014,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "rectangle", "id": "es_list_row2", "x": 425, "y": 158,
+      "width": 290, "height": 18,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 35,
+      "angle": 0, "seed": 30015, "version": 1, "versionNonce": 40015,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "rectangle", "id": "es_list_row3", "x": 425, "y": 186,
+      "width": 290, "height": 18,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 20,
+      "angle": 0, "seed": 30016, "version": 1, "versionNonce": 40016,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_list_h", "x": 430, "y": 225,
+      "width": 280, "height": 30, "text": "No tickets yet.",
+      "originalText": "No tickets yet.",
+      "fontSize": 18, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30017, "version": 1, "versionNonce": 40017,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_list_body", "x": 430, "y": 263,
+      "width": 280, "height": 50, "text": "List view shows all tickets as rows.\nStart by creating your first one.",
+      "originalText": "List view shows all tickets as rows.\nStart by creating your first one.",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#666666", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30018, "version": 1, "versionNonce": 40018,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_list_cta", "x": 462, "y": 325,
+      "width": 196, "height": 40,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "cross-hatch",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 2, "opacity": 100,
+      "angle": 0, "seed": 30019, "version": 1, "versionNonce": 40019,
+      "isDeleted": false, "groupIds": [], "boundElements": [{"id": "es_list_cta_t", "type": "text"}], "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_list_cta_t", "x": 470, "y": 337,
+      "width": 180, "height": 20, "text": "+ Add first ticket",
+      "originalText": "+ Add first ticket",
+      "fontSize": 14, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30020, "version": 1, "versionNonce": 40020,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "es_list_cta", "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_timeline", "x": 760, "y": 85,
+      "width": 320, "height": 380,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30021, "version": 1, "versionNonce": 40021,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_timeline_lbl", "x": 775, "y": 95,
+      "width": 200, "height": 20, "text": "TIMELINE EMPTY STATE",
+      "originalText": "TIMELINE EMPTY STATE",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30022, "version": 1, "versionNonce": 40022,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "line", "id": "es_tl_spine", "x": 775, "y": 155,
+      "width": 290, "height": 0,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 2, "opacity": 40,
+      "angle": 0, "seed": 30023, "version": 1, "versionNonce": 40023,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0,0],[290,0]]
+    },
+    {
+      "type": "ellipse", "id": "es_tl_dot1", "x": 790, "y": 148,
+      "width": 14, "height": 14,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 50,
+      "angle": 0, "seed": 30024, "version": 1, "versionNonce": 40024,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "ellipse", "id": "es_tl_dot2", "x": 860, "y": 148,
+      "width": 14, "height": 14,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 35,
+      "angle": 0, "seed": 30025, "version": 1, "versionNonce": 40025,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "ellipse", "id": "es_tl_dot3", "x": 940, "y": 148,
+      "width": 14, "height": 14,
+      "strokeColor": "#cccccc", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 20,
+      "angle": 0, "seed": 30026, "version": 1, "versionNonce": 40026,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_tl_h", "x": 775, "y": 195,
+      "width": 290, "height": 30, "text": "Timeline is waiting for milestones.",
+      "originalText": "Timeline is waiting for milestones.",
+      "fontSize": 16, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30027, "version": 1, "versionNonce": 40027,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_tl_body", "x": 775, "y": 238,
+      "width": 290, "height": 60, "text": "Create tickets with due dates and\nthey'll appear here as a timeline.\nPerfect for sprint planning.",
+      "originalText": "Create tickets with due dates and\nthey'll appear here as a timeline.\nPerfect for sprint planning.",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#666666", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30028, "version": 1, "versionNonce": 40028,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_tl_cta", "x": 800, "y": 320,
+      "width": 240, "height": 40,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "cross-hatch",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 2, "opacity": 100,
+      "angle": 0, "seed": 30029, "version": 1, "versionNonce": 40029,
+      "isDeleted": false, "groupIds": [], "boundElements": [{"id": "es_tl_cta_t", "type": "text"}], "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_tl_cta_t", "x": 808, "y": 332,
+      "width": 224, "height": 20, "text": "Go to Board → add due dates",
+      "originalText": "Go to Board → add due dates",
+      "fontSize": 14, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30030, "version": 1, "versionNonce": 40030,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "es_tl_cta", "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_recycle", "x": 60, "y": 510,
+      "width": 480, "height": 280,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30031, "version": 1, "versionNonce": 40031,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_recycle_lbl", "x": 75, "y": 520,
+      "width": 200, "height": 20, "text": "RECYCLE BIN EMPTY STATE",
+      "originalText": "RECYCLE BIN EMPTY STATE",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#888888", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30032, "version": 1, "versionNonce": 40032,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "ellipse", "id": "es_recycle_illus", "x": 175, "y": 548,
+      "width": 90, "height": 90,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "hachure",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 2, "opacity": 40,
+      "angle": 0, "seed": 30033, "version": 1, "versionNonce": 40033,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_recycle_illus_txt", "x": 190, "y": 582,
+      "width": 60, "height": 20, "text": "[ bin ]",
+      "originalText": "[ bin ]",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#aaaaaa", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30034, "version": 1, "versionNonce": 40034,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_recycle_h", "x": 75, "y": 655,
+      "width": 450, "height": 30, "text": "Nothing deleted. All tickets are alive.",
+      "originalText": "Nothing deleted. All tickets are alive.",
+      "fontSize": 18, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30035, "version": 1, "versionNonce": 40035,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_recycle_body", "x": 75, "y": 692,
+      "width": 450, "height": 30, "text": "Deleted tickets appear here with a 30-day restore window.",
+      "originalText": "Deleted tickets appear here with a 30-day restore window.",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#666666", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30036, "version": 1, "versionNonce": 40036,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_recycle_hint", "x": 75, "y": 730,
+      "width": 450, "height": 20, "text": "← Back to board",
+      "originalText": "← Back to board",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#aaaaaa", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30037, "version": 1, "versionNonce": 40037,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "rectangle", "id": "es_principles", "x": 600, "y": 510,
+      "width": 480, "height": 280,
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30038, "version": 1, "versionNonce": 40038,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false
+    },
+    {
+      "type": "text", "id": "es_principles_h", "x": 615, "y": 520,
+      "width": 450, "height": 25, "text": "Design Principles for All Empty States",
+      "originalText": "Design Principles for All Empty States",
+      "fontSize": 15, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30039, "version": 1, "versionNonce": 40039,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "es_principles_list", "x": 615, "y": 555,
+      "width": 450, "height": 200, "text": "① Unique illustration per view — sketchy, hand-drawn style\n\n② Warm, personal copy — not 'No data found'\n   Board: 'Your board is a blank canvas.'\n   List: 'No tickets yet.'\n   Timeline: 'Timeline is waiting for milestones.'\n   Bin: 'Nothing deleted. All tickets are alive.'\n\n③ One clear CTA — direct, specific action\n\n④ Faint ghost rows / dots — reinforce what the view will look like\n\n⑤ Keyboard shortcut hint where relevant (e.g. press N)",
+      "originalText": "① Unique illustration per view — sketchy, hand-drawn style\n\n② Warm, personal copy — not 'No data found'\n   Board: 'Your board is a blank canvas.'\n   List: 'No tickets yet.'\n   Timeline: 'Timeline is waiting for milestones.'\n   Bin: 'Nothing deleted. All tickets are alive.'\n\n③ One clear CTA — direct, specific action\n\n④ Faint ghost rows / dots — reinforce what the view will look like\n\n⑤ Keyboard shortcut hint where relevant (e.g. press N)",
+      "fontSize": 12, "fontFamily": 1, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "angle": 0, "seed": 30040, "version": 1, "versionNonce": 40040,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "autoResize": true, "lineHeight": 1.25
+    }
+  ],
+  "appState": {
+    "gridSize": null,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

@@ -18,8 +18,8 @@ client.interceptors.response.use((response) => {
 });
 
 // Transform request bodies: camelCase → snake_case, and resolve baseURL per-request
-client.interceptors.request.use(async (config) => {
-  config.baseURL = await resolveOrigin();
+client.interceptors.request.use((config) => {
+  config.baseURL = resolveOrigin();
   if (config.data && typeof config.data === 'object' && !isFormDataPayload(config.data)) {
     config.data = snakecaseKeys(config.data as Record<string, unknown>, { deep: true });
   }

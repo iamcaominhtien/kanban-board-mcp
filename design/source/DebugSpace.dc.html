@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .dt-id-btn { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 3px 5px; margin: -3px -5px; border-radius: 5px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #1E2A22; }
+    .dt-id-btn:hover { background: #F6FAF7; }
+    .dt-view-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; color: #5B6B60; position: relative; box-sizing: border-box; }
+    .dt-view-btn:hover { background: #F6FAF7; }
+    .dt-view-btn-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .dt-view-dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+    .dt-view-tooltip { position: absolute; top: 36px; left: 0; padding: 5px 9px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; z-index: 2; }
+    .dt-view-btn:hover .dt-view-tooltip { opacity: 1; }
+    .tc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .tc-icon-btn { width: 24px; height: 24px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0; }
+    .tc-icon-btn:hover { background: #F6FAF7; color: #5B6B60; }
+    .tc-add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 6px; border: none; background: #2E6F40; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+    .tc-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9AA8A0; }
+    .tc-md { font-size: 12.5px; color: #3A4A3E; line-height: 1.6; padding: 8px 10px; border-radius: 6px; background: #F6FAF7; border: 1px solid #E3E8E5; }
+    .tc-md code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #EEF3EF; padding: 1px 5px; border-radius: 3px; color: #2E6F40; }
+    .tc-file-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 9px; border: 1px solid #E3E8E5; border-radius: 7px; background: #FFFFFF; }
+    .tc-file-icon { width: 22px; height: 22px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .tc-file-add-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px 5px 7px; border-radius: 7px; border: 1px dashed #C7D2CB; background: none; cursor: pointer; font-size: 11.5px; color: #9AA8A0; }
+    .tc-filter-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #5B6B60; }
+    .tc-filter-chip:hover { background: #F6FAF7; }
+    .tc-filter-chip-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .tc-filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dbg-kind-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0; }
+    .dbg-role-badge { padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+    .dbg-avatar { width: 20px; height: 20px; border-radius: 50%; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .dbg-item { display: flex; gap: 12px; position: relative; }
+    .dbg-rail { display: flex; flex-direction: column; align-items: center; width: 13px; flex-shrink: 0; }
+    .dbg-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; box-sizing: border-box; border: 2.5px solid #FFFFFF; box-shadow: 0 0 0 1px #E3E8E5; }
+    .dbg-line { width: 2px; flex-grow: 1; background: #E3E8E5; margin-top: 2px; min-height: 10px; }
+    .dbg-card { flex: 1; min-width: 0; padding: 12px 14px; border-radius: 10px; border: 1px solid #E3E8E5; background: #FFFFFF; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .dbg-pin-btn { width: 22px; height: 22px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #C7D2CB; flex-shrink: 0; }
+    .dbg-pin-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: #FDF8E9; border: 1px solid #F0E1AA; }
+    .dbg-link-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: #F6FAF7; border: 1px solid #E3E8E5; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #5B6B60; }
+    .md-toolbar-btn { width: 22px; height: 22px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5B6B60; }
+    .md-toolbar-btn:hover { background: #EAF0EC; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; height: 3160px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Debug Space</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 860px; line-height: 1.5;">Replaces the current flat "Work Log" section with a dedicated timeline for debugging a ticket — same underlying idea (who did what, when), extended with a <strong>kind</strong> per entry (Investigation, Fix attempt, Root cause, Blocked, Resolved), file attachments, links to a branch or a test case, and pinning so the finding that matters doesn't get buried under routine notes. Opened from its own icon-only button in Ticket Detail's header, next to Test Cases.</div>
+  </div>
+
+  <!-- Leaf ticket -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Ticket with active debugging (KAN-145)</div>
+    <div style="width: 1038px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+      <div style="display: flex; align-items: center; gap: 24px; padding: 20px 28px; border-bottom: 1px solid #E3E8E5;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 13px; font-weight: 500; color: #5B6B60;">Task</span>
+          </div>
+          <span style="width: 1px; height: 14px; background: #E3E8E5;"></span>
+          <button style="display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9AA8A0;">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5"></path><path d="M7.5 8.5L10 11L7.5 13.5"></path></svg>
+            KAN-140
+          </button>
+          <span style="font-size: 13px; color: #C7D2CB;">/</span>
+          <button class="dt-id-btn" title="Back to Details">KAN-145</button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px; flex-grow: 1; overflow: hidden;">
+          <button class="dt-view-btn" aria-label="Test Cases">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+            <span class="dt-view-dot" style="background: #2F6FB0;"></span>
+            <span class="dt-view-tooltip">Test — 1 pass · 1 running · 2 pending</span>
+          </button>
+          <button class="dt-view-btn dt-view-btn-active" aria-label="Debug Space">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9L10 12L7 15"></path><path d="M12 15H17"></path></svg>
+            <span class="dt-view-dot" style="background: #C4432A;"></span>
+            <span class="dt-view-tooltip">Debug — 5 entries · 1 blocked</span>
+          </button>
+        </div>
+
+        <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <div style="padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span class="tc-label" style="font-size: 11px;">5 entries · KAN-145</span>
+          <button class="tc-add-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Log entry
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <button class="tc-filter-chip tc-filter-chip-active">All (5)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #6D5DD3;"></span>Root cause (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #2F6FB0;"></span>Investigation (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #E2793D;"></span>Fix attempt (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #C4432A;"></span>Blocked (1)</button>
+          <button class="tc-filter-chip"><span class="tc-filter-dot" style="background: #2E6F40;"></span>Resolved (1)</button>
+        </div>
+
+        <!-- Pinned -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <span class="tc-field-label">Pinned</span>
+          <div class="dbg-pin-row">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#C7A339" style="flex-shrink: 0;"><path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z"></path></svg>
+            <span class="dbg-kind-badge" style="background: rgba(109,93,211,0.12); color: #6D5DD3;">Root cause</span>
+            <span style="flex-grow: 1; font-size: 12.5px; color: #1E2A22;">localStorage throws in Safari private mode — quota reports as 0 bytes</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">Ha My · 1d ago</span>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #2E6F40;"></span><span class="dbg-line"></span></div>
+            <div class="dbg-card">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="dbg-kind-badge" style="background: rgba(46,111,64,0.12); color: #2E6F40;">Resolved</span>
+                <div class="dbg-avatar" style="background: #DCEEE1; color: #2E6F40;">HM</div>
+                <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">Ha My</span>
+                <span class="dbg-role-badge" style="background: #DBEAFE; color: #2563EB;">Developer</span>
+                <span style="flex-grow: 1;"></span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">3h ago</span>
+                <button class="dbg-pin-btn" aria-label="Pin entry"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z"></path></svg></button>
+              </div>
+              <div class="tc-md">Shipped the <code>sessionStorage</code> fallback + a one-time warning toast. Verified on Safari 17.4, private and normal windows, and confirmed Chrome/Firefox are unaffected.</div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="dbg-link-chip">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+                  TC-2
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #C4432A;"></span><span class="dbg-line"></span></div>
+            <div class="dbg-card">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="dbg-kind-badge" style="background: rgba(196,67,42,0.12); color: #C4432A;">Blocked</span>
+                <div class="dbg-avatar" style="background: #FEF3C7; color: #D97706;">AN</div>
+                <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">An</span>
+                <span class="dbg-role-badge" style="background: #FEF3C7; color: #D97706;">BA</span>
+                <span style="flex-grow: 1;"></span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">yesterday</span>
+                <button class="dbg-pin-btn" aria-label="Pin entry"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z"></path></svg></button>
+              </div>
+              <div class="tc-md">Waiting on a product decision: fail <strong>silently</strong> to sessionStorage, or show a toast telling the user their draft won't survive a tab close? Blocks the fix.</div>
+            </div>
+          </div>
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #E2793D;"></span><span class="dbg-line"></span></div>
+            <div class="dbg-card">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="dbg-kind-badge" style="background: rgba(226,121,61,0.14); color: #B4571F;">Fix attempt</span>
+                <div class="dbg-avatar" style="background: #DCEEE1; color: #2E6F40;">HM</div>
+                <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">Ha My</span>
+                <span class="dbg-role-badge" style="background: #DBEAFE; color: #2563EB;">Developer</span>
+                <span style="flex-grow: 1;"></span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">yesterday</span>
+                <button class="dbg-pin-btn" aria-label="Pin entry"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z"></path></svg></button>
+              </div>
+              <div class="tc-md">Wrapped every <code>localStorage</code> call in try/catch with a <code>sessionStorage</code> fallback — draft-save no longer throws. Diff attached; not merged, waiting on the toast-copy question below.</div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="dbg-link-chip">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3V21"></path><path d="M18 3V21"></path><circle cx="6" cy="6" r="2.6"></circle><circle cx="18" cy="6" r="2.6"></circle><circle cx="6" cy="18" r="2.6"></circle><path d="M6 8.6C6 14 10 16.5 15.4 17.3"></path></svg>
+                  fix/safari-storage-fallback
+                </span>
+                <div class="tc-file-chip" style="padding: 3px 8px;">
+                  <div class="tc-file-icon" style="background: #E1EEFB; width: 18px; height: 18px;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2F6FB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+                  </div>
+                  <span style="font-size: 11px; font-weight: 600; color: #1E2A22;">storage-fallback.diff</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #2F6FB0;"></span><span class="dbg-line"></span></div>
+            <div class="dbg-card">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="dbg-kind-badge" style="background: rgba(47,111,176,0.12); color: #2F6FB0;">Investigation</span>
+                <div class="dbg-avatar" style="background: #D1FAE5; color: #059669;">AN</div>
+                <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">An</span>
+                <span class="dbg-role-badge" style="background: #D1FAE5; color: #059669;">Tester</span>
+                <span style="flex-grow: 1;"></span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">2d ago</span>
+                <button class="dbg-pin-btn" aria-label="Pin entry"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z"></path></svg></button>
+              </div>
+              <div class="tc-md">Reproduced on Safari 17 (private window) — draft-save throws immediately. Chrome and Firefox unaffected, and Safari in a normal window is fine too. Console log attached.</div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <div class="tc-file-chip" style="padding: 3px 8px;">
+                  <div class="tc-file-icon" style="background: #F1F1F1; width: 18px; height: 18px;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+                  </div>
+                  <span style="font-size: 11px; font-weight: 600; color: #1E2A22;">safari-console.log</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dbg-item">
+            <div class="dbg-rail"><span class="dbg-dot" style="background: #6D5DD3;"></span></div>
+            <div class="dbg-card" style="margin-bottom: 0;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="dbg-kind-badge" style="background: rgba(109,93,211,0.12); color: #6D5DD3;">Root cause</span>
+                <div class="dbg-avatar" style="background: #DCEEE1; color: #2E6F40;">HM</div>
+                <span style="font-size: 12px; font-weight: 600; color: #1E2A22;">Ha My</span>
+                <span class="dbg-role-badge" style="background: #DBEAFE; color: #2563EB;">Developer</span>
+                <span style="flex-grow: 1;"></span>
+                <span style="font-size: 10.5px; color: #9AA8A0; white-space: nowrap;">2d ago</span>
+                <button class="dbg-pin-btn" style="color: #C7A339;" aria-label="Unpin entry"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z"></path></svg></button>
+              </div>
+              <div class="tc-md">Safari's private-mode <code>localStorage</code> exists but reports a 0-byte quota — any <code>setItem</code> throws <code>QuotaExceededError</code>, even for a few bytes. Chrome/Firefox private modes don't do this.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logging a new entry -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking "Log entry" — inline form, pushed onto the top of the timeline</div>
+    <div style="width: 700px; border: 1px solid #E3E8E5; border-radius: 12px; box-shadow: 0 16px 40px rgba(30,42,34,0.10); box-sizing: border-box; overflow: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #E3E8E5;">
+        <span class="tc-label" style="font-size: 11px;">5 entries · KAN-145</span>
+        <button class="tc-add-btn" style="opacity: 0.5;" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+          Log entry
+        </button>
+      </div>
+      <div style="padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 10px; border: 1px solid #2E6F40; margin: 14px 18px 18px; border-radius: 10px; box-shadow: 0 0 0 3px rgba(46,111,64,0.10); box-sizing: border-box;">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <button class="dbg-kind-badge" style="background: rgba(47,111,176,0.12); color: #2F6FB0; border: 1.5px solid #2F6FB0; cursor: pointer;">Investigation</button>
+          <button class="dbg-kind-badge" style="background: #F6FAF7; color: #9AA8A0; border: 1px solid #E3E8E5; cursor: pointer;">Fix attempt</button>
+          <button class="dbg-kind-badge" style="background: #F6FAF7; color: #9AA8A0; border: 1px solid #E3E8E5; cursor: pointer;">Root cause</button>
+          <button class="dbg-kind-badge" style="background: #F6FAF7; color: #9AA8A0; border: 1px solid #E3E8E5; cursor: pointer;">Blocked</button>
+          <button class="dbg-kind-badge" style="background: #F6FAF7; color: #9AA8A0; border: 1px solid #E3E8E5; cursor: pointer;">Resolved</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input value="An" placeholder="Your name…" readonly style="flex: 1; padding: 7px 9px; border-radius: 6px; border: 1px solid #C7D2CB; font-size: 12.5px; color: #1E2A22; font-family: 'Plus Jakarta Sans', sans-serif; box-sizing: border-box;">
+          <select style="padding: 7px 9px; border-radius: 6px; border: 1px solid #C7D2CB; font-size: 12.5px; color: #1E2A22; font-family: 'Plus Jakarta Sans', sans-serif;" disabled>
+            <option>Tester</option>
+          </select>
+        </div>
+        <div style="border-radius: 6px; border: 1px solid #C7D2CB; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 1px; padding: 4px 6px; background: #F6FAF7; border-bottom: 1px solid #E3E8E5;">
+            <button class="md-toolbar-btn" aria-label="Bold"><span style="font-size: 12px; font-weight: 800;">B</span></button>
+            <button class="md-toolbar-btn" aria-label="Italic"><span style="font-size: 12px; font-style: italic; font-weight: 600;">i</span></button>
+            <button class="md-toolbar-btn" aria-label="Code">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6L2 12L8 18"></path><path d="M16 6L22 12L16 18"></path></svg>
+            </button>
+            <button class="md-toolbar-btn" aria-label="Link">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9"></path><path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1"></path></svg>
+            </button>
+            <span style="flex-grow: 1;"></span>
+            <span style="font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9AA8A0; padding-right: 4px;">Markdown</span>
+          </div>
+          <div style="padding: 8px 10px; font-size: 12.5px; color: #9AA8A0; min-height: 40px;">Write what you found, tried, or ran into…</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <button class="tc-file-add-btn">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5V19"></path><path d="M5 12H19"></path></svg>
+            Attach file
+          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button style="padding: 5px 11px; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; color: #5B6B60; font-size: 12px; cursor: pointer;">Cancel</button>
+            <button style="padding: 5px 11px; border-radius: 6px; border: none; background: #2E6F40; color: #FFFFFF; font-size: 12px; font-weight: 600; cursor: pointer;">Log entry</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #9AA8A0; line-height: 1.5; max-width: 700px;">Kind defaults to whichever was picked last (usually "Investigation" for the first entry on a fresh bug). Linking a branch or test case happens after saving, from the card itself — same "add later" pattern as Test Cases' extra fields.</div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 900px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: model changes vs. today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">WorkLogEntry</code> (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">id, author, role, note, at</code>) — the same shape, repurposed as a debugging timeline rather than a generic log. (1) new <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">kind</code>: <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">investigation | fix-attempt | root-cause | blocked | resolved</code> — drives the timeline dot color and the filter chips; no default ordering is implied between them, a ticket can jump straight to "resolved" from one entry. (2) new <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">pinned</code> boolean — surfaces the entry in the "Pinned" strip above the timeline (root cause and key blockers, typically); toggled from the card, no cap on how many. (3) new <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">attachments</code> — same upload flow as Test Cases (logs, screenshots, screen recordings), one entry can carry several. (4) new optional <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">linkedBranch</code> — a branch name from this ticket's Branches list, rendered as a chip. (5) new optional <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">linkedTestCase</code> — a <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">TC-N</code> code from this ticket's Test Cases, so a "Resolved" entry can point at the case that now passes. (6) new <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">updatedAt</code> for edits. <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">note</code> stays markdown, same as today's <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">WorkLogSection.tsx</code> editor (bold/italic/code/link, rendered via <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">MarkdownRenderer</code>) — every entry in the timeline above, and the "Log entry" form's note field, are markdown, not plain text. Open question: whether "Blocked" should be able to @-mention a person or just read as a note — worth checking before locking the data model.</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1180,"height":3160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

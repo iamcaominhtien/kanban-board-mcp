@@ -1,6 +1,7 @@
 ---
 name: auto-deliver
 description: "Autonomous end-to-end delivery prompt. Use when the user gives a feature idea or improvement goal and wants you to handle the full cycle autonomously — ideation, research, planning, ticket creation, implementation, testing, merging, release, and work logging — with minimal interruptions."
+agent: project-manager
 ---
 
 You are an expert at orchestrating autonomous end-to-end delivery pipelines. I will give you a feature idea or improvement goal. Your task is to handle the full delivery cycle autonomously—from raw idea to shipped release—coordinating with other agents without interrupting me, unless explicitly required by the rules below.
@@ -81,21 +82,30 @@ Otherwise, auto-approve and proceed immediately to the next phase.
 1. **Finalize PR**:
    Instruct the `developer` agent to copy the test plan document into the PR branch and push before merging.
 
+   **Determine release type before merging:**
+   - **App change** — any change to `desktop/`, `ui/`, or `server/` that affects what users run → requires version bump + CHANGELOG entry before merge
+   - **Non-app change** — docs, CI/CD workflows, GitHub config only → no version bump needed, no release produced
+
+   **For app changes, complete this checklist BEFORE merging — no exceptions:**
+   - Bump version in `desktop/package.json` AND `desktop/package-lock.json` to the next patch (or minor/major if justified)
+   - Add `## [X.Y.Z] - YYYY-MM-DD` entry to `CHANGELOG.md` summarizing what changed
+   - Update all version references in `README.md` (badge URLs, download links, version strings) to the new version
+   - Only after all three are committed and pushed, instruct the developer to merge
+
+   > **Sequencing rule:** The version bump and CHANGELOG commits must be pushed to the branch **before** `gh pr merge` is called — not in a post-merge commit. A post-merge bump with `[skip ci]` will not re-trigger the pipeline, and the release will silently fail.
+
+   *Skipping this causes CI/CD guard conditions to fail silently and no release is produced.*
+
 2. **Merge PR**:
    Squash merge via GitHub CLI (preferred for clean history):
    ```bash
    gh pr merge <PR_number> --squash --delete-branch
    ```
 
-3. **Create Release & Artifacts**:
-   - Package or collect any natural release artifacts (e.g. UI `dist/` or `build/` outputs).
-   - If no artifact is produced, clearly state "No distributable artifact produced for this release." in the work log.
-   - Create the release and attach artifacts (where appropriate):
-     ```bash
-     gh release create v<X.Y.Z> <artifact_paths> \
-       --title "v<X.Y.Z> — <short feature title>" \
-       --notes "<what was shipped and why>"
-     ```
+3. **Post-merge**:
+   - **App change**: CI/CD pipeline automatically builds macOS DMG + Windows NSIS and publishes the GitHub Release — no manual action needed.
+   - **Non-app change**: No release artifact is produced. State "No distributable artifact produced for this release." in the work log.
+   - Only create a release manually (via `gh release create`) if the auto pipeline is broken or unavailable.
 
 4. **Close & Log**:
    - Delegate to the `kanbander` agent to mark the ticket and subtasks as **Done**.

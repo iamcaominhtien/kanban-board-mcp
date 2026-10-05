@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #EEF3EF; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .dt-id-btn { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 3px 5px; margin: -3px -5px; border-radius: 5px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #1E2A22; }
+    .dt-id-btn:hover { background: #F6FAF7; }
+    .dt-view-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; color: #5B6B60; position: relative; box-sizing: border-box; }
+    .dt-view-btn:hover { background: #F6FAF7; }
+    .dt-view-btn-active { border-color: #2E6F40; background: #F1F8F3; color: #1E2A22; }
+    .dt-view-dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+    .dt-view-tooltip { position: absolute; top: 36px; left: 0; padding: 5px 9px; border-radius: 6px; background: #1E2A22; color: #FFFFFF; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; z-index: 2; }
+    .dt-view-btn:hover .dt-view-tooltip { opacity: 1; }
+    .tc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA8A0; }
+    .tc-icon-btn { width: 24px; height: 24px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0; }
+    .tc-icon-btn:hover { background: #F6FAF7; color: #5B6B60; }
+    .tc-file-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ws-path-bar { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 7px; background: #F6FAF7; border: 1px solid #E3E8E5; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #5B6B60; }
+    .ws-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #FFFFFF; }
+    .ws-row:hover { background: #F6FAF7; }
+    .ws-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+    .ws-toggle { position: relative; width: 34px; height: 20px; border-radius: 999px; flex-shrink: 0; }
+    .ws-toggle-knob { position: absolute; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+  </style>
+</helmet>
+
+<div style="width: 1180px; height: 2760px; box-sizing: border-box; padding: 56px; background: #FFFFFF; display: flex; flex-direction: column; gap: 28px; color: #1E2A22;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #68BA7F;">Component — v1</div>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1E2A22;">Workspace</h1>
+    <div style="font-size: 14px; color: #5B6B60; max-width: 860px; line-height: 1.5;">A per-task scratch folder on disk — where AI tools and manual work can dump input files, intermediate output, logs, whatever, without littering the repo. No upload, no API: it's a plain filesystem path, <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: #F6FAF7; padding: 1px 5px; border-radius: 3px; color: #2E6F40;">{workspaceRoot}/{TICKET-KEY}/</code>, auto-created the first time a task needs one. This panel just lists what's in it and lets you set how long it sticks around. Opened from its own icon-only button in Ticket Detail's header, next to Debug Space.</div>
+  </div>
+
+  <!-- Enabled, with files -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Workspace enabled, task has files (KAN-145)</div>
+    <div style="width: 1038px; border-radius: 12px; border: 1px solid #E3E8E5; box-shadow: 0 24px 64px rgba(30,42,34,0.16); box-sizing: border-box; background: #FFFFFF; overflow: hidden;">
+
+      <div style="display: flex; align-items: center; gap: 24px; padding: 20px 28px; border-bottom: 1px solid #E3E8E5;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" stroke-width="2"></rect><path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 13px; font-weight: 500; color: #5B6B60;">Task</span>
+          </div>
+          <span style="width: 1px; height: 14px; background: #E3E8E5;"></span>
+          <button style="display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9AA8A0;">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5"></path><path d="M7.5 8.5L10 11L7.5 13.5"></path></svg>
+            KAN-140
+          </button>
+          <span style="font-size: 13px; color: #C7D2CB;">/</span>
+          <button class="dt-id-btn" title="Back to Details">KAN-145</button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px; flex-grow: 1; overflow: hidden;">
+          <button class="dt-view-btn" aria-label="Test Cases">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L12 14L22 4"></path><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16"></path></svg>
+            <span class="dt-view-dot" style="background: #2F6FB0;"></span>
+            <span class="dt-view-tooltip">Test — 1 pass · 1 running · 2 pending</span>
+          </button>
+          <button class="dt-view-btn" aria-label="Debug Space">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9L10 12L7 15"></path><path d="M12 15H17"></path></svg>
+            <span class="dt-view-dot" style="background: #2E6F40;"></span>
+            <span class="dt-view-tooltip">Debug — 2 entries</span>
+          </button>
+          <button class="dt-view-btn dt-view-btn-active" aria-label="Workspace">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+            <span class="dt-view-tooltip">Workspace — 6 files · 12.4 MB</span>
+          </button>
+        </div>
+
+        <button aria-label="Close" style="width: 28px; height: 28px; border-radius: 6px; border: none; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #9AA8A0; flex-shrink: 0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6L18 18"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <div style="padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 14px;">
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+          <div class="ws-path-bar">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+            ~/kanban-workspace/KAN-145
+            <button class="tc-icon-btn" style="width: 18px; height: 18px;" aria-label="Copy path">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4A2 2 0 0 1 2 13V4A2 2 0 0 1 4 2H13A2 2 0 0 1 15 4V5"></path></svg>
+            </button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="ws-chip" style="background: rgba(226,121,61,0.14); color: #B4571F;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7V12L15.5 14.5"></path></svg>
+              Auto-delete in 12 days
+            </span>
+            <button style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; color: #1E2A22; cursor: pointer; font-size: 12px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L4 14H12L11 21L20 10H12L13 3Z"></path></svg>
+              Open folder
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span class="tc-label" style="font-size: 11px;">6 items · 12.4 MB</span>
+          <button style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; cursor: pointer; font-size: 12px; color: #5B6B60;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4V10H10"></path><path d="M4 10L8 6.5A8 8 0 1 1 4 14"></path></svg>
+            Refresh
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden;">
+
+          <div class="ws-row">
+            <div class="tc-file-icon" style="background: #F1F3F1;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+            </div>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 500;">input/</span>
+            <span style="font-size: 11px; color: #9AA8A0;">3 files</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; width: 90px; text-align: right;">2 days ago</span>
+            <button class="tc-icon-btn" aria-label="Reveal in folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L4 14H12L11 21L20 10H12L13 3Z"></path></svg>
+            </button>
+          </div>
+
+          <div class="ws-row">
+            <div class="tc-file-icon" style="background: #FBE9E1;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15L16 10L5 21"></path></svg>
+            </div>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">expected-drop-state.png</span>
+            <span style="font-size: 11px; color: #9AA8A0;">86 KB</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; width: 90px; text-align: right;">2 days ago</span>
+            <button class="tc-icon-btn" aria-label="Reveal in folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L4 14H12L11 21L20 10H12L13 3Z"></path></svg>
+            </button>
+          </div>
+
+          <div class="ws-row" style="background: #F6FAF7;">
+            <div class="tc-file-icon" style="background: #E1EEFB;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6FB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+            </div>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">drag-fixture.json</span>
+            <span style="font-size: 11px; color: #9AA8A0;">4 KB</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; width: 90px; text-align: right;">2 days ago</span>
+            <button class="tc-icon-btn" aria-label="Reveal in folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L4 14H12L11 21L20 10H12L13 3Z"></path></svg>
+            </button>
+          </div>
+
+          <div class="ws-row">
+            <div class="tc-file-icon" style="background: #F1F3F1;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+            </div>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22; font-weight: 500;">output/</span>
+            <span style="font-size: 11px; color: #9AA8A0;">1 file</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; width: 90px; text-align: right;">4 hours ago</span>
+            <button class="tc-icon-btn" aria-label="Reveal in folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L4 14H12L11 21L20 10H12L13 3Z"></path></svg>
+            </button>
+          </div>
+
+          <div class="ws-row" style="background: #F6FAF7;">
+            <div class="tc-file-icon" style="background: #E6E9F5;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B5FA8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="15" height="12" rx="2"></rect><path d="M22 9L17 12L22 15V9Z"></path></svg>
+            </div>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">firefox-ghost-bug.mov</span>
+            <span style="font-size: 11px; color: #9AA8A0;">2.1 MB</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; width: 90px; text-align: right;">4 hours ago</span>
+            <button class="tc-icon-btn" aria-label="Reveal in folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L4 14H12L11 21L20 10H12L13 3Z"></path></svg>
+            </button>
+          </div>
+
+          <div class="ws-row">
+            <div class="tc-file-icon" style="background: #F1F3F1;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z"></path><path d="M14 3V8H19"></path></svg>
+            </div>
+            <span style="flex-grow: 1; font-size: 13px; color: #1E2A22;">safari-console.log</span>
+            <span style="font-size: 11px; color: #9AA8A0;">9.7 MB</span>
+            <span style="font-size: 10.5px; color: #9AA8A0; width: 90px; text-align: right;">4 hours ago</span>
+            <button class="tc-icon-btn" aria-label="Reveal in folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L4 14H12L11 21L20 10H12L13 3Z"></path></svg>
+            </button>
+          </div>
+
+        </div>
+
+        <div style="font-size: 11px; color: #9AA8A0; line-height: 1.5;">Read-only listing of what's actually on disk — this panel doesn't write files, it just watches the folder. Anything dropped in here by a script, an AI tool, or you by hand shows up on next refresh. Retention applies to the whole task folder, not per-file.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Not enabled -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Workspace not enabled — global setting off, or no root path configured</div>
+    <div style="width: 700px; border: 1px solid #E3E8E5; border-radius: 12px; box-shadow: 0 16px 40px rgba(30,42,34,0.10); box-sizing: border-box; overflow: hidden; padding: 40px 32px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;">
+      <div style="width: 52px; height: 52px; border-radius: 14px; background: #F6FAF7; border: 1px solid #E3E8E5; display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+      </div>
+      <div style="font-size: 14px; font-weight: 700; color: #1E2A22;">Workspace isn't set up yet</div>
+      <div style="font-size: 12.5px; color: #5B6B60; line-height: 1.5; max-width: 440px;">Turn it on in Settings and point it at a folder on this machine — every task then gets its own subfolder there automatically, this panel just shows what's in it.</div>
+      <button class="dt-id-btn" style="background: #2E6F40; color: #FFFFFF; padding: 7px 14px;">Open Settings</button>
+    </div>
+  </div>
+
+  <!-- Enabled, empty task folder -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Workspace enabled, nothing written yet (fresh task)</div>
+    <div style="width: 700px; border: 1px solid #E3E8E5; border-radius: 12px; box-sizing: border-box; overflow: hidden;">
+      <div style="padding: 12px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #E3E8E5;">
+        <div class="ws-path-bar" style="font-size: 11px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+          ~/kanban-workspace/KAN-152
+        </div>
+      </div>
+      <div style="padding: 28px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 1px dashed #C7D2CB; margin: 16px; border-radius: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C7D2CB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z"></path></svg>
+        <span style="font-size: 12px; color: #9AA8A0;">Empty — the folder exists, nothing's been written to it yet.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Retention control -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Clicking the retention chip</div>
+    <div style="width: 300px; border-radius: 10px; border: 1px solid #E3E8E5; box-shadow: 0 16px 40px rgba(30,42,34,0.12); background: #FFFFFF; overflow: hidden;">
+      <div style="padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9AA8A0; border-bottom: 1px solid #EEF3EF;">This task's retention</div>
+      <div style="display: flex; flex-direction: column; padding: 6px;">
+        <button style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; border: none; background: #F1F8F3; cursor: pointer; font-size: 12.5px; color: #1E2A22; text-align: left;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17L4 12"></path></svg>
+          Auto-delete after 7 days
+        </button>
+        <button style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12.5px; color: #1E2A22; text-align: left;">
+          <span style="width: 13px;"></span>
+          Auto-delete after 14 days
+        </button>
+        <button style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12.5px; color: #1E2A22; text-align: left;">
+          <span style="width: 13px;"></span>
+          Auto-delete after 30 days
+        </button>
+        <button style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 12.5px; color: #1E2A22; text-align: left;">
+          <span style="width: 13px;"></span>
+          Keep forever
+        </button>
+      </div>
+      <div style="padding: 8px 14px 10px; font-size: 10.5px; color: #9AA8A0; border-top: 1px solid #EEF3EF; line-height: 1.4;">Defaults to whatever's set in Settings — override per task here. The clock resets each time a file changes.</div>
+    </div>
+  </div>
+
+  <!-- Settings preview -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; font-weight: 600; color: #5B6B60;">Settings — Workspace section (preview only, full Settings screen designed separately)</div>
+    <div style="width: 620px; border: 1px solid #E3E8E5; border-radius: 12px; box-sizing: border-box; overflow: hidden;">
+      <div style="padding: 14px 18px; border-bottom: 1px solid #E3E8E5; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 13px; font-weight: 700; color: #1E2A22;">Enable Workspace</span>
+          <span style="font-size: 11.5px; color: #9AA8A0;">Give every task a scratch folder on this machine</span>
+        </div>
+        <div class="ws-toggle" style="background: #2E6F40;">
+          <div class="ws-toggle-knob" style="right: 2px;"></div>
+        </div>
+      </div>
+      <div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <span class="tc-label" style="font-size: 10px;">Workspace root folder</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="flex-grow: 1; padding: 7px 10px; border-radius: 6px; border: 1px solid #C7D2CB; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #1E2A22;">~/kanban-workspace</div>
+            <button style="padding: 7px 12px; border-radius: 6px; border: 1px solid #E3E8E5; background: #FFFFFF; color: #1E2A22; font-size: 12px; font-weight: 600; cursor: pointer;">Browse…</button>
+          </div>
+          <span style="font-size: 10.5px; color: #9AA8A0;">Each task gets <code style="font-family: 'JetBrains Mono', monospace;">{this}/{TICKET-KEY}/</code> automatically.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <span class="tc-label" style="font-size: 10px;">Default retention for new tasks</span>
+          <select style="padding: 7px 9px; border-radius: 6px; border: 1px solid #C7D2CB; font-size: 12.5px; color: #1E2A22; font-family: 'Plus Jakarta Sans', sans-serif; width: 200px;">
+            <option>Auto-delete after 14 days</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border-radius: 8px; background: rgba(226,121,61,0.08); max-width: 900px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B4571F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 9V13"></path><path d="M12 17H12.01"></path><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z"></path></svg>
+    <span style="font-size: 12px; color: #B4571F; line-height: 1.5;">Note: brand-new feature, no existing type to diff against. Proposed model — two pieces, both local, no API: (1) global <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">WorkspaceSettings</code> (app-wide, set once in Settings): <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">enabled</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">rootPath</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">defaultRetentionDays</code> (<code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">null</code> = forever). (2) per-task, nothing stored beyond a convention: the folder at <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">{rootPath}/{ticketKey}/</code>, created on first use; an optional per-task <code style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">retentionOverrideDays</code> if it needs to differ from the default. This panel reads the folder directly (list files, sizes, mtimes) — no DB row per file, the filesystem is the source of truth; a background sweep on the desktop app deletes task folders past their retention window (skips anything with an override of "forever"). If a ticket is deleted, its folder is left as-is until its own retention expires, rather than deleted immediately — in case work is still needed from it. Open question: what should count as "the file changed" for resetting the auto-delete clock — any write inside the folder, or only new files, not edits to existing ones?</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1180,"height":2760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

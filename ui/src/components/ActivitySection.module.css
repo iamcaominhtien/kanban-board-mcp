@@ -1,0 +1,386 @@
+.container {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #FFFFFF;
+  min-height: 220px;
+  box-sizing: border-box;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.acLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9AA8A0;
+}
+
+.filterList {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.acFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5B6B60;
+  transition: all 0.15s ease;
+}
+
+.acFilter:hover {
+  background: #F6FAF7;
+}
+
+.acFilterActive {
+  border-color: #2E6F40;
+  background: #F1F8F3;
+  color: #1E2A22;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 24px;
+}
+
+.emptyIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #F6FAF7;
+  color: #9AA8A0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1E2A22;
+}
+
+.emptyDesc {
+  font-size: 12px;
+  color: #9AA8A0;
+  text-align: center;
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.acGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acDay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #EEF3EF;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5B6B60;
+}
+
+.acDayCount {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #9AA8A0;
+}
+
+.acList {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.acLine {
+  position: absolute;
+  left: 13px;
+  top: 20px;
+  bottom: 20px;
+  width: 1px;
+  background: #E3E8E5;
+  z-index: 0;
+}
+
+.acRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 0;
+  z-index: 1;
+}
+
+.acRowTop {
+  align-items: flex-start;
+}
+
+.acBubble {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 4px #FFFFFF;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.acMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.acField {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9AA8A0;
+}
+
+.acChange {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.acChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E2A22;
+  white-space: nowrap;
+  max-width: 500px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.assigneeAvatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tagPill {
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.acToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2E6F40;
+  transition: background 0.15s ease;
+}
+
+.acToggle:hover {
+  background: #F1F8F3;
+}
+
+.acTime {
+  position: relative;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #9AA8A0;
+  white-space: nowrap;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.acTt {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #1E2A22;
+  color: #FFFFFF;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.acTime:hover .acTt {
+  opacity: 1;
+}
+
+.acMore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: center;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px dashed #C7D2CB;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5B6B60;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+}
+
+.acMore:hover {
+  background: #F6FAF7;
+  border-color: #2E6F40;
+  color: #2E6F40;
+}
+
+.diffContainer {
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #1E2A22;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.diffRow {
+  display: flex;
+}
+
+.diffSign {
+  width: 26px;
+  flex-shrink: 0;
+  text-align: center;
+  font-weight: 700;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 3px 0;
+}
+
+.diffContent {
+  flex: 1;
+  padding: 3px 10px;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.diffRemoved {
+  background: #FBE7E4;
+}
+
+.diffAdded {
+  background: #E6F2E9;
+}
+
+.diffNormal {
+  background: #FFFFFF;
+}
+
+.diffHighlightRemoved {
+  background: rgba(196, 67, 42, 0.22);
+  border-radius: 2px;
+}
+
+.diffHighlightAdded {
+  background: rgba(46, 111, 64, 0.22);
+  border-radius: 2px;
+}
+
+.acSk {
+  background: #EEF3EF;
+  display: block;
+  animation: acPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes acPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.acRef {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #5B6B60;
+}
+
+.acActor {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 600;
+  color: #5B6B60;
+}
