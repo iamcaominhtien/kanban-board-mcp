@@ -34,9 +34,11 @@ async def test_min_supported_version_can_be_overridden(monkeypatch):
     assert r.json()["min_supported_version"] == "9.9.9"
 
 
-def test_server_version_matches_the_desktop_package():
+def test_server_version_matches_the_desktop_and_ui_packages():
     import json
     from pathlib import Path
 
-    pkg = json.loads((Path(__file__).resolve().parents[2] / "desktop" / "package.json").read_text())
-    assert pkg["version"] == version.APP_VERSION
+    root = Path(__file__).resolve().parents[2]
+    for package in ("desktop", "ui"):
+        pkg = json.loads((root / package / "package.json").read_text())
+        assert pkg["version"] == version.APP_VERSION, f"{package}/package.json is out of sync with server/version.py"
