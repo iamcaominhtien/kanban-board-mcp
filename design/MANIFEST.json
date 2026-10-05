@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1791083427-1a86",
-  "exported": "2026-10-04",
+  "canvas_version": "1791200794-706d",
+  "exported": "2026-10-05",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -170,6 +170,14 @@
       "page": "components",
       "w": 1080,
       "h": 1220
+    },
+    "SettingsMcp.dc.html": {
+      "bytes": 107403,
+      "sha256": "65617a16f2555b732ac0c2d4678839cd844ff9d40524b4acaa71b8dd7de6deb5",
+      "title": "Settings — MCP integrations",
+      "page": "screens",
+      "w": 1362,
+      "h": 6477
     },
     "SettingsView.dc.html": {
       "bytes": 14361,
