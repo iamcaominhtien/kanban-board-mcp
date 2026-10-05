@@ -174,6 +174,23 @@ function createWindow() {
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
 
+// IPC: renderer asks to start the backend again after a failure ("Try again" on the splash)
+let backendLaunching = false;
+ipcMain.handle('retry-backend', async () => {
+  if (backendLaunching) return;
+  if (backendPort && backendProcess) {
+    // Already running: just tell the (possibly reloaded) renderer again
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('backend-ready', backendPort);
+    return;
+  }
+  backendLaunching = true;
+  try {
+    await launchBackend();
+  } finally {
+    backendLaunching = false;
+  }
+});
+
 // IPC: renderer asks to open a folder picker dialog
 ipcMain.handle('select-folder', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -183,11 +200,8 @@ ipcMain.handle('select-folder', async () => {
   return result.canceled ? null : result.filePaths[0];
 });
 
-app.whenReady().then(() => {
-  profiler.mark('app-ready');
-  createWindow();
-
-  startBackend()
+function launchBackend() {
+  return startBackend()
     .then((port) => {
       backendPort = port; // Set the global port immediately for any future lookups
 
@@ -228,6 +242,13 @@ app.whenReady().then(() => {
       // Do not quit — the renderer shows an error state so the user
       // can see what went wrong instead of the app silently disappearing.
     });
+}
+
+app.whenReady().then(() => {
+  profiler.mark('app-ready');
+  createWindow();
+
+  launchBackend();
 
   globalShortcut.register('CommandOrControl+Shift+I', () => {
     const focused = BrowserWindow.getFocusedWindow();

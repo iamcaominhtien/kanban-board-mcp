@@ -1,53 +1,87 @@
 import { useEffect, useRef, useState } from 'react';
-import type { IssueType, Member, Priority, Status, Ticket, WorkLogEntry } from '../types';
+import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
 import {
   useUpdateTicket,
   useAddComment, useUpdateComment, useDeleteComment,
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
-  useAddWorkLog,
-  useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+  useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
   uploadDescriptionImage,
   useLinkBlock, useUnlinkBlock,
   useAddTicketLink, useRemoveTicketLink,
+  useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+  useTicketBranches,
+  useWorkspaceSettings,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
-import { ActivityLog } from './ActivityLog';
+import { resolveOrigin } from '../api/resolveOrigin';
+import { ActivitySection } from './ActivitySection';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { MemberAvatar } from './MemberAvatar';
 import { RelationsSection } from './RelationsSection';
 import { TestCasesSection } from './TestCasesSection';
-import { WorkLogSection } from './WorkLogSection';
+import { DebugSpaceSection } from './DebugSpaceSection';
+import { WorkspaceSection } from './WorkspaceSection';
+import { BranchesSection } from './BranchesSection';
+import { CreateBranchModal } from './CreateBranchModal';
+import { useProject } from '../api/projects';
 import { SubTicketsSection } from './SubTicketsSection';
+import { TicketTypeIcon, PriorityMark } from './icons';
+import { StatusMenu } from './StatusMenu';
+import { TagPill } from './TagPill';
+import { useToast } from './Toast';
 import styles from './TicketModal.module.css';
 
-const ESTIMATE_OPTIONS = [null, 1, 2, 3, 5, 8, 13] as const;
+const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
 
-const PRIORITY_COLORS: Record<Priority, { bg: string; color: string }> = {
-  critical: { bg: '#DC2626', color: 'white' },
-  high:     { bg: '#E8441A', color: 'white' },
-  medium:   { bg: '#F5C518', color: 'var(--color-dark)' },
-  low:      { bg: '#9CA3AF', color: 'var(--color-dark)' },
+const TYPE_CONFIG: Record<IssueType, { label: string }> = {
+  bug:     { label: 'Bug' },
+  feature: { label: 'Feature' },
+  task:    { label: 'Task' },
+  chore:   { label: 'Chore' },
 };
 
-const TYPE_CONFIG: Record<IssueType, { label: string; icon: string; bg: string; color: string }> = {
-  bug:     { label: 'Bug',     icon: '🐛', bg: '#FEE2E2', color: '#DC2626' },
-  feature: { label: 'Feature', icon: '✨', bg: '#EDE9FE', color: '#7C3AED' },
-  task:    { label: 'Task',    icon: '📋', bg: '#DBEAFE', color: '#2563EB' },
-  chore:   { label: 'Chore',   icon: '🔧', bg: '#F3F4F6', color: '#6B7280' },
-};
+function formatDueDate(iso?: string | null): string {
+  if (!iso) return 'Set date';
+  try {
+    const parts = iso.split('T')[0].split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch {
+    return iso;
+  }
+}
 
-const STATUS_LABELS: Record<Status, string> = {
-  backlog:     'Backlog',
-  todo:        'To Do',
-  'in-progress': 'In Progress',
-  done:        'Done',
-  wont_do:     'Không làm',
-};
+function formatRelativeTime(iso?: string | null): string {
+  if (!iso) return 'recently';
+  try {
+    const now = Date.now();
+    const then = new Date(iso).getTime();
+    if (isNaN(then)) return 'recently';
+    const diffMs = now - then;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (diffDay > 30) {
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    if (diffDay > 0) return `${diffDay} ${diffDay === 1 ? 'day' : 'days'} ago`;
+    if (diffHour > 0) return `${diffHour} ${diffHour === 1 ? 'hour' : 'hours'} ago`;
+    if (diffMin > 0) return `${diffMin} ${diffMin === 1 ? 'minute' : 'minutes'} ago`;
+    return 'just now';
+  } catch {
+    return 'recently';
+  }
 }
 
 type CreateTicketData = {
@@ -88,24 +122,39 @@ type TicketModalProps =
       members?: Member[];
     };
 
-export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClose, allTickets = [], onOpenTicket, members = [] }: TicketModalProps) {
-  const [localMode, setLocalMode] = useState<'create' | 'view' | 'edit'>(initialMode);
+export function TicketModal({
+  mode: initialMode,
+  ticket,
+  onSave,
+  onDelete,
+  onClose,
+  allTickets = [],
+  onOpenTicket,
+  members = [],
+}: TicketModalProps) {
+  const localMode = initialMode;
+  const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity'>('main');
+  const { data: workspaceSettings } = useWorkspaceSettings();
+  const workspaceEnabled = workspaceSettings?.enabled !== false;
+
   const [title, setTitle] = useState(ticket?.title ?? '');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState(ticket?.description ?? '');
   const [status, setStatus] = useState<Status>(ticket?.status ?? 'backlog');
   const [priority, setPriority] = useState<Priority>(ticket?.priority ?? 'medium');
-  const [tagsInput, setTagsInput] = useState(ticket?.tags.join(', ') ?? '');
+  const [tags, setTags] = useState<string[]>(ticket?.tags ?? []);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagText, setNewTagText] = useState('');
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
   const [startDate, setStartDate] = useState<string | null>(ticket?.startDate ?? null);
+  const [blockAcs, setBlockAcs] = useState(ticket?.blockDoneIfAcsIncomplete ?? false);
+  const [blockTcs, setBlockTcs] = useState(ticket?.blockDoneIfTcsIncomplete ?? false);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
   const [assignee, setAssignee] = useState<string | null>(ticket?.assignee ?? null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [viewError, setViewError] = useState<string | null>(null);
-  const [wontDoDialogPending, setWontDoDialogPending] = useState(false);
-  const [wontDoReason, setWontDoReason] = useState('');
 
+  const toast = useToast();
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
   const updateCommentMutation = useUpdateComment();
@@ -114,6 +163,8 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const toggleACMutation = useToggleAcceptanceCriterion();
   const deleteACMutation = useDeleteAcceptanceCriterion();
   const addWorkLogMutation = useAddWorkLog();
+  const updateWorkLogMutation = useUpdateWorkLog();
+  const deleteWorkLogMutation = useDeleteWorkLog();
   const addTestCaseMutation = useAddTestCase();
   const updateTestCaseMutation = useUpdateTestCase();
   const deleteTestCaseMutation = useDeleteTestCase();
@@ -121,73 +172,206 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
   const unlinkBlockMutation = useUnlinkBlock();
   const addTicketLinkMutation = useAddTicketLink(ticket?.projectId ?? '');
   const removeTicketLinkMutation = useRemoveTicketLink(ticket?.projectId ?? '');
-  const [visible, setVisible] = useState(false);
-  const persistedDescriptionRef = useRef(ticket?.description ?? '');
-  const queuedDescriptionRef = useRef<string | null>(null);
-  const descriptionSavePromiseRef = useRef<Promise<void> | null>(null);
 
-  // Fix 1: keep onClose ref fresh to avoid stale closure in Escape handler
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  const { data: ticketBranches = [] } = useTicketBranches(ticket?.id ?? '');
+  const { data: project } = useProject(ticket?.projectId ?? '');
+  const [repoPathDraft, setRepoPathDraft] = useState('');
+  const [isEditingRepo, setIsEditingRepo] = useState(false);
+  const effectiveRepoPath = ticket?.repoPath || project?.repoPath || null;
+
+  async function saveTicketRepo(path: string) {
+    if (!ticket) return;
+    try {
+      await updateTicketMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: { repoPath: path.trim() ? path : null },
+      });
+      setIsEditingRepo(false);
+      toast.success(path.trim() ? 'Ticket repository set' : 'Using project repository');
+    } catch (err) {
+      toast.error("Couldn't set repository", extractError(err));
+    }
+  }
+
+  const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
+  const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
+  const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
+  const branchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    persistedDescriptionRef.current = ticket?.description ?? '';
-  }, [ticket?.description, ticket?.id]);
+    function handleClickOutside(e: MouseEvent) {
+      if (branchContainerRef.current && !branchContainerRef.current.contains(e.target as Node)) {
+        setIsBranchPopoverOpen(false);
+      }
+    }
+    if (isBranchPopoverOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isBranchPopoverOpen]);
 
-  // Fix 3 & 4: focusable element refs
-  const firstFocusRef = useRef<HTMLButtonElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
-  // Fix 3: focus first element on mount
   useEffect(() => {
-    if (localMode === 'create') {
-      titleInputRef.current?.focus();
-    } else {
-      firstFocusRef.current?.focus();
+    if (isAddingTag) {
+      tagInputRef.current?.focus();
     }
-  }, []);
+  }, [isAddingTag]);
 
-  // Fix 1: Escape handler with stable ref — no stale closure
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setVisible(false);
-        setTimeout(() => onCloseRef.current(), 200);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  // Copy server state into the local form state (also used to roll back a rejected edit)
+  function applyTicket(ticket: Ticket) {
+    setTitle(ticket.title);
+    // Don't clobber a description that is still waiting to be saved
+    if (pendingDescRef.current?.ticketId !== ticket.id) setDescription(ticket.description);
+    setStatus(ticket.status);
+    setPriority(ticket.priority);
+    setTags(ticket.tags);
+    setType(ticket.type);
+    setDueDate(ticket.dueDate ?? null);
+    setStartDate(ticket.startDate ?? null);
+    setEstimate(ticket.estimate ?? null);
+    setAssignee(ticket.assignee ?? null);
+    setBlockAcs(ticket.blockDoneIfAcsIncomplete);
+    setBlockTcs(ticket.blockDoneIfTcsIncomplete);
+  }
 
-  // Fix 10: lock body scroll while modal is open
+  // Keep in sync if ticket changes
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+    if (ticket) {
+      applyTicket(ticket);
+      setIsFullscreen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket]);
 
   function handleClose() {
     setVisible(false);
-    setSaveError(null);
-    setViewError(null);
-    setTimeout(onClose, 200);
+    setIsFullscreen(false);
+    setTimeout(onClose, 150);
   }
 
-  async function handleSave() {
+  // Description edits are debounced (one PATCH per pause, not per keystroke) and flushed on blur/close/switch
+  const pendingDescRef = useRef<{ ticketId: string; value: string } | null>(null);
+  const descTimerRef = useRef<number | null>(null);
+  const flushDescRef = useRef<() => void>(() => {});
+  flushDescRef.current = () => {
+    if (descTimerRef.current !== null) {
+      window.clearTimeout(descTimerRef.current);
+      descTimerRef.current = null;
+    }
+    const pending = pendingDescRef.current;
+    pendingDescRef.current = null;
+    if (!pending) return;
+    updateTicketMutation.mutate(
+      { ticketId: pending.ticketId, data: { description: pending.value } },
+      { onError: (err) => toast.error("Couldn't save changes", extractError(err)) }
+    );
+  };
+  function scheduleDescriptionSave(value: string) {
+    if (!ticket) return;
+    pendingDescRef.current = { ticketId: ticket.id, value };
+    if (descTimerRef.current !== null) window.clearTimeout(descTimerRef.current);
+    descTimerRef.current = window.setTimeout(() => flushDescRef.current(), 800);
+  }
+  const currentTicketId = ticket?.id;
+  useEffect(() => {
+    return () => flushDescRef.current();
+  }, [currentTicketId]);
+
+  // Fast inline update for properties in View mode
+  function autoSaveField<K extends keyof Ticket>(field: K, val: Ticket[K]) {
+    if (!ticket) return;
+    updateTicketMutation.mutate(
+      { ticketId: ticket.id, data: { [field]: val } },
+      {
+        onError: (err) => {
+          toast.error("Couldn't save changes", extractError(err));
+          applyTicket(ticket); // the server refused the edit: show what is really saved
+        },
+      }
+    );
+  }
+
+  function handleTitleBlur() {
+    setIsEditingTitle(false);
+    if (title.trim() && title.trim() !== ticket?.title) {
+      autoSaveField('title', title.trim());
+    }
+  }
+
+  function handleStatusChange(newStatus: Status) {
+    setStatus(newStatus);
+    autoSaveField('status', newStatus);
+    if (newStatus === 'done' && ticket) {
+      toast.success('Moved to Done', `${ticket.id} · ${ticket.title}`);
+    }
+  }
+
+  function handlePriorityChange(newPriority: Priority) {
+    setPriority(newPriority);
+    autoSaveField('priority', newPriority);
+  }
+
+  function handleTypeChange(newType: IssueType) {
+    setType(newType);
+    autoSaveField('type', newType);
+  }
+
+  function handleAssigneeChange(newAssignee: string | null) {
+    setAssignee(newAssignee);
+    autoSaveField('assignee', newAssignee);
+  }
+
+  function handleEstimateChange(newEst: number | null) {
+    setEstimate(newEst);
+    autoSaveField('estimate', newEst);
+  }
+
+  function handleRemoveTag(tagToRemove: string) {
+    const nextTags = tags.filter((t) => t !== tagToRemove);
+    setTags(nextTags);
+    autoSaveField('tags', nextTags);
+  }
+
+  function handleAddTagSubmit() {
+    const trimmed = newTagText.trim().toLowerCase();
+    if (trimmed && !tags.includes(trimmed)) {
+      const nextTags = [...tags, trimmed];
+      setTags(nextTags);
+      autoSaveField('tags', nextTags);
+    }
+    setNewTagText('');
+    setIsAddingTag(false);
+  }
+
+  function handleCopyId() {
+    if (!ticket) return;
+    navigator.clipboard.writeText(ticket.id);
+    toast.info('Copied ticket ID', ticket.id);
+  }
+
+  async function handleCreateSubmit(e: React.FormEvent) {
+    e.preventDefault();
     if (!title.trim()) return;
-    const tags = [...new Set(tagsInput.split(',').map((t) => t.trim()).filter(Boolean))];
     setSaveError(null);
 
-    if (localMode === 'create') {
-      try {
-        if (onSave) await onSave({
+    try {
+      if (onSave) {
+        await onSave({
           title: title.trim(),
           description,
           type,
-          status,
+          status: 'backlog',
           priority,
           tags,
           dueDate: dueDate || null,
@@ -197,777 +381,841 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
           assignee,
           createdBy: null,
         });
-        // parent closes the modal after successful creation
-      } catch {
-        setSaveError('Failed to create ticket. Please try again.');
       }
-    } else if (ticket) {
-      if (status === 'wont_do' && !wontDoDialogPending) {
-        setWontDoDialogPending(true);
-        return;
-      }
-      if (status === 'wont_do' && !wontDoReason.trim()) {
-        setSaveError('Please provide a reason for marking this ticket as "Không làm".');
-        return;
-      }
-      updateTicketMutation.mutate(
-        {
-          ticketId: ticket.id,
-          data: {
-            title: title.trim(),
-            description,
-            type,
-            status,
-            priority,
-            tags,
-            dueDate: dueDate || null,
-            startDate: startDate || null,
-            estimate,
-            assignee,
-            ...(status === 'wont_do' ? { wontDoReason: wontDoReason.trim() } : {}),
-          },
-        },
-        {
-          onSuccess: () => handleClose(),
-          onError: (err) => { console.error('Failed to save ticket:', err); setSaveError(extractError(err) || 'Failed to save ticket. Please try again.'); },
-        },
-      );
-    }
-  }
-
-  function handleDelete() {
-    if (ticket && onDelete) {
-      onDelete(ticket.id);
       handleClose();
-    }
-  }
-
-  // Fix 4: focus title input after switching to edit
-  function handleSwitchToEdit() {
-    setLocalMode('edit');
-    setViewError(null);
-    setTimeout(() => titleInputRef.current?.focus(), 0);
-  }
-
-  function handleAddComment(text: string) {
-    if (!ticket) return;
-    addCommentMutation.mutate(
-      { ticketId: ticket.id, text, author: 'user' },
-      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add comment:', err); setViewError('Failed to add comment. Please try again.'); } },
-    );
-  }
-
-  function handleEditComment(commentId: string, text: string) {
-    if (!ticket) return;
-    updateCommentMutation.mutate(
-      { ticketId: ticket.id, commentId, text },
-      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to update comment:', err); setViewError('Failed to update comment. Please try again.'); } },
-    );
-  }
-
-  function handleDeleteComment(commentId: string) {
-    if (!ticket) return;
-    deleteCommentMutation.mutate(
-      { ticketId: ticket.id, commentId },
-      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to delete comment:', err); setViewError('Failed to delete comment. Please try again.'); } },
-    );
-  }
-
-  function handleAddAC(text: string) {
-    if (!ticket) return;
-    addACMutation.mutate(
-      { ticketId: ticket.id, text },
-      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add acceptance criterion:', err); setViewError('Failed to add acceptance criterion. Please try again.'); } },
-    );
-  }
-
-  function handleToggleAC(id: string) {
-    if (!ticket) return;
-    toggleACMutation.mutate(
-      { ticketId: ticket.id, criterionId: id },
-      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to toggle acceptance criterion:', err); setViewError('Failed to toggle acceptance criterion. Please try again.'); } },
-    );
-  }
-
-  function handleDeleteAC(id: string) {
-    if (!ticket) return;
-    deleteACMutation.mutate(
-      { ticketId: ticket.id, criterionId: id },
-      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to delete acceptance criterion:', err); setViewError('Failed to delete acceptance criterion. Please try again.'); } },
-    );
-  }
-
-  function handleAddWorkLog(entry: Omit<WorkLogEntry, 'id'>) {
-    if (!ticket) return;
-    addWorkLogMutation.mutate(
-      { ticketId: ticket.id, data: { author: entry.author, role: entry.role, note: entry.note } },
-      { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to add work log:', err); setViewError('Failed to add work log entry. Please try again.'); } },
-    );
-  }
-
-  async function persistDescription(nextDescription: string) {
-    if (!ticket || nextDescription === persistedDescriptionRef.current) {
-      return;
-    }
-
-    if (descriptionSavePromiseRef.current) {
-      queuedDescriptionRef.current = nextDescription;
-      return;
-    }
-
-    const savePromise = updateTicketMutation
-      .mutateAsync({ ticketId: ticket.id, data: { description: nextDescription } })
-      .then((updatedTicket) => {
-        persistedDescriptionRef.current = updatedTicket.description;
-        setSaveError(null);
-      })
-      .catch(() => {
-        setSaveError('Failed to save description. Please try again.');
-      })
-      .finally(async () => {
-        descriptionSavePromiseRef.current = null;
-        const queuedDescription = queuedDescriptionRef.current;
-        if (queuedDescription && queuedDescription !== persistedDescriptionRef.current) {
-          queuedDescriptionRef.current = null;
-          await persistDescription(queuedDescription);
-        }
-      });
-
-    descriptionSavePromiseRef.current = savePromise;
-    await savePromise;
-  }
-
-  async function handleDescriptionImageUpload(file: File) {
-    try {
-      const result = await uploadDescriptionImage(file);
-      setSaveError(null);
-      return result;
     } catch (err) {
-      const message = extractError(err);
-      setSaveError(`Failed to upload image: ${message}`);
-      throw err;
+      setSaveError(extractError(err) || 'Failed to create ticket. Please try again.');
     }
   }
 
-  function handleCancelEdit() {
-    setTitle(ticket?.title ?? '');
-    setDescription(ticket?.description ?? '');
-    setStatus(ticket?.status ?? 'backlog');
-    setPriority(ticket?.priority ?? 'medium');
-    setTagsInput(ticket?.tags.join(', ') ?? '');
-    setType(ticket?.type ?? 'task');
-    setDueDate(ticket?.dueDate ?? null);
-    setStartDate(ticket?.startDate ?? null);
-    setEstimate(ticket?.estimate ?? null);
-    setAssignee(ticket?.assignee ?? null);
-    setConfirmDelete(false);
-    setSaveError(null);
-    setWontDoDialogPending(false);
-    setWontDoReason('');
-    setLocalMode('view');
-  }
+  const assigneeMember = members.find((m) => m.id === assignee);
+  const childTickets = ticket ? allTickets.filter((t) => t.parentId === ticket.id) : [];
+  const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
 
-  if (localMode === 'view' && ticket) {
-    const currentTicket = ticket;
-    const pc = PRIORITY_COLORS[currentTicket.priority];
-    const childTickets = allTickets.filter((t) => t.parentId === currentTicket.id);
-    const parentTicket = currentTicket.parentId ? allTickets.find((t) => t.id === currentTicket.parentId) : undefined;
-    const isChildTicket = !!currentTicket.parentId;
-    const isRootTicket = !isChildTicket;
+  // View switchers tooltips & status dots
+  const allRelevantTestCases = [
+    ...(ticket?.testCases ?? []),
+    ...childTickets.flatMap((ct) => ct.testCases ?? []),
+  ];
+  const passCount = allRelevantTestCases.filter((tc) => tc.status === 'pass').length;
+  const failCount = allRelevantTestCases.filter((tc) => tc.status === 'fail').length;
+  const runningCount = allRelevantTestCases.filter((tc) => tc.status === 'running').length;
+  const pendingCount = allRelevantTestCases.filter((tc) => tc.status === 'pending').length;
+  const tcDotColor = failCount > 0 ? '#C4432A' : runningCount > 0 ? '#2F6FB0' : passCount > 0 ? '#2E6F40' : undefined;
+  const tcParts: string[] = [];
+  if (passCount > 0) tcParts.push(`${passCount} pass`);
+  if (failCount > 0) tcParts.push(`${failCount} fail`);
+  if (runningCount > 0) tcParts.push(`${runningCount} running`);
+  if (pendingCount > 0) tcParts.push(`${pendingCount} pending`);
+  const tcTooltip = tcParts.length > 0 ? `Test — ${tcParts.join(' · ')}` : 'Test Cases';
 
-    function handleLinkChild(childId: string) {
-      updateTicketMutation.mutate(
-        { ticketId: childId, data: { parentId: currentTicket.id } },
-        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to link child ticket:', err); setViewError('Failed to link child ticket. Please try again.'); } },
-      );
-    }
+  const wlList = ticket?.workLog ?? [];
+  // A "blocked" entry stops counting once a later "resolved" entry exists
+  const latestResolvedAt = wlList
+    .filter((w) => w.kind === 'resolved')
+    .reduce((max, w) => Math.max(max, new Date(w.at).getTime()), 0);
+  const blockedCount = wlList.filter(
+    (w) => w.kind === 'blocked' && new Date(w.at).getTime() > latestResolvedAt,
+  ).length;
+  const wlDotColor = blockedCount > 0 ? '#C4432A' : wlList.length > 0 ? '#2E6F40' : undefined;
+  const wlTooltip = wlList.length > 0
+    ? `Debug — ${wlList.length} ${wlList.length === 1 ? 'entry' : 'entries'}${blockedCount > 0 ? ` · ${blockedCount} blocked` : ''}`
+    : 'Debug Space';
 
-    function handleUnlinkChild(childId: string) {
-      updateTicketMutation.mutate(
-        { ticketId: childId, data: { parentId: null } },
-        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to unlink child ticket:', err); setViewError('Failed to unlink child ticket. Please try again.'); } },
-      );
-    }
-
-    function handleSetParent(parentId: string) {
-      updateTicketMutation.mutate(
-        { ticketId: currentTicket.id, data: { parentId } },
-        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to set parent:', err); setViewError('Failed to set parent ticket. Please try again.'); } },
-      );
-    }
-
-    function handleRemoveParent() {
-      updateTicketMutation.mutate(
-        { ticketId: currentTicket.id, data: { parentId: null } },
-        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to remove parent:', err); setViewError('Failed to remove parent ticket. Please try again.'); } },
-      );
-    }
-
-    function handleToggleBlockGuard(field: 'blockDoneIfAcsIncomplete' | 'blockDoneIfTcsIncomplete') {
-      updateTicketMutation.mutate(
-        { ticketId: currentTicket.id, data: { [field]: !currentTicket[field] } },
-        {
-          onSuccess: () => setViewError(null),
-          onError: (err) => {
-            console.error('Failed to update block guard:', err);
-            setViewError('Failed to update setting. Please try again.');
-          },
-        },
-      );
-    }
-
-    // Eligible parents: not current ticket, parentId===null, no children of their own
-    const eligibleParents = allTickets.filter((t) => {
-      if (t.id === currentTicket.id) return false;
-      if (t.parentId != null) return false;
-      const hasChildren = allTickets.some((other) => other.parentId === t.id);
-      if (hasChildren) return false;
-      return true;
-    });
-
+  // ══════════════════════════════════════════════════════════════
+  // RENDER: CREATE MODE (New Ticket)
+  // ══════════════════════════════════════════════════════════════
+  if (localMode === 'create' || !ticket) {
     return (
-      <div
-        className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`}
-        onClick={handleClose}
-      >
-        <div
-          className={`${styles.panel} ${visible ? styles.panelVisible : ''}`}
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-heading"
-        >
-          <div className={styles.header}>
-            {isChildTicket && parentTicket ? (
-              <div className={styles.headerBreadcrumb}>
-                <button type="button" className={styles.headerParentId} onClick={() => onOpenTicket?.(parentTicket)}>
-                  {parentTicket.id}
-                </button>
-                <span className={styles.headerSep}>/</span>
-                <span id="modal-heading" className={styles.headerChildId}>{ticket.id}</span>
-              </div>
-            ) : (
-              <span id="modal-heading" className={styles.headerTitle}>{ticket.id}</span>
-            )}
-            <button type="button" aria-label="Close modal" className={styles.closeBtn} onClick={handleClose} ref={firstFocusRef}>
-              ×
+      <div className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
+        <div className={`${styles.panel} ${styles.panelNew} ${visible ? styles.panelVisible : ''}`} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.newModalHeader}>
+            <span className={styles.newModalTitle}>New Ticket</span>
+            <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M6 6L18 18" />
+                <path d="M18 6L6 18" />
+              </svg>
             </button>
           </div>
 
-          <div className={styles.body}>
-            <h2 className={styles.viewTitle}>{ticket.title}</h2>
+          <form onSubmit={handleCreateSubmit}>
+            <div className={styles.newModalBody}>
+              {saveError && (
+                <div style={{ color: '#C4432A', fontSize: 13, background: '#FBE7E4', padding: '8px 12px', borderRadius: 6 }}>
+                  {saveError}
+                </div>
+              )}
 
-            <div className={styles.twoColLayout}>
-              {/* ── Left column: content ── */}
-              <div className={styles.mainCol}>
+              <div className={styles.ntField}>
+                <span className={styles.ntLabel}>Title</span>
+                <input
+                  ref={titleInputRef}
+                  className={styles.ntInput}
+                  placeholder="Ticket title…"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className={styles.ntField}>
+                <span className={styles.ntLabel}>Type</span>
+                <div className={styles.typeButtonsGrid}>
+                  {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`${styles.ntTypeBtn} ${type === t ? styles.ntTypeBtnActive : ''}`}
+                      onClick={() => setType(t)}
+                    >
+                      <TicketTypeIcon type={t} size={14} />
+                      {TYPE_CONFIG[t].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.ntField}>
+                <span className={styles.ntLabel}>Description</span>
                 <MarkdownEditor
                   value={description}
                   onChange={setDescription}
-                  readOnly={true}
-                />
-
-                <div className={styles.timestamps}>
-                  <span>Created: {formatDate(ticket.createdAt)}</span>
-                  <span>Updated: {formatDate(ticket.updatedAt)}</span>
-                </div>
-
-                <hr className={styles.divider} />
-
-                <AcceptanceCriteriaSection
-                  acceptanceCriteria={ticket.acceptanceCriteria ?? []}
-                  onAdd={handleAddAC}
-                  onToggle={handleToggleAC}
-                  onDelete={handleDeleteAC}
-                />
-
-                <div className={styles.blockGuardRow}>
-                  <label className={styles.blockGuardLabel}>
-                    <input
-                      type="checkbox"
-                      checked={ticket.blockDoneIfAcsIncomplete}
-                      onChange={() => handleToggleBlockGuard('blockDoneIfAcsIncomplete')}
-                      className={styles.blockGuardCheckbox}
-                    />
-                    Block Done if ACs not all passed
-                  </label>
-                </div>
-
-                {isRootTicket && (
-                  <>
-                    <hr className={styles.divider} />
-                    <SubTicketsSection
-                      childTickets={childTickets}
-                      allTickets={allTickets}
-                      currentTicketId={ticket.id}
-                      projectId={ticket.projectId}
-                      onOpenTicket={(t) => onOpenTicket && onOpenTicket(t)}
-                      onLinkChild={handleLinkChild}
-                      onUnlinkChild={handleUnlinkChild}
-                    />
-                    <hr className={styles.divider} />
-                    <RelationsSection
-                      ticket={ticket}
-                      allTickets={allTickets}
-                      onLinkBlock={(blockerId, blockedId) =>
-                        linkBlockMutation.mutate(
-                          { blockerId, blockedId },
-                          {
-                            onSuccess: () => setViewError(null),
-                            onError: (err) => { console.error('Failed to link block:', err); setViewError('Failed to add relation. Please try again.'); },
-                          },
-                        )
-                      }
-                      onUnlinkBlock={(blockerId, blockedId) =>
-                        unlinkBlockMutation.mutate(
-                          { blockerId, blockedId },
-                          {
-                            onSuccess: () => setViewError(null),
-                            onError: (err) => { console.error('Failed to unlink block:', err); setViewError('Failed to remove relation. Please try again.'); },
-                          },
-                        )
-                      }
-                      onAddLink={(ticketId, targetId, relationType) =>
-                        addTicketLinkMutation.mutate(
-                          { ticketId, targetId, relationType },
-                          {
-                            onSuccess: () => setViewError(null),
-                            onError: (err) => { console.error('Failed to add link:', err); setViewError('Failed to add link. Please try again.'); },
-                          },
-                        )
-                      }
-                      onRemoveLink={(ticketId, linkId) =>
-                        removeTicketLinkMutation.mutate(
-                          { ticketId, linkId },
-                          {
-                            onSuccess: () => setViewError(null),
-                            onError: (err) => { console.error('Failed to remove link:', err); setViewError('Failed to remove link. Please try again.'); },
-                          },
-                        )
-                      }
-                    />
-                  </>
-                )}
-
-                <hr className={styles.divider} />
-
-                <CommentsSection
-                  comments={ticket.comments ?? []}
-                  onAdd={handleAddComment}
-                  onEdit={handleEditComment}
-                  onDelete={handleDeleteComment}
-                />
-
-                <hr className={styles.divider} />
-
-                <ActivityLog entries={ticket.activityLog ?? []} />
-
-                <hr className={styles.divider} />
-
-                <WorkLogSection
-                  entries={ticket.workLog ?? []}
-                  onAdd={handleAddWorkLog}
-                />
-
-                <hr className={styles.divider} />
-
-                <TestCasesSection
-                  testCases={ticket.testCases ?? []}
-                  disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
-                  onAdd={(title) =>
-                    new Promise<void>((resolve, reject) =>
-                      addTestCaseMutation.mutate(
-                        { ticketId: ticket.id, title },
-                        {
-                          onSuccess: () => { setViewError(null); resolve(); },
-                          onError: (err) => { console.error('Failed to add test case:', err); reject(err); },
-                        },
-                      ),
-                    )
-                  }
-                  onChange={(updated) => {
-                    const old = ticket.testCases ?? [];
-                    // Detect deleted
-                    const deletedIds = old
-                      .filter((o) => !updated.some((u) => u.id === o.id))
-                      .map((o) => o.id);
-                    // Detect updated (matching server ID but content changed)
-                    const changedItems = updated.filter((u) => {
-                      const o = old.find((o) => o.id === u.id);
-                      return o && JSON.stringify(o) !== JSON.stringify(u);
-                    });
-                    deletedIds.forEach((id) =>
-                      deleteTestCaseMutation.mutate(
-                        { ticketId: ticket.id, testCaseId: id },
-                        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to delete test case:', err); setViewError('Failed to delete test case. Please try again.'); } },
-                      ),
-                    );
-                    changedItems.forEach((tc) =>
-                      updateTestCaseMutation.mutate(
-                        {
-                          ticketId: ticket.id,
-                          testCaseId: tc.id,
-                          data: { title: tc.title, status: tc.status, proof: tc.proof ?? null, note: tc.note ?? null },
-                        },
-                        { onSuccess: () => setViewError(null), onError: (err) => { console.error('Failed to update test case:', err); setViewError('Failed to update test case. Please try again.'); } },
-                      ),
-                    );
+                  onUploadImage={async (f: File) => {
+                    const res = await uploadDescriptionImage(f);
+                    return { markdown: `![${f.name}](${res.url})` };
                   }}
-                  childTestCaseSources={
-                    isRootTicket
-                      ? allTickets
-                          .filter((t) => t.parentId === ticket.id)
-                          .map((t) => ({ ticketId: t.id, ticketTitle: t.title, testCases: t.testCases ?? [] }))
-                          .filter((s) => s.testCases.length > 0)
-                      : undefined
-                  }
                 />
+              </div>
 
-                <div className={styles.blockGuardRow}>
-                  <label className={styles.blockGuardLabel}>
-                    <input
-                      type="checkbox"
-                      checked={ticket.blockDoneIfTcsIncomplete}
-                      onChange={() => handleToggleBlockGuard('blockDoneIfTcsIncomplete')}
-                      className={styles.blockGuardCheckbox}
-                    />
-                    Block Done if TCs missing or not all passed
-                  </label>
+              <div style={{ display: 'flex', gap: 20 }}>
+                <div className={styles.ntField} style={{ flex: 1 }}>
+                  <span className={styles.ntLabel}>Priority</span>
+                  <div className={styles.priorityChips}>
+                    {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        className={`${styles.ntPriorityChip} ${priority === p ? styles.ntPriorityChipActive : ''}`}
+                        onClick={() => setPriority(p)}
+                      >
+                        <PriorityMark priority={p} width={14} height={12} />
+                        <span style={{ textTransform: 'capitalize' }}>{p}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={styles.ntField}>
+                  <span className={styles.ntLabel}>Estimate</span>
+                  <div className={styles.estimateRow}>
+                    {ESTIMATE_NUMBERS.map((sp) => (
+                      <button
+                        key={sp}
+                        type="button"
+                        className={`${styles.ntEstBtn} ${estimate === sp ? styles.ntEstBtnActive : ''}`}
+                        onClick={() => setEstimate(estimate === sp ? null : sp)}
+                      >
+                        {sp}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* ── Right sidebar: metadata ── */}
-              <aside className={styles.sidebarCol}>
-                <div className={styles.sidebarCard}>
-                  <div className={styles.sidebarRow}>
-                    <span className={styles.sidebarLabel}>Status</span>
-                    <span className={styles.statusBadge}>{STATUS_LABELS[ticket.status]}</span>
-                  </div>
-
-                  <div className={styles.sidebarRow}>
-                    <span className={styles.sidebarLabel}>Priority</span>
-                    <span
-                      className={styles.priorityBadge}
-                      style={{ backgroundColor: pc.bg, color: pc.color }}
-                    >
-                      ● {ticket.priority}
-                    </span>
-                  </div>
-
-                  <div className={styles.sidebarRow}>
-                    <span className={styles.sidebarLabel}>Type</span>
-                    <span
-                      className={styles.typeBadge}
-                      style={{ backgroundColor: TYPE_CONFIG[ticket.type].bg, color: TYPE_CONFIG[ticket.type].color }}
-                    >
-                      {TYPE_CONFIG[ticket.type].icon} {TYPE_CONFIG[ticket.type].label}
-                    </span>
-                  </div>
-
-                  {ticket.estimate !== null && ticket.estimate !== undefined && (
-                    <div className={styles.sidebarRow}>
-                      <span className={styles.sidebarLabel}>Story Points</span>
-                      <span className={styles.estimateBadge}>SP: {ticket.estimate}</span>
-                    </div>
-                  )}
-
-                  {ticket.dueDate && (() => {
-                    const due = new Date(ticket.dueDate);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const overdue = due < today;
-                    const label = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    return (
-                      <div className={styles.sidebarRow}>
-                        <span className={styles.sidebarLabel}>Due Date</span>
-                        <span className={overdue ? styles.dueDateOverdue : styles.dueDateBadge}>
-                          {overdue ? '⚠️' : '📅'} {label}
-                        </span>
-                      </div>
-                    );
-                  })()}
-
-                  {ticket.startDate && (
-                    <div className={styles.sidebarRow}>
-                      <span className={styles.sidebarLabel}>Start Date</span>
-                      <span className={styles.dueDateBadge}>
-                        🗓 {new Date(ticket.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    </div>
-                  )}
-
-                  {ticket.tags.length > 0 && (
-                    <div className={styles.sidebarSection}>
-                      <span className={styles.sidebarLabel}>Tags</span>
-                      <div className={styles.tagChips}>
-                        {ticket.tags.map((tag, i) => (
-                          <span key={`${tag}-${i}`} className={styles.chip}>{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Set parent — only for root tickets with no children */}
-                  {isRootTicket && childTickets.length === 0 && (
-                    <div className={styles.sidebarSection}>
-                      <span className={styles.sidebarLabel}>Parent ticket</span>
-                      <select
-                        className={styles.select}
-                        defaultValue=""
-                        onChange={(e) => { if (e.target.value) handleSetParent(e.target.value); }}
-                      >
-                        <option value="">— set parent —</option>
-                        {eligibleParents.map((p) => (
-                          <option key={p.id} value={p.id}>{p.id}: {p.title}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Remove parent — only for child tickets (parentId is set) */}
-                  {ticket.parentId && (
-                    <div className={styles.sidebarSection}>
-                      <span className={styles.sidebarLabel}>Parent ticket</span>
-                      <button
-                        type="button"
-                        className={styles.chip}
-                        style={{ cursor: 'pointer', background: '#FEE2E2', color: '#DC2626' }}
-                        onClick={handleRemoveParent}
-                        title="Click to remove parent"
-                      >
-                        ✕ Remove parent
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Created by */}
-                  {ticket.createdBy && (() => {
-                    const creator = members.find((m) => m.id === ticket.createdBy);
-                    return creator ? (
-                      <div className={styles.sidebarRow}>
-                        <span className={styles.sidebarLabel}>Created by</span>
-                        <span className={styles.memberChip}>
-                          <MemberAvatar member={creator} size={20} />
-                          <span>{creator.name}</span>
-                        </span>
-                      </div>
-                    ) : null;
-                  })()}
-
-                  {/* Assignee */}
-                  {(() => {
-                    const assigneeMember = ticket.assignee ? members.find((m) => m.id === ticket.assignee) : null;
-                    return (
-                      <div className={styles.sidebarRow}>
-                        <span className={styles.sidebarLabel}>Assignee</span>
-                        {assigneeMember ? (
-                          <span className={styles.memberChip}>
-                            <MemberAvatar member={assigneeMember} size={20} />
-                            <span>{assigneeMember.name}</span>
-                          </span>
-                        ) : (
-                          <span className={styles.unassignedBadge}>Unassigned</span>
-                        )}
-                      </div>
-                    );
-                  })()}
+              <div style={{ display: 'flex', gap: 20 }}>
+                <div className={styles.ntField} style={{ flex: 1 }}>
+                  <span className={styles.ntLabel}>Assignee</span>
+                  <select
+                    className={styles.ntInput}
+                    value={assignee ?? ''}
+                    onChange={(e) => setAssignee(e.target.value || null)}
+                  >
+                    <option value="">Unassigned</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </aside>
-            </div>
-          </div>
 
-          <div className={styles.footer}>
-            <div className={styles.deleteArea}>
-              {confirmDelete ? (
-                <div className={styles.confirmArea}>
-                  <span className={styles.confirmText}>Delete this ticket?</span>
-                  <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>Cancel</button>
-                  <button type="button" className={styles.confirmBtn} onClick={handleDelete}>Delete</button>
+                <div className={styles.ntField} style={{ flex: 1 }}>
+                  <span className={styles.ntLabel}>Due Date</span>
+                  <input
+                    type="date"
+                    className={styles.ntInput}
+                    value={dueDate ?? ''}
+                    onChange={(e) => setDueDate(e.target.value || null)}
+                  />
                 </div>
-              ) : (
-                onDelete && (
-                  <button type="button" className={styles.deleteOutlineBtn} onClick={() => setConfirmDelete(true)}>
-                    Delete
-                  </button>
-                )
-              )}
+              </div>
             </div>
-            {viewError && <p className={styles.errorText}>{viewError}</p>}
-            <button type="button" className={styles.saveBtn} onClick={handleSwitchToEdit}>
-              Edit
-            </button>
-          </div>
-          {/* Fix 3: focus trap sentinel */}
-          <div tabIndex={0} onFocus={() => firstFocusRef.current?.focus()} aria-hidden="true" />
+
+            <div className={styles.newModalFooter}>
+              <button type="button" className={styles.btnCancel} onClick={handleClose}>
+                Cancel
+              </button>
+              <button type="submit" className={styles.btnSubmit}>
+                Create Ticket
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // RENDER: VIEW MODE (Ticket Detail Panel)
+  // ══════════════════════════════════════════════════════════════
+  const rawBranches: TicketBranch[] = (ticketBranches.length > 0
+    ? ticketBranches
+    : (ticket?.branches && ticket.branches.length > 0)
+      ? ticket.branches
+      : []
+  );
+
+  const branchesList: TicketBranch[] = [
+    ...(!rawBranches.some((b) => b.name === 'main' || b.status === 'baseline')
+      ? [{
+          id: 'baseline-main',
+          name: 'main',
+          status: 'baseline' as const,
+          branchFrom: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }]
+      : []),
+    ...rawBranches,
+  ];
+
+  // Use the live list (git-refreshed) rather than ticket.branches, whose counts are stale
+  const defaultBranch = branchesList.find(b => b.status !== 'baseline') || branchesList[0];
+  const activeBranch = branchesList.find(b => b.name === selectedBranchName) || defaultBranch;
+  const activeBranchName = activeBranch?.name ?? 'main';
+  const activeBranchSubtext = activeBranch
+    ? (activeBranch.status === 'baseline'
+        ? 'baseline'
+        : `from ${activeBranch.branchFrom || 'main'}${
+            activeBranch.aheadCount !== undefined
+              ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
+              : ''
+          }`)
+    : 'from main';
+
   return (
     <div
-      className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`}
+      className={`${styles.overlay} ${visible ? styles.overlayVisible : ''} ${isFullscreen ? styles.overlayFullscreen : ''}`}
       onClick={handleClose}
     >
       <div
-        className={`${styles.panel} ${visible ? styles.panelVisible : ''}`}
+        className={`${styles.panel} ${styles.panelDetail} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-heading"
       >
+        {/* Header */}
         <div className={styles.header}>
-          <span id="modal-heading" className={styles.headerTitle}>
-            {localMode === 'create' ? 'New Ticket' : ticket?.id}
-          </span>
-          <button type="button" aria-label="Close modal" className={styles.closeBtn} onClick={handleClose} ref={firstFocusRef}>
-            ×
-          </button>
-        </div>
-
-        <div className={styles.body}>
-          {/* Group 1 — Basic Info */}
-          <div className={styles.fieldGroup}>
-            <div className={styles.fieldGroupLabel}>Basic info</div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Title</label>
-              <input
-                ref={titleInputRef}
-                className={styles.input}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ticket title..."
-                required
-                aria-required="true"
-              />
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Description</label>
-              <MarkdownEditor
-                value={description}
-                onChange={setDescription}
-                onUploadImage={handleDescriptionImageUpload}
-                onUploadComplete={(nextDescription) => {
-                  void persistDescription(nextDescription);
-                }}
-                onBlur={(newDesc) => {
-                  void persistDescription(newDesc);
-                }}
-              />
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Type</label>
+          <div className={styles.headerLeft}>
+            <div className={styles.typeContainer} style={{ position: 'relative', cursor: 'pointer' }} title="Change ticket type">
+              <TicketTypeIcon type={ticket.type} size={16} />
+              <span>{TYPE_CONFIG[ticket.type].label}</span>
               <select
-                className={styles.select}
-                value={type}
-                onChange={(e) => setType(e.target.value as IssueType)}
+                className={styles.sidebarSelect}
+                value={ticket.type}
+                onChange={(e) => handleTypeChange(e.target.value as IssueType)}
               >
-                <option value="bug">🐛 Bug</option>
-                <option value="feature">✨ Feature</option>
-                <option value="task">📋 Task</option>
-                <option value="chore">🔧 Chore</option>
+                <option value="task">Task</option>
+                <option value="bug">Bug</option>
+                <option value="feature">Feature</option>
+                <option value="chore">Chore</option>
               </select>
             </div>
+
+            <span className={styles.headerDivider} />
+
+            {parentTicket && (
+              <>
+                <button
+                  type="button"
+                  className={styles.parentBtn}
+                  onClick={() => onOpenTicket?.(parentTicket)}
+                  title={`Parent: ${parentTicket.title}`}
+                >
+                  <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
+                    <path d="M7.5 8.5L10 11L7.5 13.5" />
+                  </svg>
+                  {parentTicket.id}
+                </button>
+                <span className={styles.slashSep}>/</span>
+              </>
+            )}
+
+            <button
+              type="button"
+              className={styles.idBtn}
+              onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
+              title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
+            >
+              {ticket.id}
+            </button>
           </div>
 
-          {/* Group 2 — Metadata */}
-          <div className={styles.fieldGroup}>
-            <div className={styles.fieldGroupLabel}>Metadata</div>
+          {/* View switcher tabs */}
+          <div className={styles.headerViews}>
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${activeTab === 'test_cases' ? styles.viewBtnActive : ''}`}
+              onClick={() => setActiveTab(activeTab === 'test_cases' ? 'main' : 'test_cases')}
+              aria-label="Test Cases"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 11L12 14L22 4" />
+                <path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" />
+              </svg>
+              {tcDotColor && <span className={styles.viewDot} style={{ background: tcDotColor }} />}
+              <span className={styles.viewTooltip}>{tcTooltip}</span>
+            </button>
 
-            <div className={styles.row}>
-              <div className={styles.field}>
-                <label className={styles.label}>Status</label>
-                <select
-                  className={styles.select}
-                  value={status}
-                  onChange={(e) => {
-                    const val = e.target.value as Status;
-                    if (val === 'wont_do') {
-                      setStatus(val);
-                      setWontDoDialogPending(true);
-                    } else {
-                      setStatus(val);
-                      setWontDoDialogPending(false);
-                      setWontDoReason('');
-                    }
-                  }}
-                >
-                  <option value="backlog">Backlog</option>
-                  <option value="todo">To Do</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="done">Done</option>
-                  {!ticket?.parentId && <option value="wont_do">Không làm</option>}
-                </select>
-                {wontDoDialogPending && (
-                  <div className={styles.wontDoDialog}>
-                    <label className={styles.label}>Lý do không làm *</label>
-                    <textarea
-                      className={styles.wontDoTextarea}
-                      value={wontDoReason}
-                      onChange={(e) => setWontDoReason(e.target.value)}
-                      placeholder="Nhập lý do..."
-                      rows={3}
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${activeTab === 'debug_space' ? styles.viewBtnActive : ''}`}
+              onClick={() => setActiveTab(activeTab === 'debug_space' ? 'main' : 'debug_space')}
+              aria-label="Debug Space"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M7 9L10 12L7 15" />
+                <path d="M12 15H17" />
+              </svg>
+              {wlDotColor && <span className={styles.viewDot} style={{ background: wlDotColor }} />}
+              <span className={styles.viewTooltip}>{wlTooltip}</span>
+            </button>
+
+            {workspaceEnabled && (
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
+              onClick={() => setActiveTab(activeTab === 'workspace' ? 'main' : 'workspace')}
+              aria-label="Workspace"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
+              </svg>
+              <span className={styles.viewTooltip}>Workspace</span>
+            </button>
+            )}
+
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${activeTab === 'branches' ? styles.viewBtnActive : ''}`}
+              onClick={() => setActiveTab(activeTab === 'branches' ? 'main' : 'branches')}
+              aria-label="Branches"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="6" r="2.5" />
+                <circle cx="6" cy="18" r="2.5" />
+                <circle cx="18" cy="6" r="2.5" />
+                <path d="M6 8.5V15.5" />
+                <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+              </svg>
+              <span className={styles.viewTooltip}>Branches</span>
+            </button>
+
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${activeTab === 'activity' ? styles.viewBtnActive : ''}`}
+              onClick={() => setActiveTab(activeTab === 'activity' ? 'main' : 'activity')}
+              aria-label="Activity"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7V12L15 14" />
+              </svg>
+              <span className={styles.viewTooltip}>Activity — {ticket?.activityLog?.length ?? 0} changes</span>
+            </button>
+          </div>
+
+          <div className={styles.headerRight}>
+            <button
+              type="button"
+              className={styles.fullscreenBtn}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              onClick={() => setIsFullscreen((prev) => !prev)}
+            >
+              {isFullscreen ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M14 4h6m0 0v6m0-6l-7 7M4 10h6m0 0V4m0 6L3 3" />
+                </svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                </svg>
+              )}
+            </button>
+
+            {onDelete && (
+              <button
+                type="button"
+                className={styles.deleteHeaderBtn}
+                aria-label="Delete ticket"
+                title="Delete ticket"
+                onClick={() => {
+                  if (window.confirm(`Delete ${ticket.id}?`)) {
+                    onDelete(ticket.id);
+                    handleClose();
+                  }
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </button>
+            )}
+
+            <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M6 6L18 18" />
+                <path d="M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        {activeTab === 'main' ? (
+          <div key="main" className={`${styles.detailBody} ${styles.tabFadeSlide}`}>
+            {/* Main Column */}
+            <div className={styles.mainCol}>
+              <>
+                {/* Title & Tags */}
+                <div className={styles.titleArea}>
+                  {isEditingTitle ? (
+                    <input
+                      className={styles.titleInputEdit}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      onBlur={handleTitleBlur}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleTitleBlur();
+                        if (e.key === 'Escape') {
+                          setTitle(ticket.title);
+                          setIsEditingTitle(false);
+                        }
+                      }}
                       autoFocus
                     />
+                  ) : (
+                    <h2 className={styles.titleText} onClick={() => setIsEditingTitle(true)} title="Click to edit">
+                      {ticket.title}
+                    </h2>
+                  )}
+
+                  <div className={styles.tagsRow}>
+                    {tags.map((tag) => (
+                      <TagPill
+                        key={tag}
+                        tag={tag}
+                        onRemove={() => handleRemoveTag(tag)}
+                      />
+                    ))}
+
+                    {isAddingTag ? (
+                      <input
+                        ref={tagInputRef}
+                        className={styles.tagInput}
+                        placeholder="Tag name…"
+                        value={newTagText}
+                        onChange={(e) => setNewTagText(e.target.value)}
+                        onBlur={handleAddTagSubmit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleAddTagSubmit();
+                          if (e.key === 'Escape') setIsAddingTag(false);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.tagAddBtn}
+                        onClick={() => setIsAddingTag(true)}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 12 12"><path d="M6 2V10M2 6H10" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                        Add tag
+                      </button>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className={styles.field}>
-                <label className={styles.label}>Priority</label>
-                <select
-                  className={styles.select}
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as Priority)}
+                {/* Description */}
+                <div className={styles.descSection}>
+                  <div className={styles.sectionLabel}>Description</div>
+                  <MarkdownEditor
+                    value={description}
+                    onChange={(nextDesc) => {
+                      setDescription(nextDesc);
+                      scheduleDescriptionSave(nextDesc);
+                    }}
+                    onBlur={() => flushDescRef.current()}
+                    onUploadImage={async (f: File) => {
+                      const res = await uploadDescriptionImage(f);
+                      return { markdown: `![${f.name}](${res.url})` };
+                    }}
+                  />
+                </div>
+
+                {/* Sub-tasks */}
+                <SubTicketsSection
+                  childTickets={childTickets}
+                  allTickets={allTickets}
+                  currentTicketId={ticket.id}
+                  projectId={ticket.projectId}
+                  onOpenTicket={(child) => onOpenTicket?.(child)}
+                  onLinkChild={(childId) => {
+                    updateTicketMutation.mutate({
+                      ticketId: childId,
+                      data: { parentId: ticket.id },
+                    });
+                  }}
+                  onUnlinkChild={(childId) => {
+                    updateTicketMutation.mutate({
+                      ticketId: childId,
+                      data: { parentId: null },
+                    });
+                  }}
+                />
+
+                {/* Acceptance Criteria */}
+                <AcceptanceCriteriaSection
+                  acceptanceCriteria={ticket.acceptanceCriteria ?? []}
+                  onAdd={(text) => {
+                    addACMutation.mutate({ ticketId: ticket.id, text });
+                  }}
+                  onToggle={(id) => {
+                    toggleACMutation.mutate({ ticketId: ticket.id, criterionId: id });
+                  }}
+                  onDelete={(id) => {
+                    deleteACMutation.mutate({ ticketId: ticket.id, criterionId: id });
+                  }}
+                />
+
+                {/* Relations */}
+                <RelationsSection
+                  ticket={ticket}
+                  allTickets={allTickets}
+                  onLinkBlock={(blockerId, blockedId) => {
+                    linkBlockMutation.mutate({ blockerId, blockedId });
+                  }}
+                  onUnlinkBlock={(blockerId, blockedId) => {
+                    unlinkBlockMutation.mutate({ blockerId, blockedId });
+                  }}
+                  onAddLink={(ticketId, targetId, relType) => {
+                    addTicketLinkMutation.mutate({ ticketId, targetId, relationType: relType });
+                  }}
+                  onRemoveLink={(ticketId, linkId) => {
+                    removeTicketLinkMutation.mutate({ ticketId, linkId });
+                  }}
+                  onOpenTicket={(relT) => onOpenTicket?.(relT)}
+                />
+
+                {/* Consolidated Attachments Zone */}
+                {(() => {
+                  const rawAttachments = (ticket.description?.match(/!\[(.*?)\]\((.*?)\)/g) ?? [])
+                    .map((match) => {
+                      const exec = /!\[(.*?)\]\((.*?)\)/.exec(match);
+                      const alt = exec?.[1] || 'attachment';
+                      const src = exec?.[2] || '';
+                      return { alt, src };
+                    })
+                    .filter((att) => att.src && !att.src.startsWith('uploading:'));
+
+                  return (
+                    <div className={styles.attachmentsZone}>
+                      <div className={styles.sectionLabel}>
+                        ATTACHMENTS · {rawAttachments.length}
+                      </div>
+                      <div className={styles.attachmentsList}>
+                        {rawAttachments.map((att, i) => {
+                          const resolvedSrc = att.src.startsWith('/uploads/') ? `${resolveOrigin()}${att.src}` : att.src;
+                          return (
+                            <div key={i} className={styles.attThumbBox}>
+                              <div
+                                className={styles.attThumb}
+                                onClick={() => window.open(resolvedSrc, '_blank')}
+                                style={{ cursor: 'pointer' }}
+                                title="Click to view full size"
+                              >
+                                <img src={resolvedSrc} alt={att.alt} />
+                              </div>
+                              <span className={styles.attMetaText}>in Description</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <hr className={styles.sectionDivider} />
+
+                {/* Comments */}
+                <CommentsSection
+                  comments={ticket.comments ?? []}
+                  members={members}
+                  currentMember={assigneeMember}
+                  onAdd={(t) => addCommentMutation.mutate({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'user' })}
+                  onEdit={(cId, t) => updateCommentMutation.mutate({ ticketId: ticket.id, commentId: cId, text: t })}
+                  onDelete={(cId) => deleteCommentMutation.mutate({ ticketId: ticket.id, commentId: cId })}
+                />
+              </>
+          </div>
+
+          {/* Right Meta Sidebar matching ticket-detail-4-sidebar.png */}
+          <aside className={styles.sidebarCol}>
+            {/* 1. Status */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Status</span>
+              <StatusMenu value={status} onChange={handleStatusChange} />
+            </div>
+
+            {/* 2. Branch */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Branch</span>
+              <div ref={branchContainerRef} style={{ position: 'relative', width: '100%' }}>
+                <button
+                  type="button"
+                  className={`${styles.branchBtn} ${isBranchPopoverOpen ? styles.branchBtnActive : ''}`}
+                  onClick={() => setIsBranchPopoverOpen((prev) => !prev)}
+                  title={activeBranchName ? `Branch: ${activeBranchName}` : 'Branch: main'}
                 >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </div>
-            </div>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <circle cx="6" cy="6" r="2.5" />
+                    <circle cx="6" cy="18" r="2.5" />
+                    <circle cx="18" cy="6" r="2.5" />
+                    <path d="M6 8.5V15.5" />
+                    <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                  </svg>
+                  <span className={styles.branchText}>{activeBranchName}</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d={isBranchPopoverOpen ? "M6 15L12 9L18 15" : "M6 9L12 15L18 9"} />
+                  </svg>
+                </button>
 
-            <div className={styles.field}>
-              <label className={styles.label}>Estimate</label>
-              <div className={styles.estimateSelector}>
-                {ESTIMATE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt === null ? 'none' : opt}
-                    type="button"
-                    className={estimate === opt ? styles.estimateOptionActive : styles.estimateOption}
-                    onClick={() => setEstimate(opt)}
-                  >
-                    {opt === null ? '—' : opt}
-                  </button>
-                ))}
-              </div>
-            </div>
+              {/* Branch Switcher Popover */}
+              {isBranchPopoverOpen && (
+                <div className={styles.branchPopover}>
+                  <div className={styles.branchPopoverHeader}>
+                    Branches of {ticket.id}
+                  </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>Tags</label>
-              <input
-                className={styles.input}
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="frontend, bug, phase-2..."
-              />
-              {tagsInput.trim() && (
-                <div className={styles.tagChips}>
-                  {tagsInput.split(',').map((t) => t.trim() && <span key={t.trim()} className={styles.chip}>{t.trim()}</span>)}
+                  <div className={styles.branchList}>
+                    {branchesList.map((b) => {
+                      const isActive = b.name === activeBranchName;
+                      const dotColor =
+                        b.status === 'baseline' ? '#2E6F40' :
+                        b.status === 'merged' ? '#2F6FB0' :
+                        b.status === 'stale' || b.status === 'archived' ? '#C4432A' : '#6D5DD3';
+                      
+                      const badgeClass =
+                        b.status === 'baseline' ? styles.branchBadgeBaseline :
+                        b.status === 'merged' ? styles.branchBadgeMerged :
+                        b.status === 'stale' || b.status === 'archived' ? styles.branchBadgeStale : '';
+
+                      return (
+                        <button
+                          key={b.id || b.name}
+                          type="button"
+                          className={`${styles.branchRow} ${isActive ? styles.branchRowActive : ''}`}
+                          onClick={() => {
+                            setSelectedBranchName(b.name);
+                            setIsBranchPopoverOpen(false);
+                            if (b.linkedTicketId && allTickets) {
+                              const found = allTickets.find(t => t.id === b.linkedTicketId);
+                              if (found) onOpenTicket?.(found);
+                            }
+                          }}
+                        >
+                          <span className={styles.branchDot} style={{ background: dotColor }} />
+                          <span className={`${styles.branchRowName} ${isActive ? styles.branchRowNameActive : ''}`}>
+                            {b.name}
+                          </span>
+                          {b.worktreePath && (
+                            <span
+                              className={styles.branchWorktreePill}
+                              title={`Worktree: ${b.worktreePath}`}
+                            >
+                              🌳
+                            </span>
+                          )}
+                          {isActive ? (
+                            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                              <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
+                              <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            b.status !== 'open' && (
+                              <span className={`${styles.branchBadge} ${badgeClass}`}>
+                                {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                              </span>
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className={styles.repoConfigBox}>
+                    <div className={styles.repoConfigHeader}>
+                      <div className={styles.repoConfigTitle}>
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={styles.repoIcon}
+                        >
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span>Local Git repo</span>
+                        <span className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}>
+                          {ticket.repoPath ? 'override' : project?.repoPath ? 'project' : 'not linked'}
+                        </span>
+                      </div>
+                      {!isEditingRepo && (
+                        <button
+                          type="button"
+                          className={styles.repoActionBtn}
+                          onClick={() => {
+                            setRepoPathDraft(ticket.repoPath ?? project?.repoPath ?? '');
+                            setIsEditingRepo(true);
+                          }}
+                        >
+                          {effectiveRepoPath ? 'Change' : 'Set'}
+                        </button>
+                      )}
+                    </div>
+
+                    {isEditingRepo ? (
+                      <form
+                        className={styles.repoEditForm}
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          saveTicketRepo(repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft);
+                        }}
+                      >
+                        <input
+                          type="text"
+                          className={styles.repoInput}
+                          placeholder="/absolute/path/to/local/git-repo"
+                          value={repoPathDraft}
+                          onChange={(e) => setRepoPathDraft(e.target.value)}
+                          autoFocus
+                        />
+                        <div className={styles.repoFormActions}>
+                          {ticket.repoPath && (
+                            <button
+                              type="button"
+                              className={styles.repoBtnSecondary}
+                              onClick={() => saveTicketRepo('')}
+                            >
+                              Reset to project
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={styles.repoBtnSecondary}
+                            onClick={() => setIsEditingRepo(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className={styles.repoBtnPrimary}
+                            disabled={updateTicketMutation.isPending || !repoPathDraft.trim()}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className={styles.repoStatusBody}>
+                        {effectiveRepoPath ? (
+                          <span className={styles.repoPathMono} title={effectiveRepoPath}>
+                            {effectiveRepoPath}
+                          </span>
+                        ) : (
+                          <span className={styles.repoEmptyDesc}>
+                            Branches only exist on this board until a local repository is linked.
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.branchPopoverFooter}>
+                    <button
+                      type="button"
+                      className={styles.branchFooterBtn}
+                      onClick={() => {
+                        setIsBranchPopoverOpen(false);
+                        setIsCreateBranchModalOpen(true);
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M12 5V19" />
+                        <path d="M5 12H19" />
+                      </svg>
+                      Create branch
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
+                      onClick={() => {
+                        setIsBranchPopoverOpen(false);
+                        setActiveTab('branches');
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                      </svg>
+                      View full graph →
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
+            <span className={styles.branchSubtext}>
+              {activeBranchSubtext}
+            </span>
+          </div>
 
-            {members.length > 0 && (
-              <div className={styles.field}>
-                <label className={styles.label}>Assignee</label>
+            {/* 3. Assignee */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Assignee</span>
+              <div className={styles.sidebarItemInteractive} title="Click to change assignee">
+                {assigneeMember ? (
+                  <>
+                    <MemberAvatar member={assigneeMember} size={22} />
+                    <span>{assigneeMember.name}</span>
+                  </>
+                ) : (
+                  <span style={{ color: '#9AA8A0' }}>Unassigned</span>
+                )}
                 <select
-                  className={styles.select}
+                  className={styles.sidebarSelect}
                   value={assignee ?? ''}
-                  onChange={(e) => setAssignee(e.target.value || null)}
+                  onChange={(e) => handleAssigneeChange(e.target.value || null)}
                 >
                   <option value="">Unassigned</option>
                   {members.map((m) => (
@@ -975,63 +1223,254 @@ export function TicketModal({ mode: initialMode, ticket, onSave, onDelete, onClo
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* 4. Priority */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Priority</span>
+              <div className={styles.sidebarItemInteractive} title="Click to change priority">
+                <PriorityMark priority={priority} width={16} height={15} />
+                <span style={{ textTransform: 'capitalize' }}>{priority}</span>
+                <select
+                  className={styles.sidebarSelect}
+                  value={priority}
+                  onChange={(e) => handlePriorityChange(e.target.value as Priority)}
+                >
+                  <option value="critical">Critical</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 5. Due Date */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Due Date</span>
+              <div
+                className={styles.sidebarItemInteractive}
+                title="Click to set due date"
+                onClick={() => {
+                  try {
+                    dateInputRef.current?.showPicker?.();
+                  } catch {
+                    dateInputRef.current?.focus();
+                  }
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+                  <path d="M3.5 10H20.5" />
+                  <path d="M8 3V6.5" />
+                  <path d="M16 3V6.5" />
+                </svg>
+                <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
+                  {dueDate ? formatDueDate(dueDate) : '–'}
+                </span>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  className={styles.invisibleDateInput}
+                  value={dueDate ?? ''}
+                  onChange={(e) => {
+                    const next = e.target.value || null;
+                    setDueDate(next);
+                    autoSaveField('dueDate', next);
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* 6. Estimate */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Estimate</span>
+              <div className={styles.sidebarItemInteractive} title="Click to change estimate">
+                <span style={estimate === null ? { color: '#9AA8A0' } : undefined}>
+                  {estimate !== null ? `${estimate} pt` : '–'}
+                </span>
+                <select
+                  className={styles.sidebarSelect}
+                  value={estimate ?? ''}
+                  onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">–</option>
+                  <option value="1">1 pt</option>
+                  <option value="2">2 pt</option>
+                  <option value="3">3 pt</option>
+                  <option value="5">5 pt</option>
+                  <option value="8">8 pt</option>
+                  <option value="13">13 pt</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 6b. Done guards */}
+            <div className={styles.sidebarRow}>
+              <span className={styles.sidebarLabel}>Done requires</span>
+              <div className={styles.doneGuards}>
+                <label className={styles.guardOption} title="Block moving to Done until every acceptance criterion is checked">
+                  <input
+                    type="checkbox"
+                    checked={blockAcs}
+                    onChange={(e) => {
+                      setBlockAcs(e.target.checked);
+                      autoSaveField('blockDoneIfAcsIncomplete', e.target.checked);
+                    }}
+                  />
+                  All acceptance criteria met
+                </label>
+                <label className={styles.guardOption} title="Block moving to Done until every test case passes">
+                  <input
+                    type="checkbox"
+                    checked={blockTcs}
+                    onChange={(e) => {
+                      setBlockTcs(e.target.checked);
+                      autoSaveField('blockDoneIfTcsIncomplete', e.target.checked);
+                    }}
+                  />
+                  All test cases passed
+                </label>
+              </div>
+            </div>
+
+            {/* 7. Divider */}
+            <div className={styles.sidebarDivider} />
+
+            {/* 8. Audit Metadata */}
+            <div className={styles.auditMeta}>
+              <div>
+                Created {formatRelativeTime(ticket.createdAt)}
+                {(() => {
+                  const creator = members.find((m) => m.id === ticket.createdBy)?.name;
+                  return creator ? (
+                    <>
+                      {' '}by <span style={{ color: '#5B6B60', fontWeight: 500 }}>{creator}</span>
+                    </>
+                  ) : null;
+                })()}
+              </div>
+              <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
+            </div>
+          </aside>
+        </div>
+        ) : (
+          <div key={activeTab} className={`${styles.fullWidthBody} ${styles.tabFadeSlide}`}>
+            {activeTab === 'test_cases' && (
+              <TestCasesSection
+                ticketId={ticket.id}
+                testCases={ticket.testCases ?? []}
+                childTestCaseSources={childTickets.map((st) => ({
+                  ticketId: st.id,
+                  ticketTitle: st.title,
+                  testCases: st.testCases ?? [],
+                }))}
+                disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
+                onAdd={(tTitle, tDesc) =>
+                  new Promise<void>((resolve, reject) =>
+                    addTestCaseMutation.mutate(
+                      { ticketId: ticket.id, title: tTitle, description: tDesc },
+                      {
+                        onSuccess: () => resolve(),
+                        onError: (err: unknown) => reject(err),
+                      }
+                    )
+                  )
+                }
+                onChange={(updated) => {
+                  const old = ticket.testCases ?? [];
+                  const deletedIds = old
+                    .filter((o) => !updated.some((u) => u.id === o.id))
+                    .map((o) => o.id);
+                  const changedItems = updated.filter((u) => {
+                    const o = old.find((item) => item.id === u.id);
+                    return o && JSON.stringify(o) !== JSON.stringify(u);
+                  });
+                  deletedIds.forEach((id) =>
+                    deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id })
+                  );
+                  changedItems.forEach((tc) =>
+                    updateTestCaseMutation.mutate({
+                      ticketId: ticket.id,
+                      testCaseId: tc.id,
+                      data: {
+                        title: tc.title,
+                        status: tc.status,
+                        description: tc.description,
+                        expectedResult: tc.expectedResult,
+                        notes: tc.notes,
+                        startedAt: tc.startedAt,
+                        assignee: tc.assignee,
+                        testDataFiles: tc.testDataFiles,
+                        proof: tc.proof ?? null,
+                        note: tc.note ?? null,
+                      },
+                    })
+                  );
+                }}
+              />
+            )}
+            {activeTab === 'debug_space' && (
+              <DebugSpaceSection
+                ticketId={ticket.id}
+                entries={ticket.workLog ?? []}
+                branchNames={rawBranches.map((b) => b.name)}
+                testCases={(ticket.testCases ?? [])
+                  .filter((t) => t.code)
+                  .map((t) => ({ code: t.code as string, title: t.title }))}
+                memberNames={members.map((m) => m.name)}
+                onAdd={async (entry) => {
+                  await addWorkLogMutation.mutateAsync({
+                    ticketId: ticket.id,
+                    data: entry,
+                  });
+                }}
+                onUpdate={async (entryId, data) => {
+                  await updateWorkLogMutation.mutateAsync({
+                    ticketId: ticket.id,
+                    entryId,
+                    data,
+                  });
+                }}
+                onDelete={async (entryId) => {
+                  await deleteWorkLogMutation.mutateAsync({
+                    ticketId: ticket.id,
+                    entryId,
+                  });
+                }}
+                onOpenBranch={() => setActiveTab('branches')}
+                onOpenTestCase={() => setActiveTab('test_cases')}
+              />
+            )}
+            {activeTab === 'workspace' && workspaceEnabled && (
+              <WorkspaceSection ticketId={ticket.id} />
+            )}
+            {activeTab === 'branches' && (
+              <BranchesSection ticketId={ticket.id} />
+            )}
+            {activeTab === 'activity' && (
+              <ActivitySection
+                ticketId={ticket.id}
+                entries={ticket.activityLog ?? []}
+                members={members}
+              />
             )}
           </div>
+        )}
 
-          {/* Group 3 — Dates */}
-          <div className={styles.fieldGroup}>
-            <div className={styles.fieldGroupLabel}>Dates</div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Start Date</label>
-              <input
-                type="date"
-                className={styles.input}
-                value={startDate ?? ''}
-                onChange={(e) => setStartDate(e.target.value || null)}
-              />
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Due Date</label>
-              <input
-                type="date"
-                className={styles.input}
-                value={dueDate ?? ''}
-                onChange={(e) => setDueDate(e.target.value || null)}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.footer}>
-          {localMode === 'edit' && onDelete && (
-            <div className={styles.deleteArea}>
-              {confirmDelete ? (
-                <div className={styles.confirmArea}>
-                  <span className={styles.confirmText}>Delete this ticket?</span>
-                  <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>Cancel</button>
-                  <button type="button" className={styles.confirmBtn} onClick={handleDelete}>Delete</button>
-                </div>
-              ) : (
-                <button type="button" className={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>
-                  Delete
-                </button>
-              )}
-            </div>
-          )}
-          {localMode === 'edit' && (
-            <button type="button" className={styles.cancelBtn} onClick={handleCancelEdit}>
-              Cancel
-            </button>
-          )}
-          {saveError && <p className={styles.errorText}>{saveError}</p>}
-          <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={!title.trim()}>
-            Save
-          </button>
-        </div>
-        {/* Fix 3: focus trap sentinel */}
-        <div tabIndex={0} onFocus={() => firstFocusRef.current?.focus()} aria-hidden="true" />
+        <CreateBranchModal
+          isOpen={isCreateBranchModalOpen}
+          onClose={() => setIsCreateBranchModalOpen(false)}
+          ticketId={ticket.id}
+          branches={branchesList}
+          initialBranchFrom={activeBranch?.inRepo === false ? 'main' : (activeBranchName || 'main')}
+          defaultWorktreeTemplate={project?.worktreeTemplate}
+          defaultWorktreeEnabled={project?.worktreeByDefault}
+          projectPrefix={project?.prefix}
+          hasRepoLinked={Boolean(effectiveRepoPath)}
+          onSuccess={(newBranch) => {
+            setSelectedBranchName(newBranch);
+          }}
+        />
       </div>
     </div>
   );

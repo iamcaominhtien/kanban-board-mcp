@@ -113,6 +113,27 @@ async def test_update_ticket_status_logs_activity(client: httpx.AsyncClient):
     )
 
 
+async def test_update_ticket_description_and_tags_logs_activity(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        r = await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"description": "Updated description content", "tags": ["FRONTEND", "UI"]},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["description"] == "Updated description content"
+    assert any(
+        e["field"] == "description" and e["to"] == "Updated description content"
+        for e in body["activity_log"]
+    )
+    assert any(
+        e["field"] == "tags" and e["to"] == ["FRONTEND", "UI"]
+        for e in body["activity_log"]
+    )
+
+
 async def test_delete_ticket_then_404(client: httpx.AsyncClient):
     async with client as c:
         project = await _create_project(c)
@@ -259,7 +280,7 @@ async def test_add_work_log(client: httpx.AsyncClient):
         ticket = await _create_ticket(c, project["id"])
         r = await c.post(
             f"/tickets/{ticket['id']}/work-log",
-            json={"author": "bob", "role": "dev", "note": "Did stuff"},
+            json={"author": "bob", "role": "Developer", "note": "Did stuff"},
         )
     assert r.status_code == 200
     wl = r.json()["work_log"]
@@ -273,13 +294,65 @@ async def test_delete_work_log(client: httpx.AsyncClient):
         ticket = await _create_ticket(c, project["id"])
         r_add = await c.post(
             f"/tickets/{ticket['id']}/work-log",
-            json={"author": "alice", "role": "qa", "note": "Reviewed"},
+            json={"author": "alice", "role": "Tester", "note": "Reviewed"},
         )
         assert r_add.status_code == 200
         log_id = r_add.json()["work_log"][0]["id"]
         r_del = await c.delete(f"/tickets/{ticket['id']}/work-log/{log_id}")
     assert r_del.status_code == 200
     assert r_del.json()["work_log"] == []
+
+
+async def test_debug_space_extended_work_log_and_update(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        # Links must point at a real branch and test case of the ticket
+        await c.post(f"/tickets/{ticket['id']}/branches", json={"name": "fix/jwt-decode"})
+        await c.post(f"/tickets/{ticket['id']}/test-cases", json={"title": "jwt decode"})
+
+        # Add rich debug entry
+        r_add = await c.post(
+            f"/tickets/{ticket['id']}/work-log",
+            json={
+                "author": "An",
+                "role": "Tester",
+                "note": "Found null pointer in JWT decoder",
+                "kind": "investigation",
+                "pinned": True,
+                "attachments": [{"id": "att-1", "name": "trace.log", "url": "/uploads/trace.log"}],
+                "linked_branch": "fix/jwt-decode",
+                "linked_test_case": "TC-1",
+            },
+        )
+        assert r_add.status_code == 200
+        wl = r_add.json()["work_log"]
+        assert len(wl) == 1
+        entry = wl[0]
+        assert entry["author"] == "An"
+        assert entry["kind"] == "investigation"
+        assert entry["pinned"] is True
+        assert len(entry["attachments"]) == 1
+        assert entry["linked_branch"] == "fix/jwt-decode"
+        assert entry["linked_test_case"] == "TC-1"
+        assert entry["at"] is not None
+
+        # Update debug entry (change to root_cause, modify note)
+        log_id = entry["id"]
+        r_patch = await c.patch(
+            f"/tickets/{ticket['id']}/work-log/{log_id}",
+            json={
+                "kind": "root_cause",
+                "note": "Confirmed root cause: missing fallback when token header has no kid",
+                "pinned": True,
+            },
+        )
+        assert r_patch.status_code == 200
+        entry_upd = r_patch.json()["work_log"][0]
+        assert entry_upd["kind"] == "root_cause"
+        assert entry_upd["note"] == "Confirmed root cause: missing fallback when token header has no kid"
+        assert entry_upd["pinned"] is True
+        assert entry_upd["updated_at"] is not None
 
 
 # ---------------------------------------------------------------------------
@@ -314,6 +387,56 @@ async def test_add_update_delete_test_case(client: httpx.AsyncClient):
         r_del = await c.delete(f"/tickets/{ticket['id']}/test-cases/{tc_id}")
     assert r_del.status_code == 200
     assert r_del.json()["test_cases"] == []
+
+
+async def test_test_case_extended_fields_and_running_status(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        # Add first TC with running status & extended fields
+        r1 = await c.post(
+            f"/tickets/{ticket['id']}/test-cases",
+            json={
+                "title": "Verify login with OAuth",
+                "status": "running",
+                "description": "User clicks Google button and completes auth",
+                "expected_result": "Redirect to dashboard with valid JWT",
+                "notes": "Testing against staging OAuth provider",
+                "assignee": "alex",
+            },
+        )
+        assert r1.status_code == 200
+        tc1 = r1.json()["test_cases"][0]
+        assert tc1["code"] == "TC-1"
+        assert tc1["status"] == "running"
+        assert tc1["started_at"] is not None
+        assert tc1["description"] == "User clicks Google button and completes auth"
+        assert tc1["expected_result"] == "Redirect to dashboard with valid JWT"
+        assert tc1["assignee"] == "alex"
+
+        # Add second TC
+        r2 = await c.post(
+            f"/tickets/{ticket['id']}/test-cases",
+            json={"title": "Verify password reset", "status": "pending"},
+        )
+        assert r2.status_code == 200
+        tc2 = r2.json()["test_cases"][1]
+        assert tc2["code"] == "TC-2"
+        assert tc2["status"] == "pending"
+
+        # Update first TC to pass
+        r_upd = await c.patch(
+            f"/tickets/{ticket['id']}/test-cases/{tc1['id']}",
+            json={
+                "status": "pass",
+                "notes": "OAuth returned status 200, JWT verified in local storage",
+            },
+        )
+        assert r_upd.status_code == 200
+        tc1_updated = r_upd.json()["test_cases"][0]
+        assert tc1_updated["status"] == "pass"
+        assert tc1_updated["notes"] == "OAuth returned status 200, JWT verified in local storage"
 
 
 # ---------------------------------------------------------------------------
@@ -508,3 +631,156 @@ async def test_restore_ticket_clears_wont_do_reason(client: httpx.AsyncClient):
     body = r.json()
     assert body["status"] == "backlog"
     assert body["wont_do_reason"] is None
+
+
+async def test_review_and_testing_status_transitions(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        # Update to review
+        r = await c.patch(
+            f"/tickets/{ticket['id']}/status",
+            json={"status": "review"},
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "review"
+
+        # Update to testing
+        r = await c.patch(
+            f"/tickets/{ticket['id']}/status",
+            json={"status": "testing"},
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "testing"
+
+
+async def test_branch_crud_operations(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        # Create branch
+        r_create = await c.post(
+            f"/tickets/{ticket['id']}/branches",
+            json={
+                "name": "feature/attachments",
+                "branch_from": "main",
+                "status": "open",
+                "ahead_count": 2,
+                "behind_count": 1,
+            },
+        )
+        assert r_create.status_code == 201
+        branches = r_create.json()["branches"]
+        assert len(branches) == 1
+        branch = branches[0]
+        assert branch["name"] == "feature/attachments"
+        assert branch["status"] == "open"
+        assert branch["branch_from"] == "main"
+        assert branch["ahead_count"] == 2
+        assert branch["behind_count"] == 1
+        branch_id = branch["id"]
+
+        # List branches
+        r_list = await c.get(f"/tickets/{ticket['id']}/branches")
+        assert r_list.status_code == 200
+        assert len(r_list.json()) == 1
+
+        # Patch branch
+        r_patch = await c.patch(
+            f"/tickets/{ticket['id']}/branches/{branch_id}",
+            json={
+                "status": "merged",
+                "pr_url": "https://github.com/example/repo/pull/42",
+            },
+        )
+        assert r_patch.status_code == 200
+        updated_branch = r_patch.json()["branches"][0]
+        assert updated_branch["status"] == "merged"
+        assert updated_branch["pr_url"] == "https://github.com/example/repo/pull/42"
+
+        # Delete branch
+        r_del = await c.delete(f"/tickets/{ticket['id']}/branches/{branch_id}")
+        assert r_del.status_code == 200
+        assert r_del.json()["branches"] == []
+
+
+async def test_workspace_settings_and_ticket_retention(client: httpx.AsyncClient):
+    async with client as c:
+        # Get settings
+        r_get = await c.get("/workspace/settings")
+        assert r_get.status_code == 200
+        settings = r_get.json()
+        assert settings["enabled"] is True
+        assert settings["default_retention_days"] == 14
+
+        # Patch settings
+        r_patch = await c.patch(
+            "/workspace/settings",
+            json={"default_retention_days": 30},
+        )
+        assert r_patch.status_code == 200
+        assert r_patch.json()["default_retention_days"] == 30
+
+        # Ticket workspace
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+
+        r_ws = await c.get(f"/tickets/{ticket['id']}/workspace")
+        assert r_ws.status_code == 200
+        ws_info = r_ws.json()
+        assert ws_info["enabled"] is True
+        assert ws_info["retention_days"] == 30
+        assert "files" in ws_info
+
+        # Override retention per task
+        r_override = await c.patch(
+            f"/tickets/{ticket['id']}/workspace/retention",
+            json={"retention_days": 7},
+        )
+        assert r_override.status_code == 200
+        assert r_override.json()["workspace_retention_days"] == 7
+
+        r_ws2 = await c.get(f"/tickets/{ticket['id']}/workspace")
+        assert r_ws2.json()["retention_days"] == 7
+
+
+async def test_remove_member_blocked_when_assigned_to_open_tickets(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        # Create member
+        r_mem = await c.post(
+            f"/projects/{project['id']}/members",
+            json={"name": "An Nguyen", "color": "#2E6F40"},
+        )
+        assert r_mem.status_code == 201
+        member_id = r_mem.json()["id"]
+
+        # Create ticket assigned to member
+        ticket = await _create_ticket(c, project["id"], title="Task for An")
+        r_assign = await c.patch(
+            f"/tickets/{ticket['id']}",
+            json={"assignee": member_id},
+        )
+        assert r_assign.status_code == 200
+        assert r_assign.json()["assignee"] == member_id
+
+        # Try to delete member while assigned to open ticket
+        r_del_blocked = await c.delete(f"/projects/{project['id']}/members/{member_id}")
+        assert r_del_blocked.status_code == 400
+        assert "Cannot remove: assigned to 1 open ticket" in r_del_blocked.json()["detail"]
+
+        # Close ticket
+        r_done = await c.patch(
+            f"/tickets/{ticket['id']}/status",
+            json={"status": "done"},
+        )
+        assert r_done.status_code == 200
+
+        # Now delete member should succeed
+        r_del_ok = await c.delete(f"/projects/{project['id']}/members/{member_id}")
+        assert r_del_ok.status_code == 204
+
+
+

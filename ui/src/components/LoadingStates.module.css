@@ -1,0 +1,79 @@
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.skel {
+  background: linear-gradient(90deg, #EEF3EF 25%, #F6FAF7 37%, #EEF3EF 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.cardSkeleton {
+  width: 280px;
+  height: 120px;
+  border-radius: 12px;
+  border: 1px solid #DCE6DF;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #FFFFFF;
+}
+
+.columnSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 280px;
+}
+
+.fullPageSpinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 240px;
+  width: 100%;
+  border-radius: 12px;
+  background: #F6FAF7;
+  border: 1px solid #DCE6DF;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid #DCE6DF;
+  border-top-color: #2E6F40;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinnerText {
+  font-size: 13px;
+  font-weight: 500;
+  color: #5B6B60;
+}
+
+.buttonSpinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #FFFFFF;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}

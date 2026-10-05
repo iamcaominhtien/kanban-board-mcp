@@ -1,165 +1,271 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  padding-top: 14px;
+  padding-bottom: 28px;
+  border-top: 1px solid #EEF3EF;
 }
 
 .sectionHeader {
-  font-weight: 900;
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--color-dark);
+  letter-spacing: 0.06em;
+  color: #9AA8A0;
+  margin: 0;
 }
 
 .empty {
-  font-size: 13px;
-  font-style: italic;
-  color: #9CA3AF;
+  font-size: 12.5px;
+  color: #9AA8A0;
+  margin: 0;
+  padding-left: 34px;
 }
 
 .commentList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.comment {
-  background: white;
-  border-radius: 12px;
-  padding: 12px 14px;
+.commentItem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.commentItem:hover .commentActions {
+  opacity: 1;
+}
+
+.commentAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #E6E9F5;
+  color: #5B5FA8;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  user-select: none;
+}
+
+.commentContent {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.commentTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.commentText {
-  font-size: 14px;
-  color: var(--color-dark);
-  line-height: 1.4;
+  gap: 3px;
   flex: 1;
   min-width: 0;
+}
+
+.commentHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.authorName {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1E2A22;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: #9AA8A0;
+}
+
+.bullet {
+  font-size: 11px;
+  color: #9AA8A0;
+  user-select: none;
+}
+
+.commentBody {
+  font-size: 13px;
+  color: #3A4A3E;
+  line-height: 1.5;
   word-break: break-word;
+}
+
+.commentBody p {
+  margin: 0;
 }
 
 .commentActions {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  margin-left: auto;
 }
 
 .actionBtn {
   background: none;
   border: none;
-  color: #6B7280;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 700;
+  color: #9AA8A0;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s, background 0.15s;
 }
 
 .actionBtn:hover {
-  color: var(--color-dark);
-  background: #F3F4F6;
-}
-
-.editBtn {
-  background: none;
-  border: none;
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
-  transition: background 0.15s;
-}
-
-.editBtn span {
-  display: inline-block;
-  transform: scaleX(-1);
-}
-
-.editBtn:hover {
-  background: #F3F4F6;
-}
-
-.deleteBtn {
-  background: none;
-  border: none;
-  color: #9CA3AF;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
-  transition: color 0.15s, background 0.15s;
+  color: #1E2A22;
+  background: #EEF3EF;
 }
 
 .deleteBtn:hover {
-  color: #DC2626;
-  background: #FEF2F2;
+  color: #C4432A;
+  background: #FBE7E4;
 }
 
-.timestamp {
-  font-size: 11px;
-  color: #9CA3AF;
+/* Composer / Add comment row */
+.composerRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 4px;
 }
 
-.addArea {
+.composerBox {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  border: 1px solid #E3E8E5;
+  border-radius: 7px;
+  background: #FFFFFF;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-/* Match the original comment box look (plain white, solid border) for the
-   collapsed "Add a comment" view, instead of MarkdownEditor's cream card
-   style used for the description field. */
-.composerView {
-  background: white;
-  border-color: var(--color-dark);
-  border-radius: 10px;
-  padding: 10px 14px;
+.composerBox:focus-within {
+  border-color: #2E6F40;
+  box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.08);
 }
 
-.composerView:hover {
-  background: white;
-  border-color: var(--color-dark);
-}
-
-.addRow {
+.composerBoxExpanded {
+  flex: 1;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
 }
 
-.addBtn {
-  background: var(--color-dark);
-  color: var(--color-bg);
+.collapsedInput {
+  width: 100%;
   border: none;
-  border-radius: 999px;
-  padding: 8px 20px;
-  font-family: var(--font-body);
+  background: transparent;
+  padding: 8px 12px;
   font-size: 13px;
-  font-weight: 700;
+  color: #1E2A22;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.collapsedInput::placeholder {
+  color: #9AA8A0;
+}
+
+.expandedTextarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #1E2A22;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  min-height: 64px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.expandedTextarea::placeholder {
+  color: #9AA8A0;
+}
+
+.composerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 6px 10px 8px 10px;
+  border-top: 1px solid #EEF3EF;
+}
+
+.btnCancel {
+  background: none;
+  border: none;
+  color: #5B6B60;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.btnCancel:hover {
+  background: #EEF3EF;
+}
+
+.btnSubmit {
+  background: #2E6F40;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
 }
 
-.addBtn:hover:not(:disabled) {
-  opacity: 0.85;
+.btnSubmit:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
-.addBtn:disabled {
-  opacity: 0.4;
+.btnSubmit:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Edit Mode Box */
+.editBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.editTextarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #2E6F40;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1E2A22;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  box-sizing: border-box;
+}
+
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
 }

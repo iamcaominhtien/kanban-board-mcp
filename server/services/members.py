@@ -67,22 +67,28 @@ async def remove_member(session: AsyncSession, project_id: str, member_id: str) 
     if creator_check.first() is not None:
         raise ValueError("Cannot remove member who created tickets")
 
-    assignee_check = await session.exec(
+    # Block removing member if assigned to open tickets (not done or wont_do)
+    open_tickets_query = await session.exec(
         select(Ticket)
         .where(Ticket.project_id == project_id)
         .where(Ticket.assignee == member_id)
-        .limit(1)
+        .where(Ticket.status.not_in(["done", "wont_do"]))
     )
-    if assignee_check.first() is not None:
-        # Unassign all tickets assigned to this member
-        tickets_result = await session.exec(
-            select(Ticket)
-            .where(Ticket.project_id == project_id)
-            .where(Ticket.assignee == member_id)
-        )
-        for ticket in tickets_result.all():
-            ticket.assignee = None
-            session.add(ticket)
+    open_tickets = open_tickets_query.all()
+    count = len(open_tickets)
+    if count > 0:
+        tickets_str = f"{count} open ticket" if count == 1 else f"{count} open tickets"
+        raise ValueError(f"Cannot remove: assigned to {tickets_str}. Reassign first.")
+
+    # Unassign any remaining closed tickets assigned to this member
+    closed_tickets_query = await session.exec(
+        select(Ticket)
+        .where(Ticket.project_id == project_id)
+        .where(Ticket.assignee == member_id)
+    )
+    for ticket in closed_tickets_query.all():
+        ticket.assignee = None
+        session.add(ticket)
 
     await session.delete(member)
     await session.commit()

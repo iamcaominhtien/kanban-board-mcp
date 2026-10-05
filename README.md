@@ -67,27 +67,32 @@ uv run uvicorn main:app --reload --port 8000
 The server exposes 33 tools for AI agents over MCP (selected highlights below — see `server/mcp_tools.py` for the full list, which also covers acceptance criteria, idea tickets, assumptions, and microthoughts):
 
 **Projects & Members**
-- `list_projects` — list all projects
-- `create_project` — create a new project
-- `list_members` — list project members
-- `add_member` — add a member to a project
-- `remove_member` — remove a member
+- `list_projects`, `create_project`, `update_project` (name, color, linked git repo, worktree defaults)
+- `list_members`, `add_member`, `remove_member`
 
 **Tickets**
-- `create_ticket` — create a ticket (auto-generates ID like `PREFIX-N`)
-- `list_tickets` — list & filter tickets by status, priority, or search query
-- `get_ticket` — get full ticket details
-- `update_ticket` — update title, description, type, priority, etc.
-- `update_ticket_status` — change ticket status
-- `create_child_ticket` — create a subtask under a parent ticket
+- `list_tickets` — compact, paginated summaries (`status`, `priority`, `q`, `limit`/`offset`; `detail=true` for full objects)
+- `get_ticket` — everything about one ticket plus its 10 most recent activity entries (long texts shortened); `activity_limit=N` for a different number (0 = none, negative = the whole history in full), `activity_since=<ISO time>` for what changed since then
+- `create_ticket`, `create_child_ticket`, `update_ticket` (incl. assignee, dates, repo path, "Done requires" guards, `clear_fields`), `update_ticket_status`, `delete_ticket`
+- `block_ticket`, `unblock_ticket`, `link_tickets`, `unlink_tickets`
+- `get_ticket_workspace_path` — the ticket's scratch folder (read/write it with your own file tools)
 
-**Annotations**
-- `add_comment` — add a comment to a ticket (supports full Markdown)
-- `update_comment` — edit an existing comment's text (supports full Markdown)
-- `delete_comment` — remove a comment from a ticket
-- `add_work_log` — log work with role and note
-- `add_test_case` — attach a test case to a ticket
-- `update_test_case` — update test case status and proof
+**Working on a ticket**
+- `add_comment`, `update_comment`, `delete_comment`
+- `add_work_log`, `update_work_log`, `delete_work_log` — the Debug Space journal
+- `add_test_case`, `update_test_case`, `delete_test_case`
+- `add_acceptance_criterion`, `toggle_acceptance_criterion`, `delete_acceptance_criterion`
+- `add_branch`, `update_branch`, `delete_branch`, `checkout_branch` — real git branches when the project has a linked repo
+
+**Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)
+- `list_idea_tickets`, `get_idea_ticket`, `get_idea_activity_trail`, `create_idea_ticket`, `update_idea_ticket`, `update_idea_status`, `promote_idea_to_ticket`, `delete_idea_ticket`
+- `add_assumption`, `update_assumption_status`, `delete_assumption`, `add_microthought`, `delete_microthought`
+
+**Conventions agents can rely on**
+- The server sends usage instructions on connect (IDs, statuses, flow), and every tool carries read-only / destructive / idempotent annotations.
+- Failures are real tool errors (`isError`) whose message says how to fix the call (and lists the valid ids); nothing fails silently.
+- Tools that change a ticket return it without its activity log (large); sub-items can be addressed by id, test-case code (`TC-2`) or branch name.
+- Omitted optional arguments mean "unchanged"; use `clear_fields` to empty a field. Changes are attributed to the AI agent in the Activity tab.
 
 ## Connecting AI Agents
 
