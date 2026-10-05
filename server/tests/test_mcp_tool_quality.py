@@ -228,3 +228,13 @@ async def test_create_ticket_and_update_project_cover_what_the_descriptions_offe
     assert project["name"] == "Renamed"
     with pytest.raises(ValueError, match="not found"):
         await mcp_tools.update_project("no-such-project", name="x")
+
+
+async def test_unlink_explains_that_each_side_of_a_link_has_its_own_id(client):
+    async with client as c:
+        p, a = await _ticket(c)
+        b = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "b"})).json()["id"]
+    link = await mcp_tools.link_tickets(a["id"], b, "relates_to")
+    with pytest.raises(ValueError, match="different id on each"):
+        await mcp_tools.unlink_tickets(b, link["id"])  # the other side of the link
+    assert await mcp_tools.unlink_tickets(a["id"], link["id"]) == {"removed": link["id"]}

@@ -551,8 +551,8 @@ async def link_tickets(
 
 @notify_on_success
 async def unlink_tickets(
-    ticket_id: TicketId,
-    link_id: Annotated[str, Field(description="Link id from link_tickets or the ticket's `links` list.")],
+    ticket_id: Annotated[str, Field(description="The SAME ticket you passed as `ticket_id` to link_tickets (a link has a different id on each of the two tickets).")],
+    link_id: Annotated[str, Field(description="Link id returned by link_tickets, or from that ticket's `links` list in get_ticket.")],
 ) -> dict:
     """Remove a relation made by link_tickets (and its inverse on the other ticket). Returns {"removed": link_id}."""
     async with async_session() as session:
@@ -561,7 +561,10 @@ async def unlink_tickets(
             raise _missing_ticket(ticket_id)
         removed = await svc_tickets.remove_ticket_link(session, ticket_id, link_id)
     if not removed:
-        raise ValueError(f"Link '{link_id}' not found on {ticket_id}. Link ids are in get_ticket('{ticket_id}').links.")
+        raise ValueError(
+            f"Link '{link_id}' not found on {ticket_id}. A link has a different id on each of its two tickets: use the "
+            f"ticket you gave to link_tickets, or read the ids from get_ticket('{ticket_id}').links."
+        )
     return {"removed": link_id}
 
 
