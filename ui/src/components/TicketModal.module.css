@@ -443,7 +443,9 @@
 .attachmentsZone {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #EEF3EF;
 }
 
 .attachmentsList {

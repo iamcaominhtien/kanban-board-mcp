@@ -20,6 +20,7 @@ from uploads import (
 )
 from services.tickets import (
     add_acceptance_criterion,
+    add_sub_task,
     add_branch,
     checkout_branch,
     add_comment,
@@ -28,6 +29,7 @@ from services.tickets import (
     add_work_log,
     create_ticket,
     delete_acceptance_criterion,
+    delete_sub_task,
     delete_branch,
     get_branch_graph,
     get_commit_detail,
@@ -42,6 +44,7 @@ from services.tickets import (
     list_tickets,
     remove_ticket_link,
     toggle_acceptance_criterion,
+    toggle_sub_task,
     unlink_block,
     update_branch,
     update_comment,
@@ -385,6 +388,57 @@ async def toggle_ac(ticket_id: str, criterion_id: str, session: Session) -> Tick
 )
 async def del_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketRead:
     ticket = await delete_acceptance_criterion(session, ticket_id, criterion_id)
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+# ---------------------------------------------------------------------------
+# Sub-tasks (checklist items)
+# ---------------------------------------------------------------------------
+
+
+class SubTaskBody(BaseModel):
+    text: str
+
+
+@router.post("/tickets/{ticket_id}/sub-tasks", response_model=TicketRead)
+async def post_sub_task(
+    ticket_id: str, body: SubTaskBody, session: Session
+) -> TicketRead:
+    try:
+        ticket = await add_sub_task(session, ticket_id, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.patch(
+    "/tickets/{ticket_id}/sub-tasks/{sub_task_id}/toggle",
+    response_model=TicketRead,
+)
+async def toggle_sub_task_route(
+    ticket_id: str, sub_task_id: str, session: Session
+) -> TicketRead:
+    ticket = await toggle_sub_task(session, ticket_id, sub_task_id)
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.delete(
+    "/tickets/{ticket_id}/sub-tasks/{sub_task_id}",
+    response_model=TicketRead,
+)
+async def del_sub_task(
+    ticket_id: str, sub_task_id: str, session: Session
+) -> TicketRead:
+    ticket = await delete_sub_task(session, ticket_id, sub_task_id)
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

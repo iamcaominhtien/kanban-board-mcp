@@ -270,6 +270,39 @@ async def test_add_toggle_delete_acceptance_criterion(client: httpx.AsyncClient)
 
 
 # ---------------------------------------------------------------------------
+# Sub-tasks (checklist items)
+# ---------------------------------------------------------------------------
+
+
+async def test_add_toggle_delete_sub_task(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"])
+        assert ticket["sub_tasks"] == []
+
+        r_add = await c.post(
+            f"/tickets/{ticket['id']}/sub-tasks", json={"text": "Confirm spec"}
+        )
+        assert r_add.status_code == 200
+        items = r_add.json()["sub_tasks"]
+        assert [(i["text"], i["done"]) for i in items] == [("Confirm spec", False)]
+        sub_id = items[0]["id"]
+
+        r_toggle = await c.patch(f"/tickets/{ticket['id']}/sub-tasks/{sub_id}/toggle")
+        assert r_toggle.json()["sub_tasks"][0]["done"] is True
+
+        r_blank = await c.post(f"/tickets/{ticket['id']}/sub-tasks", json={"text": "  "})
+        assert r_blank.status_code == 400
+
+        r_del = await c.delete(f"/tickets/{ticket['id']}/sub-tasks/{sub_id}")
+        assert r_del.status_code == 200
+        assert r_del.json()["sub_tasks"] == []
+
+        r_missing = await c.post("/tickets/NOPE-1/sub-tasks", json={"text": "x"})
+    assert r_missing.status_code == 404
+
+
+# ---------------------------------------------------------------------------
 # Work log
 # ---------------------------------------------------------------------------
 

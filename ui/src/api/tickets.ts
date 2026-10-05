@@ -165,6 +165,22 @@ export async function deleteAcceptanceCriterion(
   return res.data;
 }
 
+// Sub-tasks (checklist items)
+export async function addSubTask(ticketId: string, text: string): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/sub-tasks`, { text });
+  return res.data;
+}
+
+export async function toggleSubTask(ticketId: string, subTaskId: string): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/sub-tasks/${subTaskId}/toggle`);
+  return res.data;
+}
+
+export async function deleteSubTask(ticketId: string, subTaskId: string): Promise<Ticket> {
+  const res = await client.delete<Ticket>(`/tickets/${ticketId}/sub-tasks/${subTaskId}`);
+  return res.data;
+}
+
 // Work log
 export async function addWorkLog(
   ticketId: string,
@@ -527,6 +543,26 @@ export function useDeleteAcceptanceCriterion() {
   return useTicketSubMutation(
     ({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
       deleteAcceptanceCriterion(ticketId, criterionId),
+  );
+}
+
+export function useAddSubTask() {
+  return useTicketSubMutation(({ ticketId, text }: { ticketId: string; text: string }) =>
+    addSubTask(ticketId, text),
+  );
+}
+
+export function useToggleSubTask() {
+  return useTicketSubMutation(
+    ({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
+      toggleSubTask(ticketId, subTaskId),
+  );
+}
+
+export function useDeleteSubTask() {
+  return useTicketSubMutation(
+    ({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
+      deleteSubTask(ticketId, subTaskId),
   );
 }
 

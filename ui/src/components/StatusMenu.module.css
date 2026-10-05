@@ -126,3 +126,22 @@
   background: #EEF3EF;
   margin: 4px 6px;
 }
+
+/* Compact pill for list rows */
+.compact .trigger {
+  gap: 5px;
+  padding: 3px 7px 3px 8px;
+  border-radius: 5px;
+  background: #FFFFFF;
+  font-size: 11.5px;
+}
+
+.compact .arrow {
+  width: 9px;
+  height: 9px;
+}
+
+.compact .dropdown {
+  left: auto;
+  right: 0;
+}

@@ -8,6 +8,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Added
+- **Sub-tasks checklist** in Ticket Detail: lightweight to-do steps inside a ticket (REST `/tickets/{id}/sub-tasks`, MCP `add_sub_task` / `toggle_sub_task` / `delete_sub_task`, new `sub_tasks` column).
+
+### Changed
+- **Ticket Detail now matches the design**: the child-ticket list is "Sub-tickets" (wave badge, status mark, type icon, assignee, blocked-by chip, `x/y done`); Relations has its divider, a status dropdown per linked ticket, and the redesigned Add link form (search highlight, `#ID`, hint).
+
 ---
 
 ## [2.1.1] - 2026-10-05

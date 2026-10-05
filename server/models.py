@@ -69,6 +69,7 @@ class Ticket(SQLModel, table=True):
     parent_id: Optional[str] = Field(default=None, foreign_key="ticket.id")
     comments: str = Field(default="[]")  # JSON array
     acceptance_criteria: str = Field(default="[]")  # JSON array
+    sub_tasks: str = Field(default="[]")  # JSON: checklist of {id, text, done}
     activity_log: str = Field(default="[]")  # JSON array
     work_log: str = Field(default="[]")  # JSON array
     test_cases: str = Field(default="[]")  # JSON array
@@ -266,6 +267,7 @@ class TicketRead(SQLModel):
     parent_id: Optional[str]
     comments: list[Any] = []
     acceptance_criteria: list[Any] = []
+    sub_tasks: list[Any] = []
     activity_log: list[Any] = []
     work_log: list[Any] = []
     test_cases: list[Any] = []
@@ -300,6 +302,7 @@ class TicketRead(SQLModel):
             parent_id=ticket.parent_id,
             comments=_parse_json_list(ticket.comments),
             acceptance_criteria=_parse_json_list(ticket.acceptance_criteria),
+            sub_tasks=_parse_json_list(getattr(ticket, "sub_tasks", "[]")),
             activity_log=_parse_json_list(ticket.activity_log),
             work_log=_parse_json_list(ticket.work_log),
             test_cases=_parse_json_list(ticket.test_cases),

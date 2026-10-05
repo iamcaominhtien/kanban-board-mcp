@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
 import {
-  useUpdateTicket,
+  useUpdateTicket, useUpdateTicketStatus,
   useAddComment, useUpdateComment, useDeleteComment,
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
+  useAddSubTask, useToggleSubTask, useDeleteSubTask,
   useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
   uploadDescriptionImage,
   useLinkBlock, useUnlinkBlock,
@@ -27,6 +28,7 @@ import { BranchesSection } from './BranchesSection';
 import { CreateBranchModal } from './CreateBranchModal';
 import { useProject } from '../api/projects';
 import { SubTicketsSection } from './SubTicketsSection';
+import { SubTasksSection } from './SubTasksSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
 import { TagPill } from './TagPill';
@@ -162,6 +164,10 @@ export function TicketModal({
   const addACMutation = useAddAcceptanceCriterion();
   const toggleACMutation = useToggleAcceptanceCriterion();
   const deleteACMutation = useDeleteAcceptanceCriterion();
+  const updateTicketStatusMutation = useUpdateTicketStatus();
+  const addSubTaskMutation = useAddSubTask();
+  const toggleSubTaskMutation = useToggleSubTask();
+  const deleteSubTaskMutation = useDeleteSubTask();
   const addWorkLogMutation = useAddWorkLog();
   const updateWorkLogMutation = useUpdateWorkLog();
   const deleteWorkLogMutation = useDeleteWorkLog();
@@ -868,8 +874,21 @@ export function TicketModal({
                   />
                 </div>
 
-                {/* Sub-tasks */}
+                {/* Sub-tasks (checklist) */}
+                <SubTasksSection
+                  subTasks={ticket.subTasks ?? []}
+                  onAdd={(text) => addSubTaskMutation.mutate({ ticketId: ticket.id, text })}
+                  onToggle={(id) =>
+                    toggleSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })
+                  }
+                  onDelete={(id) =>
+                    deleteSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })
+                  }
+                />
+
+                {/* Sub-tickets (child tickets) */}
                 <SubTicketsSection
+                  members={members}
                   childTickets={childTickets}
                   allTickets={allTickets}
                   currentTicketId={ticket.id}
@@ -920,6 +939,15 @@ export function TicketModal({
                     removeTicketLinkMutation.mutate({ ticketId, linkId });
                   }}
                   onOpenTicket={(relT) => onOpenTicket?.(relT)}
+                  onChangeStatus={(ticketId, nextStatus) =>
+                    updateTicketStatusMutation.mutate(
+                      { ticketId, status: nextStatus },
+                      {
+                        onError: (err) =>
+                          toast.error("Couldn't change status", extractError(err)),
+                      },
+                    )
+                  }
                 />
 
                 {/* Consolidated Attachments Zone */}
