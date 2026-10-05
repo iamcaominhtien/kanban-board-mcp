@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1791083427-1a86` (34 desktop/web artboards; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1791200794-706d` (35 desktop/web artboards; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -58,6 +58,7 @@ Each doc's header links to its source file and records the canvas version and sh
 - [Main Board](screens/main-board.md)
 - [Members](screens/members-view.md)
 - [Forgot / Reset Password](screens/password-reset.md)
+- [Settings — MCP integrations](screens/settings-mcp.md)
 - [Settings](screens/settings-view.md)
 - [Sign Up](screens/sign-up.md)
 - [Splash - Cards animation (live)](screens/splash-animation.md)
