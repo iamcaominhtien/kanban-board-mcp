@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1791200794-706d",
+  "canvas_version": "1791209276-a0aa",
   "exported": "2026-10-05",
   "files": {
     "AccountMenu.dc.html": {
@@ -82,6 +82,54 @@
       "page": "components",
       "w": 900,
       "h": 2820
+    },
+    "DocsActions.dc.html": {
+      "bytes": 242702,
+      "sha256": "e5f6258efa0be3fa9fb954af2f9faec02d31fcdd95e67056368c23473dfebce9",
+      "title": "Docs — page actions & history",
+      "page": "screens",
+      "w": 1480,
+      "h": 7913
+    },
+    "DocsEditor.dc.html": {
+      "bytes": 154235,
+      "sha256": "832567c0b564d2a619acca0ccd1e0221f1e0a5e3e4561bb6aba520e220672552",
+      "title": "Docs — editor",
+      "page": "screens",
+      "w": 1480,
+      "h": 6851
+    },
+    "DocsEmpty.dc.html": {
+      "bytes": 280983,
+      "sha256": "1d3461d86cebeddea3e376ade36368bf697e02cc19c4e98a884ab818633ec13a",
+      "title": "Docs — empty, loading & errors",
+      "page": "screens",
+      "w": 1480,
+      "h": 6820
+    },
+    "DocsPage.dc.html": {
+      "bytes": 217805,
+      "sha256": "588ff4efe352e5a99015213d5c7141606fa0c56247f07571ecfa3d11988ce72f",
+      "title": "Docs — page view",
+      "page": "screens",
+      "w": 1480,
+      "h": 3947
+    },
+    "DocsRefs.dc.html": {
+      "bytes": 134692,
+      "sha256": "4e397a89b0f0ef14efcf7646cf61e5e00a1b9eec6e284c4bdf2c3a6c01857d5f",
+      "title": "Docs — references",
+      "page": "screens",
+      "w": 1480,
+      "h": 6123
+    },
+    "DocsSearch.dc.html": {
+      "bytes": 304967,
+      "sha256": "031580304a2f367424c12e297400977de81c1c7b3d80a208ec04cbf6c7098508",
+      "title": "Docs — search",
+      "page": "screens",
+      "w": 1480,
+      "h": 7118
     },
     "DragDrop.dc.html": {
       "bytes": 12022,
