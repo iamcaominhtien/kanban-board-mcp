@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates desktop app icons from docs/assets/logo.svg.
+ * Generates desktop app icons from ui/public/logo.svg (the app logo).
  * Outputs:
  *   desktop/build/icon.png   — 512×512 PNG
  *   desktop/build/icon.icns  — macOS icon set (via iconutil)
@@ -17,7 +17,7 @@ const sharp = require('sharp');
 const pngToIco = require('png-to-ico');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SRC_SVG = path.join(ROOT, 'docs', 'assets', 'logo.svg');
+const SRC_SVG = path.join(ROOT, 'ui', 'public', 'logo.svg');
 const BUILD_DIR = path.join(ROOT, 'desktop', 'build');
 const ICON_PNG = path.join(BUILD_DIR, 'icon.png');
 const ICON_ICNS = path.join(BUILD_DIR, 'icon.icns');
