@@ -3,7 +3,7 @@ import type { Comment, Member } from '../types/ticket';
 import { getAvatarColors } from './MemberAvatar';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { MarkdownEditor } from './MarkdownEditor';
-import { uploadDescriptionImage } from '../api/tickets';
+import { uploadAnyFile } from '../api/tickets';
 import styles from './CommentsSection.module.css';
 
 interface CommentsSectionProps {
@@ -159,10 +159,8 @@ export function CommentsSection({
                       disableClickOutside={true}
                       compact={true}
                       placeholderText="Edit comment… (Markdown supported)"
-                      onUploadImage={async (f: File) => {
-                        const res = await uploadDescriptionImage(f);
-                        return { markdown: `![${f.name}](${res.url})` };
-                      }}
+                      onUploadFile={uploadAnyFile}
+                      onUploadImage={uploadAnyFile}
                       onSubmit={() => saveEdit(c.id)}
                       onCancel={cancelEdit}
                       actions={
@@ -251,10 +249,8 @@ export function CommentsSection({
               disableClickOutside={true}
               compact={true}
               placeholderText="Add a comment… (Markdown supported)"
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
               onSubmit={handleAdd}
               onCancel={() => {
                 setText('');

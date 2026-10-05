@@ -152,11 +152,12 @@ class AttachmentUploadResponse(BaseModel):
     name: str
     size: int
     type: str
+    markdown: str = ""
 
 
 @router.post("/uploads/files", response_model=AttachmentUploadResponse, status_code=201)
 async def upload_attachment(file: UploadFile = File(...)) -> AttachmentUploadResponse:
-    """Store any file (log, trace, fixture...) so an entry can attach it by url."""
+    """Store any file (log, trace, fixture, excel, word, ppt, json...) and return its url & markdown snippet."""
     original = file.filename or ""
     if not Path(original).name:
         raise HTTPException(status_code=400, detail="File name is required.")
@@ -179,12 +180,20 @@ async def upload_attachment(file: UploadFile = File(...)) -> AttachmentUploadRes
 
     stored = build_upload_filename(original)
     (get_uploads_dir() / stored).write_bytes(b"".join(chunks))
+
+    url = f"/uploads/{stored}"
+    clean_name = Path(original).name[:200]
+    ext = Path(original).suffix.lower()
+    is_img = ext in SUPPORTED_IMAGE_EXTENSIONS
+    md = f"![{clean_name}]({url})" if is_img else f"[{clean_name}]({url})"
+
     return AttachmentUploadResponse(
         id=Path(stored).stem[-12:],
-        url=f"/uploads/{stored}",
-        name=Path(original).name[:200],
+        url=url,
+        name=clean_name,
         size=total,
         type=(file.content_type or "application/octet-stream")[:100],
+        markdown=md,
     )
 
 

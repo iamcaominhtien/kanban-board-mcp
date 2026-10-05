@@ -79,6 +79,15 @@ export async function deleteTicket(ticketId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}`);
 }
 
+export interface AttachmentUpload {
+  id: string;
+  url: string;
+  name: string;
+  size: number;
+  type: string;
+  markdown: string;
+}
+
 export async function uploadDescriptionImage(file: File): Promise<DescriptionImageUpload> {
   const formData = new FormData();
   formData.append('file', file);
@@ -86,20 +95,29 @@ export async function uploadDescriptionImage(file: File): Promise<DescriptionIma
   return res.data;
 }
 
-/** Upload any file (log, trace, fixture…) so it can be attached to an entry by url. */
-export async function uploadAttachment(file: File): Promise<DebugAttachment> {
+/** Upload any file (doc, sheet, presentation, pdf, json, text, code, archive, image…) */
+export async function uploadAnyFile(file: File): Promise<AttachmentUpload> {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await client.post<DebugAttachment>('/uploads/files', formData);
+  const res = await client.post<AttachmentUpload>('/uploads/files', formData);
   return res.data;
 }
 
+/** Backwards-compatible alias for debug/entry attachments */
+export async function uploadAttachment(file: File): Promise<DebugAttachment> {
+  return uploadAnyFile(file);
+}
+
 /** Absolute URL for a stored upload (the UI may be served from another origin). */
-export function uploadUrl(url?: string | null, downloadName?: string): string {
+export function uploadUrl(url?: string | null, downloadName?: string, download?: boolean, inline?: boolean): string {
   if (!url || typeof url !== 'string' || !url.startsWith('/uploads/')) return '';
   const base = `${resolveOrigin()}${url}`;
-  // ?name= makes the server offer the original file name (the stored one has a random suffix)
-  return downloadName ? `${base}?name=${encodeURIComponent(downloadName)}` : base;
+  const params = new URLSearchParams();
+  if (downloadName) params.set('name', downloadName);
+  if (download) params.set('download', '1');
+  if (inline) params.set('inline', '1');
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
 }
 
 export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {

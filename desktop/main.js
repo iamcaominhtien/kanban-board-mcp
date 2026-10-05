@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, globalShortcut, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -32,6 +32,7 @@ function startBackend() {
       desktopDir: __dirname,
       baseEnv: process.env,
       devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
+      configPath: path.join(app.getPath('home'), '.kanban-board', 'config.json'),
     });
 
     // Strip macOS quarantine attribute from packaged binary so it can be spawned
@@ -151,7 +152,7 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:*; img-src 'self' data: blob:; base-uri 'self'; object-src 'none'"
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*; base-uri 'self'; object-src 'none'"
         ]
       }
     });
@@ -198,6 +199,28 @@ ipcMain.handle('select-folder', async () => {
     title: 'Select Data Folder',
   });
   return result.canceled ? null : result.filePaths[0];
+});
+
+// IPC: open a file with system default application
+ipcMain.handle('open-path', async (_event, filePath) => {
+  if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' };
+  try {
+    const errorMsg = await shell.openPath(filePath);
+    return { success: !errorMsg, error: errorMsg || null };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// IPC: open external URL in default browser
+ipcMain.handle('open-external', async (_event, url) => {
+  if (!url || typeof url !== 'string') return { error: 'Invalid URL' };
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 
 function launchBackend() {

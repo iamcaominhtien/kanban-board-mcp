@@ -23,7 +23,12 @@ from version import version_info
 from database import init_db
 from services import activity as svc_activity
 from services import workspace as svc_workspace
-from uploads import MIME_BY_EXTENSION, resolve_upload_path
+from uploads import (
+    MIME_BY_EXTENSION,
+    SUPPORTED_IMAGE_EXTENSIONS,
+    VIEWABLE_INLINE_EXTENSIONS,
+    resolve_upload_path,
+)
 
 
 mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS, stateless_http=True, streamable_http_path="/")
@@ -105,25 +110,45 @@ async def version() -> dict[str, str]:
 
 
 @app.get("/uploads/{file_path:path}")
-async def serve_upload(file_path: str, name: str | None = None):
+async def serve_upload(
+    file_path: str,
+    name: str | None = None,
+    download: bool = False,
+    inline: bool = False,
+    view: bool = False,
+):
     resolved = resolve_upload_path(file_path)
     if resolved is None:
         raise HTTPException(status_code=400, detail="Invalid path")
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="File not found")
-    headers = {"X-Content-Type-Options": "nosniff"}
-    if resolved.suffix.lower() in MIME_BY_EXTENSION:
-        return FileResponse(resolved, headers=headers)
-    # Anything that is not a known image is only ever offered as a download, so an
-    # uploaded .html/.svg can never run script in the app's origin.
-    # ?name= lets the page offer the original file name; the stored name carries a random suffix
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "X-File-Path": str(resolved.resolve()),
+        "Access-Control-Expose-Headers": "X-File-Path, Content-Disposition",
+    }
+    ext = resolved.suffix.lower()
+    media_type = MIME_BY_EXTENSION.get(ext, "application/octet-stream")
+
     download_name = Path((name or "").replace("\\", "/")).name
     download_name = "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
+
+    is_image = ext in SUPPORTED_IMAGE_EXTENSIONS
+    wants_inline = (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
+
+    if not download and (is_image or wants_inline):
+        return FileResponse(
+            resolved,
+            media_type=media_type,
+            headers=headers,
+        )
+
     return FileResponse(
         resolved,
         media_type="application/octet-stream",
         filename=download_name,
         headers=headers,
+        content_disposition_type="attachment",
     )
 
 

@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 
 const {
   buildBackendLaunchSpec,
@@ -28,7 +29,36 @@ test('buildBackendLaunchSpec uses packaged binary and user data db path', () => 
     spec.options.env.KANBAN_DB_PATH,
     'C:/Users/test/AppData/Roaming/Kanban Board/kanban.db'
   );
+  assert.equal(
+    spec.options.env.KANBAN_UPLOADS_DIR,
+    'C:/Users/test/AppData/Roaming/Kanban Board/uploads'
+  );
   assert.deepEqual(spec.options.stdio, ['ignore', 'pipe', 'pipe']);
+});
+
+test('buildBackendLaunchSpec uses configured data_folder uploads if config exists', (t) => {
+  const fs = require('fs');
+  const os = require('os');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-test-'));
+  const configPath = path.join(tmpDir, 'config.json');
+  fs.writeFileSync(configPath, JSON.stringify({ data_folder: '/custom/storage/data' }));
+
+  t.after(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const spec = buildBackendLaunchSpec({
+    isPackaged: true,
+    platform: 'darwin',
+    resourcesPath: '/Applications/Kanban.app/Contents/Resources',
+    userDataPath: '/Users/test/Library/Application Support/Kanban Board',
+    desktopDir: '/repo/desktop',
+    baseEnv: {},
+    devPythonExists: false,
+    configPath,
+  });
+
+  assert.equal(spec.options.env.KANBAN_UPLOADS_DIR, path.join('/custom/storage/data', 'uploads'));
 });
 
 test('buildBackendLaunchSpec prefers project virtualenv in dev mode', () => {

@@ -6,18 +6,21 @@ import {
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
   useAddSubTask, useToggleSubTask, useDeleteSubTask,
   useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
-  uploadDescriptionImage,
+  uploadAnyFile,
   useLinkBlock, useUnlinkBlock,
   useAddTicketLink, useRemoveTicketLink,
   useAddTestCase, useUpdateTestCase, useDeleteTestCase,
   useTicketBranches,
   useWorkspaceSettings,
+  uploadUrl,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { ActivitySection } from './ActivitySection';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
+import { FilePreviewModal } from './FilePreviewModal';
+import { FileCategoryIcon, getFileTypeMeta, formatFileSize } from '../utils/fileIcons';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { MemberAvatar } from './MemberAvatar';
 import { RelationsSection } from './RelationsSection';
@@ -200,6 +203,33 @@ export function TicketModal({
   }
 
   const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<{
+    url: string;
+    fileName?: string;
+    fileSize?: number;
+  } | null>(null);
+  const attFileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleDirectAttachmentUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !ticket) return;
+    try {
+      const res = await uploadAnyFile(file);
+      const currentDesc = description || '';
+      const separator = currentDesc.trim() ? '\n\n' : '';
+      const nextDesc = `${currentDesc}${separator}${res.markdown}`;
+      setDescription(nextDesc);
+      updateTicketMutation.mutate({
+        ticketId: ticket.id,
+        data: { description: nextDesc },
+      });
+      toast.success('Attached file', file.name);
+    } catch (err) {
+      toast.error("Couldn't attach file", extractError(err));
+    } finally {
+      if (attFileInputRef.current) attFileInputRef.current.value = '';
+    }
+  }
   const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
   const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
   const branchContainerRef = useRef<HTMLDivElement>(null);
@@ -487,10 +517,8 @@ export function TicketModal({
                 <MarkdownEditor
                   value={description}
                   onChange={setDescription}
-                  onUploadImage={async (f: File) => {
-                    const res = await uploadDescriptionImage(f);
-                    return { markdown: `![${f.name}](${res.url})` };
-                  }}
+                  onUploadFile={uploadAnyFile}
+                  onUploadImage={uploadAnyFile}
                 />
               </div>
 
@@ -867,10 +895,8 @@ export function TicketModal({
                       scheduleDescriptionSave(nextDesc);
                     }}
                     onBlur={() => flushDescRef.current()}
-                    onUploadImage={async (f: File) => {
-                      const res = await uploadDescriptionImage(f);
-                      return { markdown: `![${f.name}](${res.url})` };
-                    }}
+                    onUploadFile={uploadAnyFile}
+                    onUploadImage={uploadAnyFile}
                   />
                 </div>
 
@@ -950,44 +976,6 @@ export function TicketModal({
                   }
                 />
 
-                {/* Consolidated Attachments Zone */}
-                {(() => {
-                  const rawAttachments = (ticket.description?.match(/!\[(.*?)\]\((.*?)\)/g) ?? [])
-                    .map((match) => {
-                      const exec = /!\[(.*?)\]\((.*?)\)/.exec(match);
-                      const alt = exec?.[1] || 'attachment';
-                      const src = exec?.[2] || '';
-                      return { alt, src };
-                    })
-                    .filter((att) => att.src && !att.src.startsWith('uploading:'));
-
-                  return (
-                    <div className={styles.attachmentsZone}>
-                      <div className={styles.sectionLabel}>
-                        ATTACHMENTS · {rawAttachments.length}
-                      </div>
-                      <div className={styles.attachmentsList}>
-                        {rawAttachments.map((att, i) => {
-                          const resolvedSrc = att.src.startsWith('/uploads/') ? `${resolveOrigin()}${att.src}` : att.src;
-                          return (
-                            <div key={i} className={styles.attThumbBox}>
-                              <div
-                                className={styles.attThumb}
-                                onClick={() => window.open(resolvedSrc, '_blank')}
-                                style={{ cursor: 'pointer' }}
-                                title="Click to view full size"
-                              >
-                                <img src={resolvedSrc} alt={att.alt} />
-                              </div>
-                              <span className={styles.attMetaText}>in Description</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
                 <hr className={styles.sectionDivider} />
 
                 {/* Comments */}
@@ -999,6 +987,157 @@ export function TicketModal({
                   onEdit={(cId, t) => updateCommentMutation.mutate({ ticketId: ticket.id, commentId: cId, text: t })}
                   onDelete={(cId) => deleteCommentMutation.mutate({ ticketId: ticket.id, commentId: cId })}
                 />
+
+                {/* Consolidated Attachments Zone (matching Attachments.dc.html - placed after Comments) */}
+                {(() => {
+                  interface ExtractedAttachment {
+                    type: 'image' | 'file';
+                    name: string;
+                    src: string;
+                    origin: string;
+                    size?: number;
+                  }
+
+                  const allAttachments: ExtractedAttachment[] = [];
+
+                  function scanText(text: string, origin: string) {
+                    if (!text) return;
+                    // Images: ![alt](url)
+                    const imgRegex = /!\[(.*?)\]\((.*?)\)/g;
+                    let m: RegExpExecArray | null;
+                    while ((m = imgRegex.exec(text)) !== null) {
+                      const [, alt, src] = m;
+                      if (src && !src.startsWith('uploading:')) {
+                        allAttachments.push({
+                          type: 'image',
+                          name: alt || 'image',
+                          src,
+                          origin,
+                        });
+                      }
+                    }
+                    // Non-image files: [name](url) not preceded by !
+                    const linkRegex = /(?<!\!)\[([^\]]+)\]\(([^)]+)\)/g;
+                    while ((m = linkRegex.exec(text)) !== null) {
+                      const [, name, src] = m;
+                      if (src && (src.startsWith('/uploads/') || src.includes('/uploads/'))) {
+                        allAttachments.push({
+                          type: 'file',
+                          name: name || 'file',
+                          src,
+                          origin,
+                        });
+                      }
+                    }
+                  }
+
+                  scanText(ticket.description || '', 'in Description');
+                  (ticket.comments || []).forEach((c) => {
+                    scanText(c.text || '', `in comment · ${c.author || 'user'}`);
+                  });
+
+                  if (allAttachments.length === 0) return null;
+
+                  return (
+                    <div className={styles.attachmentsZone}>
+                      <div className={styles.attachmentsLabel}>
+                        ATTACHMENTS · {allAttachments.length}
+                      </div>
+                      <div className={styles.attachmentsList}>
+                        {allAttachments.map((att, i) => {
+                          const resolvedSrc = att.src.startsWith('/uploads/') ? `${resolveOrigin()}${att.src}` : att.src;
+                          if (att.type === 'image') {
+                            return (
+                              <div key={`att-${i}`} className={styles.attThumbBox}>
+                                <div
+                                  className={styles.attThumb}
+                                  onClick={() => setPreviewAttachment({ url: att.src, fileName: att.name })}
+                                  title={`Click to view ${att.name}`}
+                                >
+                                  <img src={resolvedSrc} alt={att.name} />
+                                </div>
+                                <span className={styles.attMetaText}>{att.origin}</span>
+                              </div>
+                            );
+                          }
+
+                          const meta = getFileTypeMeta(att.name);
+                          const downloadHref = uploadUrl(att.src, att.name, true);
+
+                          return (
+                            <div key={`att-${i}`} className={styles.attThumbBox}>
+                              <div
+                                className={styles.attFileChip}
+                                onClick={() => setPreviewAttachment({ url: att.src, fileName: att.name })}
+                                title={`Click to preview ${att.name}`}
+                              >
+                                <div
+                                  className={styles.attFileIcon}
+                                  style={{ backgroundColor: meta.bgColor }}
+                                >
+                                  <FileCategoryIcon category={meta.category} size={14} color={meta.color} />
+                                </div>
+                                <div className={styles.attFileInfo}>
+                                  <span className={styles.attFileName} title={att.name}>
+                                    {att.name}
+                                  </span>
+                                  <span className={styles.attFileSize}>
+                                    {att.size ? formatFileSize(att.size) : meta.badge}
+                                  </span>
+                                </div>
+                                <a
+                                  href={downloadHref}
+                                  download={att.name}
+                                  className={styles.attDownloadBtn}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Download"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 4V15" />
+                                    <path d="M7 10L12 15L17 10" />
+                                    <path d="M5 19H19" />
+                                  </svg>
+                                </a>
+                              </div>
+                              <span className={styles.attMetaText}>{att.origin}</span>
+                            </div>
+                          );
+                        })}
+
+                        {/* Dashed Add Attachment tile matching design */}
+                        <button
+                          type="button"
+                          className={styles.attAddBtn}
+                          onClick={() => attFileInputRef.current?.click()}
+                          aria-label="Add attachment"
+                          title="Add attachment"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M12 5V19" />
+                            <path d="M5 12H19" />
+                          </svg>
+                        </button>
+                        <input
+                          ref={attFileInputRef}
+                          type="file"
+                          accept="*/*"
+                          style={{ display: 'none' }}
+                          onChange={handleDirectAttachmentUpload}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {previewAttachment && (
+                  <FilePreviewModal
+                    isOpen={Boolean(previewAttachment)}
+                    onClose={() => setPreviewAttachment(null)}
+                    url={previewAttachment.url}
+                    fileName={previewAttachment.fileName}
+                    fileSize={previewAttachment.fileSize}
+                  />
+                )}
               </>
           </div>
 
