@@ -1,6 +1,7 @@
 import io
 import logging
 import shutil
+import sqlite3
 import zipfile
 from pathlib import Path
 
@@ -12,6 +13,30 @@ import database as db
 import uploads as uploads_module
 
 logger = logging.getLogger(__name__)
+
+
+def _remove_wal_files(db_path: Path) -> None:
+    """Delete the -wal/-shm files that belong to db_path.
+
+    They describe the *previous* database file. If they stay next to a replaced
+    kanban.db, SQLite reads them as part of the new file and fails with
+    "database disk image is malformed".
+    """
+    for suffix in ("-wal", "-shm"):
+        Path(str(db_path) + suffix).unlink(missing_ok=True)
+
+
+def _check_sqlite_file(path: Path) -> str | None:
+    """Return None if path is a healthy SQLite database, else a short reason."""
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            row = conn.execute("PRAGMA quick_check").fetchone()
+        finally:
+            conn.close()
+    except sqlite3.DatabaseError as exc:
+        return str(exc)
+    return None if row and row[0] == "ok" else (row[0] if row else "empty result")
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -87,9 +112,41 @@ async def import_data(file: UploadFile = File(...)):
         db_path = db.get_db_path()
         uploads_dir = uploads_module.get_uploads_dir(create=True)
 
-        # Backup DB before any destructive operation
+        # Read the uploaded database into a temp file first and check it, so a broken
+        # backup is rejected before anything on disk is touched.
+        incoming_db = db_path.with_suffix(".import")
+        try:
+            with zf.open("kanban.db") as src, incoming_db.open("wb") as dst:
+                copied = 0
+                while chunk := src.read(1024 * 1024):
+                    copied += len(chunk)
+                    if copied > MAX_UNCOMPRESSED:
+                        raise HTTPException(
+                            status_code=400, detail="ZIP content too large (max 2 GB)"
+                        )
+                    dst.write(chunk)
+            problem = _check_sqlite_file(incoming_db)
+            _remove_wal_files(incoming_db)  # the check can leave -wal/-shm files behind
+        except Exception:
+            incoming_db.unlink(missing_ok=True)
+            raise
+        if problem is not None:
+            incoming_db.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=400,
+                detail=f"kanban.db in the ZIP is not a valid database: {problem}",
+            )
+
+        # Backup DB before any destructive operation. Fold the WAL into the main file
+        # first, otherwise recent changes would be missing from the backup.
         backup_db = db_path.with_suffix(".bak")
         if db_path.exists():
+            try:
+                async with db.engine.connect() as conn:
+                    await conn.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+                    await conn.commit()
+            except Exception:
+                logger.exception("WAL checkpoint before import failed; continuing")
             shutil.copy2(str(db_path), str(backup_db))
 
         import_count = 0
@@ -97,16 +154,14 @@ async def import_data(file: UploadFile = File(...)):
             # Dispose current engine before replacing the DB file
             await db.engine.dispose()
 
-            # Write kanban.db, tracking actual bytes extracted to enforce the limit
-            total_written = 0
-            with zf.open("kanban.db") as src:
-                db_data = src.read(MAX_UNCOMPRESSED - total_written + 1)
-                if total_written + len(db_data) > MAX_UNCOMPRESSED:
-                    raise HTTPException(
-                        status_code=400, detail="ZIP content too large (max 2 GB)"
-                    )
-                total_written += len(db_data)
-                db_path.write_bytes(db_data)
+            # Swap in the checked database, together with removing the old WAL files
+            total_written = incoming_db.stat().st_size
+            if total_written > MAX_UNCOMPRESSED:
+                raise HTTPException(
+                    status_code=400, detail="ZIP content too large (max 2 GB)"
+                )
+            _remove_wal_files(db_path)
+            incoming_db.replace(db_path)
 
             # Replace uploads
             upload_files = [
@@ -150,8 +205,10 @@ async def import_data(file: UploadFile = File(...)):
 
         except Exception as exc:
             # Restore DB from backup
+            incoming_db.unlink(missing_ok=True)
             if backup_db.exists():
                 try:
+                    _remove_wal_files(db_path)
                     shutil.copy2(str(backup_db), str(db_path))
                     backup_db.unlink(missing_ok=True)
                 except Exception:

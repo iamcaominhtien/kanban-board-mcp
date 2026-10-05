@@ -45,6 +45,31 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+# Databases made by pre-release builds are stamped with a migration that was later removed
+# from the chain, and alembic cannot start from an unknown revision ("Can't locate revision").
+# Map each such revision to the nearest revision that still exists, which has the same schema
+# minus what the removed one added (extra, unused columns are harmless).
+LEGACY_REVISIONS = {
+    # "add_idea_board_fields" (April 2026 baseline) added board/idea_* columns to ticket;
+    # Idea Space moved to its own idea_ticket table (f1a2b3c4d5e6), whose parent is this one.
+    "f6a7b8c9d0e1": "1e1bb4aa5fa4",
+}
+
+
+def _restamp_legacy_revision(sync_conn) -> None:
+    from sqlalchemy import inspect, text
+
+    if not inspect(sync_conn).has_table("alembic_version"):
+        return
+    current = sync_conn.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+    for old, new in LEGACY_REVISIONS.items():
+        if old in current:
+            sync_conn.execute(
+                text("UPDATE alembic_version SET version_num = :new WHERE version_num = :old"),
+                {"new": new, "old": old},
+            )
+
+
 def _run_upgrade(sync_conn, alembic_cfg) -> None:
     """Sync callback executed by AsyncConnection.run_sync.
 
@@ -54,6 +79,7 @@ def _run_upgrade(sync_conn, alembic_cfg) -> None:
     from alembic import command
 
     alembic_cfg.attributes["connection"] = sync_conn
+    _restamp_legacy_revision(sync_conn)
     command.upgrade(alembic_cfg, "head")
 
 

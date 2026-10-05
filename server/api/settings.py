@@ -53,7 +53,8 @@ async def set_data_path(req: DataPathRequest):
     home_str = str(Path.home().resolve())
     resolved_str = os.path.realpath(raw)
 
-    if not (resolved_str + os.sep).startswith(home_str + os.sep):
+    home_root = home_str.rstrip(os.sep) + os.sep
+    if not resolved_str.startswith(home_root):
         raise HTTPException(
             status_code=400,
             detail="Data folder must be within your home directory",
