@@ -44,6 +44,8 @@ def fake_home(tmp_path, monkeypatch):
     monkeypatch.setenv("FAKE_HOME", str(home))
     uv_dir = os.path.dirname(shutil.which("uv") or "/usr/bin/uv")
     monkeypatch.setenv("PATH", f"{uv_dir}:/usr/bin:/bin")  # keep uv, no real claude
+    import services.mcp_clients as mc
+    monkeypatch.setattr(mc, "find_claude", lambda: shutil.which("claude"))
     return home
 
 
@@ -79,7 +81,7 @@ async def test_claude_not_detected_without_cli(client, fake_home):
     s = r.json()
     assert r.status_code == 200
     assert s["detected"] is False and s["installed"] is False
-    assert s["command"].startswith("claude mcp add --transport stdio --scope user kanban --")
+    assert s["command"].startswith("claude mcp add kanban --transport stdio --scope user")
     assert s["stored_in"] == "~/.claude.json"
     assert s["tool_count"] > 0
 

@@ -155,7 +155,7 @@ def find_claude() -> str | None:
 def _claude_add_args(scope: str) -> list[str]:
     command, args = stdio_command()
     env = [a for k, v in stdio_env().items() for a in ("--env", f"{k}={v}")]
-    return ["mcp", "add", "--transport", "stdio", "--scope", scope, *env, SERVER_NAME, "--", command, *args]
+    return ["mcp", "add", SERVER_NAME, "--transport", "stdio", "--scope", scope, *env, "--", command, *args]
 
 
 def claude_command_text(scope: str) -> str:

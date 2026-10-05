@@ -10,6 +10,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.1.1] - 2026-10-05
+
+Fix for Claude Code CLI MCP addition syntax.
+
+### Fixed
+- **Claude Code MCP add failed with missing `commandOrUrl`**: updated argument ordering in `claude mcp add` to place the server name (`kanban`) immediately after `add`, matching Claude Code CLI syntax requirements.
+
+---
+
 ## [2.1.0] - 2026-10-05
 
 One-click MCP setup for AI tools.
