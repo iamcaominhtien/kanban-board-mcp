@@ -470,32 +470,11 @@ export function MarkdownEditor({
     await handleUploadImageFile(file);
   }
 
-  /** Image bytes on the clipboard: a file item, a file in `files`, or an <img src="data:..."> in the HTML flavour. */
-  function pastedImageFile(data: DataTransfer): File | null {
-    const isImage = (type: string) => SUPPORTED_UPLOAD_IMAGE_TYPES.includes(type.toLowerCase());
-    const fromItems = Array.from(data.items ?? [])
-      .find((item) => item.kind === 'file' && isImage(item.type))
-      ?.getAsFile();
-    if (fromItems) return fromItems;
-    const fromFiles = Array.from(data.files ?? []).find((f) => isImage(f.type));
-    if (fromFiles) return fromFiles;
-
-    const html = data.getData('text/html');
-    const dataUri = html.match(/<img[^>]+src=["'](data:(image\/[a-z+.-]+);base64,([^"']+))["']/i);
-    if (dataUri && isImage(dataUri[2])) {
-      try {
-        const bytes = Uint8Array.from(atob(dataUri[3]), (c) => c.charCodeAt(0));
-        return new File([bytes], `image.${dataUri[2].split('/')[1]}`, { type: dataUri[2] });
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-
   function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
     if (!onUploadImage || isUploading) return;
-    const file = pastedImageFile(e.clipboardData);
+    const file = Array.from(e.clipboardData.items)
+      .find((item) => item.kind === 'file' && SUPPORTED_UPLOAD_IMAGE_TYPES.includes(item.type.toLowerCase()))
+      ?.getAsFile();
 
     if (file) {
       e.preventDefault();
@@ -504,15 +483,6 @@ export function MarkdownEditor({
         savedSelectionRangeRef.current = sel.getRangeAt(0).cloneRange();
       }
       void handleUploadImageFile(file);
-      return;
-    }
-
-    // An image we can't read (e.g. <img src="file:///..."> copied from a file manager) would be pasted as a
-    // broken picture that points at the sender's disk, so refuse it instead.
-    const html = e.clipboardData.getData('text/html');
-    if (/<img[^>]+src=["'](?:file|blob):/i.test(html) && !e.clipboardData.getData('text/plain').trim()) {
-      e.preventDefault();
-      setUploadError('Could not read the pasted image. Save it as a file and use the image button instead.');
     }
   }
 
