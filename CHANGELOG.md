@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Added
+- Settings → MCP integrations: install, update, test and remove the kanban MCP server for Claude Code and Antigravity.
+
 ---
 
 ## [2.0.2] - 2026-10-05

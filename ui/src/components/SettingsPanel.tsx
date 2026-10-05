@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
-import { useSettings, useSetDataPath, useMcpClients, useSetMcpClient } from '../api/settings';
+import { useSettings, useSetDataPath } from '../api/settings';
+import { McpIntegrations } from './McpIntegrations';
 import { useProjects, useUpdateProject } from '../api/projects';
 import { sweepWorkspaces, useUpdateWorkspaceSettings, useWorkspaceSettings } from '../api/tickets';
 import { extractError } from '../api/extractError';
@@ -315,67 +316,6 @@ function WorkspaceSettingsSection() {
   );
 }
 
-function McpClientsSection() {
-  const { data: clients = [] } = useMcpClients();
-  const setClient = useSetMcpClient();
-  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
-
-  function apply(id: string, label: string, install: boolean) {
-    setStatus(null);
-    setClient.mutate(
-      { id, install },
-      {
-        onSuccess: () =>
-          setStatus({
-            ok: true,
-            text: install
-              ? `Installed in ${label}. Restart ${label} to load it.`
-              : `Removed from ${label}.`,
-          }),
-        onError: (err) => setStatus({ ok: false, text: extractError(err) }),
-      },
-    );
-  }
-
-  return (
-    <div className={styles.section}>
-      <span className={styles.sectionTitle}>MCP Integration</span>
-      <div className={styles.hint}>
-        Add the Kanban MCP server to your AI tools so they can read and update this board. Only the
-        &quot;kanban-board&quot; entry is written; the rest of the tool&apos;s config is left alone.
-      </div>
-      {clients.map((c) => (
-        <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div className={styles.inputRow} style={{ alignItems: 'center' }}>
-            <span className={styles.fieldLabel} style={{ flexGrow: 1 }}>
-              {c.label}
-              {c.installed && (c.upToDate ? ' — installed' : ' — installed (outdated)')}
-            </span>
-            <button
-              type="button"
-              className={`${styles.btn} ${c.installed && c.upToDate ? '' : styles.btnPrimary}`}
-              disabled={setClient.isPending}
-              onClick={() => apply(c.id, c.label, true)}
-            >
-              {c.installed ? (c.upToDate ? 'Reinstall' : 'Update') : 'Install'}
-            </button>
-            {c.installed && (
-              <button type="button" className={styles.btn} disabled={setClient.isPending} onClick={() => apply(c.id, c.label, false)}>
-                Remove
-              </button>
-            )}
-          </div>
-          <span className={styles.hint} style={{ fontSize: '11px' }}>
-            Config: <span className={styles.code}>{c.configPath}</span>
-          </span>
-          {c.error && <span className={styles.statusErr}>{c.error}</span>}
-        </div>
-      ))}
-      {status && <span className={status.ok ? styles.statusOk : styles.statusErr}>{status.text}</span>}
-    </div>
-  );
-}
-
 interface SettingsPanelProps {
   onClose: () => void;
   theme: Theme;
@@ -544,7 +484,7 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
 
           <div className={styles.divider} />
 
-          <McpClientsSection />
+          <McpIntegrations />
 
           <div className={styles.divider} />
 

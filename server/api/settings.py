@@ -136,35 +136,58 @@ async def set_data_path(req: DataPathRequest):
     }
 
 
-def _mcp_client_or_404(client_id: str) -> mcp_clients.McpClient:
-    client = mcp_clients.CLIENTS.get(client_id)
-    if client is None:
+async def _tool_count() -> int:
+    import main  # imported late: main imports this module
+
+    return len(await main.mcp.list_tools())
+
+
+def _mcp_call(fn, *args):
+    try:
+        return fn(*args)
+    except mcp_clients.BadRequest as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+class McpTarget(BaseModel):
+    scope: str | None = None
+    folder: str | None = None
+
+
+@router.get("/mcp-clients/{client_id}")
+async def get_mcp_client(client_id: str, scope: str | None = None, folder: str | None = None):
+    """State of the kanban entry in Claude Code / Antigravity for one scope."""
+    return _mcp_call(mcp_clients.get_status, client_id, scope, folder, await _tool_count())
+
+
+@router.post("/mcp-clients/{client_id}/install")
+async def install_mcp_client(client_id: str, target: McpTarget):
+    """Add (or replace) the kanban entry. Expected failures are returned as `error` on the status."""
+    return _mcp_call(mcp_clients.install, client_id, target.scope, target.folder, await _tool_count())
+
+
+@router.post("/mcp-clients/{client_id}/remove")
+async def remove_mcp_client(client_id: str, target: McpTarget):
+    """Remove only the kanban entry."""
+    return _mcp_call(mcp_clients.remove, client_id, target.scope, target.folder, await _tool_count())
+
+
+@router.post("/mcp-clients/{client_id}/test")
+async def test_mcp_client(client_id: str, target: McpTarget):
+    """Start the installed server and list its tools."""
+    if client_id not in ("claude-code", "antigravity"):
         raise HTTPException(status_code=404, detail=f"Unknown MCP client '{client_id}'")
-    return client
-
-
-@router.get("/mcp-clients")
-async def list_mcp_clients():
-    """Whether the Kanban MCP server is registered in Claude Code / Antigravity."""
-    db_path = db.get_db_path()
-    return [mcp_clients.get_status(c, db_path) for c in mcp_clients.CLIENTS.values()]
-
-
-@router.post("/mcp-clients/{client_id}")
-async def install_mcp_client(client_id: str):
-    """Add (or refresh) the Kanban MCP server entry in the client's config file."""
-    client = _mcp_client_or_404(client_id)
     try:
-        return mcp_clients.install(client, db.get_db_path())
-    except mcp_clients.McpConfigError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
+        return await mcp_clients.test_connection(client_id, target.scope, target.folder)
+    except mcp_clients.BadRequest as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
-@router.delete("/mcp-clients/{client_id}")
-async def uninstall_mcp_client(client_id: str):
-    """Remove the Kanban MCP server entry from the client's config file."""
-    client = _mcp_client_or_404(client_id)
-    try:
-        return mcp_clients.uninstall(client, db.get_db_path())
-    except mcp_clients.McpConfigError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
+@router.post("/mcp-clients/{client_id}/open-file")
+async def open_mcp_config(client_id: str, target: McpTarget):
+    """Open the client's config file in the default editor."""
+    if client_id not in ("claude-code", "antigravity"):
+        raise HTTPException(status_code=404, detail=f"Unknown MCP client '{client_id}'")
+    path = _mcp_call(mcp_clients.config_file, client_id, target.scope, target.folder)
+    _mcp_call(mcp_clients.open_file, path)
+    return {"path": str(path)}
