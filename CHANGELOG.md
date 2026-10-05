@@ -10,6 +10,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.0.2] - 2026-10-05
+
+Fixes for opening and importing backups made by older builds.
+
+### Fixed
+- **Databases created by pre-release builds could not be opened** ("Try again" on the splash, or a failed import): they are stamped with a migration (`f6a7b8c9d0e1`, "add_idea_board_fields") that was removed before 1.4.2, and alembic stopped with "Can't locate revision". Such databases are now re-stamped to the nearest existing revision and upgraded normally; all projects and tickets are kept (checked with a real 217-ticket backup).
+- **Import of a backup failed with "database disk image is malformed"**: the old `kanban.db-wal` / `-shm` files were left next to the replaced database. Import now checks the uploaded database first (a broken file is rejected with a clear message before anything is changed), removes the old WAL files when swapping, and flushes the WAL into the backup it keeps for rollback.
+
+---
+
 ## [2.0.1] - 2026-10-05
 
 Fixes for the 2.0.0 desktop app, found on a fresh install.
