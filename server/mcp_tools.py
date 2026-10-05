@@ -20,6 +20,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field, ValidationError
 from sqlalchemy.exc import NoResultFound
 
+import services.docs as svc_docs
 import services.idea_tickets as svc_idea_tickets
 import services.members as svc_members
 import services.projects as svc_projects
@@ -1240,6 +1241,142 @@ async def get_idea_activity_trail(ticket_id: IdeaId) -> list[dict]:
         return list(reversed(read.activity_trail))
 
 
+# ---------------------------------------------------------------------------
+# Docs (wiki-like pages per project)
+# ---------------------------------------------------------------------------
+
+DocsPageId = Annotated[
+    str, Field(description="Docs page id (UUID) from list_docs_pages.")
+]
+
+
+def _docs_error(exc: "svc_docs.DocsError") -> ValueError:
+    hint = (
+        " Call get_docs_page again, re-apply your edit on the new version, and retry."
+        if exc.code == "conflict"
+        else ""
+    )
+    return ValueError(f"{exc.message}.{hint}")
+
+
+async def list_docs_pages(project_id: ProjectId) -> list[dict]:
+    """List a project's Docs pages as a flat tree: [{id, parent_id, position, title, slug, status, version}]."""
+    async with async_session() as session:
+        try:
+            tree = await svc_docs.list_tree(session, project_id)
+        except svc_docs.DocsError as exc:
+            raise _docs_error(exc) from exc
+        return [
+            {
+                k: n[k]
+                for k in (
+                    "id",
+                    "parent_id",
+                    "position",
+                    "title",
+                    "slug",
+                    "status",
+                    "version",
+                )
+            }
+            for n in tree
+        ]
+
+
+async def get_docs_page(page_id: DocsPageId) -> dict:
+    """Read a Docs page: {title, markdown (latest published), version, headings, referenced_by}. Pass `version` to update_docs_page as `base_version`."""
+    async with async_session() as session:
+        try:
+            page = await svc_docs.page_detail(session, page_id)
+            links = await svc_docs.backlinks(session, page_id)
+        except svc_docs.DocsError as exc:
+            raise _docs_error(exc) from exc
+        keep = (
+            "id",
+            "project_id",
+            "parent_id",
+            "title",
+            "slug",
+            "status",
+            "version",
+            "markdown",
+            "headings",
+            "updated_by",
+            "updated_at",
+        )
+        return {k: page[k] for k in keep} | {"referenced_by": links}
+
+
+@notify_on_success
+async def create_docs_page(
+    project_id: ProjectId,
+    title: Annotated[
+        str, Field(description="Page title; body headings start at '##'.")
+    ],
+    markdown: Annotated[str, Field(description="Initial Markdown body.")] = "",
+    parent_id: Annotated[
+        str | None, Field(description="Parent page id; omit for a top-level page.")
+    ] = None,
+) -> dict:
+    """Create a Docs page and publish it as v1. Returns {id, title, slug, status, version}."""
+    async with async_session() as session:
+        try:
+            page = await svc_docs.create_page(
+                session, project_id, title, parent_id=parent_id, markdown=markdown
+            )
+            page = await svc_docs.publish_page(
+                session, page["id"], base_version=0, note="Created via MCP"
+            )
+        except svc_docs.DocsError as exc:
+            raise _docs_error(exc) from exc
+        return {k: page[k] for k in ("id", "title", "slug", "status", "version")}
+
+
+@notify_on_success
+async def update_docs_page(
+    page_id: DocsPageId,
+    markdown: Annotated[
+        str, Field(description="The full new Markdown body (not a patch).")
+    ],
+    base_version: Annotated[
+        int,
+        Field(description="`version` from get_docs_page; a stale value is rejected."),
+    ],
+    note: Annotated[
+        str | None, Field(description="Change note for the page history.")
+    ] = None,
+    publish: Annotated[
+        bool,
+        Field(
+            description="Publish a new version (default). False only saves an agent draft nobody else sees."
+        ),
+    ] = True,
+) -> dict:
+    """Replace a Docs page's Markdown. Returns {id, title, version, published}."""
+    async with async_session() as session:
+        try:
+            if publish:
+                page = await svc_docs.publish_page(
+                    session,
+                    page_id,
+                    base_version=base_version,
+                    note=note,
+                    markdown=markdown,
+                )
+            else:
+                page = await svc_docs.save_draft(
+                    session, page_id, markdown=markdown, base_version=base_version
+                )
+        except svc_docs.DocsError as exc:
+            raise _docs_error(exc) from exc
+        return {
+            "id": page["id"],
+            "title": page["title"],
+            "version": page["version"],
+            "published": publish,
+        }
+
+
 def ideas_enabled() -> bool:
     """Whether the Idea Space tools are exposed over MCP (off by default)."""
     return os.environ.get("KANBAN_MCP_IDEA_TOOLS", "").strip().lower() in {"1", "true", "yes", "on"}
@@ -1259,6 +1396,8 @@ _INSTRUCTIONS_IDEAS = """\
 - Idea Space is separate: ideas have ids 'IDEA-N' and can be promoted to a ticket once approved.
 """
 _INSTRUCTIONS_TAIL = """\
+- Docs: each project has a page tree of Markdown pages (list_docs_pages, get_docs_page, create_docs_page, update_docs_page); \
+link pages with [[Title#Section]] and tickets by key (IAM-12).
 - Each ticket has a scratch folder: get_ticket_workspace_path, then use your own file tools there.
 
 Conventions
@@ -1337,6 +1476,11 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (update_branch, _UPDATE),
     (delete_branch, _DELETE),
     (checkout_branch, _UPDATE),
+    # docs
+    (list_docs_pages, _READ),
+    (get_docs_page, _READ),
+    (create_docs_page, _WRITE),
+    (update_docs_page, _UPDATE),
 ]
 
 # The Idea Space tools are hidden from the MCP tool list for now (about a quarter of its size). They are fully

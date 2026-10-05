@@ -18,6 +18,7 @@ from api.settings import router as settings_router
 from api.data import router as data_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
+from api.docs import router as docs_router
 import database
 from version import version_info
 from database import init_db
@@ -96,6 +97,7 @@ app.include_router(settings_router)
 app.include_router(data_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
+app.include_router(docs_router)
 
 
 @app.get("/health")

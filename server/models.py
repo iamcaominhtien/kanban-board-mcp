@@ -129,6 +129,75 @@ class IdeaTicket(SQLModel, table=True):
     )
 
 
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+class DocsPage(SQLModel, table=True):
+    """A page in a project's Docs space (soft-deleted via deleted_at)."""
+
+    __tablename__ = "docs_page"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    parent_id: Optional[str] = Field(default=None, foreign_key="docs_page.id")
+    position: int = Field(default=0)
+    title: str
+    slug: str
+    status: str = Field(default="draft")  # draft (never published) | published
+    version: int = Field(default=0)  # latest published version, 0 = none yet
+    created_by: str = Field(default="user")
+    updated_by: str = Field(default="user")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    deleted_at: Optional[str] = Field(default=None)
+    deleted_by: Optional[str] = Field(default=None)
+    deleted_root_id: Optional[str] = Field(default=None)
+
+
+class DocsVersion(SQLModel, table=True):
+    __tablename__ = "docs_version"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    version: int
+    title: str
+    markdown: str = Field(default="")
+    author: str = Field(default="user")
+    note: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class DocsDraft(SQLModel, table=True):
+    """Autosaved, per-author working copy of a page."""
+
+    __tablename__ = "docs_draft"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    author: str = Field(default="user")
+    title: str
+    markdown: str = Field(default="")
+    base_version: int = Field(default=0)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class DocsLink(SQLModel, table=True):
+    """Reference index: one row per [[page]] or ticket key in a published page."""
+
+    __tablename__ = "docs_link"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    source_page_id: str = Field(foreign_key="docs_page.id", index=True)
+    source_section: Optional[str] = Field(default=None)
+    target_page_id: Optional[str] = Field(default=None, index=True)
+    target_title: Optional[str] = Field(default=None)
+    target_anchor: Optional[str] = Field(default=None)
+    target_ticket_id: Optional[str] = Field(default=None, index=True)
+    display_text: Optional[str] = Field(default=None)
+    snippet: str = Field(default="")
+
+
 # ---------------------------------------------------------------------------
 # Request / Response schemas (not table=True)
 # ---------------------------------------------------------------------------
