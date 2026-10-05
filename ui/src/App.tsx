@@ -40,7 +40,12 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
-  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs'>(() =>
+    new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board',
+  );
+  const [docsRequest, setDocsRequest] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('docs'),
+  );
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
@@ -136,6 +141,12 @@ export default function App() {
       }
     }
   }, [tickets]);
+
+  function openDocsPage(pageId: string) {
+    setViewMode('docs');
+    setDocsRequest(pageId);
+    closeModal();
+  }
 
   function openTicketModal(ticketId: string) {
     setModalState({ mode: 'view', ticketId });
@@ -363,6 +374,8 @@ export default function App() {
                 projectId={currentProjectId ?? ''}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
+                docsRequestedPageId={docsRequest}
+                onDocsRequestHandled={() => setDocsRequest(null)}
                 members={members}
                 activeAssignee={activeAssignee}
                 onAssigneeChange={setActiveAssignee}
@@ -388,6 +401,7 @@ export default function App() {
                   ticket={modalTicket}
                   onDelete={handleDeleteTicket}
                   onClose={closeModal}
+                  onOpenDocsPage={openDocsPage}
                   allTickets={tickets}
                   onOpenTicket={(t) => openTicketModal(t.id)}
                   members={members}
@@ -399,6 +413,7 @@ export default function App() {
         {recycleBinOpen && (
           <RecycleBin
             tickets={wontDoTickets}
+            projectId={currentProjectId}
             onRestore={(id) => restoreTicketMutation.mutate(id)}
             onClose={() => setRecycleBinOpen(false)}
           />

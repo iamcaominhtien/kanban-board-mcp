@@ -10,6 +10,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.3.0] - 2026-10-05
+
+Docs space (phase 1): a page tree per project with a rich-text editor stored as Markdown, per the Docs design boards.
+
+### Added
+- **Docs view** next to Board / List / Timeline: page tree (drag to reorder or nest, quick filter, inline rename, row menu, collapsible rail under 1200 px), page view with "On this page" and "Referenced by", empty-space hero with five templates (Blank, Requirements, Meeting notes, Decision log, Technical design).
+- **Editor**: Visual / Markdown toggle, formatting and floating toolbars, `/` block menu, `[[` suggester for pages, sections (`[[Page#Section]]`) and tickets, callouts (`> [!WARNING]`), tables, task lists, images, autosaved per-author draft (about 3 s) and Publish with a version note.
+- **Versions**: every publish adds a version; conflict detection (409) with Keep mine / Reload; history drawer with line and word diff (inline or side by side) and Restore, which creates a new version.
+- **References**: `[[Page#Section|label]]` and ticket keys render as chips (missing page, missing section, in Recycle Bin states); backlinks ("Referenced by"), and a "Linked docs" section on the ticket detail.
+- **Move to…**, **Duplicate** (with sub-pages) and soft delete into the Recycle Bin (30 days, restorable as a whole subtree).
+- **MCP tools**: `list_docs_pages`, `get_docs_page`, `create_docs_page`, `update_docs_page` (rejects a stale `base_version`).
+- REST API under `/projects/{id}/docs/...` and `/docs/pages/{id}/...`; migration `b9c0d1e2f3a4` adds `docs_page`, `docs_version`, `docs_draft`, `docs_link`.
+
+### Not yet
+Full-text search, Markdown import, offline copy, roles and access requests, per-project Docs switch, notifications, hover preview cards, rename-rewrite of links, mobile layout.
+
+---
+
 ## [2.2.0] - 2026-10-05
 
 Comprehensive file attachment overhaul, interactive Markdown image resizing, consolidated attachments zone, and desktop system app opening.

@@ -112,7 +112,9 @@ def parse_references(markdown: str) -> list[dict[str, Any]]:
     """Every [[page]] and ticket-key reference with its section and a context snippet."""
     refs: list[dict[str, Any]] = []
     for line, section, raw in _prose_lines(markdown):
-        snippet = _strip_inline(raw)[:160]
+        snippet = re.sub(
+            r"^\s*(?:>\s*)*(?:[*+-]|\d+\.)?\s*(?:\[[ xX]\]\s*)?", "", _strip_inline(raw)
+        )[:160]
         for m in _REF.finditer(line):
             refs.append(
                 {
@@ -389,6 +391,8 @@ async def rename_page(
     if draft:
         draft.title = page.title
         session.add(draft)
+    await session.flush()
+    await refresh_link_targets(session, page.project_id)
     await session.commit()
     return await page_detail(session, page_id)
 
@@ -526,6 +530,8 @@ async def delete_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
     for p in subtree:
         p.deleted_at, p.deleted_by, p.deleted_root_id = now, actor, page.id
         session.add(p)
+    await session.flush()
+    await refresh_link_targets(session, page.project_id)
     await session.commit()
     return {"id": page.id, "deleted_pages": len(subtree)}
 
@@ -546,6 +552,8 @@ async def restore_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
     for p in subtree:
         p.deleted_at = p.deleted_by = p.deleted_root_id = None
         session.add(p)
+    await session.flush()
+    await refresh_link_targets(session, page.project_id)
     await session.commit()
     return {
         "id": page.id,
@@ -734,6 +742,8 @@ async def _commit_version(
         await session.delete(draft)
     await session.flush()
     await reindex_links(session, page, markdown)
+    await session.flush()
+    await refresh_link_targets(session, page.project_id)
     await session.commit()
     return await page_detail(session, page.id)
 
@@ -1021,6 +1031,34 @@ async def reindex_links(session: AsyncSession, page: DocsPage, markdown: str) ->
                     snippet=ref["snippet"],
                 )
             )
+
+
+async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
+    """Re-point indexed [[links]] after pages appear, change title, are deleted or restored.
+
+    A link written before its target existed (or while it was in the Recycle Bin) is
+    resolved here, so "Referenced by" stays right without re-publishing the source.
+    """
+    pages = await _all_pages(session, project_id)
+    deleted = await _all_pages(session, project_id, deleted=True)
+    ids = [p.id for p in pages + deleted]
+    if not ids:
+        return
+    headings = await _headings_by_page(session, pages)
+    rows = await session.exec(
+        select(DocsLink).where(
+            DocsLink.source_page_id.in_(ids),  # type: ignore[attr-defined]
+            DocsLink.target_title.is_not(None),  # type: ignore[union-attr]
+        )
+    )
+    for link in rows.all():
+        res = await _resolve_page_ref(
+            pages, deleted, link.target_title or "", link.target_anchor, headings
+        )
+        new_target = res.get("page_id")
+        if new_target != link.target_page_id:
+            link.target_page_id = new_target
+            session.add(link)
 
 
 async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:

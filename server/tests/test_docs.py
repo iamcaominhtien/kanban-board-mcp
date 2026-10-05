@@ -394,3 +394,19 @@ async def test_mcp_docs_tools_round_trip_and_conflict(c, pid, monkeypatch):
     tree = await mcp_tools.list_docs_pages(pid)
     assert [(t["title"], t["version"]) for t in tree] == [("Runbook", 2)]
     assert real_session is not None
+
+
+async def test_forward_reference_resolves_when_target_is_published_later(c, pid):
+    src = await publish(c, await mk(c, pid, "Overview"), "See [[API#Endpoints]].")
+    target = await mk(c, pid, "API")
+    assert (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()["pages"] == []
+    await publish(c, target, "## Endpoints\nx")
+    bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
+    assert [p["page_id"] for p in bl["pages"]] == [src["id"]]
+    # renaming the target away breaks the link; renaming back repairs it
+    await c.patch(f"/docs/pages/{target['id']}", json={"title": "Reference"})
+    assert (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()["pages"] == []
+    await c.patch(f"/docs/pages/{target['id']}", json={"title": "API"})
+    assert (
+        len((await c.get(f"/docs/pages/{target['id']}/backlinks")).json()["pages"]) == 1
+    )

@@ -36,6 +36,14 @@ function formatInlineMarkdown(text: string): string {
   // Escape raw HTML first so user text can never inject markup
   text = escapeHtml(text);
 
+  // Docs references [[Page#Section|label]] become non-editable chips (swapped back in at the end)
+  const refChips: string[] = [];
+  text = text.replace(/\[\[([^\]|#]+?)(?:#([^\]|]+?))?(?:\|([^\]]+?))?\]\]/g, (m, title, anchor, label) => {
+    const shown = label || (anchor ? `${title} › ${anchor}` : title);
+    refChips.push(`<span class="docRef" data-ref="${m.slice(2, -2)}" contenteditable="false">${shown}</span>`);
+    return `\u0000${refChips.length - 1}\u0000`;
+  });
+
   // Images: ![alt](url) or ![alt|width](url)
   let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, rawAlt, url) => {
     if (url.startsWith('uploading:')) return '';
@@ -87,9 +95,20 @@ function formatInlineMarkdown(text: string): string {
   // Mark / Highlight: <mark>text</mark> or ==text==
   out = out.replace(/==([^=]+)==/g, '<mark>$1</mark>');
 
-  return out;
+  return out.replace(/\u0000(\d+)\u0000/g, (_m, i) => refChips[Number(i)]);
 }
 
+
+const CALLOUT_RE = /^\[!(NOTE|INFO|TIP|WARNING|DANGER|IMPORTANT|CAUTION)\]\s*(.*)$/i;
+
+/** Callout kinds the editor offers; GitHub's IMPORTANT/CAUTION alerts map onto them. */
+function calloutKind(raw: string): 'info' | 'warning' | 'danger' | 'tip' {
+  const k = raw.toLowerCase();
+  if (k === 'warning' || k === 'caution') return 'warning';
+  if (k === 'danger') return 'danger';
+  if (k === 'tip') return 'tip';
+  return 'info';
+}
 
 interface ListItem {
   indent: number;
@@ -276,6 +295,17 @@ export function markdownToHtml(md: string): string {
         }
       }
       if (cur.length) paras.push(cur.join('<br>'));
+      const callout = quoteLines[0].match(CALLOUT_RE);
+      if (callout) {
+        const kind = calloutKind(callout[1]);
+        // the marker is the first line of the first paragraph; keep any text that follows it
+        const first = paras[0]?.replace(/^[^<]*?\[!\w+\]\s*(<br>)?/i, '') ?? '';
+        const bodyParas = [...(first ? [first] : []), ...paras.slice(1)];
+        htmlParts.push(
+          `<blockquote data-callout="${kind}">${(bodyParas.length ? bodyParas : ['']).map((p) => `<p>${p || '<br>'}</p>`).join('')}</blockquote>`,
+        );
+        continue;
+      }
       htmlParts.push(`<blockquote>${paras.map((p) => `<p>${p}</p>`).join('')}</blockquote>`);
       continue;
     }
@@ -391,6 +421,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
       }
       case 'br':
         return '\n';
+      case 'span':
+        return el.hasAttribute('data-ref') ? `[[${el.getAttribute('data-ref')}]]` : childrenText;
       case 'input':
         return '';
       default:
@@ -509,6 +541,16 @@ export function htmlToMarkdown(root: HTMLElement): string {
         return `${inline}\n\n`;
       }
       case 'blockquote': {
+        const calloutType = el.getAttribute('data-callout');
+        if (calloutType) {
+          const body = (hasBlockChild(el)
+            ? serializeMixed(el)
+            : Array.from(el.childNodes).map(serializeInline).join('')
+          )
+            .trim()
+            .replace(/\n\n+/g, '\n');
+          return [`> [!${calloutType.toUpperCase()}]`, ...body.split('\n').map((l) => (l ? `> ${l}` : '>'))].join('\n') + '\n\n';
+        }
         const inner = hasBlockChild(el)
           ? serializeMixed(el).trim().replace(/\n\n+/g, '\n\n')
           : Array.from(el.childNodes).map(serializeInline).join('').trim();

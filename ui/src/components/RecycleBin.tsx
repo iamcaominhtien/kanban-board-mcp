@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Ticket } from '../types';
+import { DocsRecycleSection } from './docs/DocsRecycleSection';
 import styles from './RecycleBin.module.css';
 
 interface RecycleBinProps {
   tickets: Ticket[];
+  projectId?: string;
   onRestore: (ticketId: string) => void;
   onClose: () => void;
 }
 
-export function RecycleBin({ tickets, onRestore, onClose }: RecycleBinProps) {
+export function RecycleBin({ tickets, projectId, onRestore, onClose }: RecycleBinProps) {
   const [visible, setVisible] = useState(false);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -94,6 +96,7 @@ export function RecycleBin({ tickets, onRestore, onClose }: RecycleBinProps) {
               ))}
             </ul>
           )}
+          {projectId && <DocsRecycleSection projectId={projectId} />}
         </div>
       </div>
     </div>

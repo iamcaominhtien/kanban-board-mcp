@@ -24,12 +24,13 @@
 
 - **Board, List and Timeline** views with drag and drop, filters (type, priority, assignee), search, and **Review / Testing** statuses.
 - **Rich ticket detail**: WYSIWYG Markdown description (tables, task lists, code, pasted or uploaded images), acceptance criteria, sub-tickets, comments, blocks and links, estimates, dates, assignees and "Done requires" guards.
+- **Docs space** per project: a page tree with a WYSIWYG editor stored as Markdown, drafts, versions with diff and restore, `[[page#section]]` and ticket-key references with backlinks, and a Recycle Bin.
 - **Test cases** with pass / fail / running state per ticket and child ticket.
 - **Real git branches**: link a ticket to a branch, see its commit graph against `main`, check it out, and use git worktrees.
 - **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
 - **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
 - **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
-- **MCP server for AI agents**: 34 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **MCP server for AI agents**: 38 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
 - **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
 - **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
 

@@ -24,6 +24,7 @@ import { FileCategoryIcon, getFileTypeMeta, formatFileSize } from '../utils/file
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { MemberAvatar } from './MemberAvatar';
 import { RelationsSection } from './RelationsSection';
+import { TicketDocsSection } from './docs/TicketDocsSection';
 import { TestCasesSection } from './TestCasesSection';
 import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
@@ -114,6 +115,7 @@ type TicketModalProps =
       onClose: () => void;
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
+      onOpenDocsPage?: (pageId: string) => void;
       members?: Member[];
     }
   | {
@@ -124,6 +126,7 @@ type TicketModalProps =
       onClose: () => void;
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
+      onOpenDocsPage?: (pageId: string) => void;
       members?: Member[];
     };
 
@@ -135,6 +138,7 @@ export function TicketModal({
   onClose,
   allTickets = [],
   onOpenTicket,
+  onOpenDocsPage,
   members = [],
 }: TicketModalProps) {
   const localMode = initialMode;
@@ -975,6 +979,8 @@ export function TicketModal({
                     )
                   }
                 />
+
+                <TicketDocsSection ticketId={ticket.id} onOpenPage={(pageId) => onOpenDocsPage?.(pageId)} />
 
                 <hr className={styles.sectionDivider} />
 

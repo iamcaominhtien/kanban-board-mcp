@@ -1,0 +1,71 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-body);
+}
+
+.heading {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-sec);
+}
+
+.muted { margin: 0; font-size: 13px; color: #9AA8A0; }
+.error { margin: 0; font-size: 12.5px; color: #C4432A; }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.title { font-size: 13.5px; font-weight: 600; color: var(--color-text-pri); min-width: 0; overflow-wrap: anywhere; }
+.count { font-size: 11.5px; color: var(--color-text-sec); white-space: nowrap; }
+.meta { margin: 0; font-size: 11.5px; color: #9AA8A0; }
+.note { margin: 0; font-size: 11.5px; color: var(--color-text-sec); }
+
+.actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #FBE7E4;
+  color: #8A2C1B;
+  font-size: 12.5px;
+}
+
+.restoreBtn, .ghostBtn, .dangerBtn, .dangerGhost {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.restoreBtn { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-forest); }
+.restoreBtn:hover:not(:disabled) { background: var(--color-mint); }
+.ghostBtn { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-pri); }
+.dangerBtn { border: 1px solid #C4432A; background: #C4432A; color: #fff; }
+.dangerGhost { border: 1px solid transparent; background: none; color: #C4432A; }
+.dangerGhost:hover:not(:disabled) { background: #FBE7E4; }
+.restoreBtn:disabled, .dangerBtn:disabled, .dangerGhost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.footnote { margin: 0; font-size: 11.5px; color: #9AA8A0; line-height: 1.5; }
