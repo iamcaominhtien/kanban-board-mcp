@@ -11,9 +11,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-0.135-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/MCP-1.27-FF6B35?style=flat-square" alt="MCP" />
   <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
@@ -21,11 +20,24 @@
 
 ---
 
+## Features
+
+- **Board, List and Timeline** views with drag and drop, filters (type, priority, assignee), search, and **Review / Testing** statuses.
+- **Rich ticket detail**: WYSIWYG Markdown description (tables, task lists, code, pasted or uploaded images), acceptance criteria, sub-tickets, comments, blocks and links, estimates, dates, assignees and "Done requires" guards.
+- **Test cases** with pass / fail / running state per ticket and child ticket.
+- **Real git branches**: link a ticket to a branch, see its commit graph against `main`, check it out, and use git worktrees.
+- **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
+- **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
+- **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
+- **MCP server for AI agents**: 34 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
+- **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
+
 ## What's Inside
 
 | | |
 |---|---|
-| **UI** | React 18 + Vite + TypeScript, Tailwind CSS, drag-and-drop (`@dnd-kit`) |
+| **UI** | React 18 + Vite + TypeScript, CSS Modules, drag-and-drop (`@dnd-kit`) |
 | **Server** | Python, FastAPI, MCP (Model Context Protocol), SQLite via SQLModel |
 | **Storage** | Local-first — SQLite, no external services |
 
@@ -34,8 +46,20 @@
 ### Board View
 ![Board View](docs/screenshots/board-overview.png)
 
-### Ticket Detail
+### Ticket Detail — WYSIWYG Markdown with images
+Write rich text (tables, task lists, code, pasted images); it is stored as plain Markdown.
+
 ![Ticket Detail](docs/screenshots/ticket-modal.png)
+
+### Test Cases
+Track pass / fail / running per ticket, including child tickets, and optionally block *Done* until every case passes.
+
+![Test Cases](docs/screenshots/test-cases.png)
+
+### Git Branches
+Link a ticket to a real branch, see its commits against `main`, and check it out from the UI.
+
+![Git Branches](docs/screenshots/git-branches.png)
 
 ### List View
 ![List View](docs/screenshots/list-view.png)
@@ -54,7 +78,7 @@ npm run dev        # http://localhost:5173
 
 ### MCP Server (Backend)
 
-Requires [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). The database is created and migrated automatically on first start.
 
 ```bash
 cd server
@@ -64,7 +88,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 33 tools for AI agents over MCP (selected highlights below — see `server/mcp_tools.py` for the full list, which also covers acceptance criteria, idea tickets, assumptions, and microthoughts):
+The server exposes 34 tools for AI agents over MCP (47 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
 
 **Projects & Members**
 - `list_projects`, `create_project`, `update_project` (name, color, linked git repo, worktree defaults)
@@ -137,6 +161,6 @@ The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) 
 ## More Docs
 - [Server README](server/README.md)
 - [UI README](ui/README.md)
-- [Architecture](docs/backend-architecture.md)
+- [Architecture](docs/arch/backend-architecture.md)
 - [Changelog](CHANGELOG.md)
 
