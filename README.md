@@ -84,7 +84,7 @@ The server exposes 33 tools for AI agents over MCP (selected highlights below â€
 - `add_acceptance_criterion`, `toggle_acceptance_criterion`, `delete_acceptance_criterion`
 - `add_branch`, `update_branch`, `delete_branch`, `checkout_branch` â€” real git branches when the project has a linked repo
 
-**Idea Space**
+**Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)
 - `list_idea_tickets`, `get_idea_ticket`, `get_idea_activity_trail`, `create_idea_ticket`, `update_idea_ticket`, `update_idea_status`, `promote_idea_to_ticket`, `delete_idea_ticket`
 - `add_assumption`, `update_assumption_status`, `delete_assumption`, `add_microthought`, `delete_microthought`
 

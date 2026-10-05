@@ -8,6 +8,7 @@ Conventions (kept in sync with the server `instructions` in main.py):
 """
 
 import json
+import os
 import re
 from datetime import datetime, timezone
 from functools import wraps
@@ -1148,7 +1149,12 @@ async def get_idea_activity_trail(ticket_id: IdeaId) -> list[dict]:
         return list(reversed(read.activity_trail))
 
 
-MCP_INSTRUCTIONS = """\
+def ideas_enabled() -> bool:
+    """Whether the Idea Space tools are exposed over MCP (off by default)."""
+    return os.environ.get("KANBAN_MCP_IDEA_TOOLS", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+_INSTRUCTIONS_HEAD = """\
 Kanban board for software projects. Typical flow: list_projects -> list_tickets -> get_ticket -> \
 update_ticket_status('in-progress') -> keep add_work_log (debug journal) / add_comment updated while you work -> \
 add_test_case / toggle_acceptance_criterion -> update_ticket_status('done').
@@ -1157,17 +1163,35 @@ Concepts
 - Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, \
 review, testing, done, wont_do. A ticket owns acceptance criteria, test cases, comments, a work log, branches and \
 relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.
+"""
+_INSTRUCTIONS_IDEAS = """\
 - Idea Space is separate: ideas have ids 'IDEA-N' and can be promoted to a ticket once approved.
+"""
+_INSTRUCTIONS_TAIL = """\
 - Each ticket has a scratch folder: get_ticket_workspace_path, then use your own file tools there.
 
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry.
 - Tools that change a ticket return the updated ticket without its activity log (get_ticket include_activity=true shows it).
-- Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields (idea tools: explicit null).
+- Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields{ideas_null}.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.
-- delete_* tools are permanent; prefer status 'wont_do' / idea status 'dropped' to retire things.
+- delete_* tools are permanent; prefer status 'wont_do'{ideas_drop} to retire things.
 """
+
+
+def build_instructions(include_ideas: bool | None = None) -> str:
+    """The server instructions sent on connect (they only mention the Idea Space when its tools are exposed)."""
+    if include_ideas is None:
+        include_ideas = ideas_enabled()
+    tail = _INSTRUCTIONS_TAIL.format(
+        ideas_null=" (idea tools: explicit null)" if include_ideas else "",
+        ideas_drop=" / idea status 'dropped'" if include_ideas else "",
+    )
+    return _INSTRUCTIONS_HEAD + (_INSTRUCTIONS_IDEAS if include_ideas else "") + tail
+
+
+MCP_INSTRUCTIONS = build_instructions()
 
 
 # ---------------------------------------------------------------------------
@@ -1179,7 +1203,7 @@ _WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHi
 _UPDATE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 _DELETE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
 
-TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
+CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     # projects & members
     (list_projects, _READ),
     (create_project, _WRITE),
@@ -1218,7 +1242,11 @@ TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (update_branch, _UPDATE),
     (delete_branch, _DELETE),
     (checkout_branch, _UPDATE),
-    # idea space
+]
+
+# The Idea Space tools are hidden from the MCP tool list for now (about a quarter of its size). They are fully
+# implemented: set KANBAN_MCP_IDEA_TOOLS=1 to expose them again.
+IDEA_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (list_idea_tickets, _READ),
     (get_idea_ticket, _READ),
     (get_idea_activity_trail, _READ),
@@ -1257,9 +1285,15 @@ def _strip_properties(props: Any) -> Any:
     return {name: _strip_titles(sub) for name, sub in props.items()}
 
 
-def register(mcp: FastMCP) -> None:
-    """Register all Kanban MCP tools with the given FastMCP instance."""
-    for func, annotations in TOOL_TABLE:
+TOOL_TABLE = CORE_TOOL_TABLE + IDEA_TOOL_TABLE
+
+
+def register(mcp: FastMCP, include_ideas: bool | None = None) -> None:
+    """Register the Kanban MCP tools with the given FastMCP instance.
+    `include_ideas` defaults to the KANBAN_MCP_IDEA_TOOLS environment variable (off)."""
+    if include_ideas is None:
+        include_ideas = ideas_enabled()
+    for func, annotations in CORE_TOOL_TABLE + (IDEA_TOOL_TABLE if include_ideas else []):
         mcp.tool(annotations=annotations)(func)
     for tool in mcp._tool_manager.list_tools():
         tool.parameters = _strip_titles(tool.parameters)

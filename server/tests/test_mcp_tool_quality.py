@@ -12,8 +12,18 @@ from models import IDEA_COLORS, IDEA_STATUSES
 from tests.test_activity import _ticket, client, setup_db  # noqa: F401  (fixtures)
 
 
-async def _tools():
-    return {t.name: t for t in await mcp.list_tools()}
+def _full_mcp():
+    """A server with every tool, including the Idea Space ones that are hidden by default."""
+    from mcp.server.fastmcp import FastMCP
+
+    full = FastMCP("kanban-test", instructions=mcp_tools.build_instructions(True))
+    mcp_tools.register(full, include_ideas=True)
+    return full
+
+
+async def _tools(server=None):
+    """The tools of the server (default: the real one with the default switches), or of `server`."""
+    return {t.name: t for t in await (server or mcp).list_tools()}
 
 
 def _enum_of(schema: dict) -> list | None:
@@ -29,13 +39,34 @@ def _enum_of(schema: dict) -> list | None:
 
 
 async def test_every_registered_tool_is_in_the_table_and_vice_versa():
-    tools = await _tools()
-    assert set(tools) == {f.__name__ for f, _ in mcp_tools.TOOL_TABLE}
-    assert len(mcp_tools.TOOL_TABLE) == len({f.__name__ for f, _ in mcp_tools.TOOL_TABLE})
+    core = {f.__name__ for f, _ in mcp_tools.CORE_TOOL_TABLE}
+    ideas = {f.__name__ for f, _ in mcp_tools.IDEA_TOOL_TABLE}
+    assert not core & ideas
+    assert set(await _tools(_full_mcp())) == core | ideas
+    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 47
+
+
+async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(monkeypatch):
+    from mcp.server.fastmcp import FastMCP
+
+    ideas = {f.__name__ for f, _ in mcp_tools.IDEA_TOOL_TABLE}
+    assert len(ideas) == 13
+    assert not ideas & set(await _tools())  # the real server: hidden
+    assert "IDEA-N" not in (mcp.instructions or "") and "idea" not in (mcp.instructions or "").lower()
+
+    monkeypatch.setenv("KANBAN_MCP_IDEA_TOOLS", "1")
+    assert mcp_tools.ideas_enabled()
+    server = FastMCP("t", instructions=mcp_tools.build_instructions())
+    mcp_tools.register(server)
+    assert ideas <= set(await _tools(server))
+    assert "IDEA-N" in mcp_tools.build_instructions()
+
+    monkeypatch.setenv("KANBAN_MCP_IDEA_TOOLS", "0")
+    assert not mcp_tools.ideas_enabled()
 
 
 async def test_every_tool_has_annotations_that_match_its_name():
-    for name, tool in (await _tools()).items():
+    for name, tool in (await _tools(_full_mcp())).items():
         a = tool.annotations
         assert a is not None, name
         if name.startswith(("list_", "get_")) and name != "get_ticket_workspace_path":
@@ -50,7 +81,7 @@ async def test_every_tool_has_annotations_that_match_its_name():
 
 
 async def test_descriptions_are_present_and_free_of_stale_conventions():
-    for name, tool in (await _tools()).items():
+    for name, tool in (await _tools(_full_mcp())).items():
         desc = tool.description or ""
         assert len(desc) >= 40, f"{name}: description too short"
         assert "Args:" not in desc, f"{name}: parameter docs belong in the schema"
@@ -59,7 +90,7 @@ async def test_descriptions_are_present_and_free_of_stale_conventions():
 
 async def test_every_parameter_is_described_unless_its_enum_or_flag_explains_itself():
     self_explanatory = {"title", "description", "expected_result", "notes", "idea_emoji"}
-    for name, tool in (await _tools()).items():
+    for name, tool in (await _tools(_full_mcp())).items():
         for pname, schema in tool.inputSchema.get("properties", {}).items():
             if schema.get("description"):
                 continue
@@ -68,7 +99,7 @@ async def test_every_parameter_is_described_unless_its_enum_or_flag_explains_its
 
 
 async def test_schemas_carry_no_redundant_titles():
-    for name, tool in (await _tools()).items():
+    for name, tool in (await _tools(_full_mcp())).items():
         for pname, schema in tool.inputSchema.get("properties", {}).items():
             assert "title" not in schema, f"{name}.{pname}"
     # ...but a parameter that is itself called "title" survives
@@ -76,19 +107,26 @@ async def test_schemas_carry_no_redundant_titles():
 
 
 async def test_the_tool_list_stays_compact():
-    tools = await _tools()
-    size = sum(len(t.description or "") + len(json.dumps(t.inputSchema, separators=(",", ":"))) for t in tools.values())
-    assert size < 40_000, f"tool list is {size} characters (about {size // 4} tokens): trim descriptions or schemas"
+    def size(tools):
+        return sum(len(t.description or "") + len(json.dumps(t.inputSchema, separators=(",", ":"))) for t in tools.values())
+
+    default, full = size(await _tools()), size(await _tools(_full_mcp()))
+    assert default < 28_500, f"default tool list is {default} characters (about {default // 4} tokens)"
+    assert full < 40_000, f"full tool list is {full} characters (about {full // 4} tokens)"
+    assert default < full
 
 
 async def test_server_instructions_explain_the_ids_and_conventions():
-    text = mcp.instructions or ""
-    for must in ("IAM-12", "IDEA-N", "clear_fields", "get_ticket_workspace_path", "AI agent"):
-        assert must in text
+    for text, musts in (
+        (mcp.instructions or "", ("IAM-12", "clear_fields", "get_ticket_workspace_path", "AI agent")),
+        (mcp_tools.build_instructions(True), ("IAM-12", "IDEA-N", "explicit null", "dropped")),
+    ):
+        for must in musts:
+            assert must in text, must
 
 
 async def test_schema_enums_match_the_services():
-    tools = await _tools()
+    tools = await _tools(_full_mcp())
 
     def enum(tool, param):
         return set(_enum_of(tools[tool].inputSchema["properties"][param]))
@@ -107,7 +145,7 @@ async def test_invalid_enum_values_are_rejected_before_any_work():
     from mcp.server.fastmcp.exceptions import ToolError
 
     with pytest.raises(ToolError):
-        await mcp.call_tool("create_idea_ticket", {"project_id": "x", "title": "t", "idea_energy": "low"})
+        await _full_mcp().call_tool("create_idea_ticket", {"project_id": "x", "title": "t", "idea_energy": "low"})
     with pytest.raises(ToolError):
         await mcp.call_tool("list_tickets", {"project_id": "x", "status": "bogus"})
 
