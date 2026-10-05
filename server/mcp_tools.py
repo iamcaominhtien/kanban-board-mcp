@@ -401,15 +401,14 @@ def _clip_activity(entries: list[dict]) -> list[dict]:
 
 async def get_ticket(
     ticket_id: TicketId,
-    include_activity: Annotated[bool, Field(description=f"true: return the WHOLE change history with full texts (large) and ignore activity_limit / activity_since. By default only the {DEFAULT_ACTIVITY_ENTRIES} most recent entries are returned, long texts shortened.")] = False,
-    activity_limit: Annotated[int | None, Field(ge=0, le=1000, description=f"Return only the N most recent activity entries (default {DEFAULT_ACTIVITY_ENTRIES}). 0 = leave the history out entirely.")] = None,
+    activity_limit: Annotated[int | None, Field(le=1000, description=f"How many of the most recent activity entries to return (oldest first). Default {DEFAULT_ACTIVITY_ENTRIES}, long texts shortened; 0 = none; a negative number (e.g. -1) = the WHOLE history, full texts (large).")] = None,
     activity_since: Annotated[str | None, Field(description="Only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z' ('what changed since I last looked'). Combine with activity_limit to cap how many.")] = None,
 ) -> dict:
     """Get one ticket in full: Markdown description, acceptance criteria, test cases, comments, work log (debug notes),
     branches, relations (blocks / blocked_by / links) and `workspace_path` when the Workspace feature is on.
     Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
-    `activity_log` holds the most recent changes (who changed what and when, oldest first); `activity_total` is how many
-    entries the ticket has in all, so you can tell when more exist (use activity_limit, activity_since or include_activity)."""
+    `activity_log` holds the most recent changes (who changed what and when); `activity_total` is how many entries the
+    ticket has in all, so you can tell when more exist (widen with activity_limit or narrow with activity_since)."""
     since = _parse_since(activity_since) if activity_since else None
     async with async_session() as session:
         ticket = await svc_tickets.get_ticket(session, ticket_id)
@@ -421,10 +420,11 @@ async def get_ticket(
             data["workspace_path"] = info["path"]
     log = data.get("activity_log") or []
     data["activity_total"] = len(log)
-    if include_activity:
-        return data  # the whole history, full texts; activity_limit / activity_since are ignored
     if since is not None:
         log = [e for e in log if (_entry_time(e) or since) > since]
+    if activity_limit is not None and activity_limit < 0:
+        data["activity_log"] = log  # everything (after `since`, if given), full texts
+        return data
     limit = activity_limit
     if limit is None and since is None:
         limit = DEFAULT_ACTIVITY_ENTRIES
@@ -1227,7 +1227,7 @@ _INSTRUCTIONS_TAIL = """\
 
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry.
-- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that, include_activity gives all).
+- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).
 - Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields{ideas_null}.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.

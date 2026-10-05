@@ -176,7 +176,7 @@ async def test_activity_log_is_opt_in_and_branches_have_no_camel_case_twins(clie
         await c.post(f"/tickets/{t['id']}/branches", json={"name": "feat/a", "branch_from": "main"})
     plain = await mcp_tools.get_ticket(t["id"])
     assert len(plain["activity_log"]) <= mcp_tools.DEFAULT_ACTIVITY_ENTRIES  # recent entries only
-    assert len((await mcp_tools.get_ticket(t["id"], include_activity=True))["activity_log"]) == plain["activity_total"]
+    assert len((await mcp_tools.get_ticket(t["id"], activity_limit=-1))["activity_log"]) == plain["activity_total"]
     assert "activity_log" not in await mcp_tools.add_comment(t["id"], "hi", "Claude")
     branch = plain["branches"][0]
     assert "pr_url" in branch and "prUrl" not in branch and "branchFrom" not in branch
@@ -253,11 +253,11 @@ async def test_get_ticket_can_return_only_the_recent_activity(client):
     assert 0 < len(plain["activity_log"]) <= mcp_tools.DEFAULT_ACTIVITY_ENTRIES
     assert plain["activity_total"] >= 6 and plain["activity_log"][-1]["to"] == "t4"
 
-    everything = await mcp_tools.get_ticket(i, include_activity=True)
+    everything = await mcp_tools.get_ticket(i, activity_limit=-1)
     total = len(everything["activity_log"])
     assert total >= 6 and everything["activity_total"] == total
 
-    latest = await mcp_tools.get_ticket(i, activity_limit=2)  # implies include_activity
+    latest = await mcp_tools.get_ticket(i, activity_limit=2)
     assert [e["to"] for e in latest["activity_log"]] == ["t3", "t4"]  # the newest two, oldest first
     assert latest["activity_total"] == total
 
@@ -279,7 +279,7 @@ async def test_activity_limit_is_validated_by_the_schema():
     with pytest.raises(ToolError):
         await mcp.call_tool("get_ticket", {"ticket_id": "X-1", "activity_limit": -1})
     props = (await _tools())["get_ticket"].inputSchema["properties"]
-    assert {"include_activity", "activity_limit", "activity_since"} <= set(props)
+    assert {"activity_limit", "activity_since"} <= set(props) and "include_activity" not in props
 
 
 async def test_default_activity_is_capped_and_long_texts_are_shortened(client):
@@ -294,9 +294,10 @@ async def test_default_activity_is_capped_and_long_texts_are_shortened(client):
     assert recent["activity_total"] > mcp_tools.DEFAULT_ACTIVITY_ENTRIES
     desc = [e for e in recent["activity_log"] if e["field"] == "description"][0]
     assert len(desc["to"]) < 400 and "more chars" in desc["to"]  # shortened by default...
-    full = await mcp_tools.get_ticket(i, include_activity=True)
+    full = await mcp_tools.get_ticket(i, activity_limit=-1)
     assert len([e for e in full["activity_log"] if e["field"] == "description"][0]["to"]) == 5000  # ...whole with include_activity
     assert len(full["activity_log"]) == full["activity_total"]
-    # include_activity=true wins over the narrowing options: everything, in full
-    both = await mcp_tools.get_ticket(i, include_activity=True, activity_limit=1, activity_since="2999-01-01")
-    assert both["activity_log"] == full["activity_log"]
+    # a negative limit with `since` = everything after that moment, in full
+    cutoff = full["activity_log"][-2]["at"]
+    tail = await mcp_tools.get_ticket(i, activity_limit=-5, activity_since=cutoff)
+    assert tail["activity_log"] == [e for e in full["activity_log"] if e["at"] > cutoff]
