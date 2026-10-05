@@ -49,6 +49,7 @@ MAX_TAG_LEN = 50
 MAX_ESTIMATE = 100_000
 MAX_COMMENT = 50_000
 MAX_AC_TEXT = 1_000
+MAX_SUB_TASK_TEXT = 500
 
 
 def _clean_title(value: str | None) -> str:
@@ -563,6 +564,73 @@ async def delete_acceptance_criterion(
     if removed is not None:
         act.record(ticket, "acceptance_criterion", removed.get("text"), None)
     ticket.acceptance_criteria = _dumps([a for a in acs if a.get("id") != criterion_id])
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+# ---------------------------------------------------------------------------
+# Sub-entity: sub-tasks (lightweight checklist items, not tickets)
+# ---------------------------------------------------------------------------
+
+
+async def add_sub_task(
+    session: AsyncSession, ticket_id: str, text: str
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    text = _clean_text(text, "Sub-task", MAX_SUB_TASK_TEXT)
+    items = _loads(ticket.sub_tasks)
+    items.append({"id": str(uuid.uuid4()), "text": text, "done": False})
+    act.record(ticket, "sub_task", None, text)
+    ticket.sub_tasks = _dumps(items)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def toggle_sub_task(
+    session: AsyncSession, ticket_id: str, sub_task_id: str
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    items = _loads(ticket.sub_tasks)
+    for item in items:
+        if item.get("id") == sub_task_id:
+            item["done"] = not item.get("done", False)
+            act.record(
+                ticket,
+                "sub_task",
+                "open" if item["done"] else "done",
+                "done" if item["done"] else "open",
+                ref=item.get("text"),
+            )
+            break
+    ticket.sub_tasks = _dumps(items)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def delete_sub_task(
+    session: AsyncSession, ticket_id: str, sub_task_id: str
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    items = _loads(ticket.sub_tasks)
+    removed = next((i for i in items if i.get("id") == sub_task_id), None)
+    if removed is not None:
+        act.record(ticket, "sub_task", removed.get("text"), None)
+    ticket.sub_tasks = _dumps([i for i in items if i.get("id") != sub_task_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
     await session.commit()

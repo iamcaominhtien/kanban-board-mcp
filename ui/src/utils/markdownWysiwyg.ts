@@ -24,15 +24,46 @@ function formatInlineMarkdown(text: string): string {
   // Strip any old uploading:... placeholder
   text = text.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '');
 
+  // Normalize /api/uploads/ to /uploads/
+  text = text.replace(/\/api\/uploads\//g, '/uploads/');
+
+  // Convert Pandoc/Kramdown/Obsidian style image attributes: ![alt](url){width=...} -> ![alt|width](url)
+  text = text.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)\{(?:width=)?(\d+(?:%|px)?)[^}]*\}/gi,
+    (_match, alt, url, width) => `![${alt ? `${alt}|${width}` : width}](${url})`,
+  );
+
   // Escape raw HTML first so user text can never inject markup
   text = escapeHtml(text);
 
-  // Images: ![alt](url)
-  let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
+  // Images: ![alt](url) or ![alt|width](url)
+  let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, rawAlt, url) => {
     if (url.startsWith('uploading:')) return '';
     if (!isSafeUrl(url)) return '';
     const src = url.startsWith('/uploads/') ? `${resolveOrigin()}${url}` : url;
-    return `<img src="${src}" alt="${alt}" />`;
+
+    let alt = rawAlt;
+    let widthAttr = '';
+    let widthStyle = '';
+
+    const sizeMatch = rawAlt.match(/^(.*?)\s*\|\s*(?:width=)?(\d+(?:%|px)?)(?:x(\d+(?:%|px)?))?$/i);
+    const numOnlyMatch = !sizeMatch ? rawAlt.match(/^(\d+(?:%|px)?)$/) : null;
+
+    if (sizeMatch) {
+      alt = sizeMatch[1].trim();
+      const w = sizeMatch[2];
+      const parsedW = /^\d+$/.test(w) ? `${w}px` : w;
+      widthAttr = `width="${w.replace(/px$/, '')}"`;
+      widthStyle = `style="width: ${parsedW}; max-width: 100%; height: auto;"`;
+    } else if (numOnlyMatch) {
+      alt = '';
+      const w = numOnlyMatch[1];
+      const parsedW = /^\d+$/.test(w) ? `${w}px` : w;
+      widthAttr = `width="${w.replace(/px$/, '')}"`;
+      widthStyle = `style="width: ${parsedW}; max-width: 100%; height: auto;"`;
+    }
+
+    return `<img src="${src}" alt="${alt}" ${widthAttr} ${widthStyle} />`;
   });
 
   // Links: [text](url)
@@ -345,6 +376,17 @@ export function htmlToMarkdown(root: HTMLElement): string {
           // ignore
         }
         const alt = el.getAttribute('alt') || '';
+
+        // Extract width if resized
+        let width = el.getAttribute('width') || '';
+        if (!width && el.style.width) {
+          const match = el.style.width.match(/^(\d+(?:px|%)?)/);
+          if (match) width = match[1].replace(/px$/, '');
+        }
+
+        if (width && width !== 'auto') {
+          return `![${alt ? `${alt}|${width}` : width}](${src})`;
+        }
         return `![${alt}](${src})`;
       }
       case 'br':

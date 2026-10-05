@@ -24,6 +24,8 @@ export interface StatusMenuProps {
   onChange: (status: Status) => void;
   disabled?: boolean;
   className?: string;
+  /** Small pill used inside list rows (e.g. Relations); the menu opens right-aligned. */
+  compact?: boolean;
 }
 
 export const StatusMenu: React.FC<StatusMenuProps> = ({
@@ -31,6 +33,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   onChange,
   disabled = false,
   className,
+  compact = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -75,7 +78,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`${styles.container} ${className ?? ''}`}
+      className={`${styles.container} ${compact ? styles.compact : ''} ${className ?? ''}`}
     >
       <button
         type="button"
@@ -85,10 +88,17 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span
-          className={styles.dot}
-          style={{ backgroundColor: currentOption.dotColor }}
-        />
+        {compact && value === 'done' ? (
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+            <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
+            <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span
+            className={styles.dot}
+            style={{ backgroundColor: currentOption.dotColor }}
+          />
+        )}
         <span className={styles.label}>{currentOption.label}</span>
         <svg
           className={`${styles.arrow} ${isOpen ? styles.arrowOpen : ''}`}

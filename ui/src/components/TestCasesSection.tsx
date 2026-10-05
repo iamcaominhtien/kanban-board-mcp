@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { TestCase, TestCaseStatus, TestCaseFileData } from '../types';
-import { uploadAttachment, uploadUrl, uploadDescriptionImage } from '../api/tickets';
+import { uploadAttachment, uploadUrl, uploadAnyFile } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { MarkdownEditor } from './MarkdownEditor';
 import styles from './TestCasesSection.module.css';
@@ -243,10 +243,8 @@ function TestCaseRowItem({
               placeholderText="What does this test case cover?"
               readOnly={readOnly || disabled}
               compact={true}
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
           </div>
 
@@ -259,10 +257,8 @@ function TestCaseRowItem({
               placeholderText="What is the expected behavior or pass bar?"
               readOnly={readOnly || disabled}
               compact={true}
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
           </div>
 
@@ -356,10 +352,8 @@ function TestCaseRowItem({
               placeholderText="Additional notes, screenshots, or environment details..."
               readOnly={readOnly || disabled}
               compact={true}
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
           </div>
 
@@ -646,10 +640,8 @@ export function TestCasesSection({
               onChange={setAddDescription}
               compact={true}
               placeholderText="Description (optional, markdown supported)…"
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
           </div>
           <div className={styles.inlineAddActions}>

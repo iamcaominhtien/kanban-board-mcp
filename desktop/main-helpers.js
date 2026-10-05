@@ -1,4 +1,22 @@
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+function resolveConfiguredUploadsDir(userDataPath, configPath = null) {
+  if (configPath) {
+    try {
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config && config.data_folder) {
+          return path.join(config.data_folder, 'uploads');
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return path.join(userDataPath, 'uploads');
+}
 
 /**
  * StartupProfiler — records timestamps for key startup stages.
@@ -37,9 +55,11 @@ function buildBackendLaunchSpec({
   desktopDir,
   baseEnv,
   devPythonExists,
+  configPath,
 }) {
   const dbPath = path.join(userDataPath, 'kanban.db');
-  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath };
+  const uploadsDir = resolveConfiguredUploadsDir(userDataPath, configPath);
+  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir };
   const stdio = ['ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
@@ -117,6 +137,7 @@ module.exports = {
   getBinaryExtension,
   getMcpStdioBinaryPath,
   parseReadyPort,
+  resolveConfiguredUploadsDir,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
   terminateBackendProcess,

@@ -72,41 +72,101 @@
   background: #F6FAF7;
 }
 
+.rowActive {
+  background: #F6FAF7;
+}
+
+.waveBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.waveDone {
+  background: #DCEEE1;
+  color: #2E6F40;
+}
+
+.waveReady {
+  background: #FFFFFF;
+  border: 1.4px solid #2F6FB0;
+  color: #2F6FB0;
+}
+
+.waveBlocked {
+  background: #FFFFFF;
+  border: 1.4px dashed #C7D2CB;
+  color: #9AA8A0;
+}
+
 .statusIconDone {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
 }
 
 .statusIconInProgress {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  border: 1.4px solid #2E6F40;
-  box-sizing: border-box;
+  background: #2F6FB0;
   flex-shrink: 0;
 }
 
 .statusIconOpen {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  border: 1.4px solid #C7D2CB;
+  border: 1.6px solid #9AA8A0;
   box-sizing: border-box;
   flex-shrink: 0;
 }
 
-.ticketTitleDone {
+.titleCol {
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.blockedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 7px 2px 6px;
+  border-radius: 3px;
+  background: rgba(196, 67, 42, 0.1);
+  color: #C4432A;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.captionText {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #9AA8A0;
+}
+
+.ticketTitleDone {
   font-size: 13px;
-  color: #5B6B60;
+  color: #1E2A22;
   text-decoration: line-through;
   text-decoration-color: #C7D2CB;
   cursor: pointer;
 }
 
 .ticketTitleInProgress {
-  flex-grow: 1;
   font-size: 13px;
   color: #1E2A22;
   font-weight: 500;
@@ -114,9 +174,8 @@
 }
 
 .ticketTitleOpen {
-  flex-grow: 1;
   font-size: 13px;
-  color: #3A4A3E;
+  color: #1E2A22;
   cursor: pointer;
 }
 
@@ -125,6 +184,13 @@
   font-size: 11px;
   color: #9AA8A0;
   flex-shrink: 0;
+  min-width: 62px;
+  text-align: right;
+}
+
+.ticketIdDone {
+  text-decoration: line-through;
+  text-decoration-color: #C7D2CB;
 }
 
 .unlinkBtn {

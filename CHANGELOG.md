@@ -10,6 +10,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.2.0] - 2026-10-05
+
+Comprehensive file attachment overhaul, interactive Markdown image resizing, consolidated attachments zone, and desktop system app opening.
+
+### Added
+- **Multi-format attachment support**: Upload and embed any file type (Word, Excel, PowerPoint, PDF, JSON, text, code, audio, video, archives) across all Markdown editors (Ticket Description, Comments, Work Log, Test Cases).
+- **Consolidated Attachments Zone**: Redesigned to strictly match `Attachments.dc.html`, placed after Comments with square image thumbnails, file chips with type badges and direct download buttons, dashed add tile (`+`), and provenance origin tags (Description / Comment author).
+- **Interactive Lightbox Preview Modal**: Full-screen preview modal portaled to `document.body` with deep ink/forest darkened blurred backdrop (`rgba(25, 38, 28, 0.65)`), full keyboard navigation (`Esc`), text/code viewer with copy tools, PDF viewer, media player, and Desktop "Open in App" button.
+- **Interactive Markdown Image Drag-to-Resize**: Direct drag resizing in the WYSIWYG editor with 6 corner/edge handles, real-time dimension badge, quick percentage presets (25%, 50%, 75%, 100%), natural reset, delete action, and serialized Markdown width persistence (`![alt|width](url)`).
+- **Desktop System App Opening**: Electron IPC `openPath` and backend `X-File-Path` headers allowing local files to be opened directly in their default system application (Excel, Word, PowerPoint, Code editor).
+- **Sub-tasks checklist** in Ticket Detail: lightweight to-do steps inside a ticket (REST `/tickets/{id}/sub-tasks`, MCP `add_sub_task` / `toggle_sub_task` / `delete_sub_task`, new `sub_tasks` column).
+
+### Changed
+- **Ticket Detail design match**: Child-ticket list styled as "Sub-tickets" with status marks and progress counts.
+- **Design system alignment**: Unified colors, button styles, typography (`Plus Jakarta Sans`, `JetBrains Mono`), and language (English) across upload notifications, preview modals, and file chips.
+
+---
+
 ## [2.1.1] - 2026-10-05
 
 Fix for Claude Code CLI MCP addition syntax.

@@ -2,6 +2,13 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid #EEF3EF;
+}
+
+.empty {
+  font-size: 13px;
+  color: #9AA8A0;
 }
 
 .label {
@@ -30,10 +37,10 @@
   color: #9AA8A0;
 }
 
+/* No overflow:hidden here, the status dropdown has to open past the card edge. */
 .cardContainer {
   border: 1px solid #E3E8E5;
   border-radius: 8px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -49,8 +56,17 @@
   transition: background-color 0.12s ease;
 }
 
+.row:first-child {
+  border-radius: 7px 7px 0 0;
+}
+
 .row:last-child {
   border-bottom: none;
+  border-radius: 0 0 7px 7px;
+}
+
+.row:only-child {
+  border-radius: 7px;
 }
 
 .row:hover {
@@ -80,34 +96,14 @@
   text-decoration: underline;
 }
 
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px 3px 8px;
-  border-radius: 5px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
-  flex-shrink: 0;
-  margin-left: auto;
-  user-select: none;
-}
-
-.statusDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.statusText {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #1E2A22;
+.ticketTitleMuted {
+  color: #9AA8A0;
+  text-decoration: line-through;
+  text-decoration-color: #C7D2CB;
 }
 
 .removeBtn {
-  opacity: 0;
+  opacity: 1;
   width: 20px;
   height: 20px;
   border-radius: 5px;
@@ -118,15 +114,8 @@
   justify-content: center;
   cursor: pointer;
   color: #9AA8A0;
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  transform: translateY(-50%);
+  flex-shrink: 0;
   transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
-}
-
-.row:hover .removeBtn {
-  opacity: 1;
 }
 
 .removeBtn:hover {
@@ -155,32 +144,26 @@
   color: #2E6F40;
 }
 
-/* Add Form Box */
+/* Add link form */
 .addFormBox {
-  border: 1px solid #2E6F40;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
-  background: #FFFFFF;
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
 .formTopRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
 }
 
 .typeSelect {
-  padding: 4px 8px;
+  padding: 7px 10px;
   border-radius: 6px;
   border: 1px solid #E3E8E5;
-  background: #F6FAF7;
+  background: #FFFFFF;
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
   color: #1E2A22;
   outline: none;
   cursor: pointer;
@@ -188,18 +171,22 @@
 
 .searchInput {
   flex: 1;
-  border: none;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #B9CBBF;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
   outline: none;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #1E2A22;
-  background: none;
 }
 
 .cancelBtn {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   border: none;
   background: none;
   display: flex;
@@ -207,6 +194,7 @@
   justify-content: center;
   cursor: pointer;
   color: #9AA8A0;
+  flex-shrink: 0;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
@@ -216,45 +204,70 @@
 }
 
 .resultsList {
-  border-top: 1px solid #EEF3EF;
-  padding: 4px;
+  border: 1px solid #E3E8E5;
+  border-radius: 8px;
+  overflow: hidden auto;
   display: flex;
   flex-direction: column;
-  max-height: 180px;
-  overflow-y: auto;
+  max-height: 240px;
 }
 
 .resultItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  cursor: pointer;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #FFFFFF;
   border: none;
-  background: none;
-  text-align: left;
+  border-bottom: 1px solid #EEF3EF;
   width: 100%;
+  text-align: left;
+  cursor: pointer;
   font-family: inherit;
   transition: background-color 0.12s ease;
+}
+
+.resultItem:last-child {
+  border-bottom: none;
 }
 
 .resultItem:hover {
   background: #F6FAF7;
 }
 
+.resultId {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #9AA8A0;
+  width: 60px;
+  flex-shrink: 0;
+}
+
 .resultTitle {
   flex-grow: 1;
-  font-size: 12.5px;
+  min-width: 0;
+  font-size: 13px;
   color: #1E2A22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.resultId {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
+.mark {
+  background: #DCEEE1;
+  color: inherit;
+  border-radius: 2px;
+}
+
+.noResults {
+  padding: 9px 12px;
+  font-size: 12px;
   color: #9AA8A0;
-  flex-shrink: 0;
+  font-style: italic;
+}
+
+.helperText {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #9AA8A0;
 }

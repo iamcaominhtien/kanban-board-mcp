@@ -88,7 +88,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 34 tools for AI agents over MCP (47 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
+The server exposes 37 tools for AI agents over MCP (50 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
 
 **Projects & Members**
 - `list_projects`, `create_project`, `update_project` (name, color, linked git repo, worktree defaults)
@@ -106,6 +106,7 @@ The server exposes 34 tools for AI agents over MCP (47 with the Idea Space tools
 - `add_work_log`, `update_work_log`, `delete_work_log` — the Debug Space journal
 - `add_test_case`, `update_test_case`, `delete_test_case`
 - `add_acceptance_criterion`, `toggle_acceptance_criterion`, `delete_acceptance_criterion`
+- `add_sub_task`, `toggle_sub_task`, `delete_sub_task` (checklist steps inside a ticket; use `parent_id` for real sub-tickets)
 - `add_branch`, `update_branch`, `delete_branch`, `checkout_branch` — real git branches when the project has a linked repo
 
 **Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)

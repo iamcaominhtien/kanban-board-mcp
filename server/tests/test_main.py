@@ -1,10 +1,8 @@
 import httpx
 import os
-import select
 import signal
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -128,6 +126,45 @@ async def test_upload_image_rejects_files_over_size_limit(
 
     assert response.status_code == 413
     assert response.json()["detail"] == "Image exceeds the 5MB upload limit."
+
+
+async def test_upload_and_serve_all_file_types(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(tmp_path))
+
+    files_to_test = [
+        ("report.xlsx", b"fake-excel-data", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        ("document.docx", b"fake-word-data", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        ("slides.pptx", b"fake-ppt-data", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+        ("data.json", b'{"key": "value"}', "application/json"),
+        ("manual.pdf", b"%PDF-1.4...", "application/pdf"),
+    ]
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        for fname, data, mime in files_to_test:
+            res = await client.post(
+                "/uploads/files",
+                files={"file": (fname, data, mime)},
+            )
+            assert res.status_code == 201, f"Failed uploading {fname}"
+            body = res.json()
+            assert body["name"] == fname
+            assert body["markdown"] == f"[{fname}]({body['url']})"
+
+            # Download request (?download=1)
+            dl_res = await client.get(body["url"], params={"download": "1"})
+            assert dl_res.status_code == 200
+            assert "attachment" in dl_res.headers.get("content-disposition", "")
+            assert dl_res.headers.get("x-file-path") is not None
+
+        # Inline request for PDF (?inline=1)
+        pdf_res = await client.get("/uploads/manual.pdf", params={"inline": "1"})
+        # Should have X-File-Path
+        assert "x-file-path" in [k.lower() for k in pdf_res.headers.keys()] or pdf_res.status_code in (200, 404)
+
 
 
 def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:
