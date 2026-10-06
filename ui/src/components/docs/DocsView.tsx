@@ -1,25 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  docsErrorDetail,
-  useDeletePage,
-  useDocsPage,
-  useDocsTree,
-  useMovePage,
-  useRenamePage,
-  useRestorePage,
-} from '../../api/docs';
+import { docsErrorDetail, useDocsPage, useDocsRecycleBin, useDocsTree, useMovePage, usePublishPage, useRestorePage } from '../../api/docs';
+import { useRenameWithLinks } from '../../api/docsActions';
+import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { useToast } from '../Toast';
+import { DeleteDialog } from './DeleteDialog';
 import { DocsEditScreen } from './DocsEditScreen';
+import { DocsFollowToggle } from './DocsFollowToggle';
+import { DocsHero } from './DocsHero';
 import { DocsPageView, type PageAction } from './DocsPageView';
-import { DocsTree, type TreeAction } from './DocsTree';
+import { DocsRail } from './DocsRail';
+import { DeletedPage, DocsDisabled, LoadError, NotFound, PageSkeleton, SlowLoadNote, TopProgress, TreeSkeleton } from './DocsStates';
+import { DocsTree } from './DocsTree';
 import { DuplicateDialog } from './DuplicateDialog';
 import { HistoryDrawer } from './HistoryDrawer';
+import { Icon } from './Icon';
 import { MoveToDialog } from './MoveToDialog';
 import { NewPageDialog } from './NewPageDialog';
-import styles from './DocsView.module.css';
+import { PageMenu, usePageShortcuts, type PageMenuAction } from './PageMenu';
+import { RenameDialog } from './RenameDialog';
+import { useDocsOffline } from './useDocsOffline';
+import './docs.css';
 
 interface Props {
   projectId: string;
@@ -27,16 +30,20 @@ interface Props {
   requestedPageId?: string | null;
   onRequestHandled?: () => void;
   onOpenTicket: (ticketId: string) => void;
+  /** "Import Markdown" (hero) and the import strip. */
+  onImport?: () => void;
+  /** Markdown files or folders dropped anywhere on the Docs page, or picked with "Choose files…". */
+  onDropFiles?: (files: File[]) => void;
+  /** Docs switched off for the project (E6). */
+  onOpenSettings?: () => void;
+  onBack?: () => void;
+  /** Search palette / full results; `query` is passed when the tree filter's Enter or "Search page content" asks for it. */
+  onSearch?: (query?: string) => void;
+  /** Called with the element holding the rendered page body (find-in-page). */
+  onBodyRef?: (el: HTMLElement | null) => void;
 }
 
 const NARROW_PX = 1200;
-const TEMPLATE_CARDS = [
-  { id: 'blank', name: 'Blank', text: 'Start from an empty page' },
-  { id: 'requirements', name: 'Requirements', text: 'Goals, scope and criteria' },
-  { id: 'meeting-notes', name: 'Meeting notes', text: 'Attendees, notes, action items' },
-  { id: 'decision-log', name: 'Decision log', text: 'Context, options, outcome' },
-  { id: 'technical-design', name: 'Technical design', text: 'Overview, diagram, API, rollout' },
-];
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
@@ -47,25 +54,89 @@ function download(name: string, text: string) {
   URL.revokeObjectURL(url);
 }
 
-export function DocsView({ projectId, projectName, requestedPageId, onRequestHandled, onOpenTicket }: Props) {
+/** 0 = fine, 1 = slow (8 s), 2 = give up (20 s). */
+function useLoadingStage(active: boolean): 0 | 1 | 2 {
+  const [stage, setStage] = useState<0 | 1 | 2>(0);
+  useEffect(() => {
+    setStage(0);
+    if (!active) return;
+    const a = setTimeout(() => setStage(1), 8000);
+    const b = setTimeout(() => setStage(2), 20000);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+  }, [active]);
+  return stage;
+}
+
+/** Row "···" menu: loads the page, then shows the shared PageMenu. */
+function TreePageMenu({ node, onAction, onClose }: { node: DocsTreeNode; onAction: (a: PageMenuAction) => void; onClose: () => void }) {
+  const { data } = useDocsPage(node.id);
+  if (!data) {
+    return (
+      <div className="dk-menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 290, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[70, 50, 60].map((w) => <div key={w} className="skel" style={{ width: `${w}%`, height: 12 }} />)}
+      </div>
+    );
+  }
+  return <PageMenu page={data} onAction={onAction} onClose={onClose} />;
+}
+
+function cachedToPage(c: NonNullable<ReturnType<ReturnType<typeof useDocsOffline>['getCachedPage']>>, projectId: string, nodes: DocsTreeNode[]): DocsPage {
+  const path: DocsPage['path'] = [];
+  let cur = c.parentId ? nodes.find((n) => n.id === c.parentId) : undefined;
+  while (cur) {
+    path.unshift({ id: cur.id, title: cur.title, slug: cur.slug });
+    cur = cur.parentId ? nodes.find((n) => n.id === cur!.parentId) : undefined;
+  }
+  return {
+    id: c.id,
+    projectId,
+    parentId: c.parentId,
+    title: c.title,
+    slug: nodes.find((n) => n.id === c.id)?.slug ?? '',
+    status: c.status,
+    version: c.version,
+    markdown: c.markdown,
+    headings: c.headings,
+    path,
+    createdBy: c.updatedBy,
+    updatedBy: c.updatedBy,
+    updatedAt: c.updatedAt,
+    createdAt: c.updatedAt,
+    hasUnpublishedChanges: false,
+    draft: null,
+  };
+}
+
+export function DocsView({ projectId, projectName, requestedPageId, onRequestHandled, onOpenTicket, onImport, onDropFiles, onOpenSettings, onBack, onSearch, onBodyRef }: Props) {
   const toast = useToast();
+  const offlineApi = useDocsOffline(projectId);
   const tree = useDocsTree(projectId);
-  const nodes = useMemo<DocsTreeNode[]>(() => tree.data ?? [], [tree.data]);
+  const liveNodes = useMemo<DocsTreeNode[]>(() => tree.data ?? [], [tree.data]);
+  const cachedTree = tree.isError && !docsErrorDetail(tree.error) ? offlineApi.getCachedTree() : null;
+  const nodes = tree.data ? liveNodes : (cachedTree ?? liveNodes);
   const [selectedId, setSelectedId] = useState<string | null>(() => localStorage.getItem(`docsPage:${projectId}`));
   const [editing, setEditing] = useState(false);
-  const [newPage, setNewPage] = useState<{ parentId: string | null; template?: string } | null>(null);
+  const [newPage, setNewPage] = useState<{ parentId: string | null; template?: string; title?: string } | null>(null);
   const [moveFor, setMoveFor] = useState<DocsPage | null>(null);
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);
   const [deleteFor, setDeleteFor] = useState<{ id: string; title: string } | null>(null);
+  const [renameFor, setRenameFor] = useState<{ node: { id: string; title: string }; newTitle: string } | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(() => window.innerWidth < NARROW_PX);
   const [railOpen, setRailOpen] = useState(false);
   const [treeCollapsed, setTreeCollapsed] = useState(() => localStorage.getItem('docsTreeCollapsed') === '1');
+  const [dragFiles, setDragFiles] = useState<number | null>(null);
+  const [failedAt, setFailedAt] = useState(() => new Date());
 
-  const rename = useRenamePage(projectId);
   const move = useMovePage(projectId);
-  const del = useDeletePage(projectId);
   const restore = useRestorePage(projectId);
+  const publish = usePublishPage(projectId);
+  const renameApi = useRenameWithLinks(projectId);
+  const recycle = useDocsRecycleBin(projectId);
 
   useEffect(() => {
     const onResize = () => setNarrow(window.innerWidth < NARROW_PX);
@@ -99,7 +170,17 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
   }, [selectedId, projectId]);
 
   const pageQuery = useDocsPage(selectedId);
-  const page = pageQuery.data;
+  const livePage = pageQuery.data;
+  const pageError = pageQuery.error ? docsErrorDetail(pageQuery.error) : null;
+  const treeError = tree.error ? docsErrorDetail(tree.error) : null;
+  const networkDown = (pageQuery.isError && !pageError) || (tree.isError && !treeError);
+  const cachedPage = selectedId && !livePage ? offlineApi.getCachedPage(selectedId) : null;
+  const offlineCopy = !livePage && networkDown && cachedPage ? cachedToPage(cachedPage, projectId, nodes) : null;
+  const page = livePage ?? offlineCopy;
+  useEffect(() => {
+    if (pageQuery.isError || tree.isError) setFailedAt(new Date());
+  }, [pageQuery.isError, pageQuery.errorUpdatedAt, tree.isError, tree.errorUpdatedAt]);
+
   const select = useCallback((id: string) => {
     setSelectedId(id);
     setEditing(false);
@@ -107,10 +188,13 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
   }, []);
 
   const showRail = narrow || treeCollapsed;
-
   function setCollapsed(v: boolean) {
     setTreeCollapsed(v);
     localStorage.setItem('docsTreeCollapsed', v ? '1' : '0');
+  }
+  function showTree() {
+    if (narrow) setRailOpen(true);
+    else setCollapsed(false);
   }
 
   async function copy(text: string, message: string) {
@@ -121,25 +205,23 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
       toast.error("Couldn't copy to the clipboard");
     }
   }
-
   function pageLink(id: string) {
     const url = new URL(window.location.href);
     url.search = '';
+    url.hash = '';
     url.searchParams.set('docs', id);
     return url.toString();
   }
-
-  async function pageForNode(node: DocsTreeNode): Promise<DocsPage | null> {
-    if (page && page.id === node.id) return page;
+  async function pageForNode(id: string): Promise<DocsPage | null> {
+    if (page && page.id === id) return page;
     try {
-      return (await client.get<DocsPage>(`/docs/pages/${node.id}`)).data;
+      return (await client.get<DocsPage>(`/docs/pages/${id}`)).data;
     } catch {
       return null;
     }
   }
 
-  async function runAction(action: TreeAction | PageAction, target: { id: string; title: string }) {
-    const node = nodes.find((n) => n.id === target.id);
+  async function runAction(action: PageAction, target: { id: string; title: string }) {
     switch (action) {
       case 'edit':
         select(target.id);
@@ -153,15 +235,19 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
         await copy(pageLink(target.id), 'Link copied');
         return;
       case 'delete':
-        setDeleteFor(target);
+        setDeleteFor({ id: target.id, title: target.title });
         return;
       case 'history':
         select(target.id);
-        setHistoryOpen(true);
+        setHistory({});
+        return;
+      case 'rename':
+        if (showRail) showTree();
+        setRenamingId(target.id);
         return;
       default:
     }
-    const full = node ? await pageForNode(node) : page;
+    const full = await pageForNode(target.id);
     if (!full) return;
     if (action === 'move') setMoveFor(full);
     else if (action === 'duplicate') setDupFor(full);
@@ -169,149 +255,235 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
     else if (action === 'export') download(`${full.slug}.md`, `# ${full.title}\n\n${full.markdown}\n`);
   }
 
-  async function confirmDelete() {
-    if (!deleteFor) return;
-    const { id, title } = deleteFor;
+  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor);
+  usePageShortcuts((a) => { if (page) void runAction(a, page); }, !!page && !editing && !anyDialog && !offlineCopy);
+
+  async function requestRename(node: DocsTreeNode, title: string) {
+    const links = await fetchRenameLinkCount(node.id, title);
+    if (links > 0) {
+      setRenameFor({ node, newTitle: title });
+      return;
+    }
     try {
-      const res = await del.mutateAsync(id);
-      setDeleteFor(null);
-      toast.success(`Moved “${title}” to the Recycle Bin`, res.deletedPages > 1 ? `${res.deletedPages} pages, kept for 30 days` : 'Kept for 30 days');
-      if (selectedId === id) {
-        localStorage.removeItem(`docsPage:${projectId}`);
-        setSelectedId(null);
-        setEditing(false);
-      }
-    } catch (err) {
-      setDeleteFor(null);
-      toast.error("Couldn't delete the page", extractError(err));
+      await renameApi.mutateAsync({ pageId: node.id, title, rewriteLinks: false });
+      toast.success(`Renamed to “${title}”`);
+    } catch (e) {
+      toast.error("Couldn't rename", docsErrorDetail(e)?.message ?? extractError(e));
     }
   }
 
-  function startNewPage(parentId: string | null, template?: string) {
-    setNewPage({ parentId, template });
+  async function replaceSection(from: { title: string; anchor: string }, to: string) {
+    if (!livePage || livePage.version < 1) return;
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const md = livePage.markdown.replace(new RegExp(`\\[\\[${esc(from.title)}#${esc(from.anchor)}(?=[\\]|])`, 'g'), `[[${from.title}#${to}`);
+    if (md === livePage.markdown) return;
+    try {
+      await publish.mutateAsync({ pageId: livePage.id, baseVersion: livePage.version, markdown: md, note: `Link to ${from.title} › ${to} updated` });
+      toast.success(`Link now points to “${to}”`);
+    } catch (e) {
+      toast.error("Couldn't update the link", docsErrorDetail(e)?.message ?? extractError(e));
+    }
   }
 
-  const error = pageQuery.error ? docsErrorDetail(pageQuery.error) : null;
-  const subCount = deleteFor ? nodes.filter((n) => { let c: DocsTreeNode | undefined = n; while (c?.parentId) { if (c.parentId === deleteFor.id) return true; c = nodes.find((x) => x.id === c!.parentId); } return false; }).length : 0;
+  // dropping .md files or folders anywhere on the Docs page
+  useEffect(() => {
+    if (!onDropFiles) return;
+    const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files');
+    let depth = 0;
+    const enter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth += 1;
+      setDragFiles(Math.max(1, Array.from(e.dataTransfer?.items ?? []).filter((i) => i.kind === 'file').length));
+    };
+    const over = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+    };
+    const leave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setDragFiles(null);
+    };
+    const drop = async (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setDragFiles(null);
+      const files = await collectFiles(e.dataTransfer!);
+      if (files.length) onDropFiles(files);
+    };
+    window.addEventListener('dragenter', enter);
+    window.addEventListener('dragover', over);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragenter', enter);
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('drop', drop);
+    };
+  }, [onDropFiles]);
+
+  const firstPage = () => nodes.filter((n) => !n.parentId).sort((a, b) => a.position - b.position)[0];
+  const goOverview = () => {
+    const f = firstPage();
+    if (f) select(f.id);
+    else {
+      setSelectedId(null);
+      localStorage.removeItem(`docsPage:${projectId}`);
+    }
+  };
+
+  const empty = tree.isSuccess && nodes.length === 0;
+  const treeLoading = tree.isLoading && !cachedTree;
+  const stage = useLoadingStage(treeLoading);
+  const pageLoadingStage = useLoadingStage(!!selectedId && pageQuery.isLoading && !tree.isLoading);
+  const selNode = selectedId ? nodes.find((n) => n.id === selectedId) : undefined;
+  const crumbsFor = (n?: DocsTreeNode) => {
+    const out: string[] = [];
+    let cur = n;
+    while (cur) {
+      out.unshift(cur.title);
+      cur = cur.parentId ? nodes.find((x) => x.id === cur!.parentId) : undefined;
+    }
+    return out;
+  };
+
+  const docsDisabled = treeError?.code === 'docs_disabled' || pageError?.code === 'docs_disabled';
 
   const treeEl = (
     <DocsTree
+      projectId={projectId}
       projectName={projectName}
       nodes={nodes}
       selectedId={selectedId}
-      loading={tree.isLoading}
+      loadingId={pageQuery.isLoading ? selectedId : null}
       onSelect={select}
-      onNewPage={(parentId) => startNewPage(parentId)}
-      onAction={(a, n) => void runAction(a, n)}
-      onRename={(n, title) =>
-        rename.mutate({ pageId: n.id, title }, { onError: (e) => toast.error("Couldn't rename", extractError(e)) })
-      }
+      onNewPage={(parentId) => setNewPage({ parentId })}
+      onRequestRename={(n, t) => void requestRename(n, t)}
+      renamingId={renamingId}
+      onRenamingChange={setRenamingId}
       onMove={(id, parentId, beforeId, afterId) =>
-        move.mutate({ pageId: id, parentId, beforeId, afterId }, { onError: (e) => toast.error("Couldn't move the page", docsErrorDetail(e)?.message ?? extractError(e)) })
+        move.mutateAsync({ pageId: id, parentId, beforeId, afterId }).catch((e) => {
+          toast.error("Couldn't move the page", docsErrorDetail(e)?.message ?? extractError(e));
+        })
       }
-      onCollapse={() => setCollapsed(true)}
+      onCollapse={() => (narrow ? setRailOpen(false) : setCollapsed(true))}
+      renderMenu={(node, close) => (
+        <TreePageMenu
+          node={node}
+          onClose={close}
+          onAction={(a) => {
+            close();
+            void runAction(a, node);
+          }}
+        />
+      )}
+      onOpenSearch={(q) => onSearch?.(q)}
+      headerExtra={<DocsFollowToggle projectId={projectId} />}
     />
   );
 
-  const rail = (
-    <aside className={styles.rail} aria-label="Docs space (collapsed)">
-      <button type="button" title="Expand page tree" aria-label="Expand page tree" onClick={() => (narrow ? setRailOpen((v) => !v) : setCollapsed(false))}>»</button>
-      <button type="button" title="New page" aria-label="New page" onClick={() => startNewPage(null)}>＋</button>
-      <div className={styles.railPages}>
-        {nodes.filter((n) => !n.parentId).map((n) => (
-          <button key={n.id} type="button" title={n.title} aria-label={n.title} className={n.id === selectedId ? styles.railOn : ''} onClick={() => select(n.id)}>
-            {nodes.some((c) => c.parentId === n.id) ? '🗀' : '🗎'}
-          </button>
-        ))}
-      </div>
-    </aside>
-  );
-
-  const empty = tree.isSuccess && nodes.length === 0;
-
   let content: React.ReactNode;
-  if (tree.isError) {
-    content = (
-      <StateMessage title="Couldn't load the Docs space" text="The server didn't answer. Nothing was changed.">
-        <button type="button" className={styles.primary} onClick={() => void tree.refetch()}>Retry</button>
-      </StateMessage>
-    );
+  let leftOverride: React.ReactNode = null;
+  if (docsDisabled) {
+    leftOverride = <></>;
+    content = <DocsDisabled onOpenSettings={onOpenSettings} onBack={onBack} />;
+  } else if (treeLoading) {
+    leftOverride = <TreeSkeleton />;
+    content =
+      stage === 2 ? (
+        <LoadError title="Couldn't load the Docs space" message="The server didn't answer in time. Nothing was changed." error={tree.error} path={`/projects/${projectId}/docs/tree`} failedAt={failedAt} onRetry={() => void tree.refetch()} onBack={onBack} backLabel="Back to Board" autoRetry={false} />
+      ) : (
+        <PageSkeleton note={stage === 1 ? <SlowLoadNote onRetry={() => void tree.refetch()} /> : undefined} />
+      );
+  } else if (tree.isError && !cachedTree) {
+    content = <LoadError title="Couldn't load the Docs space" message="The server didn't answer in time. Nothing was changed." error={tree.error} path={`/projects/${projectId}/docs/tree`} failedAt={failedAt} onRetry={() => void tree.refetch()} onBack={onBack} backLabel="Back to Board" />;
   } else if (empty) {
+    content = <DocsHero projectName={projectName} onCreate={(t) => setNewPage({ parentId: null, template: t })} onImport={onImport} onDropFiles={onDropFiles} />;
+  } else if (!selectedId) {
+    content = <PageSkeleton />;
+  } else if (pageQuery.isLoading && !page) {
     content = (
-      <div className={styles.hero} data-testid="docs-empty">
-        <div className={styles.eyebrow}>Docs space · {projectName}</div>
-        <h1>Write down how {projectName} works</h1>
-        <p>
-          One shared space for requirements, designs and decisions. Link pages to each other with <code>[[Page#Section]]</code> and to tickets like <code>KAN-12</code>, and they stay connected as the project changes.
-        </p>
-        <div className={styles.heroBtns}>
-          <button type="button" className={styles.primary} onClick={() => startNewPage(null, 'blank')} data-testid="create-first-page">Create the first page</button>
-        </div>
-        <h3>Start from a template</h3>
-        <div className={styles.cards}>
-          {TEMPLATE_CARDS.map((t) => (
-            <button key={t.id} type="button" className={styles.card} onClick={() => startNewPage(null, t.id)} data-testid={`hero-template-${t.id}`}>
-              <strong>{t.name}</strong>
-              <span>{t.text}</span>
-            </button>
-          ))}
-        </div>
+      <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <TopProgress />
+        {pageLoadingStage === 2 ? (
+          <LoadError error={pageQuery.error} path={`/docs/pages/${selectedId}`} failedAt={failedAt} onRetry={() => void pageQuery.refetch()} onBack={goOverview} autoRetry={false} />
+        ) : (
+          <PageSkeleton title={selNode?.title} crumbs={selNode ? crumbsFor(selNode) : undefined} note={pageLoadingStage === 1 ? <SlowLoadNote onRetry={() => void pageQuery.refetch()} /> : undefined} />
+        )}
       </div>
     );
-  } else if (!selectedId) {
-    content = tree.isLoading ? <PageSkeleton /> : <StateMessage title="Pick a page" text="Choose a page in the tree, or create a new one." />;
-  } else if (pageQuery.isLoading) {
-    content = <PageSkeleton />;
-  } else if (error?.code === 'page_deleted') {
+  } else if (pageError?.code === 'page_deleted') {
+    const entry = recycle.data?.find((d) => d.id === selectedId);
     content = (
-      <StateMessage title="This page was deleted" text={`${error.deletedBy ?? 'Someone'} moved it to the Recycle Bin. It is kept for 30 days.`}>
-        <button type="button" className={styles.primary} onClick={() => restore.mutate(selectedId, { onSuccess: () => toast.success('Page restored') })}>Restore page</button>
-      </StateMessage>
+      <DeletedPage
+        title={entry?.title}
+        deletedBy={pageError.deletedBy}
+        deletedAt={pageError.deletedAt ?? entry?.deletedAt}
+        daysLeft={entry?.daysLeft}
+        restoring={restore.isPending}
+        onRestore={() => restore.mutate(selectedId, { onSuccess: () => toast.success('Page restored'), onError: (e) => toast.error("Couldn't restore the page", extractError(e)) })}
+        onHome={goOverview}
+      />
     );
-  } else if (error?.code === 'page_not_found') {
-    content = (
-      <StateMessage title="Page not found" text="It may have been renamed, moved or never existed.">
-        <button type="button" className={styles.ghost} onClick={() => { setSelectedId(null); localStorage.removeItem(`docsPage:${projectId}`); }}>Back to the first page</button>
-      </StateMessage>
-    );
-  } else if (pageQuery.isError || !page) {
-    content = (
-      <StateMessage title="Couldn't load this page" text="The server didn't answer in time. Nothing was changed on the page.">
-        <button type="button" className={styles.primary} onClick={() => void pageQuery.refetch()}>Retry</button>
-      </StateMessage>
-    );
-  } else if (editing) {
+  } else if (pageError?.code === 'page_not_found') {
+    content = <NotFound projectId={projectId} path={selectedId} onOpenPage={select} onHome={goOverview} onSearch={onSearch ? () => onSearch() : undefined} />;
+  } else if (!page) {
+    content = <LoadError error={pageQuery.error} path={`/docs/pages/${selectedId}`} failedAt={failedAt} onRetry={() => void pageQuery.refetch()} onBack={goOverview} />;
+  } else if (editing && !offlineCopy) {
     content = <DocsEditScreen key={page.id} projectId={projectId} page={page} nodes={nodes} onExit={(updated) => { setEditing(false); if (updated) setSelectedId(updated.id); }} />;
   } else {
     content = (
       <DocsPageView
         key={page.id}
         page={page}
+        projectId={projectId}
         projectName={projectName}
         narrow={narrow}
+        offline={offlineCopy ? { savedAt: cachedPage!.savedAt, version: cachedPage!.version } : null}
+        onTryAgain={() => { void pageQuery.refetch(); void tree.refetch(); }}
         onAction={(a) => void runAction(a, page)}
         onOpenPage={(id, anchor) => {
           select(id);
           if (anchor) setTimeout(() => document.getElementById(`docs-${anchor}`)?.scrollIntoView({ behavior: 'smooth' }), 300);
         }}
         onOpenTicket={onOpenTicket}
+        onCompare={(from, to) => setHistory({ compare: { from, to } })}
+        onCreatePage={(title) => setNewPage({ parentId: page.id, title })}
+        onRestorePage={(id) => restore.mutate(id, { onSuccess: () => toast.success('Page restored') })}
+        onReplaceSection={(f, t) => void replaceSection(f, t)}
+        onBodyRef={onBodyRef}
       />
     );
   }
 
+  const left =
+    leftOverride ??
+    (empty ? treeEl : showRail ? (
+      <>
+        <DocsRail nodes={nodes} selectedId={selectedId} onExpand={showTree} onSearch={() => onSearch?.()} onNewPage={(p) => setNewPage({ parentId: p })} onSelect={select} />
+        {narrow && railOpen && (
+          <div style={{ position: 'absolute', left: 56, top: 0, bottom: 0, zIndex: 25, boxShadow: '8px 0 24px rgba(30,42,34,0.14)', display: 'flex' }}>{treeEl}</div>
+        )}
+      </>
+    ) : (
+      treeEl
+    ));
+
   return (
-    <div className={styles.docs} data-testid="docs-view">
-      {empty ? (
-        <aside className={styles.emptyTreeWrap}>{treeEl}</aside>
-      ) : showRail ? (
-        <>
-          {rail}
-          {narrow && railOpen && <div className={styles.flyout}>{treeEl}</div>}
-        </>
-      ) : (
-        treeEl
-      )}
+    <div className="docs-root" data-testid="docs-view" style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden', background: '#FFFFFF' }}>
+      {left}
       {content}
+
+      {dragFiles != null && (
+        <div role="presentation" style={{ position: 'absolute', inset: 12, zIndex: 150, borderRadius: 12, border: '2px dashed #2E6F40', background: 'rgba(241,248,243,0.94)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, pointerEvents: 'none' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#DCEEE1', color: '#2E6F40', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="i26" size={22} strokeWidth={1.8} />
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}</div>
+        </div>
+      )}
 
       {newPage && (
         <NewPageDialog
@@ -319,6 +491,7 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
           nodes={nodes}
           initialParentId={newPage.parentId}
           initialTemplate={newPage.template}
+          initialTitle={newPage.title}
           onClose={() => setNewPage(null)}
           onCreated={(p) => {
             setNewPage(null);
@@ -341,46 +514,62 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
           }}
         />
       )}
-      {historyOpen && page && <HistoryDrawer projectId={projectId} page={page} onClose={() => setHistoryOpen(false)} />}
+      {history && page && <HistoryDrawer projectId={projectId} page={page} initialCompare={history.compare} onClose={() => setHistory(null)} />}
       {deleteFor && (
-        <div className={styles.overlay} onMouseDown={(e) => e.target === e.currentTarget && setDeleteFor(null)}>
-          <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="Delete page">
-            <h3>Delete “{deleteFor.title}”?</h3>
-            <p>
-              {subCount > 0
-                ? `The page and its ${subCount} sub-page${subCount > 1 ? 's' : ''} move to the Recycle Bin and can be restored for 30 days.`
-                : 'The page moves to the Recycle Bin and can be restored for 30 days.'}{' '}
-              Links to it show “In Recycle Bin” until it is restored.
-            </p>
-            <div className={styles.actions}>
-              <button type="button" className={styles.ghost} onClick={() => setDeleteFor(null)}>Cancel</button>
-              <button type="button" className={styles.danger} onClick={() => void confirmDelete()} data-testid="confirm-delete">Delete page</button>
-            </div>
-          </div>
-        </div>
+        <DeleteDialog
+          projectId={projectId}
+          page={deleteFor}
+          onClose={() => setDeleteFor(null)}
+          onDeleted={(count) => {
+            const { id, title } = deleteFor;
+            setDeleteFor(null);
+            toast.success(`Moved “${title}” to the Recycle Bin`, count > 1 ? `${count} pages, kept for 30 days` : 'Kept for 30 days');
+            if (selectedId === id) {
+              localStorage.removeItem(`docsPage:${projectId}`);
+              setSelectedId(null);
+              setEditing(false);
+            }
+          }}
+        />
+      )}
+      {renameFor && (
+        <RenameDialog
+          projectId={projectId}
+          page={renameFor.node}
+          newTitle={renameFor.newTitle}
+          onClose={() => setRenameFor(null)}
+          onRenamed={() => setRenameFor(null)}
+        />
       )}
     </div>
   );
 }
 
-function StateMessage({ title, text, children }: { title: string; text: string; children?: React.ReactNode }) {
-  return (
-    <div className={styles.state} role="status">
-      <h2>{title}</h2>
-      <p>{text}</p>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-function PageSkeleton() {
-  return (
-    <div className={styles.skeleton} aria-busy="true" aria-label="Loading page">
-      <div style={{ width: '40%', height: 30 }} />
-      <div style={{ width: '25%' }} />
-      {[90, 82, 95, 70, 88, 60].map((w, i) => (
-        <div key={i} style={{ width: `${w}%` }} />
-      ))}
-    </div>
-  );
+/** Files from a drop, walking dropped folders and keeping the relative path on `webkitRelativePath`. */
+async function collectFiles(dt: DataTransfer): Promise<File[]> {
+  const out: File[] = [];
+  const isMd = (n: string) => /\.(md|markdown)$/i.test(n);
+  const walk = async (entry: FileSystemEntry, prefix: string): Promise<void> => {
+    if (entry.isFile) {
+      const file = await new Promise<File>((res, rej) => (entry as FileSystemFileEntry).file(res, rej));
+      if (!isMd(file.name)) return;
+      const rel = `${prefix}${file.name}`;
+      if (prefix) Object.defineProperty(file, 'webkitRelativePath', { value: rel });
+      out.push(file);
+    } else if (entry.isDirectory) {
+      const reader = (entry as FileSystemDirectoryEntry).createReader();
+      for (;;) {
+        const batch = await new Promise<FileSystemEntry[]>((res, rej) => reader.readEntries(res, rej));
+        if (!batch.length) break;
+        for (const child of batch) await walk(child, `${prefix}${entry.name}/`);
+      }
+    }
+  };
+  const entries = Array.from(dt.items ?? []).map((i) => i.webkitGetAsEntry?.()).filter((e): e is FileSystemEntry => !!e);
+  if (entries.length) {
+    for (const e of entries) await walk(e, '');
+  } else {
+    out.push(...Array.from(dt.files).filter((f) => isMd(f.name)));
+  }
+  return out;
 }

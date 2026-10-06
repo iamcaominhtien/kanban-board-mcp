@@ -3,21 +3,28 @@ import styles from './Toast.module.css';
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastItem {
   id: string;
   variant: ToastVariant;
   title: string;
   message?: string;
   duration?: number;
+  /** Optional button on the toast (e.g. Undo). */
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
   showToast: (props: Omit<ToastItem, 'id'>) => string;
   removeToast: (id: string) => void;
-  success: (title: string, message?: string, duration?: number) => string;
-  error: (title: string, message?: string, duration?: number) => string;
-  warning: (title: string, message?: string, duration?: number) => string;
-  info: (title: string, message?: string, duration?: number) => string;
+  success: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
+  error: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
+  warning: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
+  info: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -30,9 +37,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    ({ variant, title, message, duration = 4000 }: Omit<ToastItem, 'id'>) => {
+    ({ variant, title, message, duration, action }: Omit<ToastItem, 'id'>) => {
+      // a toast with an action button stays a little longer so it can be used
+      if (duration === undefined) duration = action ? 8000 : 4000;
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      setToasts((prev) => [...prev, { id, variant, title, message, duration }]);
+      setToasts((prev) => [...prev, { id, variant, title, message, duration, action }]);
 
       if (duration > 0) {
         setTimeout(() => {
@@ -45,26 +54,26 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const success = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'success', title, message, duration }),
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'success', title, message, duration, action }),
     [showToast]
   );
 
   const error = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'error', title, message, duration }),
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'error', title, message, duration, action }),
     [showToast]
   );
 
   const warning = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'warning', title, message, duration }),
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'warning', title, message, duration, action }),
     [showToast]
   );
 
   const info = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'info', title, message, duration }),
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'info', title, message, duration, action }),
     [showToast]
   );
 
@@ -107,6 +116,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <div className={styles.title}>{toast.title}</div>
               {toast.message && <div className={styles.message}>{toast.message}</div>}
             </div>
+            {toast.action && (
+              <button
+                type="button"
+                className={styles.actionButton}
+                onClick={() => {
+                  toast.action?.onClick();
+                  removeToast(toast.id);
+                }}
+              >
+                {toast.action.label}
+              </button>
+            )}
             <button
               type="button"
               className={styles.closeButton}

@@ -117,6 +117,29 @@
   color: #5B6B60;
 }
 
+/* Optional action button (Undo, Open, Review links, Retry rest), matches the board's st-btn-sm */
+.actionButton {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #E3E8E5;
+  background: #FFFFFF;
+  color: #1E2A22;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.actionButton:hover {
+  background: #F6FAF7;
+}
+
 /* Inline Banner Variant */
 .inlineBanner {
   display: flex;

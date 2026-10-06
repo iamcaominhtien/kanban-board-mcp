@@ -901,6 +901,7 @@ export function TicketModal({
                     onBlur={() => flushDescRef.current()}
                     onUploadFile={uploadAnyFile}
                     onUploadImage={uploadAnyFile}
+                    docsProjectId={ticket.projectId}
                   />
                 </div>
 
@@ -980,7 +981,7 @@ export function TicketModal({
                   }
                 />
 
-                <TicketDocsSection ticketId={ticket.id} onOpenPage={(pageId) => onOpenDocsPage?.(pageId)} />
+                <TicketDocsSection ticketId={ticket.id} projectId={ticket.projectId} onOpenPage={(pageId) => onOpenDocsPage?.(pageId)} />
 
                 <hr className={styles.sectionDivider} />
 

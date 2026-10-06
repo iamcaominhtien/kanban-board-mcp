@@ -32,6 +32,7 @@ export async function updateProject(
     repo_path?: string | null;
     worktree_template?: string | null;
     worktree_by_default?: boolean;
+    docs_enabled?: boolean;
   },
 ): Promise<Project> {
   const res = await client.patch<Project>(`/projects/${id}`, data);

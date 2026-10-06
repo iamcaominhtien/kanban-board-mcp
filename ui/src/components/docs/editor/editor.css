@@ -1,0 +1,73 @@
+/* Docs editor surface (Tiptap). Visual values copied from DocsEditor.dc.html; chips/table/callout classes live in docs.css. */
+.dk-editor { position: relative; }
+.dk-editor .ProseMirror { outline: none; min-height: 320px; padding-bottom: 140px; caret-color: #2E6F40; font-size: 14.5px; line-height: 1.7; color: #3A4A3E; word-wrap: break-word; white-space: pre-wrap; }
+.dk-editor .ProseMirror > * + * { margin-top: 0; }
+.dk-editor h1 { font-size: 26px; font-weight: 800; color: #1E2A22; margin: 34px 0 10px; line-height: 1.25; letter-spacing: -0.01em; }
+.dk-editor h2 { display: block; font-size: 20px; font-weight: 700; color: #1E2A22; margin: 30px 0 8px; line-height: 1.3; }
+.dk-editor h3 { font-size: 15px; font-weight: 700; color: #1E2A22; margin: 20px 0 6px; }
+.dk-editor .ProseMirror > h1:first-child, .dk-editor .ProseMirror > h2:first-child { margin-top: 6px; }
+.dk-editor p { margin: 0 0 12px; }
+.dk-editor ul, .dk-editor ol { margin: 0 0 12px; padding-left: 22px; }
+.dk-editor li > p { margin: 0; }
+.dk-editor li { margin: 2px 0; }
+.dk-editor ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.dk-editor ul[data-type="taskList"] li { display: flex; gap: 10px; align-items: flex-start; padding: 2px 0; margin: 0; line-height: 1.6; }
+.dk-editor ul[data-type="taskList"] li > label { flex-shrink: 0; margin-top: 3px; display: flex; user-select: none; }
+.dk-editor ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.dk-editor ul[data-type="taskList"] input[type="checkbox"] { appearance: none; -webkit-appearance: none; margin: 0; width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #C7D2CB; background: #FFFFFF; cursor: pointer; box-sizing: border-box; position: relative; }
+.dk-editor ul[data-type="taskList"] input[type="checkbox"]:checked { background: #2E6F40; border-color: #2E6F40; }
+.dk-editor ul[data-type="taskList"] input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.dk-editor ul[data-type="taskList"] li[data-checked="true"] > div { color: #9AA8A0; text-decoration: line-through; text-decoration-color: #C7D2CB; }
+.dk-editor blockquote { margin: 0 0 14px; padding: 2px 0 2px 14px; border-left: 3px solid #C7D2CB; color: #5B6B60; }
+.dk-editor hr { border: none; border-top: 1px solid #E3E8E5; margin: 22px 0; }
+.dk-editor a { color: #2E6F40; text-decoration: underline; text-underline-offset: 2px; cursor: text; }
+.dk-editor s { color: #6B7A70; }
+.dk-editor img { max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 4px 0 14px; }
+.dk-editor img.ProseMirror-selectednode { outline: 2px solid #2E6F40; outline-offset: 2px; }
+.dk-editor .ProseMirror-selectednode { outline: none; }
+.dk-editor .ProseMirror-gapcursor:after { border-top-color: #2E6F40; }
+.dk-editor .ProseMirror-dropcursor { background: #2E6F40 !important; height: 2px !important; }
+.dk-editor ::selection { background: rgba(47,111,176,0.22); }
+
+/* placeholder line */
+.dk-editor p.dk-empty { position: relative; }
+.dk-editor .dk-ph { position: absolute; left: 0; top: 0; color: #9AA8A0; white-space: nowrap; pointer-events: none; user-select: none; }
+.dk-editor .dk-ph .dk-kbd { margin: 0 3px; }
+
+/* code */
+.dk-editor .dk-code-wrap { margin: 4px 0 14px; }
+.dk-editor .dk-code-wrap .dk-code { margin: 0; }
+.dk-editor .dk-code code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: none; padding: 0; color: inherit; border-radius: 0; white-space: pre-wrap; }
+.dk-editor .dk-code-lang { position: absolute; top: 8px; right: 8px; opacity: 0; font-family: inherit; font-size: 11px; font-weight: 600; color: #B7C9BE; background: rgba(255,255,255,0.12); border: none; border-radius: 5px; padding: 2px 6px; cursor: pointer; transition: opacity .12s; }
+.dk-editor .dk-code-wrap:hover .dk-code-lang, .dk-editor .dk-code-wrap:focus-within .dk-code-lang { opacity: 1; }
+.dk-editor .dk-code-lang option { color: #1E2A22; }
+.dk-editor .hljs-keyword, .dk-editor .hljs-selector-tag, .dk-editor .hljs-literal, .dk-editor .hljs-type { color: #A9C7E8; }
+.dk-editor .hljs-string, .dk-editor .hljs-regexp, .dk-editor .hljs-symbol, .dk-editor .hljs-meta .hljs-string { color: #8FD3A2; }
+.dk-editor .hljs-comment, .dk-editor .hljs-quote, .dk-editor .hljs-punctuation, .dk-editor .hljs-meta { color: #B7C9BE; }
+.dk-editor .hljs-built_in, .dk-editor .hljs-name, .dk-editor .hljs-section, .dk-editor .hljs-bullet { color: #68BA7F; }
+.dk-editor .hljs-title, .dk-editor .hljs-function, .dk-editor .hljs-attr, .dk-editor .hljs-attribute, .dk-editor .hljs-number, .dk-editor .hljs-variable, .dk-editor .hljs-template-variable, .dk-editor .hljs-property { color: #F2C98A; }
+.dk-editor .hljs-addition { color: #8FD3A2; }
+.dk-editor .hljs-deletion { color: #E8A99B; }
+
+/* tables */
+.dk-editor .tableWrapper { margin: 4px 0 14px; overflow-x: auto; padding: 0; }
+.dk-editor table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; line-height: 1.45; border: 1px solid #E3E8E5; border-radius: 8px; overflow: hidden; table-layout: fixed; margin: 0; }
+.dk-editor th { text-align: left; font-size: 12px; font-weight: 700; color: #1E2A22; background: #F6FAF7; padding: 8px 12px; border-bottom: 1px solid #E3E8E5; vertical-align: top; position: relative; }
+.dk-editor td { padding: 8px 12px; border-bottom: 1px solid #EEF3EF; color: #3A4A3E; vertical-align: top; position: relative; }
+.dk-editor tr:last-child td { border-bottom: none; }
+.dk-editor td + td, .dk-editor th + th, .dk-editor td + th, .dk-editor th + td { border-left: 1px solid #EEF3EF; }
+.dk-editor th p, .dk-editor td p { margin: 0; }
+.dk-editor .selectedCell { background: rgba(46,111,64,0.10) !important; }
+.dk-editor .selectedCell::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+.dk-editor td:has(> .ProseMirror-gapcursor), .dk-editor td:focus-within { box-shadow: inset 0 0 0 2px #2E6F40; background: #FFFFFF; }
+.dk-editor th:focus-within { box-shadow: inset 0 0 0 2px #2E6F40; }
+
+/* block handles */
+.dk-handle { display: flex; align-items: center; color: #9AA8A0; }
+.dk-handle button { width: 24px; height: 24px; border-radius: 5px; border: none; background: none; display: flex; align-items: center; justify-content: center; color: inherit; cursor: pointer; padding: 0; }
+.dk-handle button:hover { background: #EAF0EC; color: #5B6B60; }
+.dk-handle .dk-grip { cursor: grab; }
+.drag-handle { z-index: 5; }
+
+/* markdown view textarea selection */
+[data-testid="markdown-pane"] textarea::selection { background: rgba(47,111,176,0.22); color: transparent; }

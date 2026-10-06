@@ -210,6 +210,8 @@ export interface Project {
   repoPath?: string | null;
   worktreeTemplate?: string | null;
   worktreeByDefault?: boolean;
+  /** Docs on/off per project (server default true). */
+  docsEnabled?: boolean;
 }
 
 export interface Column {

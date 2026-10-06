@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { markdownToHtml, htmlToMarkdown } from '../utils/markdownWysiwyg';
 import { resolveOrigin } from '../api/resolveOrigin';
+import { DocLinkSuggester } from './docs/DocsSuggest';
 import styles from './MarkdownEditor.module.css';
 
 const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -42,6 +43,8 @@ interface Props {
   viewClassName?: string;
   compact?: boolean;
   actions?: React.ReactNode;
+  /** When set, typing `[[` offers pages and sections of this project's docs. */
+  docsProjectId?: string;
 }
 
 export function MarkdownEditor({
@@ -61,6 +64,7 @@ export function MarkdownEditor({
   viewClassName,
   compact = false,
   actions,
+  docsProjectId,
 }: Props) {
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
@@ -1162,6 +1166,9 @@ export function MarkdownEditor({
             if (dirtyRef.current) syncContent();
           }}
         />
+        {docsProjectId && !readOnly && (
+          <DocLinkSuggester editorRef={wysiwygRef} projectId={docsProjectId} onChanged={syncContent} />
+        )}
 
         {selectedImg && imgRect && (
           <div
