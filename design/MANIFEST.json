@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1791209276-a0aa",
-  "exported": "2026-10-05",
+  "canvas_version": "1791260008-2981",
+  "exported": "2026-10-06",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -291,6 +291,14 @@
       "w": 2232,
       "h": 488
     },
+    "TicketComments.dc.html": {
+      "bytes": 178967,
+      "sha256": "e05ef4814877095b9db08d3a86981587aa627fd362f228fefc3efcec668e8e3b",
+      "title": "Comments",
+      "page": "components",
+      "w": 1180,
+      "h": 7877
+    },
     "TicketDetail.dc.html": {
       "bytes": 27978,
       "sha256": "b5c85d28007021ded54b71b651812b54fd6c1ae9a48e8821790c79aad1dce328",
@@ -306,6 +314,14 @@
       "page": "components",
       "w": 1150,
       "h": 2140
+    },
+    "TicketDocRefs.dc.html": {
+      "bytes": 256160,
+      "sha256": "8d071abfc35e326e3cf478cdb26080beb013fbe42a63b8ce14e85210c0f4026e",
+      "title": "Doc references in tickets",
+      "page": "components",
+      "w": 1480,
+      "h": 7972
     },
     "TimelineView.dc.html": {
       "bytes": 26316,
