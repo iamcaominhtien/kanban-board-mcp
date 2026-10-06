@@ -43,7 +43,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     ideas = {f.__name__ for f, _ in mcp_tools.IDEA_TOOL_TABLE}
     assert not core & ideas
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 54
+    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 67
 
 
 async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(monkeypatch):
@@ -69,11 +69,11 @@ async def test_every_tool_has_annotations_that_match_its_name():
     for name, tool in (await _tools(_full_mcp())).items():
         a = tool.annotations
         assert a is not None, name
-        if name.startswith(("list_", "get_")) and name != "get_ticket_workspace_path":
+        if name.startswith(("list_", "get_", "search_", "resolve_")) and name != "get_ticket_workspace_path":
             assert a.readOnlyHint is True, name
         else:
             assert a.readOnlyHint is False, name
-        if name.startswith("delete_") or name in {"remove_member", "unlink_tickets"}:
+        if name.startswith("delete_") or name in {"remove_member", "unlink_tickets", "unlink_ticket_doc"}:
             assert a.destructiveHint is True, name
         else:
             assert a.destructiveHint is not True, name
@@ -111,8 +111,8 @@ async def test_the_tool_list_stays_compact():
         return sum(len(t.description or "") + len(json.dumps(t.inputSchema, separators=(",", ":"))) for t in tools.values())
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    assert default < 31_500, f"default tool list is {default} characters (about {default // 4} tokens)"
-    assert full < 42_000, f"full tool list is {full} characters (about {full // 4} tokens)"
+    assert default < 37_000, f"default tool list is {default} characters (about {default // 4} tokens)"
+    assert full < 48_000, f"full tool list is {full} characters (about {full // 4} tokens)"
     assert default < full
 
 

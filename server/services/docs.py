@@ -7,31 +7,44 @@ indexed in ``DocsLink`` when a page is published.
 """
 
 import difflib
+import json
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import or_
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import DocsDraft, DocsLink, DocsPage, DocsVersion, Project, Ticket
-from services import activity
+from models import (
+    DocsAnchorAlias,
+    DocsDraft,
+    DocsLink,
+    DocsPage,
+    DocsVersion,
+    Project,
+    Ticket,
+)
+from services import activity, docs_search
 from services.docs_templates import TEMPLATES
+from services.docs_text import (  # noqa: F401  (re-exported)
+    DocsError,
+    count_page_links,
+    heading_anchors,
+    page_ref_contexts,
+    parse_references,
+    rewrite_page_links,
+    slugify,
+    _FENCE,
+    _HEADING,
+    _INLINE_CODE,
+    _REF,
+    _strip_inline,
+)
 
 RECYCLE_DAYS = 30
 MAX_TITLE = 200
 MAX_MARKDOWN = 1_000_000
-
-
-class DocsError(Exception):
-    """Domain error carrying an HTTP status and a machine-readable code."""
-
-    def __init__(self, status: int, code: str, message: str, **extra: Any) -> None:
-        super().__init__(message)
-        self.status = status
-        self.code = code
-        self.message = message
-        self.extra = extra
 
 
 def _now() -> str:
@@ -39,104 +52,7 @@ def _now() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Markdown helpers: slugs, headings, references
-# ---------------------------------------------------------------------------
-
-_FENCE = re.compile(r"^\s*(```|~~~)")
-_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
-_REF = re.compile(r"\[\[([^\]\|#]+?)(?:#([^\]\|]+?))?(?:\|([^\]]+?))?\]\]")
-_TICKET = re.compile(r"\b([A-Z][A-Z0-9]{1,5}-\d+)\b")
-_INLINE_CODE = re.compile(r"`[^`\n]*`")
-
-
-def slugify(text: str) -> str:
-    """Lower-case, spaces to dashes, punctuation dropped (``Example request`` -> ``example-request``)."""
-    slug = re.sub(r"[^\w\s-]", "", text.lower(), flags=re.UNICODE)
-    slug = re.sub(r"[\s_]+", "-", slug.strip())
-    return re.sub(r"-{2,}", "-", slug).strip("-")
-
-
-def _strip_inline(text: str) -> str:
-    text = re.sub(
-        r"\[\[([^\]\|#]+?)(?:#[^\]\|]+?)?(?:\|([^\]]+?))?\]\]",
-        lambda m: m.group(2) or m.group(1),
-        text,
-    )
-    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
-    return re.sub(r"[*_`~]", "", text).strip()
-
-
-def heading_anchors(markdown: str) -> list[dict[str, Any]]:
-    """Headings with their slug anchors; duplicates get ``-2``, ``-3``…"""
-    out: list[dict[str, Any]] = []
-    seen: dict[str, int] = {}
-    in_fence = False
-    for line in markdown.splitlines():
-        if _FENCE.match(line):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        m = _HEADING.match(line)
-        if not m:
-            continue
-        text = _strip_inline(m.group(2))
-        base = slugify(text) or "section"
-        count = seen.get(base, 0) + 1
-        seen[base] = count
-        slug = base if count == 1 else f"{base}-{count}"
-        out.append({"level": len(m.group(1)), "text": text, "slug": slug})
-    return out
-
-
-def _prose_lines(markdown: str) -> list[tuple[str, str | None, str]]:
-    """(line, current section slug, raw line) for lines outside code fences."""
-    anchors = {a["text"]: a["slug"] for a in heading_anchors(markdown)}
-    section: str | None = None
-    in_fence = False
-    out: list[tuple[str, str | None, str]] = []
-    for raw in markdown.splitlines():
-        if _FENCE.match(raw):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        m = _HEADING.match(raw)
-        if m:
-            section = anchors.get(_strip_inline(m.group(2)), section)
-        out.append((_INLINE_CODE.sub("", raw), section, raw))
-    return out
-
-
-def parse_references(markdown: str) -> list[dict[str, Any]]:
-    """Every [[page]] and ticket-key reference with its section and a context snippet."""
-    refs: list[dict[str, Any]] = []
-    for line, section, raw in _prose_lines(markdown):
-        snippet = re.sub(
-            r"^\s*(?:>\s*)*(?:[*+-]|\d+\.)?\s*(?:\[[ xX]\]\s*)?", "", _strip_inline(raw)
-        )[:160]
-        for m in _REF.finditer(line):
-            refs.append(
-                {
-                    "kind": "page",
-                    "title": m.group(1).strip(),
-                    "anchor": (m.group(2) or "").strip() or None,
-                    "display": (m.group(3) or "").strip() or None,
-                    "section": section,
-                    "snippet": snippet,
-                }
-            )
-        stripped = _REF.sub("", line)
-        for m in _TICKET.finditer(stripped):
-            refs.append(
-                {
-                    "kind": "ticket",
-                    "key": m.group(1),
-                    "section": section,
-                    "snippet": snippet,
-                }
-            )
-    return refs
+# Markdown helpers live in docs_text (re-exported here for callers and tests).
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +64,10 @@ async def _project(session: AsyncSession, project_id: str) -> Project:
     project = await session.get(Project, project_id)
     if project is None:
         raise DocsError(404, "project_not_found", "Project not found")
+    if not project.docs_enabled:
+        raise DocsError(
+            403, "docs_disabled", "Docs are turned off for this project"
+        )
     return project
 
 
@@ -157,6 +77,7 @@ async def get_page(
     page = await session.get(DocsPage, page_id)
     if page is None:
         raise DocsError(404, "page_not_found", "Page not found")
+    await _project(session, page.project_id)
     if page.deleted_at and not include_deleted:
         raise DocsError(
             410,
@@ -308,6 +229,8 @@ async def create_page(
             base_version=0,
         )
     )
+    await session.flush()
+    await docs_search.reindex(session, [page.id])
     await session.commit()
     return await page_detail(session, page.id)
 
@@ -352,6 +275,7 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
         "updated_by": latest.author if latest else page.updated_by,
         "updated_at": latest.created_at if latest else page.updated_at,
         "created_at": page.created_at,
+        "stats": await page_stats(session, page, markdown),
         "has_unpublished_changes": unpublished,
         "draft": (
             {
@@ -377,24 +301,6 @@ async def page_by_slug(
     if page is None:
         raise DocsError(404, "page_not_found", f"No page at '{slug}'")
     return await page_detail(session, page.id)
-
-
-async def rename_page(
-    session: AsyncSession, page_id: str, title: str
-) -> dict[str, Any]:
-    page = await get_page(session, page_id)
-    page.title = _clean_title(title)
-    page.updated_at = _now()
-    page.updated_by = activity.current_actor()
-    session.add(page)
-    draft = await _draft_for(session, page.id, activity.current_actor())
-    if draft:
-        draft.title = page.title
-        session.add(draft)
-    await session.flush()
-    await refresh_link_targets(session, page.project_id)
-    await session.commit()
-    return await page_detail(session, page_id)
 
 
 # ---------------------------------------------------------------------------
@@ -478,6 +384,10 @@ async def duplicate_page(
     root_id = await _copy_page(session, src, new_title, target_parent)
     if include_children:
         await _copy_children(session, src, root_id)
+    await session.flush()
+    root = await session.get(DocsPage, root_id)
+    copied = [root_id, *(d.id for d in await _descendants(session, root))]  # type: ignore[arg-type]
+    await docs_search.reindex(session, copied)
     await session.commit()
     return await page_detail(session, root_id)
 
@@ -532,6 +442,7 @@ async def delete_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
         session.add(p)
     await session.flush()
     await refresh_link_targets(session, page.project_id)
+    await docs_search.unindex(session, [p.id for p in subtree])
     await session.commit()
     return {"id": page.id, "deleted_pages": len(subtree)}
 
@@ -554,6 +465,7 @@ async def restore_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
         session.add(p)
     await session.flush()
     await refresh_link_targets(session, page.project_id)
+    await docs_search.reindex(session, list(restored_ids))
     await session.commit()
     return {
         "id": page.id,
@@ -563,6 +475,7 @@ async def restore_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
 
 
 async def list_deleted(session: AsyncSession, project_id: str) -> list[dict[str, Any]]:
+    await _project(session, project_id)
     await purge_expired(session, project_id)
     pages = await _all_pages(session, project_id, deleted=True)
     ids = {p.id for p in pages}
@@ -574,11 +487,14 @@ async def list_deleted(session: AsyncSession, project_id: str) -> list[dict[str,
         count = 1 + len(
             [d for d in pages if d.deleted_root_id == p.id and d.id != p.id]
         )
+        parent = await session.get(DocsPage, p.parent_id) if p.parent_id else None
         out.append(
             {
                 "id": p.id,
                 "title": p.title,
                 "project_id": p.project_id,
+                "parent_title": parent.title if parent else None,
+                "parent_deleted": bool(parent and parent.deleted_at),
                 "deleted_at": p.deleted_at,
                 "deleted_by": p.deleted_by,
                 "page_count": count,
@@ -599,7 +515,8 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
     ids = [p.id for p in pages]
     if not ids:
         return
-    for model in (DocsLink, DocsDraft, DocsVersion):
+    await docs_search.unindex(session, ids)
+    for model in (DocsLink, DocsDraft, DocsVersion, DocsAnchorAlias):
         col = model.source_page_id if model is DocsLink else model.page_id  # type: ignore[attr-defined]
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
@@ -620,6 +537,15 @@ async def purge_page(session: AsyncSession, page_id: str) -> None:
         session, [p for p in pages if p.deleted_root_id == page.deleted_root_id]
     )
     await session.commit()
+
+
+async def empty_recycle_bin(session: AsyncSession, project_id: str) -> dict[str, int]:
+    """Delete everything in the project's Recycle Bin for good."""
+    await _project(session, project_id)
+    pages = await _all_pages(session, project_id, deleted=True)
+    await _hard_delete(session, pages)
+    await session.commit()
+    return {"purged": len(pages)}
 
 
 async def purge_expired(session: AsyncSession, project_id: str) -> int:
@@ -721,7 +647,10 @@ async def _commit_version(
     author: str,
     note: str | None,
     draft: DocsDraft | None,
+    *,
+    commit: bool = True,
 ) -> dict[str, Any]:
+    previous = await _latest_version(session, page)
     page.version += 1
     page.status = "published"
     page.title = title
@@ -741,11 +670,50 @@ async def _commit_version(
     if draft is not None:
         await session.delete(draft)
     await session.flush()
+    await _update_aliases(session, page, previous.markdown if previous else "", markdown)
     await reindex_links(session, page, markdown)
     await session.flush()
     await refresh_link_targets(session, page.project_id)
+    await docs_search.reindex(session, [page.id])
+    if not commit:
+        return {}
     await session.commit()
     return await page_detail(session, page.id)
+
+
+async def _update_aliases(
+    session: AsyncSession, page: DocsPage, old_md: str, new_md: str
+) -> None:
+    """Remember renamed headings (a slug that vanished while a new one took its place)."""
+    old = [h["slug"] for h in heading_anchors(old_md)]
+    new = [h["slug"] for h in heading_anchors(new_md)]
+    pairs: list[tuple[str, str]] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+        None, old, new, autojunk=False
+    ).get_opcodes():
+        if tag == "replace" and i2 - i1 == j2 - j1:
+            pairs.extend(zip(old[i1:i2], new[j1:j2]))
+    rows = await session.exec(
+        select(DocsAnchorAlias).where(DocsAnchorAlias.page_id == page.id)
+    )
+    existing = list(rows.all())
+    live = set(new)
+    for old_slug, new_slug in pairs:
+        if old_slug in live:
+            continue
+        for row in existing:
+            if row.new_slug == old_slug:  # a chain: A -> B becomes A -> C
+                row.new_slug = new_slug
+                session.add(row)
+        match = next((r for r in existing if r.old_slug == old_slug), None)
+        if match is None:
+            match = DocsAnchorAlias(page_id=page.id, old_slug=old_slug, new_slug=new_slug)
+            existing.append(match)
+        match.new_slug = new_slug
+        session.add(match)
+    for row in existing:
+        if row.old_slug in live or row.old_slug == row.new_slug:
+            await session.delete(row)
 
 
 async def list_versions(session: AsyncSession, page_id: str) -> list[dict[str, Any]]:
@@ -897,12 +865,39 @@ async def restore_version(
 # ---------------------------------------------------------------------------
 
 
+async def _aliases_by_page(
+    session: AsyncSession, page_ids: list[str]
+) -> dict[str, dict[str, str]]:
+    out: dict[str, dict[str, str]] = {}
+    if not page_ids:
+        return out
+    rows = await session.exec(
+        select(DocsAnchorAlias).where(DocsAnchorAlias.page_id.in_(page_ids))  # type: ignore[attr-defined]
+    )
+    for a in rows.all():
+        out.setdefault(a.page_id, {})[a.old_slug] = a.new_slug
+    return out
+
+
+def _follow_alias(wanted: str, slugs: dict[str, Any], aliases: dict[str, str]) -> str | None:
+    """The current slug a renamed heading's old slug leads to (chains are followed)."""
+    seen: set[str] = set()
+    cur = wanted
+    while cur in aliases and cur not in seen:
+        seen.add(cur)
+        cur = aliases[cur]
+        if cur in slugs:
+            return cur
+    return None
+
+
 async def _resolve_page_ref(
     pages: list[DocsPage],
     deleted: list[DocsPage],
     title: str,
     anchor: str | None,
     headings_of: dict[str, list[dict[str, Any]]],
+    aliases: dict[str, dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     needle = title.strip().lower()
     by_id = {p.id: p for p in pages}
@@ -945,6 +940,11 @@ async def _resolve_page_ref(
     if anchor:
         slugs = {h["slug"]: h for h in headings_of.get(page.id, [])}
         wanted = slugify(anchor)
+        if wanted not in slugs:
+            renamed = _follow_alias(wanted, slugs, (aliases or {}).get(page.id, {}))
+            if renamed:
+                wanted = renamed
+                out["anchor_renamed"] = True
         if wanted in slugs:
             out["anchor"] = wanted
             out["section"] = slugs[wanted]["text"]
@@ -957,11 +957,8 @@ async def _resolve_page_ref(
 async def _headings_by_page(
     session: AsyncSession, pages: list[DocsPage]
 ) -> dict[str, list[dict[str, Any]]]:
-    out: dict[str, list[dict[str, Any]]] = {}
-    for p in pages:
-        v = await _latest_version(session, p)
-        out[p.id] = heading_anchors(v.markdown) if v else []
-    return out
+    contents = await docs_search._contents(session, [p for p in pages if p.version > 0])
+    return {p.id: heading_anchors(contents[p.id]) if p.id in contents else [] for p in pages}
 
 
 async def resolve_refs(
@@ -972,6 +969,7 @@ async def resolve_refs(
     pages = await _all_pages(session, project_id)
     deleted = await _all_pages(session, project_id, deleted=True)
     headings = await _headings_by_page(session, pages)
+    aliases = await _aliases_by_page(session, [p.id for p in pages])
     keys = [r["key"] for r in refs if r.get("kind") == "ticket" and r.get("key")]
     tickets: dict[str, Ticket] = {}
     if keys:
@@ -993,14 +991,18 @@ async def resolve_refs(
             )
         else:
             res = await _resolve_page_ref(
-                pages, deleted, r.get("title", ""), r.get("anchor"), headings
+                pages, deleted, r.get("title", ""), r.get("anchor"), headings, aliases
             )
             out.append({"kind": "page", **res})
     return out
 
 
 async def reindex_links(session: AsyncSession, page: DocsPage, markdown: str) -> None:
-    old = await session.exec(select(DocsLink).where(DocsLink.source_page_id == page.id))
+    old = await session.exec(
+        select(DocsLink).where(
+            DocsLink.source_page_id == page.id, DocsLink.origin == "page"
+        )
+    )
     for row in old.all():
         await session.delete(row)
     refs = parse_references(markdown)
@@ -1045,6 +1047,7 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
     if not ids:
         return
     headings = await _headings_by_page(session, pages)
+    aliases = await _aliases_by_page(session, [p.id for p in pages])
     rows = await session.exec(
         select(DocsLink).where(
             DocsLink.source_page_id.in_(ids),  # type: ignore[attr-defined]
@@ -1053,7 +1056,7 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
     )
     for link in rows.all():
         res = await _resolve_page_ref(
-            pages, deleted, link.target_title or "", link.target_anchor, headings
+            pages, deleted, link.target_title or "", link.target_anchor, headings, aliases
         )
         new_target = res.get("page_id")
         if new_target != link.target_page_id:
@@ -1061,11 +1064,86 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
             session.add(link)
 
 
+def _ticket_texts(ticket: Ticket) -> list[tuple[str, str]]:
+    """(origin, text) for the description and each comment of a ticket."""
+    out = [("description", ticket.description or "")]
+    try:
+        comments = json.loads(ticket.comments or "[]")
+    except ValueError:
+        comments = []
+    for c in comments if isinstance(comments, list) else []:
+        if isinstance(c, dict) and c.get("text"):
+            out.append(("comment", str(c["text"])))
+    return out
+
+
+async def _tickets_mentioning_pages(
+    session: AsyncSession, project_id: str
+) -> list[Ticket]:
+    result = await session.exec(
+        select(Ticket).where(
+            Ticket.project_id == project_id,
+            or_(Ticket.description.contains("[["), Ticket.comments.contains("[[")),  # type: ignore[attr-defined]
+        )
+    )
+    return list(result.all())
+
+
+async def _ticket_mentions(
+    session: AsyncSession, project_id: str
+) -> list[dict[str, Any]]:
+    """Every [[page]] mention in ticket descriptions/comments, resolved to a page."""
+    tickets = await _tickets_mentioning_pages(session, project_id)
+    if not tickets:
+        return []
+    pages = await _all_pages(session, project_id)
+    headings = await _headings_by_page(session, pages)
+    aliases = await _aliases_by_page(session, [p.id for p in pages])
+    out: list[dict[str, Any]] = []
+    for t in tickets:
+        for origin, body in _ticket_texts(t):
+            if "[[" not in body:
+                continue
+            for ref in page_ref_contexts(body):
+                res = await _resolve_page_ref(
+                    pages, [], ref["title"], ref["anchor"], headings, aliases
+                )
+                if res.get("page_id"):
+                    out.append(
+                        {
+                            "ticket": t,
+                            "origin": origin,
+                            "page_id": res["page_id"],
+                            "section": res.get("section"),
+                            "context": ref["context"],
+                        }
+                    )
+    return out
+
+
+async def _page_row_context(
+    session: AsyncSession, link: DocsLink, src: DocsPage
+) -> str:
+    contents = await docs_search._contents(session, [src])
+    wanted = (link.target_title or "").lower()
+    refs = [
+        r
+        for r in page_ref_contexts(contents.get(src.id, ""))
+        if r["title"].lower() == wanted
+    ]
+    for r in refs:
+        if r["section"] == link.source_section:
+            return r["context"]
+    return refs[0]["context"] if refs else link.snippet
+
+
 async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
     """Pages and tickets that reference this page (the 'Referenced by' panel)."""
     page = await get_page(session, page_id)
     rows = await session.exec(
-        select(DocsLink).where(DocsLink.target_page_id == page.id)
+        select(DocsLink).where(
+            DocsLink.target_page_id == page.id, DocsLink.origin == "page"
+        )
     )
     seen: set[tuple[str, str | None]] = set()
     pages_out = []
@@ -1084,53 +1162,345 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "title": src.title,
                 "in": link.source_section or (parent.title if parent else None),
                 "snippet": link.snippet,
+                "origin": "page",
+                "context": await _page_row_context(session, link, src),
             }
         )
-    tickets_out = []
-    result = await session.exec(
-        select(Ticket).where(
-            Ticket.project_id == page.project_id, Ticket.description.contains("[[")
-        )  # type: ignore[attr-defined]
+    tickets_out: list[dict[str, Any]] = []
+    seen_tickets: set[tuple[str, str]] = set()
+    for m in await _ticket_mentions(session, page.project_id):
+        t: Ticket = m["ticket"]
+        if m["page_id"] != page.id or (t.id, m["origin"]) in seen_tickets:
+            continue
+        seen_tickets.add((t.id, m["origin"]))
+        tickets_out.append(
+            {
+                "ticket_id": t.id,
+                "title": t.title,
+                "status": t.status,
+                "origin": m["origin"],
+                "context": m["context"],
+            }
+        )
+    manual = await session.exec(
+        select(DocsLink).where(
+            DocsLink.source_page_id == page.id,
+            DocsLink.origin == "manual",
+            DocsLink.target_ticket_id.is_not(None),  # type: ignore[union-attr]
+        )
     )
-    all_pages = await _all_pages(session, page.project_id)
-    headings: dict[str, list[dict[str, Any]]] = {}
-    for t in result.all():
-        for ref in parse_references(t.description):
-            if ref["kind"] != "page":
-                continue
-            res = await _resolve_page_ref(
-                all_pages, [], ref["title"], ref["anchor"], headings
+    for link in manual.all():
+        t = await session.get(Ticket, link.target_ticket_id)  # type: ignore[arg-type]
+        if t is not None and (t.id, "manual") not in seen_tickets:
+            seen_tickets.add((t.id, "manual"))
+            tickets_out.append(
+                {
+                    "ticket_id": t.id,
+                    "title": t.title,
+                    "status": t.status,
+                    "origin": "manual",
+                    "context": "",
+                }
             )
-            if res.get("page_id") == page.id:
-                tickets_out.append(
-                    {"ticket_id": t.id, "title": t.title, "status": t.status}
-                )
-                break
     return {"pages": pages_out, "tickets": tickets_out}
+
+
+async def page_stats(session: AsyncSession, page: DocsPage, markdown: str) -> dict[str, int]:
+    inbound = await session.exec(
+        select(DocsLink.source_page_id).where(
+            DocsLink.target_page_id == page.id, DocsLink.origin == "page"
+        )
+    )
+    sources = set(inbound.all()) - {page.id}
+    live = 0
+    for sid in sources:
+        src = await session.get(DocsPage, sid)
+        if src is not None and not src.deleted_at:
+            live += 1
+    tickets: set[str] = set()
+    outbound = await session.exec(
+        select(DocsLink.target_ticket_id).where(
+            DocsLink.source_page_id == page.id,
+            DocsLink.target_ticket_id.is_not(None),  # type: ignore[union-attr]
+        )
+    )
+    tickets.update(t for t in outbound.all() if t)
+    for m in await _ticket_mentions(session, page.project_id):
+        if m["page_id"] == page.id:
+            tickets.add(m["ticket"].id)
+    return {
+        "words": len(markdown.split()),
+        "linked_tickets": len(tickets),
+        "inbound_links": live,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Ticket <-> docs
+# ---------------------------------------------------------------------------
+
+_ORIGIN_ORDER = {"description": 0, "comment": 1, "manual": 2, "page": 3}
+
+
+async def _ticket_or_404(session: AsyncSession, ticket_id: str) -> Ticket:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise DocsError(404, "ticket_not_found", "Ticket not found")
+    return ticket
 
 
 async def docs_for_ticket(
     session: AsyncSession, ticket_id: str
 ) -> list[dict[str, Any]]:
-    """Published pages that mention this ticket ('Linked docs' on the ticket)."""
-    rows = await session.exec(
-        select(DocsLink).where(DocsLink.target_ticket_id == ticket_id)
-    )
+    """Pages tied to a ticket: mentioned in it (description/comment), linked by hand, or mentioning it."""
+    ticket = await session.get(Ticket, ticket_id)
+    project = await session.get(Project, ticket.project_id) if ticket else None
+    if ticket is not None and project is not None and not project.docs_enabled:
+        return []
+    pages = await _all_pages(session, ticket.project_id) if ticket else []
+    by_id = {p.id: p for p in pages}
     out: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for link in rows.all():
-        src = await session.get(DocsPage, link.source_page_id)
-        if src is None or src.deleted_at or src.id in seen:
-            continue
-        seen.add(src.id)
+    seen: set[tuple[str, str]] = set()
+
+    def row(page: DocsPage, origin: str, section: str | None, snippet: str) -> None:
+        if (page.id, origin) in seen:
+            return
+        seen.add((page.id, origin))
         out.append(
             {
-                "page_id": src.id,
-                "project_id": src.project_id,
-                "title": src.title,
-                "section": link.source_section,
-                "snippet": link.snippet,
-                "version": src.version,
+                "page_id": page.id,
+                "project_id": page.project_id,
+                "title": page.title,
+                "path": docs_search._path_titles(page, by_id),
+                "section": section,
+                "snippet": snippet,
+                "origin": origin,
+                "version": page.version,
             }
         )
+
+    if ticket is not None and pages and "[[" in " ".join(t for _o, t in _ticket_texts(ticket)):
+        headings = await _headings_by_page(session, pages)
+        aliases = await _aliases_by_page(session, [p.id for p in pages])
+        for origin, body in _ticket_texts(ticket):
+            for ref in page_ref_contexts(body) if "[[" in body else []:
+                res = await _resolve_page_ref(
+                    pages, [], ref["title"], ref["anchor"], headings, aliases
+                )
+                if res.get("page_id"):
+                    row(by_id[res["page_id"]], origin, res.get("section"), ref["context"])
+    links = await session.exec(
+        select(DocsLink).where(DocsLink.target_ticket_id == ticket_id)
+    )
+    for link in links.all():
+        src = await session.get(DocsPage, link.source_page_id)
+        if src is None or src.deleted_at:
+            continue
+        by_id.setdefault(src.id, src)
+        row(src, "manual" if link.origin == "manual" else "page", link.source_section, link.snippet)
+    out.sort(key=lambda r: (_ORIGIN_ORDER[r["origin"]], r["title"].lower()))
     return out
+
+
+async def link_ticket_doc(
+    session: AsyncSession, ticket_id: str, page_id: str
+) -> dict[str, Any]:
+    ticket = await _ticket_or_404(session, ticket_id)
+    page = await get_page(session, page_id)
+    if page.project_id != ticket.project_id:
+        raise DocsError(
+            422, "bad_project", "The page and the ticket belong to different projects"
+        )
+    existing = await session.exec(
+        select(DocsLink).where(
+            DocsLink.source_page_id == page.id,
+            DocsLink.target_ticket_id == ticket_id,
+            DocsLink.origin == "manual",
+        )
+    )
+    if existing.first() is None:
+        session.add(
+            DocsLink(
+                source_page_id=page.id,
+                target_ticket_id=ticket_id,
+                origin="manual",
+                snippet="",
+            )
+        )
+        await session.commit()
+    rows = await docs_for_ticket(session, ticket_id)
+    return next(r for r in rows if r["page_id"] == page.id and r["origin"] == "manual")
+
+
+async def unlink_ticket_doc(
+    session: AsyncSession, ticket_id: str, page_id: str
+) -> dict[str, Any]:
+    await _ticket_or_404(session, ticket_id)
+    rows = await session.exec(
+        select(DocsLink).where(
+            DocsLink.source_page_id == page_id,
+            DocsLink.target_ticket_id == ticket_id,
+            DocsLink.origin == "manual",
+        )
+    )
+    removed = 0
+    for link in rows.all():
+        await session.delete(link)
+        removed += 1
+    await session.commit()
+    return {"removed": removed}
+
+
+# ---------------------------------------------------------------------------
+# Rename preview and delete preview
+# ---------------------------------------------------------------------------
+
+_NOT_LINKABLE = re.compile(r"[\[\]|#]")
+
+
+async def _links_to_rename(
+    session: AsyncSession, page: DocsPage, old_title: str
+) -> list[dict[str, Any]]:
+    """Other pages whose published text or drafts hold [[old_title]] links that resolve to ``page``."""
+    pages = await _all_pages(session, page.project_id)
+    res = await _resolve_page_ref(pages, [], old_title, None, {})
+    if res.get("page_id") != page.id:
+        return []  # another page with the same title wins that link; nothing to repoint
+    others = [p for p in pages if p.id != page.id]
+    contents = await docs_search._contents(session, [p for p in others if p.version > 0])
+    drafts = await session.exec(
+        select(DocsDraft).where(DocsDraft.page_id.in_([p.id for p in others] or [""]))  # type: ignore[attr-defined]
+    )
+    drafts_by_page: dict[str, list[DocsDraft]] = {}
+    for d in drafts.all():
+        drafts_by_page.setdefault(d.page_id, []).append(d)
+    out = []
+    for p in others:
+        published = count_page_links(contents.get(p.id, ""), old_title) if p.version > 0 else 0
+        in_drafts = max(
+            (count_page_links(d.markdown, old_title) for d in drafts_by_page.get(p.id, [])),
+            default=0,
+        )
+        count = published if p.version > 0 else in_drafts
+        if published or in_drafts:
+            out.append(
+                {
+                    "page": p,
+                    "published": published,
+                    "drafts": drafts_by_page.get(p.id, []),
+                    "count": count or in_drafts,
+                }
+            )
+    return out
+
+
+async def rename_preview(
+    session: AsyncSession, page_id: str, title: str
+) -> dict[str, Any]:
+    page = await get_page(session, page_id)
+    new_title = _clean_title(title)
+    if new_title == page.title:
+        return {"affected_pages": [], "total": 0}
+    affected = await _links_to_rename(session, page, page.title)
+    rows = [
+        {"page_id": a["page"].id, "title": a["page"].title, "count": a["count"]}
+        for a in affected
+    ]
+    rows.sort(key=lambda r: r["title"].lower())
+    return {"affected_pages": rows, "total": sum(r["count"] for r in rows)}
+
+
+async def rename_page(
+    session: AsyncSession, page_id: str, title: str, *, rewrite_links: bool = False
+) -> dict[str, Any]:
+    page = await get_page(session, page_id)
+    new_title = _clean_title(title)
+    old_title = page.title
+    actor = activity.current_actor()
+    affected: list[dict[str, Any]] = []
+    if rewrite_links and new_title != old_title:
+        if _NOT_LINKABLE.search(new_title):
+            raise DocsError(
+                422,
+                "title_not_linkable",
+                "A title with [, ], | or # cannot be written as a [[link]]; rename without updating links",
+            )
+        affected = await _links_to_rename(session, page, old_title)
+    page.title = new_title
+    page.updated_at = _now()
+    page.updated_by = actor
+    session.add(page)
+    draft = await _draft_for(session, page.id, actor)
+    if draft:
+        draft.title = page.title
+        session.add(draft)
+    await session.flush()
+    rewritten_links = rewritten_pages = 0
+    touched = [page.id]
+    for item in affected:
+        src: DocsPage = item["page"]
+        old_version, published_n = src.version, 0
+        if src.version > 0:
+            latest = await _latest_version(session, src)
+            if latest is not None:
+                new_md, published_n = rewrite_page_links(
+                    latest.markdown, old_title, new_title
+                )
+                if published_n:
+                    await _commit_version(
+                        session,
+                        src,
+                        new_md,
+                        src.title,
+                        actor,
+                        f'Link to "{new_title}" updated',
+                        None,
+                        commit=False,
+                    )
+        draft_n = 0
+        for d in item["drafts"]:
+            new_md, n = rewrite_page_links(d.markdown, old_title, new_title)
+            if not n:
+                continue
+            draft_n = max(draft_n, n)
+            if published_n and d.base_version == old_version:
+                d.base_version = src.version  # the rewrite is in this draft too: no false conflict
+            d.markdown = new_md
+            session.add(d)
+        if published_n or draft_n:
+            rewritten_links += published_n or draft_n
+            rewritten_pages += 1
+            touched.append(src.id)
+    await refresh_link_targets(session, page.project_id)
+    await docs_search.reindex(session, touched)
+    await session.commit()
+    detail = await page_detail(session, page_id)
+    return {**detail, "rewritten": rewritten_links, "rewritten_pages": rewritten_pages}
+
+
+async def delete_preview(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    page = await get_page(session, page_id)
+    subtree = await _descendants(session, page)
+    ids = {page.id, *(p.id for p in subtree)}
+    rows = await session.exec(
+        select(DocsLink.source_page_id).where(
+            DocsLink.target_page_id.in_(list(ids)),  # type: ignore[attr-defined]
+            DocsLink.origin == "page",
+        )
+    )
+    linking = {sid for sid in rows.all() if sid not in ids}
+    live = 0
+    for sid in linking:
+        src = await session.get(DocsPage, sid)
+        if src is not None and not src.deleted_at:
+            live += 1
+    return {
+        "pages": [
+            {"id": page.id, "title": page.title, "role": "this"},
+            *(
+                {"id": p.id, "title": p.title, "role": "child"}
+                for p in sorted(subtree, key=lambda p: (p.position, p.title))
+            ),
+        ],
+        "linking_pages": live,
+    }

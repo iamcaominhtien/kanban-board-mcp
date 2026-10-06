@@ -18,7 +18,8 @@ from api.settings import router as settings_router
 from api.data import router as data_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
-from api.docs import router as docs_router
+from api.docs import docs_error_handler, router as docs_router
+from services.docs_text import DocsError
 import database
 from version import version_info
 from database import init_db
@@ -67,13 +68,15 @@ app.add_middleware(
         "*"
     ],  # Wildcard is safe: the server binds to 127.0.0.1 (loopback only), so it is not reachable from external networks.
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    expose_headers=["x-request-id"],
     allow_headers=[
         "Content-Type",
         "Authorization",
         "Accept",
         "X-Requested-With",
         "Last-Event-ID",
+        "X-Request-Id",
     ],
 )
 
@@ -98,6 +101,7 @@ app.include_router(data_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
 app.include_router(docs_router)
+app.add_exception_handler(DocsError, docs_error_handler)
 
 
 @app.get("/health")

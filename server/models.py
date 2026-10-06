@@ -21,6 +21,7 @@ class Project(SQLModel, table=True):
     repo_path: Optional[str] = Field(default=None)  # local git repo used for ticket branches
     worktree_template: Optional[str] = Field(default=None)  # template for branch worktrees
     worktree_by_default: bool = Field(default=False)
+    docs_enabled: bool = Field(default=True)  # the Docs space can be switched off per project
 
 
 class WorkspaceSettings(SQLModel, table=True):
@@ -196,6 +197,20 @@ class DocsLink(SQLModel, table=True):
     target_ticket_id: Optional[str] = Field(default=None, index=True)
     display_text: Optional[str] = Field(default=None)
     snippet: str = Field(default="")
+    # page: written in a published page; manual: a person linked a ticket to a page.
+    # (Mentions in a ticket's description or comments are derived on read, not stored.)
+    origin: str = Field(default="page")
+
+
+class DocsAnchorAlias(SQLModel, table=True):
+    """A heading that was renamed: ``[[Page#old-slug]]`` keeps resolving to ``new_slug``."""
+
+    __tablename__ = "docs_anchor_aliases"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    old_slug: str
+    new_slug: str
 
 
 # ---------------------------------------------------------------------------
@@ -233,6 +248,7 @@ class ProjectUpdate(SQLModel):
     repo_path: Optional[str] = None  # empty string clears the link
     worktree_template: Optional[str] = None
     worktree_by_default: Optional[bool] = None
+    docs_enabled: Optional[bool] = None
 
 
 class ProjectRead(SQLModel):
@@ -244,6 +260,7 @@ class ProjectRead(SQLModel):
     repo_path: Optional[str] = None
     worktree_template: Optional[str] = None
     worktree_by_default: bool = False
+    docs_enabled: bool = True
 
 
 class MemberCreate(SQLModel):
