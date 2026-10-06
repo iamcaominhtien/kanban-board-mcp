@@ -229,9 +229,10 @@ export function useDiscardDraft(projectId: string) {
 
 export function usePublishPage(projectId: string) {
   return useDocsMutation(
-    async (v: { pageId: string; baseVersion: number; note?: string; markdown?: string; title?: string }) =>
+    async (v: { pageId: string; baseVersion: number; note?: string; markdown?: string; title?: string; notify?: boolean }) =>
       (
         await client.post<DocsPage>(`/docs/pages/${v.pageId}/publish`, {
+          notify: v.notify ?? false,
           baseVersion: v.baseVersion,
           note: v.note,
           markdown: v.markdown,

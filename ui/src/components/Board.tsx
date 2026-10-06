@@ -6,7 +6,7 @@ import { Column } from './Column';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
-import { DocsView } from './docs/DocsView';
+import { DocsSpace } from './docs/DocsSpace';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
@@ -170,7 +170,7 @@ export function Board({
         </div>
 
         {viewMode === 'docs' && projectId && !loadState ? (
-          <DocsView
+          <DocsSpace
             projectId={projectId}
             projectName={projectName}
             requestedPageId={docsRequestedPageId}

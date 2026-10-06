@@ -432,7 +432,7 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
   } else if (!page) {
     content = <LoadError error={pageQuery.error} path={`/docs/pages/${selectedId}`} failedAt={failedAt} onRetry={() => void pageQuery.refetch()} onBack={goOverview} />;
   } else if (editing && !offlineCopy) {
-    content = <DocsEditScreen key={page.id} projectId={projectId} page={page} nodes={nodes} onExit={(updated) => { setEditing(false); if (updated) setSelectedId(updated.id); }} />;
+    content = <DocsEditScreen key={page.id} projectId={projectId} page={page} nodes={nodes} onOpenPage={select} onOpenTicket={onOpenTicket} onEditorRoot={onBodyRef} onExit={(updated) => { setEditing(false); if (updated) setSelectedId(updated.id); }} />;
   } else {
     content = (
       <DocsPageView
