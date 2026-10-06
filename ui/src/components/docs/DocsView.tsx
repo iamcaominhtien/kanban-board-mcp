@@ -187,7 +187,7 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
     setRailOpen(false);
   }, []);
 
-  const showRail = narrow || treeCollapsed;
+  const showRail = narrow || treeCollapsed || editing;
   function setCollapsed(v: boolean) {
     setTreeCollapsed(v);
     localStorage.setItem('docsTreeCollapsed', v ? '1' : '0');

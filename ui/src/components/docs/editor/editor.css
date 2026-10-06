@@ -71,3 +71,9 @@
 
 /* markdown view textarea selection */
 [data-testid="markdown-pane"] textarea::selection { background: rgba(47,111,176,0.22); color: transparent; }
+
+.dk-editor td.dk-method { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+.dk-editor td.dk-method-get { color: #2F6FB0; }
+.dk-editor td.dk-method-post, .dk-editor td.dk-method-put { color: #2E6F40; }
+.dk-editor td.dk-method-patch { color: #B4791E; }
+.dk-editor td.dk-method-delete { color: #C4432A; }

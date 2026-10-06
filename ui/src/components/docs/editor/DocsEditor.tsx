@@ -63,13 +63,18 @@ interface Props {
   onOpenPage?: (pageId: string, anchor?: string | null) => void;
   onOpenTicket?: (ticketId: string) => void;
   onBlur?: () => void;
+  /** Fires on the first real keystroke, paste or drop (lets the caller tell edits from load-time normalisation). */
+  onUserInput?: () => void;
   readOnly?: boolean;
 }
 
 const EMIT_MS = 180;
+// stable props: a new object on every render makes the drag handle re-register its ProseMirror plugin,
+// which tears down the "/" and "[[" suggestion views while they are open
+const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
 
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
-  { projectId, markdown, mode, onChange, nodes, currentPageId, pageTitle, filename, header, toc, onOpenPage, onOpenTicket, onBlur, readOnly },
+  { projectId, markdown, mode, onChange, nodes, currentPageId, pageTitle, filename, header, toc, onOpenPage, onOpenTicket, onBlur, onUserInput, readOnly },
   ref,
 ) {
   const toast = useToast();
@@ -94,8 +99,8 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const lastMd = useRef(markdown);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const live = useRef({ onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur });
-  live.current = { onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur };
+  const live = useRef({ onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur, onUserInput });
+  live.current = { onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur, onUserInput };
   const editorRef = useRef<Editor | null>(null);
   const pickImage = useCallback(() => fileRef.current?.click(), []);
 
@@ -188,7 +193,14 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         'aria-label': 'Page content',
         spellcheck: 'true',
       },
+      handleDOMEvents: {
+        beforeinput: () => {
+          live.current.onUserInput?.();
+          return false;
+        },
+      },
       handlePaste: (_view, event) => {
+        live.current.onUserInput?.();
         const file = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
         if (!file) return false;
         void uploadImage(file);
@@ -278,6 +290,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   }, []);
 
   const dragNode = useRef<{ pos: number; size: number } | null>(null);
+  const onDragNode = useCallback(({ node, pos }: { node: { nodeSize: number } | null; pos: number }) => {
+    dragNode.current = node ? { pos, size: node.nodeSize } : null;
+  }, []);
 
   return (
     <EditorEnvContext.Provider value={env}>
@@ -297,13 +312,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
                   <EditorContent editor={editor} />
                   {editor && mode === 'visual' && !readOnly && (
                     <>
-                      <DragHandle
-                        editor={editor}
-                        computePositionConfig={{ placement: 'left-start', strategy: 'absolute' }}
-                        onNodeChange={({ node, pos }) => {
-                          dragNode.current = node ? { pos, size: node.nodeSize } : null;
-                        }}
-                      >
+                      <DragHandle editor={editor} computePositionConfig={DRAG_POSITION} onNodeChange={onDragNode}>
                         <div className="dk-handle">
                           <button
                             type="button"

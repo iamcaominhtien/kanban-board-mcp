@@ -21,7 +21,9 @@ export function useMenuPosition(rect: DOMRect | null, width: number) {
     const h = ref.current?.offsetHeight ?? 300;
     const below = rect.bottom + 6;
     const top = below + h > window.innerHeight - 8 && rect.top - 6 - h > 8 ? rect.top - 6 - h : below;
-    setPos({ top, left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)) });
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+    // runs after every render (the menu height can change), so only update when the spot moved
+    setPos((p) => (p && p.top === top && p.left === left ? p : { top, left }));
   });
   return { ref, pos };
 }

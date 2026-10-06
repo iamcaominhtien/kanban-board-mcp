@@ -59,6 +59,8 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
   const [conflict, setConflict] = useState<{ latestVersion: number; latestAuthor?: string | null; latestAt?: string | null } | null>(null);
 
   const editor = useRef<DocsEditorHandle>(null);
+  const mountedAt = useRef(Date.now());
+  const userInput = useRef(false);
   const latest = useRef({ markdown, title, baseVersion });
   latest.current = { markdown, title, baseVersion };
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -299,12 +301,16 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
           onOpenPage={onOpenPage}
           onOpenTicket={onOpenTicket}
           onChange={(md) => {
-            if (md !== latest.current.markdown) {
-              setMarkdown(md);
-              touch();
-            }
+            if (md === latest.current.markdown) return;
+            setMarkdown(md);
+            // the editor re-serialises the markdown right after loading: that is not an edit
+            if (!userInput.current && Date.now() - mountedAt.current < 2500 && !dirty.current) return;
+            touch();
           }}
           onBlur={() => void flush()}
+          onUserInput={() => {
+            userInput.current = true;
+          }}
           header={
             <div style={{ paddingBottom: 12, marginBottom: 6, borderBottom: '1px solid #E3E8E5' }}>
               <input

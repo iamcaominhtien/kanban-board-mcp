@@ -10,6 +10,7 @@ import { DocRef } from './DocRef';
 import { HeadingAnchors } from './HeadingAnchors';
 import { Placeholder } from './Placeholder';
 import { Shortcuts } from './Shortcuts';
+import { TableMethods } from './TableMethods';
 import { TicketRef } from './TicketRef';
 
 export interface ExtensionOptions {
@@ -54,6 +55,7 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     DocRefInput,
     TicketRef.configure({ isTicket: opts.isTicket }),
     HeadingAnchors,
+    TableMethods,
     Placeholder,
     Shortcuts.configure({ onLink: opts.onLink }),
   ];
