@@ -10,11 +10,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
-## [2.4.0] - 2026-10-06
+## [2.3.0] - 2026-10-06
 
-Docs space, complete: the editor is now a real WYSIWYG (Tiptap) that still stores Markdown, the UI follows the Docs boards, and the MCP covers every Docs action. Mobile layout and roles / access requests are intentionally not part of this release.
+Docs space: a per-project page tree with a real WYSIWYG editor (Tiptap) that still stores Markdown, built from the Docs design boards; doc references and a rebuilt Comments section inside tickets; full MCP coverage. Mobile layout and roles / access requests are intentionally not part of this release.
 
 ### Added
+- **Docs view** next to Board / List / Timeline: page tree (drag to reorder or nest, quick filter, inline rename, row menu, collapsible rail under 1200 px), page view with "On this page" and "Referenced by", empty-space hero with five templates (Blank, Requirements, Meeting notes, Decision log, Technical design).
+- **Versions**: every publish adds a version; conflict detection (409) with Keep mine / Reload; history drawer with line and word diff (inline or side by side) and Restore, which creates a new version.
+- **References**: `[[Page#Section|label]]` and ticket keys render as chips (missing page, missing section, in Recycle Bin states); backlinks ("Referenced by"), and a "Linked docs" section on the ticket detail.
+- **Move to…**, **Duplicate** (with sub-pages) and soft delete into the Recycle Bin (30 days, restorable as a whole subtree).
+- **MCP tools**: `list_docs_pages`, `get_docs_page`, `create_docs_page`, `update_docs_page` (rejects a stale `base_version`).
+- REST API under `/projects/{id}/docs/...` and `/docs/pages/{id}/...`; migration `b9c0d1e2f3a4` adds `docs_page`, `docs_version`, `docs_draft`, `docs_link`.
 - **Visual editor** built on Tiptap: formatting and floating toolbars, `/` block menu, `[[` suggester (pages, sections, tickets), callouts, tables with grips and cell tools, task lists, code blocks with syntax colours, images, drag handle, "On this page" rail, Visual | Markdown toggle, Publish and Discard dialogs, conflict banner with "View their changes", offline and back-online banners.
 - **Search**: full-text (SQLite FTS5, LIKE fallback) with phrase and `-exclude` syntax, Ctrl/Cmd+K palette, results page with filters, find-in-page (Ctrl/Cmd+F) with Replace in the editor.
 - **Import Markdown** from files or whole folders (drag and drop, front matter, folders become parent pages, link check before importing).
@@ -32,23 +38,11 @@ Docs space, complete: the editor is now a real WYSIWYG (Tiptap) that still store
 - Docs UI rebuilt from the design boards (tokens, icons, tree, rail with flyouts, page view, dialogs, history and diff).
 - PyYAML is now a server dependency (Markdown front matter).
 
----
-
-## [2.3.0] - 2026-10-05
-
-Docs space (phase 1): a page tree per project with a rich-text editor stored as Markdown, per the Docs design boards.
-
-### Added
-- **Docs view** next to Board / List / Timeline: page tree (drag to reorder or nest, quick filter, inline rename, row menu, collapsible rail under 1200 px), page view with "On this page" and "Referenced by", empty-space hero with five templates (Blank, Requirements, Meeting notes, Decision log, Technical design).
-- **Editor**: Visual / Markdown toggle, formatting and floating toolbars, `/` block menu, `[[` suggester for pages, sections (`[[Page#Section]]`) and tickets, callouts (`> [!WARNING]`), tables, task lists, images, autosaved per-author draft (about 3 s) and Publish with a version note.
-- **Versions**: every publish adds a version; conflict detection (409) with Keep mine / Reload; history drawer with line and word diff (inline or side by side) and Restore, which creates a new version.
-- **References**: `[[Page#Section|label]]` and ticket keys render as chips (missing page, missing section, in Recycle Bin states); backlinks ("Referenced by"), and a "Linked docs" section on the ticket detail.
-- **Move to…**, **Duplicate** (with sub-pages) and soft delete into the Recycle Bin (30 days, restorable as a whole subtree).
-- **MCP tools**: `list_docs_pages`, `get_docs_page`, `create_docs_page`, `update_docs_page` (rejects a stale `base_version`).
-- REST API under `/projects/{id}/docs/...` and `/docs/pages/{id}/...`; migration `b9c0d1e2f3a4` adds `docs_page`, `docs_version`, `docs_draft`, `docs_link`.
-
-### Not yet
-Full-text search, Markdown import, offline copy, roles and access requests, per-project Docs switch, notifications, hover preview cards, rename-rewrite of links, mobile layout.
+### Fixed
+- Regexes that parse `[[references]]`, headings, `@mentions` and search tokens are now linear on hostile input (CodeQL "polynomial regular expression" findings). A heading such as `## C#` keeps its `#`; a closing `#` run is dropped only after a space.
+- Esc closes the ticket modal (unless a field, the doc side panel or another dialog is using it); the ticket modal now has `role="dialog"`.
+- A deleted page's pill in a ticket offers Restore (the reference resolver returns the page id and who deleted it).
+- Dragging a row in the Docs tree no longer selects text.
 
 ---
 
