@@ -356,7 +356,7 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
             else rowEls.current.delete(n.id);
           }}
           className={`dk-tree-row${active ? ' dk-tree-active' : ''}${isDrag ? ' dk-row-dim' : ''}${nesting ? ' dk-row-nest' : ''}${menu?.id === n.id ? ' dk-tree-hover' : ''}`}
-          style={{ opacity: r.dim && !isDrag ? 0.6 : undefined, touchAction: 'none' }}
+          style={{ opacity: r.dim && !isDrag ? 0.6 : undefined, touchAction: 'none', userSelect: 'none' }}
           role="treeitem"
           aria-level={r.depth + 1}
           aria-selected={active}
