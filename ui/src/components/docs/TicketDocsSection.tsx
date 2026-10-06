@@ -14,12 +14,36 @@ interface TicketDocsSectionProps {
   onOpenPage: (pageId: string, projectId: string) => void;
 }
 
-const PILL: Record<TicketDocOrigin, { label: string; bg: string }> = {
-  description: { label: 'in description', bg: '#F1F3F1' },
-  comment: { label: 'in comment', bg: '#F1F3F1' },
-  manual: { label: 'manual link', bg: '#F1F3F1' },
-  page: { label: 'from docs', bg: '#E8F1FB' },
+const WHERE: Record<string, string> = {
+  description: 'Mentioned in description',
+  comment: 'Mentioned in comment',
+  acceptance_criterion: 'Mentioned in acceptance criterion',
+  test_case: 'Mentioned in test case',
+  debug_note: 'Mentioned in debug note',
 };
+
+/** "Mentioned in test case TC-3", "Manual link", "From docs". */
+function originLabel(d: { origin?: TicketDocOrigin; detail?: string }): string {
+  const o = d.origin ?? 'page';
+  if (o === 'manual') return 'Manual link';
+  if (o === 'page') return 'From docs';
+  return `${WHERE[o] ?? `Mentioned in ${o}`}${o === 'test_case' && d.detail ? ` ${d.detail}` : ''}`;
+}
+
+type Grouped = TicketDocRow & { labels: string[] };
+
+/** One row per page+section, however many places mention it. */
+function groupByPage(list: TicketDocRow[]): Grouped[] {
+  const out = new Map<string, Grouped>();
+  for (const d of list) {
+    const key = `${d.pageId}#${d.section ?? ''}`;
+    const row = out.get(key) ?? { ...d, labels: [] };
+    const label = originLabel(d);
+    if (!row.labels.includes(label)) row.labels.push(label);
+    out.set(key, row);
+  }
+  return [...out.values()];
+}
 
 const groupLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: '#9AA8A0' };
 const card: React.CSSProperties = { border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' };
@@ -31,7 +55,7 @@ function Row({
   onOpen,
   onRemove,
 }: {
-  doc: TicketDocRow;
+  doc: Grouped;
   origin: TicketDocOrigin;
   last: boolean;
   onOpen: () => void;
@@ -40,7 +64,6 @@ function Row({
   const path = doc.path ?? [];
   const endsWithTitle = path[path.length - 1] === doc.title;
   const sub = doc.section ? (endsWithTitle ? path : [...path, doc.title]).join(' › ') : (endsWithTitle ? path.slice(0, -1) : path).join(' › ');
-  const pill = PILL[origin];
   return (
     <div
       className={`tdoc-row ${onRemove ? 'tdoc-manual' : ''}`}
@@ -60,7 +83,11 @@ function Row({
           {sub && <span style={{ fontSize: 11.5, color: '#9AA8A0' }}>{sub}</span>}
         </span>
       </button>
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60', padding: '2px 8px', borderRadius: 999, background: pill.bg, whiteSpace: 'nowrap' }}>{pill.label}</span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+        {doc.labels.map((l) => (
+          <span key={l} data-testid="ticket-doc-origin" style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60', padding: '2px 8px', borderRadius: 999, background: origin === 'page' ? '#E8F1FB' : '#F1F3F1', whiteSpace: 'nowrap' }}>{l}</span>
+        ))}
+      </span>
       {onRemove ? (
         <button
           type="button"
@@ -73,7 +100,7 @@ function Row({
         </button>
       ) : (
         <span title="Remove the mention to unlink" style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C7D2CB', flexShrink: 0 }}>
-          <Icon name="i25" size={12} strokeWidth={2} />
+          <Icon name="lock" size={13} strokeWidth={1.9} />
         </span>
       )}
     </div>
@@ -187,14 +214,14 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
   const { data } = useTicketDocs(ticketId);
   const { link, unlink } = useLinkTicketDoc(ticketId);
   const [adding, setAdding] = useState(false);
-  const docs = (data ?? []) as TicketDocRow[];
+  const docs = (data ?? []) as unknown as TicketDocRow[];
 
   const groups = useMemo(() => {
     const originOf = (d: TicketDocRow): TicketDocOrigin => d.origin ?? 'page';
     return {
-      mentioned: docs.filter((d) => originOf(d) === 'description' || originOf(d) === 'comment'),
-      manual: docs.filter((d) => originOf(d) === 'manual'),
-      pages: docs.filter((d) => originOf(d) === 'page'),
+      mentioned: groupByPage(docs.filter((d) => originOf(d) !== 'manual' && originOf(d) !== 'page')),
+      manual: groupByPage(docs.filter((d) => originOf(d) === 'manual')),
+      pages: groupByPage(docs.filter((d) => originOf(d) === 'page')),
       originOf,
     };
   }, [docs]);
@@ -217,7 +244,7 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
     }
   }
 
-  const section = (label: string, list: TicketDocRow[]) =>
+  const section = (label: string, list: Grouped[]) =>
     list.length > 0 && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={groupLabel}>{label}</div>
@@ -249,7 +276,7 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
       `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5B6B60', textTransform: 'uppercase' }}>Linked docs</span>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9AA8A0' }}>{docs.length}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9AA8A0' }} data-testid="ticket-docs-count">{groups.mentioned.length + groups.manual.length + groups.pages.length}</span>
       </div>
       {section('Mentioned in this ticket', groups.mentioned)}
       {section('Linked manually', groups.manual)}

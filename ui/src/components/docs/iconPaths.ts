@@ -71,6 +71,11 @@ export const ICON_PATHS: Record<string, string> = {
   i67: "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M15 4V20\"/>",
   i68: "<rect x=\"3.5\" y=\"5.5\" width=\"17\" height=\"15\" rx=\"2.5\"/><path d=\"M3.5 10H20.5\"/><path d=\"M8 3V6.5\"/><path d=\"M16 3V6.5\"/>",
   i69: "<path d=\"M12 5V19\"/><path d=\"M6 13L12 19L18 13\"/>",
+  // ticket-doc-refs board
+  sidePanel: "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M15 4V20\"/>",
+  lock: "<rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8A4 4 0 0 1 16 8V11\"/>",
+  eye: "<path d=\"M2 12S5.5 5 12 5S22 12 22 12S18.5 19 12 19S2 12 2 12Z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
+  refresh: "<path d=\"M20 11A8 8 0 0 0 5.6 6.4L4 8\"/><path d=\"M4 4V8H8\"/><path d=\"M4 13A8 8 0 0 0 18.4 17.6L20 16\"/><path d=\"M20 20V16H16\"/>",
 };
 export const ICON_ALIASES: Record<string, string> = {
   page: 'i00',

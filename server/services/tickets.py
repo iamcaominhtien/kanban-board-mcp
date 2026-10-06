@@ -530,7 +530,6 @@ async def delete_comment(
     now = datetime.now(UTC).isoformat()
     for c in comments:
         if c.get("id") == comment_id and not c.get("deleted_at"):
-            act.record(ticket, "comment", c.get("text"), None, ref=comment_id)
             c["deleted_at"] = now
             break
     ticket.comments = _dumps(comments)
@@ -575,7 +574,6 @@ async def update_comment(
     for c in comments:
         if c.get("id") == comment_id and not c.get("deleted_at"):
             if c.get("text") != text:
-                act.record(ticket, "comment", c.get("text"), text, ref=comment_id)
                 c["text"] = text
                 c["edited_at"] = datetime.now(UTC).isoformat()
                 c["mentions"] = mention_ids(text)

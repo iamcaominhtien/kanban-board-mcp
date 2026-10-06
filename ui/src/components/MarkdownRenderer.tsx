@@ -7,6 +7,7 @@ import { FileAttachmentCard } from './FileAttachmentCard';
 import { FilePreviewModal } from './FilePreviewModal';
 import { useResolveRefs } from '../api/docs';
 import { RefChip } from './docs/RefChip';
+import { useDocsRefs } from './docs/DocsRefsContext';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../utils/docsMarkdown';
 import type { DocsRefRequest } from '../types/docs';
 import styles from './MarkdownRenderer.module.css';
@@ -30,7 +31,7 @@ const MARKDOWN_SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'member'],
     src: ['http', 'https'],
   },
 };
@@ -48,6 +49,10 @@ const CALLOUT_ICONS: Record<string, string> = { info: 'ℹ', warning: '⚠', dan
 interface MarkdownRendererProps {
   children: string;
   docs?: DocsRenderOptions;
+  /** Never turn references into pills (e.g. raw previews). */
+  plain?: boolean;
+  /** Render a single line inline (acceptance criteria): paragraphs are unwrapped. */
+  inline?: boolean;
 }
 
 function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
@@ -100,7 +105,11 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
   );
 }
 
-export function MarkdownRenderer({ children, docs }: MarkdownRendererProps) {
+export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: MarkdownRendererProps) {
+  const Wrapper = (inline ? 'span' : 'div') as 'div';
+  const refs = useDocsRefs();
+  const ticketSurface = !docsProp && !!refs && !plain;
+  const docs: DocsRenderOptions | undefined = docsProp ?? (refs && !plain ? { projectId: refs.projectId, onOpenPage: (id, a) => refs.peek(id, a), onOpenTicket: refs.openTicket } : undefined);
   // Clean up any stray uploading:... placeholders before rendering, and preprocess raw <img> tags
   let cleanedContent = children ? children.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '') : '';
   // Support both /api/uploads/ and /uploads/ interchangeably
@@ -128,6 +137,9 @@ export function MarkdownRenderer({ children, docs }: MarkdownRendererProps) {
     });
   }
 
+  // @[Name](member:id) is stored as written; render it as a link so the `a` renderer can make the chip
+  cleanedContent = cleanedContent.replace(/@\[([^\]]+)\]\(member:([^)\s]+)\)/g, '[@$1](member:$2)');
+
   const linked = useMemo(
     () => (docs ? linkifyDocs(cleanedContent) : { markdown: cleanedContent, refs: NO_REFS }),
     [docs, cleanedContent],
@@ -143,14 +155,15 @@ export function MarkdownRenderer({ children, docs }: MarkdownRendererProps) {
   });
 
   return (
-    <div className={styles.markdown}>
+    <Wrapper className={styles.markdown} style={inline ? { display: 'inline' } : undefined}>
       <ReactMarkdown
         remarkPlugins={docs ? [remarkGfm, remarkDocs] : [remarkGfm]}
         rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}
         urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) ? url : defaultUrlTransform(url)
+          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) || url.startsWith('member:') ? url : defaultUrlTransform(url)
         }
         components={{
+          ...(inline ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> } : {}),
           blockquote: ({ node, children: inner, ...props }) => {
             const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
             if (!kind) return <blockquote {...props}>{inner}</blockquote>;
@@ -165,6 +178,17 @@ export function MarkdownRenderer({ children, docs }: MarkdownRendererProps) {
             <MarkdownImage src={src} alt={alt} {...props} />
           ),
           a: ({ href, children, ...props }) => {
+            if (href?.startsWith('member:')) {
+              return (
+                <span
+                  data-testid="mention-chip"
+                  data-member={href.slice(7)}
+                  style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 999, background: '#E8F1FB', border: '1px solid #B9D3EE', color: '#2F6FB0', fontSize: 13, fontWeight: 600, verticalAlign: 1, whiteSpace: 'nowrap' }}
+                >
+                  {children}
+                </span>
+              );
+            }
             if (docs && href?.startsWith(TICKET_SCHEME)) {
               const key = href.slice(TICKET_SCHEME.length);
               return (
@@ -172,6 +196,7 @@ export function MarkdownRenderer({ children, docs }: MarkdownRendererProps) {
                   kind="ticket"
                   label={key}
                   result={resolvedTickets.get(key)}
+                  surface={ticketSurface ? 'ticket' : 'docs'}
                   onOpenTicket={docs.onOpenTicket}
                 />
               );
@@ -183,6 +208,12 @@ export function MarkdownRenderer({ children, docs }: MarkdownRendererProps) {
                   kind="page"
                   label={String(children)}
                   result={ref ? resolvedPages.get(`${ref.title}#${ref.anchor ?? ''}`) : undefined}
+                  projectId={docs.projectId}
+                  pageTitle={ref?.title}
+                  anchor={ref?.anchor ?? null}
+                  surface={ticketSurface ? 'ticket' : 'docs'}
+                  onPeek={ticketSurface ? refs?.peek : undefined}
+                  onOpenInDocs={ticketSurface ? refs?.openInDocs : undefined}
                   onOpenPage={docs.onOpenPage}
                 />
               );
@@ -201,7 +232,7 @@ export function MarkdownRenderer({ children, docs }: MarkdownRendererProps) {
       >
         {linked.markdown}
       </ReactMarkdown>
-    </div>
+    </Wrapper>
   );
 }
 

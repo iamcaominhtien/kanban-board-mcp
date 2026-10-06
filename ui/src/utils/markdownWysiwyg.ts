@@ -3,6 +3,7 @@
  * Strictly mirrors the styling and formatting from DescriptionMarkdown.dc.html.
  */
 
+import { keyChipHtml, keyPattern, refChipHtml } from './docRefTokens';
 import { resolveOrigin } from '../api/resolveOrigin';
 
 function escapeHtml(text: string): string {
@@ -38,11 +39,25 @@ function formatInlineMarkdown(text: string): string {
 
   // Docs references [[Page#Section|label]] become non-editable chips (swapped back in at the end)
   const refChips: string[] = [];
-  text = text.replace(/\[\[([^\]|#]+?)(?:#([^\]|]+?))?(?:\|([^\]]+?))?\]\]/g, (m, title, anchor, label) => {
-    const shown = label || (anchor ? `${title} › ${anchor}` : title);
-    refChips.push(`<span class="docRef" data-ref="${m.slice(2, -2)}" contenteditable="false">${shown}</span>`);
+  text = text.replace(/\[\[([^\]|#]+?)(?:#([^\]|]+?))?(?:\|([^\]]+?))?\]\]/g, (m) => {
+    refChips.push(refChipHtml(m.slice(2, -2)));
     return `\u0000${refChips.length - 1}\u0000`;
   });
+  // Ticket keys (KAN-12) outside inline code become pills too
+  const keyRe = keyPattern();
+  if (keyRe) {
+    text = text
+      .split(/(```[\s\S]*?```|`[^`\n]*`)/)
+      .map((seg, i) =>
+        i % 2 === 1
+          ? seg
+          : seg.replace(keyRe, (key) => {
+              refChips.push(keyChipHtml(key));
+              return `\u0000${refChips.length - 1}\u0000`;
+            }),
+      )
+      .join('');
+  }
 
   // Images: ![alt](url) or ![alt|width](url)
   let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, rawAlt, url) => {
@@ -422,6 +437,7 @@ export function htmlToMarkdown(root: HTMLElement): string {
       case 'br':
         return '\n';
       case 'span':
+        if (el.hasAttribute('data-key')) return el.getAttribute('data-key') ?? '';
         return el.hasAttribute('data-ref') ? `[[${el.getAttribute('data-ref')}]]` : childrenText;
       case 'input':
         return '';

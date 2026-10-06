@@ -36,7 +36,9 @@ export interface BacklinkTicketRow {
   ticketId: string;
   title: string;
   status: string;
-  origin?: 'description' | 'comment' | string;
+  origin?: TicketDocOrigin | string;
+  /** Which test case, for origin 'test_case' (e.g. TC-3). */
+  detail?: string;
   context?: string | null;
   snippet?: string | null;
   author?: string | null;
@@ -52,7 +54,7 @@ export type RecycleEntry = DocsDeletedEntry & {
   parentDeleted?: boolean;
 };
 
-export type TicketDocOrigin = 'description' | 'comment' | 'page' | 'manual';
+export type TicketDocOrigin = 'description' | 'comment' | 'acceptance_criterion' | 'test_case' | 'debug_note' | 'page' | 'manual';
 
 export interface TicketDocRow {
   pageId: string;
@@ -62,6 +64,8 @@ export interface TicketDocRow {
   section?: string | null;
   snippet?: string;
   origin?: TicketDocOrigin;
+  /** Test case code (TC-3) when origin is test_case. */
+  detail?: string;
   version?: number;
 }
 

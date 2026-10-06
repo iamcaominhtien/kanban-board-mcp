@@ -28,6 +28,12 @@ export interface Comment {
   text: string;
   author: string;
   at: string; // ISO datetime
+  /** Set when the text was changed after posting. */
+  editedAt?: string | null;
+  /** Member ids written as @[Name](member:id). */
+  mentions?: string[];
+  /** Who this comment notified (reporter, assignee, earlier commenters, mentions). */
+  notified?: { id: string; name: string }[];
 }
 
 export interface AcceptanceCriterion {

@@ -231,23 +231,20 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
               <div style={groupLabel}>Tickets · {tickets.length}</div>
               {tickets.map((t) => {
                 const text = t.context ?? t.snippet ?? '';
-                const where = t.origin === 'comment' ? 'in comment' : t.origin === 'description' ? 'in description' : '';
+                const words: Record<string, string> = { description: 'description', comment: 'comment', acceptance_criterion: 'acceptance criterion', test_case: `test case${t.detail ? ` ${t.detail}` : ''}`, debug_note: 'debug note', manual: 'manual link' };
+                const where = `Mentioned in ${t.ticketId} · ${words[t.origin ?? ''] ?? t.origin ?? 'ticket'}`;
                 return (
-                  <div key={t.ticketId} style={rowBox}>
+                  <div key={`${t.ticketId}-${t.origin}-${t.detail ?? ''}`} style={rowBox} data-testid="backlink-ticket">
                     <div style={rowHead}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: statusDot(t.status), flexShrink: 0, display: 'inline-block' }} />
                       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>{t.ticketId}</span>
                       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                      {where && (
-                        <span style={{ fontSize: 11.5, fontWeight: 500, color: '#5B6B60', padding: '1px 7px', borderRadius: 999, background: '#F1F3F1', whiteSpace: 'nowrap' }}>
-                          {where}
-                        </span>
-                      )}
                       <button type="button" style={goLink} onClick={() => onOpenTicket(t.ticketId)}>
                         Open ticket
                         <Icon name="i29" size={12} strokeWidth={2.2} />
                       </button>
                     </div>
+                    <div data-testid="backlink-where" style={{ fontSize: 11.5, color: '#5B6B60', padding: '0 0 0 15px' }}>{where}</div>
                     {text && (
                       <div style={ctxBox}>
                         <Sentence text={text} />

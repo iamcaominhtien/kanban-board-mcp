@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
 import {
   useUpdateTicket, useUpdateTicketStatus,
-  useAddComment, useUpdateComment, useDeleteComment,
+  useAddComment, useUpdateComment, useDeleteComment, useRestoreComment,
   useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
   useAddSubTask, useToggleSubTask, useDeleteSubTask,
   useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
@@ -25,6 +25,7 @@ import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { MemberAvatar } from './MemberAvatar';
 import { RelationsSection } from './RelationsSection';
 import { TicketDocsSection } from './docs/TicketDocsSection';
+import { TicketDocsHost } from './docs/TicketDocsHost';
 import { TestCasesSection } from './TestCasesSection';
 import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
@@ -130,7 +131,7 @@ type TicketModalProps =
       members?: Member[];
     };
 
-export function TicketModal({
+function TicketModalInner({
   mode: initialMode,
   ticket,
   onSave,
@@ -168,6 +169,8 @@ export function TicketModal({
   const addCommentMutation = useAddComment();
   const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
+  const restoreCommentMutation = useRestoreComment();
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
   const addACMutation = useAddAcceptanceCriterion();
   const toggleACMutation = useToggleAcceptanceCriterion();
   const deleteACMutation = useDeleteAcceptanceCriterion();
@@ -985,15 +988,6 @@ export function TicketModal({
 
                 <hr className={styles.sectionDivider} />
 
-                {/* Comments */}
-                <CommentsSection
-                  comments={ticket.comments ?? []}
-                  members={members}
-                  currentMember={assigneeMember}
-                  onAdd={(t) => addCommentMutation.mutate({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'user' })}
-                  onEdit={(cId, t) => updateCommentMutation.mutate({ ticketId: ticket.id, commentId: cId, text: t })}
-                  onDelete={(cId) => deleteCommentMutation.mutate({ ticketId: ticket.id, commentId: cId })}
-                />
 
                 {/* Consolidated Attachments Zone (matching Attachments.dc.html - placed after Comments) */}
                 {(() => {
@@ -1135,6 +1129,23 @@ export function TicketModal({
                     </div>
                   );
                 })()}
+
+                {/* Comments: the last section of Details */}
+                <CommentsSection
+                  ticketId={ticket.id}
+                  projectId={ticket.projectId}
+                  comments={ticket.comments ?? []}
+                  members={members}
+                  currentMember={assigneeMember}
+                  reporterId={ticket.createdBy}
+                  assigneeId={ticket.assignee}
+                  focusCommentId={focusCommentId}
+                  onFocusHandled={() => setFocusCommentId(null)}
+                  onAdd={(t) => addCommentMutation.mutateAsync({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'user' })}
+                  onEdit={(cId, t) => updateCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId, text: t })}
+                  onDelete={(cId) => deleteCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
+                  onRestore={(cId) => restoreCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
+                />
 
                 {previewAttachment && (
                   <FilePreviewModal
@@ -1626,6 +1637,10 @@ export function TicketModal({
                 ticketId={ticket.id}
                 entries={ticket.activityLog ?? []}
                 members={members}
+                onViewComment={(commentId) => {
+                  setActiveTab('main');
+                  setTimeout(() => setFocusCommentId(commentId), 60);
+                }}
               />
             )}
           </div>
@@ -1647,5 +1662,24 @@ export function TicketModal({
         />
       </div>
     </div>
+  );
+}
+
+/** The ticket modal, with doc and ticket pills wired to the side panel and navigation. */
+export function TicketModal(props: TicketModalProps) {
+  const { ticket, allTickets = [], onOpenTicket, onOpenDocsPage } = props;
+  if (!ticket) return <TicketModalInner {...props} />;
+  return (
+    <TicketDocsHost
+      projectId={ticket.projectId}
+      ticketId={ticket.id}
+      onOpenDocsPage={(pageId) => onOpenDocsPage?.(pageId)}
+      onOpenTicket={(id) => {
+        const next = allTickets.find((t) => t.id.toLowerCase() === id.toLowerCase());
+        if (next) onOpenTicket?.(next);
+      }}
+    >
+      <TicketModalInner {...props} />
+    </TicketDocsHost>
   );
 }

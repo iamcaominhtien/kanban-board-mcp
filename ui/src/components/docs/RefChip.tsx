@@ -6,6 +6,8 @@ import type { DocsHeading, DocsPage, DocsRefResult } from '../../types/docs';
 import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { slugify } from '../../utils/docsMarkdown';
 import { avatarColors, ticketStatus } from './docsUi';
+import './docs.css';
+import { TicketDeletedCard, TicketPageCard } from './RefCardsTicket';
 import { Icon } from './Icon';
 
 export interface RefChipProps {
@@ -22,6 +24,14 @@ export interface RefChipProps {
   custom?: boolean;
   onOpenPage?: (pageId: string, anchor?: string | null) => void;
   onOpenTicket?: (ticketId: string) => void;
+  /** Where the chip sits: in Docs pages (default) or inside a ticket (opens the side panel, ticket-style cards). */
+  surface?: 'docs' | 'ticket';
+  /** Ticket surface: open the 480px side panel. */
+  onPeek?: (pageId: string, anchor?: string | null, hint?: { deleted?: boolean; title?: string }) => void;
+  /** Ticket surface: leave the ticket for the page in Docs. */
+  onOpenInDocs?: (pageId: string, anchor?: string | null) => void;
+  /** A plain pill with no hover card or click (lists, diffs). */
+  staticPill?: boolean;
   /** "Create it" on a missing page. */
   onCreatePage?: (title: string) => void;
   /** "Restore" on a page in the Recycle Bin. */
@@ -74,19 +84,27 @@ function useHoverCard(openDelay = 400, closeDelay = 250) {
   return { open, rect, enter, leave, keep, close };
 }
 
-function Floating({ rect, width, onEnter, onLeave, children, role = 'dialog', label }: { rect: DOMRect; width: number; onEnter: () => void; onLeave: () => void; children: ReactNode; role?: string; label?: string }) {
+interface FloatInfo { arrowLeft: number; flipped: boolean }
+
+function Floating({ rect, width, onEnter, onLeave, children, role = 'dialog', label, ticket }: { rect: DOMRect; width: number; onEnter: () => void; onLeave: () => void; children: ReactNode | ((i: FloatInfo) => ReactNode); role?: string; label?: string; ticket?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number }>({ left: rect.left, top: rect.bottom + 6 });
+  const gap = ticket ? 9 : 6;
+  const [pos, setPos] = useState<{ left: number; top: number; flipped: boolean }>({ left: rect.left, top: rect.bottom + gap, flipped: false });
   useEffect(() => {
     const h = ref.current?.offsetHeight ?? 0;
-    let top = rect.bottom + 6;
-    if (top + h > window.innerHeight - 8 && rect.top - 6 - h > 8) top = rect.top - 6 - h;
-    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
-    setPos({ left, top });
-  }, [rect, width]);
+    let top = rect.bottom + gap;
+    let flipped = false;
+    if (top + h > window.innerHeight - 8 && rect.top - gap - h > 8) {
+      top = rect.top - gap - h;
+      flipped = true;
+    }
+    const left = Math.max(ticket ? 16 : 8, Math.min(rect.left, window.innerWidth - width - (ticket ? 16 : 8)));
+    setPos({ left, top, flipped });
+  }, [rect, width, gap, ticket]);
+  const info: FloatInfo = { arrowLeft: Math.max(14, Math.min(width - 28, rect.left + rect.width / 2 - pos.left - 6)), flipped: pos.flipped };
   return createPortal(
-    <div className="docs-root" ref={ref} role={role} aria-label={label} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ position: 'fixed', left: pos.left, top: pos.top, width, zIndex: 400 }}>
-      {children}
+    <div className="docs-root" ref={ref} role={role} aria-label={label} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ position: 'fixed', left: pos.left, top: pos.top, width, zIndex: 1500 }}>
+      {typeof children === 'function' ? children(info) : children}
     </div>,
     document.body,
   );
@@ -95,7 +113,7 @@ function Floating({ rect, width, onEnter, onLeave, children, role = 'dialog', la
 /** A small dark tooltip with an optional action: "Page not found — Create it". */
 function ChipTip({ rect, icon, text, action, onAction, onEnter, onLeave }: { rect: DOMRect; icon?: ReactNode; text: string; action?: string; onAction?: () => void; onEnter: () => void; onLeave: () => void }) {
   return createPortal(
-    <div className="docs-root dk-tt" role="tooltip" onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ position: 'fixed', left: rect.left, top: rect.bottom + 6, zIndex: 400, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+    <div className="docs-root dk-tt" role="tooltip" onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ position: 'fixed', left: rect.left, top: rect.bottom + 6, zIndex: 1500, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
       {icon}
       <span>{text}</span>
       {action && onAction && (
@@ -114,6 +132,7 @@ function ChipTip({ rect, icon, text, action, onAction, onEnter, onLeave }: { rec
 function plain(md: string): string {
   return md
     .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\[!\w+\]\s*/g, '')
     .replace(/\[\[([^\]|#]+?)(?:#[^\]|]+?)?(?:\|([^\]]+?))?\]\]/g, (_m, t, l) => l || t)
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
@@ -206,10 +225,29 @@ function PageChipBody({ title, anchor, section, custom, label, color }: { title?
 
 export function RefChip(props: RefChipProps) {
   const { kind, label, result, onOpenPage, onOpenTicket } = props;
-  const hover = useHoverCard();
+  const ticketSurface = props.surface === 'ticket';
+  const hover = useHoverCard(ticketSurface ? 300 : 400, ticketSurface ? 150 : 250);
   const ref = useRef<HTMLElement | null>(null);
   const status = result?.status ?? 'ok';
   const ticketKey = kind === 'ticket' ? (result?.key ?? label) : '';
+
+  if (props.staticPill) {
+    if (kind === 'ticket') {
+      const st = ticketStatus(result?.ticketStatus);
+      return (
+        <span className="dk-chip dk-chip-ticket" data-testid="ref-static" style={{ cursor: 'default' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, flexShrink: 0, display: 'inline-block' }} />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600 }}>{ticketKey}</span>
+        </span>
+      );
+    }
+    return (
+      <span className={status === 'section_missing' ? 'dk-chip' : 'dk-chip dk-chip-page'} data-testid="ref-static" style={{ cursor: 'default', ...(status === 'section_missing' ? { background: '#FEF6E7', border: '1px dashed #E3C27A', color: '#7A4F08' } : {}) }}>
+        <Icon name="page" size={13} strokeWidth={1.9} />
+        <PageChipBody title={props.pageTitle} anchor={props.anchor} section={result?.section} custom={props.custom} label={label} />
+      </span>
+    );
+  }
 
   // ---------- tickets ----------
   if (kind === 'ticket') {
@@ -297,7 +335,9 @@ export function RefChip(props: RefChipProps) {
           ref={ref as React.RefObject<HTMLSpanElement>}
           className="dk-chip"
           tabIndex={0}
-          style={{ background: '#F1F3F1', border: '1px solid #DCE6DF', color: '#7A8A80', textDecoration: 'line-through', textDecorationColor: '#9AA8A0', cursor: 'default' }}
+          data-testid="ref-in-bin"
+          onClick={() => ticketSurface && result?.pageId && props.onPeek?.(result.pageId, null, { deleted: true, title: pageTitle ?? label })}
+          style={{ background: '#F1F3F1', border: '1px solid #DCE6DF', color: '#7A8A80', textDecoration: 'line-through', textDecorationColor: '#9AA8A0', cursor: ticketSurface ? 'pointer' : 'default' }}
           onMouseEnter={() => hover.enter(ref.current, 150)}
           onMouseMove={() => hover.enter(ref.current, 150)}
           onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
@@ -307,7 +347,19 @@ export function RefChip(props: RefChipProps) {
           <Icon name="i12" size={13} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />
           {label}
         </span>
-        {hover.open && hover.rect && (
+        {hover.open && hover.rect && ticketSurface && (
+          <Floating rect={hover.rect} width={400} ticket onEnter={hover.keep} onLeave={hover.leave} label="Page in the Recycle Bin">
+            {(i) => (
+              <TicketDeletedCard
+                {...i}
+                canRestore={!!props.onRestorePage && !!result?.pageId}
+                onRestore={() => { hover.close(); if (result?.pageId) props.onRestorePage?.(result.pageId); }}
+                onOpenBin={() => { hover.close(); if (result?.pageId) props.onPeek?.(result.pageId, null, { deleted: true, title: pageTitle ?? label }); }}
+              />
+            )}
+          </Floating>
+        )}
+        {hover.open && hover.rect && !ticketSurface && (
           <ChipTip
             rect={hover.rect}
             icon={<Icon name="i12" size={13} strokeWidth={2} style={{ color: '#F2C98A' }} />}
@@ -322,7 +374,12 @@ export function RefChip(props: RefChipProps) {
     );
   }
 
-  const go = () => result?.pageId && onOpenPage?.(result.pageId, sectionMissing ? null : (result.anchor ?? props.anchor ?? null));
+  const goAnchor = sectionMissing && !ticketSurface ? null : (result?.anchor ?? props.anchor ?? null);
+  const go = () => {
+    if (!result?.pageId) return;
+    if (ticketSurface && props.onPeek) props.onPeek(result.pageId, goAnchor);
+    else onOpenPage?.(result.pageId, sectionMissing ? null : goAnchor);
+  };
   const baseStyle = sectionMissing ? { background: '#FEF6E7', border: '1px dashed #E3C27A', color: '#7A4F08' } : undefined;
   const iconColor = sectionMissing ? '#B4791E' : undefined;
   return (
@@ -345,10 +402,23 @@ export function RefChip(props: RefChipProps) {
         <Icon name="page" size={13} strokeWidth={1.9} style={iconColor ? { color: iconColor } : undefined} />
         <PageChipBody title={pageTitle} anchor={props.anchor} section={result?.section} custom={props.custom} label={label} color={iconColor} />
       </span>
-      {hover.open && hover.rect && result?.pageId && (
+      {hover.open && hover.rect && result?.pageId && ticketSurface && !sectionMissing && (
+        <Floating rect={hover.rect} width={400} ticket onEnter={hover.keep} onLeave={hover.leave} label={`Preview of ${pageTitle ?? label}`}>
+          {(i) => (
+            <TicketPageCard
+              {...i}
+              pageId={result.pageId!}
+              anchor={result.anchor ?? props.anchor ?? null}
+              onPeek={() => { hover.close(); go(); }}
+              onOpenDocs={() => { hover.close(); props.onOpenInDocs?.(result.pageId!, result.anchor ?? props.anchor ?? null); }}
+            />
+          )}
+        </Floating>
+      )}
+      {hover.open && hover.rect && result?.pageId && !(ticketSurface && !sectionMissing) && (
         <Floating rect={hover.rect} width={sectionMissing ? 330 : 400} onEnter={hover.keep} onLeave={hover.leave} label={`Preview of ${pageTitle ?? label}`}>
           {sectionMissing ? (
-            <MissingSection pageId={result.pageId} title={pageTitle ?? label} anchor={props.anchor ?? ''} onOpen={() => { hover.close(); onOpenPage?.(result.pageId!, null); }} onUse={props.onReplaceSection} onDone={hover.close} />
+            <MissingSection pageId={result.pageId} title={pageTitle ?? label} anchor={props.anchor ?? ''} onOpen={() => { hover.close(); if (ticketSurface && props.onPeek) props.onPeek(result.pageId!, props.anchor ?? null); else onOpenPage?.(result.pageId!, null); }} onUse={props.onReplaceSection} onDone={hover.close} />
           ) : (
             <PageCard pageId={result.pageId} anchor={result.anchor ?? props.anchor ?? null} projectName={props.projectName} onOpen={() => { hover.close(); go(); }} />
           )}

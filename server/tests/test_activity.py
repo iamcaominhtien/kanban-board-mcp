@@ -86,8 +86,9 @@ async def test_comment_lifecycle_uses_author_as_actor(client):
         await c.patch(f"/tickets/{tid}/comments/{cid}", json={"text": "edited"})  # no-op
         await c.delete(f"/tickets/{tid}/comments/{cid}")
         log = [e for e in await _log(c, tid) if e["field"] == "comment"]
-        assert [(e["from"], e["to"]) for e in log] == [(None, "first"), ("first", "edited"), ("edited", None)]
-        assert log[0]["actor"] == "Bao" and log[1]["actor"] == "user"
+        # edits and deletions are not logged: only "X commented", linking back to the comment
+        assert [(e["from"], e["to"]) for e in log] == [(None, "first")]
+        assert log[0]["actor"] == "Bao" and log[0]["ref"] == cid
 
 
 async def test_long_text_is_clipped(client):
