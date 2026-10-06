@@ -17,7 +17,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import DocsDraft, DocsPage
 from services import activity, docs as svc, docs_search
-from services.docs_text import _FENCE, DocsError, parse_references
+from services.docs_text import _FENCE, _HEADING, DocsError, parse_references
 
 MAX_FILES = 200
 MAX_FILE_BYTES = 2 * 1024 * 1024
@@ -76,11 +76,11 @@ def _first_h1(body: str) -> tuple[str | None, str]:
         if _FENCE.match(line):
             in_fence = not in_fence
             continue
-        if not in_fence and (m := re.match(r"^#\s+(.+?)\s*#*\s*$", line)):
+        if not in_fence and (m := _HEADING.match(line)) and m.group(1) == "#":
             rest = lines[:i] + lines[i + 1 :]
             while i < len(rest) and not rest[i].strip():
                 rest.pop(i)  # the blank lines that followed the title
-            return m.group(1).strip(), "\n".join(rest)
+            return m.group(2).strip(), "\n".join(rest)
     return None, body
 
 

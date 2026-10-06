@@ -16,8 +16,60 @@ class DocsError(Exception):
 
 
 _FENCE = re.compile(r"^\s*(```|~~~)")
-_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
-_REF = re.compile(r"\[\[([^\]\|#]+?)(?:#([^\]\|]+?))?(?:\|([^\]]+?))?\]\]")
+# Patterns below are linear on hostile input: body classes exclude the next opener ("[") and are
+# length-bounded, so one unanchored scan never rescans the rest of the text from every start.
+_REF = re.compile(r"\[\[([^\][|#\n]{1,200})(?:#([^\][|\n]{1,200}))?(?:\|([^\][\n]{1,200}))?\]\]")
+_LINK = re.compile(r"\[([^\][\n]{1,300})\]\(([^()\n]{0,500})\)")
+_BULLET = re.compile(r"(?:[*+-]|\d{1,9}\.)[ \t]*")
+_CHECKBOX = re.compile(r"\[[ xX]\][ \t]*")
+
+
+class _HeadingMatch:
+    """Just enough of ``re.Match`` for the callers: ``group(1)`` = hashes, ``group(2)`` = text."""
+
+    def __init__(self, hashes: str, text: str) -> None:
+        self._groups = (hashes, text)
+
+    def group(self, i: int) -> str:
+        return self._groups[i - 1]
+
+
+class _HeadingMatcher:
+    """ATX heading (``## Title ##``) without a regex: no backtracking on odd whitespace / ``#`` runs."""
+
+    @staticmethod
+    def match(line: str) -> "_HeadingMatch | None":
+        n = 0
+        while n < len(line) and n < 7 and line[n] == "#":
+            n += 1
+        if n < 1 or n > 6 or n >= len(line) or line[n] not in " \t":
+            return None
+        text = line[n:].strip()
+        bare = text.rstrip("#")
+        if bare != text and (not bare or bare[-1] in " \t"):
+            text = bare.rstrip()  # a closing run of # counts only after a space
+        return _HeadingMatch(line[:n], text) if text else None
+
+
+_HEADING = _HeadingMatcher()
+
+
+def strip_block_prefix(line: str, headings: bool = False) -> str:
+    """Drop quote markers, list bullet / number (or ``#`` run) and a task checkbox from the start of a line."""
+    line = line.lstrip(" \t>")
+    while line.startswith(">"):  # "> > x" and ">  > x"
+        line = line[1:].lstrip(" \t>")
+    if headings:
+        hashes = len(line) - len(line.lstrip("#"))
+        if 1 <= hashes <= 6:
+            line = line[hashes:].lstrip(" \t")
+        else:
+            line = _BULLET.sub("", line, count=1) if _BULLET.match(line) else line
+    elif _BULLET.match(line):
+        line = _BULLET.sub("", line, count=1)
+    if _CHECKBOX.match(line):
+        line = _CHECKBOX.sub("", line, count=1)
+    return line
 _TICKET = re.compile(r"\b([A-Z][A-Z0-9]{1,5}-\d+)\b")
 _INLINE_CODE = re.compile(r"`[^`\n]*`")
 
@@ -30,12 +82,8 @@ def slugify(text: str) -> str:
 
 
 def _strip_inline(text: str) -> str:
-    text = re.sub(
-        r"\[\[([^\]\|#]+?)(?:#[^\]\|]+?)?(?:\|([^\]]+?))?\]\]",
-        lambda m: m.group(2) or m.group(1),
-        text,
-    )
-    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+    text = _REF.sub(lambda m: m.group(3) or m.group(1), text)
+    text = _LINK.sub(r"\1", text)
     return re.sub(r"[*_`~]", "", text).strip()
 
 
@@ -85,9 +133,7 @@ def parse_references(markdown: str) -> list[dict[str, Any]]:
     """Every [[page]] and ticket-key reference with its section and a context snippet."""
     refs: list[dict[str, Any]] = []
     for line, section, raw in _prose_lines(markdown):
-        snippet = re.sub(
-            r"^\s*(?:>\s*)*(?:[*+-]|\d+\.)?\s*(?:\[[ xX]\]\s*)?", "", _strip_inline(raw)
-        )[:160]
+        snippet = strip_block_prefix(_strip_inline(raw))[:160]
         for m in _REF.finditer(line):
             refs.append(
                 {

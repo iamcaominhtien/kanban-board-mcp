@@ -53,7 +53,7 @@ MAX_AC_TEXT = 1_000
 MAX_SUB_TASK_TEXT = 500
 
 
-_MENTION = re.compile(r"@\[([^\]]+)\]\(member:([^)\s]+)\)")
+_MENTION = re.compile(r"@\[([^\][\n]{1,100})\]\(member:([\w.-]{1,64})\)")
 
 
 def _doc_ref_keys(text_: str | None) -> list[str]:

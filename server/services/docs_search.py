@@ -25,6 +25,7 @@ from services.docs_text import (
     _HEADING,
     DocsError,
     _strip_inline,
+    strip_block_prefix,
     heading_anchors,
 )
 
@@ -194,6 +195,16 @@ async def rebuild_index(session: AsyncSession) -> None:
 # Query parsing
 # ---------------------------------------------------------------------------
 
+def _trim_nonword(text: str) -> str:
+    """Strip leading / trailing non-word characters (linear; ``^\W+|\W+$`` is quadratic)."""
+    start, end = 0, len(text)
+    while start < end and not (text[start].isalnum() or text[start] == "_"):
+        start += 1
+    while end > start and not (text[end - 1].isalnum() or text[end - 1] == "_"):
+        end -= 1
+    return text[start:end]
+
+
 _TOKEN = re.compile(r'-?"[^"]*"|\S+')
 
 
@@ -210,7 +221,7 @@ class Query:
                 body = body.strip('"')
             else:
                 kind = "word"
-            body = re.sub(r"^[^\w]+|[^\w]+$", "", body, flags=re.UNICODE)
+            body = _trim_nonword(body)
             body = " ".join(body.split())
             if not re.search(r"\w", body, flags=re.UNICODE):
                 continue
@@ -279,7 +290,7 @@ def _window(plain: str, terms: list[str], width: int = 150) -> str:
 
 def _plain_line(raw: str) -> str:
     return _strip_inline(
-        re.sub(r"^\s*(?:>\s*)*(?:[*+-]|\d+\.|#{1,6})?\s*(?:\[[ xX]\]\s*)?", "", raw)
+        strip_block_prefix(raw, headings=True)
     )
 
 
