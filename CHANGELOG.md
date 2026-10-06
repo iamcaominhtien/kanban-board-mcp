@@ -10,6 +10,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.4.0] - 2026-10-06
+
+Docs space, complete: the editor is now a real WYSIWYG (Tiptap) that still stores Markdown, the UI follows the Docs boards, and the MCP covers every Docs action. Mobile layout and roles / access requests are intentionally not part of this release.
+
+### Added
+- **Visual editor** built on Tiptap: formatting and floating toolbars, `/` block menu, `[[` suggester (pages, sections, tickets), callouts, tables with grips and cell tools, task lists, code blocks with syntax colours, images, drag handle, "On this page" rail, Visual | Markdown toggle, Publish and Discard dialogs, conflict banner with "View their changes", offline and back-online banners.
+- **Search**: full-text (SQLite FTS5, LIKE fallback) with phrase and `-exclude` syntax, Ctrl/Cmd+K palette, results page with filters, find-in-page (Ctrl/Cmd+F) with Replace in the editor.
+- **Import Markdown** from files or whole folders (drag and drop, front matter, folders become parent pages, link check before importing).
+- **Rename with link rewrite** (preview of affected pages, Undo), heading-rename aliases so `[[Page#Old]]` keeps working.
+- **Per-project Docs switch** in Settings, **offline copy** of recently read pages, **notifications** when someone publishes (Follow space), **hover preview cards** for page and ticket chips, Share and Page info popovers, "Changes since you last viewed" banner, Undo on Move, combined Recycle Bin (pages and tickets), manual ticket-to-page links and a `[[` suggester in ticket descriptions.
+- **MCP tools** (13 new): `search_docs`, `move_docs_page`, `duplicate_docs_page`, `delete_docs_page`, `restore_docs_page`, `list_docs_recycle_bin`, `list_docs_versions`, `get_docs_version`, `restore_docs_version`, `resolve_docs_links`, `import_docs`, `link_ticket_doc`, `unlink_ticket_doc`; `update_docs_page` can also rename.
+- Migration `c0d1e2f3a4b5`: `projects.docs_enabled`, `docs_links.origin`, `docs_anchor_aliases`, FTS index.
+
+### Changed
+- Docs UI rebuilt from the design boards (tokens, icons, tree, rail with flyouts, page view, dialogs, history and diff).
+- PyYAML is now a server dependency (Markdown front matter).
+
+---
+
 ## [2.3.0] - 2026-10-05
 
 Docs space (phase 1): a page tree per project with a rich-text editor stored as Markdown, per the Docs design boards.

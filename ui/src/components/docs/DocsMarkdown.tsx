@@ -1,5 +1,5 @@
-import { Children, isValidElement, useMemo, useState, type ReactNode } from 'react';
-import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
+import { Children, isValidElement, useMemo, useRef, useState, type ReactNode } from 'react';
+import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { resolveOrigin } from '../../api/resolveOrigin';
@@ -121,13 +121,12 @@ export function DocsMarkdown({ children, projectId, projectName, onOpenPage, onO
     else tickets.set(ref.key, res);
   });
 
-  return (
-    <div className="dk-md">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkDocs]}
-        rehypePlugins={[[rehypeSanitize, SCHEMA]]}
-        urlTransform={(url) => (url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) ? url : defaultUrlTransform(url))}
-        components={{
+  // The component map must keep one identity across renders: a new function per render makes React remount
+  // every chip (and close its hover card) whenever anything above re-renders.
+  const live = useRef({ projectId, projectName, onOpenPage, onOpenTicket, onCreatePage, onRestorePage, onReplaceSection, pages, tickets });
+  live.current = { projectId, projectName, onOpenPage, onOpenTicket, onCreatePage, onRestorePage, onReplaceSection, pages, tickets };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const components = useMemo<Components>(() => ({
           h2: ({ node: _n, children: inner, id }) => {
             const slug = (id ?? '').replace(/^docs-/, '');
             return (
@@ -205,7 +204,7 @@ export function DocsMarkdown({ children, projectId, projectName, onOpenPage, onO
           a: ({ href, children: inner, ...props }) => {
             if (href?.startsWith(TICKET_SCHEME)) {
               const key = href.slice(TICKET_SCHEME.length);
-              return <RefChip kind="ticket" label={key} result={tickets.get(key)} projectId={projectId} onOpenTicket={onOpenTicket} />;
+              return <RefChip kind="ticket" label={key} result={live.current.tickets.get(key)} projectId={live.current.projectId} onOpenTicket={live.current.onOpenTicket} />;
             }
             if (href?.startsWith(REF_SCHEME)) {
               const ref = parseDocRef(href);
@@ -218,13 +217,13 @@ export function DocsMarkdown({ children, projectId, projectName, onOpenPage, onO
                   pageTitle={ref?.title}
                   anchor={ref?.anchor}
                   custom={!!ref && label !== dflt}
-                  result={ref ? pages.get(`${ref.title}#${ref.anchor ?? ''}`) : undefined}
-                  projectId={projectId}
-                  projectName={projectName}
-                  onOpenPage={onOpenPage}
-                  onCreatePage={onCreatePage}
-                  onRestorePage={onRestorePage}
-                  onReplaceSection={onReplaceSection}
+                  result={ref ? live.current.pages.get(`${ref.title}#${ref.anchor ?? ''}`) : undefined}
+                  projectId={live.current.projectId}
+                  projectName={live.current.projectName}
+                  onOpenPage={live.current.onOpenPage}
+                  onCreatePage={live.current.onCreatePage}
+                  onRestorePage={live.current.onRestorePage}
+                  onReplaceSection={live.current.onReplaceSection}
                 />
               );
             }
@@ -236,7 +235,15 @@ export function DocsMarkdown({ children, projectId, projectName, onOpenPage, onO
               </a>
             );
           },
-        }}
+  }), []);
+
+  return (
+    <div className="dk-md">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkDocs]}
+        rehypePlugins={[[rehypeSanitize, SCHEMA]]}
+        urlTransform={(url) => (url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) ? url : defaultUrlTransform(url))}
+        components={components}
       >
         {linked.markdown}
       </ReactMarkdown>

@@ -10,6 +10,7 @@ import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorRep
 import { Icon } from './Icon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
 import { PublishDialog } from './PublishDialog';
+import { markDocsSeen } from './SinceViewedBanner';
 import { markOwnPublish } from './useDocsNotifications';
 import './docs.css';
 
@@ -175,6 +176,7 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
       }
       setPublishOpen(false);
       setConflict(null);
+      markDocsSeen(page.id, updated.version);
       toast.success(`Published v${updated.version}`, updated.title);
       onExit(updated);
     } catch (err) {

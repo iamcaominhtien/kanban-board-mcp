@@ -52,11 +52,12 @@ export function useDocsSearch(
 
 // ─── Import ───────────────────────────────────────────────────────────────────
 
-function importForm(entries: DocsImportEntry[], parentId: string | null, onConflict: DocsImportConflict) {
+function importForm(entries: DocsImportEntry[], parentId: string | null, onConflict: DocsImportConflict, dryRun = false) {
   const fd = new FormData();
+  if (dryRun) fd.append('dry_run', 'true');
   for (const e of entries) {
-    fd.append('files[]', e.file, e.file.name);
-    fd.append('paths[]', e.path);
+    fd.append('files', e.file, e.file.name);
+    fd.append('paths', e.path);
   }
   if (parentId) fd.append('parent_id', parentId);
   fd.append('on_conflict', onConflict);
@@ -71,8 +72,7 @@ export async function importDryRun(
 ): Promise<DocsImportDryRun> {
   const res = await client.post<DocsImportDryRun>(
     `/projects/${projectId}/docs/import`,
-    importForm(entries, parentId, onConflict),
-    { params: { dry_run: true } },
+    importForm(entries, parentId, onConflict, true),
   );
   return res.data;
 }

@@ -30,7 +30,7 @@
 - **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
 - **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
 - **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
-- **MCP server for AI agents**: 38 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **MCP server for AI agents**: 54 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
 - **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
 - **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
 
@@ -89,7 +89,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 37 tools for AI agents over MCP (50 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
+The server exposes 54 tools for AI agents over MCP (67 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
 
 **Projects & Members**
 - `list_projects`, `create_project`, `update_project` (name, color, linked git repo, worktree defaults)
@@ -109,6 +109,13 @@ The server exposes 37 tools for AI agents over MCP (50 with the Idea Space tools
 - `add_acceptance_criterion`, `toggle_acceptance_criterion`, `delete_acceptance_criterion`
 - `add_sub_task`, `toggle_sub_task`, `delete_sub_task` (checklist steps inside a ticket; use `parent_id` for real sub-tickets)
 - `add_branch`, `update_branch`, `delete_branch`, `checkout_branch` — real git branches when the project has a linked repo
+
+**Docs** (the per-project page tree)
+- `list_docs_pages`, `get_docs_page`, `search_docs` (full-text, with snippets)
+- `create_docs_page`, `update_docs_page` (stale `base_version` is rejected; optional `title` renames and rewrites `[[links]]`), `move_docs_page`, `duplicate_docs_page`
+- `delete_docs_page` (to the Recycle Bin), `restore_docs_page`, `list_docs_recycle_bin`
+- `list_docs_versions`, `get_docs_version` (optionally a diff against another version), `restore_docs_version`
+- `resolve_docs_links`, `import_docs` (a local `.md` file or folder), `link_ticket_doc`, `unlink_ticket_doc`
 
 **Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)
 - `list_idea_tickets`, `get_idea_ticket`, `get_idea_activity_trail`, `create_idea_ticket`, `update_idea_ticket`, `update_idea_status`, `promote_idea_to_ticket`, `delete_idea_ticket`

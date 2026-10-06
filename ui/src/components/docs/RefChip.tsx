@@ -40,19 +40,21 @@ function useHoverCard(openDelay = 400, closeDelay = 250) {
   const clear = () => {
     if (openT.current) clearTimeout(openT.current);
     if (closeT.current) clearTimeout(closeT.current);
+    openT.current = null;
   };
   useEffect(() => clear, []);
   const enter = useCallback((el: HTMLElement | null, delay = openDelay) => {
     if (closeT.current) clearTimeout(closeT.current);
-    if (open) return;
-    if (openT.current) clearTimeout(openT.current);
+    if (open || openT.current) return;
     openT.current = setTimeout(() => {
+      openT.current = null;
       if (el) setRect(el.getBoundingClientRect());
       setOpen(true);
     }, delay);
   }, [open, openDelay]);
   const leave = useCallback(() => {
     if (openT.current) clearTimeout(openT.current);
+    openT.current = null;
     if (closeT.current) clearTimeout(closeT.current);
     closeT.current = setTimeout(() => setOpen(false), closeDelay);
   }, [closeDelay]);
@@ -219,7 +221,8 @@ export function RefChip(props: RefChipProps) {
             className="dk-chip dk-chip-missing"
             tabIndex={0}
             onMouseEnter={() => hover.enter(ref.current, 150)}
-            onMouseLeave={hover.leave}
+            onMouseMove={() => hover.enter(ref.current, 150)}
+            onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
             onFocus={() => hover.enter(ref.current, 0)}
             onBlur={hover.leave}
           >
@@ -242,7 +245,8 @@ export function RefChip(props: RefChipProps) {
           onClick={() => onOpenTicket?.(ticketKey)}
           onKeyDown={(e) => e.key === 'Enter' && onOpenTicket?.(ticketKey)}
           onMouseEnter={() => hover.enter(ref.current)}
-          onMouseLeave={hover.leave}
+          onMouseMove={() => hover.enter(ref.current)}
+          onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
           onFocus={() => hover.enter(ref.current)}
           onBlur={hover.leave}
         >
@@ -272,7 +276,8 @@ export function RefChip(props: RefChipProps) {
           className="dk-chip dk-chip-missing"
           tabIndex={0}
           onMouseEnter={() => hover.enter(ref.current, 150)}
-          onMouseLeave={hover.leave}
+          onMouseMove={() => hover.enter(ref.current, 150)}
+          onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
           onFocus={() => hover.enter(ref.current, 0)}
           onBlur={hover.leave}
         >
@@ -294,7 +299,8 @@ export function RefChip(props: RefChipProps) {
           tabIndex={0}
           style={{ background: '#F1F3F1', border: '1px solid #DCE6DF', color: '#7A8A80', textDecoration: 'line-through', textDecorationColor: '#9AA8A0', cursor: 'default' }}
           onMouseEnter={() => hover.enter(ref.current, 150)}
-          onMouseLeave={hover.leave}
+          onMouseMove={() => hover.enter(ref.current, 150)}
+          onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
           onFocus={() => hover.enter(ref.current, 0)}
           onBlur={hover.leave}
         >
@@ -331,7 +337,8 @@ export function RefChip(props: RefChipProps) {
         onClick={go}
         onKeyDown={(e) => e.key === 'Enter' && go()}
         onMouseEnter={() => hover.enter(ref.current)}
-        onMouseLeave={hover.leave}
+        onMouseMove={() => hover.enter(ref.current)}
+        onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
         onFocus={() => hover.enter(ref.current)}
         onBlur={hover.leave}
       >
