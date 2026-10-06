@@ -311,6 +311,7 @@ async def test_ticket_docs_origins_description_comment_manual_and_page(c, pid):
         "section",
         "snippet",
         "origin",
+        "detail",
         "version",
     }
 

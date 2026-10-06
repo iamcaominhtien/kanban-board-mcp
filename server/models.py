@@ -386,7 +386,11 @@ class TicketRead(SQLModel):
             start_date=ticket.start_date,
             tags=_parse_json_list(ticket.tags),
             parent_id=ticket.parent_id,
-            comments=_parse_json_list(ticket.comments),
+            comments=[
+                c
+                for c in _parse_json_list(ticket.comments)
+                if not (isinstance(c, dict) and c.get("deleted_at"))
+            ],
             acceptance_criteria=_parse_json_list(ticket.acceptance_criteria),
             sub_tasks=_parse_json_list(getattr(ticket, "sub_tasks", "[]")),
             activity_log=_parse_json_list(ticket.activity_log),

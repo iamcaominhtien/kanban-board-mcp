@@ -1075,16 +1075,36 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
             session.add(link)
 
 
-def _ticket_texts(ticket: Ticket) -> list[tuple[str, str]]:
-    """(origin, text) for the description and each comment of a ticket."""
-    out = [("description", ticket.description or "")]
+def _json_list(raw: str | None) -> list[Any]:
     try:
-        comments = json.loads(ticket.comments or "[]")
+        data = json.loads(raw or "[]")
     except ValueError:
-        comments = []
-    for c in comments if isinstance(comments, list) else []:
-        if isinstance(c, dict) and c.get("text"):
-            out.append(("comment", str(c["text"])))
+        return []
+    return data if isinstance(data, list) else []
+
+
+def _ticket_texts(ticket: Ticket) -> list[tuple[str, str, str]]:
+    """(origin, detail, text) for every text field of a ticket that can hold a [[reference]].
+
+    ``detail`` names the exact place for the "Mentioned in test case TC-3" wording.
+    """
+    out: list[tuple[str, str, str]] = [("description", "", ticket.description or "")]
+    for c in _json_list(ticket.comments):
+        if isinstance(c, dict) and c.get("text") and not c.get("deleted_at"):
+            out.append(("comment", "", str(c["text"])))
+    for ac in _json_list(ticket.acceptance_criteria):
+        if isinstance(ac, dict) and ac.get("text"):
+            out.append(("acceptance_criterion", "", str(ac["text"])))
+    for tc in _json_list(ticket.test_cases):
+        if not isinstance(tc, dict):
+            continue
+        code = str(tc.get("code") or "")
+        for key in ("description", "expected_result", "notes", "test_data"):
+            if isinstance(tc.get(key), str) and tc[key]:
+                out.append(("test_case", code, tc[key]))
+    for w in _json_list(ticket.work_log):
+        if isinstance(w, dict) and w.get("note"):
+            out.append(("debug_note", "", str(w["note"])))
     return out
 
 
@@ -1094,7 +1114,13 @@ async def _tickets_mentioning_pages(
     result = await session.exec(
         select(Ticket).where(
             Ticket.project_id == project_id,
-            or_(Ticket.description.contains("[["), Ticket.comments.contains("[[")),  # type: ignore[attr-defined]
+            or_(
+                Ticket.description.contains("[["),  # type: ignore[attr-defined]
+                Ticket.comments.contains("[["),  # type: ignore[attr-defined]
+                Ticket.acceptance_criteria.contains("[["),  # type: ignore[attr-defined]
+                Ticket.test_cases.contains("[["),  # type: ignore[attr-defined]
+                Ticket.work_log.contains("[["),  # type: ignore[attr-defined]
+            ),
         )
     )
     return list(result.all())
@@ -1112,7 +1138,7 @@ async def _ticket_mentions(
     aliases = await _aliases_by_page(session, [p.id for p in pages])
     out: list[dict[str, Any]] = []
     for t in tickets:
-        for origin, body in _ticket_texts(t):
+        for origin, detail, body in _ticket_texts(t):
             if "[[" not in body:
                 continue
             for ref in page_ref_contexts(body):
@@ -1124,6 +1150,7 @@ async def _ticket_mentions(
                         {
                             "ticket": t,
                             "origin": origin,
+                            "detail": detail,
                             "page_id": res["page_id"],
                             "section": res.get("section"),
                             "context": ref["context"],
@@ -1178,18 +1205,19 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
             }
         )
     tickets_out: list[dict[str, Any]] = []
-    seen_tickets: set[tuple[str, str]] = set()
+    seen_tickets: set[tuple[str, str, str]] = set()
     for m in await _ticket_mentions(session, page.project_id):
         t: Ticket = m["ticket"]
-        if m["page_id"] != page.id or (t.id, m["origin"]) in seen_tickets:
+        if m["page_id"] != page.id or (t.id, m["origin"], m["detail"]) in seen_tickets:
             continue
-        seen_tickets.add((t.id, m["origin"]))
+        seen_tickets.add((t.id, m["origin"], m["detail"]))
         tickets_out.append(
             {
                 "ticket_id": t.id,
                 "title": t.title,
                 "status": t.status,
                 "origin": m["origin"],
+                "detail": m["detail"],
                 "context": m["context"],
             }
         )
@@ -1202,14 +1230,15 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
     )
     for link in manual.all():
         t = await session.get(Ticket, link.target_ticket_id)  # type: ignore[arg-type]
-        if t is not None and (t.id, "manual") not in seen_tickets:
-            seen_tickets.add((t.id, "manual"))
+        if t is not None and (t.id, "manual", "") not in seen_tickets:
+            seen_tickets.add((t.id, "manual", ""))
             tickets_out.append(
                 {
                     "ticket_id": t.id,
                     "title": t.title,
                     "status": t.status,
                     "origin": "manual",
+                    "detail": "",
                     "context": "",
                 }
             )
@@ -1252,7 +1281,15 @@ async def page_stats(
 # Ticket <-> docs
 # ---------------------------------------------------------------------------
 
-_ORIGIN_ORDER = {"description": 0, "comment": 1, "manual": 2, "page": 3}
+_ORIGIN_ORDER = {
+    "description": 0,
+    "acceptance_criterion": 1,
+    "test_case": 2,
+    "comment": 3,
+    "debug_note": 4,
+    "manual": 5,
+    "page": 6,
+}
 
 
 async def _ticket_or_404(session: AsyncSession, ticket_id: str) -> Ticket:
@@ -1273,12 +1310,14 @@ async def docs_for_ticket(
     pages = await _all_pages(session, ticket.project_id) if ticket else []
     by_id = {p.id: p for p in pages}
     out: list[dict[str, Any]] = []
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, str]] = set()
 
-    def row(page: DocsPage, origin: str, section: str | None, snippet: str) -> None:
-        if (page.id, origin) in seen:
+    def row(
+        page: DocsPage, origin: str, section: str | None, snippet: str, detail: str = ""
+    ) -> None:
+        if (page.id, origin, detail) in seen:
             return
-        seen.add((page.id, origin))
+        seen.add((page.id, origin, detail))
         out.append(
             {
                 "page_id": page.id,
@@ -1288,6 +1327,7 @@ async def docs_for_ticket(
                 "section": section,
                 "snippet": snippet,
                 "origin": origin,
+                "detail": detail,
                 "version": page.version,
             }
         )
@@ -1295,11 +1335,11 @@ async def docs_for_ticket(
     if (
         ticket is not None
         and pages
-        and "[[" in " ".join(t for _o, t in _ticket_texts(ticket))
+        and "[[" in " ".join(t for _o, _d, t in _ticket_texts(ticket))
     ):
         headings = await _headings_by_page(session, pages)
         aliases = await _aliases_by_page(session, [p.id for p in pages])
-        for origin, body in _ticket_texts(ticket):
+        for origin, detail, body in _ticket_texts(ticket):
             for ref in page_ref_contexts(body) if "[[" in body else []:
                 res = await _resolve_page_ref(
                     pages, [], ref["title"], ref["anchor"], headings, aliases
@@ -1310,6 +1350,7 @@ async def docs_for_ticket(
                         origin,
                         res.get("section"),
                         ref["context"],
+                        detail,
                     )
     links = await session.exec(
         select(DocsLink).where(DocsLink.target_ticket_id == ticket_id)

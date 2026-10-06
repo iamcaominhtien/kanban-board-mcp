@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Annotated, Any, Literal, NoReturn, Optional
 
@@ -34,6 +35,7 @@ from services.tickets import (
     get_branch_graph,
     get_commit_detail,
     delete_comment,
+    restore_comment,
     delete_test_case,
     delete_ticket,
     delete_work_log,
@@ -312,6 +314,14 @@ async def patch_status(
 # ---------------------------------------------------------------------------
 
 
+def _loads_comments(ticket) -> list[dict]:
+    try:
+        data = json.loads(ticket.comments or "[]")
+    except ValueError:
+        return []
+    return [c for c in data if isinstance(c, dict)]
+
+
 class CommentBody(BaseModel):
     text: str
     author: str = "user"
@@ -332,6 +342,19 @@ async def post_comment(
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
+    latest = (_loads_comments(ticket) or [None])[-1]
+    if latest and latest.get("notified"):
+        await board_events.publish(
+            json.dumps(
+                {
+                    "type": "comment_added",
+                    "ticket_id": ticket.id,
+                    "comment_id": latest["id"],
+                    "author": latest.get("author"),
+                    "notified": latest["notified"],
+                }
+            )
+        )
     return _read(ticket)
 
 
@@ -343,6 +366,19 @@ async def patch_comment(
         ticket = await update_comment(session, ticket_id, comment_id, body.text)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.post(
+    "/tickets/{ticket_id}/comments/{comment_id}/restore", response_model=TicketRead
+)
+async def undo_delete_comment(
+    ticket_id: str, comment_id: str, session: Session
+) -> TicketRead:
+    ticket = await restore_comment(session, ticket_id, comment_id)
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

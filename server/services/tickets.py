@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import uuid
 from datetime import date, datetime, timezone
 
@@ -50,6 +51,32 @@ MAX_ESTIMATE = 100_000
 MAX_COMMENT = 50_000
 MAX_AC_TEXT = 1_000
 MAX_SUB_TASK_TEXT = 500
+
+
+_MENTION = re.compile(r"@\[([^\]]+)\]\(member:([^)\s]+)\)")
+
+
+def _doc_ref_keys(text_: str | None) -> list[str]:
+    """Ordered, unique ``Page`` / ``Page#Section`` keys of the [[references]] in a text."""
+    from services.docs_text import page_ref_contexts
+
+    seen: dict[str, None] = {}
+    for ref in page_ref_contexts(text_ or ""):
+        seen.setdefault(ref["title"] + (f"#{ref['anchor']}" if ref["anchor"] else ""), None)
+    return list(seen)
+
+
+def _doc_ref_entries(old: str | None, new: str | None, source: str) -> list[dict]:
+    """doc_ref_removed / doc_ref_added activity entries for a text edit."""
+    before, after = _doc_ref_keys(old), _doc_ref_keys(new)
+    out = [act.entry("doc_ref_removed", key, None, ref=source) for key in before if key not in after]
+    out += [act.entry("doc_ref_added", None, key, ref=source) for key in after if key not in before]
+    return out
+
+
+def mention_ids(text_: str) -> list[str]:
+    """Member ids written as ``@[Name](member:id)`` in a comment."""
+    return list(dict.fromkeys(m.group(2) for m in _MENTION.finditer(text_ or "")))
 
 
 def _clean_title(value: str | None) -> str:
@@ -383,6 +410,7 @@ async def update_ticket(
             if old_val != new_val and not clearing_reason:
                 if field == "description":
                     activity.append(act.entry(field, old_val, new_val))
+                    activity.extend(_doc_ref_entries(old_val, new_val, field))
                 else:
                     activity.append(act.entry(field, act.clip(old_val), act.clip(new_val)))
             setattr(ticket, field, new_val)
@@ -435,6 +463,30 @@ async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
+async def _comment_recipients(
+    session: AsyncSession, ticket: Ticket, comments: list, author: str, mentions: list[str]
+) -> list[dict]:
+    """Who a new comment notifies: reporter, assignee, earlier commenters and anyone @mentioned (not the author)."""
+    result = await session.exec(select(Member).where(Member.project_id == ticket.project_id))
+    members = list(result.all())
+
+    def find(ref: str | None) -> Member | None:
+        if not ref:
+            return None
+        low = ref.lower()
+        return next((m for m in members if m.id == ref or m.name.lower() == low), None)
+
+    author_member = find(author)
+    ids: dict[str, str] = {}
+    for ref in [ticket.created_by, ticket.assignee, *[c.get("author") for c in comments if not c.get("deleted_at")], *mentions]:
+        m = find(ref)
+        if m is not None:
+            ids.setdefault(m.id, m.name)
+    if author_member is not None:
+        ids.pop(author_member.id, None)
+    return [{"id": i, "name": n} for i, n in ids.items()]
+
+
 async def add_comment(
     session: AsyncSession, ticket_id: str, text: str, author: str = "user"
 ) -> Ticket | None:
@@ -443,15 +495,22 @@ async def add_comment(
         return None
     text = _clean_text(text, "Comment", MAX_COMMENT)
     comments = _loads(ticket.comments)
+    comment_id = str(uuid.uuid4())
+    mentions = mention_ids(text)
+    notified = await _comment_recipients(session, ticket, comments, author, mentions)
     comments.append(
         {
-            "id": str(uuid.uuid4()),
+            "id": comment_id,
             "text": text,
             "author": author,
             "at": datetime.now(UTC).isoformat(),
+            "edited_at": None,
+            "deleted_at": None,
+            "mentions": mentions,
+            "notified": notified,
         }
     )
-    act.record(ticket, "comment", None, text, actor=act.author_actor(author))
+    act.record(ticket, "comment", None, text, ref=comment_id, actor=act.author_actor(author))
     ticket.comments = _dumps(comments)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -463,14 +522,40 @@ async def add_comment(
 async def delete_comment(
     session: AsyncSession, ticket_id: str, comment_id: str
 ) -> Ticket | None:
+    """Soft delete: the comment keeps its place in the data but is hidden everywhere (Undo restores it)."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     comments = _loads(ticket.comments)
-    removed = next((c for c in comments if c.get("id") == comment_id), None)
-    if removed is not None:
-        act.record(ticket, "comment", removed.get("text"), None)
-    ticket.comments = _dumps([c for c in comments if c.get("id") != comment_id])
+    now = datetime.now(UTC).isoformat()
+    for c in comments:
+        if c.get("id") == comment_id and not c.get("deleted_at"):
+            act.record(ticket, "comment", c.get("text"), None, ref=comment_id)
+            c["deleted_at"] = now
+            break
+    ticket.comments = _dumps(comments)
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def restore_comment(
+    session: AsyncSession, ticket_id: str, comment_id: str
+) -> Ticket | None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    comments = _loads(ticket.comments)
+    found = False
+    for c in comments:
+        if c.get("id") == comment_id and c.get("deleted_at"):
+            c["deleted_at"] = None
+            found = True
+    if not found:
+        return None
+    ticket.comments = _dumps(comments)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
     await session.commit()
@@ -488,10 +573,12 @@ async def update_comment(
     comments = _loads(ticket.comments)
     found = False
     for c in comments:
-        if c.get("id") == comment_id:
+        if c.get("id") == comment_id and not c.get("deleted_at"):
             if c.get("text") != text:
-                act.record(ticket, "comment", c.get("text"), text)
-            c["text"] = text
+                act.record(ticket, "comment", c.get("text"), text, ref=comment_id)
+                c["text"] = text
+                c["edited_at"] = datetime.now(UTC).isoformat()
+                c["mentions"] = mention_ids(text)
             found = True
             break
     if not found:
@@ -1000,6 +1087,8 @@ async def get_project_activities(
                 )
             )
         for comment in _loads(ticket.comments):
+            if comment.get("deleted_at"):
+                continue
             events.append(
                 ActivityEventRead(
                     ticketId=ticket.id,

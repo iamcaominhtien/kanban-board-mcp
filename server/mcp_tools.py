@@ -652,10 +652,41 @@ async def update_comment(
 
 @notify_on_success
 async def delete_comment(ticket_id: TicketId, comment_id: CommentId) -> dict:
-    """Delete a comment permanently. Returns the updated ticket."""
+    """Delete a comment (hidden everywhere; `restore_comment` brings it back). Returns the updated ticket."""
     return await _edit_ticket(
         ticket_id, lambda s, cid: svc_tickets.delete_comment(s, ticket_id, cid), ("comment", comment_id)
     )
+
+
+@notify_on_success
+async def restore_comment(ticket_id: TicketId, comment_id: CommentId) -> dict:
+    """Undo `delete_comment`: put a deleted comment back in the thread. Returns the updated ticket."""
+    return await _edit_ticket(
+        ticket_id, lambda s: svc_tickets.restore_comment(s, ticket_id, comment_id)
+    )
+
+
+async def list_comments(ticket_id: TicketId) -> dict:
+    """Read a ticket's comment thread, oldest first: id, author, text (Markdown), time, `edited_at` and who was
+    notified. Cheaper than `get_ticket` when you only need the discussion."""
+    async with async_session() as session:
+        ticket = await svc_tickets.get_ticket(session, ticket_id)
+        if ticket is None:
+            raise _missing_ticket(ticket_id)
+        rows = json.loads(ticket.comments or "[]")
+    comments = [
+        {
+            "id": c.get("id"),
+            "author": c.get("author"),
+            "text": c.get("text"),
+            "at": c.get("at"),
+            "edited_at": c.get("edited_at"),
+            "notified": [n.get("name") for n in c.get("notified") or []],
+        }
+        for c in rows
+        if isinstance(c, dict) and not c.get("deleted_at")
+    ]
+    return {"ticket_id": ticket_id, "count": len(comments), "comments": comments}
 
 
 # ---------------------------------------------------------------------------
@@ -1713,6 +1744,8 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     # comments, work log, test cases, criteria, branches
     (add_comment, _WRITE),
     (update_comment, _UPDATE),
+    (list_comments, _READ),
+    (restore_comment, _UPDATE),
     (delete_comment, _DELETE),
     (add_work_log, _WRITE),
     (update_work_log, _UPDATE),

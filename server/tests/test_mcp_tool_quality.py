@@ -43,7 +43,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     ideas = {f.__name__ for f, _ in mcp_tools.IDEA_TOOL_TABLE}
     assert not core & ideas
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 67
+    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 69
 
 
 async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(monkeypatch):
