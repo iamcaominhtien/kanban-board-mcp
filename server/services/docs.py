@@ -65,9 +65,7 @@ async def _project(session: AsyncSession, project_id: str) -> Project:
     if project is None:
         raise DocsError(404, "project_not_found", "Project not found")
     if not project.docs_enabled:
-        raise DocsError(
-            403, "docs_disabled", "Docs are turned off for this project"
-        )
+        raise DocsError(403, "docs_disabled", "Docs are turned off for this project")
     return project
 
 
@@ -670,7 +668,9 @@ async def _commit_version(
     if draft is not None:
         await session.delete(draft)
     await session.flush()
-    await _update_aliases(session, page, previous.markdown if previous else "", markdown)
+    await _update_aliases(
+        session, page, previous.markdown if previous else "", markdown
+    )
     await reindex_links(session, page, markdown)
     await session.flush()
     await refresh_link_targets(session, page.project_id)
@@ -707,7 +707,9 @@ async def _update_aliases(
                 session.add(row)
         match = next((r for r in existing if r.old_slug == old_slug), None)
         if match is None:
-            match = DocsAnchorAlias(page_id=page.id, old_slug=old_slug, new_slug=new_slug)
+            match = DocsAnchorAlias(
+                page_id=page.id, old_slug=old_slug, new_slug=new_slug
+            )
             existing.append(match)
         match.new_slug = new_slug
         session.add(match)
@@ -879,7 +881,9 @@ async def _aliases_by_page(
     return out
 
 
-def _follow_alias(wanted: str, slugs: dict[str, Any], aliases: dict[str, str]) -> str | None:
+def _follow_alias(
+    wanted: str, slugs: dict[str, Any], aliases: dict[str, str]
+) -> str | None:
     """The current slug a renamed heading's old slug leads to (chains are followed)."""
     seen: set[str] = set()
     cur = wanted
@@ -958,7 +962,9 @@ async def _headings_by_page(
     session: AsyncSession, pages: list[DocsPage]
 ) -> dict[str, list[dict[str, Any]]]:
     contents = await docs_search._contents(session, [p for p in pages if p.version > 0])
-    return {p.id: heading_anchors(contents[p.id]) if p.id in contents else [] for p in pages}
+    return {
+        p.id: heading_anchors(contents[p.id]) if p.id in contents else [] for p in pages
+    }
 
 
 async def resolve_refs(
@@ -1056,7 +1062,12 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
     )
     for link in rows.all():
         res = await _resolve_page_ref(
-            pages, deleted, link.target_title or "", link.target_anchor, headings, aliases
+            pages,
+            deleted,
+            link.target_title or "",
+            link.target_anchor,
+            headings,
+            aliases,
         )
         new_target = res.get("page_id")
         if new_target != link.target_page_id:
@@ -1205,7 +1216,9 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
     return {"pages": pages_out, "tickets": tickets_out}
 
 
-async def page_stats(session: AsyncSession, page: DocsPage, markdown: str) -> dict[str, int]:
+async def page_stats(
+    session: AsyncSession, page: DocsPage, markdown: str
+) -> dict[str, int]:
     inbound = await session.exec(
         select(DocsLink.source_page_id).where(
             DocsLink.target_page_id == page.id, DocsLink.origin == "page"
@@ -1279,7 +1292,11 @@ async def docs_for_ticket(
             }
         )
 
-    if ticket is not None and pages and "[[" in " ".join(t for _o, t in _ticket_texts(ticket)):
+    if (
+        ticket is not None
+        and pages
+        and "[[" in " ".join(t for _o, t in _ticket_texts(ticket))
+    ):
         headings = await _headings_by_page(session, pages)
         aliases = await _aliases_by_page(session, [p.id for p in pages])
         for origin, body in _ticket_texts(ticket):
@@ -1288,7 +1305,12 @@ async def docs_for_ticket(
                     pages, [], ref["title"], ref["anchor"], headings, aliases
                 )
                 if res.get("page_id"):
-                    row(by_id[res["page_id"]], origin, res.get("section"), ref["context"])
+                    row(
+                        by_id[res["page_id"]],
+                        origin,
+                        res.get("section"),
+                        ref["context"],
+                    )
     links = await session.exec(
         select(DocsLink).where(DocsLink.target_ticket_id == ticket_id)
     )
@@ -1297,7 +1319,12 @@ async def docs_for_ticket(
         if src is None or src.deleted_at:
             continue
         by_id.setdefault(src.id, src)
-        row(src, "manual" if link.origin == "manual" else "page", link.source_section, link.snippet)
+        row(
+            src,
+            "manual" if link.origin == "manual" else "page",
+            link.source_section,
+            link.snippet,
+        )
     out.sort(key=lambda r: (_ORIGIN_ORDER[r["origin"]], r["title"].lower()))
     return out
 
@@ -1367,7 +1394,9 @@ async def _links_to_rename(
     if res.get("page_id") != page.id:
         return []  # another page with the same title wins that link; nothing to repoint
     others = [p for p in pages if p.id != page.id]
-    contents = await docs_search._contents(session, [p for p in others if p.version > 0])
+    contents = await docs_search._contents(
+        session, [p for p in others if p.version > 0]
+    )
     drafts = await session.exec(
         select(DocsDraft).where(DocsDraft.page_id.in_([p.id for p in others] or [""]))  # type: ignore[attr-defined]
     )
@@ -1376,9 +1405,14 @@ async def _links_to_rename(
         drafts_by_page.setdefault(d.page_id, []).append(d)
     out = []
     for p in others:
-        published = count_page_links(contents.get(p.id, ""), old_title) if p.version > 0 else 0
+        published = (
+            count_page_links(contents.get(p.id, ""), old_title) if p.version > 0 else 0
+        )
         in_drafts = max(
-            (count_page_links(d.markdown, old_title) for d in drafts_by_page.get(p.id, [])),
+            (
+                count_page_links(d.markdown, old_title)
+                for d in drafts_by_page.get(p.id, [])
+            ),
             default=0,
         )
         count = published if p.version > 0 else in_drafts
@@ -1464,7 +1498,9 @@ async def rename_page(
                 continue
             draft_n = max(draft_n, n)
             if published_n and d.base_version == old_version:
-                d.base_version = src.version  # the rewrite is in this draft too: no false conflict
+                d.base_version = (
+                    src.version
+                )  # the rewrite is in this draft too: no false conflict
             d.markdown = new_md
             session.add(d)
         if published_n or draft_n:

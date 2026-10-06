@@ -34,7 +34,12 @@ _SKIP_DIRS = {"node_modules", "__pycache__"}
 def clean_path(raw: str) -> list[str] | None:
     """Path segments of a relative upload path, or None when it is unsafe (absolute, ``..``, empty)."""
     path = raw.replace("\\", "/").strip()
-    if not path or "\x00" in path or path.startswith("/") or re.match(r"^[A-Za-z]:", path):
+    if (
+        not path
+        or "\x00" in path
+        or path.startswith("/")
+        or re.match(r"^[A-Za-z]:", path)
+    ):
         return None
     parts = [p for p in path.split("/") if p not in ("", ".")]
     if not parts or any(p == ".." for p in parts):
@@ -47,7 +52,9 @@ def split_front_matter(text: str) -> tuple[dict[str, Any], str, int | None]:
     lines = text.split("\n")
     if not lines or lines[0].rstrip() != "---":
         return {}, text, None
-    end = next((i for i in range(1, len(lines)) if lines[i].rstrip() in ("---", "...")), None)
+    end = next(
+        (i for i in range(1, len(lines)) if lines[i].rstrip() in ("---", "...")), None
+    )
     if end is None:
         return {}, text, None
     try:
@@ -200,7 +207,9 @@ async def build_plan(
 
     # an index.md / README.md becomes its folder's body (index.md wins over README.md)
     folder_index: dict[tuple[str, ...], Entry] = {}
-    for e in sorted(good, key=lambda e: (e.segments[-1].lower().startswith("readme"), e.path)):
+    for e in sorted(
+        good, key=lambda e: (e.segments[-1].lower().startswith("readme"), e.path)
+    ):
         if e.is_index:
             folder_index.setdefault(tuple(e.segments[:-1]), e)
 
@@ -213,7 +222,11 @@ async def build_plan(
             if key in nodes:
                 continue
             idx = folder_index.get(key)
-            title = idx.title if idx is not None and idx.explicit_title and idx.title else key[-1]
+            title = (
+                idx.title
+                if idx is not None and idx.explicit_title and idx.title
+                else key[-1]
+            )
             nodes[key] = Node(
                 key=key,
                 title=title[: svc.MAX_TITLE],
@@ -240,7 +253,9 @@ async def build_plan(
         hit = children_of(parent).get(node.title.casefold())
         if hit is not None:
             node.existing_id = hit.id
-            if node.entry is not None:  # the folder already exists: its index file becomes a normal child page
+            if (
+                node.entry is not None
+            ):  # the folder already exists: its index file becomes a normal child page
                 node.entry.is_index = False
                 node.body = ""
                 node.entry = None
@@ -264,7 +279,9 @@ async def build_plan(
                 e.messages.append(f"Skipped: a page titled '{title}' already exists")
                 continue
             new_title = _unique(title, taken)
-            e.messages.append(f"A page titled '{title}' already exists: imported as '{new_title}'")
+            e.messages.append(
+                f"A page titled '{title}' already exists: imported as '{new_title}'"
+            )
             title = new_title
         taken_new[folder_key or None].add(title.casefold())
         node = Node(
@@ -391,7 +408,11 @@ async def run_import(
         )
         session.add(page)
         draft = DocsDraft(
-            page_id=page.id, author=actor, title=node.title, markdown=node.body, base_version=0
+            page_id=page.id,
+            author=actor,
+            title=node.title,
+            markdown=node.body,
+            base_version=0,
         )
         session.add(draft)
         await session.flush()
@@ -402,7 +423,14 @@ async def run_import(
     if publish:
         for page, markdown, draft in pages:
             await svc._commit_version(
-                session, page, markdown, page.title, actor, "Imported", draft, commit=False
+                session,
+                page,
+                markdown,
+                page.title,
+                actor,
+                "Imported",
+                draft,
+                commit=False,
             )
         await svc.refresh_link_targets(session, project_id)
     await docs_search.reindex(session, [c["page_id"] for c in created])
@@ -411,7 +439,9 @@ async def run_import(
         "created": created,
         "failed": [{"path": e.path, "message": e.error} for e in entries if e.error],
         "skipped": [
-            {"path": e.path, "message": "; ".join(e.messages)} for e in entries if e.skipped
+            {"path": e.path, "message": "; ".join(e.messages)}
+            for e in entries
+            if e.skipped
         ],
     }
 
@@ -474,7 +504,9 @@ def collect_local(path: str) -> list[tuple[str, bytes]]:
                 continue  # a symlink pointing outside the folder
             if len(out) >= MAX_FILES + 1:
                 raise DocsError(
-                    422, "too_many_files", f"At most {MAX_FILES} files can be imported at once"
+                    422,
+                    "too_many_files",
+                    f"At most {MAX_FILES} files can be imported at once",
                 )
             out.append((full.relative_to(root).as_posix(), full.read_bytes()))
     if not out:

@@ -20,7 +20,13 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import DocsDraft, DocsLink, DocsPage, DocsVersion, Project, Ticket
-from services.docs_text import _FENCE, _HEADING, DocsError, _strip_inline, heading_anchors
+from services.docs_text import (
+    _FENCE,
+    _HEADING,
+    DocsError,
+    _strip_inline,
+    heading_anchors,
+)
 
 CREATE_FTS = (
     "CREATE VIRTUAL TABLE IF NOT EXISTS docs_fts USING fts5("
@@ -89,8 +95,8 @@ async def ensure_fts(session: AsyncSession) -> bool:
         if conn.dialect.name != "sqlite":
             return False
         exists = (
-            await _exec(session, 
-                text("SELECT 1 FROM sqlite_master WHERE name = 'docs_fts'")
+            await _exec(
+                session, text("SELECT 1 FROM sqlite_master WHERE name = 'docs_fts'")
             )
         ).first()
         if exists:
@@ -103,9 +109,7 @@ async def ensure_fts(session: AsyncSession) -> bool:
     return True
 
 
-async def _contents(
-    session: AsyncSession, pages: list[DocsPage]
-) -> dict[str, str]:
+async def _contents(session: AsyncSession, pages: list[DocsPage]) -> dict[str, str]:
     """Markdown per page: the latest published version, else the oldest draft."""
     ids = [p.id for p in pages]
     if not ids:
@@ -116,7 +120,8 @@ async def _contents(
         select(DocsVersion.page_id, DocsVersion.markdown)
         .join(
             DocsPage,
-            (DocsVersion.page_id == DocsPage.id) & (DocsVersion.version == DocsPage.version),
+            (DocsVersion.page_id == DocsPage.id)
+            & (DocsVersion.version == DocsPage.version),
         )
         .where(DocsVersion.page_id.in_(ids)),  # type: ignore[attr-defined]
     )
@@ -148,7 +153,8 @@ async def reindex(session: AsyncSession, page_ids: list[str]) -> None:
     contents = await _contents(session, pages)
     for page in pages:
         t, h, b = index_fields(page.title, contents.get(page.id, ""))
-        await _exec(session, 
+        await _exec(
+            session,
             text(
                 "INSERT INTO docs_fts (page_id, project_id, title, headings, body) "
                 "VALUES (:p, :j, :t, :h, :b)"
@@ -174,7 +180,8 @@ async def rebuild_index(session: AsyncSession) -> None:
     contents = await _contents(session, pages)
     for page in pages:
         t, h, b = index_fields(page.title, contents.get(page.id, ""))
-        await _exec(session, 
+        await _exec(
+            session,
             text(
                 "INSERT INTO docs_fts (page_id, project_id, title, headings, body) "
                 "VALUES (:p, :j, :t, :h, :b)"
@@ -236,9 +243,8 @@ def _contains(haystack: str, needle: str) -> bool:
 
 def _passes(query: Query, *fields: str) -> bool:
     blob = "\n".join(fields)
-    return (
-        all(_contains(blob, t) for t in query.positive)
-        and not any(_contains(blob, e) for e in query.excludes)
+    return all(_contains(blob, t) for t in query.positive) and not any(
+        _contains(blob, e) for e in query.excludes
     )
 
 
@@ -445,7 +451,9 @@ async def _search_tickets(
     return out
 
 
-async def _suggest(session: AsyncSession, query: Query, pages: list[DocsPage]) -> str | None:
+async def _suggest(
+    session: AsyncSession, query: Query, pages: list[DocsPage]
+) -> str | None:
     vocab: set[str] = set()
     for p in pages:
         vocab.update(w for w in re.findall(r"\w{3,}", p.title.casefold()))
@@ -457,7 +465,9 @@ async def _suggest(session: AsyncSession, query: Query, pages: list[DocsPage]) -
         if w.casefold() in vocab:
             fixed.append(w)
             continue
-        best = process.extractOne(w.casefold(), vocab, scorer=fuzz.ratio, score_cutoff=70)
+        best = process.extractOne(
+            w.casefold(), vocab, scorer=fuzz.ratio, score_cutoff=70
+        )
         if best:
             fixed.append(best[0])
             changed = True
@@ -545,7 +555,9 @@ async def search(
     contents: dict[str, str] = {}
     if scores is None:
         contents = await _contents(session, pages)
-        scores = await _fallback_candidates(session, query, pages, contents, headings_only)
+        scores = await _fallback_candidates(
+            session, query, pages, contents, headings_only
+        )
     # FTS prefix-matches words; keep only pages that really hold every phrase/word as written
     scores = {pid: s for pid, s in scores.items() if pid in by_id}
     candidates = [by_id[pid] for pid in scores]
@@ -597,7 +609,9 @@ async def search(
             {
                 "page_id": p.id,
                 "project_id": p.project_id,
-                "project_name": projects[p.project_id].name if p.project_id in projects else "",
+                "project_name": projects[p.project_id].name
+                if p.project_id in projects
+                else "",
                 "title": p.title,
                 "title_snippet": highlight(p.title, query.positive),
                 "path": _path_titles(p, by_id),
@@ -615,7 +629,9 @@ async def search(
         suggestion = await _suggest(session, query, pages)
     under_facet = [
         {"page_id": rid, "title": by_id[rid].title, "count": n}
-        for rid, n in sorted(unders.items(), key=lambda kv: (-kv[1], by_id[kv[0]].title))[:8]
+        for rid, n in sorted(
+            unders.items(), key=lambda kv: (-kv[1], by_id[kv[0]].title)
+        )[:8]
     ]
     return {
         "total": len(filtered),
@@ -630,20 +646,25 @@ async def search(
             ],
             "under": under_facet,
             "status": [
-                {"name": n, "count": c} for n, c in sorted(statuses.items(), key=lambda kv: kv[0])
+                {"name": n, "count": c}
+                for n, c in sorted(statuses.items(), key=lambda kv: kv[0])
             ],
             "has_tickets": len(ticket_linked),
         },
     }
 
 
-async def similar(session: AsyncSession, project_id: str, slug: str) -> list[dict[str, Any]]:
+async def similar(
+    session: AsyncSession, project_id: str, slug: str
+) -> list[dict[str, Any]]:
     """Up to 4 pages whose slug or title resembles ``slug`` (for the "page not found" screen)."""
     needle = slug.strip().strip("/").split("/")[-1].replace("-", " ").replace("_", " ")
     if not needle:
         return []
     result = await session.exec(
-        select(DocsPage).where(DocsPage.project_id == project_id, DocsPage.deleted_at.is_(None))  # type: ignore[union-attr]
+        select(DocsPage).where(
+            DocsPage.project_id == project_id, DocsPage.deleted_at.is_(None)
+        )  # type: ignore[union-attr]
     )
     pages = list(result.all())
     by_id = {p.id: p for p in pages}

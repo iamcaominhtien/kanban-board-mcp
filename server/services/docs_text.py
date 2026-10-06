@@ -14,6 +14,7 @@ class DocsError(Exception):
         self.message = message
         self.extra = extra
 
+
 _FENCE = re.compile(r"^\s*(```|~~~)")
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 _REF = re.compile(r"\[\[([^\]\|#]+?)(?:#([^\]\|]+?))?(?:\|([^\]]+?))?\]\]")
@@ -137,7 +138,9 @@ def _map_outside_code(line: str, fn: Any) -> str:
     return "".join(out)
 
 
-def rewrite_page_links(markdown: str, old_title: str, new_title: str) -> tuple[str, int]:
+def rewrite_page_links(
+    markdown: str, old_title: str, new_title: str
+) -> tuple[str, int]:
     """Point ``[[Old]]``, ``[[Old#S]]`` and ``[[Old|label]]`` at ``new_title`` (code is left alone)."""
     needle = old_title.strip().lower()
     count = 0
@@ -158,7 +161,9 @@ def rewrite_page_links(markdown: str, old_title: str, new_title: str) -> tuple[s
             in_fence = not in_fence
             out.append(raw)
             continue
-        out.append(raw if in_fence else _map_outside_code(raw, lambda t: _REF.sub(sub, t)))
+        out.append(
+            raw if in_fence else _map_outside_code(raw, lambda t: _REF.sub(sub, t))
+        )
     return "\n".join(out), count
 
 

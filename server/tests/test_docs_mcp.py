@@ -1,3 +1,4 @@
+# ruff: noqa: F811  (pytest fixtures imported from test_docs are redefined as arguments)
 import pytest
 
 import mcp_tools

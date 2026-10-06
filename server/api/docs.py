@@ -20,7 +20,9 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 
 async def docs_error_handler(request: Request, exc: svc.DocsError) -> JSONResponse:
     """Every docs failure answers {detail: {code, message, request_id, ...}} plus an x-request-id header."""
-    request_id = (request.headers.get("x-request-id") or "").strip()[:64] or uuid.uuid4().hex[:12]
+    request_id = (request.headers.get("x-request-id") or "").strip()[
+        :64
+    ] or uuid.uuid4().hex[:12]
     return JSONResponse(
         status_code=exc.status,
         content={
