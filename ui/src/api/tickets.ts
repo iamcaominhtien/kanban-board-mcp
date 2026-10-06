@@ -154,6 +154,11 @@ export async function deleteComment(
   return res.data;
 }
 
+export async function restoreComment(ticketId: string, commentId: string): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/comments/${commentId}/restore`);
+  return res.data;
+}
+
 // Acceptance criteria
 export async function addAcceptanceCriterion(
   ticketId: string,
@@ -533,6 +538,12 @@ export function useUpdateComment() {
   return useTicketSubMutation(
     ({ ticketId, commentId, text }: { ticketId: string; commentId: string; text: string }) =>
       updateComment(ticketId, commentId, text),
+  );
+}
+
+export function useRestoreComment() {
+  return useTicketSubMutation(
+    ({ ticketId, commentId }: { ticketId: string; commentId: string }) => restoreComment(ticketId, commentId),
   );
 }
 

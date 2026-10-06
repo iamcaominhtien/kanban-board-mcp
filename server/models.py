@@ -21,6 +21,7 @@ class Project(SQLModel, table=True):
     repo_path: Optional[str] = Field(default=None)  # local git repo used for ticket branches
     worktree_template: Optional[str] = Field(default=None)  # template for branch worktrees
     worktree_by_default: bool = Field(default=False)
+    docs_enabled: bool = Field(default=True)  # the Docs space can be switched off per project
 
 
 class WorkspaceSettings(SQLModel, table=True):
@@ -129,6 +130,89 @@ class IdeaTicket(SQLModel, table=True):
     )
 
 
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+class DocsPage(SQLModel, table=True):
+    """A page in a project's Docs space (soft-deleted via deleted_at)."""
+
+    __tablename__ = "docs_page"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    parent_id: Optional[str] = Field(default=None, foreign_key="docs_page.id")
+    position: int = Field(default=0)
+    title: str
+    slug: str
+    status: str = Field(default="draft")  # draft (never published) | published
+    version: int = Field(default=0)  # latest published version, 0 = none yet
+    created_by: str = Field(default="user")
+    updated_by: str = Field(default="user")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    deleted_at: Optional[str] = Field(default=None)
+    deleted_by: Optional[str] = Field(default=None)
+    deleted_root_id: Optional[str] = Field(default=None)
+
+
+class DocsVersion(SQLModel, table=True):
+    __tablename__ = "docs_version"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    version: int
+    title: str
+    markdown: str = Field(default="")
+    author: str = Field(default="user")
+    note: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class DocsDraft(SQLModel, table=True):
+    """Autosaved, per-author working copy of a page."""
+
+    __tablename__ = "docs_draft"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    author: str = Field(default="user")
+    title: str
+    markdown: str = Field(default="")
+    base_version: int = Field(default=0)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class DocsLink(SQLModel, table=True):
+    """Reference index: one row per [[page]] or ticket key in a published page."""
+
+    __tablename__ = "docs_link"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    source_page_id: str = Field(foreign_key="docs_page.id", index=True)
+    source_section: Optional[str] = Field(default=None)
+    target_page_id: Optional[str] = Field(default=None, index=True)
+    target_title: Optional[str] = Field(default=None)
+    target_anchor: Optional[str] = Field(default=None)
+    target_ticket_id: Optional[str] = Field(default=None, index=True)
+    display_text: Optional[str] = Field(default=None)
+    snippet: str = Field(default="")
+    # page: written in a published page; manual: a person linked a ticket to a page.
+    # (Mentions in a ticket's description or comments are derived on read, not stored.)
+    origin: str = Field(default="page")
+
+
+class DocsAnchorAlias(SQLModel, table=True):
+    """A heading that was renamed: ``[[Page#old-slug]]`` keeps resolving to ``new_slug``."""
+
+    __tablename__ = "docs_anchor_aliases"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    old_slug: str
+    new_slug: str
+
+
 # ---------------------------------------------------------------------------
 # Request / Response schemas (not table=True)
 # ---------------------------------------------------------------------------
@@ -164,6 +248,7 @@ class ProjectUpdate(SQLModel):
     repo_path: Optional[str] = None  # empty string clears the link
     worktree_template: Optional[str] = None
     worktree_by_default: Optional[bool] = None
+    docs_enabled: Optional[bool] = None
 
 
 class ProjectRead(SQLModel):
@@ -175,6 +260,7 @@ class ProjectRead(SQLModel):
     repo_path: Optional[str] = None
     worktree_template: Optional[str] = None
     worktree_by_default: bool = False
+    docs_enabled: bool = True
 
 
 class MemberCreate(SQLModel):
@@ -300,7 +386,11 @@ class TicketRead(SQLModel):
             start_date=ticket.start_date,
             tags=_parse_json_list(ticket.tags),
             parent_id=ticket.parent_id,
-            comments=_parse_json_list(ticket.comments),
+            comments=[
+                c
+                for c in _parse_json_list(ticket.comments)
+                if not (isinstance(c, dict) and c.get("deleted_at"))
+            ],
             acceptance_criteria=_parse_json_list(ticket.acceptance_criteria),
             sub_tasks=_parse_json_list(getattr(ticket, "sub_tasks", "[]")),
             activity_log=_parse_json_list(ticket.activity_log),

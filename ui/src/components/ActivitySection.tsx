@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { ActivityEntry, Member } from '../types';
 import { getAvatarColors } from './MemberAvatar';
+import { countRefs, RefLine, useRefSegments, type Seg } from './ActivityRefs';
+import { useDocsRefs } from './docs/DocsRefsContext';
 import styles from './ActivitySection.module.css';
 
 interface ActivitySectionProps {
@@ -8,6 +10,8 @@ interface ActivitySectionProps {
   entries: ActivityEntry[];
   members?: Member[];
   isLoading?: boolean;
+  /** "View comment": scroll the thread to that comment. */
+  onViewComment?: (commentId: string) => void;
 }
 
 type FilterGroup = 'all' | 'status' | 'assignee' | 'priority' | 'comments' | 'branch' | 'other';
@@ -241,6 +245,7 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
   assignee: 'Assignee',
   priority: 'Priority',
   description: 'Description',
+  doc_refs: 'Doc references',
   title: 'Title',
   tags: 'Tags',
   branch: 'Branch',
@@ -296,7 +301,107 @@ function actorLabel(actor: string | undefined, members: Member[]): string | null
   return members.find((m) => m.id === actor)?.name ?? actor;
 }
 
-export function ActivitySection({ ticketId, entries, members = [], isLoading = false }: ActivitySectionProps) {
+function DiffBlock({ rows, raw, projectId, prefix }: { rows: DiffRow[]; raw: boolean; projectId: string; prefix: string | null }) {
+  const refs = useDocsRefs();
+  const texts = useMemo(() => rows.map((r) => r.text), [rows]);
+  const { parsed, resolved } = useRefSegments(projectId, texts, prefix);
+  const offsets = useMemo(() => {
+    let n = 0;
+    return parsed.map((p: Seg[]) => {
+      const at = n;
+      n += countRefs(p);
+      return at;
+    });
+  }, [parsed]);
+  return (
+    <>
+      {rows.map((row, rIdx) => {
+        const rowStyle = row.type === 'removed' ? styles.diffRemoved : row.type === 'added' ? styles.diffAdded : styles.diffNormal;
+        const signColor = row.type === 'removed' ? '#C4432A' : row.type === 'added' ? '#2E6F40' : '#9AA8A0';
+        const highlightStyle = row.type === 'removed' ? styles.diffHighlightRemoved : styles.diffHighlightAdded;
+        const body = raw || !projectId ? row.text : (
+          <RefLine
+            parsed={parsed[rIdx]}
+            resolved={resolved}
+            offset={offsets[rIdx]}
+            projectId={projectId}
+            dim={row.type === 'removed'}
+            onOpenPage={refs?.peek}
+            onOpenTicket={refs?.openTicket}
+          />
+        );
+        return (
+          <div key={rIdx} className={`${styles.diffRow} ${rowStyle}`}>
+            <span className={styles.diffSign} style={{ color: signColor }}>{row.sign}</span>
+            <span className={styles.diffContent}>
+              {row.type !== 'normal' && row.text.trim() ? <span className={highlightStyle}>{body}</span> : row.text ? body : '\u00A0'}
+            </span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+type DocRefsEntry = ActivityEntry & { removedRefs?: string[]; addedRefs?: string[] };
+
+function DocRefsRows({ entry, projectId, prefix }: { entry: DocRefsEntry; projectId: string; prefix: string | null }) {
+  const refs = useDocsRefs();
+  const removed = entry.removedRefs ?? [];
+  const added = entry.addedRefs ?? [];
+  const texts = useMemo(() => [...removed, ...added].map((r) => `[[${r}]]`), [removed, added]);
+  const { parsed, resolved } = useRefSegments(projectId, texts, prefix);
+  const offsets = useMemo(() => {
+    let n = 0;
+    return parsed.map((p: Seg[]) => {
+      const at = n;
+      n += countRefs(p);
+      return at;
+    });
+  }, [parsed]);
+  const row = (label: string, from: number, to: number, dim: boolean) =>
+    to > from && (
+      <div className={styles.acChange} data-testid={`docrefs-${label}`}>
+        <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>{label}</span>
+        {parsed.slice(from, to).map((p: Seg[], i: number) => (
+          <RefLine key={i} parsed={p} resolved={resolved} offset={offsets[from + i]} projectId={projectId} dim={dim} onOpenPage={refs?.peek} onOpenTicket={refs?.openTicket} />
+        ))}
+      </div>
+    );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {row('removed', 0, removed.length, true)}
+      {row('added', removed.length, removed.length + added.length, false)}
+      <span style={{ fontSize: 11.5, color: '#9AA8A0' }}>in {entry.ref ?? 'description'}</span>
+    </div>
+  );
+}
+
+export function ActivitySection({ ticketId, entries: rawEntries, members = [], isLoading = false, onViewComment }: ActivitySectionProps) {
+  const refsCtx = useDocsRefs();
+  const prefix = ticketId.includes('-') ? ticketId.split('-')[0] : null;
+  const [rawDiffs, setRawDiffs] = useState<Record<string, boolean>>({});
+  // doc_ref_added / doc_ref_removed written by one save become a single "Doc references" entry
+  const entries = useMemo<DocRefsEntry[]>(() => {
+    const out: DocRefsEntry[] = [];
+    const bySave = new Map<string, DocRefsEntry>();
+    for (const e of rawEntries) {
+      if (e.field !== 'doc_ref_added' && e.field !== 'doc_ref_removed') {
+        out.push(e);
+        continue;
+      }
+      const key = `${e.at.slice(0, 19)}|${e.ref ?? ''}|${e.actor ?? ''}`;
+      let g = bySave.get(key);
+      if (!g) {
+        g = { field: 'doc_refs', from: null, to: null, at: e.at, actor: e.actor, ref: e.ref, removedRefs: [], addedRefs: [] };
+        bySave.set(key, g);
+        out.push(g);
+      }
+      if (e.field === 'doc_ref_added') g.addedRefs?.push(String(e.to));
+      else g.removedRefs?.push(String(e.from));
+    }
+    return out;
+  }, [rawEntries]);
   const [filter, setFilter] = useState<FilterGroup>('all');
   const [expandedDiffs, setExpandedDiffs] = useState<Record<string, boolean>>({});
   const [visibleCount, setVisibleCount] = useState<number>(20);
@@ -455,6 +560,8 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
             </svg>
           </div>
         );
+      case 'doc_refs':
+        return iconBubble('#DCEEE1', '#2E6F40', ['M6 3H14L19 8V20A1 1 0 0 1 18 21H6A1 1 0 0 1 5 20V4A1 1 0 0 1 6 3Z', 'M14 3V8H19']);
       case 'comment':
         return iconBubble('#E1EEFB', '#2F6FB0', ['M4 5H20V16H9L5 20V16H4Z']);
       case 'work_log':
@@ -715,7 +822,7 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
                         <div className={styles.acMain}>
                           <span className={styles.acField}>
                             {fieldName}
-                            {entry.ref && <span className={styles.acRef}> · {entry.ref}</span>}
+                            {entry.ref && entry.field !== 'comment' && entry.field !== 'doc_refs' && <span className={styles.acRef}> · {entry.ref}</span>}
                           </span>
 
                           {isDescription && diffData ? (
@@ -746,44 +853,30 @@ export function ActivitySection({ ticketId, entries, members = [], isLoading = f
 
                               {isDiffExpanded && (
                                 <div className={styles.diffContainer}>
-                                  {diffData.rows.map((row, rIdx) => {
-                                    const rowStyle =
-                                      row.type === 'removed'
-                                        ? styles.diffRemoved
-                                        : row.type === 'added'
-                                          ? styles.diffAdded
-                                          : styles.diffNormal;
-
-                                    const signColor =
-                                      row.type === 'removed'
-                                        ? '#C4432A'
-                                        : row.type === 'added'
-                                          ? '#2E6F40'
-                                          : '#9AA8A0';
-
-                                    const highlightStyle =
-                                      row.type === 'removed'
-                                        ? styles.diffHighlightRemoved
-                                        : styles.diffHighlightAdded;
-
-                                    return (
-                                      <div key={rIdx} className={`${styles.diffRow} ${rowStyle}`}>
-                                        <span className={styles.diffSign} style={{ color: signColor }}>
-                                          {row.sign}
-                                        </span>
-                                        <span className={styles.diffContent}>
-                                          {row.type !== 'normal' && row.text.trim() ? (
-                                            <span className={highlightStyle}>{row.text}</span>
-                                          ) : (
-                                            row.text || '\u00A0'
-                                          )}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
+                                  <DiffBlock rows={diffData.rows} raw={!!rawDiffs[rowKey]} projectId={refsCtx?.projectId ?? ''} prefix={prefix} />
+                                  {refsCtx && (
+                                    <button
+                                      type="button"
+                                      className={styles.acToggle}
+                                      data-testid="diff-raw-toggle"
+                                      style={{ margin: '6px 8px 4px' }}
+                                      onClick={() => setRawDiffs((r) => ({ ...r, [rowKey]: !r[rowKey] }))}
+                                    >
+                                      {rawDiffs[rowKey] ? 'Show pills' : 'Show raw'}
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </>
+                          ) : entry.field === 'doc_refs' ? (
+                            <DocRefsRows entry={entry as DocRefsEntry} projectId={refsCtx?.projectId ?? ''} prefix={prefix} />
+                          ) : entry.field === 'comment' && entry.from == null && entry.to != null && entry.ref ? (
+                            <div className={styles.acChange}>
+                              <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>commented</span>
+                              <button type="button" className={styles.acToggle} data-testid="view-comment" onClick={() => onViewComment?.(entry.ref as string)}>
+                                View comment
+                              </button>
+                            </div>
                           ) : entry.field === 'created' ? (
                             <div className={styles.acChange}>
                               <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>Ticket created</span>

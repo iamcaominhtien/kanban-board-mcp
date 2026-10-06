@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { AcceptanceCriterion } from '../types';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { TicketRefSuggester } from './docs/RefSuggester';
 import styles from './AcceptanceCriteriaSection.module.css';
 
 interface AcceptanceCriteriaSectionProps {
@@ -88,6 +90,7 @@ export function AcceptanceCriteriaSection({
                     if (e.key === 'Escape') handleCancelEdit();
                   }}
                 />
+                <TicketRefSuggester targetRef={editInputRef} />
                 <button
                   type="button"
                   className={styles.actionBtnCancel}
@@ -133,9 +136,12 @@ export function AcceptanceCriteriaSection({
 
               <span
                 className={item.done ? styles.textCompleted : styles.text}
-                onClick={() => onToggle(item.id)}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('.dk-chip')) return;
+                  onToggle(item.id);
+                }}
               >
-                {item.text}
+                <MarkdownRenderer inline>{item.text}</MarkdownRenderer>
               </span>
 
               <div className={styles.rowActions}>
@@ -183,6 +189,7 @@ export function AcceptanceCriteriaSection({
                 if (e.key === 'Escape') handleCancelNew();
               }}
             />
+            <TicketRefSuggester targetRef={addInputRef} />
             <button
               type="button"
               className={styles.actionBtnCancel}

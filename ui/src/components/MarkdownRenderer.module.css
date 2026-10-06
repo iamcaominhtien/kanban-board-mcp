@@ -146,3 +146,46 @@
   border-top: 1px solid #DCE6DF;
   margin: 16px 0;
 }
+
+
+/* Docs callouts: > [!WARNING] blocks */
+.callout {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #cfe3d5;
+  border-left-width: 3px;
+  background: #f1f8f3;
+  font-style: normal;
+  color: #2f3f35;
+}
+
+.callout_warning { border-color: #ecd49a; background: #fff8e6; }
+.callout_danger { border-color: #e7b5ac; background: #fdf1ef; }
+.callout_tip { border-color: #b9d8f0; background: #eff7fd; }
+
+.calloutIcon {
+  flex-shrink: 0;
+  line-height: 1.65;
+}
+
+.calloutBody {
+  min-width: 0;
+}
+
+.calloutBody > :last-child {
+  margin-bottom: 0;
+}
+
+/* task list items: the checkbox replaces the bullet */
+.markdown li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-left: -18px;
+}
+
+.markdown li > input[type='checkbox'] {
+  margin-right: 6px;
+  accent-color: #2E6F40;
+}

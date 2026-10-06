@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import type { WorkLogEntry, DebugEntryKind, DebugAttachment } from '../types';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { TicketRefSuggester } from './docs/RefSuggester';
 import { uploadAttachment, uploadUrl } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import styles from './DebugSpaceSection.module.css';
@@ -269,6 +270,7 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
           aria-label="Note"
           required
         />
+        <TicketRefSuggester targetRef={noteRef} />
       </div>
 
       <div className={styles.extraLinksRow}>

@@ -6,6 +6,7 @@ import { Column } from './Column';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
+import { DocsSpace } from './docs/DocsSpace';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
@@ -33,8 +34,11 @@ interface BoardProps {
   onPriorityChange: (p: Priority | 'all') => void;
   projectName: string;
   projectId?: string;
-  viewMode: 'board' | 'list' | 'timeline';
-  onViewModeChange: (v: 'board' | 'list' | 'timeline') => void;
+  viewMode: 'board' | 'list' | 'timeline' | 'docs';
+  onViewModeChange: (v: 'board' | 'list' | 'timeline' | 'docs') => void;
+  /** Docs view: a page to open (from a ticket's linked docs or a ?docs= link). */
+  docsRequestedPageId?: string | null;
+  onDocsRequestHandled?: () => void;
   members?: Member[];
   activeAssignee?: string | 'all';
   onAssigneeChange?: (id: string | 'all') => void;
@@ -66,6 +70,8 @@ export function Board({
   projectId,
   viewMode,
   onViewModeChange,
+  docsRequestedPageId,
+  onDocsRequestHandled,
   members = [],
   activeAssignee = 'all',
   onAssigneeChange,
@@ -129,6 +135,14 @@ export function Board({
               >
                 Timeline
               </button>
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${viewMode === 'docs' ? styles.viewBtnActive : ''}`}
+                onClick={() => onViewModeChange('docs')}
+                data-testid="view-docs"
+              >
+                Docs
+              </button>
             </div>
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
@@ -140,6 +154,7 @@ export function Board({
         </div>
 
         <div {...(loadState === 'projects' ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } } : {})}>
+        {viewMode !== 'docs' && (
         <FilterBar
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
@@ -151,9 +166,21 @@ export function Board({
           activeAssignee={activeAssignee}
           onAssigneeChange={onAssigneeChange ?? (() => {})}
         />
+        )}
         </div>
 
-        {lanesOverride ? (
+        {viewMode === 'docs' && projectId && !loadState ? (
+          <DocsSpace
+            projectId={projectId}
+            projectName={projectName}
+            requestedPageId={docsRequestedPageId}
+            onRequestHandled={onDocsRequestHandled}
+            onOpenTicket={(id) => {
+              const t = allTickets.find((x) => x.id === id);
+              if (t) onCardClick(t);
+            }}
+          />
+        ) : lanesOverride ? (
           <div className={styles.columns}>{lanesOverride}</div>
         ) : loadState === 'projects' ? (
           <div className={styles.columns} aria-hidden="true">

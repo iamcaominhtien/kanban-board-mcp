@@ -285,6 +285,20 @@ async def test_delete_comment():
     assert result["comments"] == []
 
 
+async def test_list_and_restore_comment():
+    project = await _seed_project(prefix="LCM")
+    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="Thread")
+    first = await mcp_tools.add_comment(ticket["id"], text="One", author="alice")
+    await mcp_tools.add_comment(ticket["id"], text="Two", author="bob")
+    cid = first["comments"][0]["id"]
+    listed = await mcp_tools.list_comments(ticket["id"])
+    assert listed["count"] == 2 and [c["text"] for c in listed["comments"]] == ["One", "Two"]
+    await mcp_tools.delete_comment(ticket["id"], cid)
+    assert (await mcp_tools.list_comments(ticket["id"]))["count"] == 1
+    back = await mcp_tools.restore_comment(ticket["id"], cid)
+    assert [c["text"] for c in back["comments"]] == ["One", "Two"]
+
+
 async def test_delete_comment_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
         await mcp_tools.delete_comment("MISSING-0", "some-id")

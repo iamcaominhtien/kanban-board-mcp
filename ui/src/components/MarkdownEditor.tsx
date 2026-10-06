@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { markdownToHtml, htmlToMarkdown } from '../utils/markdownWysiwyg';
 import { resolveOrigin } from '../api/resolveOrigin';
+import { RefSuggester } from './docs/RefSuggester';
+import { useDocsRefs } from './docs/DocsRefsContext';
+import { expandRefChip, setKeyPrefix, snapRefTokens, tokenAtCaret } from '../utils/docRefTokens';
 import styles from './MarkdownEditor.module.css';
 
 const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -42,6 +45,8 @@ interface Props {
   viewClassName?: string;
   compact?: boolean;
   actions?: React.ReactNode;
+  /** When set, typing `[[` offers pages and sections of this project's docs. */
+  docsProjectId?: string;
 }
 
 export function MarkdownEditor({
@@ -61,7 +66,11 @@ export function MarkdownEditor({
   viewClassName,
   compact = false,
   actions,
+  docsProjectId: docsProjectIdProp,
 }: Props) {
+  const docsRefs = useDocsRefs();
+  const docsProjectId = docsProjectIdProp ?? docsRefs?.projectId;
+  setKeyPrefix(docsRefs?.ticketId?.split('-')[0] ?? null);
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
@@ -103,6 +112,17 @@ export function MarkdownEditor({
       }
     }
   }, [value, isEditing]);
+
+  // a [[token]] the caret has left snaps back to a pill
+  useEffect(() => {
+    if (!isEditing) return;
+    const onSel = () => {
+      const root = wysiwygRef.current;
+      if (root && root.contains(window.getSelection()?.anchorNode ?? null)) snapRefTokens(root);
+    };
+    document.addEventListener('selectionchange', onSel);
+    return () => document.removeEventListener('selectionchange', onSel);
+  }, [isEditing]);
 
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
@@ -719,7 +739,11 @@ export function MarkdownEditor({
     return (
       <div
         className={`${styles.viewArea} ${compact ? styles.viewAreaCompact : ''} ${readOnly ? styles.viewAreaReadOnly : ''} ${viewClassName || ''}`}
-        onClick={startEditing}
+        onClick={(e) => {
+          // a click on a doc / ticket pill opens it; it must not switch the field to edit mode
+          if ((e.target as HTMLElement).closest('.dk-chip')) return;
+          startEditing();
+        }}
         role="button"
         tabIndex={readOnly ? -1 : 0}
         aria-label={editAriaLabel}
@@ -901,6 +925,24 @@ export function MarkdownEditor({
                 <path d="M16 6L22 12L16 18" />
               </svg>
             </button>
+
+            {/* [[ ]]: link a doc, section or ticket */}
+            {docsProjectId && (
+              <button
+                type="button"
+                className={styles.toolbarBtn}
+                aria-label="Insert doc reference"
+                title="Link a doc or ticket ([[)"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, width: 'auto', padding: '0 6px' }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  wysiwygRef.current?.focus();
+                  document.execCommand('insertText', false, '[[');
+                }}
+              >
+                [[ ]]
+              </button>
+            )}
 
             {/* Link (with popover) */}
             <button
@@ -1140,16 +1182,38 @@ export function MarkdownEditor({
           className={`${styles.wysiwygArea} ${compact ? styles.wysiwygAreaCompact : ''}`}
           data-placeholder={placeholderText}
           onInput={() => {
+            if (wysiwygRef.current && snapRefTokens(wysiwygRef.current)) updateToolbarState();
             syncContent();
             updateToolbarState();
           }}
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => {
+            const root = wysiwygRef.current;
+            if (root && (e.key === 'Escape' || e.key === 'ArrowRight') && tokenAtCaret(root)) {
+              // leaving a raw [[token]] with Esc or → snaps it back to a pill
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+              const t = tokenAtCaret(root);
+              if (t && e.key === 'ArrowRight' && window.getSelection()?.anchorOffset !== t.end) return;
+              snapRefTokens(root, false);
+              syncContent();
+              return;
+            }
+            handleKeyDown(e);
+          }}
           onPaste={handlePaste}
           onDrop={handleDrop}
           onClick={(e) => {
             const target = e.target as HTMLElement;
+            const chip = target.closest('.docRef') as HTMLElement | null;
+            if (chip && wysiwygRef.current?.contains(chip)) {
+              e.preventDefault();
+              expandRefChip(chip);
+              return;
+            }
             if (target.tagName === 'INPUT') syncContent();
             if (target.tagName === 'IMG') {
               e.stopPropagation();
@@ -1159,9 +1223,13 @@ export function MarkdownEditor({
             }
           }}
           onBlur={() => {
+            if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false);
             if (dirtyRef.current) syncContent();
           }}
         />
+        {docsProjectId && !readOnly && (
+          <RefSuggester targetRef={wysiwygRef} projectId={docsProjectId} keyPrefix={docsRefs?.ticketId?.split('-')[0]} onChanged={() => { if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false); syncContent(); }} />
+        )}
 
         {selectedImg && imgRect && (
           <div

@@ -3,6 +3,7 @@ import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
 import { McpIntegrations } from './McpIntegrations';
+import { DocsSettingsRow } from './docs/DocsSettingsRow';
 import { useProjects, useUpdateProject } from '../api/projects';
 import { sweepWorkspaces, useUpdateWorkspaceSettings, useWorkspaceSettings } from '../api/tickets';
 import { extractError } from '../api/extractError';
@@ -475,6 +476,16 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
             </div>
             {projects.map((p) => (
               <ProjectRepoRow key={p.id} project={p} />
+            ))}
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* Docs on/off per project */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Docs</span>
+            {projects.map((p) => (
+              <DocsSettingsRow key={p.id} project={p} />
             ))}
           </div>
 

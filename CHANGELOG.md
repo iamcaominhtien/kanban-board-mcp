@@ -10,6 +10,42 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.3.0] - 2026-10-06
+
+Docs space: a per-project page tree with a real WYSIWYG editor (Tiptap) that still stores Markdown, built from the Docs design boards; doc references and a rebuilt Comments section inside tickets; full MCP coverage. Mobile layout and roles / access requests are intentionally not part of this release.
+
+### Added
+- **Docs view** next to Board / List / Timeline: page tree (drag to reorder or nest, quick filter, inline rename, row menu, collapsible rail under 1200 px), page view with "On this page" and "Referenced by", empty-space hero with five templates (Blank, Requirements, Meeting notes, Decision log, Technical design).
+- **Versions**: every publish adds a version; conflict detection (409) with Keep mine / Reload; history drawer with line and word diff (inline or side by side) and Restore, which creates a new version.
+- **References**: `[[Page#Section|label]]` and ticket keys render as chips (missing page, missing section, in Recycle Bin states); backlinks ("Referenced by"), and a "Linked docs" section on the ticket detail.
+- **Move to…**, **Duplicate** (with sub-pages) and soft delete into the Recycle Bin (30 days, restorable as a whole subtree).
+- **MCP tools**: `list_docs_pages`, `get_docs_page`, `create_docs_page`, `update_docs_page` (rejects a stale `base_version`).
+- REST API under `/projects/{id}/docs/...` and `/docs/pages/{id}/...`; migration `b9c0d1e2f3a4` adds `docs_page`, `docs_version`, `docs_draft`, `docs_link`.
+- **Visual editor** built on Tiptap: formatting and floating toolbars, `/` block menu, `[[` suggester (pages, sections, tickets), callouts, tables with grips and cell tools, task lists, code blocks with syntax colours, images, drag handle, "On this page" rail, Visual | Markdown toggle, Publish and Discard dialogs, conflict banner with "View their changes", offline and back-online banners.
+- **Search**: full-text (SQLite FTS5, LIKE fallback) with phrase and `-exclude` syntax, Ctrl/Cmd+K palette, results page with filters, find-in-page (Ctrl/Cmd+F) with Replace in the editor.
+- **Import Markdown** from files or whole folders (drag and drop, front matter, folders become parent pages, link check before importing).
+- **Rename with link rewrite** (preview of affected pages, Undo), heading-rename aliases so `[[Page#Old]]` keeps working.
+- **Per-project Docs switch** in Settings, **offline copy** of recently read pages, **notifications** when someone publishes (Follow space), **hover preview cards** for page and ticket chips, Share and Page info popovers, "Changes since you last viewed" banner, Undo on Move, combined Recycle Bin (pages and tickets), manual ticket-to-page links and a `[[` suggester in ticket descriptions.
+- **MCP tools** (13 new): `search_docs`, `move_docs_page`, `duplicate_docs_page`, `delete_docs_page`, `restore_docs_page`, `list_docs_recycle_bin`, `list_docs_versions`, `get_docs_version`, `restore_docs_version`, `resolve_docs_links`, `import_docs`, `link_ticket_doc`, `unlink_ticket_doc`; `update_docs_page` can also rename.
+- **Doc references in tickets** (all fields: description, acceptance criteria, test cases, comments, debug notes): `[[Page]]`, `[[Page#Section]]` and ticket keys render as pills (broken page: red dashed, missing section: amber dashed, deleted page: struck through); hover cards for page, section and ticket (300 ms open, 150 ms grace, flips above or shifts left, failed and deleted states with Retry / Restore); click opens a 480 px read-only side panel over the ticket (referenced section scrolled to and tinted, "Referenced from this ticket" strip, Esc and scrim close only the panel, "Open in Docs" keeps `#section`).
+- **One `[[` suggester in every field**: pages (recent first), sections after `#` (H2/H3, Whole page), tickets after `KAN-`, members after `@`; works in the rich editors, the comment box, the acceptance criterion row and the debug note. In the editors the pill under the caret becomes raw text and snaps back when the caret leaves.
+- **Linked docs by origin**: one row per page with "Mentioned in description / acceptance criterion / test case TC-3 / comment / debug note", a lock for derived links, manual links stay removable; "Referenced by" says "Mentioned in KAN-2 · test case TC-1". Activity logs `doc_ref_added` / `doc_ref_removed` as one "Doc references" entry, shows pills in description diffs with a "Show raw" toggle, and each comment is one "commented · View comment" line that scrolls to and tints the comment.
+- **Comments rebuilt**: thread with exact-time tooltip and `edited` marker, hover bar (Edit / Delete / Copy link), Write / Preview composer with toolbar, attachments and a per-ticket draft, edit in place, delete with inline confirm and a 10 s Undo (soft delete + `POST /tickets/{id}/comments/{cid}/restore`), long thread and long comment folding, send-failed and offline-queue states, `@[Name](member:id)` mentions with a computed recipient list (`comment_added` event), `#comment-id` deep links. Esc closes the ticket modal.
+- **MCP**: `list_comments` and `restore_comment` (56 tools, 69 with Idea Space).
+- Migration `c0d1e2f3a4b5`: `projects.docs_enabled`, `docs_links.origin`, `docs_anchor_aliases`, FTS index.
+
+### Changed
+- Docs UI rebuilt from the design boards (tokens, icons, tree, rail with flyouts, page view, dialogs, history and diff).
+- PyYAML is now a server dependency (Markdown front matter).
+
+### Fixed
+- Regexes that parse `[[references]]`, headings, `@mentions` and search tokens are now linear on hostile input (CodeQL "polynomial regular expression" findings). A heading such as `## C#` keeps its `#`; a closing `#` run is dropped only after a space.
+- Esc closes the ticket modal (unless a field, the doc side panel or another dialog is using it); the ticket modal now has `role="dialog"`.
+- A deleted page's pill in a ticket offers Restore (the reference resolver returns the page id and who deleted it).
+- Dragging a row in the Docs tree no longer selects text.
+
+---
+
 ## [2.2.0] - 2026-10-05
 
 Comprehensive file attachment overhaul, interactive Markdown image resizing, consolidated attachments zone, and desktop system app opening.
