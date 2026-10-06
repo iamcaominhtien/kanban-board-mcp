@@ -925,8 +925,15 @@ async def _resolve_page_ref(
     if not matches and "/" in needle:
         matches = [p for p in pages if path_of(p).lower().endswith(needle)]
     if not matches:
-        if any(p.title.lower() == needle for p in deleted):
-            return {"status": "in_bin", "title": title}
+        gone = next((p for p in deleted if p.title.lower() == needle), None)
+        if gone is not None:
+            return {
+                "status": "in_bin",
+                "title": title,
+                "page_id": gone.id,
+                "deleted_at": gone.deleted_at,
+                "deleted_by": getattr(gone, "deleted_by", None),
+            }
         return {"status": "missing", "title": title}
     if len(matches) > 1:
         matches.sort(key=lambda p: (depth(p), p.position))

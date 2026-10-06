@@ -822,7 +822,7 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
                         <div className={styles.acMain}>
                           <span className={styles.acField}>
                             {fieldName}
-                            {entry.ref && <span className={styles.acRef}> · {entry.ref}</span>}
+                            {entry.ref && entry.field !== 'comment' && entry.field !== 'doc_refs' && <span className={styles.acRef}> · {entry.ref}</span>}
                           </span>
 
                           {isDescription && diffData ? (

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { slugify } from '../../utils/docsMarkdown';
 import { DocPeekPanel, type PeekTarget } from './DocPeekPanel';
 import { DocsRefsProvider, type DocsRefsValue } from './DocsRefsContext';
 
@@ -26,15 +27,25 @@ export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTick
     requestAnimationFrame(() => el?.focus?.());
   }, []);
 
+  /** Leaves the ticket for Docs, keeping the section in the URL (#auth). */
+  const toDocs = useCallback(
+    (pageId: string, anchor?: string | null) => {
+      const slug = anchor ? slugify(anchor) : '';
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${slug ? `#${slug}` : ''}`);
+      onOpenDocsPage?.(pageId, anchor);
+    },
+    [onOpenDocsPage],
+  );
+
   const value = useMemo<DocsRefsValue>(
     () => ({
       projectId,
       ticketId,
       peek,
-      openInDocs: (pageId, anchor) => onOpenDocsPage?.(pageId, anchor),
+      openInDocs: toDocs,
       openTicket: (id) => onOpenTicket?.(id),
     }),
-    [projectId, ticketId, peek, onOpenDocsPage, onOpenTicket],
+    [projectId, ticketId, peek, toDocs, onOpenTicket],
   );
 
   return (
@@ -47,7 +58,7 @@ export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTick
           ticketId={ticketId}
           onSwitch={setTarget}
           onClose={close}
-          onOpenInDocs={(id, a) => { close(); onOpenDocsPage?.(id, a); }}
+          onOpenInDocs={(id, a) => { close(); toDocs(id, a); }}
           onOpenTicket={(id) => { close(); onOpenTicket?.(id); }}
         />
       )}

@@ -5,7 +5,8 @@ import remarkGfm from 'remark-gfm';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { FileAttachmentCard } from './FileAttachmentCard';
 import { FilePreviewModal } from './FilePreviewModal';
-import { useResolveRefs } from '../api/docs';
+import { useResolveRefs, useRestorePage } from '../api/docs';
+import { useToast } from './Toast';
 import { RefChip } from './docs/RefChip';
 import { useDocsRefs } from './docs/DocsRefsContext';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../utils/docsMarkdown';
@@ -108,6 +109,8 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
 export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: MarkdownRendererProps) {
   const Wrapper = (inline ? 'span' : 'div') as 'div';
   const refs = useDocsRefs();
+  const toast = useToast();
+  const restorePage = useRestorePage(refs?.projectId ?? '');
   const ticketSurface = !docsProp && !!refs && !plain;
   const docs: DocsRenderOptions | undefined = docsProp ?? (refs && !plain ? { projectId: refs.projectId, onOpenPage: (id, a) => refs.peek(id, a), onOpenTicket: refs.openTicket } : undefined);
   // Clean up any stray uploading:... placeholders before rendering, and preprocess raw <img> tags
@@ -215,6 +218,7 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
                   onPeek={ticketSurface ? refs?.peek : undefined}
                   onOpenInDocs={ticketSurface ? refs?.openInDocs : undefined}
                   onOpenPage={docs.onOpenPage}
+                  onRestorePage={ticketSurface ? (id) => restorePage.mutate(id, { onSuccess: () => toast.success('Page restored') }) : undefined}
                 />
               );
             }

@@ -138,6 +138,9 @@ export interface DocsRefResult {
   section?: string;
   key?: string;
   ticketStatus?: string;
+  /** Set when status is in_bin. */
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 }
 
 /** Error body of a failed docs call (FastAPI wraps it in `detail`). */

@@ -353,6 +353,8 @@ export function RefChip(props: RefChipProps) {
               <TicketDeletedCard
                 {...i}
                 canRestore={!!props.onRestorePage && !!result?.pageId}
+                deletedBy={result?.deletedBy}
+                deletedAt={result?.deletedAt}
                 onRestore={() => { hover.close(); if (result?.pageId) props.onRestorePage?.(result.pageId); }}
                 onOpenBin={() => { hover.close(); if (result?.pageId) props.onPeek?.(result.pageId, null, { deleted: true, title: pageTitle ?? label }); }}
               />

@@ -30,7 +30,7 @@
 - **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
 - **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
 - **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
-- **MCP server for AI agents**: 54 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **MCP server for AI agents**: 56 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
 - **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
 - **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
 
@@ -89,7 +89,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 54 tools for AI agents over MCP (67 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
+The server exposes 56 tools for AI agents over MCP (69 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
 
 **Projects & Members**
 - `list_projects`, `create_project`, `update_project` (name, color, linked git repo, worktree defaults)
@@ -103,7 +103,7 @@ The server exposes 54 tools for AI agents over MCP (67 with the Idea Space tools
 - `get_ticket_workspace_path` — the ticket's scratch folder (read/write it with your own file tools)
 
 **Working on a ticket**
-- `add_comment`, `update_comment`, `delete_comment`
+- `add_comment`, `update_comment`, `delete_comment`, `restore_comment`, `list_comments`
 - `add_work_log`, `update_work_log`, `delete_work_log` — the Debug Space journal
 - `add_test_case`, `update_test_case`, `delete_test_case`
 - `add_acceptance_criterion`, `toggle_acceptance_criterion`, `delete_acceptance_criterion`

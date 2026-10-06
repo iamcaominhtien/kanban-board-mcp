@@ -302,6 +302,21 @@ function TicketModalInner({
     setIsFullscreen(false);
     setTimeout(onClose, 150);
   }
+  const handleCloseRef = useRef(handleClose);
+  handleCloseRef.current = handleClose;
+
+  // Esc closes the ticket unless something inside is using it (a field, the doc side panel, another dialog)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      if (document.querySelectorAll('[role="dialog"]').length > 1) return;
+      handleCloseRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Description edits are debounced (one PATCH per pause, not per keystroke) and flushed on blur/close/switch
   const pendingDescRef = useRef<{ ticketId: string; value: string } | null>(null);
@@ -651,6 +666,9 @@ function TicketModalInner({
       onClick={handleClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Ticket ${ticket.id}`}
         className={`${styles.panel} ${styles.panelDetail} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
         onClick={(e) => e.stopPropagation()}
       >

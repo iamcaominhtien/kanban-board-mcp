@@ -185,7 +185,7 @@ function Loaded({ page, anchor, arrowLeft, flipped, footer }: { page: DocsPage; 
 }
 
 /** Card for a pill whose page sits in the Recycle Bin. */
-export function TicketDeletedCard({ arrowLeft, flipped, canRestore, onRestore, onOpenBin }: { arrowLeft: number; flipped: boolean; canRestore: boolean; onRestore: () => void; onOpenBin: () => void }) {
+export function TicketDeletedCard({ arrowLeft, flipped, canRestore, deletedBy, deletedAt, onRestore, onOpenBin }: { arrowLeft: number; flipped: boolean; canRestore: boolean; deletedBy?: string | null; deletedAt?: string | null; onRestore: () => void; onOpenBin: () => void }) {
   return (
     <Shell arrowLeft={arrowLeft} flipped={flipped}>
       <div data-testid="card-deleted" style={{ padding: '14px 16px 12px', display: 'flex', gap: 11, alignItems: 'flex-start' }}>
@@ -195,7 +195,7 @@ export function TicketDeletedCard({ arrowLeft, flipped, canRestore, onRestore, o
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>In Recycle Bin</span>
           <span style={{ fontSize: 12.5, lineHeight: 1.5, color: '#5B6B60' }}>
-            The title is kept for 30 days. <b style={{ color: '#1E2A22' }}>Restore</b> brings the page back at the same place and this pill works again.
+            {deletedBy && deletedAt ? `Deleted by ${actorName(deletedBy)} on ${new Date(deletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. ` : ''}The title is kept for 30 days. <b style={{ color: '#1E2A22' }}>Restore</b> brings the page back at the same place and this pill works again.
           </span>
         </div>
       </div>

@@ -1228,7 +1228,7 @@ export function MarkdownEditor({
           }}
         />
         {docsProjectId && !readOnly && (
-          <RefSuggester targetRef={wysiwygRef} projectId={docsProjectId} keyPrefix={docsRefs?.ticketId?.split('-')[0]} onChanged={() => { if (wysiwygRef.current) snapRefTokens(wysiwygRef.current); syncContent(); }} />
+          <RefSuggester targetRef={wysiwygRef} projectId={docsProjectId} keyPrefix={docsRefs?.ticketId?.split('-')[0]} onChanged={() => { if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false); syncContent(); }} />
         )}
 
         {selectedImg && imgRect && (
