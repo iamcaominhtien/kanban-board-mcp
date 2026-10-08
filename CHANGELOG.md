@@ -8,6 +8,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+---
+
+## [3.0.0] - 2026-10-08
+
+The MCP server is reworked from 56 tools down to 9, and its code now lives in a package. The MCP changes are breaking for anything that scripts against the MCP tools (see **Changed**), which is why this is a major version. The web UI and REST API are unchanged.
+
 ### Changed (breaking for MCP clients)
 
 - **The MCP server now exposes 9 tools instead of 56** (22 instead of 69 with the Idea Space tools). An agent pays for every tool description and schema on every session; grouping by noun keeps every capability while the tool list is about 30% smaller and the choice of tool simpler. Write tools take an `action` (and `ticket_items` an `item`), their descriptions list the parameters each action takes, and a call with a missing or foreign parameter is answered with what that action accepts. The Idea Space tools (hidden by default) are unchanged.
@@ -20,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
   - `docs_read`: `list_docs_pages`, `get_docs_page`, `search_docs`, `list_docs_versions`, `get_docs_version`, `list_docs_recycle_bin`, `resolve_docs_links`.
   - `docs_write`: `create_docs_page`, `update_docs_page`, `move_docs_page`, `duplicate_docs_page`, `delete_docs_page`, `restore_docs_page`, `restore_docs_version`, `import_docs`.
 - The 2,300-line `server/mcp_tools.py` is now the `server/kanban_mcp/` package: `tools/` (the 9 tools and their routing), `operations/` (one module per area: projects, members, tickets, relations, comments, work log, test cases, branches, checklists, docs, ideas), `common.py`, `registry.py`, `instructions.py`, `settings.py`. The largest module is under 500 lines. Database access goes through `kanban_mcp.common.async_session()`, which now looks the session factory up on every call.
+- **Misspelt parameters are errors**: a tool call with a parameter it does not declare (e.g. `titel=`) used to succeed without changing anything; it now fails with "Extra inputs are not permitted". `get_ticket(view='comments')` refuses the activity options it would ignore.
 - The write tools are annotated destructive as a whole (one of their actions deletes); the four read tools stay read-only.
 
 ---
