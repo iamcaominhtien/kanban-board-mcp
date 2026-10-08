@@ -27,6 +27,8 @@
     "files": [
       "main.js",
       "main-helpers.js",
+      "updater.js",
+      "updater-helpers.js",
       "preload.js",
       "vscode-setup.js"
     ],

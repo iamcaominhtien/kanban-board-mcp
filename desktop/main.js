@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
+const { setupUpdater } = require('./updater');
 const {
   StartupProfiler,
   buildBackendLaunchSpec,
@@ -270,6 +271,7 @@ function launchBackend() {
 app.whenReady().then(() => {
   profiler.mark('app-ready');
   createWindow();
+  setupUpdater(() => mainWindow);
 
   launchBackend();
 
