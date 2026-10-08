@@ -28,6 +28,7 @@ import services.activity as svc_activity
 import services.tickets as svc_tickets
 import services.workspace as svc_workspace
 from database import async_session
+from uploads import resolve_upload_path
 from models import (
     IDEA_COLORS,
     IDEA_STATUSES,
@@ -401,6 +402,22 @@ def _clip_activity(entries: list[dict]) -> list[dict]:
     return out
 
 
+_UPLOAD_URL = re.compile(r"/uploads/[^\s)\"'\]<>\\|?#]{1,300}")
+
+
+def _upload_files(data: dict) -> list[dict]:
+    """Every /uploads/ file the ticket mentions (description, comments, work log, attachments) with its absolute path on disk."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    for url in _UPLOAD_URL.findall(json.dumps(data, default=str)):
+        if url in seen:
+            continue
+        seen.add(url)
+        resolved = resolve_upload_path(url[len("/uploads/"):])
+        out.append({"url": url, "path": str(resolved) if resolved else None, "exists": bool(resolved and resolved.is_file())})
+    return out
+
+
 async def get_ticket(
     ticket_id: TicketId,
     activity_limit: Annotated[int | None, Field(le=1000, description=f"How many of the most recent activity entries to return (oldest first). Default {DEFAULT_ACTIVITY_ENTRIES}, long texts shortened; 0 = none; a negative number (e.g. -1) = the WHOLE history, full texts (large).")] = None,
@@ -408,6 +425,7 @@ async def get_ticket(
 ) -> dict:
     """Get one ticket in full: Markdown description, acceptance criteria, test cases, comments, work log (debug notes),
     branches, relations (blocks / blocked_by / links) and `workspace_path` when the Workspace feature is on.
+    `files`: uploaded images/files the ticket mentions, with absolute `path` on disk to read.
     Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
     `activity_log` holds the most recent changes (who changed what and when); `activity_total` is how many entries the
     ticket has in all, so you can tell when more exist (widen with activity_limit or narrow with activity_since)."""
@@ -417,6 +435,9 @@ async def get_ticket(
         if ticket is None:
             raise _missing_ticket(ticket_id)
         data = _ticket_to_dict(ticket, include_activity=True)
+        files = _upload_files(data)
+        if files:
+            data["files"] = files
         info = await svc_workspace.get_workspace_path(session, ticket_id, create=False)
         if info is not None and info["enabled"]:
             data["workspace_path"] = info["path"]

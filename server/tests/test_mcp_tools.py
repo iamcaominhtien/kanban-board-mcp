@@ -133,6 +133,22 @@ async def test_get_ticket_returns_ticket():
     assert result["title"] == "Fetch me"
 
 
+async def test_get_ticket_lists_uploaded_files_with_absolute_paths():
+    project = await _seed_project(prefix="GETF")
+    ticket = await mcp_tools.create_ticket(
+        project_id=project["id"],
+        title="With files",
+        description="Look: ![shot](/uploads/shot.png) and [spec](/uploads/spec.pdf)",
+    )
+    result = await mcp_tools.get_ticket(ticket["id"])
+    files = {f["url"]: f for f in result["files"]}
+    assert set(files) == {"/uploads/shot.png", "/uploads/spec.pdf"}
+    assert files["/uploads/shot.png"]["path"].startswith("/")
+    assert files["/uploads/shot.png"]["path"].endswith("shot.png")
+    plain = await mcp_tools.create_ticket(project_id=project["id"], title="No files")
+    assert "files" not in await mcp_tools.get_ticket(plain["id"])
+
+
 async def test_get_ticket_raises_for_missing_id():
     with pytest.raises(ValueError, match="not found"):
         await mcp_tools.get_ticket("MISSING-9999")
