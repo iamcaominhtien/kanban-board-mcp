@@ -258,7 +258,13 @@ export function DocsPageView({ page, projectId, projectName, narrow, offline, on
             </div>
             <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 4px' }} />
             <div ref={setBody} data-testid="page-body">
-              {published ? (
+              {!published && (
+                <div style={{ margin: '24px 0', padding: '16px 18px', borderRadius: 10, border: '1px dashed #C7D2CB', background: '#F6FAF7', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13.5, color: '#5B6B60' }}>
+                  <strong style={{ color: '#1E2A22' }}>This page has not been published yet.</strong>
+                  <span>{page.draft ? 'Continue editing to finish your draft, then publish it so everyone can read it. Below is a preview of the draft.' : 'Edit the page and publish it so everyone can read it.'}</span>
+                </div>
+              )}
+              {(published || page.draft) && (
                 <DocsMarkdown
                   projectId={projectId}
                   projectName={projectName}
@@ -266,15 +272,10 @@ export function DocsPageView({ page, projectId, projectName, narrow, offline, on
                   onOpenTicket={onOpenTicket}
                   onCreatePage={onCreatePage}
                   onRestorePage={onRestorePage}
-                  onReplaceSection={onReplaceSection}
+                  onReplaceSection={published ? onReplaceSection : undefined}
                 >
-                  {page.markdown}
+                  {published ? page.markdown : page.draft!.markdown}
                 </DocsMarkdown>
-              ) : (
-                <div style={{ margin: '24px 0', padding: '16px 18px', borderRadius: 10, border: '1px dashed #C7D2CB', background: '#F6FAF7', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13.5, color: '#5B6B60' }}>
-                  <strong style={{ color: '#1E2A22' }}>This page has not been published yet.</strong>
-                  <span>{page.draft ? 'Continue editing to finish your draft, then publish it so everyone can read it.' : 'Edit the page and publish it so everyone can read it.'}</span>
-                </div>
               )}
             </div>
             <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
