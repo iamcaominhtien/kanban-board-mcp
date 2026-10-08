@@ -102,6 +102,7 @@ async def create_idea_ticket(
     tags: list | None = None,
     problem_statement: str | None = None,
 ) -> IdeaTicket:
+    """Create an idea ticket with the next idea number."""
     idea_emoji = _validate_idea_emoji(idea_emoji)
 
     if tags is None:
@@ -134,6 +135,7 @@ async def create_idea_ticket(
 
 
 async def get_idea_ticket(session: AsyncSession, ticket_id: str) -> IdeaTicket | None:
+    """Return an idea ticket by id, or None."""
     return await session.get(IdeaTicket, ticket_id)
 
 
@@ -143,6 +145,7 @@ async def list_idea_tickets(
     idea_status: str | None = None,
     q: str | None = None,
 ) -> list[IdeaTicket]:
+    """List a project's idea tickets, optionally filtered by status or text."""
     stmt = select(IdeaTicket).where(IdeaTicket.project_id == project_id)
     if idea_status is not None:
         stmt = stmt.where(IdeaTicket.idea_status == idea_status)
@@ -177,6 +180,7 @@ async def update_idea_ticket(
     ticket_id: str,
     **fields: Any,
 ) -> IdeaTicket | None:
+    """Apply field updates and log them; return None if the ticket is missing."""
     ticket = await session.get(IdeaTicket, ticket_id)
     if ticket is None:
         return None
@@ -217,6 +221,7 @@ async def update_idea_ticket(
 
 
 async def delete_idea_ticket(session: AsyncSession, ticket_id: str) -> bool:
+    """Delete an idea ticket; return False if it does not exist."""
     ticket = await session.get(IdeaTicket, ticket_id)
     if ticket is None:
         return False
@@ -239,6 +244,7 @@ async def update_idea_status(
     new_status: str,
     reason: str | None = None,
 ) -> IdeaTicket:
+    """Move an idea to a new status, recording the reason."""
     ticket = await session.get(IdeaTicket, ticket_id)
     if ticket is None:
         raise ValueError(f"Idea ticket '{ticket_id}' not found")
@@ -277,6 +283,7 @@ async def promote_idea_to_ticket(
     type_: str = "feature",
     priority: str = "medium",
 ) -> Ticket:
+    """Turn an approved idea into a regular ticket and link the two."""
     ticket = await session.get(IdeaTicket, idea_ticket_id)
     if ticket is None:
         raise ValueError(f"Idea ticket '{idea_ticket_id}' not found")
@@ -332,6 +339,7 @@ _VALID_ASSUMPTION_STATUSES = {"untested", "validated", "invalidated"}
 async def add_assumption(
     session: AsyncSession, ticket_id: str, text: str
 ) -> IdeaTicket:
+    """Append an assumption (max 500 characters)."""
     text = text.strip()
     if not text:
         raise ValueError("text cannot be empty")
@@ -358,6 +366,7 @@ async def add_assumption(
 async def update_assumption_status(
     session: AsyncSession, ticket_id: str, assumption_id: str, status: str
 ) -> IdeaTicket:
+    """Set the status of an assumption."""
     if status not in _VALID_ASSUMPTION_STATUSES:
         raise ValueError(
             f"Invalid status '{status}'. Must be one of: {', '.join(sorted(_VALID_ASSUMPTION_STATUSES))}"
@@ -386,6 +395,7 @@ async def update_assumption_status(
 async def delete_assumption(
     session: AsyncSession, ticket_id: str, assumption_id: str
 ) -> IdeaTicket:
+    """Remove an assumption by id."""
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     assumptions = _safe_json(ticket.assumptions)
     original_len = len(assumptions)
@@ -408,6 +418,7 @@ async def delete_assumption(
 async def add_microthought(
     session: AsyncSession, ticket_id: str, text: str
 ) -> IdeaTicket:
+    """Append a microthought (max 500 characters)."""
     text = text.strip()
     if not text:
         raise ValueError("text cannot be empty")
@@ -424,6 +435,7 @@ async def add_microthought(
 async def delete_microthought(
     session: AsyncSession, ticket_id: str, microthought_id: str
 ) -> IdeaTicket:
+    """Remove a microthought by id."""
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     microthoughts = _safe_json(ticket.microthoughts)
     filtered = [m for m in microthoughts if m.get("id") != microthought_id]

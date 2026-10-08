@@ -69,6 +69,8 @@ def _404(detail: str = "Ticket not found") -> NoReturn:
 
 
 class DescriptionImageUploadResponse(BaseModel):
+    """Stored URL and Markdown alt text of an uploaded image."""
+
     url: str
     markdown: str
     filename: str
@@ -125,6 +127,7 @@ def _validate_upload(file: UploadFile) -> tuple[str, str]:
 async def upload_description_image(
     file: UploadFile = File(...),
 ) -> DescriptionImageUploadResponse:
+    """Upload an image for use in Markdown text."""
     filename, content_type = _validate_upload(file)
 
     try:
@@ -149,6 +152,8 @@ async def upload_description_image(
 
 
 class AttachmentUploadResponse(BaseModel):
+    """Stored URL, name and size of an uploaded file."""
+
     id: str
     url: str
     name: str
@@ -213,6 +218,7 @@ async def get_tickets(
     q: Optional[str] = None,
     include_wont_do: bool = False,
 ) -> list[TicketRead]:
+    """List a project's tickets with optional filters."""
     tickets = await list_tickets(
         session,
         project_id,
@@ -230,6 +236,7 @@ async def get_tickets(
 async def post_ticket(
     project_id: str, body: TicketCreateBody, session: Session
 ) -> TicketRead:
+    """Create a ticket in a project."""
     try:
         ticket = await create_ticket(
             session,
@@ -254,6 +261,7 @@ async def post_ticket(
 
 @router.get("/tickets/{ticket_id}", response_model=TicketRead)
 async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
+    """Get a ticket by id."""
     ticket = await get_ticket(session, ticket_id)
     if ticket is None:
         _404()
@@ -264,6 +272,7 @@ async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
 async def patch_ticket(
     ticket_id: str, data: TicketUpdate, session: Session
 ) -> TicketRead:
+    """Update a ticket."""
     try:
         ticket = await update_ticket(session, ticket_id, data)
     except ValueError as exc:
@@ -276,6 +285,7 @@ async def patch_ticket(
 
 @router.delete("/tickets/{ticket_id}", status_code=204)
 async def del_ticket(ticket_id: str, session: Session) -> None:
+    """Delete a ticket."""
     found = await delete_ticket(session, ticket_id)
     if not found:
         _404()
@@ -288,6 +298,8 @@ async def del_ticket(ticket_id: str, session: Session) -> None:
 
 
 class StatusBody(BaseModel):
+    """Request body to change a ticket's status."""
+
     status: Literal[
         "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
     ]
@@ -297,6 +309,7 @@ class StatusBody(BaseModel):
 async def patch_status(
     ticket_id: str, body: StatusBody, session: Session
 ) -> TicketRead:
+    """Move a ticket to another status."""
     try:
         ticket = await update_ticket(
             session, ticket_id, TicketUpdate(status=body.status)
@@ -323,11 +336,15 @@ def _loads_comments(ticket) -> list[dict]:
 
 
 class CommentBody(BaseModel):
+    """Request body to add a comment."""
+
     text: str
     author: str = "user"
 
 
 class CommentUpdateBody(BaseModel):
+    """Request body to edit a comment."""
+
     text: str
 
 
@@ -335,6 +352,7 @@ class CommentUpdateBody(BaseModel):
 async def post_comment(
     ticket_id: str, body: CommentBody, session: Session
 ) -> TicketRead:
+    """Add a comment and publish a `comment_added` event."""
     try:
         ticket = await add_comment(session, ticket_id, body.text, body.author)
     except ValueError as exc:
@@ -362,6 +380,7 @@ async def post_comment(
 async def patch_comment(
     ticket_id: str, comment_id: str, body: CommentUpdateBody, session: Session
 ) -> TicketRead:
+    """Edit a comment."""
     try:
         ticket = await update_comment(session, ticket_id, comment_id, body.text)
     except ValueError as exc:
@@ -378,6 +397,7 @@ async def patch_comment(
 async def undo_delete_comment(
     ticket_id: str, comment_id: str, session: Session
 ) -> TicketRead:
+    """Restore a deleted comment."""
     ticket = await restore_comment(session, ticket_id, comment_id)
     if ticket is None:
         _404()
@@ -387,6 +407,7 @@ async def undo_delete_comment(
 
 @router.delete("/tickets/{ticket_id}/comments/{comment_id}", response_model=TicketRead)
 async def del_comment(ticket_id: str, comment_id: str, session: Session) -> TicketRead:
+    """Delete a comment (restorable)."""
     ticket = await delete_comment(session, ticket_id, comment_id)
     if ticket is None:
         _404()
@@ -400,11 +421,14 @@ async def del_comment(ticket_id: str, comment_id: str, session: Session) -> Tick
 
 
 class ACBody(BaseModel):
+    """Request body to add an acceptance criterion."""
+
     text: str
 
 
 @router.post("/tickets/{ticket_id}/acceptance-criteria", response_model=TicketRead)
 async def post_ac(ticket_id: str, body: ACBody, session: Session) -> TicketRead:
+    """Add an acceptance criterion."""
     try:
         ticket = await add_acceptance_criterion(session, ticket_id, body.text)
     except ValueError as exc:
@@ -420,6 +444,7 @@ async def post_ac(ticket_id: str, body: ACBody, session: Session) -> TicketRead:
     response_model=TicketRead,
 )
 async def toggle_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketRead:
+    """Toggle an acceptance criterion."""
     ticket = await toggle_acceptance_criterion(session, ticket_id, criterion_id)
     if ticket is None:
         _404()
@@ -432,6 +457,7 @@ async def toggle_ac(ticket_id: str, criterion_id: str, session: Session) -> Tick
     response_model=TicketRead,
 )
 async def del_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketRead:
+    """Delete an acceptance criterion."""
     ticket = await delete_acceptance_criterion(session, ticket_id, criterion_id)
     if ticket is None:
         _404()
@@ -445,6 +471,8 @@ async def del_ac(ticket_id: str, criterion_id: str, session: Session) -> TicketR
 
 
 class SubTaskBody(BaseModel):
+    """Request body to add a sub-task."""
+
     text: str
 
 
@@ -452,6 +480,7 @@ class SubTaskBody(BaseModel):
 async def post_sub_task(
     ticket_id: str, body: SubTaskBody, session: Session
 ) -> TicketRead:
+    """Add a sub-task."""
     try:
         ticket = await add_sub_task(session, ticket_id, body.text)
     except ValueError as exc:
@@ -469,6 +498,7 @@ async def post_sub_task(
 async def toggle_sub_task_route(
     ticket_id: str, sub_task_id: str, session: Session
 ) -> TicketRead:
+    """Toggle a sub-task."""
     ticket = await toggle_sub_task(session, ticket_id, sub_task_id)
     if ticket is None:
         _404()
@@ -483,6 +513,7 @@ async def toggle_sub_task_route(
 async def del_sub_task(
     ticket_id: str, sub_task_id: str, session: Session
 ) -> TicketRead:
+    """Delete a sub-task."""
     ticket = await delete_sub_task(session, ticket_id, sub_task_id)
     if ticket is None:
         _404()
@@ -502,6 +533,8 @@ WorkLogRole = Literal["PM", "Developer", "BA", "Tester", "Designer", "Other"]
 
 
 class WorkLogBody(BaseModel):
+    """Request body to add a work-log entry."""
+
     author: str
     role: WorkLogRole
     note: str
@@ -513,6 +546,8 @@ class WorkLogBody(BaseModel):
 
 
 class WorkLogUpdateBody(BaseModel):
+    """Request body to edit a work-log entry."""
+
     author: str | None = None
     role: WorkLogRole | None = None
     note: str | None = None
@@ -527,6 +562,7 @@ class WorkLogUpdateBody(BaseModel):
 async def post_work_log(
     ticket_id: str, body: WorkLogBody, session: Session
 ) -> TicketRead:
+    """Add a work-log entry."""
     try:
         ticket = await add_work_log(
             session,
@@ -552,6 +588,7 @@ async def post_work_log(
 async def patch_work_log(
     ticket_id: str, log_id: str, body: WorkLogUpdateBody, session: Session
 ) -> TicketRead:
+    """Edit a work-log entry."""
     try:
         ticket = await update_work_log(
             session,
@@ -576,6 +613,7 @@ async def patch_work_log(
 
 @router.delete("/tickets/{ticket_id}/work-log/{log_id}", response_model=TicketRead)
 async def del_work_log(ticket_id: str, log_id: str, session: Session) -> TicketRead:
+    """Delete a work-log entry."""
     ticket = await delete_work_log(session, ticket_id, log_id)
     if ticket is None:
         _404()
@@ -589,6 +627,8 @@ async def del_work_log(ticket_id: str, log_id: str, session: Session) -> TicketR
 
 
 class TestCaseCreateBody(BaseModel):
+    """Request body to add a test case."""
+
     title: str
     status: Literal["pending", "running", "pass", "fail"] = "pending"
     proof: Optional[str] = None
@@ -601,6 +641,8 @@ class TestCaseCreateBody(BaseModel):
 
 
 class TestCaseUpdateBody(BaseModel):
+    """Request body to update a test case."""
+
     title: Optional[str] = None
     status: Optional[Literal["pending", "running", "pass", "fail"]] = None
     proof: Optional[str] = None
@@ -616,6 +658,7 @@ class TestCaseUpdateBody(BaseModel):
 async def post_test_case(
     ticket_id: str, body: TestCaseCreateBody, session: Session
 ) -> TicketRead:
+    """Add a test case."""
     try:
         ticket = await add_test_case(
             session,
@@ -642,6 +685,7 @@ async def post_test_case(
 async def patch_test_case(
     ticket_id: str, tc_id: str, body: TestCaseUpdateBody, session: Session
 ) -> TicketRead:
+    """Update a test case."""
     try:
         ticket = await update_test_case(
             session,
@@ -667,6 +711,7 @@ async def patch_test_case(
 
 @router.delete("/tickets/{ticket_id}/test-cases/{tc_id}", response_model=TicketRead)
 async def del_test_case(ticket_id: str, tc_id: str, session: Session) -> TicketRead:
+    """Delete a test case."""
     ticket = await delete_test_case(session, ticket_id, tc_id)
     if ticket is None:
         _404()
@@ -685,6 +730,7 @@ async def get_project_activities_handler(
     session: Session,
     limit: int = Query(default=200, ge=1, le=1000),
 ) -> list[ActivityEventRead]:
+    """List the project's recent activity."""
     return await get_project_activities(session, project_id, limit)
 
 
@@ -694,12 +740,15 @@ async def get_project_activities_handler(
 
 
 class BlockPairRead(BaseModel):
+    """Both tickets of a blocks relation."""
+
     blocker: TicketRead
     blocked: TicketRead
 
 
 @router.post("/tickets/{ticket_id}/blocks/{target_id}", response_model=BlockPairRead)
 async def post_block(ticket_id: str, target_id: str, session: Session) -> BlockPairRead:
+    """Mark a ticket as blocking another."""
     try:
         result = await link_block(session, ticket_id, target_id)
     except ValueError as exc:
@@ -715,6 +764,7 @@ async def post_block(ticket_id: str, target_id: str, session: Session) -> BlockP
 async def delete_block(
     ticket_id: str, target_id: str, session: Session
 ) -> BlockPairRead:
+    """Remove a blocks relation."""
     result = await unlink_block(session, ticket_id, target_id)
     if result is None:
         _404("One or both tickets not found")
@@ -729,6 +779,8 @@ async def delete_block(
 
 
 class TicketLinkBody(BaseModel):
+    """Request body to link two tickets."""
+
     target_id: str
     relation_type: Literal[
         "relates_to", "causes", "caused_by", "duplicates", "duplicated_by"
@@ -736,6 +788,8 @@ class TicketLinkBody(BaseModel):
 
 
 class TicketLinkRead(BaseModel):
+    """A ticket link as returned by the API."""
+
     id: str
     target_id: str
     relation_type: Literal[
@@ -749,6 +803,7 @@ class TicketLinkRead(BaseModel):
 async def post_ticket_link(
     ticket_id: str, body: TicketLinkBody, session: Session
 ) -> TicketLinkRead:
+    """Link two tickets."""
     try:
         link = await add_ticket_link(
             session, ticket_id, body.target_id, body.relation_type
@@ -761,6 +816,7 @@ async def post_ticket_link(
 
 @router.delete("/tickets/{ticket_id}/links/{link_id}")
 async def delete_ticket_link(ticket_id: str, link_id: str, session: Session) -> dict:
+    """Remove a ticket link."""
     found = await remove_ticket_link(session, ticket_id, link_id)
     if not found:
         _404("Link not found")
@@ -774,6 +830,8 @@ async def delete_ticket_link(ticket_id: str, link_id: str, session: Session) -> 
 
 
 class BranchCreateBody(BaseModel):
+    """Request body to add a branch."""
+
     name: str
     branch_from: str = "main"
     status: Literal["baseline", "open", "merged", "stale", "archived"] = "open"
@@ -787,6 +845,8 @@ class BranchCreateBody(BaseModel):
 
 
 class BranchUpdateBody(BaseModel):
+    """Request body to update a branch."""
+
     name: str | None = None
     branch_from: str | None = None
     status: Literal["baseline", "open", "merged", "stale", "archived"] | None = None
@@ -801,6 +861,7 @@ class BranchUpdateBody(BaseModel):
 
 @router.get("/tickets/{ticket_id}/graph")
 async def get_ticket_graph(ticket_id: str, session: Session, limit: int = 80) -> dict:
+    """Get the commit graph of the ticket's linked repo."""
     try:
         graph = await get_branch_graph(session, ticket_id, limit)
     except ValueError as exc:
@@ -812,6 +873,7 @@ async def get_ticket_graph(ticket_id: str, session: Session, limit: int = 80) ->
 
 @router.get("/tickets/{ticket_id}/commits/{rev}")
 async def get_ticket_commit(ticket_id: str, rev: str, session: Session) -> dict:
+    """Get details of one commit."""
     try:
         detail = await get_commit_detail(session, ticket_id, rev)
     except ValueError as exc:
@@ -823,6 +885,7 @@ async def get_ticket_commit(ticket_id: str, rev: str, session: Session) -> dict:
 
 @router.get("/tickets/{ticket_id}/branches")
 async def get_ticket_branches(ticket_id: str, session: Session) -> list[dict]:
+    """List a ticket's branches."""
     branches = await list_branches(session, ticket_id)
     if branches is None:
         _404()
@@ -835,6 +898,7 @@ async def get_ticket_branches(ticket_id: str, session: Session) -> list[dict]:
 async def post_branch(
     ticket_id: str, body: BranchCreateBody, session: Session
 ) -> TicketRead:
+    """Add a branch to a ticket."""
     try:
         ticket = await add_branch(
             session,
@@ -862,6 +926,7 @@ async def post_branch(
 async def patch_branch(
     ticket_id: str, branch_id: str, body: BranchUpdateBody, session: Session
 ) -> TicketRead:
+    """Update a branch."""
     try:
         ticket = await update_branch(
             session,
@@ -895,6 +960,7 @@ async def del_branch(
     delete_git_branch: bool = False,
     force: bool = False,
 ) -> TicketRead:
+    """Delete a branch record."""
     try:
         ticket = await delete_branch(
             session,
@@ -918,6 +984,7 @@ async def del_branch(
 async def post_checkout_branch(
     ticket_id: str, branch_id: str, session: Session
 ) -> TicketRead:
+    """Check out a ticket's branch in the linked repo."""
     try:
         ticket = await checkout_branch(session, ticket_id, branch_id)
     except ValueError as exc:

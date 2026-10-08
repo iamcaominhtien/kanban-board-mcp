@@ -15,6 +15,7 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 
 @router.get("/projects/{project_id}/members", response_model=list[MemberRead])
 async def get_members(project_id: str, session: Session) -> list[MemberRead]:
+    """List a project's members."""
     members = await list_members(session, project_id)
     return [MemberRead.model_validate(m) for m in members]
 
@@ -25,6 +26,7 @@ async def get_members(project_id: str, session: Session) -> list[MemberRead]:
 async def post_member(
     project_id: str, data: MemberCreate, session: Session
 ) -> MemberRead:
+    """Add a member to a project."""
     member = await create_member(session, project_id, data.name, data.color)
     await board_events.publish("invalidate")
     return MemberRead.model_validate(member)
@@ -32,6 +34,7 @@ async def post_member(
 
 @router.delete("/projects/{project_id}/members/{member_id}", status_code=204)
 async def del_member(project_id: str, member_id: str, session: Session) -> None:
+    """Remove a member (rejected while they own tickets)."""
     try:
         found = await remove_member(session, project_id, member_id)
     except ValueError as exc:

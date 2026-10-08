@@ -18,11 +18,13 @@ _DEFAULT_COLORS = [
 
 
 async def list_members(session: AsyncSession, project_id: str) -> list[Member]:
+    """Return the members of a project."""
     result = await session.exec(select(Member).where(Member.project_id == project_id))
     return list(result.all())
 
 
 async def get_member(session: AsyncSession, member_id: str) -> Member | None:
+    """Return a member by id, or None."""
     return await session.get(Member, member_id)
 
 
@@ -34,6 +36,7 @@ async def create_member(
     *,
     commit: bool = True,
 ) -> Member:
+    """Add a member, picking a default color when none is given."""
     if not color:
         existing = await list_members(session, project_id)
         color = _DEFAULT_COLORS[len(existing) % len(_DEFAULT_COLORS)]
@@ -54,6 +57,7 @@ async def create_member(
 
 
 async def remove_member(session: AsyncSession, project_id: str, member_id: str) -> bool:
+    """Delete a member; return False if not found in that project."""
     member = await session.get(Member, member_id)
     if member is None or member.project_id != project_id:
         return False

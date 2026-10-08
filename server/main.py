@@ -50,6 +50,7 @@ async def lifespan(app: FastAPI):
     # propagate a mounted sub-app's lifespan from the parent's `Mount` - so it
     # must be started explicitly here, or every /mcp request raises
     # "RuntimeError: Task group is not initialized. Make sure to use run()."
+    """Run the MCP session manager, DB init and background sweeper for the app's lifetime."""
     async with mcp.session_manager.run():
         await init_db()
         sweeper = asyncio.create_task(
@@ -112,6 +113,7 @@ app.add_exception_handler(DocsError, docs_error_handler)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Report liveness."""
     return {"status": "ok"}
 
 
@@ -129,6 +131,7 @@ async def serve_upload(
     inline: bool = False,
     view: bool = False,
 ):
+    """Serve an uploaded file inline (images, viewable types) or as a download."""
     resolved = resolve_upload_path(file_path)
     if resolved is None:
         raise HTTPException(status_code=400, detail="Invalid path")
@@ -170,6 +173,8 @@ async def serve_upload(
 
 @app.get("/events")
 async def sse_events() -> StreamingResponse:
+    """Stream board events to the client as Server-Sent Events."""
+
     async def generator():
         q = board_events.subscribe()
         try:
@@ -222,6 +227,7 @@ def _get_ui_dist() -> Path | None:
 
 @app.get("/")
 async def serve_root():
+    """Serve the built UI's index page."""
     dist = _get_ui_dist()
     if dist:
         index = dist / "index.html"
@@ -232,6 +238,7 @@ async def serve_root():
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
+    """Serve a built UI asset, falling back to the SPA index for client routes."""
     dist = _get_ui_dist()
     if not dist:
         raise HTTPException(status_code=404, detail="UI not built")
@@ -284,7 +291,10 @@ if __name__ == "__main__":
     _startup_mark("uvicorn-imported")
 
     class SignalServer(uvicorn.Server):
+        """Uvicorn server that prints a READY line once it is listening."""
+
         async def startup(self, sockets=None):
+            """Start up, then tell the parent process the port is ready."""
             await super().startup(sockets)
             _startup_mark("uvicorn-startup-done")
             print(f"READY port={self.config.port}", flush=True)

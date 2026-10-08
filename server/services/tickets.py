@@ -213,6 +213,7 @@ async def list_tickets(
     q: str | None = None,
     include_wont_do: bool = False,
 ) -> list[Ticket]:
+    """List a project's tickets with optional status, priority and text filters."""
     stmt = select(Ticket).where(Ticket.project_id == project_id)
     if status is not None:
         stmt = stmt.where(Ticket.status == status)
@@ -233,6 +234,7 @@ async def list_tickets(
 
 
 async def get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
+    """Return a ticket by id, or None."""
     return await session.get(Ticket, ticket_id)
 
 
@@ -252,6 +254,7 @@ async def create_ticket(
     created_by: str | None = None,
     assignee: str | None = None,
 ) -> Ticket:
+    """Validate and create a ticket with the next project number."""
     title = _clean_title(title)
     tags = _clean_tags(tags)
     estimate = _clean_estimate(estimate)
@@ -330,6 +333,7 @@ _AUDITABLE = (
 async def update_ticket(
     session: AsyncSession, ticket_id: str, data: TicketUpdate
 ) -> Ticket | None:
+    """Apply a partial update and log the changes; return None if missing."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -453,6 +457,7 @@ async def update_ticket(
 
 
 async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
+    """Delete a ticket; return False if it does not exist."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
@@ -533,6 +538,7 @@ async def _comment_recipients(
 async def add_comment(
     session: AsyncSession, ticket_id: str, text: str, author: str = "user"
 ) -> Ticket | None:
+    """Add a comment, record its mentions and notify the people involved."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -588,6 +594,7 @@ async def delete_comment(
 async def restore_comment(
     session: AsyncSession, ticket_id: str, comment_id: str
 ) -> Ticket | None:
+    """Undo a comment deletion."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -610,6 +617,7 @@ async def restore_comment(
 async def update_comment(
     session: AsyncSession, ticket_id: str, comment_id: str, text: str
 ) -> Ticket | None:
+    """Edit a comment's text and mark it edited."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -642,6 +650,7 @@ async def update_comment(
 async def add_acceptance_criterion(
     session: AsyncSession, ticket_id: str, text: str
 ) -> Ticket | None:
+    """Append an acceptance criterion."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -660,6 +669,7 @@ async def add_acceptance_criterion(
 async def toggle_acceptance_criterion(
     session: AsyncSession, ticket_id: str, criterion_id: str
 ) -> Ticket | None:
+    """Flip an acceptance criterion's done state."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -686,6 +696,7 @@ async def toggle_acceptance_criterion(
 async def delete_acceptance_criterion(
     session: AsyncSession, ticket_id: str, criterion_id: str
 ) -> Ticket | None:
+    """Remove an acceptance criterion."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -709,6 +720,7 @@ async def delete_acceptance_criterion(
 async def add_sub_task(
     session: AsyncSession, ticket_id: str, text: str
 ) -> Ticket | None:
+    """Append a sub-task."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -727,6 +739,7 @@ async def add_sub_task(
 async def toggle_sub_task(
     session: AsyncSession, ticket_id: str, sub_task_id: str
 ) -> Ticket | None:
+    """Flip a sub-task's done state."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -753,6 +766,7 @@ async def toggle_sub_task(
 async def delete_sub_task(
     session: AsyncSession, ticket_id: str, sub_task_id: str
 ) -> Ticket | None:
+    """Remove a sub-task."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -855,6 +869,7 @@ async def add_work_log(
     linked_branch: str | None = None,
     linked_test_case: str | None = None,
 ) -> Ticket | None:
+    """Append a work-log (debug note) entry."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -904,6 +919,7 @@ async def update_work_log(
     author: str | None = None,
     role: str | None = None,
 ) -> Ticket | None:
+    """Edit a work-log entry's note, kind or attachments."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -956,6 +972,7 @@ async def update_work_log(
 async def delete_work_log(
     session: AsyncSession, ticket_id: str, log_id: str
 ) -> Ticket | None:
+    """Remove a work-log entry."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -991,6 +1008,7 @@ async def add_test_case(
     assignee: str | None = None,
     test_data_files: list | None = None,
 ) -> Ticket | None:
+    """Append a test case with the next `TC-n` code."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1050,6 +1068,7 @@ async def update_test_case(
     assignee: str | None = None,
     test_data_files: list | None = None,
 ) -> Ticket | None:
+    """Update a test case's status or proof."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1099,6 +1118,7 @@ async def update_test_case(
 async def delete_test_case(
     session: AsyncSession, ticket_id: str, tc_id: str
 ) -> Ticket | None:
+    """Remove a test case."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1119,6 +1139,7 @@ async def delete_test_case(
 async def get_project_activities(
     session: AsyncSession, project_id: str, limit: int = 200
 ) -> list[ActivityEventRead]:
+    """Return the project's most recent activity across tickets, newest first."""
     tickets = await list_tickets(session, project_id, include_wont_do=True)
     events: list[ActivityEventRead] = []
     for ticket in tickets:
@@ -1285,6 +1306,7 @@ async def add_ticket_link(
     target_id: str,
     relation_type: str,
 ) -> dict:
+    """Link two tickets in the same project and add the inverse link on the target."""
     if ticket_id == target_id:
         raise ValueError("A ticket cannot link to itself")
     if relation_type not in VALID_RELATION_TYPES:
@@ -1347,6 +1369,7 @@ async def remove_ticket_link(
     ticket_id: str,
     link_id: str,
 ) -> bool:
+    """Remove a link from both tickets; return False if not found."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
@@ -1393,6 +1416,7 @@ VALID_BRANCH_STATUSES = {"baseline", "open", "merged", "stale", "archived"}
 
 
 async def list_branches(session: AsyncSession, ticket_id: str) -> list[dict] | None:
+    """Return a ticket's branches, or None if the ticket is missing."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1459,6 +1483,7 @@ async def add_branch(
     create_worktree: bool = False,
     worktree_path: str | None = None,
 ) -> Ticket | None:
+    """Record a branch on a ticket, creating it in the linked repo when possible."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1591,6 +1616,7 @@ async def update_branch(
     remove_worktree: bool = False,
     worktree_path: str | None = None,
 ) -> Ticket | None:
+    """Rename a branch or change its status."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1688,6 +1714,7 @@ async def delete_branch(
     delete_git_branch: bool = False,
     force: bool = False,
 ) -> Ticket | None:
+    """Remove a branch record, optionally its worktree and git branch."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1785,6 +1812,7 @@ async def get_branch_graph(
 async def get_commit_detail(
     session: AsyncSession, ticket_id: str, rev: str
 ) -> dict | None:
+    """Return details of a commit in the ticket's linked repo."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None

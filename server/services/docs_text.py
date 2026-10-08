@@ -8,6 +8,7 @@ class DocsError(Exception):
     """Domain error carrying an HTTP status and a machine-readable code."""
 
     def __init__(self, status: int, code: str, message: str, **extra: Any) -> None:
+        """Store the HTTP status, error code and extra response fields."""
         super().__init__(message)
         self.status = status
         self.code = code
@@ -218,6 +219,7 @@ def rewrite_page_links(
 
 
 def count_page_links(markdown: str, title: str) -> int:
+    """Count `[[title]]` links to a page in the Markdown."""
     return rewrite_page_links(markdown, title, title)[1]
 
 

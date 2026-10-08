@@ -45,6 +45,7 @@ _fts_broken = False
 
 
 def index_fields(title: str, markdown: str) -> tuple[str, str, str]:
+    """Return the `(title, headings, body)` columns indexed for a page."""
     headings = "\n".join(h["text"] for h in heading_anchors(markdown))
     return title, headings, markdown
 
@@ -165,6 +166,7 @@ async def reindex(session: AsyncSession, page_ids: list[str]) -> None:
 
 
 async def unindex(session: AsyncSession, page_ids: list[str]) -> None:
+    """Remove pages from the search index."""
     if not page_ids or not await ensure_fts(session):
         return
     stmt = text("DELETE FROM docs_fts WHERE page_id IN :ids").bindparams(
@@ -210,7 +212,10 @@ _TOKEN = re.compile(r'-?"[^"]*"|\S+')
 
 
 class Query:
+    """Parsed search query: words, quoted phrases and `-excluded` terms."""
+
     def __init__(self, q: str) -> None:
+        """Tokenize `q` (truncated to the maximum length)."""
         self.words: list[str] = []
         self.phrases: list[str] = []
         self.excludes: list[str] = []
@@ -236,9 +241,12 @@ class Query:
 
     @property
     def positive(self) -> list[str]:
+        """Return the terms that must match (words and phrases)."""
         return self.words + self.phrases
 
     def fts(self) -> str:
+        """Build the FTS5 MATCH expression for this query."""
+
         def quote(s: str) -> str:
             return '"' + s.replace('"', '""') + '"'
 
@@ -503,6 +511,7 @@ async def search(
     status: str | None = None,
     sort: str = "relevance",
 ) -> dict[str, Any]:
+    """Search pages and/or tickets by scope, with filters, sorting and paging."""
     started = time.perf_counter()
     if scope not in {"space", "all", "tickets"}:
         raise DocsError(422, "bad_scope", "scope must be space, all or tickets")

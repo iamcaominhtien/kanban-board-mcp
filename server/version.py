@@ -11,6 +11,7 @@ MIN_SUPPORTED_UI_VERSION = "1.4.0"
 
 
 def version_info() -> dict[str, str]:
+    """Return the running and latest app versions for the update check."""
     return {
         "version": APP_VERSION,
         "latest": APP_VERSION,

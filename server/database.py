@@ -41,6 +41,7 @@ def get_db_path() -> Path:
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a database session (FastAPI dependency)."""
     async with async_session() as session:
         yield session
 

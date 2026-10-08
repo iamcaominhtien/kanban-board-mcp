@@ -72,6 +72,7 @@ async def _project(session: AsyncSession, project_id: str) -> Project:
 async def get_page(
     session: AsyncSession, page_id: str, *, include_deleted: bool = False
 ) -> DocsPage:
+    """Return a page, raising 404 if missing (or deleted unless `include_deleted`)."""
     page = await session.get(DocsPage, page_id)
     if page is None:
         raise DocsError(404, "page_not_found", "Page not found")
@@ -160,6 +161,7 @@ async def _latest_version(session: AsyncSession, page: DocsPage) -> DocsVersion 
 
 
 async def list_tree(session: AsyncSession, project_id: str) -> list[dict[str, Any]]:
+    """Return the project's pages as a flat, ordered tree with draft and edit info."""
     await _project(session, project_id)
     pages = await _all_pages(session, project_id)
     author = activity.current_actor()
@@ -195,6 +197,7 @@ async def create_page(
     template: str = "blank",
     markdown: str | None = None,
 ) -> dict[str, Any]:
+    """Create an empty page under a parent, with a unique slug."""
     await _project(session, project_id)
     title = _clean_title(title)
     if parent_id is not None:
@@ -248,6 +251,7 @@ async def _path(session: AsyncSession, page: DocsPage) -> list[dict[str, str]]:
 
 
 async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    """Return a page with its published content, the caller's draft and stats."""
     page = await get_page(session, page_id)
     actor = activity.current_actor()
     latest = await _latest_version(session, page)
@@ -292,6 +296,7 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
 async def page_by_slug(
     session: AsyncSession, project_id: str, slug: str
 ) -> dict[str, Any]:
+    """Return a page's detail by its slug."""
     result = await session.exec(
         select(DocsPage).where(DocsPage.project_id == project_id, DocsPage.slug == slug)
     )
@@ -330,6 +335,7 @@ async def move_page(
     before_id: str | None = None,
     after_id: str | None = None,
 ) -> dict[str, Any]:
+    """Move a page under a new parent or before a sibling; reject cycles."""
     page = await get_page(session, page_id)
     if parent_id is not None:
         parent = await get_page(session, parent_id)
@@ -376,6 +382,7 @@ async def duplicate_page(
     include_children: bool = False,
     parent_given: bool = False,
 ) -> dict[str, Any]:
+    """Copy a page and its sub-pages as drafts."""
     src = await get_page(session, page_id)
     target_parent = parent_id if parent_given else src.parent_id
     new_title = _clean_title(title or f"{src.title} (copy)")
@@ -432,6 +439,7 @@ async def _copy_page(
 
 
 async def delete_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    """Move a page and its sub-pages to the Recycle Bin."""
     page = await get_page(session, page_id)
     subtree = [page, *await _descendants(session, page)]
     now, actor = _now(), activity.current_actor()
@@ -446,6 +454,7 @@ async def delete_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
 
 
 async def restore_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    """Restore a page and its sub-pages from the Recycle Bin."""
     page = await get_page(session, page_id, include_deleted=True)
     if not page.deleted_at:
         raise DocsError(409, "not_deleted", "Page is not in the Recycle Bin")
@@ -473,6 +482,7 @@ async def restore_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
 
 
 async def list_deleted(session: AsyncSession, project_id: str) -> list[dict[str, Any]]:
+    """List pages in the Recycle Bin, purging the expired ones first."""
     await _project(session, project_id)
     await purge_expired(session, project_id)
     pages = await _all_pages(session, project_id, deleted=True)
@@ -525,6 +535,7 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
 
 
 async def purge_page(session: AsyncSession, page_id: str) -> None:
+    """Permanently delete a page that is in the Recycle Bin."""
     page = await get_page(session, page_id, include_deleted=True)
     if not page.deleted_at:
         raise DocsError(
@@ -547,6 +558,7 @@ async def empty_recycle_bin(session: AsyncSession, project_id: str) -> dict[str,
 
 
 async def purge_expired(session: AsyncSession, project_id: str) -> int:
+    """Permanently delete pages past the retention period; return how many."""
     cutoff = (datetime.now(UTC) - timedelta(days=RECYCLE_DAYS)).isoformat()
     pages = [
         p
@@ -572,6 +584,7 @@ async def save_draft(
     title: str | None = None,
     base_version: int | None = None,
 ) -> dict[str, Any]:
+    """Save the caller's draft of a page."""
     page = await get_page(session, page_id)
     _check_markdown(markdown)
     actor = activity.current_actor()
@@ -598,6 +611,7 @@ async def save_draft(
 
 
 async def discard_draft(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    """Delete the caller's draft of a page."""
     page = await get_page(session, page_id)
     draft = await _draft_for(session, page.id, activity.current_actor())
     if draft:
@@ -615,6 +629,7 @@ async def publish_page(
     markdown: str | None = None,
     title: str | None = None,
 ) -> dict[str, Any]:
+    """Publish the draft as a new version; raise 409 if `base_version` is stale."""
     page = await get_page(session, page_id)
     actor = activity.current_actor()
     if base_version != page.version:
@@ -719,6 +734,7 @@ async def _update_aliases(
 
 
 async def list_versions(session: AsyncSession, page_id: str) -> list[dict[str, Any]]:
+    """List a page's versions, newest first."""
     await get_page(session, page_id)
     result = await session.exec(
         select(DocsVersion)
@@ -751,6 +767,7 @@ async def _version(session: AsyncSession, page_id: str, n: int) -> DocsVersion:
 
 
 async def get_version(session: AsyncSession, page_id: str, n: int) -> dict[str, Any]:
+    """Return version `n` of a page with its content."""
     await get_page(session, page_id)
     v = await _version(session, page_id, n)
     return {
@@ -843,6 +860,7 @@ def _word_diff(old: str, new: str, side: str) -> list[dict[str, Any]]:
 async def diff_versions(
     session: AsyncSession, page_id: str, a: int, b: int
 ) -> dict[str, Any]:
+    """Return the line diff between versions `a` and `b`."""
     await get_page(session, page_id)
     va = await _version(session, page_id, a)
     vb = await _version(session, page_id, b)
@@ -853,6 +871,7 @@ async def diff_versions(
 async def restore_version(
     session: AsyncSession, page_id: str, n: int, *, note: str | None = None
 ) -> dict[str, Any]:
+    """Publish an old version's content as a new version."""
     page = await get_page(session, page_id)
     v = await _version(session, page_id, n)
     actor = activity.current_actor()
@@ -1011,6 +1030,7 @@ async def resolve_refs(
 
 
 async def reindex_links(session: AsyncSession, page: DocsPage, markdown: str) -> None:
+    """Rebuild a page's outgoing reference rows from its Markdown."""
     old = await session.exec(
         select(DocsLink).where(
             DocsLink.source_page_id == page.id, DocsLink.origin == "page"
@@ -1255,6 +1275,7 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
 async def page_stats(
     session: AsyncSession, page: DocsPage, markdown: str
 ) -> dict[str, int]:
+    """Return word, inbound-link and outbound-link counts for a page."""
     inbound = await session.exec(
         select(DocsLink.source_page_id).where(
             DocsLink.target_page_id == page.id, DocsLink.origin == "page"
@@ -1380,6 +1401,7 @@ async def docs_for_ticket(
 async def link_ticket_doc(
     session: AsyncSession, ticket_id: str, page_id: str
 ) -> dict[str, Any]:
+    """Manually link a ticket to a page in the same project."""
     ticket = await _ticket_or_404(session, ticket_id)
     page = await get_page(session, page_id)
     if page.project_id != ticket.project_id:
@@ -1410,6 +1432,7 @@ async def link_ticket_doc(
 async def unlink_ticket_doc(
     session: AsyncSession, ticket_id: str, page_id: str
 ) -> dict[str, Any]:
+    """Remove a manual ticket-to-page link."""
     await _ticket_or_404(session, ticket_id)
     rows = await session.exec(
         select(DocsLink).where(
@@ -1479,6 +1502,7 @@ async def _links_to_rename(
 async def rename_preview(
     session: AsyncSession, page_id: str, title: str
 ) -> dict[str, Any]:
+    """Preview which pages a rename would rewrite links in."""
     page = await get_page(session, page_id)
     new_title = _clean_title(title)
     if new_title == page.title:
@@ -1495,6 +1519,7 @@ async def rename_preview(
 async def rename_page(
     session: AsyncSession, page_id: str, title: str, *, rewrite_links: bool = False
 ) -> dict[str, Any]:
+    """Rename a page, optionally rewriting `[[links]]` to it."""
     page = await get_page(session, page_id)
     new_title = _clean_title(title)
     old_title = page.title
@@ -1563,6 +1588,7 @@ async def rename_page(
 
 
 async def delete_preview(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    """Preview the sub-pages and inbound links a delete would affect."""
     page = await get_page(session, page_id)
     subtree = await _descendants(session, page)
     ids = {page.id, *(p.id for p in subtree)}

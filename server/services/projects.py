@@ -10,15 +10,18 @@ from services.members import create_member as _create_member
 
 
 async def list_projects(session: AsyncSession) -> list[Project]:
+    """Return all projects."""
     result = await session.exec(select(Project))
     return list(result.all())
 
 
 async def get_project(session: AsyncSession, project_id: str) -> Project | None:
+    """Return a project by id, or None."""
     return await session.get(Project, project_id)
 
 
 async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
+    """Create a project; the prefix must be uppercase, at most 6 characters."""
     prefix = data.prefix.strip()
     if not prefix.isupper() or len(prefix) > 6:
         raise ValueError("prefix must be uppercase and at most 6 characters")
@@ -45,6 +48,7 @@ async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
 async def update_project(
     session: AsyncSession, project_id: str, data: ProjectUpdate
 ) -> Project | None:
+    """Apply a partial update; return None if the project does not exist."""
     project = await session.get(Project, project_id)
     if project is None:
         return None
@@ -71,6 +75,7 @@ async def update_project(
 
 
 async def delete_project(session: AsyncSession, project_id: str) -> bool:
+    """Delete a project; return False if it does not exist."""
     project = await session.get(Project, project_id)
     if project is None:
         return False

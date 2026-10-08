@@ -27,6 +27,7 @@ class McpClientError(Exception):
     """An expected failure, reported to the UI as ``error`` on the client status."""
 
     def __init__(self, code: str, message: str):
+        """Store a machine-readable `code` with the message."""
         super().__init__(message)
         self.code = code
         self.message = message
@@ -145,6 +146,7 @@ def _tilde(path: Path) -> str:
 
 
 def find_claude() -> str | None:
+    """Locate the `claude` CLI on PATH or in common install folders."""
     found = shutil.which("claude")
     if found:
         return found
@@ -180,6 +182,7 @@ def _claude_add_args(scope: str) -> list[str]:
 
 
 def claude_command_text(scope: str) -> str:
+    """Return the `claude mcp add ...` command for a scope, as text to copy."""
     return _join(["claude", *_claude_add_args(scope)])
 
 
@@ -251,6 +254,7 @@ def _needs_folder(client: str, scope: str) -> bool:
 def get_status(
     client: str, scope: str | None, folder_raw: str | None, tool_count: int
 ) -> dict:
+    """Report whether the MCP server is installed for a client and scope."""
     if client not in ("claude-code", "antigravity"):
         raise BadRequest(f"Unknown MCP client '{client}'")
     scope = _scope_for(client, scope)
@@ -340,6 +344,7 @@ def install(
 def remove(
     client: str, scope: str | None, folder_raw: str | None, tool_count: int
 ) -> dict:
+    """Uninstall the MCP server from a client and return the new status."""
     status = get_status(client, scope, folder_raw, tool_count)
     scope = status["scope"]
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
@@ -370,6 +375,7 @@ def remove(
 
 
 def config_file(client: str, scope: str | None, folder_raw: str | None) -> Path:
+    """Return the client's config file path for a scope."""
     scope = _scope_for(client, scope)
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
     if client == "antigravity":
@@ -378,6 +384,7 @@ def config_file(client: str, scope: str | None, folder_raw: str | None) -> Path:
 
 
 def open_file(path: Path) -> None:
+    """Open a config file in the OS default editor."""
     if not path.exists():
         raise BadRequest(
             f"{path} doesn't exist yet. Install first, or create it yourself."

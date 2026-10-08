@@ -17,6 +17,8 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 class DataPathRequest(BaseModel):
+    """Request body for changing the data folder."""
+
     path: str  # absolute path to new data folder
 
 
@@ -150,6 +152,8 @@ def _mcp_call(fn, *args):
 
 
 class McpTarget(BaseModel):
+    """Scope and folder identifying where an MCP client config lives."""
+
     scope: str | None = None
     folder: str | None = None
 

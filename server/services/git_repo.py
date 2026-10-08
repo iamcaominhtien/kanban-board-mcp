@@ -17,6 +17,8 @@ class GitRepoError(ValueError):
 
 @dataclass(frozen=True)
 class BranchInfo:
+    """Branch name, head commit and ahead/behind counts."""
+
     name: str
     commit_hash: str
     ahead_count: int
@@ -31,6 +33,7 @@ def normalize_repo_path(path: str) -> str:
 
 
 def open_repo(path: str) -> Repo:
+    """Open a git repository at `path`; raise GitRepoError if it is not one."""
     try:
         return Repo(path)
     except (InvalidGitRepositoryError, NoSuchPathError) as exc:
@@ -49,6 +52,7 @@ def _resolve_ref(repo: Repo, name: str) -> str:
 
 
 def validate_branch_name(repo: Repo, name: str) -> None:
+    """Raise GitRepoError if `name` is not a valid branch name."""
     try:
         repo.git.check_ref_format("--branch", name)
     except GitCommandError as exc:
@@ -56,6 +60,7 @@ def validate_branch_name(repo: Repo, name: str) -> None:
 
 
 def branch_exists(repo: Repo, name: str) -> bool:
+    """Return True if a local branch with this name exists."""
     return any(head.name == name for head in repo.heads)
 
 
@@ -88,6 +93,7 @@ def branch_info(repo: Repo, name: str, base: str) -> BranchInfo:
 
 
 def list_local_branches(repo: Repo) -> list[str]:
+    """Return local branch names, sorted."""
     return sorted(head.name for head in repo.heads)
 
 
@@ -204,6 +210,7 @@ def is_merged(repo: Repo, name: str, base: str) -> bool:
 
 
 def rename_branch(repo: Repo, old: str, new: str) -> None:
+    """Rename a local branch; raise GitRepoError if the new name is invalid or taken."""
     validate_branch_name(repo, new)
     if branch_exists(repo, new):
         raise GitRepoError(f"Branch '{new}' already exists")

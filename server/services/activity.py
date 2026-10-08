@@ -13,14 +13,17 @@ _actor: ContextVar[str] = ContextVar("activity_actor", default=HUMAN_ACTOR)
 
 
 def set_actor(name: str) -> Token:
+    """Set the actor recorded on activity entries; return a token for `reset_actor`."""
     return _actor.set(name)
 
 
 def reset_actor(token: Token) -> None:
+    """Restore the actor that was active before `set_actor`."""
     _actor.reset(token)
 
 
 def current_actor() -> str:
+    """Return the actor for the current request or task."""
     return _actor.get()
 
 
@@ -40,6 +43,7 @@ def entry(
     actor: str | None = None,
     at: str | None = None,
 ) -> dict:
+    """Build one activity-log entry for a field change."""
     out: dict[str, Any] = {
         "field": field,
         "from": from_,
