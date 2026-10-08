@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-import mcp_tools
+from kanban_mcp import common, operations as ops
 from database import get_session
 from main import app
 
@@ -35,7 +35,7 @@ async def setup_db(monkeypatch):
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     app.dependency_overrides[get_session] = override_get_session
-    monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
+    monkeypatch.setattr(common, "async_session", test_async_session)
     yield
     app.dependency_overrides.pop(get_session, None)
     async with test_engine.begin() as conn:
@@ -292,15 +292,15 @@ async def test_mcp_tool_returns_path_and_creates_folder(tmp_path):
         transport=ASGITransport(app=app), base_url="http://test"
     ) as c:
         t = await _setup(c, tmp_path)
-    info = await mcp_tools.get_ticket_workspace_path(t["id"])
+    info = await ops.get_ticket_workspace_path(t["id"])
     assert info == {"enabled": True, "path": str(tmp_path / t["id"]), "exists": True}
     assert (tmp_path / t["id"]).is_dir()
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.get_ticket_workspace_path("NOPE-1")
-    full = await mcp_tools.get_ticket(t["id"])
+        await ops.get_ticket_workspace_path("NOPE-1")
+    full = await ops.get_ticket(t["id"])
     assert full["workspace_path"] == str(tmp_path / t["id"])
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.get_ticket_workspace_path("../etc")
+        await ops.get_ticket_workspace_path("../etc")
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="uses a fake xdg-open")

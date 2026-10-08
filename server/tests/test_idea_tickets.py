@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-import mcp_tools
+from kanban_mcp import common, operations as ops
 from database import async_session as real_async_session
 from database import get_session
 from main import app
@@ -34,10 +34,10 @@ async def setup_db(monkeypatch):
         await conn.run_sync(SQLModel.metadata.create_all)
         await conn.execute(text("INSERT INTO idea_counter (id, counter) VALUES (1, 0)"))
     app.dependency_overrides[get_session] = override_get_session
-    monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
+    monkeypatch.setattr(common, "async_session", test_async_session)
     yield
     app.dependency_overrides.pop(get_session, None)
-    monkeypatch.setattr(mcp_tools, "async_session", real_async_session)
+    monkeypatch.setattr(common, "async_session", real_async_session)
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
@@ -378,7 +378,7 @@ async def test_get_idea_activity_trail_returns_entries_in_reverse_order(
         )
         assert microthought_response.status_code == 200
 
-    trail = await mcp_tools.get_idea_activity_trail(created["id"])
+    trail = await ops.get_idea_activity_trail(created["id"])
 
     assert isinstance(trail, list)
     assert len(trail) >= 3

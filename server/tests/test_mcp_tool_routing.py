@@ -5,9 +5,12 @@ import json
 
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
-
-import mcp_facade
 from main import mcp
+from kanban_mcp.tools.branches import BRANCH_OPS
+from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_OPS
+from kanban_mcp.tools.items import ITEM_OPS
+from kanban_mcp.tools.projects import PROJECT_OPS
+from kanban_mcp.tools.tickets import TICKET_OPS
 from tests.test_mcp_tools import setup_db  # noqa: F401  (autouse fixture: in-memory db)
 
 
@@ -508,12 +511,12 @@ def test_every_table_entry_names_real_parameters():
     import inspect
 
     tables = [
-        mcp_facade._PROJECT_OPS,
-        mcp_facade._TICKET_OPS,
-        mcp_facade._BRANCH_OPS,
-        mcp_facade._DOCS_READ_OPS,
-        mcp_facade._DOCS_WRITE_OPS,
-        mcp_facade._ITEM_OPS,
+        PROJECT_OPS,
+        TICKET_OPS,
+        BRANCH_OPS,
+        DOCS_READ_OPS,
+        DOCS_WRITE_OPS,
+        ITEM_OPS,
     ]
     for table in tables:
         for key, op in table.items():

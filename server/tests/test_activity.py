@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-import mcp_tools
+from kanban_mcp import common, operations as ops
 from database import get_session
 from main import app
 
@@ -33,7 +33,7 @@ async def setup_db(monkeypatch):
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     app.dependency_overrides[get_session] = override_get_session
-    monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
+    monkeypatch.setattr(common, "async_session", test_async_session)
     yield
     app.dependency_overrides.pop(get_session, None)
     async with test_engine.begin() as conn:
@@ -307,9 +307,9 @@ async def test_branch_lifecycle_is_logged(client, repo_dir):
 async def test_mcp_changes_are_attributed_to_the_agent(client):
     async with client as c:
         _, t = await _ticket(c)
-    await mcp_tools.update_ticket_status(t["id"], "in-progress")
-    await mcp_tools.add_comment(t["id"], "from agent", "claude")
-    await mcp_tools.add_comment(t["id"], "default author", "user")
+    await ops.update_ticket_status(t["id"], "in-progress")
+    await ops.add_comment(t["id"], "from agent", "claude")
+    await ops.add_comment(t["id"], "default author", "user")
     async with httpx.AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as c:

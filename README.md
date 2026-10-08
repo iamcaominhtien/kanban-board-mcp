@@ -89,7 +89,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes **9 tools** for AI agents over MCP (22 with the Idea Space tools enabled). The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The routing is in `server/mcp_facade.py`, the operations behind it in `server/mcp_tools.py`.
+The server exposes **9 tools** for AI agents over MCP (22 with the Idea Space tools enabled). The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/kanban_mcp/` package: `tools/` (the 9 tools), `operations/` (one function per verb, grouped by area), `common.py`, `registry.py`, `instructions.py`.
 
 | Tool | Read / write | What it does |
 |---|---|---|

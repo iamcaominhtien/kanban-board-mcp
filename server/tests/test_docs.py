@@ -370,28 +370,26 @@ async def test_by_slug_and_templates(c, pid):
 
 
 async def test_mcp_docs_tools_round_trip_and_conflict(c, pid, monkeypatch):
-    import mcp_tools
+    from kanban_mcp import common, operations as ops
     from database import async_session as real_session
 
-    monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
-    created = await mcp_tools.create_docs_page(pid, "Runbook", "## Steps\n1. go")
+    monkeypatch.setattr(common, "async_session", test_async_session)
+    created = await ops.create_docs_page(pid, "Runbook", "## Steps\n1. go")
     assert created["version"] == 1 and created["status"] == "published"
-    page = await mcp_tools.get_docs_page(created["id"])
+    page = await ops.get_docs_page(created["id"])
     assert (
         page["markdown"].startswith("## Steps")
         and page["headings"][0]["slug"] == "steps"
     )
-    updated = await mcp_tools.update_docs_page(
+    updated = await ops.update_docs_page(
         created["id"], "## Steps\n1. stop", page["version"], note="tweak"
     )
     assert updated["version"] == 2
     with pytest.raises(ValueError, match="docs_read"):
-        await mcp_tools.update_docs_page(created["id"], "stale", 1)
-    draft_only = await mcp_tools.update_docs_page(
-        created["id"], "wip", 2, publish=False
-    )
+        await ops.update_docs_page(created["id"], "stale", 1)
+    draft_only = await ops.update_docs_page(created["id"], "wip", 2, publish=False)
     assert draft_only["published"] is False and draft_only["version"] == 2
-    tree = await mcp_tools.list_docs_pages(pid)
+    tree = await ops.list_docs_pages(pid)
     assert [(t["title"], t["version"]) for t in tree] == [("Runbook", 2)]
     assert real_session is not None
 

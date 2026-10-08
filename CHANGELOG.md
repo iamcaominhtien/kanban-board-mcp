@@ -19,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
   - `ticket_branches`: `add_branch`, `update_branch`, `delete_branch`, `checkout_branch`.
   - `docs_read`: `list_docs_pages`, `get_docs_page`, `search_docs`, `list_docs_versions`, `get_docs_version`, `list_docs_recycle_bin`, `resolve_docs_links`.
   - `docs_write`: `create_docs_page`, `update_docs_page`, `move_docs_page`, `duplicate_docs_page`, `delete_docs_page`, `restore_docs_page`, `restore_docs_version`, `import_docs`.
+- The 2,300-line `server/mcp_tools.py` is now the `server/kanban_mcp/` package: `tools/` (the 9 tools and their routing), `operations/` (one module per area: projects, members, tickets, relations, comments, work log, test cases, branches, checklists, docs, ideas), `common.py`, `registry.py`, `instructions.py`, `settings.py`. The largest module is under 500 lines. Database access goes through `kanban_mcp.common.async_session()`, which now looks the session factory up on every call.
 - The write tools are annotated destructive as a whole (one of their actions deletes); the four read tools stay read-only.
 
 ---

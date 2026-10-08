@@ -1,6 +1,6 @@
 import pytest
 
-import mcp_tools
+from kanban_mcp import operations as ops
 from tests.test_activity import _ticket, client, setup_db  # noqa: F401  (fixtures)
 
 
@@ -197,7 +197,7 @@ async def test_mcp_can_set_and_clear_fields(client):
             )
         ).json()
     i = t["id"]
-    r = await mcp_tools.update_ticket(
+    r = await ops.update_ticket(
         i,
         assignee=m["id"],
         start_date="2026-01-01",
@@ -211,20 +211,16 @@ async def test_mcp_can_set_and_clear_fields(client):
         r["block_done_if_acs_incomplete"] is True
         and r["block_done_if_tcs_incomplete"] is True
     )
-    r = await mcp_tools.update_ticket(
-        i, clear_fields=["assignee", "due_date", "estimate"]
-    )
+    r = await ops.update_ticket(i, clear_fields=["assignee", "due_date", "estimate"])
     assert r["assignee"] is None and r["due_date"] is None and r["estimate"] is None
     with pytest.raises(ValueError):
-        await mcp_tools.update_ticket(i, clear_fields=["title"])
+        await ops.update_ticket(i, clear_fields=["title"])
     with pytest.raises(ValueError):
-        await mcp_tools.update_ticket(i, estimate=1, clear_fields=["estimate"])
+        await ops.update_ticket(i, estimate=1, clear_fields=["estimate"])
     # won't do needs a reason
     with pytest.raises(ValueError):
-        await mcp_tools.update_ticket_status(i, "wont_do")
-    r = await mcp_tools.update_ticket_status(
-        i, "wont_do", wont_do_reason="duplicate work"
-    )
+        await ops.update_ticket_status(i, "wont_do")
+    r = await ops.update_ticket_status(i, "wont_do", wont_do_reason="duplicate work")
     assert r["status"] == "wont_do" and r["wont_do_reason"] == "duplicate work"
 
 
@@ -235,19 +231,17 @@ async def test_mcp_block_link_test_case_and_delete_tools(client):
         tc = (
             await c.post(f"/tickets/{a['id']}/test-cases", json={"title": "tc"})
         ).json()
-    res = await mcp_tools.block_ticket(a["id"], b)
+    res = await ops.block_ticket(a["id"], b)
     assert b in res["blocker"]["blocks"] and a["id"] in res["blocked"]["blocked_by"]
     with pytest.raises(ValueError):
-        await mcp_tools.block_ticket(b, a["id"])
-    res = await mcp_tools.unblock_ticket(a["id"], b)
+        await ops.block_ticket(b, a["id"])
+    res = await ops.unblock_ticket(a["id"], b)
     assert res["blocker"]["blocks"] == []
-    link = await mcp_tools.link_tickets(a["id"], b, "relates_to")
+    link = await ops.link_tickets(a["id"], b, "relates_to")
     assert link["target_id"] == b
-    assert await mcp_tools.unlink_tickets(a["id"], link["id"]) == {
-        "removed": link["id"]
-    }
-    after = await mcp_tools.delete_test_case(a["id"], tc["test_cases"][0]["id"])
+    assert await ops.unlink_tickets(a["id"], link["id"]) == {"removed": link["id"]}
+    after = await ops.delete_test_case(a["id"], tc["test_cases"][0]["id"])
     assert after["test_cases"] == []
-    assert await mcp_tools.delete_ticket(b) == {"deleted": b}
+    assert await ops.delete_ticket(b) == {"deleted": b}
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.delete_ticket(b)
+        await ops.delete_ticket(b)
