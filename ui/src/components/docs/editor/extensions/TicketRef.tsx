@@ -12,7 +12,11 @@ function TicketRefView({ node, selected }: NodeViewProps) {
   // keys that are no ticket (ISO-8601, UTF-8, …) stay plain text
   if (res && res.status !== 'ok') {
     return (
-      <NodeViewWrapper as="span" data-ref="ticket-plain" style={{ outline: selected ? '2px solid rgba(46,111,64,0.35)' : undefined }}>
+      <NodeViewWrapper
+        as="span"
+        data-ref="ticket-plain"
+        style={{ outline: selected ? '2px solid rgba(46,111,64,0.35)' : undefined }}
+      >
         {key}
       </NodeViewWrapper>
     );
@@ -30,7 +34,9 @@ function TicketRefView({ node, selected }: NodeViewProps) {
         if (e.metaKey || e.ctrlKey) env?.onOpenTicket?.(key);
       }}
     >
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
+      <span
+        style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }}
+      />
       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{key}</span>
     </NodeViewWrapper>
   );

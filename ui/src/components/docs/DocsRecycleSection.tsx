@@ -9,7 +9,12 @@ import { agoText, displayName, plural } from './docsShared';
 
 const errMsg = (err: unknown) => docsErrorDetail(err)?.message ?? extractError(err);
 
-/** Data + actions for the deleted-pages half of the Recycle Bin. */
+/**
+ * Data + actions for the deleted-pages half of the Recycle Bin.
+ * @param projectId - Project whose deleted pages are managed.
+ * @param onOpenPage - Called with a page id for the "Open" action after a restore.
+ * @returns Entries with loading and error state, per-row busy and error info, and restore, purge and empty-bin actions.
+ */
 export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) => void) {
   const toast = useToast();
   const query = useRecycleEntries(projectId);
@@ -79,7 +84,16 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
   };
 }
 
-/** One row of the combined Recycle Bin list (page or ticket). */
+/**
+ * One row of the combined Recycle Bin list (page or ticket).
+ * @param props.kind - Whether the row is a deleted page or a ticket.
+ * @param props.meta - Second line (location or ticket key).
+ * @param props.lines - Muted lines under the meta line.
+ * @param props.actions - Action buttons on the right.
+ * @param props.footer - Extra content under the row.
+ * @param props.first - First row of the list (rounded top corners).
+ * @param props.last - Last row of the list (rounded bottom corners).
+ */
 export function BinRow({
   kind,
   title,
@@ -134,13 +148,21 @@ export function BinRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span
             className="mc-chip"
-            style={isPage ? { background: '#DCEEE1', color: '#1F5A31', height: 20 } : { background: '#F1F3F1', color: '#3A4A3E', height: 20 }}
+            style={
+              isPage
+                ? { background: '#DCEEE1', color: '#1F5A31', height: 20 }
+                : { background: '#F1F3F1', color: '#3A4A3E', height: 20 }
+            }
           >
             {isPage ? 'Page' : 'Ticket'}
           </span>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', flexWrap: 'wrap' }}>{meta}</div>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', flexWrap: 'wrap' }}
+        >
+          {meta}
+        </div>
         {lines.map((l, i) => (
           <div key={i} style={{ fontSize: 11.5, color: '#9AA8A0' }}>
             {l}
@@ -153,7 +175,19 @@ export function BinRow({
   );
 }
 
-/** The deleted-page row, with its restore note and Restore / Delete forever actions. */
+/**
+ * The deleted-page row, with its restore note and Restore / Delete forever actions.
+ * @param props.entry - Deleted page entry.
+ * @param props.busy - A restore or purge for this row is running.
+ * @param props.confirming - Show the "Delete forever" confirmation.
+ * @param props.error - Error message from the last action on this row.
+ * @param props.first - First row of the list (rounded top corners).
+ * @param props.last - Last row of the list (rounded bottom corners).
+ * @param props.onRestore - Called to restore the page.
+ * @param props.onAskPurge - Called to ask for confirmation before deleting forever.
+ * @param props.onCancelPurge - Called to cancel the confirmation.
+ * @param props.onPurge - Called to delete the page permanently.
+ */
 export function PageBinRow({
   entry,
   busy,
@@ -200,8 +234,8 @@ export function PageBinRow({
           <Icon name="i28" size={16} strokeWidth={1.9} />
         </span>
         <span>
-          <b style={{ fontWeight: 700 }}>“{entry.title}” will return at the top level.</b> Its parent, {entry.parentTitle}, is still in the
-          Recycle Bin. Restore {entry.parentTitle} first to put it back in place.
+          <b style={{ fontWeight: 700 }}>“{entry.title}” will return at the top level.</b> Its parent,{' '}
+          {entry.parentTitle}, is still in the Recycle Bin. Restore {entry.parentTitle} first to put it back in place.
         </span>
       </div>
     );
@@ -213,7 +247,9 @@ export function PageBinRow({
     );
   } else if (entry.parentTitle) {
     note = (
-      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>Restores under {entry.parentTitle}.</div>
+      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>
+        Restores under {entry.parentTitle}.
+      </div>
     );
   }
 
@@ -238,7 +274,8 @@ export function PageBinRow({
           {note}
           {confirming && (
             <div role="alert" style={{ fontSize: 12.5, color: '#A5321E', marginTop: 4 }}>
-              Delete “{entry.title}”{extra > 0 ? ` and its ${plural(extra, 'child page')}` : ''} forever? This can’t be undone.
+              Delete “{entry.title}”{extra > 0 ? ` and its ${plural(extra, 'child page')}` : ''} forever? This can’t be
+              undone.
             </div>
           )}
           {error && (
@@ -264,7 +301,12 @@ export function PageBinRow({
               <Icon name="i19" size={13} strokeWidth={2} />
               {busy ? 'Restoring…' : 'Restore'}
             </button>
-            <button type="button" className="st-btn st-btn-sm st-btn-danger-outline" disabled={busy} onClick={onAskPurge}>
+            <button
+              type="button"
+              className="st-btn st-btn-sm st-btn-danger-outline"
+              disabled={busy}
+              onClick={onAskPurge}
+            >
               <Icon name="i12" size={13} />
               Delete forever
             </button>
@@ -275,8 +317,18 @@ export function PageBinRow({
   );
 }
 
-/** Standalone list of deleted pages (the combined panel in RecycleBin.tsx merges these with tickets). */
-export function DocsRecycleSection({ projectId, onOpenPage }: { projectId: string; onOpenPage?: (pageId: string) => void }) {
+/**
+ * Standalone list of deleted pages (the combined panel in RecycleBin.tsx merges these with tickets).
+ * @param props.projectId - Project whose deleted pages are listed.
+ * @param props.onOpenPage - Called with a page id for the "Open" action after a restore.
+ */
+export function DocsRecycleSection({
+  projectId,
+  onOpenPage,
+}: {
+  projectId: string;
+  onOpenPage?: (pageId: string) => void;
+}) {
   const r = useDocsRecycle(projectId, onOpenPage);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   return (
@@ -287,7 +339,9 @@ export function DocsRecycleSection({ projectId, onOpenPage }: { projectId: strin
           {r.error}
         </p>
       )}
-      {!r.isLoading && r.entries.length === 0 && <p style={{ padding: 16, color: '#5B6B60', fontSize: 13 }}>No deleted pages.</p>}
+      {!r.isLoading && r.entries.length === 0 && (
+        <p style={{ padding: 16, color: '#5B6B60', fontSize: 13 }}>No deleted pages.</p>
+      )}
       {r.entries.map((entry, i) => (
         <PageBinRow
           key={entry.id}

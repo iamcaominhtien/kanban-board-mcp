@@ -2,6 +2,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { common, createLowlight } from 'lowlight';
 
+/** Shared lowlight instance with the common languages. */
 export const lowlight = createLowlight(common);
 
 const LANGS = [

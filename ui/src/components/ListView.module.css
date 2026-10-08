@@ -4,9 +4,9 @@
   flex: 1;
   min-height: 0;
   border-radius: 12px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
-  background: #FFFFFF;
+  background: #ffffff;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -17,10 +17,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid #E3E8E5;
+  border-bottom: 1px solid #e3e8e5;
   flex-wrap: wrap;
   gap: 10px;
-  background: #FFFFFF;
+  background: #ffffff;
   box-sizing: border-box;
 }
 
@@ -35,14 +35,14 @@
 .toolbarLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #9AA8A0;
+  color: #9aa8a0;
   white-space: nowrap;
 }
 
 .divider {
   width: 1px;
   height: 20px;
-  background: #E3E8E5;
+  background: #e3e8e5;
   margin: 0 2px;
 }
 
@@ -56,37 +56,39 @@
   gap: 6px;
   padding: 7px 11px;
   border-radius: 8px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #1E2A22;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  color: #1e2a22;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .dropdownBtn:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .dropdownBtnActive {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
 }
 
 .labelMuted {
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-weight: 500;
 }
 
 .chevronIcon {
-  color: #9AA8A0;
+  color: #9aa8a0;
   transition: transform 0.15s ease;
 }
 
 .chevronRotated {
   transform: rotate(180deg);
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .dropdownMenu {
@@ -94,8 +96,8 @@
   top: calc(100% + 4px);
   left: 0;
   min-width: 180px;
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
   padding: 4px;
@@ -117,18 +119,18 @@
   text-align: left;
   font-family: var(--font-body);
   font-size: 13px;
-  color: #3A4A3E;
+  color: #3a4a3e;
   transition: background 0.12s ease;
   box-sizing: border-box;
 }
 
 .dropdownItem:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .dropdownItemActive {
-  background: #F1F8F3;
-  color: #1E2A22;
+  background: #f1f8f3;
+  color: #1e2a22;
   font-weight: 600;
 }
 
@@ -136,18 +138,20 @@
   width: 15px;
   height: 15px;
   border-radius: 4px;
-  border: 1.6px solid #C7D2CB;
+  border: 1.6px solid #c7d2cb;
   box-sizing: border-box;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .checkSquareChecked {
-  background: #2E6F40;
-  border-color: #2E6F40;
+  background: #2e6f40;
+  border-color: #2e6f40;
 }
 
 .statusDot {
@@ -158,7 +162,7 @@
 }
 
 .checkIcon {
-  color: #2E6F40;
+  color: #2e6f40;
   flex-shrink: 0;
   margin-left: auto;
 }
@@ -170,30 +174,32 @@
   gap: 2px;
   padding: 3px;
   border-radius: 8px;
-  background: #EEF3EF;
+  background: #eef3ef;
 }
 
 .toggleBtn {
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   background: transparent;
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .toggleBtn:hover {
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .toggleBtnActive {
-  background: #FFFFFF;
-  color: #1E2A22;
-  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.10);
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
 }
 
 .collapseAllBtn {
@@ -201,18 +207,18 @@
   align-items: center;
   padding: 7px 11px;
   border-radius: 8px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 500;
-  color: #5B6B60;
+  color: #5b6b60;
   transition: background 0.12s ease;
 }
 
 .collapseAllBtn:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 /* ── Groups list ─────────────────────────── */
@@ -229,7 +235,7 @@
 
 .empty {
   font-size: 13px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   padding: 24px 0;
   text-align: center;
 }
@@ -246,7 +252,7 @@
   gap: 8px;
   padding: 9px 12px;
   cursor: pointer;
-  background: #F6FAF7;
+  background: #f6faf7;
   border-radius: 7px;
   border: none;
   width: 100%;
@@ -257,7 +263,7 @@
 }
 
 .groupHeader:hover {
-  background: #EEF3EF;
+  background: #eef3ef;
 }
 
 .groupDot {
@@ -268,7 +274,7 @@
 }
 
 .groupChevron {
-  color: #5B6B60;
+  color: #5b6b60;
   transition: transform 0.15s ease;
   flex-shrink: 0;
 }
@@ -281,22 +287,22 @@
   flex-grow: 1;
   font-size: 13.5px;
   font-weight: 700;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .groupBadge {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .groupRows {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
   margin-top: 2px;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .row {
@@ -306,8 +312,8 @@
   padding: 9px 12px;
   cursor: pointer;
   border: none;
-  border-bottom: 1px solid #EEF3EF;
-  background: #FFFFFF;
+  border-bottom: 1px solid #eef3ef;
+  background: #ffffff;
   width: 100%;
   text-align: left;
   box-sizing: border-box;
@@ -320,45 +326,45 @@
 }
 
 .row:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .rowId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   width: 68px;
   flex-shrink: 0;
 }
 
 .rowIdDone {
   text-decoration: line-through;
-  text-decoration-color: #C7D2CB;
+  text-decoration-color: #c7d2cb;
 }
 
 .rowTitle {
   flex-grow: 1;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .rowTitleDone {
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .rowDue {
   font-size: 11.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   width: 78px;
   text-align: right;
   flex-shrink: 0;
 }
 
 .rowDueOverdue {
-  color: #C4432A;
+  color: #c4432a;
   font-weight: 600;
 }
 
@@ -379,16 +385,49 @@
 }
 
 /* Priority chips */
-.chipCritical { background: rgba(196, 67, 42, 0.14); color: #C4432A; }
-.chipHigh     { background: rgba(226, 121, 61, 0.16); color: #B4571F; }
-.chipMedium   { background: rgba(232, 185, 58, 0.18); color: #9A7B14; }
-.chipLow      { background: rgba(155, 179, 164, 0.20); color: #4E6459; }
-.chipNeutral  { background: rgba(154, 168, 160, 0.18); color: #5B6B60; }
+.chipCritical {
+  background: rgba(196, 67, 42, 0.14);
+  color: #c4432a;
+}
+.chipHigh {
+  background: rgba(226, 121, 61, 0.16);
+  color: #b4571f;
+}
+.chipMedium {
+  background: rgba(232, 185, 58, 0.18);
+  color: #9a7b14;
+}
+.chipLow {
+  background: rgba(155, 179, 164, 0.2);
+  color: #4e6459;
+}
+.chipNeutral {
+  background: rgba(154, 168, 160, 0.18);
+  color: #5b6b60;
+}
 
 /* Status chips */
-.chipBacklog    { background: rgba(154, 168, 160, 0.18); color: #5B6B60; }
-.chipTodo       { background: rgba(47, 111, 176, 0.14); color: #2F6FB0; }
-.chipInProgress { background: rgba(226, 121, 61, 0.16); color: #B4571F; }
-.chipReview     { background: rgba(109, 93, 211, 0.14); color: #6D5DD3; }
-.chipTesting    { background: rgba(180, 87, 31, 0.16); color: #B4571F; }
-.chipDone       { background: rgba(46, 111, 64, 0.14); color: #2E6F40; }
+.chipBacklog {
+  background: rgba(154, 168, 160, 0.18);
+  color: #5b6b60;
+}
+.chipTodo {
+  background: rgba(47, 111, 176, 0.14);
+  color: #2f6fb0;
+}
+.chipInProgress {
+  background: rgba(226, 121, 61, 0.16);
+  color: #b4571f;
+}
+.chipReview {
+  background: rgba(109, 93, 211, 0.14);
+  color: #6d5dd3;
+}
+.chipTesting {
+  background: rgba(180, 87, 31, 0.16);
+  color: #b4571f;
+}
+.chipDone {
+  background: rgba(46, 111, 64, 0.14);
+  color: #2e6f40;
+}

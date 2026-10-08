@@ -20,6 +20,7 @@ export function markOwnPublish(pageId: string) {
 const followKey = (id: string) => `docsFollow:${id}`;
 const followListeners = new Set<() => void>();
 
+/** Return whether the user follows a project's Docs space. */
 export function getDocsFollow(projectId: string): boolean {
   try {
     return localStorage.getItem(followKey(projectId)) === '1';
@@ -28,6 +29,11 @@ export function getDocsFollow(projectId: string): boolean {
   }
 }
 
+/**
+ * Follow or unfollow a project's Docs space and notify listeners.
+ * @param projectId - Project whose Docs space is followed.
+ * @param on - Follow when true, unfollow when false.
+ */
 export function setDocsFollow(projectId: string, on: boolean) {
   try {
     localStorage.setItem(followKey(projectId), on ? '1' : '0');
@@ -37,6 +43,7 @@ export function setDocsFollow(projectId: string, on: boolean) {
   followListeners.forEach((l) => l());
 }
 
+/** Hook returning `[following, setFollowing]` for a project. */
 export function useDocsFollow(projectId: string): [boolean, (on: boolean) => void] {
   const on = useSyncExternalStore(
     (l) => {
@@ -78,8 +85,16 @@ function parseEvent(data: string): DocsPublishedEvent | null {
 /**
  * While the Follow-space toggle is on for the project, shows a toast
  * "<author> published v<N> of <title>" with an Open action when someone else publishes a page.
+ * @param options.projectId - Project to watch.
+ * @param options.onOpenPage - Called with a page id by the toast's Open action.
  */
-export function useDocsNotifications({ projectId, onOpenPage }: { projectId: string; onOpenPage: (pageId: string) => void }) {
+export function useDocsNotifications({
+  projectId,
+  onOpenPage,
+}: {
+  projectId: string;
+  onOpenPage: (pageId: string) => void;
+}) {
   const toast = useToast();
   const [follow] = useDocsFollow(projectId);
   const openRef = useRef(onOpenPage);

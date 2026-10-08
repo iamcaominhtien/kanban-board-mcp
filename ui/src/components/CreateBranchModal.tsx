@@ -23,11 +23,18 @@ interface CreateBranchModalProps {
   hasRepoLinked?: boolean;
 }
 
+/**
+ * Expand the worktree path template for a project, ticket and branch.
+ * @param template - Path template with `{project}`, `{ticket_id}`, `{ticket}`, `{branch}`, `{repo}`; blank uses the built-in default.
+ * @param projectPrefix - Replaces `{project}` (placeholder `PROJ` when empty).
+ * @param ticketId - Replaces `{ticket_id}` and `{ticket}` (placeholder `TICKET` when empty).
+ * @param branchName - Replaces `{branch}` with `/` turned into `-`.
+ */
 export function computeDefaultWorktreePath(
   template: string | null | undefined,
   projectPrefix: string = '',
   ticketId: string = '',
-  branchName: string = ''
+  branchName: string = '',
 ): string {
   const tpl = template && template.trim() ? template.trim() : '../worktrees/{project}/{ticket_id}-{branch}';
   const sanitizedBranch = branchName ? branchName.replace(/\//g, '-').trim() : '{branch}';
@@ -39,6 +46,18 @@ export function computeDefaultWorktreePath(
     .replace(/\{repo\}/g, 'repo');
 }
 
+/**
+ * Dialog to create a branch for a ticket, optionally with a worktree.
+ * @param props.isOpen - Whether the dialog is shown.
+ * @param props.onClose - Called to dismiss the dialog.
+ * @param props.branches - Existing branches offered as the base branch.
+ * @param props.initialBranchFrom - Base branch preselected on open.
+ * @param props.onSuccess - Called with the new branch name after it is created.
+ * @param props.defaultWorktreeTemplate - Project worktree path template.
+ * @param props.defaultWorktreeEnabled - Whether "create worktree" starts checked.
+ * @param props.projectPrefix - Project key prefix used in the worktree path.
+ * @param props.hasRepoLinked - False when the project has no repository; worktree options are then unavailable.
+ */
 export function CreateBranchModal({
   isOpen,
   onClose,
@@ -116,15 +135,8 @@ export function CreateBranchModal({
   });
   const branchOptions = Array.from(branchNamesSet);
 
-  const computedWorktreePath = computeDefaultWorktreePath(
-    defaultWorktreeTemplate,
-    projectPrefix,
-    ticketId,
-    branchName
-  );
-  const currentWorktreePath = isCustomWorktreePathTouched
-    ? customWorktreePath
-    : computedWorktreePath;
+  const computedWorktreePath = computeDefaultWorktreePath(defaultWorktreeTemplate, projectPrefix, ticketId, branchName);
+  const currentWorktreePath = isCustomWorktreePathTouched ? customWorktreePath : computedWorktreePath;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,9 +144,9 @@ export function CreateBranchModal({
     if (!trimmed) return;
 
     const effectiveWorktreePath = createWorktree
-      ? (isCustomWorktreePathTouched
-          ? customWorktreePath.trim()
-          : computeDefaultWorktreePath(defaultWorktreeTemplate, projectPrefix, ticketId, trimmed))
+      ? isCustomWorktreePathTouched
+        ? customWorktreePath.trim()
+        : computeDefaultWorktreePath(defaultWorktreeTemplate, projectPrefix, ticketId, trimmed)
       : undefined;
 
     try {
@@ -148,10 +160,7 @@ export function CreateBranchModal({
           worktree_path: effectiveWorktreePath || null,
         },
       });
-      toast.success(
-        createWorktree ? 'Branch & worktree created' : 'Branch created',
-        trimmed
-      );
+      toast.success(createWorktree ? 'Branch & worktree created' : 'Branch created', trimmed);
       onSuccess?.(trimmed);
       onClose();
     } catch (err) {
@@ -231,9 +240,7 @@ export function CreateBranchModal({
                   <button
                     key={opt}
                     type="button"
-                    className={`${styles.dropdownItem} ${
-                      opt === branchFrom ? styles.dropdownItemActive : ''
-                    }`}
+                    className={`${styles.dropdownItem} ${opt === branchFrom ? styles.dropdownItemActive : ''}`}
                     onClick={() => {
                       setBranchFrom(opt);
                       setIsDropdownOpen(false);
@@ -249,7 +256,8 @@ export function CreateBranchModal({
             )}
           </div>
           <span className={styles.helperText}>
-            Any existing branch works too, not just main — spins up a new ticket that carries the parent&apos;s description/AC as a starting point.
+            Any existing branch works too, not just main — spins up a new ticket that carries the parent&apos;s
+            description/AC as a starting point.
           </span>
         </div>
 
@@ -262,9 +270,7 @@ export function CreateBranchModal({
               checked={createWorktree}
               onChange={(e) => setCreateWorktree(e.target.checked)}
             />
-            <span className={styles.checkboxText}>
-              Create git worktree for this branch
-            </span>
+            <span className={styles.checkboxText}>Create git worktree for this branch</span>
           </label>
 
           {createWorktree && (
@@ -297,7 +303,8 @@ export function CreateBranchModal({
               />
               {!hasRepoLinked ? (
                 <span className={styles.helperText} style={{ color: '#C4432A' }}>
-                  Note: Git repository path is not configured on project or ticket. Git worktree creation requires a linked repository path.
+                  Note: Git repository path is not configured on project or ticket. Git worktree creation requires a
+                  linked repository path.
                 </span>
               ) : (
                 <span className={styles.helperText}>
@@ -317,11 +324,7 @@ export function CreateBranchModal({
           >
             {createBranchMutation.isPending ? 'Creating...' : 'Create branch'}
           </button>
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={onClose}
-          >
+          <button type="button" className={styles.btnSecondary} onClick={onClose}>
             Cancel
           </button>
         </div>

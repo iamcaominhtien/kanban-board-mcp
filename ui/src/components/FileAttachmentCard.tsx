@@ -1,9 +1,5 @@
 import { useState } from 'react';
-import {
-  FileCategoryIcon,
-  cleanDisplayFileName,
-  getFileTypeMeta,
-} from '../utils/fileIcons';
+import { FileCategoryIcon, cleanDisplayFileName, getFileTypeMeta } from '../utils/fileIcons';
 import { uploadUrl } from '../api/tickets';
 import { FilePreviewModal } from './FilePreviewModal';
 import styles from './FileAttachmentCard.module.css';
@@ -14,6 +10,7 @@ interface Props {
   fileSize?: number;
 }
 
+/** Card for an attached file with open and download actions. */
 export function FileAttachmentCard({ url, fileName: rawName, fileSize }: Props) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const displayFileName = cleanDisplayFileName(rawName || url);
@@ -39,10 +36,7 @@ export function FileAttachmentCard({ url, fileName: rawName, fileSize }: Props) 
           }
         }}
       >
-        <span
-          className={styles.iconWrap}
-          style={{ backgroundColor: meta.bgColor }}
-        >
+        <span className={styles.iconWrap} style={{ backgroundColor: meta.bgColor }}>
           <FileCategoryIcon category={meta.category} size={13} color={meta.color} />
         </span>
 
@@ -65,7 +59,16 @@ export function FileAttachmentCard({ url, fileName: rawName, fileSize }: Props) 
           title={`Download ${displayFileName}`}
           onClick={(e) => e.stopPropagation()}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />

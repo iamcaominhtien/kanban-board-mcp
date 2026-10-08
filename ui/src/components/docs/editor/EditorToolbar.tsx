@@ -13,7 +13,14 @@ interface Props {
 
 const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
 
-/** 44px formatting toolbar (DocsEditor board A). */
+/**
+ * 44px formatting toolbar (DocsEditor board A).
+ * @param props.editor - Editor the buttons act on, or `null`.
+ * @param props.disabled - Disable all buttons.
+ * @param props.onLink - Called by the link button.
+ * @param props.onPickImage - Called by the image button.
+ * @param props.ticketPrefix - Ticket key prefix used by the reference button.
+ */
 export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPrefix }: Props) {
   const st = useEditorState({
     editor,
@@ -38,7 +45,19 @@ export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPre
     }),
   });
 
-  const Btn = ({ label, on, onClick, children, off }: { label: string; on?: boolean; onClick: () => void; children: ReactNode; off?: boolean }) => (
+  const Btn = ({
+    label,
+    on,
+    onClick,
+    children,
+    off,
+  }: {
+    label: string;
+    on?: boolean;
+    onClick: () => void;
+    children: ReactNode;
+    off?: boolean;
+  }) => (
     <button
       type="button"
       className="dk-tb"
@@ -86,30 +105,74 @@ export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPre
         <Icon name="i33" size={16} />
       </Btn>
       <span className="dk-sep" />
-      <Btn label="H1" on={s.h1} onClick={() => c().toggleHeading({ level: 1 }).run()}>H1</Btn>
-      <Btn label="H2" on={s.h2} onClick={() => c().toggleHeading({ level: 2 }).run()}>H2</Btn>
-      <Btn label="H3" on={s.h3} onClick={() => c().toggleHeading({ level: 3 }).run()}>H3</Btn>
+      <Btn label="H1" on={s.h1} onClick={() => c().toggleHeading({ level: 1 }).run()}>
+        H1
+      </Btn>
+      <Btn label="H2" on={s.h2} onClick={() => c().toggleHeading({ level: 2 }).run()}>
+        H2
+      </Btn>
+      <Btn label="H3" on={s.h3} onClick={() => c().toggleHeading({ level: 3 }).run()}>
+        H3
+      </Btn>
       <span className="dk-sep" />
-      <Btn label="Bulleted list" on={s.bullet} onClick={() => c().toggleBulletList().run()}><Icon name="i48" size={16} /></Btn>
-      <Btn label="Numbered list" on={s.ordered} onClick={() => c().toggleOrderedList().run()}><Icon name="i49" size={16} /></Btn>
-      <Btn label="Task list" on={s.task} onClick={() => c().toggleTaskList().run()}><Icon name="i50" size={16} /></Btn>
-      <Btn label="Quote" on={s.quote} onClick={() => c().toggleBlockquote().run()}><Icon name="i51" size={16} /></Btn>
+      <Btn label="Bulleted list" on={s.bullet} onClick={() => c().toggleBulletList().run()}>
+        <Icon name="i48" size={16} />
+      </Btn>
+      <Btn label="Numbered list" on={s.ordered} onClick={() => c().toggleOrderedList().run()}>
+        <Icon name="i49" size={16} />
+      </Btn>
+      <Btn label="Task list" on={s.task} onClick={() => c().toggleTaskList().run()}>
+        <Icon name="i50" size={16} />
+      </Btn>
+      <Btn label="Quote" on={s.quote} onClick={() => c().toggleBlockquote().run()}>
+        <Icon name="i51" size={16} />
+      </Btn>
       <span className="dk-sep" />
-      <Btn label="Table" on={s.table} off={s.table} onClick={() => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Icon name="i52" size={16} /></Btn>
-      <Btn label="Code block" on={s.codeBlock} onClick={() => c().toggleCodeBlock().run()}><Icon name="i53" size={16} /></Btn>
-      <Btn label="Callout" on={s.callout} onClick={() => c().toggleCallout('info').run()}><Icon name="i31" size={16} /></Btn>
+      <Btn
+        label="Table"
+        on={s.table}
+        off={s.table}
+        onClick={() => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+      >
+        <Icon name="i52" size={16} />
+      </Btn>
+      <Btn label="Code block" on={s.codeBlock} onClick={() => c().toggleCodeBlock().run()}>
+        <Icon name="i53" size={16} />
+      </Btn>
+      <Btn label="Callout" on={s.callout} onClick={() => c().toggleCallout('info').run()}>
+        <Icon name="i31" size={16} />
+      </Btn>
       <span className="dk-sep" />
-      <Btn label="Link" on={s.link} onClick={onLink}><Icon name="i11" size={16} /></Btn>
+      <Btn label="Link" on={s.link} onClick={onLink}>
+        <Icon name="i11" size={16} />
+      </Btn>
       <Btn label="Reference a page or section" onClick={() => c().insertContent('[[').run()}>
         <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>[[</span>
       </Btn>
-      <Btn label="Ticket" onClick={() => c().insertContent(`[[${ticketPrefix}-`).run()}><Icon name="i13" size={16} /></Btn>
-      <Btn label="Image" onClick={onPickImage}><Icon name="i54" size={16} /></Btn>
+      <Btn label="Ticket" onClick={() => c().insertContent(`[[${ticketPrefix}-`).run()}>
+        <Icon name="i13" size={16} />
+      </Btn>
+      <Btn label="Image" onClick={onPickImage}>
+        <Icon name="i54" size={16} />
+      </Btn>
       <div style={{ flex: 1 }} />
-      <Btn label="Undo" off={!s.canUndo} onClick={() => c().undo().run()}><Icon name="i19" size={16} /></Btn>
-      <Btn label="Redo" off={!s.canRedo} onClick={() => c().redo().run()}><Icon name="i62" size={16} /></Btn>
+      <Btn label="Undo" off={!s.canUndo} onClick={() => c().undo().run()}>
+        <Icon name="i19" size={16} />
+      </Btn>
+      <Btn label="Redo" off={!s.canRedo} onClick={() => c().redo().run()}>
+        <Icon name="i62" size={16} />
+      </Btn>
       <span className="dk-sep" />
-      <span style={{ fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span
+        style={{
+          fontSize: 12,
+          color: '#5B6B60',
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
         <Icon name="i63" size={15} strokeWidth={1.7} />
         Type<span className="dk-kbd">/</span>for blocks
       </span>

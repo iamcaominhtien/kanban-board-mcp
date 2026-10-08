@@ -28,18 +28,9 @@ interface DebugSpaceSectionProps {
   disabled?: boolean;
 }
 
-const KINDS: DebugEntryKind[] = [
-  'investigation',
-  'fix_attempt',
-  'root_cause',
-  'blocked',
-  'resolved',
-];
+const KINDS: DebugEntryKind[] = ['investigation', 'fix_attempt', 'root_cause', 'blocked', 'resolved'];
 
-const KIND_CONFIG: Record<
-  DebugEntryKind,
-  { label: string; dot: string; color: string; bg: string }
-> = {
+const KIND_CONFIG: Record<DebugEntryKind, { label: string; dot: string; color: string; bg: string }> = {
   investigation: {
     label: 'Investigation',
     dot: '#2F6FB0',
@@ -103,7 +94,6 @@ function getInitials(name?: string | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-
 const AUTHOR_KEY = 'kanban_debug_author';
 const ROLE_KEY = 'kanban_debug_role';
 
@@ -140,7 +130,13 @@ function formatFull(iso: string | null | undefined): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? String(iso)
-    : d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    : d.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
 }
 
 function wasEdited(entry: WorkLogEntry): boolean {
@@ -252,10 +248,21 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
             required
           />
           <datalist id="debug-author-options">
-            {memberNames.map((n) => <option key={n} value={n} />)}
+            {memberNames.map((n) => (
+              <option key={n} value={n} />
+            ))}
           </datalist>
-          <select className={styles.roleSelect} aria-label="Role" value={v.role} onChange={(e) => set('role', e.target.value)}>
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          <select
+            className={styles.roleSelect}
+            aria-label="Role"
+            value={v.role}
+            onChange={(e) => set('role', e.target.value)}
+          >
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
           </select>
         </div>
       )}
@@ -274,20 +281,50 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
       </div>
 
       <div className={styles.extraLinksRow}>
-        <select className={styles.smallInput} aria-label="Linked branch" value={v.linkedBranch} onChange={(e) => set('linkedBranch', e.target.value)}>
+        <select
+          className={styles.smallInput}
+          aria-label="Linked branch"
+          value={v.linkedBranch}
+          onChange={(e) => set('linkedBranch', e.target.value)}
+        >
           <option value="">{branchNames.length ? 'Link a branch…' : 'No branches on this ticket'}</option>
           {missingBranch && <option value={missingBranch}>{missingBranch} (no longer exists)</option>}
-          {branchNames.map((n) => <option key={n} value={n}>{n}</option>)}
+          {branchNames.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
         </select>
-        <select className={styles.smallInput} aria-label="Linked test case" value={v.linkedTestCase} onChange={(e) => set('linkedTestCase', e.target.value)}>
+        <select
+          className={styles.smallInput}
+          aria-label="Linked test case"
+          value={v.linkedTestCase}
+          onChange={(e) => set('linkedTestCase', e.target.value)}
+        >
           <option value="">{testCases.length ? 'Link a test case…' : 'No test cases on this ticket'}</option>
           {missingTc && <option value={missingTc}>{missingTc} (no longer exists)</option>}
-          {testCases.map((t) => <option key={t.code} value={t.code}>{t.code} · {t.title}</option>)}
+          {testCases.map((t) => (
+            <option key={t.code} value={t.code}>
+              {t.code} · {t.title}
+            </option>
+          ))}
         </select>
-        <button type="button" className={styles.attachBtn} onClick={() => fileRef.current?.click()} disabled={uploading}>
+        <button
+          type="button"
+          className={styles.attachBtn}
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+        >
           {uploading ? 'Uploading…' : '+ Attach file'}
         </button>
-        <input ref={fileRef} type="file" multiple hidden data-testid="debug-attach-input" onChange={(e) => handleFiles(e.target.files)} />
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          hidden
+          data-testid="debug-attach-input"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
       </div>
 
       {v.attachments.length > 0 && (
@@ -300,7 +337,12 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
                 type="button"
                 className={styles.chipRemove}
                 aria-label={`Remove ${att.name}`}
-                onClick={() => set('attachments', v.attachments.filter((a) => a.id !== att.id))}
+                onClick={() =>
+                  set(
+                    'attachments',
+                    v.attachments.filter((a) => a.id !== att.id),
+                  )
+                }
               >
                 ×
               </button>
@@ -309,10 +351,16 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
         </div>
       )}
 
-      {error && <div className={styles.formError} role="alert">{error}</div>}
+      {error && (
+        <div className={styles.formError} role="alert">
+          {error}
+        </div>
+      )}
 
       <div className={styles.formActions}>
-        <button type="button" className={styles.btnCancel} onClick={onCancel}>Cancel</button>
+        <button type="button" className={styles.btnCancel} onClick={onCancel}>
+          Cancel
+        </button>
         <button
           type="submit"
           className={styles.btnSubmit}
@@ -325,6 +373,20 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
   );
 }
 
+/**
+ * Ticket's work log (debug notes) with attachments.
+ * @param props.entries - Work-log entries to list.
+ * @param props.branchNames - Ticket branches offered as link targets.
+ * @param props.testCases - Ticket test cases offered as link targets.
+ * @param props.memberNames - Project members suggested when typing the author.
+ * @param props.onAdd - Called with the new entry (without id); may be async.
+ * @param props.onUpdate - Called with the entry id and changed fields.
+ * @param props.onDelete - Called with the entry id to delete.
+ * @param props.onOpenBranch - Called with a branch name when a linked branch is clicked.
+ * @param props.onOpenTestCase - Called with a test case code when a linked test case is clicked.
+ * @param props.readOnly - Hide add, edit and delete controls.
+ * @param props.disabled - Disable the controls, e.g. while a save is running.
+ */
 export function DebugSpaceSection({
   ticketId = 'KAN',
   entries,
@@ -346,8 +408,16 @@ export function DebugSpaceSection({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const counts: Record<DebugEntryKind, number> = { investigation: 0, fix_attempt: 0, root_cause: 0, blocked: 0, resolved: 0 };
-  entries.forEach((e) => { counts[kindOf(e.kind)]++; });
+  const counts: Record<DebugEntryKind, number> = {
+    investigation: 0,
+    fix_attempt: 0,
+    root_cause: 0,
+    blocked: 0,
+    resolved: 0,
+  };
+  entries.forEach((e) => {
+    counts[kindOf(e.kind)]++;
+  });
 
   const pinnedEntries = entries.filter((e) => e.pinned);
 
@@ -432,9 +502,23 @@ export function DebugSpaceSection({
           {entries.length} ENTRIES · {ticketId}
         </span>
         {!readOnly && (
-          <button type="button" className={styles.tcAddBtn} onClick={() => setShowAddForm(true)} disabled={disabled || showAddForm}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-              <path d="M12 5V19" /><path d="M5 12H19" />
+          <button
+            type="button"
+            className={styles.tcAddBtn}
+            onClick={() => setShowAddForm(true)}
+            disabled={disabled || showAddForm}
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            >
+              <path d="M12 5V19" />
+              <path d="M5 12H19" />
             </svg>
             Log entry
           </button>
@@ -442,13 +526,22 @@ export function DebugSpaceSection({
       </div>
 
       <div className={styles.filterRow}>
-        <button type="button" className={`${styles.filterChip} ${activeFilter === 'all' ? styles.filterChipActive : ''}`} onClick={() => setActiveFilter('all')}>
+        <button
+          type="button"
+          className={`${styles.filterChip} ${activeFilter === 'all' ? styles.filterChipActive : ''}`}
+          onClick={() => setActiveFilter('all')}
+        >
           All ({entries.length})
         </button>
         {KINDS.map((kind) => {
           const cfg = KIND_CONFIG[kind];
           return (
-            <button key={kind} type="button" className={`${styles.filterChip} ${activeFilter === kind ? styles.filterChipActive : ''}`} onClick={() => setActiveFilter(kind)}>
+            <button
+              key={kind}
+              type="button"
+              className={`${styles.filterChip} ${activeFilter === kind ? styles.filterChipActive : ''}`}
+              onClick={() => setActiveFilter(kind)}
+            >
               <span className={styles.filterDot} style={{ background: cfg.dot }} />
               {cfg.label} ({counts[kind]})
             </button>
@@ -466,9 +559,13 @@ export function DebugSpaceSection({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="#C7A339" style={{ flexShrink: 0 }}>
                   <path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z" />
                 </svg>
-                <span className={styles.dbgKindBadge} style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                <span className={styles.dbgKindBadge} style={{ background: cfg.bg, color: cfg.color }}>
+                  {cfg.label}
+                </span>
                 <span className={styles.pinText}>{pe.note.replace(/[#*`\n]/g, ' ')}</span>
-                <span className={styles.pinMeta}>{pe.author} · {formatTimeAgo(pe.at)}</span>
+                <span className={styles.pinMeta}>
+                  {pe.author} · {formatTimeAgo(pe.at)}
+                </span>
               </div>
             );
           })}
@@ -512,17 +609,26 @@ export function DebugSpaceSection({
 
                 <div className={styles.dbgCard}>
                   <div className={styles.cardHeader}>
-                    <span className={styles.dbgKindBadge} style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                    <span className={styles.dbgKindBadge} style={{ background: cfg.bg, color: cfg.color }}>
+                      {cfg.label}
+                    </span>
                     <div className={styles.dbgAvatar} style={{ background: roleCfg.bg, color: roleCfg.color }}>
                       {getInitials(entry.author || (entry as any).author_name)}
                     </div>
-                    <span className={styles.authorName}>{entry.author || (entry as any).author_name || 'Developer'}</span>
-                    <span className={styles.dbgRoleBadge} style={{ background: roleCfg.bg, color: roleCfg.color }}>{entry.role}</span>
+                    <span className={styles.authorName}>
+                      {entry.author || (entry as any).author_name || 'Developer'}
+                    </span>
+                    <span className={styles.dbgRoleBadge} style={{ background: roleCfg.bg, color: roleCfg.color }}>
+                      {entry.role}
+                    </span>
                     <span style={{ flexGrow: 1 }} />
                     <span className={styles.timestamp} title={formatFull(entry.at)}>
                       {formatTimeAgo(entry.at)}
                       {wasEdited(entry) && (
-                        <span className={styles.editedTag} title={`Edited ${formatFull(entry.updatedAt)}`}> · edited</span>
+                        <span className={styles.editedTag} title={`Edited ${formatFull(entry.updatedAt)}`}>
+                          {' '}
+                          · edited
+                        </span>
                       )}
                     </span>
 
@@ -534,24 +640,67 @@ export function DebugSpaceSection({
                         title={entry.pinned ? 'Unpin entry' : 'Pin entry'}
                         aria-label={entry.pinned ? 'Unpin entry' : 'Pin entry'}
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill={entry.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill={entry.pinned ? 'currentColor' : 'none'}
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
                           <path d="M12 2L14.4 8.6L21.5 9.2L16 13.8L17.8 20.8L12 16.8L6.2 20.8L8 13.8L2.5 9.2L9.6 8.6Z" />
                         </svg>
                       </button>
                     )}
 
                     {!readOnly && onUpdate && (
-                      <button type="button" className={styles.editBtn} onClick={() => setEditingId(isEditing ? null : entry.id)} title="Edit entry" aria-label="Edit entry">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 20H21" /><path d="M16.5 3.5A2.1 2.1 0 0 1 19.5 6.5L7 19L3 20L4 16Z" />
+                      <button
+                        type="button"
+                        className={styles.editBtn}
+                        onClick={() => setEditingId(isEditing ? null : entry.id)}
+                        title="Edit entry"
+                        aria-label="Edit entry"
+                      >
+                        <svg
+                          width="11"
+                          height="11"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 20H21" />
+                          <path d="M16.5 3.5A2.1 2.1 0 0 1 19.5 6.5L7 19L3 20L4 16Z" />
                         </svg>
                       </button>
                     )}
 
                     {!readOnly && onDelete && (
-                      <button type="button" className={styles.deleteBtn} onClick={() => { setDeleteError(null); setConfirmDelete(entry); }} title="Delete entry" aria-label="Delete entry">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <path d="M18 6L6 18" /><path d="M6 6L18 18" />
+                      <button
+                        type="button"
+                        className={styles.deleteBtn}
+                        onClick={() => {
+                          setDeleteError(null);
+                          setConfirmDelete(entry);
+                        }}
+                        title="Delete entry"
+                        aria-label="Delete entry"
+                      >
+                        <svg
+                          width="11"
+                          height="11"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        >
+                          <path d="M18 6L6 18" />
+                          <path d="M6 6L18 18" />
                         </svg>
                       </button>
                     )}
@@ -583,35 +732,71 @@ export function DebugSpaceSection({
 
                       {(entry.linkedBranch || entry.linkedTestCase || attachments.length > 0) && (
                         <div className={styles.chipsRow}>
-                          {entry.linkedBranch && (
-                            branchSet.has(entry.linkedBranch) && onOpenBranch ? (
-                              <button type="button" className={`${styles.dbgLinkChip} ${styles.linkChipBtn}`} onClick={() => onOpenBranch(entry.linkedBranch!)} title="Open the Branches tab">
-                                <BranchIcon />{entry.linkedBranch}
+                          {entry.linkedBranch &&
+                            (branchSet.has(entry.linkedBranch) && onOpenBranch ? (
+                              <button
+                                type="button"
+                                className={`${styles.dbgLinkChip} ${styles.linkChipBtn}`}
+                                onClick={() => onOpenBranch(entry.linkedBranch!)}
+                                title="Open the Branches tab"
+                              >
+                                <BranchIcon />
+                                {entry.linkedBranch}
                               </button>
                             ) : (
-                              <span className={`${styles.dbgLinkChip} ${branchSet.has(entry.linkedBranch) ? '' : styles.linkChipMissing}`} title={branchSet.has(entry.linkedBranch) ? undefined : 'This branch no longer exists on the ticket'}>
-                                <BranchIcon />{entry.linkedBranch}
+                              <span
+                                className={`${styles.dbgLinkChip} ${branchSet.has(entry.linkedBranch) ? '' : styles.linkChipMissing}`}
+                                title={
+                                  branchSet.has(entry.linkedBranch)
+                                    ? undefined
+                                    : 'This branch no longer exists on the ticket'
+                                }
+                              >
+                                <BranchIcon />
+                                {entry.linkedBranch}
                               </span>
-                            )
-                          )}
-                          {entry.linkedTestCase && (
-                            tcSet.has(entry.linkedTestCase) && onOpenTestCase ? (
-                              <button type="button" className={`${styles.dbgLinkChip} ${styles.linkChipBtn}`} onClick={() => onOpenTestCase(entry.linkedTestCase!)} title="Open the Test cases tab">
-                                <TestIcon />{entry.linkedTestCase}
+                            ))}
+                          {entry.linkedTestCase &&
+                            (tcSet.has(entry.linkedTestCase) && onOpenTestCase ? (
+                              <button
+                                type="button"
+                                className={`${styles.dbgLinkChip} ${styles.linkChipBtn}`}
+                                onClick={() => onOpenTestCase(entry.linkedTestCase!)}
+                                title="Open the Test cases tab"
+                              >
+                                <TestIcon />
+                                {entry.linkedTestCase}
                               </button>
                             ) : (
-                              <span className={`${styles.dbgLinkChip} ${tcSet.has(entry.linkedTestCase) ? '' : styles.linkChipMissing}`} title={tcSet.has(entry.linkedTestCase) ? undefined : 'This test case no longer exists on the ticket'}>
-                                <TestIcon />{entry.linkedTestCase}
+                              <span
+                                className={`${styles.dbgLinkChip} ${tcSet.has(entry.linkedTestCase) ? '' : styles.linkChipMissing}`}
+                                title={
+                                  tcSet.has(entry.linkedTestCase)
+                                    ? undefined
+                                    : 'This test case no longer exists on the ticket'
+                                }
+                              >
+                                <TestIcon />
+                                {entry.linkedTestCase}
                               </span>
-                            )
-                          )}
+                            ))}
                           {attachments.map((att: DebugAttachment) => {
                             const href = uploadUrl(att.url, att.name);
                             const inner = (
                               <>
                                 <span className={styles.tcFileIcon} style={{ background: '#F1F1F1' }}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z" /><path d="M14 3V8H19" />
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="#5B6B60"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z" />
+                                    <path d="M14 3V8H19" />
                                   </svg>
                                 </span>
                                 <span className={styles.attName}>{att.name}</span>
@@ -619,11 +804,19 @@ export function DebugSpaceSection({
                               </>
                             );
                             return href ? (
-                              <a key={att.id} className={`${styles.tcFileChip} ${styles.attLink}`} href={href} download={att.name} title={`Download ${att.name}`}>
+                              <a
+                                key={att.id}
+                                className={`${styles.tcFileChip} ${styles.attLink}`}
+                                href={href}
+                                download={att.name}
+                                title={`Download ${att.name}`}
+                              >
                                 {inner}
                               </a>
                             ) : (
-                              <span key={att.id} className={styles.tcFileChip}>{inner}</span>
+                              <span key={att.id} className={styles.tcFileChip}>
+                                {inner}
+                              </span>
                             );
                           })}
                         </div>
@@ -642,12 +835,22 @@ export function DebugSpaceSection({
           <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="Confirm delete">
             <div className={styles.dialogTitle}>Delete this entry?</div>
             <div className={styles.dialogBody}>
-              <span className={styles.dialogQuote}>{confirmDelete.note.slice(0, 140)}{confirmDelete.note.length > 140 ? '…' : ''}</span>
-              {' '}will be removed permanently{(confirmDelete.attachments?.length ?? 0) > 0 ? ' (its attachment links go with it)' : ''}.
+              <span className={styles.dialogQuote}>
+                {confirmDelete.note.slice(0, 140)}
+                {confirmDelete.note.length > 140 ? '…' : ''}
+              </span>{' '}
+              will be removed permanently
+              {(confirmDelete.attachments?.length ?? 0) > 0 ? ' (its attachment links go with it)' : ''}.
             </div>
-            {deleteError && <div className={styles.formError} role="alert">{deleteError}</div>}
+            {deleteError && (
+              <div className={styles.formError} role="alert">
+                {deleteError}
+              </div>
+            )}
             <div className={styles.dialogActions}>
-              <button type="button" className={styles.btnCancel} onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button type="button" className={styles.btnCancel} onClick={() => setConfirmDelete(null)}>
+                Cancel
+              </button>
               <button type="button" className={styles.btnDanger} onClick={confirmDeleteEntry} disabled={deleting}>
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>
@@ -661,16 +864,40 @@ export function DebugSpaceSection({
 
 function BranchIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 3V21" /><path d="M18 3V21" /><circle cx="6" cy="6" r="2.6" /><circle cx="18" cy="6" r="2.6" /><circle cx="6" cy="18" r="2.6" /><path d="M6 8.6C6 14 10 16.5 15.4 17.3" />
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#5B6B60"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 3V21" />
+      <path d="M18 3V21" />
+      <circle cx="6" cy="6" r="2.6" />
+      <circle cx="18" cy="6" r="2.6" />
+      <circle cx="6" cy="18" r="2.6" />
+      <path d="M6 8.6C6 14 10 16.5 15.4 17.3" />
     </svg>
   );
 }
 
 function TestIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 11L12 14L22 4" /><path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" />
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#5B6B60"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 11L12 14L22 4" />
+      <path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" />
     </svg>
   );
 }

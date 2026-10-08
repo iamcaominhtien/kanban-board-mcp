@@ -122,9 +122,7 @@ export interface DocsTicketDoc {
   version: number;
 }
 
-export type DocsRefRequest =
-  | { kind: 'page'; title: string; anchor?: string | null }
-  | { kind: 'ticket'; key: string };
+export type DocsRefRequest = { kind: 'page'; title: string; anchor?: string | null } | { kind: 'ticket'; key: string };
 
 export interface DocsRefResult {
   kind: 'page' | 'ticket';

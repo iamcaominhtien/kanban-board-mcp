@@ -3,15 +3,7 @@ import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 
 export type PageMenuAction =
-  | 'rename'
-  | 'add-child'
-  | 'duplicate'
-  | 'copy-link'
-  | 'copy-markdown'
-  | 'move'
-  | 'history'
-  | 'export'
-  | 'delete';
+  'rename' | 'add-child' | 'duplicate' | 'copy-link' | 'copy-markdown' | 'move' | 'history' | 'export' | 'delete';
 
 interface PageMenuProps {
   page: DocsPage;
@@ -46,6 +38,8 @@ const GROUPS: Item[][] = [
 /**
  * Page-level keyboard shortcuts from the menu (F2, N, Ctrl D, Ctrl L, Ctrl Shift C, M, H, Del).
  * They apply while the page is open and no text field is focused.
+ * @param onAction - Called with the menu action matching the pressed key.
+ * @param enabled - Set false to disable the shortcuts.
  */
 export function usePageShortcuts(onAction: (a: PageMenuAction) => void, enabled = true) {
   const ref = useRef(onAction);
@@ -79,7 +73,11 @@ export function usePageShortcuts(onAction: (a: PageMenuAction) => void, enabled 
   }, [enabled]);
 }
 
-/** The page header "···" menu. Position it with a relatively-positioned wrapper; it opens below, right-aligned. */
+/**
+ * The page header "···" menu. Position it with a relatively-positioned wrapper; it opens below, right-aligned.
+ * @param props.onAction - Called with the chosen menu action.
+ * @param props.onClose - Called to dismiss the menu.
+ */
 export function PageMenu({ onAction, onClose }: PageMenuProps) {
   const rootRef = useRef<HTMLDivElement>(null);
 

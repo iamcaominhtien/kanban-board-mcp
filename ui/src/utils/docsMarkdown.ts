@@ -95,6 +95,7 @@ export function linkifyDocs(markdown: string): { markdown: string; refs: DocsRef
   return { markdown: lines.join('\n'), refs };
 }
 
+/** Parse a `docref:` href into page title and anchor, or null. */
 export function parseDocRef(href: string): { title: string; anchor: string | null } | null {
   if (!href.startsWith(REF_SCHEME)) return null;
   const [title, anchor] = decodeURIComponent(href.slice(REF_SCHEME.length)).split('#');
@@ -129,6 +130,7 @@ const CALLOUT_KINDS: Record<string, 'info' | 'warning' | 'danger' | 'tip'> = {
   danger: 'danger',
 };
 
+/** Remark plugin: mark `> [!KIND]` callouts and add heading ids. */
 export function remarkDocs() {
   return (tree: MdNode) => {
     const seen = new Map<string, number>();

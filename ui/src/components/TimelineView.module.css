@@ -16,7 +16,7 @@
   gap: 2px;
   padding: 3px;
   border-radius: 8px;
-  background: #EEF3EF;
+  background: #eef3ef;
   align-self: flex-start;
 }
 
@@ -24,34 +24,36 @@
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   background: transparent;
   border: none;
   padding: 7px 14px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .subModeBtn:hover {
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .subModeBtnActive {
-  background: #FFFFFF;
-  color: #1E2A22;
-  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.10);
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
 }
 
 /* ─── Empty state ────────────────────────────────────────────────────────── */
 .emptyState {
   padding: 48px;
   text-align: center;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-size: 13.5px;
   font-family: var(--font-body);
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 12px;
 }
 
@@ -59,8 +61,8 @@
 .ganttCard {
   width: 100%;
   border-radius: 12px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -74,8 +76,8 @@
 .ganttLabelCol {
   width: 230px;
   flex-shrink: 0;
-  border-right: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border-right: 1px solid #e3e8e5;
+  background: #ffffff;
   z-index: 2;
 }
 
@@ -88,9 +90,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #9AA8A0;
-  border-bottom: 1px solid #E3E8E5;
-  background: #F6FAF7;
+  color: #9aa8a0;
+  border-bottom: 1px solid #e3e8e5;
+  background: #f6faf7;
   box-sizing: border-box;
 }
 
@@ -100,12 +102,12 @@
   gap: 8px;
   padding: 0 14px;
   height: 46px;
-  border-bottom: 1px solid #EEF3EF;
+  border-bottom: 1px solid #eef3ef;
   cursor: pointer;
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
-  background: #FFFFFF;
+  background: #ffffff;
   transition: background 0.12s ease;
 }
 
@@ -114,26 +116,26 @@
 }
 
 .ganttLabelRow:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .ganttTicketId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
 }
 
 .ganttTicketIdDone {
   text-decoration: line-through;
-  text-decoration-color: #C7D2CB;
+  text-decoration-color: #c7d2cb;
 }
 
 .ganttTicketTitle {
   flex: 1;
   min-width: 0;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -149,8 +151,8 @@
 .ganttDateHeader {
   height: 40px;
   position: relative;
-  border-bottom: 1px solid #E3E8E5;
-  background: #F6FAF7;
+  border-bottom: 1px solid #e3e8e5;
+  background: #f6faf7;
   box-sizing: border-box;
 }
 
@@ -162,20 +164,20 @@
   align-items: center;
   font-size: 10.5px;
   font-weight: 600;
-  color: #9AA8A0;
+  color: #9aa8a0;
   padding-left: 6px;
   box-sizing: border-box;
 }
 
 .ganttDateTickToday {
   font-weight: 700;
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .ganttBarRow {
   height: 46px;
   position: relative;
-  border-bottom: 1px solid #EEF3EF;
+  border-bottom: 1px solid #eef3ef;
   box-sizing: border-box;
 }
 
@@ -188,7 +190,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #2E6F40;
+  background: #2e6f40;
   opacity: 0.4;
   z-index: 1;
   pointer-events: none;
@@ -215,22 +217,22 @@
 }
 
 .ganttBarNormal {
-  background: #2F6FB0;
+  background: #2f6fb0;
 }
 
 .ganttBarOverdue {
-  background: #C4432A;
+  background: #c4432a;
 }
 
 .ganttBarDone {
-  background: #68BA7F;
+  background: #68ba7f;
   opacity: 0.6;
 }
 
 .ganttBarLabel {
   font-size: 10px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -243,7 +245,7 @@
   transform: translateY(-50%);
   font-size: 10.5px;
   font-weight: 600;
-  color: #C4432A;
+  color: #c4432a;
   white-space: nowrap;
 }
 
@@ -285,8 +287,8 @@
   top: -26px;
   padding: 3px 8px;
   border-radius: 6px;
-  background: #1E2A22;
-  color: #FFFFFF;
+  background: #1e2a22;
+  color: #ffffff;
   font-size: 10.5px;
   font-weight: 600;
   white-space: nowrap;
@@ -308,7 +310,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .legendDot {
@@ -320,7 +322,7 @@
 .legendLine {
   width: 2px;
   height: 12px;
-  background: #2E6F40;
+  background: #2e6f40;
   opacity: 0.5;
 }
 
@@ -328,8 +330,8 @@
 .eventTimelineCard {
   width: 100%;
   border-radius: 12px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   padding: 24px 28px;
   box-sizing: border-box;
 }
@@ -343,12 +345,12 @@
 .eventGroupDate {
   font-size: 12.5px;
   font-weight: 700;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .eventDivider {
   height: 1px;
-  background: #EEF3EF;
+  background: #eef3ef;
   margin: 18px 0;
 }
 
@@ -379,8 +381,8 @@
   flex-shrink: 0;
   margin-top: 4px;
   box-sizing: border-box;
-  border: 2.5px solid #FFFFFF;
-  box-shadow: 0 0 0 1px #E3E8E5;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 0 1px #e3e8e5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -389,7 +391,7 @@
 .dbgLine {
   width: 2px;
   flex-grow: 1;
-  background: #E3E8E5;
+  background: #e3e8e5;
   margin-top: 2px;
   min-height: 10px;
 }
@@ -420,9 +422,9 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 10.5px;
   font-weight: 700;
-  color: #2E6F40;
-  background: #F1F8F3;
-  border: 1px solid #D7E8DC;
+  color: #2e6f40;
+  background: #f1f8f3;
+  border: 1px solid #d7e8dc;
   padding: 2px 7px;
   border-radius: 5px;
   cursor: pointer;
@@ -430,26 +432,26 @@
 }
 
 .eventTicketChip:hover {
-  background: #E3F1E7;
+  background: #e3f1e7;
 }
 
 .eventTicketTitle {
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   flex-grow: 1;
 }
 
 .eventTime {
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .eventActionDesc {
   font-size: 11.5px;
-  color: #5B6B60;
+  color: #5b6b60;
   margin-top: 2px;
 }
 
 .eventDetailDim {
-  color: #9AA8A0;
+  color: #9aa8a0;
 }

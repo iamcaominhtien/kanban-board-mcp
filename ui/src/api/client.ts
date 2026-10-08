@@ -3,6 +3,7 @@ import camelcaseKeys from 'camelcase-keys';
 import snakecaseKeys from 'snakecase-keys';
 import { resolveOrigin } from './resolveOrigin';
 
+/** Axios instance that converts keys between snake_case (API) and camelCase (UI). */
 export const client = axios.create();
 
 function isFormDataPayload(value: unknown): value is FormData {

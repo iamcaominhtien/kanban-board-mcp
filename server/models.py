@@ -13,18 +13,28 @@ from sqlmodel import Field, SQLModel
 
 
 class Project(SQLModel, table=True):
+    """Kanban project (table)."""
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     name: str
     prefix: str = Field(unique=True)  # e.g. "IAM", uppercase, max 6 chars
     color: str  # hex accent color
     ticket_counter: int = Field(default=0)
-    repo_path: Optional[str] = Field(default=None)  # local git repo used for ticket branches
-    worktree_template: Optional[str] = Field(default=None)  # template for branch worktrees
+    repo_path: Optional[str] = Field(
+        default=None
+    )  # local git repo used for ticket branches
+    worktree_template: Optional[str] = Field(
+        default=None
+    )  # template for branch worktrees
     worktree_by_default: bool = Field(default=False)
-    docs_enabled: bool = Field(default=True)  # the Docs space can be switched off per project
+    docs_enabled: bool = Field(
+        default=True
+    )  # the Docs space can be switched off per project
 
 
 class WorkspaceSettings(SQLModel, table=True):
+    """Singleton row holding the per-ticket workspace folder settings (table)."""
+
     __tablename__ = "workspace_settings"
 
     id: int = Field(default=1, primary_key=True)
@@ -34,12 +44,16 @@ class WorkspaceSettings(SQLModel, table=True):
 
 
 class WorkspaceSettingsUpdate(SQLModel):
+    """Partial update of the workspace settings."""
+
     enabled: Optional[bool] = None
     root_path: Optional[str] = None
     default_retention_days: Optional[int] = None
 
 
 class IdeaCounter(SQLModel, table=True):
+    """Singleton row that numbers idea tickets (table)."""
+
     __tablename__ = "idea_counter"
 
     id: int = Field(default=1, primary_key=True)
@@ -47,6 +61,8 @@ class IdeaCounter(SQLModel, table=True):
 
 
 class Member(SQLModel, table=True):
+    """Project member who can be assigned tickets or mentioned (table)."""
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     project_id: str = Field(foreign_key="project.id")
     name: str
@@ -57,6 +73,8 @@ class Member(SQLModel, table=True):
 
 
 class Ticket(SQLModel, table=True):
+    """Ticket with its checklists, comments, activity and relations stored as JSON (table)."""
+
     id: str = Field(primary_key=True)  # e.g. "IAM-1"
     project_id: str = Field(foreign_key="project.id")
     title: str
@@ -85,9 +103,13 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
-    branches: str = Field(default="[]")  # JSON: list of {id, name, status, branch_from, ...}
+    branches: str = Field(
+        default="[]"
+    )  # JSON: list of {id, name, status, branch_from, ...}
     workspace_retention_days: Optional[int] = Field(default=None)
-    repo_path: Optional[str] = Field(default=None)  # overrides Project.repo_path when set
+    repo_path: Optional[str] = Field(
+        default=None
+    )  # overrides Project.repo_path when set
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -100,6 +122,8 @@ IDEA_STATUSES = ("draft", "in_review", "approved", "dropped")
 
 
 class IdeaTicket(SQLModel, table=True):
+    """Idea Space ticket (table)."""
+
     __tablename__ = "idea_ticket"
 
     id: str = Field(primary_key=True)
@@ -157,6 +181,8 @@ class DocsPage(SQLModel, table=True):
 
 
 class DocsVersion(SQLModel, table=True):
+    """Immutable published version of a Docs page (table)."""
+
     __tablename__ = "docs_version"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
@@ -229,6 +255,8 @@ def _parse_json_list(v: Any) -> list:
 
 
 class ActivityEventRead(SQLModel):
+    """One activity entry as returned by the activity feed."""
+
     ticketId: str
     ticketTitle: str
     event_type: str
@@ -237,12 +265,16 @@ class ActivityEventRead(SQLModel):
 
 
 class ProjectCreate(SQLModel):
+    """Payload to create a project."""
+
     name: str
     prefix: str
     color: str
 
 
 class ProjectUpdate(SQLModel):
+    """Partial update of a project."""
+
     name: Optional[str] = None
     color: Optional[str] = None
     repo_path: Optional[str] = None  # empty string clears the link
@@ -252,6 +284,8 @@ class ProjectUpdate(SQLModel):
 
 
 class ProjectRead(SQLModel):
+    """Project as returned by the API."""
+
     id: str
     name: str
     prefix: str
@@ -264,11 +298,15 @@ class ProjectRead(SQLModel):
 
 
 class MemberCreate(SQLModel):
+    """Payload to add a member to a project."""
+
     name: str
     color: Optional[str] = None
 
 
 class MemberRead(SQLModel):
+    """Member as returned by the API."""
+
     id: str
     project_id: str
     name: str
@@ -277,6 +315,8 @@ class MemberRead(SQLModel):
 
 
 class TicketCreate(SQLModel):
+    """Full ticket payload used by the service layer."""
+
     id: str
     project_id: str
     title: str
@@ -301,6 +341,8 @@ class TicketCreate(SQLModel):
 
 
 class TicketCreateBody(SQLModel):
+    """Request body to create a ticket in a project."""
+
     title: str
     description: str = ""
     type: Literal["bug", "feature", "task", "chore"] = "task"
@@ -317,6 +359,8 @@ class TicketCreateBody(SQLModel):
 
 
 class TicketUpdate(SQLModel):
+    """Partial update of a ticket."""
+
     title: Optional[str] = None
     description: Optional[str] = None
     type: Optional[Literal["bug", "feature", "task", "chore"]] = None
@@ -339,6 +383,8 @@ class TicketUpdate(SQLModel):
 
 
 class TicketRead(SQLModel):
+    """Ticket as returned by the API, with JSON columns parsed."""
+
     id: str
     project_id: str
     title: str
@@ -373,6 +419,7 @@ class TicketRead(SQLModel):
 
     @classmethod
     def from_ticket(cls, ticket: Ticket) -> "TicketRead":
+        """Build the read model from a stored ticket."""
         return cls(
             id=ticket.id,
             project_id=ticket.project_id,
@@ -416,6 +463,8 @@ IDEA_COLORS = ("yellow", "orange", "lime", "pink", "blue", "purple", "teal")
 
 
 class IdeaTicketCreateBody(SQLModel):
+    """Request body to create an idea ticket."""
+
     project_id: str
     title: str
     description: str = ""
@@ -428,12 +477,27 @@ class IdeaTicketCreateBody(SQLModel):
     @field_validator("idea_color")
     @classmethod
     def validate_color(cls, v: str) -> str:
+        """Reject an `idea_color` outside the allowed palette.
+
+        Args:
+            v: Submitted color.
+
+        Returns:
+            The color, unchanged.
+
+        Raises:
+            ValueError: If the color is not in the palette.
+        """
         if v not in IDEA_COLORS:
-            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+            raise ValueError(
+                f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"
+            )
         return v
 
 
 class IdeaTicketUpdate(SQLModel):
+    """Partial update of an idea ticket."""
+
     title: Optional[str] = None
     description: Optional[str] = None
     idea_color: Optional[str] = None
@@ -449,12 +513,27 @@ class IdeaTicketUpdate(SQLModel):
     @field_validator("idea_color")
     @classmethod
     def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        """Reject an `idea_color` outside the allowed palette.
+
+        Args:
+            v: Submitted color, or None when not being changed.
+
+        Returns:
+            The color, unchanged.
+
+        Raises:
+            ValueError: If the color is not in the palette.
+        """
         if v is not None and v not in IDEA_COLORS:
-            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+            raise ValueError(
+                f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"
+            )
         return v
 
 
 class IdeaTicketRead(SQLModel):
+    """Idea ticket as returned by the API."""
+
     id: str
     project_id: str
     title: str
@@ -480,6 +559,7 @@ class IdeaTicketRead(SQLModel):
 
     @classmethod
     def from_idea_ticket(cls, ticket: IdeaTicket) -> "IdeaTicketRead":
+        """Build the read model from a stored idea ticket."""
         return cls(
             id=ticket.id,
             project_id=ticket.project_id,

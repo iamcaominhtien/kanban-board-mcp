@@ -31,19 +31,29 @@ const DocRefInput = DocRef.extend({
             state.tr.replaceWith(range.from, range.to, state.schema.nodes.ticketRef.create({ key: page }));
             return;
           }
-          state.tr.replaceWith(range.from, range.to, type.create({ page, section: match[2]?.trim() || null, label: match[3]?.trim() || null }));
+          state.tr.replaceWith(
+            range.from,
+            range.to,
+            type.create({ page, section: match[2]?.trim() || null, label: match[3]?.trim() || null }),
+          );
         },
       }),
     ];
   },
 });
 
+/** Assemble the Tiptap extensions for the Docs editor. */
 export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
   return [
     StarterKit.configure({
       codeBlock: false,
       underline: false,
-      link: { openOnClick: false, autolink: true, linkOnPaste: true, HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' } },
+      link: {
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
+      },
     }),
     Markdown.configure({ markedOptions: { gfm: true, breaks: false } }),
     TaskList,

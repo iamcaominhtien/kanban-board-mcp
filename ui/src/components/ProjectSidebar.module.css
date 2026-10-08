@@ -7,18 +7,19 @@
   top: 0;
   display: flex;
   flex-direction: column;
-  background: #253D2C;
+  background: #253d2c;
   padding: 22px 10px;
   box-sizing: border-box;
   gap: 18px;
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
-  color: #D7E3DA;
+  color: #d7e3da;
   font-family: var(--font-body);
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
 }
 
@@ -43,13 +44,15 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #FFFFFF;
+  color: #ffffff;
   opacity: 0;
   max-width: 0;
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.15s ease 0.05s, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.15s ease 0.05s,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover .logoText,
@@ -71,14 +74,16 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6E8676;
+  color: #6e8676;
   padding: 0 8px 4px;
   opacity: 0;
   max-height: 0;
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.15s ease, max-height 0.22s ease;
+  transition:
+    opacity 0.15s ease,
+    max-height 0.22s ease;
 }
 
 .sidebar:hover .sectionLabel,
@@ -108,7 +113,7 @@
   box-sizing: border-box;
   text-align: left;
   transition: background 0.12s ease;
-  color: #D7E3DA;
+  color: #d7e3da;
   position: relative;
 }
 
@@ -117,12 +122,12 @@
 }
 
 .projectItemActive {
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
 }
 
 .projectItemActive:hover {
-  background: #2E6F40;
+  background: #2e6f40;
 }
 
 .projectDot {
@@ -142,7 +147,9 @@
   opacity: 0;
   max-width: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease 0.05s, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.15s ease 0.05s,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .projectItemActive .projectName {
@@ -161,7 +168,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px;
   font-weight: 700;
-  color: #8FA396;
+  color: #8fa396;
   background: rgba(255, 255, 255, 0.06);
   padding: 0;
   border-radius: 3px;
@@ -171,11 +178,14 @@
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.15s ease 0.05s, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), padding 0.15s ease;
+  transition:
+    opacity 0.15s ease 0.05s,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.15s ease;
 }
 
 .projectItemActive .prefixBadge {
-  color: #CFFFDC;
+  color: #cfffdc;
   background: rgba(255, 255, 255, 0.12);
 }
 
@@ -194,13 +204,15 @@
   justify-content: center;
   background: transparent;
   border: none;
-  color: #8FA396;
+  color: #8fa396;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
   border-radius: 4px;
-  transition: opacity 0.12s ease, color 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    color 0.12s ease;
   flex-shrink: 0;
 }
 
@@ -211,7 +223,7 @@
 }
 
 .deleteBtn:hover {
-  color: #F87171;
+  color: #f87171;
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -227,17 +239,20 @@
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #8FA396;
+  color: #8fa396;
   width: 100%;
   box-sizing: border-box;
   text-align: left;
-  transition: border-color 0.15s ease, color 0.15s ease, padding 0.22s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    padding 0.22s ease;
   white-space: nowrap;
 }
 
 .newProjectBtn:hover {
   border-color: rgba(255, 255, 255, 0.45);
-  color: #D7E3DA;
+  color: #d7e3da;
 }
 
 .sidebar:hover .newProjectBtn,
@@ -252,7 +267,9 @@
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.15s ease 0.05s, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.15s ease 0.05s,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover .newProjectText,
@@ -279,7 +296,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #B7C9BE;
+  color: #b7c9be;
 }
 
 .formInput {
@@ -289,19 +306,19 @@
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(0, 0, 0, 0.25);
-  color: #FFFFFF;
+  color: #ffffff;
   font-family: var(--font-body);
   font-size: 12px;
   outline: none;
 }
 
 .formInput:focus {
-  border-color: #68BA7F;
+  border-color: #68ba7f;
 }
 
 .formError {
   font-size: 10.5px;
-  color: #F87171;
+  color: #f87171;
 }
 
 .swatchesRow {
@@ -326,7 +343,7 @@
 }
 
 .swatchActive {
-  border-color: #FFFFFF;
+  border-color: #ffffff;
 }
 
 .formActions {
@@ -337,11 +354,11 @@
 
 .submitBtn {
   flex: 1;
-  background: #2E6F40;
+  background: #2e6f40;
   border: none;
   border-radius: 6px;
   padding: 5px 10px;
-  color: #FFFFFF;
+  color: #ffffff;
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
@@ -352,7 +369,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   padding: 5px 10px;
-  color: #B7C9BE;
+  color: #b7c9be;
   font-size: 11.5px;
   cursor: pointer;
 }
@@ -367,7 +384,10 @@
   margin-top: 4px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.12s ease, border-color 0.12s ease, padding 0.22s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    padding 0.22s ease;
 }
 
 .ideaCard:hover {
@@ -380,30 +400,32 @@
 }
 
 .ideaIcon {
-  color: #8FA396;
+  color: #8fa396;
   flex-shrink: 0;
   transition: color 0.15s ease;
 }
 
 .ideaCardActive .ideaIcon {
-  color: #68BA7F;
+  color: #68ba7f;
 }
 
 .ideaCard:hover .ideaIcon {
-  color: #D7E3DA;
+  color: #d7e3da;
 }
 
 .ideaLabel {
   font-size: 11.5px;
   font-weight: 600;
-  color: #D7E3DA;
+  color: #d7e3da;
   flex-grow: 1;
   opacity: 0;
   max-width: 0;
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.15s ease 0.05s, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.15s ease 0.05s,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover .ideaLabel,
@@ -423,7 +445,10 @@
   flex-shrink: 0;
   opacity: 0;
   overflow: hidden;
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease, background 0.2s ease;
+  transition:
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.15s ease,
+    background 0.2s ease;
 }
 
 .sidebar:hover .toggleTrack,
@@ -434,7 +459,7 @@
 }
 
 .toggleTrackActive {
-  background: #2E6F40;
+  background: #2e6f40;
 }
 
 .toggleKnob {
@@ -444,7 +469,7 @@
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -474,19 +499,21 @@
   border: none;
   background: none;
   cursor: pointer;
-  color: #B7C9BE;
+  color: #b7c9be;
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
   width: 100%;
   box-sizing: border-box;
   text-align: left;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .sidebarIconBtn:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .navLabel {
@@ -495,7 +522,9 @@
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.15s ease 0.05s, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.15s ease 0.05s,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover .navLabel,
@@ -511,8 +540,8 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #253D2C;
-  background: #E8B93A;
+  color: #253d2c;
+  background: #e8b93a;
   padding: 0;
   border-radius: 999px;
   opacity: 0;
@@ -520,7 +549,10 @@
   overflow: hidden;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.15s ease 0.05s, max-width 0.22s ease, padding 0.15s ease;
+  transition:
+    opacity 0.15s ease 0.05s,
+    max-width 0.22s ease,
+    padding 0.15s ease;
 }
 
 .sidebar:hover .badgeCount,
@@ -558,7 +590,12 @@
 .skelBar {
   height: 10px;
   border-radius: 5px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 37%, rgba(255,255,255,0.08) 63%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 25%,
+    rgba(255, 255, 255, 0.15) 37%,
+    rgba(255, 255, 255, 0.08) 63%
+  );
   background-size: 400px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -569,7 +606,7 @@
   gap: 8px;
   padding: 8px 8px;
   font-size: 12px;
-  color: #F3B1A4;
+  color: #f3b1a4;
   white-space: nowrap;
 }
 
@@ -580,7 +617,7 @@
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
-  color: #CFFFDC;
+  color: #cfffdc;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -596,8 +633,8 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #C4432A;
-  color: #FFFFFF;
+  background: #c4432a;
+  color: #ffffff;
   font-size: 11px;
   font-weight: 800;
   display: inline-flex;

@@ -11,13 +11,20 @@ interface Props {
   children: ReactNode;
 }
 
-/** Gives every pill inside a ticket the side panel, "Open in Docs" and ticket navigation. */
+/**
+ * Gives every pill inside a ticket the side panel, "Open in Docs" and ticket navigation.
+ * @param props.projectId - Project the ticket belongs to.
+ * @param props.ticketId - Ticket the pills are inside.
+ * @param props.onOpenDocsPage - Called with page id and anchor to open a page in the Docs view.
+ * @param props.onOpenTicket - Called with a ticket id to open another ticket.
+ */
 export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTicket, children }: Props) {
   const [target, setTarget] = useState<PeekTarget | null>(null);
   const returnTo = useRef<HTMLElement | null>(null);
 
   const peek = useCallback<DocsRefsValue['peek']>((pageId, anchor, hint) => {
-    if (!returnTo.current) returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!returnTo.current)
+      returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setTarget({ pageId, anchor: anchor ?? null, hint });
   }, []);
   const close = useCallback(() => {
@@ -31,7 +38,11 @@ export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTick
   const toDocs = useCallback(
     (pageId: string, anchor?: string | null) => {
       const slug = anchor ? slugify(anchor) : '';
-      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${slug ? `#${slug}` : ''}`);
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}${slug ? `#${slug}` : ''}`,
+      );
       onOpenDocsPage?.(pageId, anchor);
     },
     [onOpenDocsPage],
@@ -58,8 +69,14 @@ export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTick
           ticketId={ticketId}
           onSwitch={setTarget}
           onClose={close}
-          onOpenInDocs={(id, a) => { close(); toDocs(id, a); }}
-          onOpenTicket={(id) => { close(); onOpenTicket?.(id); }}
+          onOpenInDocs={(id, a) => {
+            close();
+            toDocs(id, a);
+          }}
+          onOpenTicket={(id) => {
+            close();
+            onOpenTicket?.(id);
+          }}
         />
       )}
     </DocsRefsProvider>

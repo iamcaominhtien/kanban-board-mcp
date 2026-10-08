@@ -4,8 +4,8 @@
   gap: 6px;
   padding: 3px 8px;
   margin: 1px 4px 1px 0;
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 6px;
   cursor: pointer;
   user-select: none;
@@ -18,13 +18,13 @@
 }
 
 :global(.dark) .card {
-  background: #1E2A22;
-  border-color: #2D3E33;
-  color: #F6FAF7;
+  background: #1e2a22;
+  border-color: #2d3e33;
+  color: #f6faf7;
 }
 
 .card:hover {
-  border-color: #68BA7F;
+  border-color: #68ba7f;
   box-shadow: 0 1px 4px rgba(46, 111, 64, 0.08);
   transform: translateY(-0.5px);
 }
@@ -42,7 +42,7 @@
 .name {
   font-size: 12px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -50,7 +50,7 @@
 }
 
 :global(.dark) .name {
-  color: #F6FAF7;
+  color: #f6faf7;
 }
 
 .badge {
@@ -66,7 +66,7 @@
 .actionBtn {
   background: transparent;
   border: none;
-  color: #9AA8A0;
+  color: #9aa8a0;
   width: 18px;
   height: 18px;
   border-radius: 3px;
@@ -81,11 +81,11 @@
 }
 
 .actionBtn:hover {
-  color: #1E2A22;
-  background: #EEF3EF;
+  color: #1e2a22;
+  background: #eef3ef;
 }
 
 :global(.dark) .actionBtn:hover {
-  color: #F6FAF7;
-  background: #2D3E33;
+  color: #f6faf7;
+  background: #2d3e33;
 }

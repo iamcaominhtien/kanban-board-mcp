@@ -53,7 +53,12 @@ function sectionOf(g: Group): DiffSection | null {
   const removed = g.rows.filter((r) => r.type === 'del').length;
   if (!added && !removed) return null;
   const same = g.rows.some((r) => r.type === 'same');
-  return { heading: g.heading, added, removed, kind: !same && !removed ? 'Added' : !same && !added ? 'Removed' : 'Changed' };
+  return {
+    heading: g.heading,
+    added,
+    removed,
+    kind: !same && !removed ? 'Added' : !same && !added ? 'Removed' : 'Changed',
+  };
 }
 
 /** Changed sections only, in page order (what the "Jump to a change" list shows). */
@@ -206,7 +211,9 @@ function Cell({ row, side }: { row: DocsDiffRow | null; side: 'left' | 'right' }
   const cls = row?.type === 'add' ? 'diff-cell diff-add' : row?.type === 'del' ? 'diff-cell diff-del' : 'diff-cell';
   return (
     <div className={cls} style={{ flex: 1, minWidth: 0, display: 'flex', background: row ? BG[row.type] : BG.empty }}>
-      <span style={{ ...numCol, width: 28, borderRight: '1px solid rgba(0,0,0,0.05)' }}>{row ? (side === 'left' ? row.oldNo : row.newNo) : ''}</span>
+      <span style={{ ...numCol, width: 28, borderRight: '1px solid rgba(0,0,0,0.05)' }}>
+        {row ? (side === 'left' ? row.oldNo : row.newNo) : ''}
+      </span>
       <span style={{ ...textCol, padding: '3px 8px' }}>{row ? <LineText row={row} /> : ' '}</span>
     </div>
   );
@@ -252,14 +259,28 @@ function SectionHead({ g, s, chips }: { g: Group; s: DiffSection; chips: boolean
   );
 }
 
+/**
+ * Line and word diff between two versions, inline or side by side.
+ * @param props.diff - Diff between two versions.
+ * @param props.mode - Inline or side-by-side layout.
+ * @param props.leftLabel - Older version column header (side-by-side only).
+ * @param props.rightLabel - Newer version column header (side-by-side only).
+ * @param props.activeSection - Index in `diffSections` of the section marked as current.
+ */
 export function DiffView({ diff, mode, leftLabel, rightLabel, activeSection }: DiffViewProps) {
   const groups = useMemo(() => groupRows(diff.rows), [diff.rows]);
 
   if (diff.rows.every((r) => r.type === 'same')) {
-    return <p style={{ fontSize: 13, color: '#5B6B60', padding: '12px 0', margin: 0 }}>No differences between these versions.</p>;
+    return (
+      <p style={{ fontSize: 13, color: '#5B6B60', padding: '12px 0', margin: 0 }}>
+        No differences between these versions.
+      </p>
+    );
   }
 
-  const changed = groups.map((g) => ({ g, s: sectionOf(g) })).filter((x): x is { g: Group; s: DiffSection } => x.s !== null);
+  const changed = groups
+    .map((g) => ({ g, s: sectionOf(g) }))
+    .filter((x): x is { g: Group; s: DiffSection } => x.s !== null);
   const side = mode === 'side-by-side';
 
   const renderBody = (g: Group) => {
@@ -322,7 +343,16 @@ export function DiffView({ diff, mode, leftLabel, rightLabel, activeSection }: D
           }}
         >
           {changed.map(({ g, s }, i) => (
-            <section key={i} data-section={g.heading} data-section-index={i} style={{ scrollMarginTop: 8, outline: activeSection === i ? '2px solid rgba(46,111,64,0.35)' : undefined, outlineOffset: -2 }}>
+            <section
+              key={i}
+              data-section={g.heading}
+              data-section-index={i}
+              style={{
+                scrollMarginTop: 8,
+                outline: activeSection === i ? '2px solid rgba(46,111,64,0.35)' : undefined,
+                outlineOffset: -2,
+              }}
+            >
               <SectionHead g={g} s={s} chips={false} />
               {renderBody(g)}
             </section>

@@ -73,7 +73,15 @@ function Highlight({ text, q }: { text: string; q: string }) {
   );
 }
 
-/** The "[[" suggester (DocsEditor board H, DocsRefs board A): pages, then #sections, then KAN- tickets. */
+/**
+ * The "[[" suggester (DocsEditor board H, DocsRefs board A): pages, then #sections, then KAN- tickets.
+ * @param props.host - Menu host that routes keyboard events to the menu.
+ * @param props.state - Current suggester state (query, position).
+ * @param props.nodes - Page tree, source of page and section suggestions.
+ * @param props.tickets - Tickets offered after the `KAN-` trigger.
+ * @param props.currentPageId - Page being edited, to offer its own sections.
+ * @param props.onClose - Called to dismiss the menu.
+ */
 export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClose }: Props) {
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
@@ -86,7 +94,11 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
   const main = bar >= 0 ? state.query.slice(0, bar) : state.query;
   const label = bar >= 0 ? state.query.slice(bar + 1).trim() || null : null;
   const hash = main.indexOf('#');
-  const mode: 'pages' | 'sections' | 'tickets' = KEY_RE.test(main.trim()) ? 'tickets' : hash >= 0 ? 'sections' : 'pages';
+  const mode: 'pages' | 'sections' | 'tickets' = KEY_RE.test(main.trim())
+    ? 'tickets'
+    : hash >= 0
+      ? 'sections'
+      : 'pages';
   const pageQuery = (hash >= 0 ? main.slice(0, hash) : main).trim();
   const sectionQuery = hash >= 0 ? main.slice(hash + 1).trim() : '';
 
@@ -102,9 +114,7 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
     const out: Row[] = [];
     if (mode === 'tickets') {
       const k = main.trim().toLowerCase();
-      const list = tickets
-        .filter((t) => t.id.toLowerCase().startsWith(k))
-        .slice(0, 8);
+      const list = tickets.filter((t) => t.id.toLowerCase().startsWith(k)).slice(0, 8);
       out.push({ id: 'h-t', type: 'head', label: 'Tickets', sub: 'recent first, then by key' });
       if (!list.length) out.push({ id: 'none', type: 'note', text: `No ticket matches ${main.trim().toUpperCase()}.` });
       list.forEach((t) => out.push({ id: `t-${t.id}`, type: 'ticket', ticket: t }));
@@ -116,9 +126,17 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
         return out;
       }
       out.push({ id: 'h-s', type: 'head', label: `Sections in ${targetNode.title}`, sub: 'headings, in page order' });
-      out.push({ id: 'whole', type: 'section', text: 'Whole page', level: 0, sub: 'No section', whole: true, indent: false });
-      const hs = (targetPage.data?.headings ?? []).filter((h) =>
-        !sectionQuery || h.text.toLowerCase().includes(sectionQuery.toLowerCase()),
+      out.push({
+        id: 'whole',
+        type: 'section',
+        text: 'Whole page',
+        level: 0,
+        sub: 'No section',
+        whole: true,
+        indent: false,
+      });
+      const hs = (targetPage.data?.headings ?? []).filter(
+        (h) => !sectionQuery || h.text.toLowerCase().includes(sectionQuery.toLowerCase()),
       );
       let parent = '';
       hs.forEach((h, i) => {
@@ -285,20 +303,63 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
             };
             if (r.type === 'ticket') {
               const t = r.ticket;
-              const ic = t.status === 'in-progress' ? ['i58', '#B4791E'] : t.status === 'wont_do' ? ['i66', '#C4432A'] : ['i13', '#5B6B60'];
+              const ic =
+                t.status === 'in-progress'
+                  ? ['i58', '#B4791E']
+                  : t.status === 'wont_do'
+                    ? ['i66', '#C4432A']
+                    : ['i13', '#5B6B60'];
               return (
                 <div key={r.id} {...common}>
                   <span style={{ display: 'flex', color: ic[1] }}>
                     <Icon name={ic[0]} size={16} />
                   </span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: '#5B6B60', width: 48, flexShrink: 0 }}>
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#5B6B60',
+                      width: 48,
+                      flexShrink: 0,
+                    }}
+                  >
                     {t.id}
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#1E2A22',
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {t.title}
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: TICKET_DOT[t.status] ?? '#9AA8A0', flexShrink: 0, display: 'inline-block' }} />
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontSize: 11.5,
+                      color: '#5B6B60',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: TICKET_DOT[t.status] ?? '#9AA8A0',
+                        flexShrink: 0,
+                        display: 'inline-block',
+                      }}
+                    />
                     {TICKET_STATUS_LABEL[t.status] ?? t.status}
                   </span>
                 </div>
@@ -311,9 +372,15 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
                     <Icon name="i23" size={16} />
                   </span>
                   <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>Create page &quot;{r.title}&quot;</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>
+                      Create page &quot;{r.title}&quot;
+                    </span>
                     <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
-                      New draft {currentNode?.parentId ? `under ${byId.get(currentNode.parentId)?.title ?? 'its parent'}` : 'at the top level'}, then link it
+                      New draft{' '}
+                      {currentNode?.parentId
+                        ? `under ${byId.get(currentNode.parentId)?.title ?? 'its parent'}`
+                        : 'at the top level'}
+                      , then link it
                     </span>
                   </span>
                 </div>
@@ -330,7 +397,18 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
                     <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>{r.sub}</span>
                   </span>
                   {(r.whole || on) && (
-                    <span style={{ marginLeft: 'auto', paddingLeft: 8, fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        paddingLeft: 8,
+                        fontSize: 11.5,
+                        color: '#9AA8A0',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
                       {r.whole ? 'Backspace' : <span className="dk-kbd">Tab</span>}
                     </span>
                   )}
@@ -347,12 +425,29 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>
                     <Highlight text={n.title} q={pageQuery} />
                   </span>
-                  <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      color: '#5B6B60',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
                     {path.length > 1 ? path.join(' › ') : 'Top level'}
                   </span>
                 </span>
-                <span style={{ marginLeft: 'auto', paddingLeft: 8, fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap' }}>
-                  {on ? 'Enter' : r.recent ? `edited ${relativeTime(n.updatedAt).replace(/ ago$/, '')} ago`.replace('edited just now ago', 'edited just now') : new Date(n.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <span
+                  style={{ marginLeft: 'auto', paddingLeft: 8, fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap' }}
+                >
+                  {on
+                    ? 'Enter'
+                    : r.recent
+                      ? `edited ${relativeTime(n.updatedAt).replace(/ ago$/, '')} ago`.replace(
+                          'edited just now ago',
+                          'edited just now',
+                        )
+                      : new Date(n.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
               </div>
             );
@@ -372,7 +467,17 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
       </div>
       {preview && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60' }}>Enter inserts</div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: '#5B6B60',
+            }}
+          >
+            Enter inserts
+          </div>
           <div
             style={{
               fontFamily: "'JetBrains Mono', monospace",

@@ -116,6 +116,7 @@ SUPPORTED_IMAGE_MIME_TYPES = tuple(
 
 
 def get_uploads_dir(*, create: bool = True) -> Path:
+    """Return the uploads directory, creating it when `create` is true."""
     env_value = os.environ.get(UPLOADS_DIR_ENV_VAR)
     if env_value:
         candidate = Path(env_value)
@@ -137,6 +138,7 @@ def get_uploads_dir(*, create: bool = True) -> Path:
 
 
 def resolve_upload_path(file_path: str) -> Path | None:
+    """Resolve a relative upload path inside the uploads directory, or None if it escapes it."""
     uploads_dir = get_uploads_dir(create=False)
     path_obj = Path(file_path)
     if path_obj.is_absolute():
@@ -156,6 +158,7 @@ def resolve_upload_path(file_path: str) -> Path | None:
 
 
 def sanitize_filename(filename: str) -> tuple[str, str]:
+    """Return a safe `(stem, extension)` pair for an uploaded filename."""
     original_name = Path(filename).name or "image"
     stem = Path(original_name).stem or "image"
     stem = unicodedata.normalize("NFKD", stem).encode("ascii", "ignore").decode("ascii")
@@ -165,10 +168,12 @@ def sanitize_filename(filename: str) -> tuple[str, str]:
 
 
 def build_upload_filename(original_filename: str) -> str:
+    """Build a unique stored filename from the original name."""
     stem, extension = sanitize_filename(original_filename)
     return f"{stem}-{uuid4().hex[:12]}{extension}"
 
 
 def build_markdown_alt_text(original_filename: str) -> str:
+    """Return Markdown-safe alt text derived from the filename."""
     stem, _ = sanitize_filename(original_filename)
     return stem.replace("[", "").replace("]", "") or "image"

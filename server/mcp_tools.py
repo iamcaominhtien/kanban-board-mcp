@@ -50,25 +50,55 @@ _VALID_IDEA_COLORS = frozenset(IDEA_COLORS)
 # Shared parameter types (the descriptions are what the AI reads in the schema)
 # ---------------------------------------------------------------------------
 
-ProjectId = Annotated[str, Field(description="Project UUID from list_projects (not the prefix).")]
+ProjectId = Annotated[
+    str, Field(description="Project UUID from list_projects (not the prefix).")
+]
 TicketId = Annotated[str, Field(description="Ticket ID such as 'IAM-12' (not a UUID).")]
 IdeaId = Annotated[str, Field(description="Idea ticket ID such as 'IDEA-3'.")]
-CommentId = Annotated[str, Field(description="Comment id (UUID) from the ticket's `comments` list.")]
-CriterionId = Annotated[str, Field(description="Acceptance criterion id (UUID) from the ticket's `acceptance_criteria` list.")]
-SubTaskId = Annotated[str, Field(description="Sub-task id (UUID) from the ticket's `sub_tasks` list.")]
-WorkLogId = Annotated[str, Field(description="Work log entry id (UUID) from the ticket's `work_log` list.")]
-TestCaseRef = Annotated[str, Field(description="Test case id (UUID) or its code such as 'TC-2' (from the ticket's `test_cases` list).")]
-BranchRef = Annotated[str, Field(description="Branch id (UUID) or branch name (from the ticket's `branches` list).")]
+CommentId = Annotated[
+    str, Field(description="Comment id (UUID) from the ticket's `comments` list.")
+]
+CriterionId = Annotated[
+    str,
+    Field(
+        description="Acceptance criterion id (UUID) from the ticket's `acceptance_criteria` list."
+    ),
+]
+SubTaskId = Annotated[
+    str, Field(description="Sub-task id (UUID) from the ticket's `sub_tasks` list.")
+]
+WorkLogId = Annotated[
+    str,
+    Field(description="Work log entry id (UUID) from the ticket's `work_log` list."),
+]
+TestCaseRef = Annotated[
+    str,
+    Field(
+        description="Test case id (UUID) or its code such as 'TC-2' (from the ticket's `test_cases` list)."
+    ),
+]
+BranchRef = Annotated[
+    str,
+    Field(
+        description="Branch id (UUID) or branch name (from the ticket's `branches` list)."
+    ),
+]
 MemberId = Annotated[str, Field(description="Member id (UUID) from list_members.")]
 
 TicketType = Literal["bug", "feature", "task", "chore"]
 Priority = Literal["low", "medium", "high", "critical"]
-Status = Literal["backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"]
-WorkLogKind = Literal["investigation", "fix_attempt", "root_cause", "blocked", "resolved"]
+Status = Literal[
+    "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
+]
+WorkLogKind = Literal[
+    "investigation", "fix_attempt", "root_cause", "blocked", "resolved"
+]
 WorkLogRole = Literal["PM", "Developer", "BA", "Tester", "Designer", "Other"]
 TestCaseStatus = Literal["pending", "running", "pass", "fail"]
 BranchStatus = Literal["baseline", "open", "merged", "stale", "archived"]
-RelationType = Literal["relates_to", "causes", "caused_by", "duplicates", "duplicated_by"]
+RelationType = Literal[
+    "relates_to", "causes", "caused_by", "duplicates", "duplicated_by"
+]
 IdeaStatus = Literal["draft", "in_review", "approved", "dropped"]
 IdeaColor = Literal["yellow", "orange", "lime", "pink", "blue", "purple", "teal"]
 IdeaEnergy = Literal["seed", "concept", "hot", "big_bet"]
@@ -91,7 +121,11 @@ def _drop_camel_twins(items: list) -> list:
     out = []
     for item in items:
         if isinstance(item, dict):
-            item = {k: v for k, v in item.items() if not (k != _snake(k) and _snake(k) in item)}
+            item = {
+                k: v
+                for k, v in item.items()
+                if not (k != _snake(k) and _snake(k) in item)
+            }
         out.append(item)
     return out
 
@@ -144,8 +178,14 @@ def _ticket_summary(ticket: Ticket) -> dict:
         "start_date": ticket.start_date,
         "due_date": ticket.due_date,
         "blocked_by": _loads(ticket.blocked_by),
-        "acceptance_criteria": {"done": sum(1 for a in acs if a.get("done")), "total": len(acs)},
-        "test_cases": {"passed": sum(1 for t in tcs if t.get("status") == "pass"), "total": len(tcs)},
+        "acceptance_criteria": {
+            "done": sum(1 for a in acs if a.get("done")),
+            "total": len(acs),
+        },
+        "test_cases": {
+            "passed": sum(1 for t in tcs if t.get("status") == "pass"),
+            "total": len(tcs),
+        },
         "comments": len(_loads(ticket.comments)),
         "branches": len(_loads(ticket.branches)),
         "updated_at": ticket.updated_at,
@@ -191,7 +231,10 @@ async def _resolve_item(session, ticket_id: str, kind: str, ref: str) -> str:
     for item in items:
         if any(item.get(k) == ref for k in keys):
             return item["id"]
-    existing = [item.get(keys[-1]) if kind in ("test_case", "branch") else item.get("id") for item in items]
+    existing = [
+        item.get(keys[-1]) if kind in ("test_case", "branch") else item.get("id")
+        for item in items
+    ]
     shown = ", ".join(str(e) for e in existing[:20]) or "none"
     raise ValueError(
         f"{label} '{ref}' not found on {ticket_id}. Existing: {shown}. "
@@ -255,8 +298,15 @@ async def list_projects() -> list[dict]:
 @notify_on_success
 async def create_project(
     name: Annotated[str, Field(description="Display name, e.g. 'My App'.")],
-    prefix: Annotated[str, Field(description="Ticket-ID prefix: uppercase letters/digits, at most 6 chars, unique (e.g. 'MYAPP'). Lower-case input is upper-cased.")],
-    color: Annotated[str, Field(description="Hex accent color, e.g. '#6366f1'.")] = "#6366f1",
+    prefix: Annotated[
+        str,
+        Field(
+            description="Ticket-ID prefix: uppercase letters/digits, at most 6 chars, unique (e.g. 'MYAPP'). Lower-case input is upper-cased."
+        ),
+    ],
+    color: Annotated[
+        str, Field(description="Hex accent color, e.g. '#6366f1'.")
+    ] = "#6366f1",
 ) -> dict:
     """Create a project (board). A member named 'Admin' is created with it. Returns the project with its `id` (UUID)."""
     async with async_session() as session:
@@ -270,9 +320,21 @@ async def update_project(
     project_id: ProjectId,
     name: Annotated[str | None, Field(description="New display name.")] = None,
     color: Annotated[str | None, Field(description="New hex accent color.")] = None,
-    repo_path: Annotated[str | None, Field(description="Absolute path of a local git repository to link to this project (required before add_branch can create real git branches). Empty string unlinks it.")] = None,
-    worktree_template: Annotated[str | None, Field(description="Default path template for git worktrees, e.g. '../worktrees/{project}/{ticket_id}-{branch}'.")] = None,
-    worktree_by_default: Annotated[bool | None, Field(description="Create a worktree by default for new branches.")] = None,
+    repo_path: Annotated[
+        str | None,
+        Field(
+            description="Absolute path of a local git repository to link to this project (required before add_branch can create real git branches). Empty string unlinks it."
+        ),
+    ] = None,
+    worktree_template: Annotated[
+        str | None,
+        Field(
+            description="Default path template for git worktrees, e.g. '../worktrees/{project}/{ticket_id}-{branch}'."
+        ),
+    ] = None,
+    worktree_by_default: Annotated[
+        bool | None, Field(description="Create a worktree by default for new branches.")
+    ] = None,
 ) -> dict:
     """Change a project's name, color or git settings. Only the fields you pass change. Returns the project."""
     fields = {
@@ -286,7 +348,9 @@ async def update_project(
     async with async_session() as session:
         project = await svc_projects.update_project(session, project_id, data)
         if project is None:
-            raise ValueError(f"Project '{project_id}' not found. Use list_projects to see project ids.")
+            raise ValueError(
+                f"Project '{project_id}' not found. Use list_projects to see project ids."
+            )
         return ProjectRead.model_validate(project).model_dump()
 
 
@@ -297,13 +361,38 @@ async def update_project(
 
 async def list_tickets(
     project_id: ProjectId,
-    status: Annotated[Status | None, Field(description="Only tickets in this status.")] = None,
-    priority: Annotated[Priority | None, Field(description="Only tickets with this priority.")] = None,
-    q: Annotated[str | None, Field(description="Fuzzy text search over ticket id, title, description and tags.")] = None,
-    include_wont_do: Annotated[bool, Field(description="Include tickets with status 'wont_do' (the board's recycle bin).")] = True,
-    detail: Annotated[bool, Field(description="Return full ticket objects instead of summaries. Large: prefer get_ticket for one ticket.")] = False,
+    status: Annotated[
+        Status | None, Field(description="Only tickets in this status.")
+    ] = None,
+    priority: Annotated[
+        Priority | None, Field(description="Only tickets with this priority.")
+    ] = None,
+    q: Annotated[
+        str | None,
+        Field(
+            description="Fuzzy text search over ticket id, title, description and tags."
+        ),
+    ] = None,
+    include_wont_do: Annotated[
+        bool,
+        Field(
+            description="Include tickets with status 'wont_do' (the board's recycle bin)."
+        ),
+    ] = True,
+    detail: Annotated[
+        bool,
+        Field(
+            description="Return full ticket objects instead of summaries. Large: prefer get_ticket for one ticket."
+        ),
+    ] = False,
     limit: Annotated[int, Field(ge=1, le=500, description="Page size.")] = 100,
-    offset: Annotated[int, Field(ge=0, description="Number of tickets to skip (use the previous response's `offset + count`).")] = 0,
+    offset: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Number of tickets to skip (use the previous response's `offset + count`).",
+        ),
+    ] = 0,
 ) -> dict:
     """List a project's tickets as compact summaries (id, title, type, status, priority, assignee, parent_id, tags,
     estimate, dates, blocked_by, and counts of acceptance criteria / test cases / comments / branches).
@@ -335,14 +424,40 @@ async def create_ticket(
     title: Annotated[str, Field(description="Short title (max 300 chars).")],
     type: Annotated[TicketType, Field(description="Kind of work.")] = "task",
     priority: Priority = "medium",
-    status: Annotated[Literal["backlog", "todo", "in-progress", "review", "testing", "done"], Field(description="Starting column of the board.")] = "backlog",
-    description: Annotated[str, Field(description="Markdown description: context, steps to reproduce, scope.")] = "",
-    parent_id: Annotated[str | None, Field(description="Make this a sub-ticket of this ticket ID (same project; only one level deep). Same as create_child_ticket.")] = None,
-    estimate: Annotated[float | None, Field(description="Story points, e.g. 1, 2, 3, 5, 8 (0-100000).")] = None,
+    status: Annotated[
+        Literal["backlog", "todo", "in-progress", "review", "testing", "done"],
+        Field(description="Starting column of the board."),
+    ] = "backlog",
+    description: Annotated[
+        str,
+        Field(description="Markdown description: context, steps to reproduce, scope."),
+    ] = "",
+    parent_id: Annotated[
+        str | None,
+        Field(
+            description="Make this a sub-ticket of this ticket ID (same project; only one level deep). Same as create_child_ticket."
+        ),
+    ] = None,
+    estimate: Annotated[
+        float | None, Field(description="Story points, e.g. 1, 2, 3, 5, 8 (0-100000).")
+    ] = None,
     due_date: Annotated[str | None, Field(description="ISO date 'YYYY-MM-DD'.")] = None,
-    tags: Annotated[list[str] | None, Field(description="Free-form labels (max 30, each up to 50 chars; duplicates ignored).")] = None,
-    start_date: Annotated[str | None, Field(description="ISO date 'YYYY-MM-DD'; must not be after due_date.")] = None,
-    assignee: Annotated[str | None, Field(description="Member id (UUID) of the project member who owns it; see list_members.")] = None,
+    tags: Annotated[
+        list[str] | None,
+        Field(
+            description="Free-form labels (max 30, each up to 50 chars; duplicates ignored)."
+        ),
+    ] = None,
+    start_date: Annotated[
+        str | None,
+        Field(description="ISO date 'YYYY-MM-DD'; must not be after due_date."),
+    ] = None,
+    assignee: Annotated[
+        str | None,
+        Field(
+            description="Member id (UUID) of the project member who owns it; see list_members."
+        ),
+    ] = None,
 ) -> dict:
     """Create a ticket. Its ID is generated from the project prefix (e.g. 'IAM-5'). Returns the created ticket."""
     try:
@@ -364,7 +479,9 @@ async def create_ticket(
             )
             return _ticket_to_dict(ticket)
     except NoResultFound:
-        raise ValueError(f"Project not found: {project_id}. Use list_projects to see project ids.")
+        raise ValueError(
+            f"Project not found: {project_id}. Use list_projects to see project ids."
+        )
 
 
 def _parse_since(value: str) -> datetime:
@@ -397,7 +514,10 @@ def _clip_activity(entries: list[dict]) -> list[dict]:
         for key in ("from", "to"):
             value = entry.get(key)
             if isinstance(value, str) and len(value) > _ACTIVITY_TEXT_CLIP:
-                entry[key] = value[:_ACTIVITY_TEXT_CLIP] + f"… [{len(value) - _ACTIVITY_TEXT_CLIP} more chars]"
+                entry[key] = (
+                    value[:_ACTIVITY_TEXT_CLIP]
+                    + f"… [{len(value) - _ACTIVITY_TEXT_CLIP} more chars]"
+                )
         out.append(entry)
     return out
 
@@ -413,15 +533,32 @@ def _upload_files(data: dict) -> list[dict]:
         if url in seen:
             continue
         seen.add(url)
-        resolved = resolve_upload_path(url[len("/uploads/"):])
-        out.append({"url": url, "path": str(resolved) if resolved else None, "exists": bool(resolved and resolved.is_file())})
+        resolved = resolve_upload_path(url[len("/uploads/") :])
+        out.append(
+            {
+                "url": url,
+                "path": str(resolved) if resolved else None,
+                "exists": bool(resolved and resolved.is_file()),
+            }
+        )
     return out
 
 
 async def get_ticket(
     ticket_id: TicketId,
-    activity_limit: Annotated[int | None, Field(le=1000, description=f"How many of the most recent activity entries to return (oldest first). Default {DEFAULT_ACTIVITY_ENTRIES}, long texts shortened; 0 = none; a negative number (e.g. -1) = the WHOLE history, full texts (large).")] = None,
-    activity_since: Annotated[str | None, Field(description="Only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z' ('what changed since I last looked'). Combine with activity_limit to cap how many.")] = None,
+    activity_limit: Annotated[
+        int | None,
+        Field(
+            le=1000,
+            description=f"How many of the most recent activity entries to return (oldest first). Default {DEFAULT_ACTIVITY_ENTRIES}, long texts shortened; 0 = none; a negative number (e.g. -1) = the WHOLE history, full texts (large).",
+        ),
+    ] = None,
+    activity_since: Annotated[
+        str | None,
+        Field(
+            description="Only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z' ('what changed since I last looked'). Combine with activity_limit to cap how many."
+        ),
+    ] = None,
 ) -> dict:
     """Get one ticket in full: Markdown description, acceptance criteria, test cases, comments, work log (debug notes),
     branches, relations (blocks / blocked_by / links) and `workspace_path` when the Workspace feature is on.
@@ -472,7 +609,12 @@ async def get_ticket_workspace_path(ticket_id: TicketId) -> dict:
 async def update_ticket_status(
     ticket_id: TicketId,
     status: Annotated[Status, Field(description="Target column.")],
-    wont_do_reason: Annotated[str | None, Field(description="Why it will not be done. Required when status is 'wont_do'.")] = None,
+    wont_do_reason: Annotated[
+        str | None,
+        Field(
+            description="Why it will not be done. Required when status is 'wont_do'."
+        ),
+    ] = None,
 ) -> dict:
     """Move a ticket to another status; the usual way to start ('in-progress') or finish ('done') work.
     Moving to 'done' is refused when the ticket's "Done requires" guards are on and its acceptance criteria / test cases
@@ -481,33 +623,104 @@ async def update_ticket_status(
     data: dict = {"status": status}
     if wont_do_reason is not None:
         data["wont_do_reason"] = wont_do_reason
-    return await _edit_ticket(ticket_id, lambda s: svc_tickets.update_ticket(s, ticket_id, TicketUpdate(**data)))
+    return await _edit_ticket(
+        ticket_id,
+        lambda s: svc_tickets.update_ticket(s, ticket_id, TicketUpdate(**data)),
+    )
 
 
 _CLEARABLE_FIELDS = frozenset(
-    {"estimate", "due_date", "start_date", "parent_id", "assignee", "repo_path", "wont_do_reason"}
+    {
+        "estimate",
+        "due_date",
+        "start_date",
+        "parent_id",
+        "assignee",
+        "repo_path",
+        "wont_do_reason",
+    }
 )
 
 
 @notify_on_success
 async def update_ticket(
     ticket_id: TicketId,
-    title: Annotated[str | None, Field(description="New title (max 300 chars).")] = None,
-    description: Annotated[str | None, Field(description="New Markdown description. REPLACES the whole text: read it with get_ticket first if you only want to append.")] = None,
+    title: Annotated[
+        str | None, Field(description="New title (max 300 chars).")
+    ] = None,
+    description: Annotated[
+        str | None,
+        Field(
+            description="New Markdown description. REPLACES the whole text: read it with get_ticket first if you only want to append."
+        ),
+    ] = None,
     type: TicketType | None = None,
     priority: Priority | None = None,
-    status: Annotated[Status | None, Field(description="New status. Same rules as update_ticket_status.")] = None,
-    estimate: Annotated[float | None, Field(description="Story points (0-100000).")] = None,
+    status: Annotated[
+        Status | None,
+        Field(description="New status. Same rules as update_ticket_status."),
+    ] = None,
+    estimate: Annotated[
+        float | None, Field(description="Story points (0-100000).")
+    ] = None,
     due_date: Annotated[str | None, Field(description="ISO date 'YYYY-MM-DD'.")] = None,
-    start_date: Annotated[str | None, Field(description="ISO date 'YYYY-MM-DD'; must not be after due_date.")] = None,
-    parent_id: Annotated[str | None, Field(description="Make this a sub-ticket of this ticket ID (same project, one level deep, the new parent must not itself be a child).")] = None,
-    tags: Annotated[list[str] | None, Field(description="REPLACES the whole tag list (max 30).")] = None,
-    assignee: Annotated[str | None, Field(description="Member id (UUID) from list_members; must belong to the ticket's project.")] = None,
-    repo_path: Annotated[str | None, Field(description="Absolute path of a git repo to use for THIS ticket's branches instead of the project's.")] = None,
-    wont_do_reason: Annotated[str | None, Field(description="Required together with status='wont_do'.")] = None,
-    block_done_if_acs_incomplete: Annotated[bool | None, Field(description="true: refuse status 'done' until every acceptance criterion is checked.")] = None,
-    block_done_if_tcs_incomplete: Annotated[bool | None, Field(description="true: refuse status 'done' until there is at least one test case and all pass.")] = None,
-    clear_fields: Annotated[list[Literal["estimate", "due_date", "start_date", "parent_id", "assignee", "repo_path", "wont_do_reason"]] | None, Field(description="Fields to EMPTY. Needed because passing null/omitting a field means 'leave unchanged'.")] = None,
+    start_date: Annotated[
+        str | None,
+        Field(description="ISO date 'YYYY-MM-DD'; must not be after due_date."),
+    ] = None,
+    parent_id: Annotated[
+        str | None,
+        Field(
+            description="Make this a sub-ticket of this ticket ID (same project, one level deep, the new parent must not itself be a child)."
+        ),
+    ] = None,
+    tags: Annotated[
+        list[str] | None, Field(description="REPLACES the whole tag list (max 30).")
+    ] = None,
+    assignee: Annotated[
+        str | None,
+        Field(
+            description="Member id (UUID) from list_members; must belong to the ticket's project."
+        ),
+    ] = None,
+    repo_path: Annotated[
+        str | None,
+        Field(
+            description="Absolute path of a git repo to use for THIS ticket's branches instead of the project's."
+        ),
+    ] = None,
+    wont_do_reason: Annotated[
+        str | None, Field(description="Required together with status='wont_do'.")
+    ] = None,
+    block_done_if_acs_incomplete: Annotated[
+        bool | None,
+        Field(
+            description="true: refuse status 'done' until every acceptance criterion is checked."
+        ),
+    ] = None,
+    block_done_if_tcs_incomplete: Annotated[
+        bool | None,
+        Field(
+            description="true: refuse status 'done' until there is at least one test case and all pass."
+        ),
+    ] = None,
+    clear_fields: Annotated[
+        list[
+            Literal[
+                "estimate",
+                "due_date",
+                "start_date",
+                "parent_id",
+                "assignee",
+                "repo_path",
+                "wont_do_reason",
+            ]
+        ]
+        | None,
+        Field(
+            description="Fields to EMPTY. Needed because passing null/omitting a field means 'leave unchanged'."
+        ),
+    ] = None,
 ) -> dict:
     """Change one or more fields of a ticket; omitted fields are untouched. Use update_ticket_status for plain status moves
     and the dedicated tools for comments, criteria, test cases, work log and branches. To empty a nullable field
@@ -532,16 +745,26 @@ async def update_ticket(
     update_data = {k: v for k, v in fields.items() if v is not None}
     for name in clear_fields or []:
         if name not in _CLEARABLE_FIELDS:
-            raise ValueError(f"Cannot clear '{name}'. Clearable fields: {sorted(_CLEARABLE_FIELDS)}")
+            raise ValueError(
+                f"Cannot clear '{name}'. Clearable fields: {sorted(_CLEARABLE_FIELDS)}"
+            )
         if name in update_data:
             raise ValueError(f"'{name}' was both set and listed in clear_fields")
         update_data[name] = None
-    return await _edit_ticket(ticket_id, lambda s: svc_tickets.update_ticket(s, ticket_id, TicketUpdate(**update_data)))
+    return await _edit_ticket(
+        ticket_id,
+        lambda s: svc_tickets.update_ticket(s, ticket_id, TicketUpdate(**update_data)),
+    )
 
 
 @notify_on_success
 async def create_child_ticket(
-    parent_ticket_id: Annotated[str, Field(description="ID of the parent ticket, e.g. 'IAM-12'. It must not itself be a child.")],
+    parent_ticket_id: Annotated[
+        str,
+        Field(
+            description="ID of the parent ticket, e.g. 'IAM-12'. It must not itself be a child."
+        ),
+    ],
     title: Annotated[str, Field(description="Short title (max 300 chars).")],
     type: TicketType = "task",
     priority: Priority = "medium",
@@ -584,8 +807,12 @@ async def delete_ticket(ticket_id: TicketId) -> dict:
 
 @notify_on_success
 async def block_ticket(
-    blocker_id: Annotated[str, Field(description="Ticket ID that must be finished first, e.g. 'IAM-3'.")],
-    blocked_id: Annotated[str, Field(description="Ticket ID that has to wait, e.g. 'IAM-4'.")],
+    blocker_id: Annotated[
+        str, Field(description="Ticket ID that must be finished first, e.g. 'IAM-3'.")
+    ],
+    blocked_id: Annotated[
+        str, Field(description="Ticket ID that has to wait, e.g. 'IAM-4'.")
+    ],
 ) -> dict:
     """Record that `blocker_id` blocks `blocked_id` ('IAM-4 cannot proceed until IAM-3 is done'); the blocked ticket shows
     a lock on the board. Both tickets must be in the same project; circular chains are refused. Statuses do not change.
@@ -593,9 +820,14 @@ async def block_ticket(
     async with async_session() as session:
         result = await svc_tickets.link_block(session, blocker_id, blocked_id)
         if result is None:
-            raise ValueError(f"Ticket '{blocker_id}' or '{blocked_id}' not found. Use list_tickets to see ticket IDs.")
+            raise ValueError(
+                f"Ticket '{blocker_id}' or '{blocked_id}' not found. Use list_tickets to see ticket IDs."
+            )
         blocker, blocked = result
-        return {"blocker": _ticket_to_dict(blocker), "blocked": _ticket_to_dict(blocked)}
+        return {
+            "blocker": _ticket_to_dict(blocker),
+            "blocked": _ticket_to_dict(blocked),
+        }
 
 
 @notify_on_success
@@ -607,27 +839,51 @@ async def unblock_ticket(
     async with async_session() as session:
         result = await svc_tickets.unlink_block(session, blocker_id, blocked_id)
         if result is None:
-            raise ValueError(f"Ticket '{blocker_id}' or '{blocked_id}' not found. Use list_tickets to see ticket IDs.")
+            raise ValueError(
+                f"Ticket '{blocker_id}' or '{blocked_id}' not found. Use list_tickets to see ticket IDs."
+            )
         blocker, blocked = result
-        return {"blocker": _ticket_to_dict(blocker), "blocked": _ticket_to_dict(blocked)}
+        return {
+            "blocker": _ticket_to_dict(blocker),
+            "blocked": _ticket_to_dict(blocked),
+        }
 
 
 @notify_on_success
 async def link_tickets(
     ticket_id: TicketId,
-    target_id: Annotated[str, Field(description="The other ticket's ID (same project).")],
-    relation_type: Annotated[RelationType, Field(description="How `ticket_id` relates to `target_id`: relates_to, causes, caused_by, duplicates, duplicated_by. The inverse is added on the target automatically.")],
+    target_id: Annotated[
+        str, Field(description="The other ticket's ID (same project).")
+    ],
+    relation_type: Annotated[
+        RelationType,
+        Field(
+            description="How `ticket_id` relates to `target_id`: relates_to, causes, caused_by, duplicates, duplicated_by. The inverse is added on the target automatically."
+        ),
+    ],
 ) -> dict:
     """Create a non-blocking relation between two tickets (use block_ticket for dependencies).
     Returns {id, target_id, relation_type}; keep `id` if you may need unlink_tickets later."""
     async with async_session() as session:
-        return await svc_tickets.add_ticket_link(session, ticket_id, target_id, relation_type)
+        return await svc_tickets.add_ticket_link(
+            session, ticket_id, target_id, relation_type
+        )
 
 
 @notify_on_success
 async def unlink_tickets(
-    ticket_id: Annotated[str, Field(description="The SAME ticket you passed as `ticket_id` to link_tickets (a link has a different id on each of the two tickets).")],
-    link_id: Annotated[str, Field(description="Link id returned by link_tickets, or from that ticket's `links` list in get_ticket.")],
+    ticket_id: Annotated[
+        str,
+        Field(
+            description="The SAME ticket you passed as `ticket_id` to link_tickets (a link has a different id on each of the two tickets)."
+        ),
+    ],
+    link_id: Annotated[
+        str,
+        Field(
+            description="Link id returned by link_tickets, or from that ticket's `links` list in get_ticket."
+        ),
+    ],
 ) -> dict:
     """Remove a relation made by link_tickets (and its inverse on the other ticket). Returns {"removed": link_id}."""
     async with async_session() as session:
@@ -651,23 +907,40 @@ async def unlink_tickets(
 @notify_on_success
 async def add_comment(
     ticket_id: TicketId,
-    text: Annotated[str, Field(description="Markdown (headings, lists, tables, code blocks, links, images). Max 50,000 chars.")],
-    author: Annotated[str, Field(description="Name shown next to the comment: use your agent name (e.g. 'Claude').")],
+    text: Annotated[
+        str,
+        Field(
+            description="Markdown (headings, lists, tables, code blocks, links, images). Max 50,000 chars."
+        ),
+    ],
+    author: Annotated[
+        str,
+        Field(
+            description="Name shown next to the comment: use your agent name (e.g. 'Claude')."
+        ),
+    ],
 ) -> dict:
     """Post a comment on a ticket: progress reports, findings, questions for the humans. Returns the updated ticket
     (the new comment is last in `comments`)."""
-    return await _edit_ticket(ticket_id, lambda s: svc_tickets.add_comment(s, ticket_id, text=text, author=author))
+    return await _edit_ticket(
+        ticket_id,
+        lambda s: svc_tickets.add_comment(s, ticket_id, text=text, author=author),
+    )
 
 
 @notify_on_success
 async def update_comment(
     ticket_id: TicketId,
     comment_id: CommentId,
-    text: Annotated[str, Field(description="New Markdown text; replaces the old text.")],
+    text: Annotated[
+        str, Field(description="New Markdown text; replaces the old text.")
+    ],
 ) -> dict:
     """Edit the text of an existing comment. Returns the updated ticket."""
     return await _edit_ticket(
-        ticket_id, lambda s, cid: svc_tickets.update_comment(s, ticket_id, cid, text), ("comment", comment_id)
+        ticket_id,
+        lambda s, cid: svc_tickets.update_comment(s, ticket_id, cid, text),
+        ("comment", comment_id),
     )
 
 
@@ -675,7 +948,9 @@ async def update_comment(
 async def delete_comment(ticket_id: TicketId, comment_id: CommentId) -> dict:
     """Delete a comment (hidden everywhere; `restore_comment` brings it back). Returns the updated ticket."""
     return await _edit_ticket(
-        ticket_id, lambda s, cid: svc_tickets.delete_comment(s, ticket_id, cid), ("comment", comment_id)
+        ticket_id,
+        lambda s, cid: svc_tickets.delete_comment(s, ticket_id, cid),
+        ("comment", comment_id),
     )
 
 
@@ -721,10 +996,27 @@ async def add_work_log(
     author: Annotated[str, Field(description="Who wrote it: use your agent name.")],
     role: Annotated[WorkLogRole, Field(description="The author's role on this work.")],
     note: Annotated[str, Field(description="Markdown, max 20,000 chars.")],
-    kind: Annotated[WorkLogKind, Field(description="investigation: what you looked at; fix_attempt: something you tried; root_cause: the cause you found; blocked: stuck (shows a red dot on the ticket until a later 'resolved' entry); resolved: fixed.")] = "investigation",
-    pinned: Annotated[bool, Field(description="Keep this entry at the top of the list.")] = False,
-    linked_branch: Annotated[str | None, Field(description="NAME of an existing branch of this ticket this entry is about.")] = None,
-    linked_test_case: Annotated[str | None, Field(description="Code ('TC-2') or id of an existing test case of this ticket.")] = None,
+    kind: Annotated[
+        WorkLogKind,
+        Field(
+            description="investigation: what you looked at; fix_attempt: something you tried; root_cause: the cause you found; blocked: stuck (shows a red dot on the ticket until a later 'resolved' entry); resolved: fixed."
+        ),
+    ] = "investigation",
+    pinned: Annotated[
+        bool, Field(description="Keep this entry at the top of the list.")
+    ] = False,
+    linked_branch: Annotated[
+        str | None,
+        Field(
+            description="NAME of an existing branch of this ticket this entry is about."
+        ),
+    ] = None,
+    linked_test_case: Annotated[
+        str | None,
+        Field(
+            description="Code ('TC-2') or id of an existing test case of this ticket."
+        ),
+    ] = None,
 ) -> dict:
     """Append an entry to the ticket's debug journal (the Debug Space tab): keep a running record of what you investigated,
     tried and found, so humans (and later sessions) can follow along. Returns the updated ticket."""
@@ -748,11 +1040,21 @@ async def add_work_log(
 async def update_work_log(
     ticket_id: TicketId,
     log_id: WorkLogId,
-    note: Annotated[str | None, Field(description="New Markdown note; replaces the old one.")] = None,
+    note: Annotated[
+        str | None, Field(description="New Markdown note; replaces the old one.")
+    ] = None,
     kind: WorkLogKind | None = None,
     pinned: bool | None = None,
-    linked_branch: Annotated[str | None, Field(description="Branch NAME to link; an empty string '' removes the link.")] = None,
-    linked_test_case: Annotated[str | None, Field(description="Test case code/id to link; an empty string '' removes the link.")] = None,
+    linked_branch: Annotated[
+        str | None,
+        Field(description="Branch NAME to link; an empty string '' removes the link."),
+    ] = None,
+    linked_test_case: Annotated[
+        str | None,
+        Field(
+            description="Test case code/id to link; an empty string '' removes the link."
+        ),
+    ] = None,
 ) -> dict:
     """Correct or extend a work log entry. To record that a problem is fixed, add a new entry with kind 'resolved'
     instead of editing the old one (that keeps the history). Omitted fields are unchanged. Returns the updated ticket."""
@@ -776,7 +1078,9 @@ async def update_work_log(
 async def delete_work_log(ticket_id: TicketId, log_id: WorkLogId) -> dict:
     """Delete a work log entry permanently. Returns the updated ticket."""
     return await _edit_ticket(
-        ticket_id, lambda s, lid: svc_tickets.delete_work_log(s, ticket_id, lid), ("work_log", log_id)
+        ticket_id,
+        lambda s, lid: svc_tickets.delete_work_log(s, ticket_id, lid),
+        ("work_log", log_id),
     )
 
 
@@ -789,13 +1093,26 @@ async def delete_work_log(ticket_id: TicketId, log_id: WorkLogId) -> dict:
 async def add_test_case(
     ticket_id: TicketId,
     title: Annotated[str, Field(description="What is being verified (max 300 chars).")],
-    status: Annotated[TestCaseStatus, Field(description="pending (not run), running, pass or fail.")] = "pending",
-    description: Annotated[str | None, Field(description="Markdown: steps / setup.")] = None,
-    expected_result: Annotated[str | None, Field(description="Markdown: what should happen.")] = None,
+    status: Annotated[
+        TestCaseStatus, Field(description="pending (not run), running, pass or fail.")
+    ] = "pending",
+    description: Annotated[
+        str | None, Field(description="Markdown: steps / setup.")
+    ] = None,
+    expected_result: Annotated[
+        str | None, Field(description="Markdown: what should happen.")
+    ] = None,
     notes: Annotated[str | None, Field(description="Markdown: observations.")] = None,
-    proof: Annotated[str | None, Field(description="Evidence such as a log excerpt, URL or file path.")] = None,
-    note: Annotated[str | None, Field(description="Deprecated alias of `notes`; use `notes`.")] = None,
-    assignee: Annotated[str | None, Field(description="Member id (UUID) who runs it; see list_members.")] = None,
+    proof: Annotated[
+        str | None,
+        Field(description="Evidence such as a log excerpt, URL or file path."),
+    ] = None,
+    note: Annotated[
+        str | None, Field(description="Deprecated alias of `notes`; use `notes`.")
+    ] = None,
+    assignee: Annotated[
+        str | None, Field(description="Member id (UUID) who runs it; see list_members.")
+    ] = None,
 ) -> dict:
     """Add a test case to a ticket to track verification. It gets a code 'TC-<n>' (shown in the returned `test_cases`).
     With the ticket's "Done requires: all test cases passed" guard on, the ticket cannot move to 'done' until every
@@ -822,12 +1139,22 @@ async def update_test_case(
     ticket_id: TicketId,
     test_case_id: TestCaseRef,
     title: str | None = None,
-    status: Annotated[TestCaseStatus | None, Field(description="Set to 'pass' or 'fail' after running it; 'running' starts its timer.")] = None,
+    status: Annotated[
+        TestCaseStatus | None,
+        Field(
+            description="Set to 'pass' or 'fail' after running it; 'running' starts its timer."
+        ),
+    ] = None,
     description: str | None = None,
     expected_result: str | None = None,
     notes: str | None = None,
-    proof: Annotated[str | None, Field(description="Evidence such as a log excerpt, URL or file path.")] = None,
-    note: Annotated[str | None, Field(description="Deprecated alias of `notes`; use `notes`.")] = None,
+    proof: Annotated[
+        str | None,
+        Field(description="Evidence such as a log excerpt, URL or file path."),
+    ] = None,
+    note: Annotated[
+        str | None, Field(description="Deprecated alias of `notes`; use `notes`.")
+    ] = None,
     assignee: Annotated[str | None, Field(description="Member id (UUID).")] = None,
 ) -> dict:
     """Update a test case, typically its `status` after running it (and `proof`). Omitted fields are unchanged.
@@ -855,7 +1182,9 @@ async def update_test_case(
 async def delete_test_case(ticket_id: TicketId, test_case_id: TestCaseRef) -> dict:
     """Delete a test case permanently (its work-log links are not changed). Returns the updated ticket."""
     return await _edit_ticket(
-        ticket_id, lambda s, tid: svc_tickets.delete_test_case(s, ticket_id, tid), ("test_case", test_case_id)
+        ticket_id,
+        lambda s, tid: svc_tickets.delete_test_case(s, ticket_id, tid),
+        ("test_case", test_case_id),
     )
 
 
@@ -867,16 +1196,51 @@ async def delete_test_case(ticket_id: TicketId, test_case_id: TestCaseRef) -> di
 @notify_on_success
 async def add_branch(
     ticket_id: TicketId,
-    name: Annotated[str, Field(description="Branch name, e.g. 'feat/IAM-12-login-fix'.")],
-    branch_from: Annotated[str, Field(description="Base branch, e.g. 'main'.")] = "main",
+    name: Annotated[
+        str, Field(description="Branch name, e.g. 'feat/IAM-12-login-fix'.")
+    ],
+    branch_from: Annotated[
+        str, Field(description="Base branch, e.g. 'main'.")
+    ] = "main",
     status: BranchStatus = "open",
-    pr_url: Annotated[str | None, Field(description="Pull request URL, if any.")] = None,
-    commit_hash: Annotated[str | None, Field(description="Latest commit. Ignored when a git repo is linked (the real value is read from git).")] = None,
-    linked_ticket_id: Annotated[str | None, Field(description="Another ticket's ID this branch also serves.")] = None,
-    ahead_count: Annotated[int, Field(ge=0, description="Commits ahead of the base. Ignored when a git repo is linked.")] = 0,
-    behind_count: Annotated[int, Field(ge=0, description="Commits behind the base. Ignored when a git repo is linked.")] = 0,
-    create_worktree: Annotated[bool, Field(description="Also create a git worktree for the branch (needs a linked repo).")] = False,
-    worktree_path: Annotated[str | None, Field(description="Worktree location or template; implies create_worktree. Default comes from the project's worktree_template.")] = None,
+    pr_url: Annotated[
+        str | None, Field(description="Pull request URL, if any.")
+    ] = None,
+    commit_hash: Annotated[
+        str | None,
+        Field(
+            description="Latest commit. Ignored when a git repo is linked (the real value is read from git)."
+        ),
+    ] = None,
+    linked_ticket_id: Annotated[
+        str | None, Field(description="Another ticket's ID this branch also serves.")
+    ] = None,
+    ahead_count: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Commits ahead of the base. Ignored when a git repo is linked.",
+        ),
+    ] = 0,
+    behind_count: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Commits behind the base. Ignored when a git repo is linked.",
+        ),
+    ] = 0,
+    create_worktree: Annotated[
+        bool,
+        Field(
+            description="Also create a git worktree for the branch (needs a linked repo)."
+        ),
+    ] = False,
+    worktree_path: Annotated[
+        str | None,
+        Field(
+            description="Worktree location or template; implies create_worktree. Default comes from the project's worktree_template."
+        ),
+    ] = None,
 ) -> dict:
     """Attach a branch to a ticket. If the project/ticket has a linked git repo (project `repo_path`, see update_project),
     this CREATES the real git branch from `branch_from` and takes commit/ahead/behind from git; otherwise it only
@@ -904,14 +1268,30 @@ async def add_branch(
 async def update_branch(
     ticket_id: TicketId,
     branch_id: BranchRef,
-    name: Annotated[str | None, Field(description="New name (renames the git branch too when a repo is linked).")] = None,
-    status: Annotated[BranchStatus | None, Field(description="With a linked repo, 'merged' is refused while the branch still has commits not in its base.")] = None,
+    name: Annotated[
+        str | None,
+        Field(
+            description="New name (renames the git branch too when a repo is linked)."
+        ),
+    ] = None,
+    status: Annotated[
+        BranchStatus | None,
+        Field(
+            description="With a linked repo, 'merged' is refused while the branch still has commits not in its base."
+        ),
+    ] = None,
     branch_from: Annotated[str | None, Field(description="Base branch name.")] = None,
     pr_url: Annotated[str | None, Field(description="Pull request URL.")] = None,
     commit_hash: Annotated[str | None, Field(description="Latest commit hash.")] = None,
-    linked_ticket_id: Annotated[str | None, Field(description="Another ticket's ID this branch also serves.")] = None,
-    ahead_count: Annotated[int | None, Field(ge=0, description="Commits ahead of the base.")] = None,
-    behind_count: Annotated[int | None, Field(ge=0, description="Commits behind the base.")] = None,
+    linked_ticket_id: Annotated[
+        str | None, Field(description="Another ticket's ID this branch also serves.")
+    ] = None,
+    ahead_count: Annotated[
+        int | None, Field(ge=0, description="Commits ahead of the base.")
+    ] = None,
+    behind_count: Annotated[
+        int | None, Field(ge=0, description="Commits behind the base.")
+    ] = None,
 ) -> dict:
     """Update a ticket's branch record (and rename the real git branch when a repo is linked). Omitted fields are
     unchanged. Returns the updated ticket."""
@@ -938,9 +1318,22 @@ async def update_branch(
 async def delete_branch(
     ticket_id: TicketId,
     branch_id: BranchRef,
-    remove_worktree: Annotated[bool, Field(description="Also remove the branch's git worktree (linked repo only).")] = False,
-    delete_git_branch: Annotated[bool, Field(description="Also delete the real git branch (linked repo only). Refused if it has unmerged commits unless force=true.")] = False,
-    force: Annotated[bool, Field(description="Allow deleting a git branch that is not fully merged. DESTROYS unmerged commits.")] = False,
+    remove_worktree: Annotated[
+        bool,
+        Field(description="Also remove the branch's git worktree (linked repo only)."),
+    ] = False,
+    delete_git_branch: Annotated[
+        bool,
+        Field(
+            description="Also delete the real git branch (linked repo only). Refused if it has unmerged commits unless force=true."
+        ),
+    ] = False,
+    force: Annotated[
+        bool,
+        Field(
+            description="Allow deleting a git branch that is not fully merged. DESTROYS unmerged commits."
+        ),
+    ] = False,
 ) -> dict:
     """Remove a branch from the ticket. By default only the board record is removed and git is left alone; the flags also
     clean up git. Returns the updated ticket."""
@@ -964,7 +1357,9 @@ async def checkout_branch(ticket_id: TicketId, branch_id: BranchRef) -> dict:
     conflict). Needs a repo linked to the project (update_project) or ticket (update_ticket repo_path).
     Returns the updated ticket."""
     return await _edit_ticket(
-        ticket_id, lambda s, bid: svc_tickets.checkout_branch(s, ticket_id, bid), ("branch", branch_id)
+        ticket_id,
+        lambda s, bid: svc_tickets.checkout_branch(s, ticket_id, bid),
+        ("branch", branch_id),
     )
 
 
@@ -976,17 +1371,25 @@ async def checkout_branch(ticket_id: TicketId, branch_id: BranchRef) -> dict:
 @notify_on_success
 async def add_acceptance_criterion(
     ticket_id: TicketId,
-    description: Annotated[str, Field(description="One checkable condition, e.g. 'Login fails with a clear message on a wrong password' (max 1,000 chars).")],
+    description: Annotated[
+        str,
+        Field(
+            description="One checkable condition, e.g. 'Login fails with a clear message on a wrong password' (max 1,000 chars)."
+        ),
+    ],
 ) -> dict:
     """Add an acceptance criterion: one checklist item that defines when the ticket is done (starts unchecked).
     Returns the updated ticket."""
     return await _edit_ticket(
-        ticket_id, lambda s: svc_tickets.add_acceptance_criterion(s, ticket_id, text=description)
+        ticket_id,
+        lambda s: svc_tickets.add_acceptance_criterion(s, ticket_id, text=description),
     )
 
 
 @notify_on_success
-async def toggle_acceptance_criterion(ticket_id: TicketId, criterion_id: CriterionId) -> dict:
+async def toggle_acceptance_criterion(
+    ticket_id: TicketId, criterion_id: CriterionId
+) -> dict:
     """Flip a criterion between not-done and done (call it again to undo). Check the current state in the returned
     ticket's `acceptance_criteria[].done`. Returns the updated ticket."""
     return await _edit_ticket(
@@ -997,7 +1400,9 @@ async def toggle_acceptance_criterion(ticket_id: TicketId, criterion_id: Criteri
 
 
 @notify_on_success
-async def delete_acceptance_criterion(ticket_id: TicketId, criterion_id: CriterionId) -> dict:
+async def delete_acceptance_criterion(
+    ticket_id: TicketId, criterion_id: CriterionId
+) -> dict:
     """Delete a criterion permanently. Returns the updated ticket."""
     return await _edit_ticket(
         ticket_id,
@@ -1014,11 +1419,18 @@ async def delete_acceptance_criterion(ticket_id: TicketId, criterion_id: Criteri
 @notify_on_success
 async def add_sub_task(
     ticket_id: TicketId,
-    text: Annotated[str, Field(description="One small step, e.g. 'Confirm spec with design' (max 500 chars).")],
+    text: Annotated[
+        str,
+        Field(
+            description="One small step, e.g. 'Confirm spec with design' (max 500 chars)."
+        ),
+    ],
 ) -> dict:
     """Add a sub-task: a checklist step inside this ticket (not a ticket; for real child tickets use parent_id).
     Returns the updated ticket."""
-    return await _edit_ticket(ticket_id, lambda s: svc_tickets.add_sub_task(s, ticket_id, text=text))
+    return await _edit_ticket(
+        ticket_id, lambda s: svc_tickets.add_sub_task(s, ticket_id, text=text)
+    )
 
 
 @notify_on_success
@@ -1057,7 +1469,9 @@ async def list_members(project_id: ProjectId) -> list[dict]:
 async def add_member(
     project_id: ProjectId,
     name: Annotated[str, Field(description="Display name.")],
-    color: Annotated[str | None, Field(description="Hex avatar color; auto-assigned when omitted.")] = None,
+    color: Annotated[
+        str | None, Field(description="Hex avatar color; auto-assigned when omitted.")
+    ] = None,
 ) -> dict:
     """Add a member to a project so tickets can be assigned to them. Returns the member (with its `id`)."""
     async with async_session() as session:
@@ -1072,7 +1486,9 @@ async def remove_member(project_id: ProjectId, member_id: MemberId) -> dict:
     async with async_session() as session:
         removed = await svc_members.remove_member(session, project_id, member_id)
     if not removed:
-        raise ValueError(f"Member '{member_id}' not found in this project. Use list_members to see member ids.")
+        raise ValueError(
+            f"Member '{member_id}' not found in this project. Use list_members to see member ids."
+        )
     return {"ok": True}
 
 
@@ -1083,8 +1499,12 @@ async def remove_member(project_id: ProjectId, member_id: MemberId) -> dict:
 
 async def list_idea_tickets(
     project_id: ProjectId,
-    idea_status: Annotated[IdeaStatus | None, Field(description="Only ideas in this status.")] = None,
-    q: Annotated[str | None, Field(description="Substring search over title and description.")] = None,
+    idea_status: Annotated[
+        IdeaStatus | None, Field(description="Only ideas in this status.")
+    ] = None,
+    q: Annotated[
+        str | None, Field(description="Substring search over title and description.")
+    ] = None,
 ) -> list[dict]:
     """List a project's ideas (Idea Space), most recently touched first. Ideas move draft -> in_review -> approved and an
     approved idea can be promoted to a real ticket (promote_idea_to_ticket)."""
@@ -1102,9 +1522,19 @@ async def create_idea_ticket(
     description: Annotated[str, Field(description="Markdown description.")] = "",
     idea_color: Annotated[IdeaColor, Field(description="Card color.")] = "yellow",
     idea_emoji: Annotated[str, Field(description="One emoji for the card.")] = "💡",
-    idea_energy: Annotated[IdeaEnergy | None, Field(description="How mature/big the idea is: seed (just a spark), concept, hot (ready to push), big_bet.")] = None,
+    idea_energy: Annotated[
+        IdeaEnergy | None,
+        Field(
+            description="How mature/big the idea is: seed (just a spark), concept, hot (ready to push), big_bet."
+        ),
+    ] = None,
     tags: Annotated[list[str] | None, Field(description="Free-form labels.")] = None,
-    problem_statement: Annotated[str | None, Field(description="Markdown: the problem this solves. REQUIRED later to promote the idea.")] = None,
+    problem_statement: Annotated[
+        str | None,
+        Field(
+            description="Markdown: the problem this solves. REQUIRED later to promote the idea."
+        ),
+    ] = None,
 ) -> dict:
     """Capture a new idea in the Idea Space (status 'draft'). Its ID is 'IDEA-<n>' (one counter shared by all projects).
     Returns the idea."""
@@ -1137,16 +1567,39 @@ async def get_idea_ticket(ticket_id: IdeaId) -> dict:
 async def update_idea_ticket(
     ticket_id: IdeaId,
     title: str | None = None,
-    description: Annotated[str | None, Field(description="New Markdown description; replaces the old one.")] = None,
+    description: Annotated[
+        str | None, Field(description="New Markdown description; replaces the old one.")
+    ] = None,
     idea_color: IdeaColor | None = None,
     idea_emoji: str | None = None,
-    idea_energy: Annotated[IdeaEnergy | None, Field(description="Omit = unchanged; explicit null = clear.")] = _UNSET,  # type: ignore[assignment]
-    tags: Annotated[list[str] | None, Field(description="REPLACES the whole tag list.")] = None,
-    problem_statement: Annotated[str | None, Field(description="Omit = unchanged; explicit null = clear.")] = _UNSET,  # type: ignore[assignment]
-    ice_impact: Annotated[int | None, Field(description="ICE score 1-5 (clamped): expected impact.")] = None,
-    ice_effort: Annotated[int | None, Field(description="ICE score 1-5 (clamped): effort needed (higher = more work).")] = None,
-    ice_confidence: Annotated[int | None, Field(description="ICE score 1-5 (clamped): confidence in the estimate.")] = None,
-    revisit_date: Annotated[str | None, Field(description="ISO date to look at this idea again. Omit = unchanged; explicit null = clear.")] = _UNSET,  # type: ignore[assignment]
+    idea_energy: Annotated[
+        IdeaEnergy | None, Field(description="Omit = unchanged; explicit null = clear.")
+    ] = _UNSET,  # type: ignore[assignment]
+    tags: Annotated[
+        list[str] | None, Field(description="REPLACES the whole tag list.")
+    ] = None,
+    problem_statement: Annotated[
+        str | None, Field(description="Omit = unchanged; explicit null = clear.")
+    ] = _UNSET,  # type: ignore[assignment]
+    ice_impact: Annotated[
+        int | None, Field(description="ICE score 1-5 (clamped): expected impact.")
+    ] = None,
+    ice_effort: Annotated[
+        int | None,
+        Field(
+            description="ICE score 1-5 (clamped): effort needed (higher = more work)."
+        ),
+    ] = None,
+    ice_confidence: Annotated[
+        int | None,
+        Field(description="ICE score 1-5 (clamped): confidence in the estimate."),
+    ] = None,
+    revisit_date: Annotated[
+        str | None,
+        Field(
+            description="ISO date to look at this idea again. Omit = unchanged; explicit null = clear."
+        ),
+    ] = _UNSET,  # type: ignore[assignment]
 ) -> dict:
     """Edit an idea. Omitted fields are unchanged; `idea_energy`, `problem_statement` and `revisit_date` can be cleared by
     passing an explicit null. Use update_idea_status to change its status. Returns the updated idea."""
@@ -1165,10 +1618,14 @@ async def update_idea_ticket(
         "revisit_date": revisit_date,
     }
     update_data = {
-        k: v for k, v in fields.items() if v is not _UNSET and (v is not None or k in _nullable)
+        k: v
+        for k, v in fields.items()
+        if v is not _UNSET and (v is not None or k in _nullable)
     }
     async with async_session() as session:
-        ticket = await svc_idea_tickets.update_idea_ticket(session, ticket_id, **update_data)
+        ticket = await svc_idea_tickets.update_idea_ticket(
+            session, ticket_id, **update_data
+        )
         if ticket is None:
             raise _missing_idea(ticket_id)
         return _idea_ticket_to_dict(ticket)
@@ -1188,8 +1645,15 @@ async def delete_idea_ticket(ticket_id: IdeaId) -> dict:
 @notify_on_success
 async def update_idea_status(
     ticket_id: IdeaId,
-    new_status: Annotated[IdeaStatus, Field(description="Allowed moves: draft -> in_review | dropped; in_review -> approved | draft | dropped; approved -> dropped; dropped -> draft.")],
-    reason: Annotated[str | None, Field(description="Why (recorded in the idea's activity trail).")] = None,
+    new_status: Annotated[
+        IdeaStatus,
+        Field(
+            description="Allowed moves: draft -> in_review | dropped; in_review -> approved | draft | dropped; approved -> dropped; dropped -> draft."
+        ),
+    ],
+    reason: Annotated[
+        str | None, Field(description="Why (recorded in the idea's activity trail).")
+    ] = None,
 ) -> dict:
     """Move an idea through its workflow (draft -> in_review -> approved). An invalid move is refused with the allowed
     ones. An 'approved' idea can then be promoted with promote_idea_to_ticket. Returns the updated idea."""
@@ -1203,9 +1667,18 @@ async def update_idea_status(
 @notify_on_success
 async def promote_idea_to_ticket(
     idea_ticket_id: IdeaId,
-    project_id: Annotated[str, Field(description="Project UUID that will receive the new ticket.")],
-    title: Annotated[str | None, Field(description="Ticket title; defaults to the idea's title.")] = None,
-    type_: Annotated[TicketType, Field(description="Type of the new ticket (parameter name has a trailing underscore).")] = "feature",
+    project_id: Annotated[
+        str, Field(description="Project UUID that will receive the new ticket.")
+    ],
+    title: Annotated[
+        str | None, Field(description="Ticket title; defaults to the idea's title.")
+    ] = None,
+    type_: Annotated[
+        TicketType,
+        Field(
+            description="Type of the new ticket (parameter name has a trailing underscore)."
+        ),
+    ] = "feature",
     priority: Priority = "medium",
 ) -> dict:
     """Turn an APPROVED idea into a real ticket (in 'backlog'). Requires idea_status 'approved', a non-empty
@@ -1226,7 +1699,12 @@ async def promote_idea_to_ticket(
 @notify_on_success
 async def add_assumption(
     ticket_id: IdeaId,
-    text: Annotated[str, Field(description="A belief the idea depends on, e.g. 'Users want to export to CSV' (max 500 chars).")],
+    text: Annotated[
+        str,
+        Field(
+            description="A belief the idea depends on, e.g. 'Users want to export to CSV' (max 500 chars)."
+        ),
+    ],
 ) -> dict:
     """Record an assumption the idea relies on (starts 'untested'; test it, then update_assumption_status).
     Returns the updated idea."""
@@ -1240,30 +1718,48 @@ async def add_assumption(
 @notify_on_success
 async def update_assumption_status(
     ticket_id: IdeaId,
-    assumption_id: Annotated[str, Field(description="Assumption id (UUID) from the idea's `assumptions` list.")],
-    status: Annotated[AssumptionStatus, Field(description="untested, validated (confirmed) or invalidated (disproved).")],
+    assumption_id: Annotated[
+        str,
+        Field(description="Assumption id (UUID) from the idea's `assumptions` list."),
+    ],
+    status: Annotated[
+        AssumptionStatus,
+        Field(
+            description="untested, validated (confirmed) or invalidated (disproved)."
+        ),
+    ],
 ) -> dict:
     """Set the outcome of an assumption after testing it. Returns the updated idea."""
     async with async_session() as session:
-        ticket = await svc_idea_tickets.update_assumption_status(session, ticket_id, assumption_id, status)
+        ticket = await svc_idea_tickets.update_assumption_status(
+            session, ticket_id, assumption_id, status
+        )
         return _idea_ticket_to_dict(ticket)
 
 
 @notify_on_success
 async def delete_assumption(
     ticket_id: IdeaId,
-    assumption_id: Annotated[str, Field(description="Assumption id (UUID) from the idea's `assumptions` list.")],
+    assumption_id: Annotated[
+        str,
+        Field(description="Assumption id (UUID) from the idea's `assumptions` list."),
+    ],
 ) -> dict:
     """Delete an assumption permanently. Returns the updated idea."""
     async with async_session() as session:
-        ticket = await svc_idea_tickets.delete_assumption(session, ticket_id, assumption_id)
+        ticket = await svc_idea_tickets.delete_assumption(
+            session, ticket_id, assumption_id
+        )
         return _idea_ticket_to_dict(ticket)
 
 
 @notify_on_success
 async def add_microthought(
     ticket_id: IdeaId,
-    text: Annotated[str, Field(description="A quick thought or note about the idea (max 500 chars).")],
+    text: Annotated[
+        str,
+        Field(description="A quick thought or note about the idea (max 500 chars)."),
+    ],
 ) -> dict:
     """Jot a quick thought on an idea (a short timestamped note, lighter than editing its description).
     Returns the updated idea."""
@@ -1275,11 +1771,18 @@ async def add_microthought(
 @notify_on_success
 async def delete_microthought(
     ticket_id: IdeaId,
-    microthought_id: Annotated[str, Field(description="Microthought id (UUID) from the idea's `microthoughts` list.")],
+    microthought_id: Annotated[
+        str,
+        Field(
+            description="Microthought id (UUID) from the idea's `microthoughts` list."
+        ),
+    ],
 ) -> dict:
     """Delete a microthought permanently. Returns the updated idea."""
     async with async_session() as session:
-        ticket = await svc_idea_tickets.delete_microthought(session, ticket_id, microthought_id)
+        ticket = await svc_idea_tickets.delete_microthought(
+            session, ticket_id, microthought_id
+        )
         return _idea_ticket_to_dict(ticket)
 
 
@@ -1684,7 +2187,12 @@ async def unlink_ticket_doc(ticket_id: TicketId, page_id: DocsPageId) -> dict:
 
 def ideas_enabled() -> bool:
     """Whether the Idea Space tools are exposed over MCP (off by default)."""
-    return os.environ.get("KANBAN_MCP_IDEA_TOOLS", "").strip().lower() in {"1", "true", "yes", "on"}
+    return os.environ.get("KANBAN_MCP_IDEA_TOOLS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 _INSTRUCTIONS_HEAD = """\
@@ -1736,9 +2244,15 @@ MCP_INSTRUCTIONS = build_instructions()
 # ---------------------------------------------------------------------------
 
 _READ = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
-_WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False)
-_UPDATE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False)
-_DELETE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+_WRITE = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False
+)
+_UPDATE = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
+)
+_DELETE = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False
+)
 
 CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     # projects & members
@@ -1831,7 +2345,11 @@ def _strip_titles(node: Any) -> Any:
         for key, value in node.items():
             if key == "title" and isinstance(value, str):
                 continue
-            out[key] = _strip_properties(value) if key == "properties" else _strip_titles(value)
+            out[key] = (
+                _strip_properties(value)
+                if key == "properties"
+                else _strip_titles(value)
+            )
         return out
     if isinstance(node, list):
         return [_strip_titles(item) for item in node]
@@ -1853,7 +2371,9 @@ def register(mcp: FastMCP, include_ideas: bool | None = None) -> None:
     `include_ideas` defaults to the KANBAN_MCP_IDEA_TOOLS environment variable (off)."""
     if include_ideas is None:
         include_ideas = ideas_enabled()
-    for func, annotations in CORE_TOOL_TABLE + (IDEA_TOOL_TABLE if include_ideas else []):
+    for func, annotations in CORE_TOOL_TABLE + (
+        IDEA_TOOL_TABLE if include_ideas else []
+    ):
         mcp.tool(annotations=annotations)(func)
     for tool in mcp._tool_manager.list_tools():
         tool.parameters = _strip_titles(tool.parameters)

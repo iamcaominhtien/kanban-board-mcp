@@ -32,9 +32,7 @@ async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
 async def setup_db(monkeypatch):
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        await conn.execute(
-            text("INSERT INTO idea_counter (id, counter) VALUES (1, 0)")
-        )
+        await conn.execute(text("INSERT INTO idea_counter (id, counter) VALUES (1, 0)"))
     app.dependency_overrides[get_session] = override_get_session
     monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
     yield

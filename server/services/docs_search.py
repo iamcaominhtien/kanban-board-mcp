@@ -45,6 +45,15 @@ _fts_broken = False
 
 
 def index_fields(title: str, markdown: str) -> tuple[str, str, str]:
+    """Return the three columns indexed for a page.
+
+    Args:
+        title: Page title.
+        markdown: Page content.
+
+    Returns:
+        `(title, headings, body)`.
+    """
     headings = "\n".join(h["text"] for h in heading_anchors(markdown))
     return title, headings, markdown
 
@@ -165,6 +174,7 @@ async def reindex(session: AsyncSession, page_ids: list[str]) -> None:
 
 
 async def unindex(session: AsyncSession, page_ids: list[str]) -> None:
+    """Remove pages from the search index."""
     if not page_ids or not await ensure_fts(session):
         return
     stmt = text("DELETE FROM docs_fts WHERE page_id IN :ids").bindparams(
@@ -195,6 +205,7 @@ async def rebuild_index(session: AsyncSession) -> None:
 # Query parsing
 # ---------------------------------------------------------------------------
 
+
 def _trim_nonword(text: str) -> str:
     """Strip leading / trailing non-word characters (linear; ``^\W+|\W+$`` is quadratic)."""
     start, end = 0, len(text)
@@ -209,7 +220,10 @@ _TOKEN = re.compile(r'-?"[^"]*"|\S+')
 
 
 class Query:
+    """Parsed search query: words, quoted phrases and `-excluded` terms."""
+
     def __init__(self, q: str) -> None:
+        """Tokenize `q` (truncated to the maximum length)."""
         self.words: list[str] = []
         self.phrases: list[str] = []
         self.excludes: list[str] = []
@@ -235,9 +249,12 @@ class Query:
 
     @property
     def positive(self) -> list[str]:
+        """Return the terms that must match (words and phrases)."""
         return self.words + self.phrases
 
     def fts(self) -> str:
+        """Build the FTS5 MATCH expression for this query."""
+
         def quote(s: str) -> str:
             return '"' + s.replace('"', '""') + '"'
 
@@ -265,7 +282,15 @@ def _passes(query: Query, *fields: str) -> bool:
 
 
 def highlight(plain: str, terms: list[str]) -> str:
-    """HTML-escape ``plain`` and wrap occurrences of ``terms`` in <mark>."""
+    """HTML-escape text and wrap occurrences of the terms in `<mark>`.
+
+    Args:
+        plain: Plain text to escape and mark.
+        terms: Terms to highlight, case-insensitive.
+
+    Returns:
+        Safe HTML.
+    """
     terms = sorted({t for t in terms if t}, key=len, reverse=True)
     if not terms:
         return html.escape(plain)
@@ -289,15 +314,23 @@ def _window(plain: str, terms: list[str], width: int = 150) -> str:
 
 
 def _plain_line(raw: str) -> str:
-    return _strip_inline(
-        strip_block_prefix(raw, headings=True)
-    )
+    return _strip_inline(strip_block_prefix(raw, headings=True))
 
 
 def build_matches(
     markdown: str, terms: list[str], *, headings_only: bool = False, limit: int = 3
 ) -> list[dict[str, Any]]:
-    """Up to ``limit`` sections whose text contains a term, each with a <mark>ed snippet."""
+    """Return the sections whose text contains a term, each with a marked snippet.
+
+    Args:
+        markdown: Page content to scan.
+        terms: Terms to look for.
+        headings_only: Match only heading text.
+        limit: Maximum number of sections returned.
+
+    Returns:
+        Matches, each with its section and a snippet in safe HTML.
+    """
     anchors = heading_anchors(markdown)
     section: dict[str, Any] | None = None
     idx = 0
@@ -504,6 +537,29 @@ async def search(
     status: str | None = None,
     sort: str = "relevance",
 ) -> dict[str, Any]:
+    """Search pages and/or tickets by scope, with filters, sorting and paging.
+
+    Args:
+        project_id: Project to search.
+        q: Query; supports `"phrases"` and `-excluded` terms.
+        scope: "space" (pages), "tickets" or "all".
+        limit: Page size.
+        offset: Results to skip.
+        page_id: Search inside this page only (find-in-page).
+        mode: "headings" to match headings only.
+        author: Only pages last edited by this author.
+        edited_since: Only pages edited after this ISO time.
+        under_page: Only this page's sub-tree.
+        has_tickets: Only pages that do (or do not) reference tickets.
+        status: Only tickets in this status.
+        sort: "relevance" or "edited_at".
+
+    Returns:
+        Pages, tickets, totals and timing.
+
+    Raises:
+        DocsError: 422 for an invalid `scope`, `sort` or `mode`.
+    """
     started = time.perf_counter()
     if scope not in {"space", "all", "tickets"}:
         raise DocsError(422, "bad_scope", "scope must be space, all or tickets")
@@ -668,7 +724,15 @@ async def search(
 async def similar(
     session: AsyncSession, project_id: str, slug: str
 ) -> list[dict[str, Any]]:
-    """Up to 4 pages whose slug or title resembles ``slug`` (for the "page not found" screen)."""
+    """Suggest up to 4 pages whose slug or title resembles a slug (for the "page not found" screen).
+
+    Args:
+        project_id: Project to search.
+        slug: Slug or path that was not found.
+
+    Returns:
+        Matching pages, best first.
+    """
     needle = slug.strip().strip("/").split("/")[-1].replace("-", " ").replace("_", " ")
     if not needle:
         return []

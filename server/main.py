@@ -33,7 +33,12 @@ from uploads import (
 )
 
 
-mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS, stateless_http=True, streamable_http_path="/")
+mcp = FastMCP(
+    "kanban-mcp",
+    instructions=_mcp_tools.MCP_INSTRUCTIONS,
+    stateless_http=True,
+    streamable_http_path="/",
+)
 
 _mcp_tools.register(mcp)
 
@@ -45,6 +50,7 @@ async def lifespan(app: FastAPI):
     # propagate a mounted sub-app's lifespan from the parent's `Mount` - so it
     # must be started explicitly here, or every /mcp request raises
     # "RuntimeError: Task group is not initialized. Make sure to use run()."
+    """Run the MCP session manager, DB init and background sweeper for the app's lifetime."""
     async with mcp.session_manager.run():
         await init_db()
         sweeper = asyncio.create_task(
@@ -80,9 +86,18 @@ app.add_middleware(
     ],
 )
 
+
 @app.middleware("http")
 async def record_activity_actor(request: Request, call_next):
-    """REST calls are attributed to the person using the board, or to X-Actor if sent."""
+    """Attribute REST calls to the board user, or to `X-Actor` when the header is sent.
+
+    Args:
+        request: Incoming request.
+        call_next: Next handler in the middleware chain.
+
+    Returns:
+        The downstream response.
+    """
     header = (request.headers.get("x-actor") or "").strip()[:80]
     token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
     try:
@@ -106,6 +121,7 @@ app.add_exception_handler(DocsError, docs_error_handler)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Report liveness."""
     return {"status": "ok"}
 
 
@@ -123,6 +139,18 @@ async def serve_upload(
     inline: bool = False,
     view: bool = False,
 ):
+    """Serve an uploaded file inline (images, viewable types) or as a download.
+
+    Args:
+        file_path: Path inside the uploads folder.
+        name: File name to suggest for a download.
+        download: Force a download.
+        inline: Show viewable types in the browser.
+        view: Alias of `inline`.
+
+    Raises:
+        HTTPException: 400 for an invalid path; 404 if the file does not exist.
+    """
     resolved = resolve_upload_path(file_path)
     if resolved is None:
         raise HTTPException(status_code=400, detail="Invalid path")
@@ -137,10 +165,14 @@ async def serve_upload(
     media_type = MIME_BY_EXTENSION.get(ext, "application/octet-stream")
 
     download_name = Path((name or "").replace("\\", "/")).name
-    download_name = "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
+    download_name = (
+        "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
+    )
 
     is_image = ext in SUPPORTED_IMAGE_EXTENSIONS
-    wants_inline = (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
+    wants_inline = (
+        (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
+    )
 
     if not download and (is_image or wants_inline):
         return FileResponse(
@@ -160,6 +192,8 @@ async def serve_upload(
 
 @app.get("/events")
 async def sse_events() -> StreamingResponse:
+    """Stream board events to the client as Server-Sent Events."""
+
     async def generator():
         q = board_events.subscribe()
         try:
@@ -212,6 +246,11 @@ def _get_ui_dist() -> Path | None:
 
 @app.get("/")
 async def serve_root():
+    """Serve the built UI's index page.
+
+    Raises:
+        HTTPException: 404 if the UI is not built.
+    """
     dist = _get_ui_dist()
     if dist:
         index = dist / "index.html"
@@ -222,6 +261,14 @@ async def serve_root():
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
+    """Serve a built UI asset, falling back to the SPA index for client routes.
+
+    Args:
+        full_path: Requested path.
+
+    Raises:
+        HTTPException: 400 for an invalid path; 404 if the UI is not built or the path is reserved.
+    """
     dist = _get_ui_dist()
     if not dist:
         raise HTTPException(status_code=404, detail="UI not built")
@@ -274,7 +321,10 @@ if __name__ == "__main__":
     _startup_mark("uvicorn-imported")
 
     class SignalServer(uvicorn.Server):
+        """Uvicorn server that prints a READY line once it is listening."""
+
         async def startup(self, sockets=None):
+            """Start up, then tell the parent process the port is ready."""
             await super().startup(sockets)
             _startup_mark("uvicorn-startup-done")
             print(f"READY port={self.config.port}", flush=True)

@@ -20,6 +20,7 @@ export function setBackendPort(port: number): void {
   _cache = `http://127.0.0.1:${port}`;
 }
 
+/** Return the backend origin (desktop-injected, env or same origin). */
 export function resolveOrigin(): string {
   if (_cache) return _cache;
 

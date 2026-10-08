@@ -8,6 +8,14 @@ class DocsError(Exception):
     """Domain error carrying an HTTP status and a machine-readable code."""
 
     def __init__(self, status: int, code: str, message: str, **extra: Any) -> None:
+        """Store the HTTP status, error code and extra response fields.
+
+        Args:
+            status: HTTP status to return.
+            code: Short machine-readable code.
+            message: Human-readable explanation.
+            **extra: Extra fields merged into the error response.
+        """
         super().__init__(message)
         self.status = status
         self.code = code
@@ -18,7 +26,9 @@ class DocsError(Exception):
 _FENCE = re.compile(r"^\s*(```|~~~)")
 # Patterns below are linear on hostile input: body classes exclude the next opener ("[") and are
 # length-bounded, so one unanchored scan never rescans the rest of the text from every start.
-_REF = re.compile(r"\[\[([^\][|#\n]{1,200})(?:#([^\][|\n]{1,200}))?(?:\|([^\][\n]{1,200}))?\]\]")
+_REF = re.compile(
+    r"\[\[([^\][|#\n]{1,200})(?:#([^\][|\n]{1,200}))?(?:\|([^\][\n]{1,200}))?\]\]"
+)
 _LINK = re.compile(r"\[([^\][\n]{1,300})\]\(([^()\n]{0,500})\)")
 _BULLET = re.compile(r"(?:[*+-]|\d{1,9}\.)[ \t]*")
 _CHECKBOX = re.compile(r"\[[ xX]\][ \t]*")
@@ -55,7 +65,15 @@ _HEADING = _HeadingMatcher()
 
 
 def strip_block_prefix(line: str, headings: bool = False) -> str:
-    """Drop quote markers, list bullet / number (or ``#`` run) and a task checkbox from the start of a line."""
+    """Drop a quote marker, list bullet or number (or `#` run) and a task checkbox from a line start.
+
+    Args:
+        line: One line of Markdown.
+        headings: Also strip a leading `#` run.
+
+    Returns:
+        The line without its block prefix.
+    """
     line = line.lstrip(" \t>")
     while line.startswith(">"):  # "> > x" and ">  > x"
         line = line[1:].lstrip(" \t>")
@@ -70,6 +88,8 @@ def strip_block_prefix(line: str, headings: bool = False) -> str:
     if _CHECKBOX.match(line):
         line = _CHECKBOX.sub("", line, count=1)
     return line
+
+
 _TICKET = re.compile(r"\b([A-Z][A-Z0-9]{1,5}-\d+)\b")
 _INLINE_CODE = re.compile(r"`[^`\n]*`")
 
@@ -159,7 +179,16 @@ def parse_references(markdown: str) -> list[dict[str, Any]]:
 
 
 def sentence_around(raw: str, needle: str, limit: int = 200) -> str:
-    """The sentence of ``raw`` that contains ``needle`` (plain text, markdown noise removed)."""
+    """Return the sentence of a line that contains a needle, as plain text.
+
+    Args:
+        raw: Markdown line.
+        needle: Text to center the excerpt on.
+        limit: Maximum length of the excerpt.
+
+    Returns:
+        The excerpt, with Markdown noise removed.
+    """
     plain_line = re.sub(
         r"^\s*(?:>\s*)*(?:[*+-]|\d+\.)?\s*(?:\[[ xX]\]\s*)?", "", raw.strip()
     )
@@ -187,7 +216,16 @@ def _map_outside_code(line: str, fn: Any) -> str:
 def rewrite_page_links(
     markdown: str, old_title: str, new_title: str
 ) -> tuple[str, int]:
-    """Point ``[[Old]]``, ``[[Old#S]]`` and ``[[Old|label]]`` at ``new_title`` (code is left alone)."""
+    """Point `[[Old]]`, `[[Old#S]]` and `[[Old|label]]` at a new title, leaving code alone.
+
+    Args:
+        markdown: Content to rewrite.
+        old_title: Title being replaced.
+        new_title: Title to write.
+
+    Returns:
+        `(new markdown, number of links rewritten)`.
+    """
     needle = old_title.strip().lower()
     count = 0
 
@@ -214,6 +252,12 @@ def rewrite_page_links(
 
 
 def count_page_links(markdown: str, title: str) -> int:
+    """Count `[[title]]` links to a page in some Markdown.
+
+    Args:
+        markdown: Content to scan.
+        title: Page title being linked.
+    """
     return rewrite_page_links(markdown, title, title)[1]
 
 
