@@ -23,6 +23,7 @@ function CalloutView({ node, decorations, updateAttributes }: NodeViewProps) {
   const s = CALLOUT_STYLE[kind];
   const focused = decorations.some((d) => (d.type as unknown as { attrs?: { class?: string } }).attrs?.class?.includes('is-focused'));
   const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -38,8 +39,10 @@ function CalloutView({ node, decorations, updateAttributes }: NodeViewProps) {
       className="dk-callout-wrap"
       data-callout={kind}
       style={{ position: 'relative', margin: '0 0 14px' }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
     >
-      {(focused || open) && (
+      {(focused || open || hover) && (
         <div
           ref={ref}
           contentEditable={false}
