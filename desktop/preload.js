@@ -30,6 +30,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Opens an external URL in the default web browser
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
+  // Auto-update (GitHub releases)
+  getUpdateInfo: () => ipcRenderer.invoke('update-get'),
+  checkForUpdate: () => ipcRenderer.invoke('update-check'),
+  downloadUpdate: () => ipcRenderer.invoke('update-download'),
+  installUpdate: (filePath) => ipcRenderer.invoke('update-install', filePath),
+  onUpdateAvailable: (callback) => {
+    const handler = (_event, info) => callback(info);
+    ipcRenderer.on('update-available', handler);
+    return () => ipcRenderer.removeListener('update-available', handler);
+  },
+  onUpdateProgress: (callback) => {
+    const handler = (_event, fraction) => callback(fraction);
+    ipcRenderer.on('update-progress', handler);
+    return () => ipcRenderer.removeListener('update-progress', handler);
+  },
+
   // Platform info
   platform: process.platform,
 });

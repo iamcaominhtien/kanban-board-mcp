@@ -26,6 +26,7 @@ import { LoadError } from './components/LoadError';
 import { FirstRun } from './components/FirstRun';
 import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
+import { UpdateNotice } from './components/UpdateNotice';
 import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
 
 const EMPTY_PROJECTS: Project[] = [];
@@ -326,6 +327,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Splash status={backendStatus} errorMessage={backendError} onRetryBackend={retryBackend} />
+      <UpdateNotice />
       <ProjectSidebar
         projects={apiProjects}
         currentProjectId={currentProjectId}
