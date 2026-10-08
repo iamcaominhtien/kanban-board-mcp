@@ -23,7 +23,13 @@ function sortedChildren(nodes: DocsTreeNode[], parentId: string | null): DocsTre
   return nodes.filter((n) => n.parentId === parentId).sort((a, b) => a.position - b.position);
 }
 
-const checkRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#3A4A3E' };
+const checkRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 9,
+  fontSize: 12.5,
+  color: '#3A4A3E',
+};
 
 export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated }: DuplicateDialogProps) {
   const toast = useToast();
@@ -83,7 +89,10 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
   const on = hasChildren && includeChildren;
   const trimmed = title.trim();
   const directKids = subPages.filter((s) => s.depth === 1).map((s) => s.title);
-  const names = directKids.length > 1 ? `${directKids.slice(0, -1).join(', ')} and ${directKids[directKids.length - 1]}` : directKids[0];
+  const names =
+    directKids.length > 1
+      ? `${directKids.slice(0, -1).join(', ')} and ${directKids[directKids.length - 1]}`
+      : directKids[0];
 
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
@@ -122,7 +131,12 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
           <button type="button" className="st-btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className="st-btn st-btn-primary" disabled={!trimmed || duplicate.isPending} onClick={() => void submit()}>
+          <button
+            type="button"
+            className="st-btn st-btn-primary"
+            disabled={!trimmed || duplicate.isPending}
+            onClick={() => void submit()}
+          >
             <Icon name="i24" size={14} />
             {duplicate.isPending ? 'Duplicating…' : 'Duplicate'}
           </button>
@@ -173,9 +187,21 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', borderRadius: 9, border: '1px solid #E3E8E5', background: '#FFFFFF' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '11px 12px',
+            borderRadius: 9,
+            border: '1px solid #E3E8E5',
+            background: '#FFFFFF',
+          }}
+        >
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: hasChildren ? '#1E2A22' : '#9AA8A0' }}>Include child pages</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: hasChildren ? '#1E2A22' : '#9AA8A0' }}>
+              Include child pages
+            </div>
             <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
               {hasChildren ? `Copies ${names} as well, under the new page.` : `${page.title} has no child pages.`}
             </div>
@@ -189,7 +215,12 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
               disabled={!hasChildren}
               onClick={() => setIncludeChildren((v) => !v)}
               className="st-toggle-track"
-              style={{ background: on ? '#2E6F40' : '#C7D2CB', border: 'none', padding: 0, cursor: hasChildren ? 'pointer' : 'default' }}
+              style={{
+                background: on ? '#2E6F40' : '#C7D2CB',
+                border: 'none',
+                padding: 0,
+                cursor: hasChildren ? 'pointer' : 'default',
+              }}
             >
               <span className="st-toggle-dot" style={{ left: on ? 17 : 2 }} />
             </button>
@@ -197,8 +228,24 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
         </div>
 
         {on && (
-          <div role="list" aria-label="Pages that will be created" style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}>
-            <div role="listitem" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 12px', borderBottom: '1px solid #EEF3EF', fontSize: 12.5, fontWeight: 700, color: '#1E2A22' }}>
+          <div
+            role="list"
+            aria-label="Pages that will be created"
+            style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}
+          >
+            <div
+              role="listitem"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 9,
+                padding: '7px 12px',
+                borderBottom: '1px solid #EEF3EF',
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: '#1E2A22',
+              }}
+            >
               <span style={{ display: 'flex', color: '#2E6F40' }}>
                 <Icon name="i00" size={15} strokeWidth={1.8} />
               </span>
@@ -225,7 +272,9 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
                   <Icon name="i00" size={15} strokeWidth={1.8} />
                 </span>
                 {s.title}
-                <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>Copy of {s.title}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>
+                  Copy of {s.title}
+                </span>
               </div>
             ))}
           </div>

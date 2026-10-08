@@ -128,7 +128,8 @@ export function SlashMenu({ host, state, ctx }: Props) {
     >
       {items.length === 0 ? (
         <div style={{ padding: '14px 12px 10px', fontSize: 12.5, color: '#5B6B60', lineHeight: 1.5 }}>
-          No blocks match &quot;{state.query}&quot;. Keep typing, or press <span className="dk-kbd">Esc</span> to keep it as text.
+          No blocks match &quot;{state.query}&quot;. Keep typing, or press <span className="dk-kbd">Esc</span> to keep
+          it as text.
         </div>
       ) : (
         <div ref={listRef} style={{ maxHeight: 400, overflowY: 'auto' }}>

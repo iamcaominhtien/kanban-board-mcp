@@ -50,11 +50,32 @@ function ProjectRepoRow({ project }: { project: Project }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', background: '#F8FAF8', borderRadius: 8, border: '1px solid #E3E8E5' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        padding: '12px 14px',
+        background: '#F8FAF8',
+        borderRadius: 8,
+        border: '1px solid #E3E8E5',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>{project.name} ({project.prefix})</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>
+          {project.name} ({project.prefix})
+        </span>
         {project.repoPath && (
-          <span style={{ fontSize: 11, color: '#2E6F40', background: 'rgba(46,111,64,0.1)', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+          <span
+            style={{
+              fontSize: 11,
+              color: '#2E6F40',
+              background: 'rgba(46,111,64,0.1)',
+              padding: '2px 8px',
+              borderRadius: 12,
+              fontWeight: 600,
+            }}
+          >
             Git linked
           </span>
         )}
@@ -82,7 +103,12 @@ function ProjectRepoRow({ project }: { project: Project }) {
             Save repo
           </button>
           {project.repoPath && (
-            <button type="button" className={styles.btn} disabled={updateProject.isPending} onClick={() => saveRepo('')}>
+            <button
+              type="button"
+              className={styles.btn}
+              disabled={updateProject.isPending}
+              onClick={() => saveRepo('')}
+            >
               Unlink
             </button>
           )}
@@ -90,11 +116,11 @@ function ProjectRepoRow({ project }: { project: Project }) {
       </div>
 
       {project.repoPath && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 6, borderTop: '1px dashed #D5DED8' }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 6, borderTop: '1px dashed #D5DED8' }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
-              Default Worktree Template
-            </span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>Default Worktree Template</span>
             <input
               className={styles.input}
               type="text"
@@ -130,7 +156,16 @@ function ProjectRepoRow({ project }: { project: Project }) {
             </div>
           </div>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12.5, color: '#1E2A22' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              fontSize: 12.5,
+              color: '#1E2A22',
+            }}
+          >
             <input
               type="checkbox"
               checked={worktreeByDefault}
@@ -229,7 +264,9 @@ function WorkspaceSettingsSection() {
     <>
       <div className={styles.section}>
         <div className={styles.sectionHeaderRow}>
-          <span className={styles.sectionTitle} style={{ flexGrow: 1 }}>Workspace</span>
+          <span className={styles.sectionTitle} style={{ flexGrow: 1 }}>
+            Workspace
+          </span>
           <div
             className={`${styles.toggleTrack} ${settings.enabled ? styles.toggleTrackActive : ''}`}
             onClick={() => save({ enabled: !settings.enabled })}
@@ -241,7 +278,8 @@ function WorkspaceSettingsSection() {
           </div>
         </div>
         <div className={styles.hint}>
-          A local scratch folder per ticket. AI agents get its path from the MCP server and read and write it directly; the Workspace tab on a ticket shows what is on disk. Turning this off hides the Workspace tab everywhere.
+          A local scratch folder per ticket. AI agents get its path from the MCP server and read and write it directly;
+          the Workspace tab on a ticket shows what is on disk. Turning this off hides the Workspace tab everywhere.
         </div>
 
         {settings.enabled && (
@@ -254,12 +292,21 @@ function WorkspaceSettingsSection() {
                   value={rootDraft}
                   aria-label="Workspace root path"
                   onChange={(e) => setRootDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && rootChanged) save({ rootPath: rootDraft }, 'Root path saved'); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && rootChanged) save({ rootPath: rootDraft }, 'Root path saved');
+                  }}
                 />
                 {isElectron && (
-                  <button type="button" className={styles.btn} onClick={browse}>Browse…</button>
+                  <button type="button" className={styles.btn} onClick={browse}>
+                    Browse…
+                  </button>
                 )}
-                <button type="button" className={styles.btn} disabled={!rootChanged || update.isPending} onClick={() => save({ rootPath: rootDraft }, 'Root path saved')}>
+                <button
+                  type="button"
+                  className={styles.btn}
+                  disabled={!rootChanged || update.isPending}
+                  onClick={() => save({ rootPath: rootDraft }, 'Root path saved')}
+                >
                   Save
                 </button>
               </div>
@@ -289,10 +336,14 @@ function WorkspaceSettingsSection() {
                 ))}
               </div>
               <span className={styles.hint} style={{ fontSize: '11px' }}>
-                A background sweep (hourly) deletes the folder of a Done / Won&apos;t do ticket once it has been idle this long. Open tickets and tickets set to &quot;Forever&quot; are never touched. A ticket can override this from its own Workspace tab.
+                A background sweep (hourly) deletes the folder of a Done / Won&apos;t do ticket once it has been idle
+                this long. Open tickets and tickets set to &quot;Forever&quot; are never touched. A ticket can override
+                this from its own Workspace tab.
               </span>
               <div className={styles.inputRow}>
-                <button type="button" className={styles.btn} onClick={previewSweep}>Clean now…</button>
+                <button type="button" className={styles.btn} onClick={previewSweep}>
+                  Clean now…
+                </button>
               </div>
               {sweepPreview && (
                 <div className={styles.hint} role="status">
@@ -300,8 +351,11 @@ function WorkspaceSettingsSection() {
                     'Nothing is due for cleanup.'
                   ) : (
                     <>
-                      {sweepPreview.removed.length} folder(s) would be deleted: {sweepPreview.removed.map((r) => r.ticketId).join(', ')}.{' '}
-                      <button type="button" className={styles.btn} disabled={sweeping} onClick={runSweep}>Delete them</button>
+                      {sweepPreview.removed.length} folder(s) would be deleted:{' '}
+                      {sweepPreview.removed.map((r) => r.ticketId).join(', ')}.{' '}
+                      <button type="button" className={styles.btn} disabled={sweeping} onClick={runSweep}>
+                        Delete them
+                      </button>
                     </>
                   )}
                 </div>
@@ -310,7 +364,9 @@ function WorkspaceSettingsSection() {
           </>
         )}
         {status && (
-          <div className={styles.hint} role="status" style={{ color: status.ok ? undefined : '#C0392B' }}>{status.text}</div>
+          <div className={styles.hint} role="status" style={{ color: status.ok ? undefined : '#C0392B' }}>
+            {status.text}
+          </div>
         )}
       </div>
     </>
@@ -419,7 +475,15 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
         <div className={styles.header}>
           <h2 className={styles.title}>Settings</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close settings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            >
               <path d="M6 6L18 18M18 6L6 18" />
             </svg>
           </button>
@@ -431,7 +495,7 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
           <div className={styles.section}>
             <span className={styles.sectionTitle}>Data Folder</span>
             <div className={styles.hint}>
-              Current: <span className={styles.code}>{isLoading ? 'Loading…' : (settings?.dataFolder || 'Default')}</span>
+              Current: <span className={styles.code}>{isLoading ? 'Loading…' : settings?.dataFolder || 'Default'}</span>
             </div>
             <div className={styles.inputRow}>
               <input
@@ -460,9 +524,7 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
               {setDataPath.isPending ? 'Moving…' : 'Apply'}
             </button>
             {folderStatus && (
-              <span className={folderStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>
-                {folderStatus}
-              </span>
+              <span className={folderStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>{folderStatus}</span>
             )}
           </div>
 
@@ -472,7 +534,8 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
           <div className={styles.section}>
             <span className={styles.sectionTitle}>Git Repositories</span>
             <div className={styles.hint}>
-              Branches created on a ticket are created in this repository. A ticket can override it from its branch menu.
+              Branches created on a ticket are created in this repository. A ticket can override it from its branch
+              menu.
             </div>
             {projects.map((p) => (
               <ProjectRepoRow key={p.id} project={p} />
@@ -503,12 +566,7 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
           <div className={styles.section}>
             <span className={styles.sectionTitle}>Theme</span>
             <div className={styles.hint}>Switch between color and black &amp; white TV mode.</div>
-            <button
-              type="button"
-              className={styles.btn}
-              onClick={onToggleTheme}
-              style={{ alignSelf: 'flex-start' }}
-            >
+            <button type="button" className={styles.btn} onClick={onToggleTheme} style={{ alignSelf: 'flex-start' }}>
               {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
             </button>
           </div>
@@ -535,9 +593,7 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
               <input ref={importRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handleImport} />
             </div>
             {exportStatus && (
-              <span className={exportStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>
-                {exportStatus}
-              </span>
+              <span className={exportStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>{exportStatus}</span>
             )}
             {importStatus && (
               <span
@@ -545,8 +601,8 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
                   importStatus.startsWith('✓')
                     ? styles.statusOk
                     : importStatus === 'Importing...'
-                    ? styles.statusInfo
-                    : styles.statusErr
+                      ? styles.statusInfo
+                      : styles.statusErr
                 }
               >
                 {importStatus}

@@ -79,7 +79,13 @@ function parseEvent(data: string): DocsPublishedEvent | null {
  * While the Follow-space toggle is on for the project, shows a toast
  * "<author> published v<N> of <title>" with an Open action when someone else publishes a page.
  */
-export function useDocsNotifications({ projectId, onOpenPage }: { projectId: string; onOpenPage: (pageId: string) => void }) {
+export function useDocsNotifications({
+  projectId,
+  onOpenPage,
+}: {
+  projectId: string;
+  onOpenPage: (pageId: string) => void;
+}) {
   const toast = useToast();
   const [follow] = useDocsFollow(projectId);
   const openRef = useRef(onOpenPage);

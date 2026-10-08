@@ -10,7 +10,13 @@ export function safeSnippet(html: string): string {
 }
 
 export function Snip({ html, style, className }: { html: string; style?: CSSProperties; className?: string }) {
-  return <div className={`fx-snip ${className ?? ''}`} style={style} dangerouslySetInnerHTML={{ __html: safeSnippet(html) }} />;
+  return (
+    <div
+      className={`fx-snip ${className ?? ''}`}
+      style={style}
+      dangerouslySetInnerHTML={{ __html: safeSnippet(html) }}
+    />
+  );
 }
 
 /** Wraps case-insensitive occurrences of the query words in <mark>. */
@@ -68,7 +74,19 @@ export function Avatar({ name, size = 20 }: { name: string; size?: number }) {
   return (
     <span
       title={name}
-      style={{ width: size, height: size, borderRadius: '50%', background: a.bg, color: a.fg, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: a.bg,
+        color: a.fg,
+        fontSize: 11,
+        fontWeight: 700,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
     >
       {a.text}
     </span>
@@ -97,7 +115,18 @@ export const statusDot = (s: string) => STATUS_DOT[s] ?? '#9AA8A0';
 export const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
 export function StatusDot({ status, size = 8 }: { status: string; size?: number }) {
-  return <span style={{ width: size, height: size, borderRadius: '50%', background: statusDot(status), flexShrink: 0, display: 'inline-block' }} />;
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: statusDot(status),
+        flexShrink: 0,
+        display: 'inline-block',
+      }}
+    />
+  );
 }
 
 export function timeAgo(iso: string): string {
@@ -135,11 +164,17 @@ export function tokenize(q: string): Tok[] {
   const t = q.trim();
   if (t.startsWith('[[')) {
     const lead = q.slice(0, q.indexOf('[[') + 2);
-    return [{ text: lead, kind: 'link' }, { text: q.slice(lead.length), kind: 'plain' }];
+    return [
+      { text: lead, kind: 'link' },
+      { text: q.slice(lead.length), kind: 'plain' },
+    ];
   }
   if (t.startsWith('#')) {
     const lead = q.slice(0, q.indexOf('#') + 1);
-    return [{ text: lead, kind: 'hash' }, { text: q.slice(lead.length), kind: 'plain' }];
+    return [
+      { text: lead, kind: 'hash' },
+      { text: q.slice(lead.length), kind: 'plain' },
+    ];
   }
   if (TICKET_KEY.test(t)) return [{ text: q, kind: 'ticket' }];
   const out: Tok[] = [];
@@ -147,7 +182,7 @@ export function tokenize(q: string): Tok[] {
   for (const m of q.matchAll(re)) {
     const s = m[0];
     if (s.startsWith('"')) out.push({ text: s, kind: 'phrase' });
-    else if (s.length > 1 && s.startsWith('-') ) out.push({ text: s, kind: 'exclude' });
+    else if (s.length > 1 && s.startsWith('-')) out.push({ text: s, kind: 'exclude' });
     else if (s === '-') out.push({ text: s, kind: 'exclude' });
     else out.push({ text: s, kind: 'plain' });
   }

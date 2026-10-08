@@ -17,7 +17,8 @@ export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTick
   const returnTo = useRef<HTMLElement | null>(null);
 
   const peek = useCallback<DocsRefsValue['peek']>((pageId, anchor, hint) => {
-    if (!returnTo.current) returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!returnTo.current)
+      returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setTarget({ pageId, anchor: anchor ?? null, hint });
   }, []);
   const close = useCallback(() => {
@@ -31,7 +32,11 @@ export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTick
   const toDocs = useCallback(
     (pageId: string, anchor?: string | null) => {
       const slug = anchor ? slugify(anchor) : '';
-      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${slug ? `#${slug}` : ''}`);
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}${slug ? `#${slug}` : ''}`,
+      );
       onOpenDocsPage?.(pageId, anchor);
     },
     [onOpenDocsPage],
@@ -58,8 +63,14 @@ export function TicketDocsHost({ projectId, ticketId, onOpenDocsPage, onOpenTick
           ticketId={ticketId}
           onSwitch={setTarget}
           onClose={close}
-          onOpenInDocs={(id, a) => { close(); toDocs(id, a); }}
-          onOpenTicket={(id) => { close(); onOpenTicket?.(id); }}
+          onOpenInDocs={(id, a) => {
+            close();
+            toDocs(id, a);
+          }}
+          onOpenTicket={(id) => {
+            close();
+            onOpenTicket?.(id);
+          }}
         />
       )}
     </DocsRefsProvider>

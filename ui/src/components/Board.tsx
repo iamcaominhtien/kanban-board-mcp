@@ -12,12 +12,12 @@ import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
 
 const COLUMNS: ColumnType[] = [
-  { id: 'backlog',     label: 'Backlog',      accentColor: 'var(--color-backlog)' },
-  { id: 'todo',        label: 'To Do',        accentColor: 'var(--color-todo)' },
-  { id: 'in-progress', label: 'In Progress',  accentColor: 'var(--color-inprogress)' },
-  { id: 'review',      label: 'Review',       accentColor: 'var(--color-review)' },
-  { id: 'testing',     label: 'Testing',      accentColor: 'var(--color-testing)' },
-  { id: 'done',        label: 'Done',         accentColor: 'var(--color-done)' },
+  { id: 'backlog', label: 'Backlog', accentColor: 'var(--color-backlog)' },
+  { id: 'todo', label: 'To Do', accentColor: 'var(--color-todo)' },
+  { id: 'in-progress', label: 'In Progress', accentColor: 'var(--color-inprogress)' },
+  { id: 'review', label: 'Review', accentColor: 'var(--color-review)' },
+  { id: 'testing', label: 'Testing', accentColor: 'var(--color-testing)' },
+  { id: 'done', label: 'Done', accentColor: 'var(--color-done)' },
 ];
 
 interface BoardProps {
@@ -79,9 +79,7 @@ export function Board({
   lanesOverride,
   statusSlot,
 }: BoardProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
@@ -107,7 +105,11 @@ export function Board({
         <div className={styles.topBar}>
           {loadState === 'projects' ? (
             <h1 className={styles.title} aria-label="Loading project">
-              <span className={`${loadingStyles.skel} ${loadingStyles.skelTitle}`} style={{ display: 'block' }} aria-hidden="true" />
+              <span
+                className={`${loadingStyles.skel} ${loadingStyles.skelTitle}`}
+                style={{ display: 'block' }}
+                aria-hidden="true"
+              />
             </h1>
           ) : (
             <h1 className={styles.title}>{projectName}</h1>
@@ -145,7 +147,18 @@ export function Board({
               </button>
             </div>
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                style={{ display: 'block', flexShrink: 0 }}
+              >
                 <path d="M12 5v14M5 12h14" />
               </svg>
               <span>New Ticket</span>
@@ -153,20 +166,24 @@ export function Board({
           </div>
         </div>
 
-        <div {...(loadState === 'projects' ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } } : {})}>
-        {viewMode !== 'docs' && (
-        <FilterBar
-          searchQuery={searchQuery}
-          onSearchChange={onSearchChange}
-          activeType={activeType}
-          onTypeChange={onTypeChange}
-          activePriority={activePriority}
-          onPriorityChange={onPriorityChange}
-          members={members}
-          activeAssignee={activeAssignee}
-          onAssigneeChange={onAssigneeChange ?? (() => {})}
-        />
-        )}
+        <div
+          {...(loadState === 'projects'
+            ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } }
+            : {})}
+        >
+          {viewMode !== 'docs' && (
+            <FilterBar
+              searchQuery={searchQuery}
+              onSearchChange={onSearchChange}
+              activeType={activeType}
+              onTypeChange={onTypeChange}
+              activePriority={activePriority}
+              onPriorityChange={onPriorityChange}
+              members={members}
+              activeAssignee={activeAssignee}
+              onAssigneeChange={onAssigneeChange ?? (() => {})}
+            />
+          )}
         </div>
 
         {viewMode === 'docs' && projectId && !loadState ? (

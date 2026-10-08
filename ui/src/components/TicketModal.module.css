@@ -23,15 +23,19 @@
 }
 
 .panel {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 12px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
   transform: translateY(16px);
-  transition: transform 0.2s ease, width 0.22s cubic-bezier(0.16, 1, 0.3, 1), height 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 0.2s ease;
   cursor: default;
   overflow: hidden;
   box-sizing: border-box;
@@ -72,7 +76,7 @@
   align-items: center;
   gap: 20px;
   padding: 18px 28px;
-  border-bottom: 1px solid #E3E8E5;
+  border-bottom: 1px solid #e3e8e5;
   flex-shrink: 0;
 }
 
@@ -89,20 +93,20 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .typeLabel {
   font-size: 13px;
   font-weight: 500;
-  color: #5B6B60;
+  color: #5b6b60;
   text-transform: capitalize;
 }
 
 .headerDivider {
   width: 1px;
   height: 14px;
-  background: #E3E8E5;
+  background: #e3e8e5;
 }
 
 .parentBtn {
@@ -115,17 +119,17 @@
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   transition: color 0.15s ease;
 }
 
 .parentBtn:hover {
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .slashSep {
   font-size: 13px;
-  color: #C7D2CB;
+  color: #c7d2cb;
 }
 
 .idBtn {
@@ -141,13 +145,13 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   transition: all 0.15s ease;
 }
 
 .idBtn:hover {
-  background: #F6FAF7;
-  color: #2E6F40;
+  background: #f6faf7;
+  color: #2e6f40;
 }
 
 .idBtn:active {
@@ -172,19 +176,19 @@
   height: 30px;
   padding: 0;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
-  color: #5B6B60;
+  color: #5b6b60;
   position: relative;
   box-sizing: border-box;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .viewBtn:hover {
-  background: #F6FAF7;
-  border-color: #B9CBBF;
-  color: #1E2A22;
+  background: #f6faf7;
+  border-color: #b9cbbf;
+  color: #1e2a22;
 }
 
 .viewBtn:active {
@@ -192,9 +196,9 @@
 }
 
 .viewBtnActive {
-  border-color: #2E6F40 !important;
-  background: #F1F8F3 !important;
-  color: #2E6F40 !important;
+  border-color: #2e6f40 !important;
+  background: #f1f8f3 !important;
+  color: #2e6f40 !important;
   box-shadow: 0 1px 3px rgba(46, 111, 64, 0.16);
 }
 
@@ -213,8 +217,8 @@
   left: 0;
   padding: 5px 9px;
   border-radius: 6px;
-  background: #1E2A22;
-  color: #FFFFFF;
+  background: #1e2a22;
+  color: #ffffff;
   font-size: 11px;
   white-space: nowrap;
   opacity: 0;
@@ -246,14 +250,16 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .fullscreenBtn:hover {
-  background: #F6FAF7;
-  color: #1E2A22;
+  background: #f6faf7;
+  color: #1e2a22;
 }
 
 .deleteHeaderBtn {
@@ -266,14 +272,16 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .deleteHeaderBtn:hover {
-  background: #FDF2F2;
-  color: #D32F2F;
+  background: #fdf2f2;
+  color: #d32f2f;
 }
 
 .closeBtn {
@@ -286,14 +294,16 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .closeBtn:hover {
-  background: #F6FAF7;
-  color: #1E2A22;
+  background: #f6faf7;
+  color: #1e2a22;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -354,7 +364,7 @@
   font-size: 21px;
   font-weight: 700;
   line-height: 1.3;
-  color: #1E2A22;
+  color: #1e2a22;
   cursor: text;
 }
 
@@ -362,8 +372,8 @@
   width: 100%;
   font-size: 20px;
   font-weight: 700;
-  color: #1E2A22;
-  border: 1px solid #2E6F40;
+  color: #1e2a22;
+  border: 1px solid #2e6f40;
   border-radius: 6px;
   padding: 6px 10px;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
@@ -385,24 +395,26 @@
   gap: 4px;
   padding: 2px 8px 2px 6px;
   border-radius: 3px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: #9AA8A0;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .tagAddBtn:hover {
-  border-color: #2E6F40;
-  color: #2E6F40;
+  border-color: #2e6f40;
+  color: #2e6f40;
 }
 
 .tagInput {
-  border: 1px solid #2E6F40;
+  border: 1px solid #2e6f40;
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 11px;
@@ -415,7 +427,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .descSection {
@@ -427,14 +439,14 @@
 .descText {
   font-size: 14px;
   line-height: 1.6;
-  color: #3A4A3E;
+  color: #3a4a3e;
   cursor: pointer;
   min-height: 36px;
 }
 
 .sectionDivider {
   height: 1px;
-  background: #EEF3EF;
+  background: #eef3ef;
   border: none;
   margin: 0;
 }
@@ -446,11 +458,11 @@
   gap: 10px;
   padding-top: 18px;
   margin-top: 8px;
-  border-top: 1px solid #EEF3EF;
+  border-top: 1px solid #eef3ef;
 }
 
 :global(.dark) .attachmentsZone {
-  border-top-color: #2D3E33;
+  border-top-color: #2d3e33;
 }
 
 .attachmentsLabel {
@@ -458,7 +470,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .attachmentsList {
@@ -480,23 +492,25 @@
   height: 76px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #E3E8E5;
-  background: #F6FAF7;
+  border: 1px solid #e3e8e5;
+  background: #f6faf7;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 :global(.dark) .attThumb {
-  background: #1B2920;
-  border-color: #2D3E33;
+  background: #1b2920;
+  border-color: #2d3e33;
 }
 
 .attThumb:hover {
-  border-color: #68BA7F;
+  border-color: #68ba7f;
   transform: translateY(-1px);
 }
 
@@ -511,22 +525,25 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 7px;
-  background: #FFFFFF;
+  background: #ffffff;
   cursor: pointer;
   user-select: none;
-  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   min-height: 44px;
 }
 
 :global(.dark) .attFileChip {
-  background: #1E2A22;
-  border-color: #2D3E33;
+  background: #1e2a22;
+  border-color: #2d3e33;
 }
 
 .attFileChip:hover {
-  border-color: #68BA7F;
+  border-color: #68ba7f;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
@@ -550,7 +567,7 @@
 .attFileName {
   font-size: 12.5px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -558,12 +575,12 @@
 }
 
 :global(.dark) .attFileName {
-  color: #F6FAF7;
+  color: #f6faf7;
 }
 
 .attFileSize {
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .attDownloadBtn {
@@ -575,21 +592,23 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   margin-left: 4px;
   border-radius: 4px;
-  transition: color 0.12s ease, background-color 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background-color 0.12s ease;
   text-decoration: none;
 }
 
 .attDownloadBtn:hover {
-  color: #1E2A22;
-  background: #EEF3EF;
+  color: #1e2a22;
+  background: #eef3ef;
 }
 
 :global(.dark) .attDownloadBtn:hover {
-  color: #F6FAF7;
-  background: #2D3E33;
+  color: #f6faf7;
+  background: #2d3e33;
 }
 
 .attAddBtn {
@@ -599,32 +618,35 @@
   width: 76px;
   height: 76px;
   border-radius: 8px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
-  color: #9AA8A0;
-  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
   flex-shrink: 0;
 }
 
 :global(.dark) .attAddBtn {
-  border-color: #3F5246;
+  border-color: #3f5246;
 }
 
 .attAddBtn:hover {
-  border-color: #68BA7F;
-  color: #2E6F40;
-  background: #F6FAF7;
+  border-color: #68ba7f;
+  color: #2e6f40;
+  background: #f6faf7;
 }
 
 :global(.dark) .attAddBtn:hover {
-  background: #1B2920;
-  color: #68BA7F;
+  background: #1b2920;
+  color: #68ba7f;
 }
 
 .attMetaText {
   font-size: 9.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   padding-left: 2px;
 }
 
@@ -652,7 +674,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .branchBtn {
@@ -662,21 +684,23 @@
   align-self: flex-start;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #F6FAF7;
+  border: 1px solid #e3e8e5;
+  background: #f6faf7;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
   font-weight: 600;
-  color: #1E2A22;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  color: #1e2a22;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 .branchBtn:hover {
-  background: #FFFFFF;
-  border-color: #B9CBBF;
+  background: #ffffff;
+  border-color: #b9cbbf;
 }
 
 .branchText {
@@ -687,13 +711,13 @@
 }
 
 .branchBtnActive {
-  background: #FFFFFF !important;
-  border-color: #2E6F40 !important;
+  background: #ffffff !important;
+  border-color: #2e6f40 !important;
 }
 
 .branchSubtext {
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   padding-left: 2px;
 }
 
@@ -703,9 +727,9 @@
   top: calc(100% + 4px);
   right: 0;
   width: 290px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 10px;
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 0 16px 32px rgba(30, 42, 34, 0.16);
   box-sizing: border-box;
   overflow: hidden;
@@ -714,12 +738,12 @@
 
 .branchPopoverHeader {
   padding: 10px 14px;
-  border-bottom: 1px solid #EEF3EF;
+  border-bottom: 1px solid #eef3ef;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .branchList {
@@ -736,7 +760,7 @@
   background: none;
   cursor: pointer;
   text-align: left;
-  border-bottom: 1px solid #EEF3EF;
+  border-bottom: 1px solid #eef3ef;
   width: 100%;
   font-family: inherit;
   transition: background-color 0.12s;
@@ -747,11 +771,11 @@
 }
 
 .branchRow:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .branchRowActive {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .branchDot {
@@ -765,7 +789,7 @@
   flex-grow: 1;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -787,17 +811,17 @@
 
 .branchBadgeBaseline {
   background: rgba(46, 111, 64, 0.12);
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .branchBadgeMerged {
   background: rgba(46, 111, 64, 0.12);
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .branchBadgeStale {
   background: rgba(196, 67, 42, 0.1);
-  color: #C4432A;
+  color: #c4432a;
 }
 
 .branchWorktreePill {
@@ -811,9 +835,8 @@
   flex-shrink: 0;
 }
 
-
 .branchPopoverFooter {
-  border-top: 1px solid #EEF3EF;
+  border-top: 1px solid #eef3ef;
   display: flex;
   flex-direction: column;
 }
@@ -828,31 +851,33 @@
   cursor: pointer;
   text-align: left;
   font-size: 12.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-family: inherit;
-  transition: background-color 0.12s, color 0.12s;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 
 .branchFooterBtn:hover {
-  background: #F6FAF7;
-  color: #5B6B60;
+  background: #f6faf7;
+  color: #5b6b60;
 }
 
 .branchFooterBtnGraph {
   font-weight: 600;
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .branchFooterBtnGraph:hover {
-  background: #F1F8F3;
+  background: #f1f8f3;
   color: #245833;
 }
 
 /* Git Repo Box in Branch Popover */
 .repoConfigBox {
   padding: 10px 14px;
-  border-top: 1px solid #EEF3EF;
-  background: #FAFCFA;
+  border-top: 1px solid #eef3ef;
+  background: #fafcfa;
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -872,12 +897,16 @@
   gap: 6px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #5B6B60;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #5b6b60;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .repoIcon {
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
 }
 
@@ -889,7 +918,7 @@
   padding: 1px 5px;
   border-radius: 4px;
   background: rgba(46, 111, 64, 0.1);
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .repoBadgeEmpty {
@@ -899,8 +928,8 @@
   letter-spacing: 0.03em;
   padding: 1px 5px;
   border-radius: 4px;
-  background: #EEF3EF;
-  color: #9AA8A0;
+  background: #eef3ef;
+  color: #9aa8a0;
 }
 
 .repoActionBtn {
@@ -908,20 +937,24 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 4px;
-  border: 1px solid #D5DFD8;
-  background: #FFFFFF;
-  color: #2E6F40;
+  border: 1px solid #d5dfd8;
+  background: #ffffff;
+  color: #2e6f40;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.12s ease;
   line-height: 1.4;
 }
 
 .repoActionBtn:hover {
-  background: #F1F8F3;
-  border-color: #2E6F40;
+  background: #f1f8f3;
+  border-color: #2e6f40;
 }
 
 .repoStatusBody {
@@ -933,11 +966,11 @@
 .repoPathMono {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #2E6F40;
-  background: #FFFFFF;
+  color: #2e6f40;
+  background: #ffffff;
   padding: 3px 6px;
   border-radius: 4px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -947,9 +980,13 @@
 
 .repoEmptyDesc {
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   line-height: 1.35;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .repoEditForm {
@@ -963,23 +1000,25 @@
   width: 100%;
   padding: 6px 9px;
   border-radius: 6px;
-  border: 1px solid #B9CBBF;
+  border: 1px solid #b9cbbf;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11.5px;
-  background: #FFFFFF;
-  color: #1E2A22;
+  background: #ffffff;
+  color: #1e2a22;
   box-sizing: border-box;
   outline: none;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
 }
 
 .repoInput:focus {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.1);
 }
 
 .repoInput::placeholder {
-  color: #B9CBBF;
+  color: #b9cbbf;
 }
 
 .repoFormActions {
@@ -993,12 +1032,16 @@
   padding: 4px 10px;
   border-radius: 5px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: background-color 0.12s;
 }
 
@@ -1014,20 +1057,24 @@
 .repoBtnSecondary {
   padding: 4px 8px;
   border-radius: 5px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
-  color: #5B6B60;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  color: #5b6b60;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.12s;
 }
 
 .repoBtnSecondary:hover {
-  background: #F6FAF7;
-  color: #1E2A22;
-  border-color: #D5DFD8;
+  background: #f6faf7;
+  color: #1e2a22;
+  border-color: #d5dfd8;
 }
 
 .sidebarItemInteractive {
@@ -1035,7 +1082,7 @@
   align-items: center;
   gap: 7px;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   font-weight: 500;
   position: relative;
   cursor: pointer;
@@ -1047,7 +1094,7 @@
 }
 
 .sidebarItemInteractive:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .sidebarSelect {
@@ -1074,7 +1121,7 @@
 
 .sidebarDivider {
   height: 1px;
-  background: #EEF3EF;
+  background: #eef3ef;
   margin: 2px 0;
 }
 
@@ -1083,7 +1130,7 @@
   flex-direction: column;
   gap: 4px;
   font-size: 11.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   line-height: 1.6;
 }
 
@@ -1095,13 +1142,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px;
-  border-bottom: 1px solid #E3E8E5;
+  border-bottom: 1px solid #e3e8e5;
 }
 
 .newModalTitle {
   font-size: 15px;
   font-weight: 700;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .newModalBody {
@@ -1124,7 +1171,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .ntInput {
@@ -1132,17 +1179,19 @@
   box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 7px;
-  border: 1px solid #C7D2CB;
+  border: 1px solid #c7d2cb;
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .ntInput:focus {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
 }
 
@@ -1157,21 +1206,21 @@
   gap: 6px;
   padding: 7px 12px;
   border-radius: 8px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   flex: 1;
   justify-content: center;
   transition: all 0.15s ease;
 }
 
 .ntTypeBtnActive {
-  border-color: #2E6F40 !important;
-  background: #F1F8F3 !important;
-  color: #1E2A22 !important;
+  border-color: #2e6f40 !important;
+  background: #f1f8f3 !important;
+  color: #1e2a22 !important;
 }
 
 .priorityChips {
@@ -1186,19 +1235,19 @@
   gap: 6px;
   padding: 6px 11px;
   border-radius: 999px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   transition: all 0.15s ease;
 }
 
 .ntPriorityChipActive {
-  border-color: #2E6F40 !important;
-  background: #F1F8F3 !important;
-  color: #1E2A22 !important;
+  border-color: #2e6f40 !important;
+  background: #f1f8f3 !important;
+  color: #1e2a22 !important;
 }
 
 .estimateRow {
@@ -1211,19 +1260,19 @@
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   transition: all 0.15s ease;
 }
 
 .ntEstBtnActive {
-  border-color: #2E6F40 !important;
-  background: #2E6F40 !important;
-  color: #FFFFFF !important;
+  border-color: #2e6f40 !important;
+  background: #2e6f40 !important;
+  color: #ffffff !important;
 }
 
 .newModalFooter {
@@ -1232,17 +1281,17 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 24px;
-  border-top: 1px solid #E3E8E5;
+  border-top: 1px solid #e3e8e5;
 }
 
 .btnCancel {
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   font-size: 13px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   cursor: pointer;
 }
 
@@ -1250,10 +1299,10 @@
   padding: 8px 18px;
   border-radius: 8px;
   border: none;
-  background: #2E6F40;
+  background: #2e6f40;
   font-size: 13px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: #ffffff;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(30, 42, 34, 0.1);
   transition: opacity 0.15s ease;
@@ -1275,11 +1324,11 @@
   align-items: center;
   gap: 7px;
   font-size: 12.5px;
-  color: #3A4A3E;
+  color: #3a4a3e;
   cursor: pointer;
 }
 
 .guardOption input {
-  accent-color: #2E6F40;
+  accent-color: #2e6f40;
   cursor: pointer;
 }

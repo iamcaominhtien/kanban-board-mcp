@@ -27,17 +27,18 @@ export function IdeaColumn({ column, tickets, onCardClick }: IdeaColumnProps) {
       style={{ background: column.headerBg } as React.CSSProperties}
     >
       <div className={styles.header}>
-        <span className={styles.emojiCircle} style={{ background: column.accentBg }}>{column.emoji}</span>
+        <span className={styles.emojiCircle} style={{ background: column.accentBg }}>
+          {column.emoji}
+        </span>
         <span className={styles.label}>{column.label}</span>
         <span className={styles.badge}>{tickets.length}</span>
       </div>
       <div className={styles.cardList}>
-        {tickets.length === 0
-          ? <div className={styles.empty}>{column.emoji} No ideas yet</div>
-          : tickets.map((ticket) => (
-              <IdeaCard key={ticket.id} ticket={ticket} onClick={() => onCardClick(ticket)} />
-            ))
-        }
+        {tickets.length === 0 ? (
+          <div className={styles.empty}>{column.emoji} No ideas yet</div>
+        ) : (
+          tickets.map((ticket) => <IdeaCard key={ticket.id} ticket={ticket} onClick={() => onCardClick(ticket)} />)
+        )}
       </div>
     </div>
   );

@@ -23,7 +23,11 @@ export const TableMethods = Extension.create({
                 const text = cell.textContent.trim();
                 if (!METHODS.has(text)) return;
                 const cellPos = pos + 1 + rowOffset + 1;
-                decos.push(Decoration.node(cellPos, cellPos + cell.nodeSize, { class: `dk-method dk-method-${text.toLowerCase()}` }));
+                decos.push(
+                  Decoration.node(cellPos, cellPos + cell.nodeSize, {
+                    class: `dk-method dk-method-${text.toLowerCase()}`,
+                  }),
+                );
               });
               return false;
             });

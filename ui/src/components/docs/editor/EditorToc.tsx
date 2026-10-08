@@ -45,7 +45,17 @@ export function EditorToc({ editor, markdown }: { editor: Editor | null; markdow
   const on = active ?? heads[0].slug;
   return (
     <div style={{ position: 'sticky', top: 0 }} data-testid="editor-toc">
-      <span style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60', marginBottom: 10 }}>
+      <span
+        style={{
+          display: 'block',
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: '#5B6B60',
+          marginBottom: 10,
+        }}
+      >
         On this page
       </span>
       <div style={{ borderLeft: '1px solid #E3E8E5', marginLeft: 1 }}>

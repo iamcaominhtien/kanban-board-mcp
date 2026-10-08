@@ -18,14 +18,35 @@ interface Props {
 }
 
 /** Amber conflict bar under the editor header (DocsEditor board F): View their changes / Keep mine / Reload. */
-export function ConflictBanner({ pageId, baseVersion, latestVersion, latestAuthor, latestAt, busy, onKeepMine, onReload }: Props) {
+export function ConflictBanner({
+  pageId,
+  baseVersion,
+  latestVersion,
+  latestAuthor,
+  latestAt,
+  busy,
+  onKeepMine,
+  onReload,
+}: Props) {
   const [open, setOpen] = useState(false);
   const diff = useDocsDiff(open ? pageId : null, open ? baseVersion : null, open ? latestVersion : null);
   const who = latestAuthor ? actorName(latestAuthor) : 'Someone else';
   return (
     <div data-testid="conflict-banner" role="alert" style={{ flexShrink: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: '#FCEFD9', borderBottom: '1px solid #EBD3A6', boxSizing: 'border-box' }}>
-        <span style={{ color: '#B4791E', display: 'flex' }}><Icon name="i22" size={18} /></span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '11px 16px',
+          background: '#FCEFD9',
+          borderBottom: '1px solid #EBD3A6',
+          boxSizing: 'border-box',
+        }}
+      >
+        <span style={{ color: '#B4791E', display: 'flex' }}>
+          <Icon name="i22" size={18} />
+        </span>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>Someone else edited this page</div>
           <div style={{ fontSize: 12.5, color: '#3A4A3E', lineHeight: 1.45 }}>
@@ -34,22 +55,62 @@ export function ConflictBanner({ pageId, baseVersion, latestVersion, latestAutho
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <button type="button" className="st-btn st-btn-sm" onClick={() => setOpen((v) => !v)} data-testid="view-theirs">
+          <button
+            type="button"
+            className="st-btn st-btn-sm"
+            onClick={() => setOpen((v) => !v)}
+            data-testid="view-theirs"
+          >
             <Icon name="i40" size={14} />
             {open ? 'Hide changes' : 'View their changes'}
           </button>
-          <button type="button" className="st-btn st-btn-sm" disabled={busy} onClick={onKeepMine} data-testid="keep-mine">Keep mine</button>
-          <button type="button" className="st-btn st-btn-sm st-btn-danger-outline" disabled={busy} onClick={onReload} data-testid="reload-theirs">Reload</button>
+          <button
+            type="button"
+            className="st-btn st-btn-sm"
+            disabled={busy}
+            onClick={onKeepMine}
+            data-testid="keep-mine"
+          >
+            Keep mine
+          </button>
+          <button
+            type="button"
+            className="st-btn st-btn-sm st-btn-danger-outline"
+            disabled={busy}
+            onClick={onReload}
+            data-testid="reload-theirs"
+          >
+            Reload
+          </button>
         </div>
       </div>
       {open && (
-        <div style={{ maxHeight: 260, overflowY: 'auto', background: '#FFFFFF', borderBottom: '1px solid #E3E8E5', padding: '12px 20px' }}>
+        <div
+          style={{
+            maxHeight: 260,
+            overflowY: 'auto',
+            background: '#FFFFFF',
+            borderBottom: '1px solid #E3E8E5',
+            padding: '12px 20px',
+          }}
+        >
           {diff.isLoading && <div className="st-hint">Loading their changes…</div>}
           {diff.data && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 12.5, color: '#5B6B60' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 8,
+                  fontSize: 12.5,
+                  color: '#5B6B60',
+                }}
+              >
                 <Avatar name={latestAuthor ?? 'user'} size={20} />
-                <b style={{ color: '#1E2A22' }}>v{latestVersion} by {who}</b>
+                <b style={{ color: '#1E2A22' }}>
+                  v{latestVersion} by {who}
+                </b>
                 <PlusMinus added={diff.data.added} removed={diff.data.removed} />
                 <span>lines{latestAt ? ` · ${fmtTimeOnly(latestAt)}` : ''}</span>
               </div>

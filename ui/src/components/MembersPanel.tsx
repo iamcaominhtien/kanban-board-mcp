@@ -69,13 +69,16 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
             Project Members
             <span className={styles.countBadge}>{members.length}</span>
           </h2>
-          <button
-            type="button"
-            className={styles.closeBtn}
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            >
               <path d="M6 6L18 18M18 6L6 18" />
             </svg>
           </button>
@@ -97,7 +100,15 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
                     onClick={() => handleRemove(m.id)}
                     aria-label={`Remove ${m.name}`}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    >
                       <path d="M6 6L18 18M18 6L6 18" />
                     </svg>
                   </button>
@@ -106,9 +117,7 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
               </div>
             ))}
 
-            {members.length === 0 && (
-              <div className={styles.emptyState}>No members yet.</div>
-            )}
+            {members.length === 0 && <div className={styles.emptyState}>No members yet.</div>}
           </div>
 
           {removeError && <div className={styles.errorText}>{removeError}</div>}
@@ -141,11 +150,7 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
                   />
                 ))}
               </div>
-              <button
-                type="submit"
-                className={styles.addBtn}
-                disabled={!newName.trim() || addMemberMutation.isPending}
-              >
+              <button type="submit" className={styles.addBtn} disabled={!newName.trim() || addMemberMutation.isPending}>
                 {addMemberMutation.isPending ? '…' : 'Add'}
               </button>
             </div>

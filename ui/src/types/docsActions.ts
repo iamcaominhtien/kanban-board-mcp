@@ -54,7 +54,8 @@ export type RecycleEntry = DocsDeletedEntry & {
   parentDeleted?: boolean;
 };
 
-export type TicketDocOrigin = 'description' | 'comment' | 'acceptance_criterion' | 'test_case' | 'debug_note' | 'page' | 'manual';
+export type TicketDocOrigin =
+  'description' | 'comment' | 'acceptance_criterion' | 'test_case' | 'debug_note' | 'page' | 'manual';
 
 export interface TicketDocRow {
   pageId: string;

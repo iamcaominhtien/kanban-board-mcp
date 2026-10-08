@@ -26,11 +26,31 @@ function normalizeUrl(raw: string): string {
 
 const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => boolean }[] = [
   { label: 'Text', run: (e) => e.chain().focus().setParagraph().run(), on: (e) => e.isActive('paragraph') },
-  { label: 'Heading 1', run: (e) => e.chain().focus().setHeading({ level: 1 }).run(), on: (e) => e.isActive('heading', { level: 1 }) },
-  { label: 'Heading 2', run: (e) => e.chain().focus().setHeading({ level: 2 }).run(), on: (e) => e.isActive('heading', { level: 2 }) },
-  { label: 'Heading 3', run: (e) => e.chain().focus().setHeading({ level: 3 }).run(), on: (e) => e.isActive('heading', { level: 3 }) },
-  { label: 'Bulleted list', run: (e) => e.chain().focus().toggleBulletList().run(), on: (e) => e.isActive('bulletList') },
-  { label: 'Numbered list', run: (e) => e.chain().focus().toggleOrderedList().run(), on: (e) => e.isActive('orderedList') },
+  {
+    label: 'Heading 1',
+    run: (e) => e.chain().focus().setHeading({ level: 1 }).run(),
+    on: (e) => e.isActive('heading', { level: 1 }),
+  },
+  {
+    label: 'Heading 2',
+    run: (e) => e.chain().focus().setHeading({ level: 2 }).run(),
+    on: (e) => e.isActive('heading', { level: 2 }),
+  },
+  {
+    label: 'Heading 3',
+    run: (e) => e.chain().focus().setHeading({ level: 3 }).run(),
+    on: (e) => e.isActive('heading', { level: 3 }),
+  },
+  {
+    label: 'Bulleted list',
+    run: (e) => e.chain().focus().toggleBulletList().run(),
+    on: (e) => e.isActive('bulletList'),
+  },
+  {
+    label: 'Numbered list',
+    run: (e) => e.chain().focus().toggleOrderedList().run(),
+    on: (e) => e.isActive('orderedList'),
+  },
   { label: 'Task list', run: (e) => e.chain().focus().toggleTaskList().run(), on: (e) => e.isActive('taskList') },
   { label: 'Quote', run: (e) => e.chain().focus().toggleBlockquote().run(), on: (e) => e.isActive('blockquote') },
   { label: 'Code block', run: (e) => e.chain().focus().toggleCodeBlock().run(), on: (e) => e.isActive('codeBlock') },
@@ -74,7 +94,19 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: P
     editor.commands.focus();
   };
 
-  const Btn = ({ label, on, onClick, children, wide }: { label: string; on?: boolean; onClick: () => void; children: React.ReactNode; wide?: boolean }) => (
+  const Btn = ({
+    label,
+    on,
+    onClick,
+    children,
+    wide,
+  }: {
+    label: string;
+    on?: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+    wide?: boolean;
+  }) => (
     <button
       type="button"
       className="dk-bubble-btn"
@@ -93,7 +125,16 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: P
       editor={editor}
       pluginKey="docsBubble"
       updateDelay={80}
-      options={{ strategy: 'fixed', placement: 'top', offset: 10, flip: true, shift: { padding: 8 }, onHide: () => { setBlockOpen(false); } }}
+      options={{
+        strategy: 'fixed',
+        placement: 'top',
+        offset: 10,
+        flip: true,
+        shift: { padding: 8 },
+        onHide: () => {
+          setBlockOpen(false);
+        },
+      }}
       shouldShow={({ editor: e, state }) => {
         const { selection } = state;
         if (selection.empty || !e.isEditable) return false;
@@ -152,10 +193,37 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: P
               }}
             />
             {SEP}
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={apply} style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: '#CFFFDC', padding: '0 6px' }}>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={apply}
+              style={{
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#CFFFDC',
+                padding: '0 6px',
+              }}
+            >
               Apply
             </button>
-            <button type="button" aria-label="Cancel" onMouseDown={(e) => e.preventDefault()} onClick={cancel} style={{ border: 'none', background: 'none', cursor: 'pointer', display: 'flex', color: '#B7C9BE', padding: 0 }}>
+            <button
+              type="button"
+              aria-label="Cancel"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={cancel}
+              style={{
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                color: '#B7C9BE',
+                padding: 0,
+              }}
+            >
               <Icon name="i08" size={13} />
             </button>
           </>
@@ -203,10 +271,17 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: P
             <Btn label="Link" on={st?.link} onClick={() => setLinkOpen(true)}>
               <Icon name="i11" size={15} />
             </Btn>
-            <Btn label="Reference a page or section" onClick={() => {
-              const { from, to } = editor.state.selection;
-              editor.chain().focus().insertContent(`[[${editor.state.doc.textBetween(from, to, ' ')}`).run();
-            }}>
+            <Btn
+              label="Reference a page or section"
+              onClick={() => {
+                const { from, to } = editor.state.selection;
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent(`[[${editor.state.doc.textBetween(from, to, ' ')}`)
+                  .run();
+              }}
+            >
               <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>[[</span>
             </Btn>
             <Btn label="Ticket" onClick={() => editor.chain().focus().insertContent(`[[${ticketPrefix}-`).run()}>
@@ -214,7 +289,18 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: P
             </Btn>
           </>
         )}
-        <div style={{ position: 'absolute', left: '50%', bottom: -5, width: 10, height: 10, marginLeft: -5, background: '#1E2A22', transform: 'rotate(45deg)' }} />
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: -5,
+            width: 10,
+            height: 10,
+            marginLeft: -5,
+            background: '#1E2A22',
+            transform: 'rotate(45deg)',
+          }}
+        />
       </div>
     </BubbleMenu>
   );

@@ -278,13 +278,17 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
           ref={retryBtnRef}
           type="button"
           className={styles.btn}
-          onClick={() => (view === 'update' ? window.location.reload() : view === 'failed' ? onRetryBackend() : probeNowRef.current())}
+          onClick={() =>
+            view === 'update' ? window.location.reload() : view === 'failed' ? onRetryBackend() : probeNowRef.current()
+          }
         >
           {view === 'update' ? 'Reload now' : 'Try again'}
         </button>
       )}
       {view === 'update' && (
-        <div className={styles.footer}>Required so Kanban stays compatible with the server. This can&apos;t be dismissed.</div>
+        <div className={styles.footer}>
+          Required so Kanban stays compatible with the server. This can&apos;t be dismissed.
+        </div>
       )}
       {view === 'unreachable' && (
         <div className={styles.chips}>

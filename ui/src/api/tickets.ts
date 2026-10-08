@@ -1,7 +1,25 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import { resolveOrigin } from './resolveOrigin';
-import type { BranchGraphData, DebugAttachment, CommitDetail, IssueType, Priority, RelationType, Status, TestCase, Ticket, TicketBranch, TicketLink, TicketWorkspaceInfo, WorkLogEntry, WorkLogRole, WorkspaceFilePreview, WorkspaceSettings, WorkspaceSweepResult } from '../types/ticket';
+import type {
+  BranchGraphData,
+  DebugAttachment,
+  CommitDetail,
+  IssueType,
+  Priority,
+  RelationType,
+  Status,
+  TestCase,
+  Ticket,
+  TicketBranch,
+  TicketLink,
+  TicketWorkspaceInfo,
+  WorkLogEntry,
+  WorkLogRole,
+  WorkspaceFilePreview,
+  WorkspaceSettings,
+  WorkspaceSweepResult,
+} from '../types/ticket';
 
 export interface DescriptionImageUpload {
   url: string;
@@ -67,10 +85,7 @@ export async function updateTicket(
   return res.data;
 }
 
-export async function updateTicketStatus(
-  ticketId: string,
-  status: Status,
-): Promise<Ticket> {
+export async function updateTicketStatus(ticketId: string, status: Status): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/status`, { status });
   return res.data;
 }
@@ -128,28 +143,17 @@ export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
 }
 
 // Comments
-export async function addComment(
-  ticketId: string,
-  text: string,
-  author = 'user',
-): Promise<Ticket> {
+export async function addComment(ticketId: string, text: string, author = 'user'): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author });
   return res.data;
 }
 
-export async function updateComment(
-  ticketId: string,
-  commentId: string,
-  text: string,
-): Promise<Ticket> {
+export async function updateComment(ticketId: string, commentId: string, text: string): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/comments/${commentId}`, { text });
   return res.data;
 }
 
-export async function deleteComment(
-  ticketId: string,
-  commentId: string,
-): Promise<Ticket> {
+export async function deleteComment(ticketId: string, commentId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/comments/${commentId}`);
   return res.data;
 }
@@ -160,31 +164,18 @@ export async function restoreComment(ticketId: string, commentId: string): Promi
 }
 
 // Acceptance criteria
-export async function addAcceptanceCriterion(
-  ticketId: string,
-  text: string,
-): Promise<Ticket> {
+export async function addAcceptanceCriterion(ticketId: string, text: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/acceptance-criteria`, { text });
   return res.data;
 }
 
-export async function toggleAcceptanceCriterion(
-  ticketId: string,
-  criterionId: string,
-): Promise<Ticket> {
-  const res = await client.patch<Ticket>(
-    `/tickets/${ticketId}/acceptance-criteria/${criterionId}/toggle`,
-  );
+export async function toggleAcceptanceCriterion(ticketId: string, criterionId: string): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/acceptance-criteria/${criterionId}/toggle`);
   return res.data;
 }
 
-export async function deleteAcceptanceCriterion(
-  ticketId: string,
-  criterionId: string,
-): Promise<Ticket> {
-  const res = await client.delete<Ticket>(
-    `/tickets/${ticketId}/acceptance-criteria/${criterionId}`,
-  );
+export async function deleteAcceptanceCriterion(ticketId: string, criterionId: string): Promise<Ticket> {
+  const res = await client.delete<Ticket>(`/tickets/${ticketId}/acceptance-criteria/${criterionId}`);
   return res.data;
 }
 
@@ -213,49 +204,28 @@ export async function addWorkLog(
   return res.data;
 }
 
-export async function updateWorkLog(
-  ticketId: string,
-  entryId: string,
-  data: Partial<WorkLogEntry>,
-): Promise<Ticket> {
+export async function updateWorkLog(ticketId: string, entryId: string, data: Partial<WorkLogEntry>): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/work-log/${entryId}`, data);
   return res.data;
 }
 
-export async function deleteWorkLog(
-  ticketId: string,
-  entryId: string,
-): Promise<Ticket> {
+export async function deleteWorkLog(ticketId: string, entryId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/work-log/${entryId}`);
   return res.data;
 }
 
 // Test cases
-export async function addTestCase(
-  ticketId: string,
-  title: string,
-  extra?: Partial<TestCase>,
-): Promise<Ticket> {
+export async function addTestCase(ticketId: string, title: string, extra?: Partial<TestCase>): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/test-cases`, { title, ...extra });
   return res.data;
 }
 
-export async function updateTestCase(
-  ticketId: string,
-  testCaseId: string,
-  data: Partial<TestCase>,
-): Promise<Ticket> {
-  const res = await client.patch<Ticket>(
-    `/tickets/${ticketId}/test-cases/${testCaseId}`,
-    data,
-  );
+export async function updateTestCase(ticketId: string, testCaseId: string, data: Partial<TestCase>): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`, data);
   return res.data;
 }
 
-export async function deleteTestCase(
-  ticketId: string,
-  testCaseId: string,
-): Promise<Ticket> {
+export async function deleteTestCase(ticketId: string, testCaseId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`);
   return res.data;
 }
@@ -266,17 +236,14 @@ export async function addTicketLink(
   targetId: string,
   relationType: RelationType,
 ): Promise<TicketLink> {
-  const res = await client.post<TicketLink>(
-    `/tickets/${ticketId}/links`,
-    { target_id: targetId, relation_type: relationType },
-  );
+  const res = await client.post<TicketLink>(`/tickets/${ticketId}/links`, {
+    target_id: targetId,
+    relation_type: relationType,
+  });
   return res.data;
 }
 
-export async function removeTicketLink(
-  ticketId: string,
-  linkId: string,
-): Promise<void> {
+export async function removeTicketLink(ticketId: string, linkId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}/links/${linkId}`);
 }
 
@@ -348,9 +315,7 @@ export async function getWorkspaceSettings(): Promise<WorkspaceSettings> {
   return res.data;
 }
 
-export async function updateWorkspaceSettings(
-  data: Partial<WorkspaceSettings>,
-): Promise<WorkspaceSettings> {
+export async function updateWorkspaceSettings(data: Partial<WorkspaceSettings>): Promise<WorkspaceSettings> {
   const res = await client.patch<WorkspaceSettings>('/workspace/settings', data);
   return res.data;
 }
@@ -360,14 +325,8 @@ export async function getTicketWorkspace(ticketId: string): Promise<TicketWorksp
   return res.data;
 }
 
-export async function setTicketWorkspaceRetention(
-  ticketId: string,
-  retentionDays: number | null,
-): Promise<Ticket> {
-  const res = await client.patch<Ticket>(
-    `/tickets/${ticketId}/workspace/retention`,
-    { retention_days: retentionDays },
-  );
+export async function setTicketWorkspaceRetention(ticketId: string, retentionDays: number | null): Promise<Ticket> {
+  const res = await client.patch<Ticket>(`/tickets/${ticketId}/workspace/retention`, { retention_days: retentionDays });
   return res.data;
 }
 
@@ -383,11 +342,7 @@ export async function createWorkspaceFolder(ticketId: string, path: string): Pro
   await client.post(`/tickets/${ticketId}/workspace/folders`, { path });
 }
 
-export async function uploadWorkspaceFile(
-  ticketId: string,
-  file: File,
-  directory = '',
-): Promise<void> {
+export async function uploadWorkspaceFile(ticketId: string, file: File, directory = ''): Promise<void> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('directory', directory);
@@ -398,10 +353,7 @@ export async function deleteWorkspaceEntry(ticketId: string, path: string): Prom
   await client.delete(`/tickets/${ticketId}/workspace/entry`, { params: { path } });
 }
 
-export async function getWorkspacePreview(
-  ticketId: string,
-  path: string,
-): Promise<WorkspaceFilePreview> {
+export async function getWorkspacePreview(ticketId: string, path: string): Promise<WorkspaceFilePreview> {
   const res = await client.get<WorkspaceFilePreview>(`/tickets/${ticketId}/workspace/file`, {
     params: { path },
   });
@@ -433,10 +385,7 @@ export const ticketKeys = {
 // Queries
 // ---------------------------------------------------------------------------
 
-export function useTickets(
-  projectId: string,
-  params?: { status?: string; priority?: string; q?: string },
-) {
+export function useTickets(projectId: string, params?: { status?: string; priority?: string; q?: string }) {
   return useQuery({
     queryKey: [...ticketKeys.all(projectId), params],
     queryFn: () => listTickets(projectId, params),
@@ -474,13 +423,8 @@ export function useCreateTicket(projectId: string) {
 export function useUpdateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      ticketId,
-      data,
-    }: {
-      ticketId: string;
-      data: Parameters<typeof updateTicket>[1];
-    }) => updateTicket(ticketId, data),
+    mutationFn: ({ ticketId, data }: { ticketId: string; data: Parameters<typeof updateTicket>[1] }) =>
+      updateTicket(ticketId, data),
     onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
       queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });
@@ -492,8 +436,7 @@ export function useUpdateTicket() {
 export function useUpdateTicketStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ ticketId, status }: { ticketId: string; status: Status }) =>
-      updateTicketStatus(ticketId, status),
+    mutationFn: ({ ticketId, status }: { ticketId: string; status: Status }) => updateTicketStatus(ticketId, status),
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
@@ -528,108 +471,85 @@ function useTicketSubMutation<T>(mutationFn: (arg: T) => Promise<Ticket>) {
 }
 
 export function useAddComment() {
-  return useTicketSubMutation(
-    ({ ticketId, text, author }: { ticketId: string; text: string; author?: string }) =>
-      addComment(ticketId, text, author),
+  return useTicketSubMutation(({ ticketId, text, author }: { ticketId: string; text: string; author?: string }) =>
+    addComment(ticketId, text, author),
   );
 }
 
 export function useUpdateComment() {
-  return useTicketSubMutation(
-    ({ ticketId, commentId, text }: { ticketId: string; commentId: string; text: string }) =>
-      updateComment(ticketId, commentId, text),
+  return useTicketSubMutation(({ ticketId, commentId, text }: { ticketId: string; commentId: string; text: string }) =>
+    updateComment(ticketId, commentId, text),
   );
 }
 
 export function useRestoreComment() {
-  return useTicketSubMutation(
-    ({ ticketId, commentId }: { ticketId: string; commentId: string }) => restoreComment(ticketId, commentId),
+  return useTicketSubMutation(({ ticketId, commentId }: { ticketId: string; commentId: string }) =>
+    restoreComment(ticketId, commentId),
   );
 }
 
 export function useDeleteComment() {
-  return useTicketSubMutation(
-    ({ ticketId, commentId }: { ticketId: string; commentId: string }) =>
-      deleteComment(ticketId, commentId),
+  return useTicketSubMutation(({ ticketId, commentId }: { ticketId: string; commentId: string }) =>
+    deleteComment(ticketId, commentId),
   );
 }
 
 export function useAddAcceptanceCriterion() {
-  return useTicketSubMutation(
-    ({ ticketId, text }: { ticketId: string; text: string }) =>
-      addAcceptanceCriterion(ticketId, text),
+  return useTicketSubMutation(({ ticketId, text }: { ticketId: string; text: string }) =>
+    addAcceptanceCriterion(ticketId, text),
   );
 }
 
 export function useToggleAcceptanceCriterion() {
-  return useTicketSubMutation(
-    ({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
-      toggleAcceptanceCriterion(ticketId, criterionId),
+  return useTicketSubMutation(({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
+    toggleAcceptanceCriterion(ticketId, criterionId),
   );
 }
 
 export function useDeleteAcceptanceCriterion() {
-  return useTicketSubMutation(
-    ({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
-      deleteAcceptanceCriterion(ticketId, criterionId),
+  return useTicketSubMutation(({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
+    deleteAcceptanceCriterion(ticketId, criterionId),
   );
 }
 
 export function useAddSubTask() {
-  return useTicketSubMutation(({ ticketId, text }: { ticketId: string; text: string }) =>
-    addSubTask(ticketId, text),
-  );
+  return useTicketSubMutation(({ ticketId, text }: { ticketId: string; text: string }) => addSubTask(ticketId, text));
 }
 
 export function useToggleSubTask() {
-  return useTicketSubMutation(
-    ({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
-      toggleSubTask(ticketId, subTaskId),
+  return useTicketSubMutation(({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
+    toggleSubTask(ticketId, subTaskId),
   );
 }
 
 export function useDeleteSubTask() {
-  return useTicketSubMutation(
-    ({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
-      deleteSubTask(ticketId, subTaskId),
+  return useTicketSubMutation(({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
+    deleteSubTask(ticketId, subTaskId),
   );
 }
 
 export function useAddWorkLog() {
-  return useTicketSubMutation(
-    ({ ticketId, data }: { ticketId: string; data: Parameters<typeof addWorkLog>[1] }) =>
-      addWorkLog(ticketId, data),
+  return useTicketSubMutation(({ ticketId, data }: { ticketId: string; data: Parameters<typeof addWorkLog>[1] }) =>
+    addWorkLog(ticketId, data),
   );
 }
 
 export function useUpdateWorkLog() {
   return useTicketSubMutation(
-    ({
-      ticketId,
-      entryId,
-      data,
-    }: {
-      ticketId: string;
-      entryId: string;
-      data: Parameters<typeof updateWorkLog>[2];
-    }) => updateWorkLog(ticketId, entryId, data),
+    ({ ticketId, entryId, data }: { ticketId: string; entryId: string; data: Parameters<typeof updateWorkLog>[2] }) =>
+      updateWorkLog(ticketId, entryId, data),
   );
 }
 
 export function useDeleteWorkLog() {
-  return useTicketSubMutation(
-    ({ ticketId, entryId }: { ticketId: string; entryId: string }) =>
-      deleteWorkLog(ticketId, entryId),
+  return useTicketSubMutation(({ ticketId, entryId }: { ticketId: string; entryId: string }) =>
+    deleteWorkLog(ticketId, entryId),
   );
 }
 
 export function useAddTestCase() {
   return useTicketSubMutation(
-    ({
-      ticketId,
-      title,
-      ...extra
-    }: { ticketId: string; title: string } & Partial<TestCase>) =>
+    ({ ticketId, title, ...extra }: { ticketId: string; title: string } & Partial<TestCase>) =>
       addTestCase(ticketId, title, extra),
   );
 }
@@ -649,9 +569,8 @@ export function useUpdateTestCase() {
 }
 
 export function useDeleteTestCase() {
-  return useTicketSubMutation(
-    ({ ticketId, testCaseId }: { ticketId: string; testCaseId: string }) =>
-      deleteTestCase(ticketId, testCaseId),
+  return useTicketSubMutation(({ ticketId, testCaseId }: { ticketId: string; testCaseId: string }) =>
+    deleteTestCase(ticketId, testCaseId),
   );
 }
 
@@ -666,8 +585,7 @@ export function useWontDoTickets(projectId: string) {
 export function useRestoreTicket(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (ticketId: string) =>
-      updateTicket(ticketId, { status: 'backlog', wontDoReason: null }),
+    mutationFn: (ticketId: string) => updateTicket(ticketId, { status: 'backlog', wontDoReason: null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
       queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', projectId] });
@@ -677,31 +595,20 @@ export function useRestoreTicket(projectId: string) {
 
 // Block / Blocked-by relationships
 
-export async function linkBlock(
-  ticketId: string,
-  targetId: string,
-): Promise<{ blocker: Ticket; blocked: Ticket }> {
-  const res = await client.post<{ blocker: Ticket; blocked: Ticket }>(
-    `/tickets/${ticketId}/blocks/${targetId}`,
-  );
+export async function linkBlock(ticketId: string, targetId: string): Promise<{ blocker: Ticket; blocked: Ticket }> {
+  const res = await client.post<{ blocker: Ticket; blocked: Ticket }>(`/tickets/${ticketId}/blocks/${targetId}`);
   return res.data;
 }
 
-export async function unlinkBlock(
-  ticketId: string,
-  targetId: string,
-): Promise<{ blocker: Ticket; blocked: Ticket }> {
-  const res = await client.delete<{ blocker: Ticket; blocked: Ticket }>(
-    `/tickets/${ticketId}/blocks/${targetId}`,
-  );
+export async function unlinkBlock(ticketId: string, targetId: string): Promise<{ blocker: Ticket; blocked: Ticket }> {
+  const res = await client.delete<{ blocker: Ticket; blocked: Ticket }>(`/tickets/${ticketId}/blocks/${targetId}`);
   return res.data;
 }
 
 export function useLinkBlock() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
-      linkBlock(blockerId, blockedId),
+    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) => linkBlock(blockerId, blockedId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(data.blocker.projectId) });
       if (data.blocked.projectId !== data.blocker.projectId) {
@@ -775,8 +682,7 @@ export function useAddTicketLink(projectId: string) {
 export function useRemoveTicketLink(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ ticketId, linkId }: { ticketId: string; linkId: string }) =>
-      removeTicketLink(ticketId, linkId),
+    mutationFn: ({ ticketId, linkId }: { ticketId: string; linkId: string }) => removeTicketLink(ticketId, linkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
     },
@@ -815,10 +721,7 @@ export function useUpdateWorkspaceSettings() {
 }
 
 /** Run a workspace mutation and refresh that ticket's file listing afterwards. */
-export function useWorkspaceAction<TVars>(
-  ticketId: string,
-  fn: (vars: TVars) => Promise<void>,
-) {
+export function useWorkspaceAction<TVars>(ticketId: string, fn: (vars: TVars) => Promise<void>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -831,13 +734,8 @@ export function useWorkspaceAction<TVars>(
 export function useSetTicketWorkspaceRetention() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      ticketId,
-      retentionDays,
-    }: {
-      ticketId: string;
-      retentionDays: number | null;
-    }) => setTicketWorkspaceRetention(ticketId, retentionDays),
+    mutationFn: ({ ticketId, retentionDays }: { ticketId: string; retentionDays: number | null }) =>
+      setTicketWorkspaceRetention(ticketId, retentionDays),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket_workspace', ticketId] });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
@@ -875,13 +773,8 @@ export function useCommitDetail(ticketId: string, rev: string | null) {
 export function useCreateBranch() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      ticketId,
-      data,
-    }: {
-      ticketId: string;
-      data: Parameters<typeof createBranch>[1];
-    }) => createBranch(ticketId, data),
+    mutationFn: ({ ticketId, data }: { ticketId: string; data: Parameters<typeof createBranch>[1] }) =>
+      createBranch(ticketId, data),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
@@ -911,8 +804,7 @@ export function useUpdateBranch() {
 export function useCheckoutBranch() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ ticketId, branchId }: { ticketId: string; branchId: string }) =>
-      checkoutBranch(ticketId, branchId),
+    mutationFn: ({ ticketId, branchId }: { ticketId: string; branchId: string }) => checkoutBranch(ticketId, branchId),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket_branches', ticketId] });
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
@@ -940,5 +832,3 @@ export function useDeleteBranch() {
     },
   });
 }
-
-

@@ -100,7 +100,7 @@ export interface TestCase {
   expectedResult?: string | null;
   notes?: string | null;
   proof?: string | null; // legacy
-  note?: string | null;  // legacy
+  note?: string | null; // legacy
   startedAt?: string | null;
   createdAt?: string;
   updatedAt?: string | null;
@@ -134,7 +134,7 @@ export interface Ticket {
   blockedBy: string[];
   blockDoneIfAcsIncomplete: boolean;
   blockDoneIfTcsIncomplete: boolean;
-  links: TicketLink[];  // extended relationship links
+  links: TicketLink[]; // extended relationship links
   branches?: TicketBranch[];
   workspaceRetentionDays?: number | null;
   repoPath?: string | null;
@@ -235,14 +235,14 @@ export type IdeaEnergy = 'seed' | 'concept' | 'hot' | 'big_bet';
 
 export interface IdeaActivityEntry {
   id: string;
-  label: string;       // e.g. "Status changed to In Review", "Description updated"
-  at: string;          // ISO datetime
+  label: string; // e.g. "Status changed to In Review", "Description updated"
+  at: string; // ISO datetime
 }
 
 export interface IdeaMicrothought {
   id: string;
   text: string;
-  at: string;          // ISO datetime
+  at: string; // ISO datetime
 }
 
 export type IdeaAssumptionStatus = 'untested' | 'validated' | 'invalidated';
@@ -272,16 +272,16 @@ export interface IdeaTicket {
   microthoughts?: IdeaMicrothought[];
 
   // Feature 3 — ICE Score
-  iceImpact?: number;       // 1-5
-  iceEffort?: number;       // 1-5
-  iceConfidence?: number;   // 1-5
+  iceImpact?: number; // 1-5
+  iceEffort?: number; // 1-5
+  iceConfidence?: number; // 1-5
 
   // Feature 4 — Assumption Tracker
   assumptions?: IdeaAssumption[];
 
   // Feature 5 — Revisit Date + Staleness
-  revisitDate?: string;     // ISO date string
-  lastTouchedAt?: string;   // ISO datetime, auto-updated on save
+  revisitDate?: string; // ISO date string
+  lastTouchedAt?: string; // ISO datetime, auto-updated on save
 
   // Feature 6 — Promotion Trail
   promotedToTicketId?: string;

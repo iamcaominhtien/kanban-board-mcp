@@ -7,10 +7,7 @@ export async function listMembers(projectId: string): Promise<Member[]> {
   return res.data;
 }
 
-export async function addMember(
-  projectId: string,
-  data: { name: string; color?: string },
-): Promise<Member> {
+export async function addMember(projectId: string, data: { name: string; color?: string }): Promise<Member> {
   const res = await client.post<Member>(`/projects/${projectId}/members`, data);
   return res.data;
 }

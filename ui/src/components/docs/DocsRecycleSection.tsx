@@ -134,13 +134,21 @@ export function BinRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span
             className="mc-chip"
-            style={isPage ? { background: '#DCEEE1', color: '#1F5A31', height: 20 } : { background: '#F1F3F1', color: '#3A4A3E', height: 20 }}
+            style={
+              isPage
+                ? { background: '#DCEEE1', color: '#1F5A31', height: 20 }
+                : { background: '#F1F3F1', color: '#3A4A3E', height: 20 }
+            }
           >
             {isPage ? 'Page' : 'Ticket'}
           </span>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', flexWrap: 'wrap' }}>{meta}</div>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', flexWrap: 'wrap' }}
+        >
+          {meta}
+        </div>
         {lines.map((l, i) => (
           <div key={i} style={{ fontSize: 11.5, color: '#9AA8A0' }}>
             {l}
@@ -200,8 +208,8 @@ export function PageBinRow({
           <Icon name="i28" size={16} strokeWidth={1.9} />
         </span>
         <span>
-          <b style={{ fontWeight: 700 }}>“{entry.title}” will return at the top level.</b> Its parent, {entry.parentTitle}, is still in the
-          Recycle Bin. Restore {entry.parentTitle} first to put it back in place.
+          <b style={{ fontWeight: 700 }}>“{entry.title}” will return at the top level.</b> Its parent,{' '}
+          {entry.parentTitle}, is still in the Recycle Bin. Restore {entry.parentTitle} first to put it back in place.
         </span>
       </div>
     );
@@ -213,7 +221,9 @@ export function PageBinRow({
     );
   } else if (entry.parentTitle) {
     note = (
-      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>Restores under {entry.parentTitle}.</div>
+      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>
+        Restores under {entry.parentTitle}.
+      </div>
     );
   }
 
@@ -238,7 +248,8 @@ export function PageBinRow({
           {note}
           {confirming && (
             <div role="alert" style={{ fontSize: 12.5, color: '#A5321E', marginTop: 4 }}>
-              Delete “{entry.title}”{extra > 0 ? ` and its ${plural(extra, 'child page')}` : ''} forever? This can’t be undone.
+              Delete “{entry.title}”{extra > 0 ? ` and its ${plural(extra, 'child page')}` : ''} forever? This can’t be
+              undone.
             </div>
           )}
           {error && (
@@ -264,7 +275,12 @@ export function PageBinRow({
               <Icon name="i19" size={13} strokeWidth={2} />
               {busy ? 'Restoring…' : 'Restore'}
             </button>
-            <button type="button" className="st-btn st-btn-sm st-btn-danger-outline" disabled={busy} onClick={onAskPurge}>
+            <button
+              type="button"
+              className="st-btn st-btn-sm st-btn-danger-outline"
+              disabled={busy}
+              onClick={onAskPurge}
+            >
               <Icon name="i12" size={13} />
               Delete forever
             </button>
@@ -276,7 +292,13 @@ export function PageBinRow({
 }
 
 /** Standalone list of deleted pages (the combined panel in RecycleBin.tsx merges these with tickets). */
-export function DocsRecycleSection({ projectId, onOpenPage }: { projectId: string; onOpenPage?: (pageId: string) => void }) {
+export function DocsRecycleSection({
+  projectId,
+  onOpenPage,
+}: {
+  projectId: string;
+  onOpenPage?: (pageId: string) => void;
+}) {
   const r = useDocsRecycle(projectId, onOpenPage);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   return (
@@ -287,7 +309,9 @@ export function DocsRecycleSection({ projectId, onOpenPage }: { projectId: strin
           {r.error}
         </p>
       )}
-      {!r.isLoading && r.entries.length === 0 && <p style={{ padding: 16, color: '#5B6B60', fontSize: 13 }}>No deleted pages.</p>}
+      {!r.isLoading && r.entries.length === 0 && (
+        <p style={{ padding: 16, color: '#5B6B60', fontSize: 13 }}>No deleted pages.</p>
+      )}
       {r.entries.map((entry, i) => (
         <PageBinRow
           key={entry.id}

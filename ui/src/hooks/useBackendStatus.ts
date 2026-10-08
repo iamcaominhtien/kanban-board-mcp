@@ -66,9 +66,14 @@ export function useBackendStatus(): {
     });
 
     // The backend may already be up (window reload / re-created window): the ready event won't fire again
-    api.getBackendPort?.().then((port) => {
-      if (port) markReady(port);
-    }).catch(() => { /* keep waiting for the event */ });
+    api
+      .getBackendPort?.()
+      .then((port) => {
+        if (port) markReady(port);
+      })
+      .catch(() => {
+        /* keep waiting for the event */
+      });
 
     return () => {
       cancelled = true;
@@ -84,7 +89,9 @@ export function useBackendStatus(): {
     setStatus('connecting');
     setErrorMessage(null);
     setAttempt((n) => n + 1); // re-subscribe: the IPC events are one-shot
-    void api.retryBackend().catch(() => { /* the error event reports the failure */ });
+    void api.retryBackend().catch(() => {
+      /* the error event reports the failure */
+    });
   }, []);
 
   return { status, errorMessage, retry };

@@ -97,7 +97,15 @@ export function AcceptanceCriteriaSection({
                   onClick={handleCancelEdit}
                   aria-label="Cancel edit"
                 >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
                     <path d="M6 6L18 18" />
                     <path d="M18 6L6 18" />
                   </svg>
@@ -108,7 +116,16 @@ export function AcceptanceCriteriaSection({
                   onClick={() => handleSaveEdit(item.id)}
                   aria-label="Save criterion"
                 >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FFFFFF"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M5 13L10 18L19 6" />
                   </svg>
                 </button>
@@ -127,7 +144,13 @@ export function AcceptanceCriteriaSection({
                 {item.done ? (
                   <svg className={styles.checkedCircle} viewBox="0 0 14 14" fill="none">
                     <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
-                    <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M4.3 7.2L6.1 9L9.8 5"
+                      stroke="#2E6F40"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 ) : (
                   <div className={styles.uncheckedSquare} />
@@ -151,7 +174,16 @@ export function AcceptanceCriteriaSection({
                   onClick={() => startEdit(item)}
                   aria-label="Edit criterion"
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M12 20H21" />
                     <path d="M16.5 3.5C17.3 2.7 18.6 2.7 19.4 3.5C20.2 4.3 20.2 5.6 19.4 6.4L7 18.8L3 19.8L4 15.8L16.5 3.5Z" />
                   </svg>
@@ -162,7 +194,16 @@ export function AcceptanceCriteriaSection({
                   onClick={() => onDelete(item.id)}
                   aria-label="Delete criterion"
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M4 7H20" />
                     <path d="M9 7V4.5C9 3.7 9.7 3 10.5 3H13.5C14.3 3 15 3.7 15 4.5V7" />
                     <path d="M6 7L7 20.5C7 21.3 7.7 22 8.5 22H15.5C16.3 22 17 21.3 17 20.5L18 7" />
@@ -190,24 +231,31 @@ export function AcceptanceCriteriaSection({
               }}
             />
             <TicketRefSuggester targetRef={addInputRef} />
-            <button
-              type="button"
-              className={styles.actionBtnCancel}
-              onClick={handleCancelNew}
-              aria-label="Cancel"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <button type="button" className={styles.actionBtnCancel} onClick={handleCancelNew} aria-label="Cancel">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <path d="M6 6L18 18" />
                 <path d="M18 6L6 18" />
               </svg>
             </button>
-            <button
-              type="button"
-              className={styles.actionBtnSave}
-              onClick={handleSaveNew}
-              aria-label="Save"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <button type="button" className={styles.actionBtnSave} onClick={handleSaveNew} aria-label="Save">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M5 13L10 18L19 6" />
               </svg>
             </button>
@@ -215,12 +263,16 @@ export function AcceptanceCriteriaSection({
           <div className={styles.helperText}>Enter to save and add another · Esc to cancel</div>
         </div>
       ) : (
-        <button
-          type="button"
-          className={styles.addDashedBtn}
-          onClick={() => setIsAdding(true)}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <button type="button" className={styles.addDashedBtn} onClick={() => setIsAdding(true)}>
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
             <path d="M12 5V19" />
             <path d="M5 12H19" />
           </svg>

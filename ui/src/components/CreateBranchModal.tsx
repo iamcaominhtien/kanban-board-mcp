@@ -27,7 +27,7 @@ export function computeDefaultWorktreePath(
   template: string | null | undefined,
   projectPrefix: string = '',
   ticketId: string = '',
-  branchName: string = ''
+  branchName: string = '',
 ): string {
   const tpl = template && template.trim() ? template.trim() : '../worktrees/{project}/{ticket_id}-{branch}';
   const sanitizedBranch = branchName ? branchName.replace(/\//g, '-').trim() : '{branch}';
@@ -116,15 +116,8 @@ export function CreateBranchModal({
   });
   const branchOptions = Array.from(branchNamesSet);
 
-  const computedWorktreePath = computeDefaultWorktreePath(
-    defaultWorktreeTemplate,
-    projectPrefix,
-    ticketId,
-    branchName
-  );
-  const currentWorktreePath = isCustomWorktreePathTouched
-    ? customWorktreePath
-    : computedWorktreePath;
+  const computedWorktreePath = computeDefaultWorktreePath(defaultWorktreeTemplate, projectPrefix, ticketId, branchName);
+  const currentWorktreePath = isCustomWorktreePathTouched ? customWorktreePath : computedWorktreePath;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,9 +125,9 @@ export function CreateBranchModal({
     if (!trimmed) return;
 
     const effectiveWorktreePath = createWorktree
-      ? (isCustomWorktreePathTouched
-          ? customWorktreePath.trim()
-          : computeDefaultWorktreePath(defaultWorktreeTemplate, projectPrefix, ticketId, trimmed))
+      ? isCustomWorktreePathTouched
+        ? customWorktreePath.trim()
+        : computeDefaultWorktreePath(defaultWorktreeTemplate, projectPrefix, ticketId, trimmed)
       : undefined;
 
     try {
@@ -148,10 +141,7 @@ export function CreateBranchModal({
           worktree_path: effectiveWorktreePath || null,
         },
       });
-      toast.success(
-        createWorktree ? 'Branch & worktree created' : 'Branch created',
-        trimmed
-      );
+      toast.success(createWorktree ? 'Branch & worktree created' : 'Branch created', trimmed);
       onSuccess?.(trimmed);
       onClose();
     } catch (err) {
@@ -231,9 +221,7 @@ export function CreateBranchModal({
                   <button
                     key={opt}
                     type="button"
-                    className={`${styles.dropdownItem} ${
-                      opt === branchFrom ? styles.dropdownItemActive : ''
-                    }`}
+                    className={`${styles.dropdownItem} ${opt === branchFrom ? styles.dropdownItemActive : ''}`}
                     onClick={() => {
                       setBranchFrom(opt);
                       setIsDropdownOpen(false);
@@ -249,7 +237,8 @@ export function CreateBranchModal({
             )}
           </div>
           <span className={styles.helperText}>
-            Any existing branch works too, not just main — spins up a new ticket that carries the parent&apos;s description/AC as a starting point.
+            Any existing branch works too, not just main — spins up a new ticket that carries the parent&apos;s
+            description/AC as a starting point.
           </span>
         </div>
 
@@ -262,9 +251,7 @@ export function CreateBranchModal({
               checked={createWorktree}
               onChange={(e) => setCreateWorktree(e.target.checked)}
             />
-            <span className={styles.checkboxText}>
-              Create git worktree for this branch
-            </span>
+            <span className={styles.checkboxText}>Create git worktree for this branch</span>
           </label>
 
           {createWorktree && (
@@ -297,7 +284,8 @@ export function CreateBranchModal({
               />
               {!hasRepoLinked ? (
                 <span className={styles.helperText} style={{ color: '#C4432A' }}>
-                  Note: Git repository path is not configured on project or ticket. Git worktree creation requires a linked repository path.
+                  Note: Git repository path is not configured on project or ticket. Git worktree creation requires a
+                  linked repository path.
                 </span>
               ) : (
                 <span className={styles.helperText}>
@@ -317,11 +305,7 @@ export function CreateBranchModal({
           >
             {createBranchMutation.isPending ? 'Creating...' : 'Create branch'}
           </button>
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={onClose}
-          >
+          <button type="button" className={styles.btnSecondary} onClick={onClose}>
             Cancel
           </button>
         </div>

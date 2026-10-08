@@ -19,7 +19,7 @@ export function boldMatch(text: string, query: string): ReactNode {
 
 function subLine(item: DocsSuggestItem): string {
   if (item.kind === 'section') return item.path.join(' › ');
-  return item.path.length > 1 ? item.path.join(' › ') : item.path[0] ?? '';
+  return item.path.length > 1 ? item.path.join(' › ') : (item.path[0] ?? '');
 }
 
 /** The pages-and-sections rows shared by the `[[` suggester and the "Link a doc" popover. */
@@ -40,7 +40,9 @@ export function SuggestRows({
 }) {
   if (!items.length) {
     return (
-      <div style={{ padding: '10px', fontSize: 12.5, color: '#5B6B60' }}>{loading ? 'Searching…' : query.trim() ? `No pages match “${query.trim()}”` : 'Type to search pages'}</div>
+      <div style={{ padding: '10px', fontSize: 12.5, color: '#5B6B60' }}>
+        {loading ? 'Searching…' : query.trim() ? `No pages match “${query.trim()}”` : 'Type to search pages'}
+      </div>
     );
   }
   return (
@@ -62,14 +64,39 @@ export function SuggestRows({
             }}
           >
             <span style={{ display: 'flex', color: it.kind === 'section' || on ? '#2E6F40' : '#9AA8A0' }}>
-              {it.kind === 'section' ? <Icon name="i04" size={15} strokeWidth={2} /> : <Icon name="i00" size={16} strokeWidth={1.8} />}
+              {it.kind === 'section' ? (
+                <Icon name="i04" size={15} strokeWidth={2} />
+              ) : (
+                <Icon name="i00" size={16} strokeWidth={1.8} />
+              )}
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>{boldMatch(it.title, query)}</span>
-              <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subLine(it)}</span>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  color: '#5B6B60',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {subLine(it)}
+              </span>
             </span>
             {on && (
-              <span style={{ marginLeft: 'auto', paddingLeft: 8, fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  paddingLeft: 8,
+                  fontSize: 11.5,
+                  color: '#9AA8A0',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
                 <span className="dk-kbd">Enter</span>
               </span>
             )}
@@ -198,7 +225,14 @@ export function DocLinkSuggester({ editorRef, projectId, onChanged }: DocLinkSug
       style={{ position: 'fixed', left: state.x, top: state.y + shift, width: 330, zIndex: 2000, padding: 5 }}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <SuggestRows items={items} active={active} query={state.query} onPick={pick} onHover={setActive} loading={suggest.isFetching} />
+      <SuggestRows
+        items={items}
+        active={active}
+        query={state.query}
+        onPick={pick}
+        onHover={setActive}
+        loading={suggest.isFetching}
+      />
     </div>
   );
 }

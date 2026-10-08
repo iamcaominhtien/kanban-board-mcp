@@ -221,7 +221,11 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
   const draft = page.draft;
 
   const groups = useMemo(() => {
-    const out: Record<'today' | 'yesterday' | 'earlier', DocsVersionSummary[]> = { today: [], yesterday: [], earlier: [] };
+    const out: Record<'today' | 'yesterday' | 'earlier', DocsVersionSummary[]> = {
+      today: [],
+      yesterday: [],
+      earlier: [],
+    };
     for (const v of versions) out[dayKey(v.createdAt)].push(v);
     return out;
   }, [versions]);
@@ -248,7 +252,12 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
           <button type="button" className="st-btn" onClick={() => setRestoreTarget(null)}>
             Cancel
           </button>
-          <button type="button" className="st-btn st-btn-primary" onClick={() => void confirmRestore()} disabled={restore.isPending}>
+          <button
+            type="button"
+            className="st-btn st-btn-primary"
+            onClick={() => void confirmRestore()}
+            disabled={restore.isPending}
+          >
             <Icon name="i19" size={14} />
             {restore.isPending ? 'Restoring…' : `Restore as v${page.version + 1}`}
           </button>
@@ -260,8 +269,9 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
           <Icon name="i28" size={16} />
         </span>
         <span>
-          <b style={{ fontWeight: 700 }}>Restoring creates v{page.version + 1}.</b> {page.title} is set back to the content of v
-          {restoreTarget.version} and published as a new version. v{page.version} stays in the history, so you can go back at any time.
+          <b style={{ fontWeight: 700 }}>Restoring creates v{page.version + 1}.</b> {page.title} is set back to the
+          content of v{restoreTarget.version} and published as a new version. v{page.version} stays in the history, so
+          you can go back at any time.
         </span>
       </div>
       {restoreDiffQ.data && (
@@ -275,7 +285,13 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
         <label className="st-field-label" htmlFor="restore-note" style={{ fontSize: 11 }}>
           Version note
         </label>
-        <input id="restore-note" ref={noteRef} className="st-input" value={note} onChange={(e) => setNote(e.target.value)} />
+        <input
+          id="restore-note"
+          ref={noteRef}
+          className="st-input"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
       </div>
       {draft && (
         <div
@@ -296,7 +312,8 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
             <Icon name="i14" size={15} strokeWidth={2} />
           </span>
           <span>
-            {displayName(draft.author)} has an unpublished draft. It is kept, and will now be based on v{page.version + 1}.
+            {displayName(draft.author)} has an unpublished draft. It is kept, and will now be based on v
+            {page.version + 1}.
           </span>
         </div>
       )}
@@ -328,7 +345,11 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
         <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700 }}>v{value}</span>
         {v && <Avatar name={v.author} />}
         {v && displayName(v.author)}
-        {v && <span style={{ color: '#9AA8A0', fontSize: 12 }}>{dayKey(v.createdAt) === 'today' ? 'today' : fmtDate(v.createdAt)}</span>}
+        {v && (
+          <span style={{ color: '#9AA8A0', fontSize: 12 }}>
+            {dayKey(v.createdAt) === 'today' ? 'today' : fmtDate(v.createdAt)}
+          </span>
+        )}
         <Icon name="i06" size={12} strokeWidth={2.3} />
         <select
           aria-label={`Version ${value}`}
@@ -370,7 +391,17 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
             color: '#1E2A22',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 22px', borderBottom: '1px solid #E3E8E5', background: '#FFFFFF', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '14px 22px',
+              borderBottom: '1px solid #E3E8E5',
+              background: '#FFFFFF',
+              flexWrap: 'wrap',
+            }}
+          >
             <button type="button" className="st-btn st-btn-sm" onClick={() => setComparing(null)}>
               <Icon name="i60" size={13} strokeWidth={2} />
               Back to page
@@ -384,12 +415,29 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
               <span style={{ fontFamily: MONO, fontSize: 12.5 }}>
                 <span style={{ color: '#2E6F40', fontWeight: 700 }}>+{diffQ.data.added}</span>{' '}
                 <span style={{ color: '#C4432A', fontWeight: 700 }}>−{diffQ.data.removed}</span>{' '}
-                <span style={{ color: '#5B6B60', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontWeight: 500 }}>
+                <span
+                  style={{
+                    color: '#5B6B60',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                    fontWeight: 500,
+                  }}
+                >
                   lines in {plural(sections.length, 'section')}
                 </span>
               </span>
             )}
-            <div role="group" aria-label="Diff layout" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 3, borderRadius: 8, background: '#EEF3EF' }}>
+            <div
+              role="group"
+              aria-label="Diff layout"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                padding: 3,
+                borderRadius: 8,
+                background: '#EEF3EF',
+              }}
+            >
               <button
                 type="button"
                 className="mb-view-btn"
@@ -420,7 +468,19 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
             </button>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
-            <div ref={diffBodyRef} style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '22px 20px 22px 26px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div
+              ref={diffBodyRef}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                overflowY: 'auto',
+                padding: '22px 20px 22px 26px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#5B6B60' }}>
                 <span style={{ color: '#2F6FB0', display: 'flex' }}>
                   <Icon name="i28" size={14} />
@@ -438,14 +498,41 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
                   diff={diffQ.data}
                   mode={mode}
                   activeSection={activeSection}
-                  leftLabel={fromV ? { version: fromV.version, text: `${displayName(fromV.author)}, ${dayKey(fromV.createdAt) === 'today' ? 'today' : fmtDate(fromV.createdAt)}` } : undefined}
-                  rightLabel={toV ? { version: toV.version, text: `${displayName(toV.author)}, ${dayKey(toV.createdAt) === 'today' ? 'today' : fmtDate(toV.createdAt)}` } : undefined}
+                  leftLabel={
+                    fromV
+                      ? {
+                          version: fromV.version,
+                          text: `${displayName(fromV.author)}, ${dayKey(fromV.createdAt) === 'today' ? 'today' : fmtDate(fromV.createdAt)}`,
+                        }
+                      : undefined
+                  }
+                  rightLabel={
+                    toV
+                      ? {
+                          version: toV.version,
+                          text: `${displayName(toV.author)}, ${dayKey(toV.createdAt) === 'today' ? 'today' : fmtDate(toV.createdAt)}`,
+                        }
+                      : undefined
+                  }
                 />
               )}
             </div>
             <div style={{ width: 250, flexShrink: 0, padding: '22px 18px 0 6px', boxSizing: 'border-box' }}>
-              <nav aria-label="Jump to a change" style={{ position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60' }}>Jump to a change</div>
+              <nav
+                aria-label="Jump to a change"
+                style={{ position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', gap: 6 }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: '#5B6B60',
+                  }}
+                >
+                  Jump to a change
+                </div>
                 {sections.map((s, i) => (
                   <button
                     key={`${s.heading}-${i}`}
@@ -469,16 +556,28 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
                   >
                     {s.heading || 'Top of page'}
                     <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11.5, fontWeight: 500 }}>
-                      <span style={{ color: '#2E6F40' }}>+{s.added}</span> <span style={{ color: '#C4432A' }}>−{s.removed}</span>
+                      <span style={{ color: '#2E6F40' }}>+{s.added}</span>{' '}
+                      <span style={{ color: '#C4432A' }}>−{s.removed}</span>
                     </span>
                   </button>
                 ))}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 12, color: '#5B6B60' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginTop: 10,
+                    fontSize: 12,
+                    color: '#5B6B60',
+                  }}
+                >
                   <span className="dk-kbd">J</span>
                   <span className="dk-kbd">K</span>
                   next / previous change
                 </div>
-                <div style={{ fontSize: 12, lineHeight: 1.5, color: '#9AA8A0', marginTop: 2 }}>Unchanged sections are not listed.</div>
+                <div style={{ fontSize: 12, lineHeight: 1.5, color: '#9AA8A0', marginTop: 2 }}>
+                  Unchanged sections are not listed.
+                </div>
               </nav>
             </div>
           </div>
@@ -501,7 +600,14 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
         key={v.version}
         className="hd-row"
         data-selected={on ? '1' : undefined}
-        style={{ display: 'flex', gap: 10, padding: '10px 16px', borderBottom: '1px solid #EEF3EF', background: on ? '#F1F8F3' : undefined, position: 'relative' }}
+        style={{
+          display: 'flex',
+          gap: 10,
+          padding: '10px 16px',
+          borderBottom: '1px solid #EEF3EF',
+          background: on ? '#F1F8F3' : undefined,
+          position: 'relative',
+        }}
       >
         <label style={{ position: 'relative', display: 'flex', cursor: 'pointer' }}>
           <input
@@ -509,7 +615,15 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
             checked={on}
             onChange={() => toggle(v.version)}
             aria-label={`Select version ${v.version}`}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', margin: 0, opacity: 0, cursor: 'pointer' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              margin: 0,
+              opacity: 0,
+              cursor: 'pointer',
+            }}
           />
           <VersionBox on={on} />
         </label>
@@ -521,7 +635,10 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
                 Current
               </span>
             )}
-            <span title={fmtDateTime(v.createdAt)} style={{ marginLeft: 'auto', fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap' }}>
+            <span
+              title={fmtDateTime(v.createdAt)}
+              style={{ marginLeft: 'auto', fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap' }}
+            >
               {absolute}
             </span>
           </div>
@@ -557,7 +674,11 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
         .hd-row .hd-actions { display: none; }
         .hd-row:hover .hd-actions, .hd-row:focus-within .hd-actions { display: flex; }
       `}</style>
-      <div className="docs-root" onClick={handleClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'transparent' }}>
+      <div
+        className="docs-root"
+        onClick={handleClose}
+        style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'transparent' }}
+      >
         <div
           ref={drawerRef}
           tabIndex={-1}
@@ -602,7 +723,9 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
             Select two versions to compare them, or one to see what it changed.
           </div>
           <div style={{ borderTop: '1px solid #E3E8E5', flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            {versionsQ.isLoading && <p style={{ margin: 0, padding: 16, fontSize: 13, color: '#5B6B60' }}>Loading versions…</p>}
+            {versionsQ.isLoading && (
+              <p style={{ margin: 0, padding: 16, fontSize: 13, color: '#5B6B60' }}>Loading versions…</p>
+            )}
             {versionsQ.isError && (
               <p role="alert" style={{ margin: 0, padding: 16, fontSize: 13, color: '#A5321E' }}>
                 {docsErrorDetail(versionsQ.error)?.message ?? extractError(versionsQ.error)}
@@ -642,15 +765,27 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#B4791E' }} />
                       Draft autosaves
                       <span style={{ fontWeight: 500, color: '#5B6B60' }}>{displayName(draft.author)}</span>
-                      <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>not published</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>
+                        not published
+                      </span>
                     </button>
                     {draftOpen && (
                       <div
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 16px 6px 40px', borderBottom: '1px solid #EEF3EF', fontSize: 12, color: '#5B6B60' }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '6px 16px 6px 40px',
+                          borderBottom: '1px solid #EEF3EF',
+                          fontSize: 12,
+                          color: '#5B6B60',
+                        }}
                       >
                         <Icon name="i20" size={12} strokeWidth={2} />
                         Autosave {fmtTimeOnly(draft.updatedAt)}
-                        <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#9AA8A0' }}>{agoText(draft.updatedAt)}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#9AA8A0' }}>
+                          {agoText(draft.updatedAt)}
+                        </span>
                       </div>
                     )}
                   </>
@@ -694,7 +829,16 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
               </>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderTop: '1px solid #E3E8E5', background: '#FBFCFB' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 16px',
+              borderTop: '1px solid #E3E8E5',
+              background: '#FBFCFB',
+            }}
+          >
             <span style={{ flex: 1, fontSize: 12.5, color: '#3A4A3E' }}>
               <b style={{ color: '#1E2A22', fontWeight: 700 }}>{selected.length} selected</b>{' '}
               {selected.length === 2 && (

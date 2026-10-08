@@ -60,8 +60,7 @@ export function useDeletePreview(pageId: string) {
 export function useRecycleEntries(projectId: string) {
   return useQuery({
     queryKey: docsKeys.recycle(projectId),
-    queryFn: async () =>
-      (await client.get<RecycleEntry[]>(`/projects/${projectId}/docs/recycle-bin`)).data,
+    queryFn: async () => (await client.get<RecycleEntry[]>(`/projects/${projectId}/docs/recycle-bin`)).data,
     enabled: !!projectId,
   });
 }
@@ -150,9 +149,9 @@ export function useDocsSuggest(projectId: string | undefined, q: string, enabled
         return out.slice(0, 8);
       } catch {
         // search endpoint unavailable: fall back to the page tree
-        const tree = (await client.get<{ id: string; title: string; parentId: string | null }[]>(
-          `/projects/${projectId}/docs/tree`,
-        )).data;
+        const tree = (
+          await client.get<{ id: string; title: string; parentId: string | null }[]>(`/projects/${projectId}/docs/tree`)
+        ).data;
         const byId = new Map(tree.map((n) => [n.id, n]));
         const pathOf = (id: string) => {
           const parts: string[] = [];
@@ -166,7 +165,13 @@ export function useDocsSuggest(projectId: string | undefined, q: string, enabled
         return tree
           .filter((n) => n.title.toLowerCase().includes(query.toLowerCase()))
           .slice(0, 6)
-          .map((n) => ({ kind: 'page' as const, pageId: n.id, title: n.title, pageTitle: n.title, path: pathOf(n.id) }));
+          .map((n) => ({
+            kind: 'page' as const,
+            pageId: n.id,
+            title: n.title,
+            pageTitle: n.title,
+            path: pathOf(n.id),
+          }));
       }
     },
   });

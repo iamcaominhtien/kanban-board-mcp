@@ -292,7 +292,16 @@ const EVENT_FIELDS = new Set([
   'branch_worktree',
 ]);
 
-const MONO_FIELDS = new Set(['branch', 'branch_status', 'branch_checkout', 'branch_worktree', 'repo_path', 'blocks', 'blocked_by', 'parent_id']);
+const MONO_FIELDS = new Set([
+  'branch',
+  'branch_status',
+  'branch_checkout',
+  'branch_worktree',
+  'repo_path',
+  'blocks',
+  'blocked_by',
+  'parent_id',
+]);
 
 function actorLabel(actor: string | undefined, members: Member[]): string | null {
   if (!actor) return null;
@@ -301,7 +310,17 @@ function actorLabel(actor: string | undefined, members: Member[]): string | null
   return members.find((m) => m.id === actor)?.name ?? actor;
 }
 
-function DiffBlock({ rows, raw, projectId, prefix }: { rows: DiffRow[]; raw: boolean; projectId: string; prefix: string | null }) {
+function DiffBlock({
+  rows,
+  raw,
+  projectId,
+  prefix,
+}: {
+  rows: DiffRow[];
+  raw: boolean;
+  projectId: string;
+  prefix: string | null;
+}) {
   const refs = useDocsRefs();
   const texts = useMemo(() => rows.map((r) => r.text), [rows]);
   const { parsed, resolved } = useRefSegments(projectId, texts, prefix);
@@ -316,25 +335,37 @@ function DiffBlock({ rows, raw, projectId, prefix }: { rows: DiffRow[]; raw: boo
   return (
     <>
       {rows.map((row, rIdx) => {
-        const rowStyle = row.type === 'removed' ? styles.diffRemoved : row.type === 'added' ? styles.diffAdded : styles.diffNormal;
+        const rowStyle =
+          row.type === 'removed' ? styles.diffRemoved : row.type === 'added' ? styles.diffAdded : styles.diffNormal;
         const signColor = row.type === 'removed' ? '#C4432A' : row.type === 'added' ? '#2E6F40' : '#9AA8A0';
         const highlightStyle = row.type === 'removed' ? styles.diffHighlightRemoved : styles.diffHighlightAdded;
-        const body = raw || !projectId ? row.text : (
-          <RefLine
-            parsed={parsed[rIdx]}
-            resolved={resolved}
-            offset={offsets[rIdx]}
-            projectId={projectId}
-            dim={row.type === 'removed'}
-            onOpenPage={refs?.peek}
-            onOpenTicket={refs?.openTicket}
-          />
-        );
+        const body =
+          raw || !projectId ? (
+            row.text
+          ) : (
+            <RefLine
+              parsed={parsed[rIdx]}
+              resolved={resolved}
+              offset={offsets[rIdx]}
+              projectId={projectId}
+              dim={row.type === 'removed'}
+              onOpenPage={refs?.peek}
+              onOpenTicket={refs?.openTicket}
+            />
+          );
         return (
           <div key={rIdx} className={`${styles.diffRow} ${rowStyle}`}>
-            <span className={styles.diffSign} style={{ color: signColor }}>{row.sign}</span>
+            <span className={styles.diffSign} style={{ color: signColor }}>
+              {row.sign}
+            </span>
             <span className={styles.diffContent}>
-              {row.type !== 'normal' && row.text.trim() ? <span className={highlightStyle}>{body}</span> : row.text ? body : '\u00A0'}
+              {row.type !== 'normal' && row.text.trim() ? (
+                <span className={highlightStyle}>{body}</span>
+              ) : row.text ? (
+                body
+              ) : (
+                '\u00A0'
+              )}
             </span>
           </div>
         );
@@ -364,7 +395,16 @@ function DocRefsRows({ entry, projectId, prefix }: { entry: DocRefsEntry; projec
       <div className={styles.acChange} data-testid={`docrefs-${label}`}>
         <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>{label}</span>
         {parsed.slice(from, to).map((p: Seg[], i: number) => (
-          <RefLine key={i} parsed={p} resolved={resolved} offset={offsets[from + i]} projectId={projectId} dim={dim} onOpenPage={refs?.peek} onOpenTicket={refs?.openTicket} />
+          <RefLine
+            key={i}
+            parsed={p}
+            resolved={resolved}
+            offset={offsets[from + i]}
+            projectId={projectId}
+            dim={dim}
+            onOpenPage={refs?.peek}
+            onOpenTicket={refs?.openTicket}
+          />
         ))}
       </div>
     );
@@ -377,7 +417,13 @@ function DocRefsRows({ entry, projectId, prefix }: { entry: DocRefsEntry; projec
   );
 }
 
-export function ActivitySection({ ticketId, entries: rawEntries, members = [], isLoading = false, onViewComment }: ActivitySectionProps) {
+export function ActivitySection({
+  ticketId,
+  entries: rawEntries,
+  members = [],
+  isLoading = false,
+  onViewComment,
+}: ActivitySectionProps) {
   const refsCtx = useDocsRefs();
   const prefix = ticketId.includes('-') ? ticketId.split('-')[0] : null;
   const [rawDiffs, setRawDiffs] = useState<Record<string, boolean>>({});
@@ -393,7 +439,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       const key = `${e.at.slice(0, 19)}|${e.ref ?? ''}|${e.actor ?? ''}`;
       let g = bySave.get(key);
       if (!g) {
-        g = { field: 'doc_refs', from: null, to: null, at: e.at, actor: e.actor, ref: e.ref, removedRefs: [], addedRefs: [] };
+        g = {
+          field: 'doc_refs',
+          from: null,
+          to: null,
+          at: e.at,
+          actor: e.actor,
+          ref: e.ref,
+          removedRefs: [],
+          addedRefs: [],
+        };
         bySave.set(key, g);
         out.push(g);
       }
@@ -449,7 +504,11 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       if (filter === 'comments') return COMMENT_FIELDS.has(e.field);
       if (filter === 'branch') return isBranchField(e.field);
       if (filter === 'other') {
-        return !['status', 'assignee', 'priority'].includes(e.field) && !COMMENT_FIELDS.has(e.field) && !isBranchField(e.field);
+        return (
+          !['status', 'assignee', 'priority'].includes(e.field) &&
+          !COMMENT_FIELDS.has(e.field) &&
+          !isBranchField(e.field)
+        );
       }
       return true;
     });
@@ -485,7 +544,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'status':
         return (
           <div className={styles.acBubble} style={{ background: '#E1EEFB', color: '#2F6FB0' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="9" />
               <path d="M12 3A9 9 0 0 1 12 21Z" fill="currentColor" />
             </svg>
@@ -494,7 +562,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'assignee':
         return (
           <div className={styles.acBubble} style={{ background: '#E6E9F5', color: '#5B5FA8' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="8" r="4" />
               <path d="M4 21C4 17 7.5 14.5 12 14.5S20 17 20 21" />
             </svg>
@@ -503,7 +580,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'priority':
         return (
           <div className={styles.acBubble} style={{ background: '#FDECE0', color: '#E2793D' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M5 20V15" />
               <path d="M10 20V11" />
               <path d="M15 20V7" />
@@ -515,7 +601,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'title':
         return (
           <div className={styles.acBubble} style={{ background: '#F1F3F1', color: '#5B6B60' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M12 20H21" />
               <path d="M16.5 3.5A2.1 2.1 0 0 1 19.5 6.5L7 19L3 20L4 16Z" />
             </svg>
@@ -524,7 +619,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'tags':
         return (
           <div className={styles.acBubble} style={{ background: '#DCEEE1', color: '#2E6F40' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M20.6 13.4L13.4 20.6A2 2 0 0 1 10.6 20.6L3 13V3H13L20.6 10.6A2 2 0 0 1 20.6 13.4Z" />
               <circle cx="7.5" cy="7.5" r="1" fill="currentColor" />
             </svg>
@@ -537,7 +641,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'repo_path':
         return (
           <div className={styles.acBubble} style={{ background: '#ECE9FA', color: '#6D5DD3' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="6" cy="6" r="2.5" />
               <circle cx="6" cy="18" r="2.5" />
               <circle cx="18" cy="6" r="2.5" />
@@ -552,7 +665,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'startDate':
         return (
           <div className={styles.acBubble} style={{ background: '#FBF1DC', color: '#B4791E' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
               <path d="M3.5 10H20.5" />
               <path d="M8 3V6.5" />
@@ -561,7 +683,10 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
           </div>
         );
       case 'doc_refs':
-        return iconBubble('#DCEEE1', '#2E6F40', ['M6 3H14L19 8V20A1 1 0 0 1 18 21H6A1 1 0 0 1 5 20V4A1 1 0 0 1 6 3Z', 'M14 3V8H19']);
+        return iconBubble('#DCEEE1', '#2E6F40', [
+          'M6 3H14L19 8V20A1 1 0 0 1 18 21H6A1 1 0 0 1 5 20V4A1 1 0 0 1 6 3Z',
+          'M14 3V8H19',
+        ]);
       case 'comment':
         return iconBubble('#E1EEFB', '#2F6FB0', ['M4 5H20V16H9L5 20V16H4Z']);
       case 'work_log':
@@ -574,11 +699,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       case 'blocks':
       case 'blocked_by':
       case 'link':
-        return iconBubble('#FBF1DC', '#B4791E', ['M10 14A4 4 0 0 0 15.7 14.3L18.7 11.3A4 4 0 0 0 13 5.7L12 6.7', 'M14 10A4 4 0 0 0 8.3 9.7L5.3 12.7A4 4 0 0 0 11 18.3L12 17.3']);
+        return iconBubble('#FBF1DC', '#B4791E', [
+          'M10 14A4 4 0 0 0 15.7 14.3L18.7 11.3A4 4 0 0 0 13 5.7L12 6.7',
+          'M14 10A4 4 0 0 0 8.3 9.7L5.3 12.7A4 4 0 0 0 11 18.3L12 17.3',
+        ]);
       case 'parent_id':
         return iconBubble('#F1F3F1', '#5B6B60', ['M6 4V14A4 4 0 0 0 10 18H18', 'M14 14L18 18L14 22']);
       case 'workspace_retention':
-        return iconBubble('#F1F3F1', '#5B6B60', ['M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z']);
+        return iconBubble('#F1F3F1', '#5B6B60', [
+          'M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z',
+        ]);
       case 'wont_do_reason':
         return iconBubble('#F1F3F1', '#8C9BAE', ['M5 5L19 19', 'M12 3A9 9 0 1 0 12 21A9 9 0 0 0 12 3Z']);
       case 'created':
@@ -586,7 +716,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       default:
         return (
           <div className={styles.acBubble} style={{ background: '#F1F3F1', color: '#5B6B60' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="9" />
               <path d="M12 7V12L15 14" />
             </svg>
@@ -597,8 +736,19 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
 
   const iconBubble = (bg: string, color: string, paths: string[]) => (
     <div className={styles.acBubble} style={{ background: bg, color }}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {paths.map((d) => <path key={d} d={d} />)}
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {paths.map((d) => (
+          <path key={d} d={d} />
+        ))}
       </svg>
     </div>
   );
@@ -607,9 +757,17 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
   const renderValueChip = (field: string, val: any, isOldTitle = false) => {
     if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)) {
       if (field === 'assignee') {
-        return <span className={styles.acChip} style={{ color: '#9AA8A0' }}>Unassigned</span>;
+        return (
+          <span className={styles.acChip} style={{ color: '#9AA8A0' }}>
+            Unassigned
+          </span>
+        );
       }
-      return <span className={styles.acChip} style={{ color: '#9AA8A0' }}>none</span>;
+      return (
+        <span className={styles.acChip} style={{ color: '#9AA8A0' }}>
+          none
+        </span>
+      );
     }
 
     if (field === 'status') {
@@ -663,17 +821,17 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
           : [String(val)];
 
       if (tagsList.length === 0) {
-        return <span className={styles.acChip} style={{ color: '#9AA8A0' }}>none</span>;
+        return (
+          <span className={styles.acChip} style={{ color: '#9AA8A0' }}>
+            none
+          </span>
+        );
       }
 
       return (
         <>
           {tagsList.map((tag) => (
-            <span
-              key={tag}
-              className={styles.tagPill}
-              style={{ background: 'rgba(46,111,64,0.12)', color: '#2E6F40' }}
-            >
+            <span key={tag} className={styles.tagPill} style={{ background: 'rgba(46,111,64,0.12)', color: '#2E6F40' }}>
               {tag}
             </span>
           ))}
@@ -683,7 +841,11 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
 
     if (MONO_FIELDS.has(field)) {
       return (
-        <span className={styles.acChip} style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }} title={String(val)}>
+        <span
+          className={styles.acChip}
+          style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}
+          title={String(val)}
+        >
           {String(val)}
         </span>
       );
@@ -709,9 +871,7 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
         const d = new Date(val);
         if (!isNaN(d.getTime())) {
           return (
-            <span className={styles.acChip}>
-              {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
+            <span className={styles.acChip}>{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
           );
         }
       } catch {
@@ -719,7 +879,11 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       }
     }
 
-    return <span className={styles.acChip} title={String(val)}>{String(val)}</span>;
+    return (
+      <span className={styles.acChip} title={String(val)}>
+        {String(val)}
+      </span>
+    );
   };
 
   if (isLoading) {
@@ -734,7 +898,10 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
               <div className={`${styles.acBubble} ${styles.acSk}`} />
               <div className={styles.acMain} style={{ gap: '8px' }}>
                 <span className={styles.acSk} style={{ height: '9px', width: '54px', borderRadius: '5px' }} />
-                <span className={styles.acSk} style={{ height: '20px', width: `${140 + n * 30}px`, borderRadius: '999px' }} />
+                <span
+                  className={styles.acSk}
+                  style={{ height: '20px', width: `${140 + n * 30}px`, borderRadius: '999px' }}
+                />
               </div>
               <span className={styles.acSk} style={{ height: '9px', width: '48px', borderRadius: '5px' }} />
             </div>
@@ -752,15 +919,17 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
           {counts.all} changes · {ticketId}
         </span>
         <div className={styles.filterList}>
-          {([
-            ['all', 'All'],
-            ['status', 'Status'],
-            ['assignee', 'Assignee'],
-            ['priority', 'Priority'],
-            ['comments', 'Comments'],
-            ['branch', 'Branch'],
-            ['other', 'Other'],
-          ] as [FilterGroup, string][]).map(([key, label]) => (
+          {(
+            [
+              ['all', 'All'],
+              ['status', 'Status'],
+              ['assignee', 'Assignee'],
+              ['priority', 'Priority'],
+              ['comments', 'Comments'],
+              ['branch', 'Branch'],
+              ['other', 'Other'],
+            ] as [FilterGroup, string][]
+          ).map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -777,7 +946,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
       {filteredEntries.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="9" />
               <path d="M12 7V12L15 14" />
             </svg>
@@ -813,16 +991,15 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
                     const { fullDate, age } = formatFullTooltip(entry.at);
 
                     return (
-                      <div
-                        key={rowKey}
-                        className={`${styles.acRow} ${isDescription ? styles.acRowTop : ''}`}
-                      >
+                      <div key={rowKey} className={`${styles.acRow} ${isDescription ? styles.acRowTop : ''}`}>
                         {renderBubble(entry.field)}
 
                         <div className={styles.acMain}>
                           <span className={styles.acField}>
                             {fieldName}
-                            {entry.ref && entry.field !== 'comment' && entry.field !== 'doc_refs' && <span className={styles.acRef}> · {entry.ref}</span>}
+                            {entry.ref && entry.field !== 'comment' && entry.field !== 'doc_refs' && (
+                              <span className={styles.acRef}> · {entry.ref}</span>
+                            )}
                           </span>
 
                           {isDescription && diffData ? (
@@ -835,17 +1012,28 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
                                 >
                                   <span style={{ color: '#2E6F40' }}>+{diffData.addedCount}</span>
                                   <span style={{ color: '#C4432A' }}>−{diffData.removedCount}</span>
-                                  <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#5B6B60', fontWeight: 600 }}>
+                                  <span
+                                    style={{
+                                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                      color: '#5B6B60',
+                                      fontWeight: 600,
+                                    }}
+                                  >
                                     lines
                                   </span>
                                 </span>
-                                <button
-                                  type="button"
-                                  className={styles.acToggle}
-                                  onClick={() => toggleDiff(rowKey)}
-                                >
+                                <button type="button" className={styles.acToggle} onClick={() => toggleDiff(rowKey)}>
                                   {isDiffExpanded ? 'Hide changes' : 'Show changes'}
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
                                     <path d={isDiffExpanded ? 'M18 15L12 9L6 15' : 'M6 9L12 15L18 9'} />
                                   </svg>
                                 </button>
@@ -853,7 +1041,12 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
 
                               {isDiffExpanded && (
                                 <div className={styles.diffContainer}>
-                                  <DiffBlock rows={diffData.rows} raw={!!rawDiffs[rowKey]} projectId={refsCtx?.projectId ?? ''} prefix={prefix} />
+                                  <DiffBlock
+                                    rows={diffData.rows}
+                                    raw={!!rawDiffs[rowKey]}
+                                    projectId={refsCtx?.projectId ?? ''}
+                                    prefix={prefix}
+                                  />
                                   {refsCtx && (
                                     <button
                                       type="button"
@@ -869,11 +1062,20 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
                               )}
                             </>
                           ) : entry.field === 'doc_refs' ? (
-                            <DocRefsRows entry={entry as DocRefsEntry} projectId={refsCtx?.projectId ?? ''} prefix={prefix} />
+                            <DocRefsRows
+                              entry={entry as DocRefsEntry}
+                              projectId={refsCtx?.projectId ?? ''}
+                              prefix={prefix}
+                            />
                           ) : entry.field === 'comment' && entry.from == null && entry.to != null && entry.ref ? (
                             <div className={styles.acChange}>
                               <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>commented</span>
-                              <button type="button" className={styles.acToggle} data-testid="view-comment" onClick={() => onViewComment?.(entry.ref as string)}>
+                              <button
+                                type="button"
+                                className={styles.acToggle}
+                                data-testid="view-comment"
+                                onClick={() => onViewComment?.(entry.ref as string)}
+                              >
                                 View comment
                               </button>
                             </div>
@@ -884,7 +1086,11 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
                           ) : EVENT_FIELDS.has(entry.field) && (entry.from == null || entry.to == null) ? (
                             <div className={styles.acChange}>
                               <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
-                                {entry.to == null ? 'removed' : entry.field === 'branch_checkout' ? 'checked out' : 'added'}
+                                {entry.to == null
+                                  ? 'removed'
+                                  : entry.field === 'branch_checkout'
+                                    ? 'checked out'
+                                    : 'added'}
                               </span>
                               {entry.to == null
                                 ? renderValueChip(entry.field, entry.from, true)
@@ -894,7 +1100,16 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
                             <div className={styles.acChange}>
                               {renderValueChip(entry.field, entry.from, entry.field === 'title')}
 
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#9AA8A0"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
                                 <path d="M5 12H19" />
                                 <path d="M13 6L19 12L13 18" />
                               </svg>
@@ -904,10 +1119,7 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
                           )}
                         </div>
 
-                        <span
-                          className={styles.acTime}
-                          style={isDescription ? { paddingTop: '2px' } : undefined}
-                        >
+                        <span className={styles.acTime} style={isDescription ? { paddingTop: '2px' } : undefined}>
                           {actorLabel(entry.actor, members) && (
                             <span className={styles.acActor}>{actorLabel(entry.actor, members)} · </span>
                           )}
@@ -931,11 +1143,7 @@ export function ActivitySection({ ticketId, entries: rawEntries, members = [], i
           })}
 
           {filteredEntries.length > visibleCount && (
-            <button
-              type="button"
-              className={styles.acMore}
-              onClick={() => setVisibleCount((prev) => prev + 20)}
-            >
+            <button type="button" className={styles.acMore} onClick={() => setVisibleCount((prev) => prev + 20)}>
               Show {filteredEntries.length - visibleCount} earlier changes
             </button>
           )}

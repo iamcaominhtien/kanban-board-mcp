@@ -220,7 +220,16 @@ export function FilePreviewModal({
                 onClick={handleOpenInSystemApp}
                 title="Open with default system application (Excel, Word, PowerPoint, Code...)"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                   <polyline points="15 3 21 3 21 9" />
                   <line x1="10" y1="14" x2="21" y2="3" />
@@ -235,7 +244,16 @@ export function FilePreviewModal({
               className={`${styles.btn} ${styles.btnPrimary}`}
               title="Download file"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -249,21 +267,33 @@ export function FilePreviewModal({
               onClick={handleCopyLink}
               title="Copy file link"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
               {isCopiedLink ? 'Copied!' : 'Copy link'}
             </button>
 
-            <button
-              type="button"
-              className={styles.btnClose}
-              onClick={onClose}
-              aria-label="Close"
-              title="Close (Esc)"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <button type="button" className={styles.btnClose} onClick={onClose} aria-label="Close" title="Close (Esc)">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -274,18 +304,10 @@ export function FilePreviewModal({
         {/* Body Preview */}
         <div className={styles.body}>
           {isPdf(displayFileName) ? (
-            <iframe
-              src={inlineViewUrl}
-              title={displayFileName}
-              className={styles.pdfFrame}
-            />
+            <iframe src={inlineViewUrl} title={displayFileName} className={styles.pdfFrame} />
           ) : isImage(displayFileName) ? (
             <div className={styles.imagePreviewWrap}>
-              <img
-                src={inlineViewUrl}
-                alt={displayFileName}
-                className={styles.previewImg}
-              />
+              <img src={inlineViewUrl} alt={displayFileName} className={styles.previewImg} />
             </div>
           ) : isMedia(displayFileName) ? (
             <div className={styles.mediaWrap}>
@@ -298,16 +320,19 @@ export function FilePreviewModal({
           ) : isTextPreviewable(displayFileName) ? (
             <div className={styles.textViewerWrap}>
               <div className={styles.textToolbar}>
-                <span>
-                  {textContent ? `${textContent.split('\n').length} lines` : 'Preview'}
-                </span>
+                <span>{textContent ? `${textContent.split('\n').length} lines` : 'Preview'}</span>
                 {textContent && (
-                  <button
-                    type="button"
-                    className={`${styles.btn} ${styles.btnSecondary}`}
-                    onClick={handleCopyContent}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} onClick={handleCopyContent}>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
@@ -367,6 +392,6 @@ export function FilePreviewModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

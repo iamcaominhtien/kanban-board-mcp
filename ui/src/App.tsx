@@ -8,7 +8,14 @@ import { TicketModal } from './components/TicketModal';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
-import { useTickets, useCreateTicket, useDeleteTicket, useUpdateTicketStatus, useWontDoTickets, useRestoreTicket } from './api/tickets';
+import {
+  useTickets,
+  useCreateTicket,
+  useDeleteTicket,
+  useUpdateTicketStatus,
+  useWontDoTickets,
+  useRestoreTicket,
+} from './api/tickets';
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
@@ -34,17 +41,15 @@ export default function App() {
   const deleteProjectMutation = useDeleteProject();
 
   const { theme, toggleTheme } = useTheme();
-  const [currentProjectId, setCurrentProjectId] = useState<string>(
-    () => localStorage.getItem('activeProjectId') ?? ''
-  );
+  const [currentProjectId, setCurrentProjectId] = useState<string>(() => localStorage.getItem('activeProjectId') ?? '');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs'>(() =>
     new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board',
   );
-  const [docsRequest, setDocsRequest] = useState<string | null>(
-    () => new URLSearchParams(window.location.search).get('docs'),
+  const [docsRequest, setDocsRequest] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('docs'),
   );
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
@@ -88,13 +93,10 @@ export default function App() {
 
   const ticketQueryParams = useMemo(
     () => (debouncedSearchQuery ? { q: debouncedSearchQuery } : undefined),
-    [debouncedSearchQuery]
+    [debouncedSearchQuery],
   );
 
-  const ticketsQuery = useTickets(
-    currentProjectId ?? '',
-    ticketQueryParams
-  );
+  const ticketsQuery = useTickets(currentProjectId ?? '', ticketQueryParams);
   const { data: tickets = EMPTY_TICKETS, isLoading: ticketsLoading } = ticketsQuery;
   const { data: wontDoTickets = EMPTY_TICKETS } = useWontDoTickets(currentProjectId ?? '');
   const createTicketMutation = useCreateTicket(currentProjectId ?? '');
@@ -117,16 +119,11 @@ export default function App() {
       const matchesType = activeType === 'all' || t.type === activeType;
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
       const matchesAssignee =
-        activeAssignee === 'all' ||
-        (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
+        activeAssignee === 'all' || (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
       return matchesType && matchesPriority && matchesAssignee;
     });
 
-  const [modalState, setModalState] = useState<
-    | { mode: 'create' }
-    | { mode: 'view'; ticketId: string }
-    | null
-  >(null);
+  const [modalState, setModalState] = useState<{ mode: 'create' } | { mode: 'view'; ticketId: string } | null>(null);
 
   const deepLinkHandled = useRef(false);
   useEffect(() => {
@@ -163,9 +160,7 @@ export default function App() {
   }
 
   const modalTicket =
-    modalState && modalState.mode !== 'create'
-      ? tickets.find((t) => t.id === modalState.ticketId)
-      : undefined;
+    modalState && modalState.mode !== 'create' ? tickets.find((t) => t.id === modalState.ticketId) : undefined;
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
     const dragged = localTickets.find((t) => t.id === ticketId);
@@ -175,12 +170,10 @@ export default function App() {
         return;
       }
     }
-    
+
     // Update local state synchronously to prevent snap-back
-    setLocalTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t))
-    );
-    
+    setLocalTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
+
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
       if (newStatus === 'done' && dragged) {
@@ -200,12 +193,10 @@ export default function App() {
     const { ticketId, newStatus } = blockedDragPending;
     const dragged = localTickets.find((t) => t.id === ticketId);
     setBlockedDragPending(null);
-    
+
     // Update local state synchronously to prevent snap-back
-    setLocalTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t))
-    );
-    
+    setLocalTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
+
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
       if (newStatus === 'done' && dragged) {
@@ -221,7 +212,25 @@ export default function App() {
   }
 
   async function handleCreateTicket(
-    data: Omit<Ticket, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'comments' | 'acceptanceCriteria' | 'subTasks' | 'activityLog' | 'workLog' | 'testCases' | 'wontDoReason' | 'blocks' | 'blockedBy' | 'blockDoneIfAcsIncomplete' | 'blockDoneIfTcsIncomplete' | 'links'>,
+    data: Omit<
+      Ticket,
+      | 'id'
+      | 'projectId'
+      | 'createdAt'
+      | 'updatedAt'
+      | 'comments'
+      | 'acceptanceCriteria'
+      | 'subTasks'
+      | 'activityLog'
+      | 'workLog'
+      | 'testCases'
+      | 'wontDoReason'
+      | 'blocks'
+      | 'blockedBy'
+      | 'blockDoneIfAcsIncomplete'
+      | 'blockDoneIfTcsIncomplete'
+      | 'links'
+    >,
   ) {
     if (!currentProjectId) return;
     try {
@@ -333,32 +342,103 @@ export default function App() {
       />
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {globalError && (
-          <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div
+            style={{
+              background: '#DC2626',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              margin: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+            }}
+          >
             <span>{globalError}</span>
-            <button type="button" onClick={() => setGlobalError(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 4px' }}>×</button>
+            <button
+              type="button"
+              onClick={() => setGlobalError(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                lineHeight: 1,
+                padding: '0 4px',
+              }}
+            >
+              ×
+            </button>
           </div>
         )}
         {blockedDragPending && (
-          <div style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#FEF3C7', border: '1.5px solid #F5C518', color: 'var(--color-dark)', padding: '12px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+          <div
+            style={{
+              position: 'fixed',
+              top: '16px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1000,
+              background: '#FEF3C7',
+              border: '1.5px solid #F5C518',
+              color: 'var(--color-dark)',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+            }}
+          >
             <span>⚠️ This ticket is blocked. Move to In Progress anyway?</span>
-            <button type="button" onClick={proceedBlockedDrag} style={{ background: '#F5C518', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, color: 'var(--color-dark)' }}>Move Anyway</button>
-            <button type="button" onClick={() => setBlockedDragPending(null)} style={{ background: 'transparent', border: '1.5px solid #F5C518', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 600, color: 'var(--color-dark)' }}>Cancel</button>
+            <button
+              type="button"
+              onClick={proceedBlockedDrag}
+              style={{
+                background: '#F5C518',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                color: 'var(--color-dark)',
+              }}
+            >
+              Move Anyway
+            </button>
+            <button
+              type="button"
+              onClick={() => setBlockedDragPending(null)}
+              style={{
+                background: 'transparent',
+                border: '1.5px solid #F5C518',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                color: 'var(--color-dark)',
+              }}
+            >
+              Cancel
+            </button>
           </div>
         )}
 
         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {noProjects ? (
-          <FirstRun
-            onCreate={async (data) => {
-              const created = await createProjectMutation.mutateAsync(data);
-              setCurrentProjectId(created.id);
-            }}
-          />
-        ) : activeBoard === 'idea' && !boardLoadState ? (
-          <IdeaBoard projectId={currentProjectId ?? ''} />
-        ) : (
-          <>
-            <Board
+          {noProjects ? (
+            <FirstRun
+              onCreate={async (data) => {
+                const created = await createProjectMutation.mutateAsync(data);
+                setCurrentProjectId(created.id);
+              }}
+            />
+          ) : activeBoard === 'idea' && !boardLoadState ? (
+            <IdeaBoard projectId={currentProjectId ?? ''} />
+          ) : (
+            <>
+              <Board
                 tickets={filteredTickets}
                 allTickets={localTickets}
                 onDragEnd={handleDragEnd}
@@ -383,55 +463,47 @@ export default function App() {
                 lanesOverride={lanesOverride}
                 statusSlot={loadingPill}
               />
-            {!boardLoadState && modalState && (
-              modalState.mode === 'create' ? (
-                <TicketModal
-                  key="create"
-                  mode="create"
-                  onSave={handleCreateTicket}
-                  onClose={closeModal}
-                  allTickets={tickets}
-                  onOpenTicket={(t) => openTicketModal(t.id)}
-                  members={members}
-                />
-              ) : modalTicket ? (
-                <TicketModal
-                  key={modalTicket.id}
-                  mode="view"
-                  ticket={modalTicket}
-                  onDelete={handleDeleteTicket}
-                  onClose={closeModal}
-                  onOpenDocsPage={openDocsPage}
-                  allTickets={tickets}
-                  onOpenTicket={(t) => openTicketModal(t.id)}
-                  members={members}
-                />
-              ) : null
-            )}
-          </>
-        )}
-        {recycleBinOpen && (
-          <RecycleBin
-            tickets={wontDoTickets}
-            projectId={currentProjectId}
-            onRestore={(id) => restoreTicketMutation.mutate(id)}
-            onClose={() => setRecycleBinOpen(false)}
-          />
-        )}
-        {membersPanelOpen && currentProjectId && (
-          <MembersPanel
-            projectId={currentProjectId}
-            members={members}
-            onClose={() => setMembersPanelOpen(false)}
-          />
-        )}
-        {settingsPanelOpen && (
-          <SettingsPanel
-            onClose={() => setSettingsPanelOpen(false)}
-            theme={theme}
-            onToggleTheme={toggleTheme}
-          />
-        )}
+              {!boardLoadState &&
+                modalState &&
+                (modalState.mode === 'create' ? (
+                  <TicketModal
+                    key="create"
+                    mode="create"
+                    onSave={handleCreateTicket}
+                    onClose={closeModal}
+                    allTickets={tickets}
+                    onOpenTicket={(t) => openTicketModal(t.id)}
+                    members={members}
+                  />
+                ) : modalTicket ? (
+                  <TicketModal
+                    key={modalTicket.id}
+                    mode="view"
+                    ticket={modalTicket}
+                    onDelete={handleDeleteTicket}
+                    onClose={closeModal}
+                    onOpenDocsPage={openDocsPage}
+                    allTickets={tickets}
+                    onOpenTicket={(t) => openTicketModal(t.id)}
+                    members={members}
+                  />
+                ) : null)}
+            </>
+          )}
+          {recycleBinOpen && (
+            <RecycleBin
+              tickets={wontDoTickets}
+              projectId={currentProjectId}
+              onRestore={(id) => restoreTicketMutation.mutate(id)}
+              onClose={() => setRecycleBinOpen(false)}
+            />
+          )}
+          {membersPanelOpen && currentProjectId && (
+            <MembersPanel projectId={currentProjectId} members={members} onClose={() => setMembersPanelOpen(false)} />
+          )}
+          {settingsPanelOpen && (
+            <SettingsPanel onClose={() => setSettingsPanelOpen(false)} theme={theme} onToggleTheme={toggleTheme} />
+          )}
         </div>
       </div>
     </div>

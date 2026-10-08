@@ -6,23 +6,39 @@ import { IdeaColumn } from './IdeaColumn';
 import type { IdeaColumnDef } from './IdeaColumn';
 import { IdeaCard } from './IdeaCard';
 import { IdeaTicketModal } from './IdeaTicketModal';
-import { fetchIdeaTickets, createIdeaTicket, updateIdeaTicket, updateIdeaStatus, addMicrothought, deleteMicrothought, addAssumption, deleteAssumption, updateAssumptionStatus } from '../api/ideaTickets';
+import {
+  fetchIdeaTickets,
+  createIdeaTicket,
+  updateIdeaTicket,
+  updateIdeaStatus,
+  addMicrothought,
+  deleteMicrothought,
+  addAssumption,
+  deleteAssumption,
+  updateAssumptionStatus,
+} from '../api/ideaTickets';
 import { resolveOrigin } from '../api/resolveOrigin';
 import styles from './IdeaBoard.module.css';
 
 const IDEA_COLUMNS: IdeaColumnDef[] = [
-  { id: 'draft',     label: 'Drafting',   emoji: '💭', headerBg: 'rgba(245,197,24,0.12)',  accentBg: 'var(--color-yellow)' },
-  { id: 'in_review', label: 'In Review',  emoji: '👀', headerBg: 'rgba(91,184,245,0.12)',  accentBg: 'var(--color-blue)' },
-  { id: 'approved',  label: 'Promoted',   emoji: '✅', headerBg: 'rgba(170,204,46,0.12)',  accentBg: 'var(--color-lime)' },
-  { id: 'dropped',   label: 'Dropped',    emoji: '🗑️', headerBg: 'rgba(61,12,17,0.05)',    accentBg: 'rgba(61,12,17,0.2)' },
+  { id: 'draft', label: 'Drafting', emoji: '💭', headerBg: 'rgba(245,197,24,0.12)', accentBg: 'var(--color-yellow)' },
+  {
+    id: 'in_review',
+    label: 'In Review',
+    emoji: '👀',
+    headerBg: 'rgba(91,184,245,0.12)',
+    accentBg: 'var(--color-blue)',
+  },
+  { id: 'approved', label: 'Promoted', emoji: '✅', headerBg: 'rgba(170,204,46,0.12)', accentBg: 'var(--color-lime)' },
+  { id: 'dropped', label: 'Dropped', emoji: '🗑️', headerBg: 'rgba(61,12,17,0.05)', accentBg: 'rgba(61,12,17,0.2)' },
 ];
 
 // Allowed drag transitions
 const ALLOWED_TRANSITIONS: Record<IdeaStatus, IdeaStatus[]> = {
-  draft:     ['in_review', 'dropped'],
+  draft: ['in_review', 'dropped'],
   in_review: ['draft', 'approved', 'dropped'],
-  approved:  [],
-  dropped:   [],
+  approved: [],
+  dropped: [],
 };
 
 const STATUS_ACTIVITY_LABELS: Record<IdeaStatus, string> = {
@@ -56,18 +72,24 @@ const MOCK_TICKETS: IdeaTicket[] = [
     tags: ['onboarding', 'ux'],
     createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
-    problemStatement: 'New users abandon setup because they don\'t see value fast enough.',
-    iceImpact: 4, iceEffort: 2, iceConfidence: 4,
+    problemStatement: "New users abandon setup because they don't see value fast enough.",
+    iceImpact: 4,
+    iceEffort: 2,
+    iceConfidence: 4,
     activityTrail: [
       { id: 'a1', label: 'Idea created', at: new Date(Date.now() - 3 * 86400000).toISOString() },
       { id: 'a2', label: 'Description updated', at: new Date(Date.now() - 1 * 86400000).toISOString() },
     ],
     microthoughts: [
-      { id: 'm1', text: 'Check how Duolingo does streak celebrations', at: new Date(Date.now() - 2 * 86400000).toISOString() },
+      {
+        id: 'm1',
+        text: 'Check how Duolingo does streak celebrations',
+        at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      },
     ],
     assumptions: [
       { id: 'as1', text: 'Users reach "aha moment" faster with visual progress', status: 'untested' },
-      { id: 'as2', text: 'Confetti doesn\'t feel childish for our audience', status: 'untested' },
+      { id: 'as2', text: "Confetti doesn't feel childish for our audience", status: 'untested' },
     ],
     revisitDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
     lastTouchedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
@@ -95,8 +117,10 @@ const MOCK_TICKETS: IdeaTicket[] = [
     tags: ['ui', 'dashboard'],
     createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
-    problemStatement: 'The current analytics page is a wall of numbers — users can\'t prioritize what to act on.',
-    iceImpact: 5, iceEffort: 4, iceConfidence: 3,
+    problemStatement: "The current analytics page is a wall of numbers — users can't prioritize what to act on.",
+    iceImpact: 5,
+    iceEffort: 4,
+    iceConfidence: 3,
     activityTrail: [
       { id: 'a1', label: 'Idea created', at: new Date(Date.now() - 2 * 86400000).toISOString() },
       { id: 'a2', label: 'Status changed to In Review', at: new Date(Date.now() - 1 * 86400000).toISOString() },
@@ -173,7 +197,7 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
     if (!projectId) return;
     setLoading(true);
     fetchIdeaTickets(projectId)
-      .then(data => setTickets(Array.isArray(data) ? data : []))
+      .then((data) => setTickets(Array.isArray(data) ? data : []))
       .catch((e: unknown) => setError((e as Error).message ?? 'Failed to load ideas'))
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -184,7 +208,9 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
     const origin = resolveOrigin();
     const es = new EventSource(`${origin}/events`);
     es.onmessage = () => {
-      fetchIdeaTickets(projectId).then(data => setTickets(Array.isArray(data) ? data : [])).catch((e: unknown) => setError((e as Error).message ?? 'Failed to refresh ideas'));
+      fetchIdeaTickets(projectId)
+        .then((data) => setTickets(Array.isArray(data) ? data : []))
+        .catch((e: unknown) => setError((e as Error).message ?? 'Failed to refresh ideas'));
     };
     es.onerror = () => {}; // main useSSEInvalidation handles reconnect; silence extra noise
     return () => es.close();
@@ -194,19 +220,23 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
 
   const ticketsByStatus = useMemo(() => {
     const map: Record<string, IdeaTicket[]> = { draft: [], in_review: [], approved: [], dropped: [] };
-    for (const t of tickets) { (map[t.ideaStatus] ??= []).push(t); }
+    for (const t of tickets) {
+      (map[t.ideaStatus] ??= []).push(t);
+    }
     return map;
   }, [tickets]);
 
-  const activeTicket = tickets.find(t => t.id === activeId) ?? null;
+  const activeTicket = tickets.find((t) => t.id === activeId) ?? null;
 
-  function handleDragStart(e: DragStartEvent) { setActiveId(e.active.id as string); }
+  function handleDragStart(e: DragStartEvent) {
+    setActiveId(e.active.id as string);
+  }
   function handleDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     setActiveId(null);
     if (!over) return;
     const newStatus = over.id as IdeaStatus;
-    const ticket = tickets.find(t => t.id === active.id);
+    const ticket = tickets.find((t) => t.id === active.id);
     if (!ticket || ticket.ideaStatus === newStatus) return;
     if (!ALLOWED_TRANSITIONS[ticket.ideaStatus]?.includes(newStatus)) return;
     handleStatusChange(ticket.id, newStatus);
@@ -216,35 +246,39 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
     if (!projectId) {
       const now = new Date().toISOString();
       const enriched = withActivity(updated, 'Description updated', now);
-      setTickets(prev => prev.map(t => t.id === enriched.id ? enriched : t));
+      setTickets((prev) => prev.map((t) => (t.id === enriched.id ? enriched : t)));
       return;
     }
     const { id, createdAt, updatedAt, ...fields } = updated;
-    updateIdeaTicket(id, fields).then(saved => {
-      setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
-      // Keep modal in sync with latest server state
-      setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
-    }).catch((e: unknown) => setError((e as Error).message ?? 'Failed to save'));
+    updateIdeaTicket(id, fields)
+      .then((saved) => {
+        setTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+        // Keep modal in sync with latest server state
+        setSelectedTicket((prev) => (prev?.id === saved.id ? saved : prev));
+      })
+      .catch((e: unknown) => setError((e as Error).message ?? 'Failed to save'));
   }
 
   function handleStatusChange(id: string, status: IdeaStatus) {
-    const ticket = tickets.find(t => t.id === id);
+    const ticket = tickets.find((t) => t.id === id);
     // Optimistic update
     const now = new Date().toISOString();
-    setTickets(prev => prev.map(t =>
-      t.id === id
-        ? { ...withActivity(t, STATUS_ACTIVITY_LABELS[status], now), ideaStatus: status }
-        : t
-    ));
+    setTickets((prev) =>
+      prev.map((t) =>
+        t.id === id ? { ...withActivity(t, STATUS_ACTIVITY_LABELS[status], now), ideaStatus: status } : t,
+      ),
+    );
 
     if (projectId) {
-      updateIdeaStatus(id, status).then(updated => {
-        setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
-      }).catch(() => {
-        // Rollback on failure
-        if (ticket) setTickets(prev => prev.map(t => t.id === id ? ticket : t));
-        setError('Failed to update status');
-      });
+      updateIdeaStatus(id, status)
+        .then((updated) => {
+          setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+        })
+        .catch(() => {
+          // Rollback on failure
+          if (ticket) setTickets((prev) => prev.map((t) => (t.id === id ? ticket : t)));
+          setError('Failed to update status');
+        });
     }
   }
 
@@ -254,36 +288,36 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
 
   async function handleAddMicrothought(ticketId: string, text: string) {
     const saved = await addMicrothought(ticketId, text);
-    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
-    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    setTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+    setSelectedTicket((prev) => (prev?.id === saved.id ? saved : prev));
     return saved;
   }
 
   async function handleDeleteMicrothought(ticketId: string, microthoughtId: string) {
     const saved = await deleteMicrothought(ticketId, microthoughtId);
-    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
-    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    setTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+    setSelectedTicket((prev) => (prev?.id === saved.id ? saved : prev));
     return saved;
   }
 
   async function handleAddAssumption(ticketId: string, text: string) {
     const saved = await addAssumption(ticketId, text);
-    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
-    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    setTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+    setSelectedTicket((prev) => (prev?.id === saved.id ? saved : prev));
     return saved;
   }
 
   async function handleDeleteAssumption(ticketId: string, assumptionId: string) {
     const saved = await deleteAssumption(ticketId, assumptionId);
-    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
-    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    setTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+    setSelectedTicket((prev) => (prev?.id === saved.id ? saved : prev));
     return saved;
   }
 
   async function handleUpdateAssumptionStatus(ticketId: string, assumptionId: string, status: string) {
     const saved = await updateAssumptionStatus(ticketId, assumptionId, status);
-    setTickets(prev => prev.map(t => t.id === saved.id ? saved : t));
-    setSelectedTicket(prev => prev?.id === saved.id ? saved : prev);
+    setTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+    setSelectedTicket((prev) => (prev?.id === saved.id ? saved : prev));
     return saved;
   }
 
@@ -305,7 +339,7 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      setTickets(prev => [newTicket, ...prev]);
+      setTickets((prev) => [newTicket, ...prev]);
       return;
     }
 
@@ -316,89 +350,133 @@ export function IdeaBoard({ projectId }: IdeaBoardProps) {
       ideaColor: 'yellow',
       ideaEmoji: '💡',
       tags: [],
-    }).then(created => {
-      setTickets(prev => [created, ...prev]);
-    }).catch((e: unknown) => setError((e as Error).message ?? 'Failed to create idea'));
+    })
+      .then((created) => {
+        setTickets((prev) => [created, ...prev]);
+      })
+      .catch((e: unknown) => setError((e as Error).message ?? 'Failed to create idea'));
   }
 
   return (
     <div className={styles.wrapper}>
       {/* Loading / error states */}
       {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #888)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            color: 'var(--text-muted, #888)',
+          }}
+        >
           Loading ideas…
         </div>
       )}
       {!loading && error && (
-        <div style={{ background: '#DC2626', color: 'white', padding: '8px 16px', borderRadius: '8px', margin: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <div
+          style={{
+            background: '#DC2626',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            margin: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+          }}
+        >
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 4px' }}>×</button>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              lineHeight: 1,
+              padding: '0 4px',
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
       {!loading && (
-      <>{/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.titleIcon}>✨</div>
-          <h1 className={styles.title}>Idea Space</h1>
-        </div>
-        <button type="button" className={styles.newBtn} onClick={() => setShowNewForm(v => !v)}>
-          + New Idea
-        </button>
-      </div>
-
-      {/* Quick create */}
-      {showNewForm && (
-        <div className={styles.quickCreate}>
-          <input
-            type="text"
-            className={styles.quickInput}
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleQuickCreate(); if (e.key === 'Escape') setShowNewForm(false); }}
-            placeholder="What's the idea?"
-            autoFocus
-          />
-          <div className={styles.quickActions}>
-            <button type="button" className={styles.quickCancelBtn} onClick={() => setShowNewForm(false)}>Cancel</button>
-            <button type="button" className={styles.quickSaveBtn} onClick={handleQuickCreate}>Add Idea</button>
+        <>
+          {/* Header */}
+          <div className={styles.header}>
+            <div className={styles.headerLeft}>
+              <div className={styles.titleIcon}>✨</div>
+              <h1 className={styles.title}>Idea Space</h1>
+            </div>
+            <button type="button" className={styles.newBtn} onClick={() => setShowNewForm((v) => !v)}>
+              + New Idea
+            </button>
           </div>
-        </div>
-      )}
 
-      {/* Board */}
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className={styles.columns}>
-          {IDEA_COLUMNS.map(col => (
-            <IdeaColumn
-              key={col.id}
-              column={col}
-              tickets={ticketsByStatus[col.id] ?? []}
-              onCardClick={setSelectedTicket}
+          {/* Quick create */}
+          {showNewForm && (
+            <div className={styles.quickCreate}>
+              <input
+                type="text"
+                className={styles.quickInput}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleQuickCreate();
+                  if (e.key === 'Escape') setShowNewForm(false);
+                }}
+                placeholder="What's the idea?"
+                autoFocus
+              />
+              <div className={styles.quickActions}>
+                <button type="button" className={styles.quickCancelBtn} onClick={() => setShowNewForm(false)}>
+                  Cancel
+                </button>
+                <button type="button" className={styles.quickSaveBtn} onClick={handleQuickCreate}>
+                  Add Idea
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Board */}
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className={styles.columns}>
+              {IDEA_COLUMNS.map((col) => (
+                <IdeaColumn
+                  key={col.id}
+                  column={col}
+                  tickets={ticketsByStatus[col.id] ?? []}
+                  onCardClick={setSelectedTicket}
+                />
+              ))}
+            </div>
+            <DragOverlay>
+              {activeTicket && <IdeaCard ticket={activeTicket} isDragging onClick={() => {}} />}
+            </DragOverlay>
+          </DndContext>
+
+          {/* Detail panel */}
+          {selectedTicket && (
+            <IdeaTicketModal
+              ticket={selectedTicket}
+              onClose={() => setSelectedTicket(null)}
+              onSave={handleSave}
+              onDrop={handleDrop}
+              onStatusChange={handleStatusChange}
+              onAddMicrothought={projectId ? handleAddMicrothought : undefined}
+              onDeleteMicrothought={projectId ? handleDeleteMicrothought : undefined}
+              onAddAssumption={projectId ? handleAddAssumption : undefined}
+              onDeleteAssumption={projectId ? handleDeleteAssumption : undefined}
+              onUpdateAssumptionStatus={projectId ? handleUpdateAssumptionStatus : undefined}
             />
-          ))}
-        </div>
-        <DragOverlay>
-          {activeTicket && <IdeaCard ticket={activeTicket} isDragging onClick={() => {}} />}
-        </DragOverlay>
-      </DndContext>
-
-      {/* Detail panel */}
-      {selectedTicket && (
-        <IdeaTicketModal
-          ticket={selectedTicket}
-          onClose={() => setSelectedTicket(null)}
-          onSave={handleSave}
-          onDrop={handleDrop}
-          onStatusChange={handleStatusChange}
-          onAddMicrothought={projectId ? handleAddMicrothought : undefined}
-          onDeleteMicrothought={projectId ? handleDeleteMicrothought : undefined}
-          onAddAssumption={projectId ? handleAddAssumption : undefined}
-          onDeleteAssumption={projectId ? handleDeleteAssumption : undefined}
-          onUpdateAssumptionStatus={projectId ? handleUpdateAssumptionStatus : undefined}
-        />
-      )}
-      </>
+          )}
+        </>
       )}
     </div>
   );

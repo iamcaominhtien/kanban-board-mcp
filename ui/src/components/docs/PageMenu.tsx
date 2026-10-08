@@ -3,15 +3,7 @@ import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 
 export type PageMenuAction =
-  | 'rename'
-  | 'add-child'
-  | 'duplicate'
-  | 'copy-link'
-  | 'copy-markdown'
-  | 'move'
-  | 'history'
-  | 'export'
-  | 'delete';
+  'rename' | 'add-child' | 'duplicate' | 'copy-link' | 'copy-markdown' | 'move' | 'history' | 'export' | 'delete';
 
 interface PageMenuProps {
   page: DocsPage;

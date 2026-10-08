@@ -38,7 +38,10 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
   }, [title]);
 
   const preview = useRenamePreview(page.id, debounced, !!debounced.trim() && debounced.trim() !== page.title);
-  const affected = useMemo(() => (preview.data && debounced.trim() === trimmed ? preview.data.affectedPages : []), [preview.data, debounced, trimmed]);
+  const affected = useMemo(
+    () => (preview.data && debounced.trim() === trimmed ? preview.data.affectedPages : []),
+    [preview.data, debounced, trimmed],
+  );
   const links = affected.reduce((n, a) => n + a.count, 0) || preview.data?.total || 0;
   const crumbs = (full.data?.path ?? []).map((p) => p.title);
   if (!crumbs.length || crumbs[crumbs.length - 1] !== page.title) crumbs.push(page.title);
@@ -54,7 +57,10 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
       toast.showToast({
         variant: 'success',
         title: `Renamed to “${res.title}”`,
-        message: rewriteLinks && updated ? `${plural(updated, 'link')} on ${plural(affected.length, 'page')} updated.` : undefined,
+        message:
+          rewriteLinks && updated
+            ? `${plural(updated, 'link')} on ${plural(affected.length, 'page')} updated.`
+            : undefined,
         duration: 8000,
         action: {
           label: 'Undo',
@@ -62,7 +68,9 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
             rename
               .mutateAsync({ pageId: page.id, title: oldTitle, rewriteLinks })
               .then(() => toast.success(`Renamed back to “${oldTitle}”`))
-              .catch((err) => toast.error("Couldn't undo the rename", docsErrorDetail(err)?.message ?? extractError(err)));
+              .catch((err) =>
+                toast.error("Couldn't undo the rename", docsErrorDetail(err)?.message ?? extractError(err)),
+              );
           },
         },
       });
@@ -83,13 +91,24 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
       bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}
       footer={
         <>
-          {hasLinks ? <FooterNote>Creates a version on each of the {affected.length} {affected.length === 1 ? 'page' : 'pages'}</FooterNote> : <FooterNote>Links to this page keep working.</FooterNote>}
+          {hasLinks ? (
+            <FooterNote>
+              Creates a version on each of the {affected.length} {affected.length === 1 ? 'page' : 'pages'}
+            </FooterNote>
+          ) : (
+            <FooterNote>Links to this page keep working.</FooterNote>
+          )}
           <Spacer />
           <button type="button" className="st-btn" onClick={onClose}>
             Cancel
           </button>
           {hasLinks && (
-            <button type="button" className="st-btn" disabled={!trimmed || unchanged || rename.isPending} onClick={() => void run(false)}>
+            <button
+              type="button"
+              className="st-btn"
+              disabled={!trimmed || unchanged || rename.isPending}
+              onClick={() => void run(false)}
+            >
               Rename only
             </button>
           )}
@@ -152,7 +171,16 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
             </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ paddingBottom: 6, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60' }}>
+            <div
+              style={{
+                paddingBottom: 6,
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#5B6B60',
+              }}
+            >
               Affected pages
             </div>
             <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}>
@@ -184,27 +212,49 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
                     <Icon name="i10" size={11} strokeWidth={3} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#1E2A22',
+                      }}
+                    >
                       {a.title}
                       {a.space && <span style={{ fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>{a.space}</span>}
                       <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
                         {plural(a.count, 'link')}
                       </span>
                     </div>
-                    <div style={{ ...mono, fontSize: 11.5, lineHeight: 1.55, color: '#5B6B60', overflowWrap: 'anywhere' }}>
+                    <div
+                      style={{ ...mono, fontSize: 11.5, lineHeight: 1.55, color: '#5B6B60', overflowWrap: 'anywhere' }}
+                    >
                       [[
-                      <span style={{ background: 'rgba(196,67,42,0.14)', color: '#A5321E', borderRadius: 2, textDecoration: 'line-through' }}>
+                      <span
+                        style={{
+                          background: 'rgba(196,67,42,0.14)',
+                          color: '#A5321E',
+                          borderRadius: 2,
+                          textDecoration: 'line-through',
+                        }}
+                      >
                         {page.title}
                       </span>
                       ]] <span style={{ color: '#2E6F40' }}>→</span> [[
-                      <span style={{ background: 'rgba(46,111,64,0.16)', color: '#1F5A31', borderRadius: 2 }}>{trimmed}</span>]]
+                      <span style={{ background: 'rgba(46,111,64,0.16)', color: '#1F5A31', borderRadius: 2 }}>
+                        {trimmed}
+                      </span>
+                      ]]
                     </div>
                   </div>
                 </div>
               ))}
             </div>
             <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.5, paddingTop: 8 }}>
-              Links with your own display text keep that text. Tickets mentioning the page are not rewritten: they link by page id and show the new title.
+              Links with your own display text keep that text. Tickets mentioning the page are not rewritten: they link
+              by page id and show the new title.
             </div>
           </div>
         </>
@@ -231,7 +281,17 @@ export function HeadingRenameNote({
   from?: string;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '11px 13px', borderRadius: 8, background: '#E8F1FB', border: '1px solid #B9D3EE' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        padding: '11px 13px',
+        borderRadius: 8,
+        background: '#E8F1FB',
+        border: '1px solid #B9D3EE',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>
         <span style={{ color: '#2F6FB0', display: 'flex' }}>
           <Icon name="i28" size={16} />
@@ -242,9 +302,7 @@ export function HeadingRenameNote({
         <span style={{ ...mono, color: '#A5321E' }}>#{oldSlug}</span>
         <Icon name="i29" size={13} strokeWidth={2} />
         <span style={{ ...mono, color: '#1F5A31' }}>#{newSlug}</span>
-        <span style={{ color: '#5B6B60' }}>
-          {from ? `from ${from}; ` : ''}the old anchor is kept as an alias
-        </span>
+        <span style={{ color: '#5B6B60' }}>{from ? `from ${from}; ` : ''}the old anchor is kept as an alias</span>
       </div>
     </div>
   );

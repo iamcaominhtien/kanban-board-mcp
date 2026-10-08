@@ -31,14 +31,7 @@ interface TicketCardProps {
   subtaskStats?: { total: number; completed: number };
 }
 
-export function TicketCard({
-  ticket,
-  memberMap,
-  isDragging,
-  className,
-  onClick,
-  subtaskStats,
-}: TicketCardProps) {
+export function TicketCard({ ticket, memberMap, isDragging, className, onClick, subtaskStats }: TicketCardProps) {
   const typeLabel = TYPE_LABELS[ticket.type] ?? 'Task';
   const due = getDueDateDisplay(ticket.dueDate);
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
@@ -66,19 +59,10 @@ export function TicketCard({
     <div className={cardClasses} onClick={onClick}>
       {/* Floating Blocked Badge */}
       {isBlocked && (
-        <div
-          className={styles.blockedBadge}
-          title={`Blocked by ${ticket.blockedBy.join(', ')}`}
-          aria-label="Blocked"
-        >
+        <div className={styles.blockedBadge} title={`Blocked by ${ticket.blockedBy.join(', ')}`} aria-label="Blocked">
           <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
             <rect x="3" y="6.5" width="8" height="6" rx="1.3" stroke="#C4432A" strokeWidth="1.4" />
-            <path
-              d="M4.6 6.5V4.8A2.4 2.4 0 0 1 9.4 4.8V6.5"
-              stroke="#C4432A"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-            />
+            <path d="M4.6 6.5V4.8A2.4 2.4 0 0 1 9.4 4.8V6.5" stroke="#C4432A" strokeWidth="1.4" strokeLinecap="round" />
           </svg>
         </div>
       )}
@@ -133,9 +117,7 @@ export function TicketCard({
             {visibleTags.map((tag, idx) => (
               <TagPill key={`${tag}-${idx}`} tag={tag} size="small" />
             ))}
-            {overflowCount > 0 && (
-              <span className={styles.tagOverflow}>+{overflowCount}</span>
-            )}
+            {overflowCount > 0 && <span className={styles.tagOverflow}>+{overflowCount}</span>}
           </div>
         )}
 

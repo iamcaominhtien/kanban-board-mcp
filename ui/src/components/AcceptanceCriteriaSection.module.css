@@ -9,12 +9,12 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .empty {
   font-size: 13px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-style: italic;
 }
 
@@ -36,7 +36,7 @@
 }
 
 .row:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .checkboxBtn {
@@ -55,13 +55,13 @@
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  border: 1.4px solid #C7D2CB;
+  border: 1.4px solid #c7d2cb;
   box-sizing: border-box;
   transition: border-color 0.15s ease;
 }
 
 .checkboxBtn:hover .uncheckedSquare {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
 }
 
 .checkedCircle {
@@ -73,7 +73,7 @@
 .text {
   flex: 1;
   font-size: 13px;
-  color: #3A4A3E;
+  color: #3a4a3e;
   line-height: 1.4;
   cursor: pointer;
   word-break: break-word;
@@ -83,10 +83,10 @@
 .textCompleted {
   flex: 1;
   font-size: 13px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   line-height: 1.4;
   text-decoration: line-through;
-  text-decoration-color: #C7D2CB;
+  text-decoration-color: #c7d2cb;
   cursor: pointer;
   word-break: break-word;
   padding-top: 1px;
@@ -115,18 +115,20 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #5B6B60;
+  color: #5b6b60;
   flex-shrink: 0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .iconBtn:hover {
-  background: #EAF0EC;
+  background: #eaf0ec;
 }
 
 .iconBtnDelete:hover {
-  background: #FBE7E4;
-  color: #C4432A;
+  background: #fbe7e4;
+  color: #c4432a;
 }
 
 /* Dashed Add Button */
@@ -137,17 +139,19 @@
   align-self: flex-start;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
   font-size: 12px;
-  color: #9AA8A0;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .addDashedBtn:hover {
-  border-color: #2E6F40;
-  color: #2E6F40;
+  border-color: #2e6f40;
+  color: #2e6f40;
 }
 
 /* Inline Input Box */
@@ -156,10 +160,10 @@
   align-items: center;
   gap: 9px;
   padding: 5px 8px;
-  border: 1px solid #2E6F40;
+  border: 1px solid #2e6f40;
   border-radius: 6px;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .inputField {
@@ -168,7 +172,7 @@
   outline: none;
   font-family: inherit;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   background: none;
 }
 
@@ -182,13 +186,15 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .actionBtnCancel:hover {
-  background: #EEF3EF;
-  color: #5B6B60;
+  background: #eef3ef;
+  color: #5b6b60;
 }
 
 .actionBtnSave {
@@ -196,12 +202,12 @@
   height: 20px;
   border-radius: 5px;
   border: none;
-  background: #2E6F40;
+  background: #2e6f40;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #FFFFFF;
+  color: #ffffff;
   transition: opacity 0.15s ease;
 }
 
@@ -211,6 +217,6 @@
 
 .helperText {
   font-size: 11.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   padding-left: 25px;
 }

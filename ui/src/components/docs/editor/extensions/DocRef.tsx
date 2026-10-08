@@ -24,8 +24,18 @@ function DocRefView({ node, selected }: NodeViewProps) {
 
   if (missing) {
     return (
-      <NodeViewWrapper as="span" className="dk-chip dk-chip-missing" style={chipStyle} data-ref="page" contentEditable={false}
-        title={res?.status === 'in_bin' ? 'This page is in the Recycle Bin' : 'Page deleted or renamed outside the editor. Click to relink or create it.'}>
+      <NodeViewWrapper
+        as="span"
+        className="dk-chip dk-chip-missing"
+        style={chipStyle}
+        data-ref="page"
+        contentEditable={false}
+        title={
+          res?.status === 'in_bin'
+            ? 'This page is in the Recycle Bin'
+            : 'Page deleted or renamed outside the editor. Click to relink or create it.'
+        }
+      >
         <Icon name="i22" size={13} />
         {a.label || a.page}
       </NodeViewWrapper>

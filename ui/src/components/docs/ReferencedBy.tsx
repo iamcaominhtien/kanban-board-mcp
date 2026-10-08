@@ -51,7 +51,13 @@ function Sentence({ text }: { text: string }) {
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
-  return <>{parts.map((p, i) => <Fragment key={i}>{p}</Fragment>)}</>;
+  return (
+    <>
+      {parts.map((p, i) => (
+        <Fragment key={i}>{p}</Fragment>
+      ))}
+    </>
+  );
 }
 
 function statusDot(status: string): string {
@@ -69,8 +75,21 @@ const groupLabel: React.CSSProperties = {
   letterSpacing: '0.06em',
   color: '#5B6B60',
 };
-const rowBox: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5, padding: '9px 10px', borderRadius: 8 };
-const rowHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#1E2A22' };
+const rowBox: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 5,
+  padding: '9px 10px',
+  borderRadius: 8,
+};
+const rowHead: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#1E2A22',
+};
 const goLink: React.CSSProperties = {
   marginLeft: 'auto',
   display: 'inline-flex',
@@ -167,21 +186,45 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
             textAlign: 'center',
           }}
         >
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EEF3EF', color: '#7A8A80', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: '#EEF3EF',
+              color: '#7A8A80',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <Icon name="i11" size={18} strokeWidth={1.8} />
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>Nothing links here yet</div>
           <div style={{ fontSize: 12.5, lineHeight: 1.55, color: '#5B6B60', maxWidth: 360 }}>
             Link this page from another page with{' '}
             <span style={{ whiteSpace: 'nowrap' }}>
-              <code style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, background: '#F6FAF7', padding: '1px 5px', borderRadius: 3, color: '#2E6F40' }}>
+              <code
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 12.5,
+                  background: '#F6FAF7',
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  color: '#2E6F40',
+                }}
+              >
                 [[{page.data?.title ?? 'Meeting notes'}]]
               </code>
             </span>
             , or from a ticket description, and it will show up here.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" className="st-btn st-btn-sm" onClick={() => void copy(pageUrl(pageId), 'Link copied')}>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              onClick={() => void copy(pageUrl(pageId), 'Link copied')}
+            >
               <Icon name="i24" size={14} />
               Copy link
             </button>
@@ -231,20 +274,45 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
               <div style={groupLabel}>Tickets · {tickets.length}</div>
               {tickets.map((t) => {
                 const text = t.context ?? t.snippet ?? '';
-                const words: Record<string, string> = { description: 'description', comment: 'comment', acceptance_criterion: 'acceptance criterion', test_case: `test case${t.detail ? ` ${t.detail}` : ''}`, debug_note: 'debug note', manual: 'manual link' };
+                const words: Record<string, string> = {
+                  description: 'description',
+                  comment: 'comment',
+                  acceptance_criterion: 'acceptance criterion',
+                  test_case: `test case${t.detail ? ` ${t.detail}` : ''}`,
+                  debug_note: 'debug note',
+                  manual: 'manual link',
+                };
                 const where = `Mentioned in ${t.ticketId} · ${words[t.origin ?? ''] ?? t.origin ?? 'ticket'}`;
                 return (
                   <div key={`${t.ticketId}-${t.origin}-${t.detail ?? ''}`} style={rowBox} data-testid="backlink-ticket">
                     <div style={rowHead}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: statusDot(t.status), flexShrink: 0, display: 'inline-block' }} />
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>{t.ticketId}</span>
-                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          background: statusDot(t.status),
+                          flexShrink: 0,
+                          display: 'inline-block',
+                        }}
+                      />
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>
+                        {t.ticketId}
+                      </span>
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {t.title}
+                      </span>
                       <button type="button" style={goLink} onClick={() => onOpenTicket(t.ticketId)}>
                         Open ticket
                         <Icon name="i29" size={12} strokeWidth={2.2} />
                       </button>
                     </div>
-                    <div data-testid="backlink-where" style={{ fontSize: 11.5, color: '#5B6B60', padding: '0 0 0 15px' }}>{where}</div>
+                    <div
+                      data-testid="backlink-where"
+                      style={{ fontSize: 11.5, color: '#5B6B60', padding: '0 0 0 15px' }}
+                    >
+                      {where}
+                    </div>
                     {text && (
                       <div style={ctxBox}>
                         <Sentence text={text} />

@@ -47,17 +47,12 @@ export async function updateAssumptionStatus(
   assumptionId: string,
   status: string,
 ): Promise<IdeaTicket> {
-  const res = await client.patch<IdeaTicket>(
-    `/api/idea-tickets/${ticketId}/assumptions/${assumptionId}`,
-    { status },
-  );
+  const res = await client.patch<IdeaTicket>(`/api/idea-tickets/${ticketId}/assumptions/${assumptionId}`, { status });
   return res.data;
 }
 
 export async function deleteAssumption(ticketId: string, assumptionId: string): Promise<IdeaTicket> {
-  const res = await client.delete<IdeaTicket>(
-    `/api/idea-tickets/${ticketId}/assumptions/${assumptionId}`,
-  );
+  const res = await client.delete<IdeaTicket>(`/api/idea-tickets/${ticketId}/assumptions/${assumptionId}`);
   return res.data;
 }
 

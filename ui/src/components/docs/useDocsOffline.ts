@@ -199,7 +199,12 @@ export function searchDocsCache(
         if (h) {
           hi += 1;
           section = h[1].trim();
-          slug = p.headings[hi]?.slug ?? section.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          slug =
+            p.headings[hi]?.slug ??
+            section
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '');
           if (opts.headingsOnly && needles.some((n) => section.toLowerCase().includes(n))) {
             matches.push({ section, slug, snippet: markAll(section, needles) });
           }
@@ -235,7 +240,13 @@ export function searchDocsCache(
       return at - bt;
     });
   }
-  return { total: pages.length, tookMs: Math.max(1, Math.round(performance.now() - t0)), pages, tickets: [], suggestion: null };
+  return {
+    total: pages.length,
+    tookMs: Math.max(1, Math.round(performance.now() - t0)),
+    pages,
+    tickets: [],
+    suggestion: null,
+  };
 }
 
 // ─── the hook ─────────────────────────────────────────────────────────────────
@@ -251,7 +262,10 @@ export interface DocsOffline {
   cachedCount: number;
   /** For DocsView's offline view: `{savedAt, version}` of a page when offline and it is cached, else undefined. */
   offlineFor: (pageId: string) => { savedAt: string; version: number } | undefined;
-  search: (q: string, opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean }) => DocsSearchResponse;
+  search: (
+    q: string,
+    opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean },
+  ) => DocsSearchResponse;
 }
 
 /**
@@ -267,7 +281,10 @@ export function useDocsOffline(projectId: string): DocsOffline {
     const bump = () => setVersion((v) => v + 1);
     listeners.add(bump);
     const cache = qc.getQueryCache();
-    const consume = (q: { queryKey: readonly unknown[]; state: { data?: unknown; status: string; error: unknown } }) => {
+    const consume = (q: {
+      queryKey: readonly unknown[];
+      state: { data?: unknown; status: string; error: unknown };
+    }) => {
       const k = q.queryKey;
       if (k[0] !== 'docs') return;
       if (q.state.status === 'error') {
@@ -309,7 +326,8 @@ export function useDocsOffline(projectId: string): DocsOffline {
     [online, projectId],
   );
   const search = useCallback(
-    (q: string, opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean }) => searchDocsCache(projectId, q, opts),
+    (q: string, opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean }) =>
+      searchDocsCache(projectId, q, opts),
     [projectId],
   );
 

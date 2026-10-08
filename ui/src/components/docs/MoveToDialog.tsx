@@ -24,7 +24,15 @@ interface Target {
 }
 
 type Row =
-  | { kind: 'row'; id: string | null; title: string; depth: number; hasKids: boolean; open: boolean; reason: string | null }
+  | {
+      kind: 'row';
+      id: string | null;
+      title: string;
+      depth: number;
+      hasKids: boolean;
+      open: boolean;
+      reason: string | null;
+    }
   | { kind: 'gap'; parentId: string | null; afterId: string | null; depth: number };
 
 const MARK: React.CSSProperties = { background: 'rgba(232,185,58,0.35)', borderRadius: 2, color: '#1E2A22' };
@@ -131,12 +139,19 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
     return nodes
       .filter((n) => n.title.toLowerCase().includes(q) || pathOf(n.id).toLowerCase().includes(q))
       .sort(byPosition)
-      .map((n) => ({ id: n.id, title: n.title, path: n.parentId ? pathOf(n.id) : 'Top level', reason: reasonFor(n.id) }));
+      .map((n) => ({
+        id: n.id,
+        title: n.title,
+        path: n.parentId ? pathOf(n.id) : 'Top level',
+        reason: reasonFor(n.id),
+      }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, query, descendants, page.id]);
 
   const rows: Row[] = useMemo(() => {
-    const out: Row[] = [{ kind: 'row', id: null, title: 'Top level', depth: 0, hasKids: false, open: false, reason: null }];
+    const out: Row[] = [
+      { kind: 'row', id: null, title: 'Top level', depth: 0, hasKids: false, open: false, reason: null },
+    ];
     const walk = (parentId: string | null, depth: number) => {
       const list = childrenOf(parentId);
       const inside = parentId !== null && (parentId === page.id || descendants.has(parentId));
@@ -144,7 +159,15 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
       for (const n of list) {
         const kidsOf = childrenOf(n.id);
         const open = !closed.has(n.id);
-        out.push({ kind: 'row', id: n.id, title: n.title, depth, hasKids: kidsOf.length > 0, open, reason: reasonFor(n.id) });
+        out.push({
+          kind: 'row',
+          id: n.id,
+          title: n.title,
+          depth,
+          hasKids: kidsOf.length > 0,
+          open,
+          reason: reasonFor(n.id),
+        });
         if (open) walk(n.id, depth + 1);
         if (!inside && n.id !== page.id) out.push({ kind: 'gap', parentId, afterId: n.id, depth });
       }
@@ -156,7 +179,11 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
 
   const currentParent = page.parentId ? byId.get(page.parentId) : undefined;
   const childCount = descendants.size;
-  const targetTitle = !target ? '' : target.parentId === null ? 'the top level' : (byId.get(target.parentId)?.title ?? '');
+  const targetTitle = !target
+    ? ''
+    : target.parentId === null
+      ? 'the top level'
+      : (byId.get(target.parentId)?.title ?? '');
   const afterNode = target?.afterId ? byId.get(target.afterId) : undefined;
 
   function pickFlat(i: number) {
@@ -200,9 +227,13 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
       toast.showToast({
         variant: 'success',
         title: `Moved “${page.title}” ${where}`,
-        message: [afterNode ? `After ${afterNode.title}.` : '', childCount ? `${plural(childCount, 'child page')} moved with it.` : '']
-          .filter(Boolean)
-          .join(' ') || undefined,
+        message:
+          [
+            afterNode ? `After ${afterNode.title}.` : '',
+            childCount ? `${plural(childCount, 'child page')} moved with it.` : '',
+          ]
+            .filter(Boolean)
+            .join(' ') || undefined,
         duration: 8000,
         action: {
           label: 'Undo',
@@ -210,7 +241,9 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
             move
               .mutateAsync({ pageId: page.id, parentId: oldParent, afterId: oldAfter, beforeId: oldBefore })
               .then(() => toast.success(`Moved “${page.title}” back`))
-              .catch((err) => toast.error("Couldn't undo the move", docsErrorDetail(err)?.message ?? extractError(err)));
+              .catch((err) =>
+                toast.error("Couldn't undo the move", docsErrorDetail(err)?.message ?? extractError(err)),
+              );
           },
         },
       });
@@ -258,7 +291,9 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
       >
         <span style={{ width: 12 }} />
         <Icon name="i00" size={15} strokeWidth={1.8} />
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.title}</span>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {page.title}
+        </span>
         <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: '#2E6F40' }}>New position</span>
       </div>
     );
@@ -284,7 +319,9 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           ...rowBase,
           padding: `0 10px 0 ${8 + r.depth * 18}px`,
           ...(disabled ? { color: '#9AA8A0', cursor: 'not-allowed' } : {}),
-          ...(selected ? { background: '#DCEEE1', boxShadow: '0 0 0 1.5px #2E6F40 inset', color: '#1E2A22', fontWeight: 700 } : {}),
+          ...(selected
+            ? { background: '#DCEEE1', boxShadow: '0 0 0 1.5px #2E6F40 inset', color: '#1E2A22', fontWeight: 700 }
+            : {}),
         }}
       >
         {r.hasKids ? (
@@ -307,10 +344,23 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           <span style={{ width: 12 }} />
         )}
         <Icon name={r.id === null ? 'i27' : 'i00'} size={15} strokeWidth={1.8} />
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
-        {selected && <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: '#2E6F40' }}>Move here</span>}
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {r.title}
+        </span>
+        {selected && (
+          <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: '#2E6F40' }}>Move here</span>
+        )}
         {disabled && (
-          <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#9AA8A0', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span
+            style={{
+              marginLeft: 'auto',
+              fontSize: 11.5,
+              color: '#9AA8A0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
             <Icon name="i25" size={11} strokeWidth={2} />
             {r.reason}
           </span>
@@ -374,7 +424,14 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
     <span style={{ color: '#5B6B60' }}>Choose where to move this page.</span>
   ) : (
     <span>
-      Will be placed {target.parentId === null ? 'at the top level' : <>under <b style={{ color: '#1E2A22', fontWeight: 700 }}>{targetTitle}</b></>}
+      Will be placed{' '}
+      {target.parentId === null ? (
+        'at the top level'
+      ) : (
+        <>
+          under <b style={{ color: '#1E2A22', fontWeight: 700 }}>{targetTitle}</b>
+        </>
+      )}
       {afterNode ? (
         <>
           , after <b style={{ color: '#1E2A22', fontWeight: 700 }}>{afterNode.title}</b>
@@ -447,7 +504,16 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onKeyDown={onSearchKey}
-          style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', font: 'inherit', color: '#1E2A22', padding: 0 }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            font: 'inherit',
+            color: '#1E2A22',
+            padding: 0,
+          }}
         />
         {searching ? (
           <span style={{ fontSize: 11.5, color: '#9AA8A0' }}>{plural(flat.length, 'page')}</span>
@@ -473,7 +539,11 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           Try part of a title.
         </div>
       ) : searching ? (
-        <div role="listbox" aria-label="Pages" style={{ border: '1px solid #E3E8E5', borderRadius: 10, overflow: 'hidden' }}>
+        <div
+          role="listbox"
+          aria-label="Pages"
+          style={{ border: '1px solid #E3E8E5', borderRadius: 10, overflow: 'hidden' }}
+        >
           {flat.map((f, i) => {
             const disabled = !!f.reason;
             const isActive = i === active && !disabled;
@@ -510,7 +580,17 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
                   <Icon name="i00" size={15} strokeWidth={1.8} />
                 </span>
                 <span>{highlight(f.title, query)}</span>
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: '#9AA8A0', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 500,
+                    color: '#9AA8A0',
+                    marginLeft: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
                   {disabled ? (
                     <>
                       <Icon name="i25" size={11} strokeWidth={2} />
@@ -546,7 +626,8 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
 
       {searching && flat.length > 0 && (
         <div style={{ fontSize: 12, color: '#5B6B60' }}>
-          <span className="dk-kbd">↑</span> <span className="dk-kbd">↓</span> move, <span className="dk-kbd">Enter</span> choose. Results are flat, with the path on the right.
+          <span className="dk-kbd">↑</span> <span className="dk-kbd">↓</span> move,{' '}
+          <span className="dk-kbd">Enter</span> choose. Results are flat, with the path on the right.
         </div>
       )}
 
@@ -571,7 +652,8 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
         {preview}
       </div>
       <div style={{ fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
-        Click a page to move under it, or a gap between pages to choose the exact position. Grayed pages can't be chosen: a page can't go inside itself.
+        Click a page to move under it, or a gap between pages to choose the exact position. Grayed pages can't be
+        chosen: a page can't go inside itself.
       </div>
       {error && (
         <div role="alert" style={{ fontSize: 12.5, color: '#A5321E' }}>

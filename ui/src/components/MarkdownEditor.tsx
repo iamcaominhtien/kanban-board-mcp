@@ -243,7 +243,11 @@ export function MarkdownEditor({
     }
 
     document.body.style.cursor =
-      handle === 'e' || handle === 'w' ? 'ew-resize' : handle === 'se' || handle === 'nw' ? 'nwse-resize' : 'nesw-resize';
+      handle === 'e' || handle === 'w'
+        ? 'ew-resize'
+        : handle === 'se' || handle === 'nw'
+          ? 'nwse-resize'
+          : 'nesw-resize';
     document.body.style.userSelect = 'none';
 
     window.addEventListener('mousemove', onMouseMove);
@@ -514,9 +518,8 @@ export function MarkdownEditor({
   function applyLink() {
     const raw = linkUrl.trim();
     const url = raw && !/^[a-z][a-z0-9+.-]*:/i.test(raw) ? `https://${raw}` : raw;
-    const safeUrl = url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:')
-      ? normalizeUrl(url)
-      : null;
+    const safeUrl =
+      url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:') ? normalizeUrl(url) : null;
     if (!safeUrl) {
       setIsLinkPopoverOpen(false);
       return;
@@ -575,9 +578,10 @@ export function MarkdownEditor({
         const [, alt, src] = imgMatch;
         const img = document.createElement('img');
         const resolvedSrc = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
-        const safeSrc = resolvedSrc.startsWith('https://') || resolvedSrc.startsWith('http://') || resolvedSrc.startsWith('/')
-          ? normalizeUrl(resolvedSrc)
-          : null;
+        const safeSrc =
+          resolvedSrc.startsWith('https://') || resolvedSrc.startsWith('http://') || resolvedSrc.startsWith('/')
+            ? normalizeUrl(resolvedSrc)
+            : null;
         if (!safeSrc) return;
         img.src = safeSrc;
         img.alt = alt;
@@ -675,7 +679,6 @@ export function MarkdownEditor({
       void handleUploadAnyFile(file);
     }
   }
-
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (selectedImg) {
@@ -785,7 +788,16 @@ export function MarkdownEditor({
                 handleUndo();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M3 7v6h6" />
                 <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
               </svg>
@@ -802,7 +814,16 @@ export function MarkdownEditor({
                 handleRedo();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 7v6h-6" />
                 <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
               </svg>
@@ -849,7 +870,16 @@ export function MarkdownEditor({
                 handleHighlight();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 11L15 5L19 9L13 15" />
                 <path d="M9 11L13 15L7 19H3V15L9 11Z" />
               </svg>
@@ -882,7 +912,15 @@ export function MarkdownEditor({
                 executeFormat('insertUnorderedList');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <circle cx="4.5" cy="6" r="1" />
                 <circle cx="4.5" cy="12" r="1" />
                 <circle cx="4.5" cy="18" r="1" />
@@ -903,7 +941,16 @@ export function MarkdownEditor({
                 executeFormat('formatBlock', '<blockquote>');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M7 15C9 15 10 13.5 10 11.5C10 9.5 8.5 8 6.5 8C4.5 8 3 9.5 3 11.5C3 14.5 5 17 8 18" />
                 <path d="M17 15C19 15 20 13.5 20 11.5C20 9.5 18.5 8 16.5 8C14.5 8 13 9.5 13 11.5C13 14.5 15 17 18 18" />
               </svg>
@@ -920,7 +967,16 @@ export function MarkdownEditor({
                 handleCode();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M8 6L2 12L8 18" />
                 <path d="M16 6L22 12L16 18" />
               </svg>
@@ -933,7 +989,13 @@ export function MarkdownEditor({
                 className={styles.toolbarBtn}
                 aria-label="Insert doc reference"
                 title="Link a doc or ticket ([[)"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, width: 'auto', padding: '0 6px' }}
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  width: 'auto',
+                  padding: '0 6px',
+                }}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   wysiwygRef.current?.focus();
@@ -960,7 +1022,16 @@ export function MarkdownEditor({
                 }
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9" />
                 <path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1" />
               </svg>
@@ -990,12 +1061,21 @@ export function MarkdownEditor({
                       () => {
                         isFilePickerOpenRef.current = false;
                       },
-                      { once: true }
+                      { once: true },
                     );
                     allFileInputRef.current?.click();
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                   </svg>
                 </button>
@@ -1033,12 +1113,21 @@ export function MarkdownEditor({
                       () => {
                         isFilePickerOpenRef.current = false;
                       },
-                      { once: true }
+                      { once: true },
                     );
                     fileInputRef.current?.click();
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <rect x="3" y="4" width="18" height="16" rx="2" />
                     <circle cx="8.5" cy="9.5" r="1.5" />
                     <path d="M21 15L16 10L5 21" />
@@ -1067,7 +1156,15 @@ export function MarkdownEditor({
                 executeFormat('justifyLeft');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M3 6H21" />
                 <path d="M3 12H15" />
                 <path d="M3 18H18" />
@@ -1085,7 +1182,15 @@ export function MarkdownEditor({
                 executeFormat('justifyCenter');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M3 6H21" />
                 <path d="M6 12H18" />
                 <path d="M4.5 18H19.5" />
@@ -1103,7 +1208,15 @@ export function MarkdownEditor({
                 executeFormat('justifyRight');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M3 6H21" />
                 <path d="M9 12H21" />
                 <path d="M6 18H21" />
@@ -1119,7 +1232,17 @@ export function MarkdownEditor({
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div className={styles.popoverUrlRow}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9AA8A0"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
                   <path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9" />
                   <path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1" />
                 </svg>
@@ -1228,7 +1351,15 @@ export function MarkdownEditor({
           }}
         />
         {docsProjectId && !readOnly && (
-          <RefSuggester targetRef={wysiwygRef} projectId={docsProjectId} keyPrefix={docsRefs?.ticketId?.split('-')[0]} onChanged={() => { if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false); syncContent(); }} />
+          <RefSuggester
+            targetRef={wysiwygRef}
+            projectId={docsProjectId}
+            keyPrefix={docsRefs?.ticketId?.split('-')[0]}
+            onChanged={() => {
+              if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false);
+              syncContent();
+            }}
+          />
         )}
 
         {selectedImg && imgRect && (
@@ -1247,9 +1378,7 @@ export function MarkdownEditor({
 
             {/* Presets and actions floating bar */}
             <div className={styles.resizerToolbar}>
-              <span className={styles.resizerDimBadge}>
-                {Math.round(imgRect.width)}px
-              </span>
+              <span className={styles.resizerDimBadge}>{Math.round(imgRect.width)}px</span>
               <div className={styles.resizerDivider} />
               <button
                 type="button"
@@ -1299,7 +1428,16 @@ export function MarkdownEditor({
                 title="Remove image"
                 aria-label="Remove image"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
@@ -1342,7 +1480,6 @@ export function MarkdownEditor({
 
         {actions && <div className={styles.editorActions}>{actions}</div>}
       </div>
-
     </div>
   );
 }

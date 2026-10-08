@@ -92,61 +92,64 @@ export function ProjectSidebar({
 
       {/* Projects List */}
       {loadState !== 'empty' && (
-      <div className={styles.projectSection}>
-        <div className={styles.sectionLabel}>Projects</div>
+        <div className={styles.projectSection}>
+          <div className={styles.sectionLabel}>Projects</div>
 
-        <nav className={styles.projectList} aria-busy={loadState === 'loading' ? true : undefined}>
-          {loadState === 'loading' &&
-            [0, 1, 2].map((i) => (
-              <div key={i} className={styles.projectSkeleton} aria-hidden="true">
-                <span className={styles.skelDot} />
-                <span className={styles.skelBar} style={{ width: `${70 - i * 12}%` }} />
+          <nav className={styles.projectList} aria-busy={loadState === 'loading' ? true : undefined}>
+            {loadState === 'loading' &&
+              [0, 1, 2].map((i) => (
+                <div key={i} className={styles.projectSkeleton} aria-hidden="true">
+                  <span className={styles.skelDot} />
+                  <span className={styles.skelBar} style={{ width: `${70 - i * 12}%` }} />
+                </div>
+              ))}
+            {loadState === 'error' && (
+              <div className={styles.projectError} title="Couldn't load projects">
+                <span className={styles.errorMark} aria-hidden="true">
+                  !
+                </span>
+                <span className={styles.navLabel}>Couldn&apos;t load projects</span>
+                <button type="button" className={`${styles.projectRetry} ${styles.navLabel}`} onClick={onRetryProjects}>
+                  Retry
+                </button>
               </div>
-            ))}
-          {loadState === 'error' && (
-            <div className={styles.projectError} title="Couldn't load projects">
-              <span className={styles.errorMark} aria-hidden="true">!</span>
-              <span className={styles.navLabel}>Couldn&apos;t load projects</span>
-              <button type="button" className={`${styles.projectRetry} ${styles.navLabel}`} onClick={onRetryProjects}>
-                Retry
-              </button>
-            </div>
-          )}
-          {!loadState && projects.map((project) => {
-            const isActive = project.id === currentProjectId;
-            return (
-              <div
-                key={project.id}
-                role="button"
-                tabIndex={0}
-                title={`${project.name} (${project.prefix})`}
-                className={`${styles.projectItem} ${isActive ? styles.projectItemActive : ''}`}
-                onClick={() => onSelectProject(project.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelectProject(project.id);
-                  }
-                }}
-              >
-                <span className={styles.projectDot} style={{ backgroundColor: project.color }} />
-                <span className={styles.projectName}>{project.name}</span>
-                <span className={styles.prefixBadge}>{project.prefix}</span>
-                {projects.length > 1 && !isActive && (
-                  <button
-                    type="button"
-                    className={styles.deleteBtn}
-                    onClick={(e) => handleDelete(e, project.id, project.name)}
-                    aria-label={`Delete ${project.name}`}
+            )}
+            {!loadState &&
+              projects.map((project) => {
+                const isActive = project.id === currentProjectId;
+                return (
+                  <div
+                    key={project.id}
+                    role="button"
+                    tabIndex={0}
+                    title={`${project.name} (${project.prefix})`}
+                    className={`${styles.projectItem} ${isActive ? styles.projectItemActive : ''}`}
+                    onClick={() => onSelectProject(project.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelectProject(project.id);
+                      }
+                    }}
                   >
-                    ×
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </div>
+                    <span className={styles.projectDot} style={{ backgroundColor: project.color }} />
+                    <span className={styles.projectName}>{project.name}</span>
+                    <span className={styles.prefixBadge}>{project.prefix}</span>
+                    {projects.length > 1 && !isActive && (
+                      <button
+                        type="button"
+                        className={styles.deleteBtn}
+                        onClick={(e) => handleDelete(e, project.id, project.name)}
+                        aria-label={`Delete ${project.name}`}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+          </nav>
+        </div>
       )}
 
       {/* New Project Button or Form */}
@@ -202,13 +205,17 @@ export function ProjectSidebar({
           </div>
         </form>
       ) : (
-        <button
-          type="button"
-          className={styles.newProjectBtn}
-          onClick={() => setShowForm(true)}
-          title="New Project"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ flexShrink: 0 }}>
+        <button type="button" className={styles.newProjectBtn} onClick={() => setShowForm(true)} title="New Project">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            style={{ flexShrink: 0 }}
+          >
             <path d="M12 5V19M5 12H19" />
           </svg>
           <span className={styles.newProjectText}>New Project</span>
@@ -229,7 +236,18 @@ export function ProjectSidebar({
           }
         }}
       >
-        <svg className={styles.ideaIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <svg
+          className={styles.ideaIcon}
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ flexShrink: 0 }}
+        >
           <path d="M9 18h6" />
           <path d="M10 22h4" />
           <path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z" />
@@ -244,25 +262,35 @@ export function ProjectSidebar({
 
       {/* Bottom Actions */}
       <div className={styles.bottomNav}>
-        <button
-          type="button"
-          className={styles.sidebarIconBtn}
-          onClick={onOpenSettings}
-          title="Settings"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <button type="button" className={styles.sidebarIconBtn} onClick={onOpenSettings} title="Settings">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
             <circle cx="12" cy="12" r="3" />
             <path d="M12 2V5M12 19V22M4.2 4.2L6.3 6.3M17.7 17.7L19.8 19.8M2 12H5M19 12H22M4.2 19.8L6.3 17.7M17.7 6.3L19.8 4.2" />
           </svg>
           <span className={styles.navLabel}>Settings</span>
         </button>
-        <button
-          type="button"
-          className={styles.sidebarIconBtn}
-          onClick={onOpenMembers}
-          title="Members"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <button type="button" className={styles.sidebarIconBtn} onClick={onOpenMembers} title="Members">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
             <circle cx="9" cy="8" r="3.2" />
             <path d="M3.5 19C3.5 15.5 6 13.5 9 13.5C12 13.5 14.5 15.5 14.5 19" />
             <circle cx="17" cy="9" r="2.6" />
@@ -276,13 +304,21 @@ export function ProjectSidebar({
           onClick={onOpenRecycleBin}
           title={wontDoCount > 0 ? `Recycle Bin (${wontDoCount})` : 'Recycle Bin'}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
             <path d="M3 6H21M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
           </svg>
           <span className={styles.navLabel}>Recycle Bin</span>
-          {wontDoCount > 0 && (
-            <span className={styles.badgeCount}>{wontDoCount}</span>
-          )}
+          {wontDoCount > 0 && <span className={styles.badgeCount}>{wontDoCount}</span>}
         </button>
       </div>
     </aside>
