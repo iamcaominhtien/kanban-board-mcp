@@ -53,15 +53,18 @@ function useHoverCard(openDelay = 400, closeDelay = 250) {
     openT.current = null;
   };
   useEffect(() => clear, []);
-  const enter = useCallback((el: HTMLElement | null, delay = openDelay) => {
-    if (closeT.current) clearTimeout(closeT.current);
-    if (open || openT.current) return;
-    openT.current = setTimeout(() => {
-      openT.current = null;
-      if (el) setRect(el.getBoundingClientRect());
-      setOpen(true);
-    }, delay);
-  }, [open, openDelay]);
+  const enter = useCallback(
+    (el: HTMLElement | null, delay = openDelay) => {
+      if (closeT.current) clearTimeout(closeT.current);
+      if (open || openT.current) return;
+      openT.current = setTimeout(() => {
+        openT.current = null;
+        if (el) setRect(el.getBoundingClientRect());
+        setOpen(true);
+      }, delay);
+    },
+    [open, openDelay],
+  );
   const leave = useCallback(() => {
     if (openT.current) clearTimeout(openT.current);
     openT.current = null;
@@ -84,12 +87,37 @@ function useHoverCard(openDelay = 400, closeDelay = 250) {
   return { open, rect, enter, leave, keep, close };
 }
 
-interface FloatInfo { arrowLeft: number; flipped: boolean }
+interface FloatInfo {
+  arrowLeft: number;
+  flipped: boolean;
+}
 
-function Floating({ rect, width, onEnter, onLeave, children, role = 'dialog', label, ticket }: { rect: DOMRect; width: number; onEnter: () => void; onLeave: () => void; children: ReactNode | ((i: FloatInfo) => ReactNode); role?: string; label?: string; ticket?: boolean }) {
+function Floating({
+  rect,
+  width,
+  onEnter,
+  onLeave,
+  children,
+  role = 'dialog',
+  label,
+  ticket,
+}: {
+  rect: DOMRect;
+  width: number;
+  onEnter: () => void;
+  onLeave: () => void;
+  children: ReactNode | ((i: FloatInfo) => ReactNode);
+  role?: string;
+  label?: string;
+  ticket?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const gap = ticket ? 9 : 6;
-  const [pos, setPos] = useState<{ left: number; top: number; flipped: boolean }>({ left: rect.left, top: rect.bottom + gap, flipped: false });
+  const [pos, setPos] = useState<{ left: number; top: number; flipped: boolean }>({
+    left: rect.left,
+    top: rect.bottom + gap,
+    flipped: false,
+  });
   useEffect(() => {
     const h = ref.current?.offsetHeight ?? 0;
     let top = rect.bottom + gap;
@@ -101,9 +129,20 @@ function Floating({ rect, width, onEnter, onLeave, children, role = 'dialog', la
     const left = Math.max(ticket ? 16 : 8, Math.min(rect.left, window.innerWidth - width - (ticket ? 16 : 8)));
     setPos({ left, top, flipped });
   }, [rect, width, gap, ticket]);
-  const info: FloatInfo = { arrowLeft: Math.max(14, Math.min(width - 28, rect.left + rect.width / 2 - pos.left - 6)), flipped: pos.flipped };
+  const info: FloatInfo = {
+    arrowLeft: Math.max(14, Math.min(width - 28, rect.left + rect.width / 2 - pos.left - 6)),
+    flipped: pos.flipped,
+  };
   return createPortal(
-    <div className="docs-root" ref={ref} role={role} aria-label={label} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ position: 'fixed', left: pos.left, top: pos.top, width, zIndex: 1500 }}>
+    <div
+      className="docs-root"
+      ref={ref}
+      role={role}
+      aria-label={label}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      style={{ position: 'fixed', left: pos.left, top: pos.top, width, zIndex: 1500 }}
+    >
       {typeof children === 'function' ? children(info) : children}
     </div>,
     document.body,
@@ -111,15 +150,59 @@ function Floating({ rect, width, onEnter, onLeave, children, role = 'dialog', la
 }
 
 /** A small dark tooltip with an optional action: "Page not found — Create it". */
-function ChipTip({ rect, icon, text, action, onAction, onEnter, onLeave }: { rect: DOMRect; icon?: ReactNode; text: string; action?: string; onAction?: () => void; onEnter: () => void; onLeave: () => void }) {
+function ChipTip({
+  rect,
+  icon,
+  text,
+  action,
+  onAction,
+  onEnter,
+  onLeave,
+}: {
+  rect: DOMRect;
+  icon?: ReactNode;
+  text: string;
+  action?: string;
+  onAction?: () => void;
+  onEnter: () => void;
+  onLeave: () => void;
+}) {
   return createPortal(
-    <div className="docs-root dk-tt" role="tooltip" onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ position: 'fixed', left: rect.left, top: rect.bottom + 6, zIndex: 1500, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+    <div
+      className="docs-root dk-tt"
+      role="tooltip"
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      style={{
+        position: 'fixed',
+        left: rect.left,
+        top: rect.bottom + 6,
+        zIndex: 1500,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 10,
+      }}
+    >
       {icon}
       <span>{text}</span>
       {action && onAction && (
         <>
           <span style={{ color: '#9AA8A0' }}>—</span>
-          <span role="button" tabIndex={0} onClick={onAction} onKeyDown={(e) => e.key === 'Enter' && onAction()} style={{ color: '#CFFFDC', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer' }}>{action}</span>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={onAction}
+            onKeyDown={(e) => e.key === 'Enter' && onAction()}
+            style={{
+              color: '#CFFFDC',
+              fontWeight: 700,
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+              cursor: 'pointer',
+            }}
+          >
+            {action}
+          </span>
         </>
       )}
     </div>,
@@ -142,6 +225,12 @@ function plain(md: string): string {
     .trim();
 }
 
+/**
+ * Return the opening text of a page or of one section.
+ * @param markdown - Page Markdown.
+ * @param anchor - Section slug; when found, the excerpt is that section's text.
+ * @returns Plain text of the section, else the page opening text (headings removed, up to 320 chars).
+ */
 export function excerptOf(markdown: string, anchor?: string | null): string {
   if (anchor) {
     const lines = markdown.split('\n');
@@ -161,7 +250,10 @@ export function excerptOf(markdown: string, anchor?: string | null): string {
       if (t) return t;
     }
   }
-  const body = markdown.split('\n').filter((l) => !/^#{1,6}\s/.test(l)).join('\n');
+  const body = markdown
+    .split('\n')
+    .filter((l) => !/^#{1,6}\s/.test(l))
+    .join('\n');
   return plain(body).slice(0, 320);
 }
 
@@ -174,6 +266,11 @@ function levenshtein(a: string, b: string): number {
   return dp[a.length][b.length];
 }
 
+/**
+ * Return the heading that best matches `wanted`, or null.
+ * @param headings - Headings of the page.
+ * @param wanted - Heading text or slug to look for.
+ */
 export function closestHeading(headings: DocsHeading[], wanted: string): DocsHeading | null {
   const w = slugify(wanted);
   let best: DocsHeading | null = null;
@@ -194,7 +291,21 @@ export function closestHeading(headings: DocsHeading[], wanted: string): DocsHea
 
 const sage = { color: '#68BA7F', fontWeight: 500 } as const;
 
-function PageChipBody({ title, anchor, section, custom, label, color }: { title?: string; anchor?: string | null; section?: string; custom?: boolean; label: string; color?: string }) {
+function PageChipBody({
+  title,
+  anchor,
+  section,
+  custom,
+  label,
+  color,
+}: {
+  title?: string;
+  anchor?: string | null;
+  section?: string;
+  custom?: boolean;
+  label: string;
+  color?: string;
+}) {
   if (!title) return <>{label}</>;
   if (custom) {
     return <span style={{ borderBottom: `1px dotted ${color ?? '#68BA7F'}` }}>{label}</span>;
@@ -223,6 +334,7 @@ function PageChipBody({ title, anchor, section, custom, label, color }: { title?
   );
 }
 
+/** Reference pill for a page, section or ticket, with hover card and states. */
 export function RefChip(props: RefChipProps) {
   const { kind, label, result, onOpenPage, onOpenTicket } = props;
   const ticketSurface = props.surface === 'ticket';
@@ -236,15 +348,39 @@ export function RefChip(props: RefChipProps) {
       const st = ticketStatus(result?.ticketStatus);
       return (
         <span className="dk-chip dk-chip-ticket" data-testid="ref-static" style={{ cursor: 'default' }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, flexShrink: 0, display: 'inline-block' }} />
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: st.color,
+              flexShrink: 0,
+              display: 'inline-block',
+            }}
+          />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600 }}>{ticketKey}</span>
         </span>
       );
     }
     return (
-      <span className={status === 'section_missing' ? 'dk-chip' : 'dk-chip dk-chip-page'} data-testid="ref-static" style={{ cursor: 'default', ...(status === 'section_missing' ? { background: '#FEF6E7', border: '1px dashed #E3C27A', color: '#7A4F08' } : {}) }}>
+      <span
+        className={status === 'section_missing' ? 'dk-chip' : 'dk-chip dk-chip-page'}
+        data-testid="ref-static"
+        style={{
+          cursor: 'default',
+          ...(status === 'section_missing'
+            ? { background: '#FEF6E7', border: '1px dashed #E3C27A', color: '#7A4F08' }
+            : {}),
+        }}
+      >
         <Icon name="page" size={13} strokeWidth={1.9} />
-        <PageChipBody title={props.pageTitle} anchor={props.anchor} section={result?.section} custom={props.custom} label={label} />
+        <PageChipBody
+          title={props.pageTitle}
+          anchor={props.anchor}
+          section={result?.section}
+          custom={props.custom}
+          label={label}
+        />
       </span>
     );
   }
@@ -260,14 +396,23 @@ export function RefChip(props: RefChipProps) {
             tabIndex={0}
             onMouseEnter={() => hover.enter(ref.current, 150)}
             onMouseMove={() => hover.enter(ref.current, 150)}
-            onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
+            onMouseLeave={() => {
+              if (!ref.current?.matches(':hover')) hover.leave();
+            }}
             onFocus={() => hover.enter(ref.current, 0)}
             onBlur={hover.leave}
           >
             <Icon name="i22" size={13} strokeWidth={2} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600 }}>{label}</span>
           </span>
-          {hover.open && hover.rect && <ChipTip rect={hover.rect} text="Ticket not found, or in another project" onEnter={hover.keep} onLeave={hover.leave} />}
+          {hover.open && hover.rect && (
+            <ChipTip
+              rect={hover.rect}
+              text="Ticket not found, or in another project"
+              onEnter={hover.keep}
+              onLeave={hover.leave}
+            />
+          )}
         </>
       );
     }
@@ -284,16 +429,40 @@ export function RefChip(props: RefChipProps) {
           onKeyDown={(e) => e.key === 'Enter' && onOpenTicket?.(ticketKey)}
           onMouseEnter={() => hover.enter(ref.current)}
           onMouseMove={() => hover.enter(ref.current)}
-          onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
+          onMouseLeave={() => {
+            if (!ref.current?.matches(':hover')) hover.leave();
+          }}
           onFocus={() => hover.enter(ref.current)}
           onBlur={hover.leave}
         >
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, flexShrink: 0, display: 'inline-block' }} />
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: st.color,
+              flexShrink: 0,
+              display: 'inline-block',
+            }}
+          />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600 }}>{ticketKey}</span>
         </span>
         {hover.open && hover.rect && (
-          <Floating rect={hover.rect} width={400} onEnter={hover.keep} onLeave={hover.leave} label={`Ticket ${ticketKey}`}>
-            <TicketCard ticketKey={ticketKey} fallbackStatus={result?.ticketStatus} onOpen={() => { hover.close(); onOpenTicket?.(ticketKey); }} />
+          <Floating
+            rect={hover.rect}
+            width={400}
+            onEnter={hover.keep}
+            onLeave={hover.leave}
+            label={`Ticket ${ticketKey}`}
+          >
+            <TicketCard
+              ticketKey={ticketKey}
+              fallbackStatus={result?.ticketStatus}
+              onOpen={() => {
+                hover.close();
+                onOpenTicket?.(ticketKey);
+              }}
+            />
           </Floating>
         )}
       </>
@@ -315,7 +484,9 @@ export function RefChip(props: RefChipProps) {
           tabIndex={0}
           onMouseEnter={() => hover.enter(ref.current, 150)}
           onMouseMove={() => hover.enter(ref.current, 150)}
-          onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
+          onMouseLeave={() => {
+            if (!ref.current?.matches(':hover')) hover.leave();
+          }}
           onFocus={() => hover.enter(ref.current, 0)}
           onBlur={hover.leave}
         >
@@ -323,7 +494,17 @@ export function RefChip(props: RefChipProps) {
           {label}
         </span>
         {hover.open && hover.rect && (
-          <ChipTip rect={hover.rect} text="Page not found" action={props.onCreatePage ? 'Create it' : undefined} onAction={() => { hover.close(); props.onCreatePage?.(pageTitle ?? label); }} onEnter={hover.keep} onLeave={hover.leave} />
+          <ChipTip
+            rect={hover.rect}
+            text="Page not found"
+            action={props.onCreatePage ? 'Create it' : undefined}
+            onAction={() => {
+              hover.close();
+              props.onCreatePage?.(pageTitle ?? label);
+            }}
+            onEnter={hover.keep}
+            onLeave={hover.leave}
+          />
         )}
       </>
     );
@@ -336,11 +517,24 @@ export function RefChip(props: RefChipProps) {
           className="dk-chip"
           tabIndex={0}
           data-testid="ref-in-bin"
-          onClick={() => ticketSurface && result?.pageId && props.onPeek?.(result.pageId, null, { deleted: true, title: pageTitle ?? label })}
-          style={{ background: '#F1F3F1', border: '1px solid #DCE6DF', color: '#7A8A80', textDecoration: 'line-through', textDecorationColor: '#9AA8A0', cursor: ticketSurface ? 'pointer' : 'default' }}
+          onClick={() =>
+            ticketSurface &&
+            result?.pageId &&
+            props.onPeek?.(result.pageId, null, { deleted: true, title: pageTitle ?? label })
+          }
+          style={{
+            background: '#F1F3F1',
+            border: '1px solid #DCE6DF',
+            color: '#7A8A80',
+            textDecoration: 'line-through',
+            textDecorationColor: '#9AA8A0',
+            cursor: ticketSurface ? 'pointer' : 'default',
+          }}
           onMouseEnter={() => hover.enter(ref.current, 150)}
           onMouseMove={() => hover.enter(ref.current, 150)}
-          onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
+          onMouseLeave={() => {
+            if (!ref.current?.matches(':hover')) hover.leave();
+          }}
           onFocus={() => hover.enter(ref.current, 0)}
           onBlur={hover.leave}
         >
@@ -348,15 +542,28 @@ export function RefChip(props: RefChipProps) {
           {label}
         </span>
         {hover.open && hover.rect && ticketSurface && (
-          <Floating rect={hover.rect} width={400} ticket onEnter={hover.keep} onLeave={hover.leave} label="Page in the Recycle Bin">
+          <Floating
+            rect={hover.rect}
+            width={400}
+            ticket
+            onEnter={hover.keep}
+            onLeave={hover.leave}
+            label="Page in the Recycle Bin"
+          >
             {(i) => (
               <TicketDeletedCard
                 {...i}
                 canRestore={!!props.onRestorePage && !!result?.pageId}
                 deletedBy={result?.deletedBy}
                 deletedAt={result?.deletedAt}
-                onRestore={() => { hover.close(); if (result?.pageId) props.onRestorePage?.(result.pageId); }}
-                onOpenBin={() => { hover.close(); if (result?.pageId) props.onPeek?.(result.pageId, null, { deleted: true, title: pageTitle ?? label }); }}
+                onRestore={() => {
+                  hover.close();
+                  if (result?.pageId) props.onRestorePage?.(result.pageId);
+                }}
+                onOpenBin={() => {
+                  hover.close();
+                  if (result?.pageId) props.onPeek?.(result.pageId, null, { deleted: true, title: pageTitle ?? label });
+                }}
               />
             )}
           </Floating>
@@ -367,7 +574,10 @@ export function RefChip(props: RefChipProps) {
             icon={<Icon name="i12" size={13} strokeWidth={2} style={{ color: '#F2C98A' }} />}
             text="In Recycle Bin"
             action={props.onRestorePage && result?.pageId ? 'Restore' : undefined}
-            onAction={() => { hover.close(); if (result?.pageId) props.onRestorePage?.(result.pageId); }}
+            onAction={() => {
+              hover.close();
+              if (result?.pageId) props.onRestorePage?.(result.pageId);
+            }}
             onEnter={hover.keep}
             onLeave={hover.leave}
           />
@@ -382,7 +592,9 @@ export function RefChip(props: RefChipProps) {
     if (ticketSurface && props.onPeek) props.onPeek(result.pageId, goAnchor);
     else onOpenPage?.(result.pageId, sectionMissing ? null : goAnchor);
   };
-  const baseStyle = sectionMissing ? { background: '#FEF6E7', border: '1px dashed #E3C27A', color: '#7A4F08' } : undefined;
+  const baseStyle = sectionMissing
+    ? { background: '#FEF6E7', border: '1px dashed #E3C27A', color: '#7A4F08' }
+    : undefined;
   const iconColor = sectionMissing ? '#B4791E' : undefined;
   return (
     <>
@@ -397,32 +609,79 @@ export function RefChip(props: RefChipProps) {
         onKeyDown={(e) => e.key === 'Enter' && go()}
         onMouseEnter={() => hover.enter(ref.current)}
         onMouseMove={() => hover.enter(ref.current)}
-        onMouseLeave={() => { if (!ref.current?.matches(':hover')) hover.leave(); }}
+        onMouseLeave={() => {
+          if (!ref.current?.matches(':hover')) hover.leave();
+        }}
         onFocus={() => hover.enter(ref.current)}
         onBlur={hover.leave}
       >
         <Icon name="page" size={13} strokeWidth={1.9} style={iconColor ? { color: iconColor } : undefined} />
-        <PageChipBody title={pageTitle} anchor={props.anchor} section={result?.section} custom={props.custom} label={label} color={iconColor} />
+        <PageChipBody
+          title={pageTitle}
+          anchor={props.anchor}
+          section={result?.section}
+          custom={props.custom}
+          label={label}
+          color={iconColor}
+        />
       </span>
       {hover.open && hover.rect && result?.pageId && ticketSurface && !sectionMissing && (
-        <Floating rect={hover.rect} width={400} ticket onEnter={hover.keep} onLeave={hover.leave} label={`Preview of ${pageTitle ?? label}`}>
+        <Floating
+          rect={hover.rect}
+          width={400}
+          ticket
+          onEnter={hover.keep}
+          onLeave={hover.leave}
+          label={`Preview of ${pageTitle ?? label}`}
+        >
           {(i) => (
             <TicketPageCard
               {...i}
               pageId={result.pageId!}
               anchor={result.anchor ?? props.anchor ?? null}
-              onPeek={() => { hover.close(); go(); }}
-              onOpenDocs={() => { hover.close(); props.onOpenInDocs?.(result.pageId!, result.anchor ?? props.anchor ?? null); }}
+              onPeek={() => {
+                hover.close();
+                go();
+              }}
+              onOpenDocs={() => {
+                hover.close();
+                props.onOpenInDocs?.(result.pageId!, result.anchor ?? props.anchor ?? null);
+              }}
             />
           )}
         </Floating>
       )}
       {hover.open && hover.rect && result?.pageId && !(ticketSurface && !sectionMissing) && (
-        <Floating rect={hover.rect} width={sectionMissing ? 330 : 400} onEnter={hover.keep} onLeave={hover.leave} label={`Preview of ${pageTitle ?? label}`}>
+        <Floating
+          rect={hover.rect}
+          width={sectionMissing ? 330 : 400}
+          onEnter={hover.keep}
+          onLeave={hover.leave}
+          label={`Preview of ${pageTitle ?? label}`}
+        >
           {sectionMissing ? (
-            <MissingSection pageId={result.pageId} title={pageTitle ?? label} anchor={props.anchor ?? ''} onOpen={() => { hover.close(); if (ticketSurface && props.onPeek) props.onPeek(result.pageId!, props.anchor ?? null); else onOpenPage?.(result.pageId!, null); }} onUse={props.onReplaceSection} onDone={hover.close} />
+            <MissingSection
+              pageId={result.pageId}
+              title={pageTitle ?? label}
+              anchor={props.anchor ?? ''}
+              onOpen={() => {
+                hover.close();
+                if (ticketSurface && props.onPeek) props.onPeek(result.pageId!, props.anchor ?? null);
+                else onOpenPage?.(result.pageId!, null);
+              }}
+              onUse={props.onReplaceSection}
+              onDone={hover.close}
+            />
           ) : (
-            <PageCard pageId={result.pageId} anchor={result.anchor ?? props.anchor ?? null} projectName={props.projectName} onOpen={() => { hover.close(); go(); }} />
+            <PageCard
+              pageId={result.pageId}
+              anchor={result.anchor ?? props.anchor ?? null}
+              projectName={props.projectName}
+              onOpen={() => {
+                hover.close();
+                go();
+              }}
+            />
           )}
         </Floating>
       )}
@@ -432,19 +691,38 @@ export function RefChip(props: RefChipProps) {
 
 /* ---------- cards ---------- */
 
-const cardStyle = { boxSizing: 'border-box', border: '1px solid #E3E8E5', borderRadius: 12, background: '#FFFFFF', boxShadow: '0 14px 36px rgba(30,42,34,0.18)', overflow: 'hidden' } as const;
+const cardStyle = {
+  boxSizing: 'border-box',
+  border: '1px solid #E3E8E5',
+  borderRadius: 12,
+  background: '#FFFFFF',
+  boxShadow: '0 14px 36px rgba(30,42,34,0.18)',
+  overflow: 'hidden',
+} as const;
 
 function Dot() {
   return <span style={{ color: '#C7D2CB' }}>|</span>;
 }
 
-function PageCard({ pageId, anchor, projectName, onOpen }: { pageId: string; anchor: string | null; projectName?: string; onOpen: () => void }) {
+function PageCard({
+  pageId,
+  anchor,
+  projectName,
+  onOpen,
+}: {
+  pageId: string;
+  anchor: string | null;
+  projectName?: string;
+  onOpen: () => void;
+}) {
   const { data: page, isLoading, isError } = useDocsPage(pageId);
   return (
     <div className="docs-root" style={cardStyle}>
       {isLoading || !page ? (
         <div style={{ padding: '14px 16px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {isError ? <span style={{ fontSize: 12.5, color: '#5B6B60' }}>Couldn't load a preview.</span> : (
+          {isError ? (
+            <span style={{ fontSize: 12.5, color: '#5B6B60' }}>Couldn't load a preview.</span>
+          ) : (
             <>
               <div className="skel" style={{ width: 160, height: 12 }} />
               <div className="skel" style={{ width: 220, height: 16 }} />
@@ -456,7 +734,9 @@ function PageCard({ pageId, anchor, projectName, onOpen }: { pageId: string; anc
       ) : (
         <PageCardBody page={page} anchor={anchor} projectName={projectName} />
       )}
-      <div style={{ display: 'flex', gap: 8, padding: '10px 16px', borderTop: '1px solid #EEF3EF', background: '#FBFCFB' }}>
+      <div
+        style={{ display: 'flex', gap: 8, padding: '10px 16px', borderTop: '1px solid #EEF3EF', background: '#FBFCFB' }}
+      >
         <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={onOpen}>
           <Icon name="i38" size={14} strokeWidth={1.9} />
           Open page
@@ -484,7 +764,9 @@ function PageCardBody({ page, anchor, projectName }: { page: DocsPage; anchor: s
         <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>{page.title}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 800, color: '#1E2A22' }}>
-        <span style={{ display: 'flex', color: '#2E6F40' }}><Icon name="page" size={17} strokeWidth={1.9} /></span>
+        <span style={{ display: 'flex', color: '#2E6F40' }}>
+          <Icon name="page" size={17} strokeWidth={1.9} />
+        </span>
         {page.title}
         {heading && (
           <>
@@ -496,12 +778,46 @@ function PageCardBody({ page, anchor, projectName }: { page: DocsPage; anchor: s
           </>
         )}
       </div>
-      <div style={{ position: 'relative', fontSize: 13, lineHeight: 1.6, color: '#3A4A3E', maxHeight: 62, overflow: 'hidden' }}>
+      <div
+        style={{
+          position: 'relative',
+          fontSize: 13,
+          lineHeight: 1.6,
+          color: '#3A4A3E',
+          maxHeight: 62,
+          overflow: 'hidden',
+        }}
+      >
         {text || 'This page has no content yet.'}
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 24, background: 'linear-gradient(rgba(255,255,255,0),#FFFFFF)' }} />
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 24,
+            background: 'linear-gradient(rgba(255,255,255,0),#FFFFFF)',
+          }}
+        />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}>
-        <span title={author} style={{ width: 20, height: 20, borderRadius: '50%', ...av, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{actorInitials(page.updatedBy).slice(0, 2)}</span>
+        <span
+          title={author}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            ...av,
+            fontSize: 11,
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {actorInitials(page.updatedBy).slice(0, 2)}
+        </span>
         {author}
         <Dot />
         edited {relativeTime(page.updatedAt)}
@@ -516,7 +832,15 @@ function PageCardBody({ page, anchor, projectName }: { page: DocsPage; anchor: s
   );
 }
 
-function TicketCard({ ticketKey, fallbackStatus, onOpen }: { ticketKey: string; fallbackStatus?: string; onOpen: () => void }) {
+function TicketCard({
+  ticketKey,
+  fallbackStatus,
+  onOpen,
+}: {
+  ticketKey: string;
+  fallbackStatus?: string;
+  onOpen: () => void;
+}) {
   const { data: t, isLoading } = useTicket(ticketKey);
   const st = ticketStatus(t?.status ?? fallbackStatus);
   const acs = t?.acceptanceCriteria ?? [];
@@ -528,10 +852,31 @@ function TicketCard({ ticketKey, fallbackStatus, onOpen }: { ticketKey: string; 
     <div className="docs-root" style={cardStyle}>
       <div style={{ padding: '14px 16px 12px', display: 'flex', flexDirection: 'column', gap: 9 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ display: 'flex', color: '#B4791E' }}><Icon name="i58" size={16} strokeWidth={1.8} /></span>
+          <span style={{ display: 'flex', color: '#B4791E' }}>
+            <Icon name="i58" size={16} strokeWidth={1.8} />
+          </span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#5B6B60' }}>{ticketKey}</span>
-          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 5, border: '1px solid #E3E8E5' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, flexShrink: 0, display: 'inline-block' }} />
+          <span
+            style={{
+              marginLeft: 'auto',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '3px 8px',
+              borderRadius: 5,
+              border: '1px solid #E3E8E5',
+            }}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: st.color,
+                flexShrink: 0,
+                display: 'inline-block',
+              }}
+            />
             <span style={{ fontSize: 11.5, fontWeight: 600, color: '#1E2A22' }}>{st.label}</span>
           </span>
         </div>
@@ -543,31 +888,69 @@ function TicketCard({ ticketKey, fallbackStatus, onOpen }: { ticketKey: string; 
         ) : (
           <>
             <div style={{ fontSize: 14.5, fontWeight: 700, color: '#1E2A22', lineHeight: 1.35 }}>{t.title}</div>
-            {desc && <div style={{ fontSize: 12.5, lineHeight: 1.55, color: '#5B6B60', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc}</div>}
+            {desc && (
+              <div
+                style={{
+                  fontSize: 12.5,
+                  lineHeight: 1.55,
+                  color: '#5B6B60',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {desc}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#5B6B60' }}>
               {who && t.assignee && (
                 <>
-                  <span title={who} style={{ width: 22, height: 22, borderRadius: '50%', ...avatarColors(who), fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{actorInitials(t.assignee).slice(0, 2)}</span>
+                  <span
+                    title={who}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      ...avatarColors(who),
+                      fontSize: 11,
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {actorInitials(t.assignee).slice(0, 2)}
+                  </span>
                   {who}
                 </>
               )}
               {due && (
                 <>
                   {who && <Dot />}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="i68" size={13} strokeWidth={1.8} />{due}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Icon name="i68" size={13} strokeWidth={1.8} />
+                    {due}
+                  </span>
                 </>
               )}
               {acs.length > 0 && (
                 <>
                   {(who || due) && <Dot />}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check" size={13} strokeWidth={2} />{acs.filter((a) => a.done).length} / {acs.length} AC</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Icon name="check" size={13} strokeWidth={2} />
+                    {acs.filter((a) => a.done).length} / {acs.length} AC
+                  </span>
                 </>
               )}
             </div>
           </>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 8, padding: '10px 16px', borderTop: '1px solid #EEF3EF', background: '#FBFCFB' }}>
+      <div
+        style={{ display: 'flex', gap: 8, padding: '10px 16px', borderTop: '1px solid #EEF3EF', background: '#FBFCFB' }}
+      >
         <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={onOpen}>
           <Icon name="i38" size={14} strokeWidth={1.9} />
           Open ticket
@@ -581,21 +964,53 @@ function TicketCard({ ticketKey, fallbackStatus, onOpen }: { ticketKey: string; 
   );
 }
 
-function MissingSection({ pageId, title, anchor, onOpen, onUse, onDone }: { pageId: string; title: string; anchor: string; onOpen: () => void; onUse?: RefChipProps['onReplaceSection']; onDone: () => void }) {
+function MissingSection({
+  pageId,
+  title,
+  anchor,
+  onOpen,
+  onUse,
+  onDone,
+}: {
+  pageId: string;
+  title: string;
+  anchor: string;
+  onOpen: () => void;
+  onUse?: RefChipProps['onReplaceSection'];
+  onDone: () => void;
+}) {
   const { data: page } = useDocsPage(pageId);
   const closest = page ? closestHeading(page.headings, anchor) : null;
   return (
-    <div className="docs-root dk-menu" style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div
+      className="docs-root dk-menu"
+      style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}
+    >
       <div style={{ fontSize: 12.5, lineHeight: 1.5, color: '#1E2A22' }}>
-        Section "{anchor}" not found.{closest ? <> Closest: <b>"{closest.text}"</b></> : null}
+        Section "{anchor}" not found.
+        {closest ? (
+          <>
+            {' '}
+            Closest: <b>"{closest.text}"</b>
+          </>
+        ) : null}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         {closest && onUse && (
-          <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={() => { onUse({ title, anchor }, closest.text); onDone(); }}>
+          <button
+            type="button"
+            className="st-btn st-btn-primary st-btn-sm"
+            onClick={() => {
+              onUse({ title, anchor }, closest.text);
+              onDone();
+            }}
+          >
             Use "{closest.text}"
           </button>
         )}
-        <button type="button" className="st-btn st-btn-sm" onClick={onOpen}>Open page</button>
+        <button type="button" className="st-btn st-btn-sm" onClick={onOpen}>
+          Open page
+        </button>
       </div>
     </div>
   );

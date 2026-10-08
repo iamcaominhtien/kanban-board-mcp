@@ -10,6 +10,7 @@ from models import Project
 
 
 async def seed() -> None:
+    """Insert the demo project and tickets unless the IAM project already exists."""
     async with async_session() as session:
         existing = await session.exec(select(Project).where(Project.prefix == "IAM"))
         if existing.first() is not None:

@@ -1,4 +1,9 @@
-/** Counts of added and removed lines between two texts (LCS on lines; fine for page-sized documents). */
+/**
+ * Counts of added and removed lines between two texts (LCS on lines; fine for page-sized documents).
+ * @param before - Original text.
+ * @param after - Changed text.
+ * @returns Number of added and removed lines (LCS-based, over the differing middle part).
+ */
 export function lineDiffCounts(before: string, after: string): { added: number; removed: number } {
   const a = before.split('\n');
   const b = after.split('\n');

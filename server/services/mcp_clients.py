@@ -27,6 +27,12 @@ class McpClientError(Exception):
     """An expected failure, reported to the UI as ``error`` on the client status."""
 
     def __init__(self, code: str, message: str):
+        """Store a machine-readable `code` with the message.
+
+        Args:
+            code: Short error code for the UI, e.g. "command_failed".
+            message: Human-readable explanation.
+        """
         super().__init__(message)
         self.code = code
         self.message = message
@@ -37,6 +43,7 @@ class BadRequest(Exception):
 
 
 # ---------------------------------------------------------------- the server entry
+
 
 def stdio_command() -> tuple[str, list[str]]:
     """Command + args that start the stdio MCP server in this install."""
@@ -76,6 +83,7 @@ def _same_entry(installed: dict, expected: dict) -> bool:
 
 # ---------------------------------------------------------------- files
 
+
 def _read_json(path: Path) -> dict:
     if not path.exists():
         return {}
@@ -87,7 +95,10 @@ def _read_json(path: Path) -> dict:
             f"{path} is not valid JSON, so it was left untouched. Fix or remove it and try again.",
         ) from exc
     if not isinstance(data, dict):
-        raise McpClientError("invalid_json", f"{path} does not contain a JSON object; it was left untouched.")
+        raise McpClientError(
+            "invalid_json",
+            f"{path} does not contain a JSON object; it was left untouched.",
+        )
     return data
 
 
@@ -111,7 +122,10 @@ def _write_json(path: Path, data: dict) -> None:
 def _servers(data: dict, path: Path) -> dict:
     servers = data.get("mcpServers", {})
     if not isinstance(servers, dict):
-        raise McpClientError("invalid_json", f"'mcpServers' in {path} is not an object; it was left untouched.")
+        raise McpClientError(
+            "invalid_json",
+            f"'mcpServers' in {path} is not an object; it was left untouched.",
+        )
     return servers
 
 
@@ -135,7 +149,9 @@ def _tilde(path: Path) -> str:
 
 # ---------------------------------------------------------------- Claude Code
 
+
 def find_claude() -> str | None:
+    """Locate the `claude` CLI on PATH or in common install folders."""
     found = shutil.which("claude")
     if found:
         return found
@@ -155,10 +171,23 @@ def find_claude() -> str | None:
 def _claude_add_args(scope: str) -> list[str]:
     command, args = stdio_command()
     env = [a for k, v in stdio_env().items() for a in ("--env", f"{k}={v}")]
-    return ["mcp", "add", SERVER_NAME, "--transport", "stdio", "--scope", scope, *env, "--", command, *args]
+    return [
+        "mcp",
+        "add",
+        SERVER_NAME,
+        "--transport",
+        "stdio",
+        "--scope",
+        scope,
+        *env,
+        "--",
+        command,
+        *args,
+    ]
 
 
 def claude_command_text(scope: str) -> str:
+    """Return the `claude mcp add ...` command for a scope, as text to copy."""
     return _join(["claude", *_claude_add_args(scope)])
 
 
@@ -166,7 +195,9 @@ def _claude_stored(scope: str, folder: Path | None) -> tuple[Path, dict | None]:
     """Where the kanban entry lives for a scope, and its current value (read-only)."""
     if scope == "project":
         path = folder / ".mcp.json" if folder else Path(".mcp.json")
-        return path, (_servers(_read_json(path), path).get(SERVER_NAME) if folder else None)
+        return path, (
+            _servers(_read_json(path), path).get(SERVER_NAME) if folder else None
+        )
     path = Path.home() / ".claude.json"
     data = _read_json(path)
     if scope == "user":
@@ -192,12 +223,15 @@ def _run_claude(args: list[str], cwd: Path | None) -> subprocess.CompletedProces
             timeout=_CLI_TIMEOUT,
         )
     except subprocess.TimeoutExpired as exc:
-        raise McpClientError("command_failed", f"claude did not finish within {_CLI_TIMEOUT} seconds.") from exc
+        raise McpClientError(
+            "command_failed", f"claude did not finish within {_CLI_TIMEOUT} seconds."
+        ) from exc
     except OSError as exc:
         raise McpClientError("command_failed", f"Couldn't run claude: {exc}") from exc
 
 
 # ---------------------------------------------------------------- Antigravity
+
 
 def _antigravity_path(scope: str, folder: Path | None) -> Path:
     if scope == "workspace":
@@ -206,6 +240,7 @@ def _antigravity_path(scope: str, folder: Path | None) -> Path:
 
 
 # ---------------------------------------------------------------- status / actions
+
 
 def _scope_for(client: str, scope: str | None) -> str:
     options = CLAUDE_SCOPES if client == "claude-code" else ANTIGRAVITY_SCOPES
@@ -216,10 +251,28 @@ def _scope_for(client: str, scope: str | None) -> str:
 
 
 def _needs_folder(client: str, scope: str) -> bool:
-    return scope in (("project", "local") if client == "claude-code" else ("workspace",))
+    return scope in (
+        ("project", "local") if client == "claude-code" else ("workspace",)
+    )
 
 
-def get_status(client: str, scope: str | None, folder_raw: str | None, tool_count: int) -> dict:
+def get_status(
+    client: str, scope: str | None, folder_raw: str | None, tool_count: int
+) -> dict:
+    """Report whether the MCP server is installed for a client and scope.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope for the client; None uses its default.
+        folder_raw: Project folder, needed for project/local/workspace scopes.
+        tool_count: Number of tools the server exposes, echoed in the status.
+
+    Returns:
+        Status with `installed`, `scope`, `error` and related fields.
+
+    Raises:
+        BadRequest: If the client or scope is unknown.
+    """
     if client not in ("claude-code", "antigravity"):
         raise BadRequest(f"Unknown MCP client '{client}'")
     scope = _scope_for(client, scope)
@@ -248,8 +301,14 @@ def get_status(client: str, scope: str | None, folder_raw: str | None, tool_coun
             expected = _entry(with_type=True)
         else:
             path = _antigravity_path(scope, folder)
-            status["entry_json"] = json.dumps({"mcpServers": {SERVER_NAME: _entry(False)}}, indent=2)
-            installed = _servers(_read_json(path), path).get(SERVER_NAME) if not status["needs_folder"] else None
+            status["entry_json"] = json.dumps(
+                {"mcpServers": {SERVER_NAME: _entry(False)}}, indent=2
+            )
+            installed = (
+                _servers(_read_json(path), path).get(SERVER_NAME)
+                if not status["needs_folder"]
+                else None
+            )
             expected = _entry(with_type=False)
     except McpClientError as exc:
         status["error"] = {"code": exc.code, "message": exc.message}
@@ -258,13 +317,30 @@ def get_status(client: str, scope: str | None, folder_raw: str | None, tool_coun
     status["stored_in"] = _tilde(path) if not status["needs_folder"] else None
     if isinstance(installed, dict):
         status["installed"] = True
-        status["installed_command"] = _join([str(installed.get("command", "")), *map(str, installed.get("args", []))])
+        status["installed_command"] = _join(
+            [str(installed.get("command", "")), *map(str, installed.get("args", []))]
+        )
         status["update_available"] = not _same_entry(installed, expected)
     return status
 
 
-def install(client: str, scope: str | None, folder_raw: str | None, tool_count: int) -> dict:
-    """Add or replace the kanban entry. Expected failures come back as ``status['error']``."""
+def install(
+    client: str, scope: str | None, folder_raw: str | None, tool_count: int
+) -> dict:
+    """Add or replace the kanban entry; expected failures come back as `status["error"]`.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope for the client; None uses its default.
+        folder_raw: Project folder, needed for project/local/workspace scopes.
+        tool_count: Number of tools the server exposes, echoed in the status.
+
+    Returns:
+        Status with `installed`, `scope`, `error` and related fields.
+
+    Raises:
+        McpClientError: If the client command fails.
+    """
     status = get_status(client, scope, folder_raw, tool_count)
     scope = status["scope"]
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
@@ -272,12 +348,17 @@ def install(client: str, scope: str | None, folder_raw: str | None, tool_count: 
         return status
     try:
         if client == "claude-code":
-            if status["installed"]:  # `claude mcp add` refuses an existing name; replace it
+            if status[
+                "installed"
+            ]:  # `claude mcp add` refuses an existing name; replace it
                 _run_claude(["mcp", "remove", SERVER_NAME, "--scope", scope], folder)
             result = _run_claude(_claude_add_args(scope), folder)
             if result.returncode != 0:
                 detail = (result.stderr or result.stdout).strip()
-                raise McpClientError("command_failed", f"claude mcp add failed: {detail or 'unknown error'}")
+                raise McpClientError(
+                    "command_failed",
+                    f"claude mcp add failed: {detail or 'unknown error'}",
+                )
         else:
             path = _antigravity_path(scope, folder)
             data = _read_json(path)
@@ -291,7 +372,23 @@ def install(client: str, scope: str | None, folder_raw: str | None, tool_count: 
     return get_status(client, scope, folder_raw, tool_count)
 
 
-def remove(client: str, scope: str | None, folder_raw: str | None, tool_count: int) -> dict:
+def remove(
+    client: str, scope: str | None, folder_raw: str | None, tool_count: int
+) -> dict:
+    """Uninstall the MCP server from a client and return the new status.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope for the client; None uses its default.
+        folder_raw: Project folder, needed for project/local/workspace scopes.
+        tool_count: Number of tools the server exposes, echoed in the status.
+
+    Returns:
+        Status with `installed`, `scope`, `error` and related fields.
+
+    Raises:
+        McpClientError: If the client command fails.
+    """
     status = get_status(client, scope, folder_raw, tool_count)
     scope = status["scope"]
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
@@ -299,10 +396,15 @@ def remove(client: str, scope: str | None, folder_raw: str | None, tool_count: i
         return status
     try:
         if client == "claude-code":
-            result = _run_claude(["mcp", "remove", SERVER_NAME, "--scope", scope], folder)
+            result = _run_claude(
+                ["mcp", "remove", SERVER_NAME, "--scope", scope], folder
+            )
             if result.returncode != 0:
                 detail = (result.stderr or result.stdout).strip()
-                raise McpClientError("command_failed", f"claude mcp remove failed: {detail or 'unknown error'}")
+                raise McpClientError(
+                    "command_failed",
+                    f"claude mcp remove failed: {detail or 'unknown error'}",
+                )
         else:
             path = _antigravity_path(scope, folder)
             data = _read_json(path)
@@ -317,6 +419,16 @@ def remove(client: str, scope: str | None, folder_raw: str | None, tool_count: i
 
 
 def config_file(client: str, scope: str | None, folder_raw: str | None) -> Path:
+    """Return the client's config file path for a scope.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope; None uses the client's default.
+        folder_raw: Project folder for scopes that need one.
+
+    Returns:
+        The config file path.
+    """
     scope = _scope_for(client, scope)
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
     if client == "antigravity":
@@ -325,19 +437,42 @@ def config_file(client: str, scope: str | None, folder_raw: str | None) -> Path:
 
 
 def open_file(path: Path) -> None:
+    """Open a config file in the OS default editor.
+
+    Args:
+        path: File to open.
+
+    Raises:
+        BadRequest: If the file does not exist or cannot be opened.
+    """
     if not path.exists():
-        raise BadRequest(f"{path} doesn't exist yet. Install first, or create it yourself.")
+        raise BadRequest(
+            f"{path} doesn't exist yet. Install first, or create it yourself."
+        )
     try:
         if sys.platform == "win32":
             os.startfile(str(path))  # type: ignore[attr-defined]
         else:
-            subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(path)])
+            subprocess.Popen(
+                ["open" if sys.platform == "darwin" else "xdg-open", str(path)]
+            )
     except OSError as exc:
         raise BadRequest(f"Couldn't open {path}: {exc}") from exc
 
 
-async def test_connection(client: str, scope: str | None, folder_raw: str | None) -> dict:
-    """Start the installed server the way the client would and list its tools."""
+async def test_connection(
+    client: str, scope: str | None, folder_raw: str | None
+) -> dict:
+    """Start the installed server the way the client would and list its tools.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope; None uses the client's default.
+        folder_raw: Project folder for scopes that need one.
+
+    Returns:
+        `{ok, tool_count, message}`.
+    """
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
@@ -352,12 +487,19 @@ async def test_connection(client: str, scope: str | None, folder_raw: str | None
     except McpClientError as exc:
         return {"ok": False, "tool_count": 0, "message": exc.message}
     if not isinstance(entry, dict) or not entry.get("command"):
-        return {"ok": False, "tool_count": 0, "message": "kanban isn't installed here yet."}
+        return {
+            "ok": False,
+            "tool_count": 0,
+            "message": "kanban isn't installed here yet.",
+        }
 
     params = StdioServerParameters(
         command=str(entry["command"]),
         args=[str(a) for a in entry.get("args", [])],
-        env={**os.environ, **{str(k): str(v) for k, v in (entry.get("env") or {}).items()}},
+        env={
+            **os.environ,
+            **{str(k): str(v) for k, v in (entry.get("env") or {}).items()},
+        },
     )
 
     async def _probe() -> int:
@@ -369,7 +511,19 @@ async def test_connection(client: str, scope: str | None, folder_raw: str | None
     try:
         count = await asyncio.wait_for(_probe(), timeout=_TEST_TIMEOUT)
     except asyncio.TimeoutError:
-        return {"ok": False, "tool_count": 0, "message": f"No answer within {_TEST_TIMEOUT} seconds."}
+        return {
+            "ok": False,
+            "tool_count": 0,
+            "message": f"No answer within {_TEST_TIMEOUT} seconds.",
+        }
     except Exception as exc:  # the server could not start or spoke nonsense
-        return {"ok": False, "tool_count": 0, "message": f"Couldn't start the server: {exc}"}
-    return {"ok": True, "tool_count": count, "message": f"Connected - {count} tools available"}
+        return {
+            "ok": False,
+            "tool_count": 0,
+            "message": f"Couldn't start the server: {exc}",
+        }
+    return {
+        "ok": True,
+        "tool_count": count,
+        "message": f"Connected - {count} tools available",
+    }

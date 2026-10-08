@@ -18,7 +18,12 @@ interface Props {
   renamingId: string | null;
   onRenamingChange: (id: string | null) => void;
   /** Drag and drop; the returned promise keeps the row spinner on while the move saves. */
-  onMove: (id: string, parentId: string | null, beforeId: string | null, afterId: string | null) => Promise<unknown> | void;
+  onMove: (
+    id: string,
+    parentId: string | null,
+    beforeId: string | null,
+    afterId: string | null,
+  ) => Promise<unknown> | void;
   onCollapse: () => void;
   /** Row "···" menu content (PageMenu for that page). */
   renderMenu: (node: DocsTreeNode, close: () => void) => ReactNode;
@@ -54,13 +59,47 @@ function highlight(text: string, q: string): ReactNode {
   return (
     <>
       {text.slice(0, i)}
-      <mark style={{ background: '#FBE7A6', color: 'inherit', borderRadius: 2, padding: '0 1px', margin: '0 -1px' }}>{text.slice(i, i + q.length)}</mark>
+      <mark style={{ background: '#FBE7A6', color: 'inherit', borderRadius: 2, padding: '0 1px', margin: '0 -1px' }}>
+        {text.slice(i, i + q.length)}
+      </mark>
       {text.slice(i + q.length)}
     </>
   );
 }
 
-export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId, onSelect, onNewPage, onRequestRename, renamingId, onRenamingChange, onMove, onCollapse, renderMenu, onOpenSearch, headerExtra }: Props) {
+/**
+ * Page tree with drag-to-reorder, filter, rename and row menu.
+ * @param props.nodes - Flat page tree nodes.
+ * @param props.selectedId - Currently open page id.
+ * @param props.loadingId - Page whose content is loading (row spinner).
+ * @param props.onSelect - Called with the id of the clicked page.
+ * @param props.onNewPage - Called with the parent page id, or `null` for a root page.
+ * @param props.onRequestRename - Called with the node and typed title; the lead decides between a plain rename and the rewrite-links dialog.
+ * @param props.renamingId - Page being renamed inline (controlled), or `null`.
+ * @param props.onRenamingChange - Called to start or stop inline rename.
+ * @param props.onMove - Called with moved id, new parent and the siblings before and after it; a returned promise keeps the row spinner on while saving.
+ * @param props.onCollapse - Called to collapse the tree.
+ * @param props.renderMenu - Renders the row "···" menu content; `close` dismisses the menu.
+ * @param props.onOpenSearch - Called with the filter text on Enter or "Search page content".
+ * @param props.headerExtra - Slot in the header next to the collapse button.
+ */
+export function DocsTree({
+  projectId,
+  projectName,
+  nodes,
+  selectedId,
+  loadingId,
+  onSelect,
+  onNewPage,
+  onRequestRename,
+  renamingId,
+  onRenamingChange,
+  onMove,
+  onCollapse,
+  renderMenu,
+  onOpenSearch,
+  headerExtra,
+}: Props) {
   const storageKey = `docsTreeClosed:${projectId}`;
   const [closed, setClosed] = useState<Set<string>>(() => {
     try {
@@ -82,11 +121,16 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
   const dropRef = useRef<Drop | null>(null);
   const suppressClick = useRef(false);
 
-  const persist = useCallback((next: Set<string>) => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify([...next]));
-    } catch { /* ignore */ }
-  }, [storageKey]);
+  const persist = useCallback(
+    (next: Set<string>) => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+    },
+    [storageKey],
+  );
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const childrenOf = useMemo(() => {
@@ -139,7 +183,14 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
           const kids = (childrenOf.get(n.id) ?? []).filter((c) => keep.has(c.id));
           const total = (childrenOf.get(n.id) ?? []).length;
           const isMatch = matches.has(n.id);
-          out.push({ node: n, depth, hasChildren: total > 0, open: kids.length > 0 && !isMatch ? true : kids.length > 0, childCount: total, dim: !isMatch });
+          out.push({
+            node: n,
+            depth,
+            hasChildren: total > 0,
+            open: kids.length > 0 && !isMatch ? true : kids.length > 0,
+            childCount: total,
+            dim: !isMatch,
+          });
           if (kids.length) walk(n.id, depth + 1);
         }
       };
@@ -208,39 +259,49 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
 
   /* ---------- drag and drop (pointer based: floating chip, insertion line, nest) ---------- */
 
-  const isInside = useCallback((id: string, ancestor: string) => {
-    let cur: string | null = id;
-    while (cur) {
-      if (cur === ancestor) return true;
-      cur = byId.get(cur)?.parentId ?? null;
-    }
-    return false;
-  }, [byId]);
+  const isInside = useCallback(
+    (id: string, ancestor: string) => {
+      let cur: string | null = id;
+      while (cur) {
+        if (cur === ancestor) return true;
+        cur = byId.get(cur)?.parentId ?? null;
+      }
+      return false;
+    },
+    [byId],
+  );
 
-  const computeDrop = useCallback((x: number, y: number, dragId: string): Drop | null => {
-    void x;
-    let hit: { row: Row; rect: DOMRect } | null = null;
-    for (const r of rows) {
-      const el = rowEls.current.get(r.node.id);
-      if (!el) continue;
-      const rect = el.getBoundingClientRect();
-      if (y >= rect.top && y < rect.bottom) hit = { row: r, rect };
-    }
-    if (!hit) {
-      const roots = rows.filter((r) => r.depth === 0);
-      const body = bodyRef.current?.getBoundingClientRect();
-      const last = roots[roots.length - 1];
-      if (!last || !body || y < body.top || y > body.bottom) return null;
-      const lastEl = rowEls.current.get(rows[rows.length - 1].node.id)?.getBoundingClientRect();
-      if (!lastEl || y < lastEl.bottom) return null;
-      return isInside(last.node.id, dragId) ? null : { rowId: last.node.id, zone: 'after', nestReady: false };
-    }
-    if (isInside(hit.row.node.id, dragId)) return null;
-    const rel = (y - hit.rect.top) / hit.rect.height;
-    const zone: Zone = rel < 0.28 ? 'before' : rel > 0.72 ? 'after' : 'nest';
-    const prev = dropRef.current;
-    return { rowId: hit.row.node.id, zone, nestReady: zone === 'nest' && prev?.rowId === hit.row.node.id && prev.zone === 'nest' ? prev.nestReady : false };
-  }, [rows, isInside]);
+  const computeDrop = useCallback(
+    (x: number, y: number, dragId: string): Drop | null => {
+      void x;
+      let hit: { row: Row; rect: DOMRect } | null = null;
+      for (const r of rows) {
+        const el = rowEls.current.get(r.node.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (y >= rect.top && y < rect.bottom) hit = { row: r, rect };
+      }
+      if (!hit) {
+        const roots = rows.filter((r) => r.depth === 0);
+        const body = bodyRef.current?.getBoundingClientRect();
+        const last = roots[roots.length - 1];
+        if (!last || !body || y < body.top || y > body.bottom) return null;
+        const lastEl = rowEls.current.get(rows[rows.length - 1].node.id)?.getBoundingClientRect();
+        if (!lastEl || y < lastEl.bottom) return null;
+        return isInside(last.node.id, dragId) ? null : { rowId: last.node.id, zone: 'after', nestReady: false };
+      }
+      if (isInside(hit.row.node.id, dragId)) return null;
+      const rel = (y - hit.rect.top) / hit.rect.height;
+      const zone: Zone = rel < 0.28 ? 'before' : rel > 0.72 ? 'after' : 'nest';
+      const prev = dropRef.current;
+      return {
+        rowId: hit.row.node.id,
+        zone,
+        nestReady: zone === 'nest' && prev?.rowId === hit.row.node.id && prev.zone === 'nest' ? prev.nestReady : false,
+      };
+    },
+    [rows, isInside],
+  );
 
   useEffect(() => {
     dropRef.current = drop;
@@ -249,7 +310,10 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
   // 400 ms in the middle of a row = nest; 800 ms on a collapsed folder = expand it
   useEffect(() => {
     if (!drop || drop.zone !== 'nest') return;
-    const t1 = setTimeout(() => setDrop((d) => (d && d.rowId === drop.rowId && d.zone === 'nest' ? { ...d, nestReady: true } : d)), 400);
+    const t1 = setTimeout(
+      () => setDrop((d) => (d && d.rowId === drop.rowId && d.zone === 'nest' ? { ...d, nestReady: true } : d)),
+      400,
+    );
     const row = rows.find((r) => r.node.id === drop.rowId);
     const t2 = row && row.hasChildren && !row.open ? setTimeout(() => expand(drop.rowId), 800) : null;
     return () => {
@@ -301,14 +365,22 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
   }
 
   /** Where a drop lands: parent plus neighbour ids. */
-  function landing(rowId: string, zone: Zone): { parentId: string | null; beforeId: string | null; afterId: string | null; depth: number } | null {
+  function landing(
+    rowId: string,
+    zone: Zone,
+  ): { parentId: string | null; beforeId: string | null; afterId: string | null; depth: number } | null {
     const row = rows.find((r) => r.node.id === rowId);
     if (!row) return null;
     const n = row.node;
     if (zone === 'before') return { parentId: n.parentId, beforeId: n.id, afterId: null, depth: row.depth };
     if (zone === 'nest') {
       const kids = childrenOf.get(n.id) ?? [];
-      return { parentId: n.id, beforeId: null, afterId: kids.length ? kids[kids.length - 1].id : null, depth: row.depth + 1 };
+      return {
+        parentId: n.id,
+        beforeId: null,
+        afterId: kids.length ? kids[kids.length - 1].id : null,
+        depth: row.depth + 1,
+      };
     }
     const kids = childrenOf.get(n.id) ?? [];
     if (row.open && kids.length) return { parentId: n.id, beforeId: kids[0].id, afterId: null, depth: row.depth + 1 };
@@ -334,9 +406,35 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
 
   function indicator(depth: number) {
     return (
-      <div aria-hidden="true" data-testid="drop-line" style={{ position: 'relative', height: 0, margin: `0 4px 0 ${22 + depth * INDENT}px`, zIndex: 3 }}>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: -1, height: 2, borderRadius: 1, background: '#2E6F40' }} />
-        <div style={{ position: 'absolute', left: -3, top: -4, width: 8, height: 8, borderRadius: '50%', background: '#FFFFFF', border: '2px solid #2E6F40', boxSizing: 'border-box' }} />
+      <div
+        aria-hidden="true"
+        data-testid="drop-line"
+        style={{ position: 'relative', height: 0, margin: `0 4px 0 ${22 + depth * INDENT}px`, zIndex: 3 }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: -1,
+            height: 2,
+            borderRadius: 1,
+            background: '#2E6F40',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            left: -3,
+            top: -4,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: '#FFFFFF',
+            border: '2px solid #2E6F40',
+            boxSizing: 'border-box',
+          }}
+        />
       </div>
     );
   }
@@ -383,7 +481,11 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
             }
           }}
         >
-          <span className="dk-hov" style={{ width: 14, display: 'flex', justifyContent: 'center', color: '#9AA8A0', cursor: 'grab' }} title="Drag to move">
+          <span
+            className="dk-hov"
+            style={{ width: 14, display: 'flex', justifyContent: 'center', color: '#9AA8A0', cursor: 'grab' }}
+            title="Drag to move"
+          >
             <Icon name="grip" size={14} strokeWidth={1.8} />
           </span>
           {Array.from({ length: r.depth }).map((_, i) => (
@@ -397,7 +499,19 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
                 e.stopPropagation();
                 toggle(n.id);
               }}
-              style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5B6B60', flexShrink: 0, border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
+              style={{
+                width: 16,
+                height: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#5B6B60',
+                flexShrink: 0,
+                border: 'none',
+                background: 'none',
+                padding: 0,
+                cursor: 'pointer',
+              }}
             >
               <Icon name={r.open ? 'chevronDown' : 'chevronRight'} size={12} strokeWidth={2.3} />
             </button>
@@ -417,11 +531,34 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
               onCancel={() => onRenamingChange(null)}
             />
           ) : (
-            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{highlight(n.title, q)}</span>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {highlight(n.title, q)}
+            </span>
           )}
-          {!renaming && n.status === 'draft' && <span title="Draft" style={{ width: 7, height: 7, borderRadius: '50%', background: '#B4791E', flexShrink: 0, margin: '0 3px' }} />}
-          {!renaming && r.hasChildren && !r.open && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9AA8A0' }}>{r.childCount}</span>}
-          {!renaming && (movingId === n.id || loadingId === n.id) && <span className="mc-spin" role="status" aria-label={movingId === n.id ? 'Saving move' : 'Loading page'} style={{ marginRight: 4 }} />}
+          {!renaming && n.status === 'draft' && (
+            <span
+              title="Draft"
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: '#B4791E',
+                flexShrink: 0,
+                margin: '0 3px',
+              }}
+            />
+          )}
+          {!renaming && r.hasChildren && !r.open && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9AA8A0' }}>{r.childCount}</span>
+          )}
+          {!renaming && (movingId === n.id || loadingId === n.id) && (
+            <span
+              className="mc-spin"
+              role="status"
+              aria-label={movingId === n.id ? 'Saving move' : 'Loading page'}
+              style={{ marginRight: 4 }}
+            />
+          )}
           {!renaming && (
             <span className="dk-hov" style={{ display: 'flex', alignItems: 'center' }}>
               <button
@@ -456,12 +593,35 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
             </span>
           )}
           {renaming && (
-            <div className="dk-hint" style={{ position: 'absolute', left: 28, top: 'calc(100% + 4px)', zIndex: 6, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, background: '#FFFFFF', border: '1px solid #E3E8E5', boxShadow: '0 8px 20px rgba(30,42,34,0.12)', fontSize: 11.5, color: '#5B6B60', fontWeight: 400, whiteSpace: 'nowrap' }}>
+            <div
+              className="dk-hint"
+              style={{
+                position: 'absolute',
+                left: 28,
+                top: 'calc(100% + 4px)',
+                zIndex: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 10px',
+                borderRadius: 8,
+                background: '#FFFFFF',
+                border: '1px solid #E3E8E5',
+                boxShadow: '0 8px 20px rgba(30,42,34,0.12)',
+                fontSize: 11.5,
+                color: '#5B6B60',
+                fontWeight: 400,
+                whiteSpace: 'nowrap',
+              }}
+            >
               <span className="dk-kbd">Enter</span> save <span className="dk-kbd">Esc</span> cancel
             </div>
           )}
           {nesting && (
-            <div className="dk-tt" style={{ position: 'absolute', left: 100, top: -28, zIndex: 4, fontWeight: 400, pointerEvents: 'none' }}>
+            <div
+              className="dk-tt"
+              style={{ position: 'absolute', left: 100, top: -28, zIndex: 4, fontWeight: 400, pointerEvents: 'none' }}
+            >
               Nest under <b>{n.title}</b>
             </div>
           )}
@@ -472,21 +632,69 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
   }
 
   return (
-    <aside aria-label="Docs space" className="docs-root" style={{ width: 248, flexShrink: 0, background: '#F6FAF7', borderRight: '1px solid #E3E8E5', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', minHeight: 0 }}>
+    <aside
+      aria-label="Docs space"
+      className="docs-root"
+      style={{
+        width: 248,
+        flexShrink: 0,
+        background: '#F6FAF7',
+        borderRight: '1px solid #E3E8E5',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+        minHeight: 0,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 12px 8px 14px' }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60' }}>Docs space</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: '#5B6B60',
+            }}
+          >
+            Docs space
+          </span>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#1E2A22',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             <span style={{ fontWeight: 500, color: '#5B6B60' }}>Space:</span> {projectName}
           </span>
         </div>
         {headerExtra}
-        <button type="button" className="dk-icobtn" aria-label="Collapse page tree" title="Collapse tree" onClick={onCollapse}>
+        <button
+          type="button"
+          className="dk-icobtn"
+          aria-label="Collapse page tree"
+          title="Collapse tree"
+          onClick={onCollapse}
+        >
           <Icon name="i16" size={16} strokeWidth={1.9} />
         </button>
       </div>
       <div
-        style={{ margin: q ? '0 10px 6px' : '0 10px 8px', display: 'flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 8, border: '1px solid #E3E8E5', background: '#FFFFFF', ...(filterFocus ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' } : null) }}
+        style={{
+          margin: q ? '0 10px 6px' : '0 10px 8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 7,
+          padding: '6px 10px',
+          borderRadius: 8,
+          border: '1px solid #E3E8E5',
+          background: '#FFFFFF',
+          ...(filterFocus ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' } : null),
+        }}
         onClick={() => filterRef.current?.focus()}
       >
         <Icon name="search" size={13} strokeWidth={2} style={{ color: filterFocus ? '#2E6F40' : '#9AA8A0' }} />
@@ -504,35 +712,115 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
           }}
           placeholder="Search pages…"
           aria-label="Filter pages"
-          style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'none', padding: 0, font: 'inherit', fontSize: 12.5, color: '#1E2A22' }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: 'none',
+            outline: 'none',
+            background: 'none',
+            padding: 0,
+            font: 'inherit',
+            fontSize: 12.5,
+            color: '#1E2A22',
+          }}
         />
         {q ? (
-          <button type="button" title="Clear filter" aria-label="Clear filter" onClick={() => { setFilter(''); filterRef.current?.focus(); }} style={{ width: 18, height: 18, borderRadius: '50%', background: '#E3E8E5', color: '#5B6B60', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer' }}>
+          <button
+            type="button"
+            title="Clear filter"
+            aria-label="Clear filter"
+            onClick={() => {
+              setFilter('');
+              filterRef.current?.focus();
+            }}
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: '#E3E8E5',
+              color: '#5B6B60',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+            }}
+          >
             <Icon name="close" size={11} strokeWidth={2.4} />
           </button>
         ) : (
           <span className="dk-kbd">/</span>
         )}
       </div>
-      {q && <div role="status" style={{ padding: '0 14px 6px', fontSize: 11.5, color: '#5B6B60', minHeight: 18 }}>{matchCount === 0 ? '0 pages' : matchCount === 1 ? '1 page matches' : `${matchCount} pages match`}</div>}
+      {q && (
+        <div role="status" style={{ padding: '0 14px 6px', fontSize: 11.5, color: '#5B6B60', minHeight: 18 }}>
+          {matchCount === 0 ? '0 pages' : matchCount === 1 ? '1 page matches' : `${matchCount} pages match`}
+        </div>
+      )}
       <div ref={bodyRef} role="tree" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {nodes.length === 0 ? (
           <TreeEmpty />
         ) : q && rows.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '34px 22px 0', textAlign: 'center' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F1F3F1', color: '#7A8A80', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              padding: '34px 22px 0',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: '#F1F3F1',
+                color: '#7A8A80',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
               <Icon name="search" size={20} strokeWidth={1.8} />
             </div>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>No pages match “{q}”</div>
-            <div style={{ fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>Only page titles are filtered here. Search the text inside pages instead.</div>
-            <button type="button" className="st-btn st-btn-sm" style={{ marginTop: 4 }} onClick={() => onOpenSearch?.(q)}>
+            <div style={{ fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+              Only page titles are filtered here. Search the text inside pages instead.
+            </div>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              style={{ marginTop: 4 }}
+              onClick={() => onOpenSearch?.(q)}
+            >
               <Icon name="search" size={13} strokeWidth={2} />
               Search page content
             </button>
-            <button type="button" onClick={() => setFilter('')} style={{ border: 'none', background: 'none', fontSize: 12, fontWeight: 600, color: '#2E6F40', cursor: 'pointer', padding: 4 }}>Clear filter</button>
+            <button
+              type="button"
+              onClick={() => setFilter('')}
+              style={{
+                border: 'none',
+                background: 'none',
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#2E6F40',
+                cursor: 'pointer',
+                padding: 4,
+              }}
+            >
+              Clear filter
+            </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '2px 8px' }}>{rows.map(renderRow)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '2px 8px' }}>
+            {rows.map(renderRow)}
+          </div>
         )}
       </div>
       <div style={{ padding: '8px 10px 14px' }}>
@@ -540,7 +828,22 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
           type="button"
           onClick={() => onNewPage(null)}
           data-testid="tree-new-page"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px dashed #C7D2CB', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, color: '#2E6F40', textAlign: 'left' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            width: '100%',
+            padding: '7px 10px',
+            borderRadius: 8,
+            border: '1px dashed #C7D2CB',
+            background: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: '#2E6F40',
+            textAlign: 'left',
+          }}
         >
           <Icon name="plus" size={12} strokeWidth={2.6} />
           New page
@@ -548,7 +851,11 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
       </div>
 
       {menu && byId.get(menu.id) && (
-        <div className="docs-root" onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: menu.left, top: menu.top, width: 0, height: 0, zIndex: 300 }}>
+        <div
+          className="docs-root"
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', left: menu.left, top: menu.top, width: 0, height: 0, zIndex: 300 }}
+        >
           {renderMenu(byId.get(menu.id)!, () => setMenu(null))}
         </div>
       )}
@@ -556,7 +863,25 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
         <div
           aria-hidden="true"
           data-testid="drag-chip"
-          style={{ position: 'fixed', left: drag.x + 12, top: drag.y - 14, zIndex: 500, pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 7, padding: '6px 11px 6px 9px', borderRadius: 8, background: '#FFFFFF', border: '1px solid #2E6F40', boxShadow: '0 14px 30px rgba(30,42,34,0.24)', transform: 'rotate(-2deg)', fontSize: 13, fontWeight: 600, color: '#1E2A22' }}
+          style={{
+            position: 'fixed',
+            left: drag.x + 12,
+            top: drag.y - 14,
+            zIndex: 500,
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            padding: '6px 11px 6px 9px',
+            borderRadius: 8,
+            background: '#FFFFFF',
+            border: '1px solid #2E6F40',
+            boxShadow: '0 14px 30px rgba(30,42,34,0.24)',
+            transform: 'rotate(-2deg)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#1E2A22',
+          }}
         >
           <Icon name="page" size={15} strokeWidth={1.8} style={{ color: '#2E6F40' }} /> {dragNode.title}
         </div>
@@ -565,7 +890,15 @@ export function DocsTree({ projectId, projectName, nodes, selectedId, loadingId,
   );
 }
 
-function RenameInput({ initial, onCommit, onCancel }: { initial: string; onCommit: (title: string) => void; onCancel: () => void }) {
+function RenameInput({
+  initial,
+  onCommit,
+  onCancel,
+}: {
+  initial: string;
+  onCommit: (title: string) => void;
+  onCancel: () => void;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
   useEffect(() => {
@@ -573,7 +906,23 @@ function RenameInput({ initial, onCommit, onCancel }: { initial: string; onCommi
     ref.current?.select();
   }, []);
   return (
-    <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', height: 24, padding: '0 6px', borderRadius: 5, border: '1px solid #2E6F40', background: '#FFFFFF', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)', fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>
+    <span
+      style={{
+        flex: 1,
+        minWidth: 0,
+        display: 'flex',
+        alignItems: 'center',
+        height: 24,
+        padding: '0 6px',
+        borderRadius: 5,
+        border: '1px solid #2E6F40',
+        background: '#FFFFFF',
+        boxShadow: '0 0 0 3px rgba(46,111,64,0.18)',
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#1E2A22',
+      }}
+    >
       <input
         ref={ref}
         defaultValue={initial}
@@ -593,7 +942,15 @@ function RenameInput({ initial, onCommit, onCancel }: { initial: string; onCommi
             onCancel();
           }
         }}
-        style={{ width: '100%', border: 'none', outline: 'none', background: 'none', padding: 0, font: 'inherit', color: 'inherit' }}
+        style={{
+          width: '100%',
+          border: 'none',
+          outline: 'none',
+          background: 'none',
+          padding: 0,
+          font: 'inherit',
+          color: 'inherit',
+        }}
       />
     </span>
   );

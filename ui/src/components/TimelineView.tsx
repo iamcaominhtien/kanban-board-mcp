@@ -218,7 +218,13 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
     };
   }, [dragResize, tickets, updateTicketMutation]);
 
-  function startResize(e: React.PointerEvent, ticket: Ticket, edge: 'start' | 'due', currentStart: Date, currentDue: Date) {
+  function startResize(
+    e: React.PointerEvent,
+    ticket: Ticket,
+    edge: 'start' | 'due',
+    currentStart: Date,
+    currentDue: Date,
+  ) {
     e.stopPropagation();
     e.preventDefault();
     setDragResize({
@@ -232,11 +238,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
   }
 
   if (ganttTickets.length === 0) {
-    return (
-      <div className={styles.emptyState}>
-        No tickets have start or due dates set.
-      </div>
-    );
+    return <div className={styles.emptyState}>No tickets have start or due dates set.</div>;
   }
 
   return (
@@ -249,11 +251,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
             {ganttTickets.map((ticket) => {
               const isDone = ticket.status === 'done';
               return (
-                <div
-                  key={ticket.id}
-                  className={styles.ganttLabelRow}
-                  onClick={() => onCardClick(ticket)}
-                >
+                <div key={ticket.id} className={styles.ganttLabelRow} onClick={() => onCardClick(ticket)}>
                   <span className={`${styles.ganttTicketId} ${isDone ? styles.ganttTicketIdDone : ''}`}>
                     {ticket.id}
                   </span>
@@ -281,10 +279,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
             </div>
 
             {/* Vertical Today Line */}
-            <div
-              className={styles.ganttTodayLine}
-              style={{ left: todayLeftPx }}
-            />
+            <div className={styles.ganttTodayLine} style={{ left: todayLeftPx }} />
 
             {/* Bar rows */}
             {ganttTickets.map((ticket) => {
@@ -333,17 +328,13 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
               const barClass = isDone
                 ? styles.ganttBarDone
                 : isOverdue
-                ? styles.ganttBarOverdue
-                : styles.ganttBarNormal;
+                  ? styles.ganttBarOverdue
+                  : styles.ganttBarNormal;
 
               const isDraggingThis = dragResize?.ticketId === ticket.id;
 
               return (
-                <div
-                  key={ticket.id}
-                  className={styles.ganttBarRow}
-                  style={{ width: chartWidth }}
-                >
+                <div key={ticket.id} className={styles.ganttBarRow} style={{ width: chartWidth }}>
                   <button
                     type="button"
                     className={`${styles.ganttBar} ${barClass}`}
@@ -391,10 +382,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
 
                   {/* Overdue text notice if narrow bar */}
                   {isOverdue && widthPx <= 24 && rawEnd && (
-                    <span
-                      className={styles.overdueNotice}
-                      style={{ left: leftPx + widthPx + 8 }}
-                    >
+                    <span className={styles.overdueNotice} style={{ left: leftPx + widthPx + 8 }}>
                       Due {formatShortDate(rawEnd)}
                     </span>
                   )}
@@ -472,24 +460,49 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
                           category === 'created'
                             ? '#2E6F40'
                             : category === 'status_changed'
-                            ? '#2F6FB0'
-                            : category === 'commented'
-                            ? '#6D5DD3'
-                            : '#9AA8A0',
+                              ? '#2F6FB0'
+                              : category === 'commented'
+                                ? '#6D5DD3'
+                                : '#9AA8A0',
                       }}
                     >
                       {category === 'created' && (
-                        <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round">
+                        <svg
+                          width="7"
+                          height="7"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#FFFFFF"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        >
                           <path d="M12 5V19M5 12H19" />
                         </svg>
                       )}
                       {category === 'status_changed' && (
-                        <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round">
+                        <svg
+                          width="7"
+                          height="7"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#FFFFFF"
+                          strokeWidth="2.6"
+                          strokeLinecap="round"
+                        >
                           <path d="M4 4V10H10M4 10L8 6.5A8 8 0 1 1 4 14" />
                         </svg>
                       )}
                       {category === 'commented' && (
-                        <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                          width="7"
+                          height="7"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#FFFFFF"
+                          strokeWidth="2.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
                           <path d="M21 15A2 2 0 0 1 19 17H7L3 21V5A2 2 0 0 1 5 3H19A2 2 0 0 1 21 5Z" />
                         </svg>
                       )}
@@ -533,6 +546,11 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+/**
+ * Timeline of tickets over time.
+ * @param props.projectId - Project the timeline belongs to.
+ * @param props.onCardClick - Called with the clicked ticket.
+ */
 export function TimelineView({ tickets, projectId, onCardClick }: TimelineViewProps) {
   const [subMode, setSubMode] = useState<SubMode>('gantt');
 

@@ -86,6 +86,8 @@ def _first_h1(body: str) -> tuple[str | None, str]:
 
 @dataclass
 class Entry:
+    """One uploaded file in an import: path, parsed title, size and any error."""
+
     index: int
     path: str
     segments: list[str] = field(default_factory=list)
@@ -104,6 +106,16 @@ class Entry:
 
 
 def parse_file(index: int, path: str, data: bytes) -> Entry:
+    """Decode and parse one uploaded Markdown file (front matter and title).
+
+    Args:
+        index: Position in the upload, used to report results.
+        path: Path as uploaded, e.g. "folder/page.md".
+        data: Raw file bytes.
+
+    Returns:
+        The parsed entry; `error` is set when the file cannot be imported.
+    """
     e = Entry(index=index, path=path, size=len(data))
     segs = clean_path(path)
     if segs is None:
@@ -154,6 +166,8 @@ def parse_file(index: int, path: str, data: bytes) -> Entry:
 
 @dataclass
 class Node:
+    """A page to create: a folder placeholder or a file, with its parent."""
+
     key: tuple[str, ...]  # folder path, or folder path + file name
     title: str
     body: str
@@ -182,6 +196,20 @@ async def build_plan(
     parent_id: str | None,
     on_conflict: str,
 ) -> tuple[list[Entry], list[Node], dict[str, Any]]:
+    """Validate the files and plan the pages to create, folders included.
+
+    Args:
+        project_id: Project to import into.
+        files: `(path, bytes)` pairs.
+        parent_id: Page to import under; None for the top level.
+        on_conflict: "copy" (create a duplicate) or "skip" when a page with the same title exists.
+
+    Returns:
+        `(entries, nodes, summary)`.
+
+    Raises:
+        DocsError: 422 for a bad `on_conflict`, no files, too many files or a parent in another project.
+    """
     if on_conflict not in ("copy", "skip"):
         raise DocsError(422, "bad_conflict", "on_conflict must be copy or skip")
     await svc._project(session, project_id)
@@ -368,6 +396,17 @@ async def dry_run(
     parent_id: str | None = None,
     on_conflict: str = "copy",
 ) -> dict[str, Any]:
+    """Report what an import would create without writing anything.
+
+    Args:
+        project_id: Project to import into.
+        files: `(path, bytes)` pairs.
+        parent_id: Page to import under; None for the top level.
+        on_conflict: "copy" or "skip" for pages that already exist.
+
+    Returns:
+        Per-file report plus summary counts.
+    """
     entries, _nodes, summary = await build_plan(
         session, project_id, files, parent_id=parent_id, on_conflict=on_conflict
     )
@@ -383,6 +422,18 @@ async def run_import(
     on_conflict: str = "copy",
     publish: bool = False,
 ) -> dict[str, Any]:
+    """Create the planned pages as drafts, or publish them when `publish` is set.
+
+    Args:
+        project_id: Project to import into.
+        files: `(path, bytes)` pairs.
+        parent_id: Page to import under; None for the top level.
+        on_conflict: "copy" or "skip" for pages that already exist.
+        publish: Publish version 1 of each page instead of leaving drafts.
+
+    Returns:
+        `{created, failed, skipped, ...}` with per-file results.
+    """
     entries, nodes, _summary = await build_plan(
         session, project_id, files, parent_id=parent_id, on_conflict=on_conflict
     )
@@ -449,7 +500,15 @@ async def run_import(
 async def resolve_pages(
     session: AsyncSession, project_id: str, page_ids: list[str]
 ) -> dict[str, int]:
-    """Post-pass after an import: rebuild the link index of these pages and re-point pending links."""
+    """Post-import pass: rebuild the link index of the pages and re-point pending links.
+
+    Args:
+        project_id: Project the pages belong to.
+        page_ids: Pages created by the import.
+
+    Returns:
+        `{pages, links_resolved, links_unresolved}`.
+    """
     await svc._project(session, project_id)
     resolved = unresolved = pages = 0
     contents: dict[str, str] = {}
@@ -484,7 +543,17 @@ async def resolve_pages(
 
 
 def collect_local(path: str) -> list[tuple[str, bytes]]:
-    """(relative path, bytes) for one Markdown file or every .md/.markdown file under a folder."""
+    """Read one Markdown file, or every `.md`/`.markdown` file under a folder.
+
+    Args:
+        path: File or folder on this machine.
+
+    Returns:
+        `(relative path, bytes)` pairs.
+
+    Raises:
+        DocsError: 404 if the path is missing; 422 if no Markdown files are found or a limit is exceeded.
+    """
     root = Path(os.path.expanduser(path))
     if not root.exists():
         raise DocsError(404, "path_not_found", f"Path not found: {path}")

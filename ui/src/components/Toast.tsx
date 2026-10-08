@@ -29,6 +29,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+/** Context provider that renders toasts. */
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -50,31 +51,31 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return id;
     },
-    [removeToast]
+    [removeToast],
   );
 
   const success = useCallback(
     (title: string, message?: string, duration?: number, action?: ToastAction) =>
       showToast({ variant: 'success', title, message, duration, action }),
-    [showToast]
+    [showToast],
   );
 
   const error = useCallback(
     (title: string, message?: string, duration?: number, action?: ToastAction) =>
       showToast({ variant: 'error', title, message, duration, action }),
-    [showToast]
+    [showToast],
   );
 
   const warning = useCallback(
     (title: string, message?: string, duration?: number, action?: ToastAction) =>
       showToast({ variant: 'warning', title, message, duration, action }),
-    [showToast]
+    [showToast],
   );
 
   const info = useCallback(
     (title: string, message?: string, duration?: number, action?: ToastAction) =>
       showToast({ variant: 'info', title, message, duration, action }),
-    [showToast]
+    [showToast],
   );
 
   const getVariantIcon = (variant: ToastVariant) => {
@@ -109,9 +110,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       <div className={styles.toastContainer} aria-live="polite">
         {toasts.map((toast) => (
           <div key={toast.id} className={styles.toast} role="alert">
-            <div className={`${styles.icon} ${getIconClass(toast.variant)}`}>
-              {getVariantIcon(toast.variant)}
-            </div>
+            <div className={`${styles.icon} ${getIconClass(toast.variant)}`}>{getVariantIcon(toast.variant)}</div>
             <div className={styles.content}>
               <div className={styles.title}>{toast.title}</div>
               {toast.message && <div className={styles.message}>{toast.message}</div>}
@@ -143,6 +142,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
+/**
+ * Access the toast API; must be used inside `ToastProvider`.
+ * @throws Error when used outside `ToastProvider`.
+ */
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) {
@@ -157,11 +160,8 @@ export interface InlineBannerProps {
   className?: string;
 }
 
-export const InlineBanner: React.FC<InlineBannerProps> = ({
-  message,
-  icon = '✓',
-  className,
-}) => {
+/** Inline confirmation banner. */
+export const InlineBanner: React.FC<InlineBannerProps> = ({ message, icon = '✓', className }) => {
   return (
     <div className={`${styles.inlineBanner} ${className ?? ''}`}>
       <span className={styles.bannerIcon}>{icon}</span>

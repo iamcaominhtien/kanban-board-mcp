@@ -22,8 +22,8 @@
 .modalCard {
   width: 420px;
   max-width: calc(100vw - 32px);
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 10px;
   padding: 18px 20px;
   box-sizing: border-box;
@@ -48,8 +48,12 @@
 .title {
   font-size: 13px;
   font-weight: 700;
-  color: #1E2A22;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #1e2a22;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
   margin: 0;
 }
 
@@ -62,31 +66,37 @@
 .fieldLabel {
   font-size: 11px;
   font-weight: 600;
-  color: #9AA8A0;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #9aa8a0;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .textInput {
   padding: 7px 10px;
   border-radius: 6px;
-  border: 1px solid #B9CBBF;
-  background: #FFFFFF;
+  border: 1px solid #b9cbbf;
+  background: #ffffff;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   outline: none;
   width: 100%;
   box-sizing: border-box;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
 }
 
 .textInput:focus {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
 }
 
 .textInput::placeholder {
-  color: #B9CBBF;
+  color: #b9cbbf;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -101,26 +111,28 @@
   gap: 7px;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #F6FAF7;
+  border: 1px solid #e3e8e5;
+  background: #f6faf7;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
   font-weight: 600;
-  color: #1E2A22;
-  transition: background-color 0.12s, border-color 0.12s;
+  color: #1e2a22;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
 }
 
 .branchSelectTrigger:hover {
-  background: #EEF4F0;
-  border-color: #B9CBBF;
+  background: #eef4f0;
+  border-color: #b9cbbf;
 }
 
 .dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #2E6F40;
+  background: #2e6f40;
   flex-shrink: 0;
 }
 
@@ -131,8 +143,8 @@
   min-width: 200px;
   max-height: 200px;
   overflow-y: auto;
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   box-shadow: 0 6px 20px rgba(30, 42, 34, 0.12);
   padding: 4px;
@@ -152,7 +164,7 @@
   background: none;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #1E2A22;
+  color: #1e2a22;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -160,21 +172,25 @@
 }
 
 .dropdownItem:hover {
-  background: #F6FAF7;
-  color: #2E6F40;
+  background: #f6faf7;
+  color: #2e6f40;
 }
 
 .dropdownItemActive {
-  background: #F6FAF7;
-  color: #2E6F40;
+  background: #f6faf7;
+  color: #2e6f40;
   font-weight: 600;
 }
 
 .helperText {
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   line-height: 1.45;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .actions {
@@ -188,12 +204,16 @@
   padding: 7px 14px;
   border-radius: 6px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: background-color 0.12s;
 }
 
@@ -209,19 +229,25 @@
 .btnSecondary {
   padding: 7px 14px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   background: none;
-  color: #5B6B60;
+  color: #5b6b60;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.12s, color 0.12s;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 
 .btnSecondary:hover {
-  background: #F6FAF7;
-  color: #1E2A22;
+  background: #f6faf7;
+  color: #1e2a22;
 }
 
 .worktreeSection {
@@ -229,8 +255,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
-  background: #F6FAF7;
-  border: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
 }
 
@@ -245,7 +271,7 @@
 .checkbox {
   width: 15px;
   height: 15px;
-  accent-color: #2E6F40;
+  accent-color: #2e6f40;
   cursor: pointer;
   margin: 0;
 }
@@ -253,8 +279,12 @@
 .checkboxText {
   font-size: 12.5px;
   font-weight: 600;
-  color: #1E2A22;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #1e2a22;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .worktreeGroup {
@@ -273,16 +303,19 @@
 .resetBtn {
   font-size: 11px;
   font-weight: 600;
-  color: #2E6F40;
+  color: #2e6f40;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .resetBtn:hover {
   color: #245833;
 }
-

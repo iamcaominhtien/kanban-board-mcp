@@ -5,6 +5,7 @@ Revises: 8f3a9c2d1e4b
 Create Date: 2026-04-08 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -20,7 +21,9 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     with op.batch_alter_table("ticket") as batch_op:
         batch_op.add_column(
-            sa.Column("wont_do_reason", sqlmodel.sql.sqltypes.AutoString(), nullable=True)
+            sa.Column(
+                "wont_do_reason", sqlmodel.sql.sqltypes.AutoString(), nullable=True
+            )
         )
 
 

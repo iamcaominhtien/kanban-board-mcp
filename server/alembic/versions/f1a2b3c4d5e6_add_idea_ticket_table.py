@@ -28,26 +28,72 @@ def upgrade() -> None:
 
     op.create_table(
         "idea_ticket",
-        sa.Column("id", sqlmodel.sql.sqltypes.AutoString(), primary_key=True, nullable=False),
+        sa.Column(
+            "id", sqlmodel.sql.sqltypes.AutoString(), primary_key=True, nullable=False
+        ),
         sa.Column("project_id", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("title", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default=""),
-        sa.Column("idea_status", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="raw"),
-        sa.Column("idea_color", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="#F5C518"),
-        sa.Column("idea_emoji", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="💡"),
+        sa.Column(
+            "description",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="",
+        ),
+        sa.Column(
+            "idea_status",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="raw",
+        ),
+        sa.Column(
+            "idea_color",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="#F5C518",
+        ),
+        sa.Column(
+            "idea_emoji",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="💡",
+        ),
         sa.Column("idea_energy", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("tags", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="[]"),
-        sa.Column("problem_statement", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column(
+            "tags",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="[]",
+        ),
+        sa.Column(
+            "problem_statement", sqlmodel.sql.sqltypes.AutoString(), nullable=True
+        ),
         sa.Column("ice_impact", sa.Integer(), nullable=False, server_default="3"),
         sa.Column("ice_effort", sa.Integer(), nullable=False, server_default="3"),
         sa.Column("ice_confidence", sa.Integer(), nullable=False, server_default="3"),
         sa.Column("revisit_date", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("last_touched_at", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("promoted_to_ticket_id", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column(
+            "promoted_to_ticket_id", sqlmodel.sql.sqltypes.AutoString(), nullable=True
+        ),
         sa.Column("promoted_at", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("activity_trail", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="[]"),
-        sa.Column("microthoughts", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="[]"),
-        sa.Column("assumptions", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="[]"),
+        sa.Column(
+            "activity_trail",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="[]",
+        ),
+        sa.Column(
+            "microthoughts",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="[]",
+        ),
+        sa.Column(
+            "assumptions",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="[]",
+        ),
         sa.Column("created_at", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("updated_at", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.ForeignKeyConstraint(["project_id"], ["project.id"]),

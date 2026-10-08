@@ -28,6 +28,13 @@ export interface StatusMenuProps {
   compact?: boolean;
 }
 
+/**
+ * Dropdown to change a ticket's status.
+ * @param props.value - Current status.
+ * @param props.onChange - Called with the newly selected status.
+ * @param props.disabled - Disable the dropdown.
+ * @param props.compact - Small pill for list rows; the menu opens right-aligned.
+ */
 export const StatusMenu: React.FC<StatusMenuProps> = ({
   value,
   onChange,
@@ -38,15 +45,11 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const currentOption =
-    STATUS_OPTIONS.find((opt) => opt.status === value) ?? STATUS_OPTIONS[0];
+  const currentOption = STATUS_OPTIONS.find((opt) => opt.status === value) ?? STATUS_OPTIONS[0];
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     }
@@ -76,10 +79,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   const wontDoOption = STATUS_OPTIONS.find((opt) => opt.status === 'wont_do')!;
 
   return (
-    <div
-      ref={containerRef}
-      className={`${styles.container} ${compact ? styles.compact : ''} ${className ?? ''}`}
-    >
+    <div ref={containerRef} className={`${styles.container} ${compact ? styles.compact : ''} ${className ?? ''}`}>
       <button
         type="button"
         className={`${styles.trigger} ${isOpen ? styles.triggerOpen : ''}`}
@@ -91,13 +91,16 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
         {compact && value === 'done' ? (
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
-            <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M4.3 7.2L6.1 9L9.8 5"
+              stroke="#2E6F40"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         ) : (
-          <span
-            className={styles.dot}
-            style={{ backgroundColor: currentOption.dotColor }}
-          />
+          <span className={styles.dot} style={{ backgroundColor: currentOption.dotColor }} />
         )}
         <span className={styles.label}>{currentOption.label}</span>
         <svg
@@ -126,17 +129,10 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
                 role="option"
                 aria-selected={isActive}
               >
-                <span
-                  className={styles.dot}
-                  style={{ backgroundColor: opt.dotColor }}
-                />
+                <span className={styles.dot} style={{ backgroundColor: opt.dotColor }} />
                 <span className={styles.itemText}>{opt.label}</span>
                 {isActive && (
-                  <svg
-                    className={styles.checkmark}
-                    viewBox="0 0 14 14"
-                    fill="none"
-                  >
+                  <svg className={styles.checkmark} viewBox="0 0 14 14" fill="none">
                     <path
                       d="M3.5 7.2L5.7 9.5L10.5 4.3"
                       stroke="#2E6F40"
@@ -159,17 +155,10 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
             role="option"
             aria-selected={value === wontDoOption.status}
           >
-            <span
-              className={styles.dot}
-              style={{ backgroundColor: wontDoOption.dotColor }}
-            />
+            <span className={styles.dot} style={{ backgroundColor: wontDoOption.dotColor }} />
             <span className={styles.itemText}>{wontDoOption.label}</span>
             {value === wontDoOption.status && (
-              <svg
-                className={styles.checkmark}
-                viewBox="0 0 14 14"
-                fill="none"
-              >
+              <svg className={styles.checkmark} viewBox="0 0 14 14" fill="none">
                 <path
                   d="M3.5 7.2L5.7 9.5L10.5 4.3"
                   stroke="#2E6F40"

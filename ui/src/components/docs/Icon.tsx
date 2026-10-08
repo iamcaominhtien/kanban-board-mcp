@@ -10,7 +10,11 @@ interface Props {
   className?: string;
 }
 
-/** The stroke icons used by the Docs design boards (24×24 viewBox, currentColor). */
+/**
+ * The stroke icons used by the Docs design boards (24×24 viewBox, currentColor).
+ * @param props.name - Alias (page, plus, more, grip, hash, chevronRight, chevronDown, folder, close, search, check, link) or an id like `i23`.
+ * @param props.strokeWidth - Stroke width in viewBox units.
+ */
 export function Icon({ name, size = 16, strokeWidth = 1.9, style, className }: Props) {
   const key = ICON_ALIASES[name] ?? name;
   const html = ICON_PATHS[key];

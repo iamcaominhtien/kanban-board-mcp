@@ -23,7 +23,9 @@ _S = sqlmodel.sql.sqltypes.AutoString
 def upgrade() -> None:
     op.add_column(
         "project",
-        sa.Column("docs_enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column(
+            "docs_enabled", sa.Boolean(), nullable=False, server_default=sa.true()
+        ),
     )
     op.add_column(
         "docs_link",
@@ -38,7 +40,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["page_id"], ["docs_page.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_docs_anchor_aliases_page_id", "docs_anchor_aliases", ["page_id"])
+    op.create_index(
+        "ix_docs_anchor_aliases_page_id", "docs_anchor_aliases", ["page_id"]
+    )
 
     # Full-text index. SQLite builds without FTS5 skip it: search falls back to LIKE matching.
     from services import docs_search

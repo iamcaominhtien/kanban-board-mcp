@@ -68,7 +68,24 @@ const STYLE = `
 
 function Avatar({ person, dashed }: { person: Person; dashed?: boolean }) {
   return (
-    <div title={person.name} style={{ width: 28, height: 28, borderRadius: '50%', background: person.bg, color: person.color, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none', opacity: dashed ? 0.7 : 1 }}>
+    <div
+      title={person.name}
+      style={{
+        width: 28,
+        height: 28,
+        borderRadius: '50%',
+        background: person.bg,
+        color: person.color,
+        fontSize: 11,
+        fontWeight: 700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        userSelect: 'none',
+        opacity: dashed ? 0.7 : 1,
+      }}
+    >
       {person.initials}
     </div>
   );
@@ -82,9 +99,34 @@ function Collapsible({ text }: { text: string }) {
     <div>
       <div style={{ position: 'relative', maxHeight: open ? undefined : 190, overflow: 'hidden' }}>
         <MarkdownRenderer>{text}</MarkdownRenderer>
-        {!open && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 48, background: 'linear-gradient(rgba(255,255,255,0),#FFFFFF)' }} />}
+        {!open && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 48,
+              background: 'linear-gradient(rgba(255,255,255,0),#FFFFFF)',
+            }}
+          />
+        )}
       </div>
-      <button type="button" data-testid="comment-show-more" onClick={() => setOpen((o) => !o)} style={{ border: 'none', background: 'none', padding: '4px 0 0', cursor: 'pointer', color: '#2E6F40', fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit' }}>
+      <button
+        type="button"
+        data-testid="comment-show-more"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          border: 'none',
+          background: 'none',
+          padding: '4px 0 0',
+          cursor: 'pointer',
+          color: '#2E6F40',
+          fontWeight: 700,
+          fontSize: 12.5,
+          fontFamily: 'inherit',
+        }}
+      >
         {open ? 'Show less' : 'Show more'}
       </button>
     </div>
@@ -92,12 +134,48 @@ function Collapsible({ text }: { text: string }) {
 }
 
 const barBtn = (danger?: boolean, on?: boolean): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 9px', border: 'none', borderRadius: 6, cursor: 'pointer',
-  background: on ? '#FBE7E4' : 'none', color: danger ? '#C4432A' : '#3A4A3E', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '5px 9px',
+  border: 'none',
+  borderRadius: 6,
+  cursor: 'pointer',
+  background: on ? '#FBE7E4' : 'none',
+  color: danger ? '#C4432A' : '#3A4A3E',
+  fontFamily: 'inherit',
+  fontSize: 12.5,
+  fontWeight: 600,
 });
 
+/**
+ * Comment thread with composer, mentions, edit, delete and undo.
+ * @param props.currentMember - Member the new comments are written as.
+ * @param props.reporterId - Ticket reporter member id, used for author badges.
+ * @param props.assigneeId - Ticket assignee member id, used for author badges.
+ * @param props.isLoading - First load of the ticket is still running.
+ * @param props.focusCommentId - Comment to scroll to and tint (from "View comment" or a `#comment-id` link).
+ * @param props.onFocusHandled - Called once the focused comment has been scrolled to.
+ * @param props.onAdd - Called with the text; resolves when saved, rejects if the server could not be reached.
+ * @param props.onEdit - Called with the comment id and new text; same promise contract as `onAdd`.
+ * @param props.onDelete - Called with the comment id to delete (undoable via `onRestore`).
+ * @param props.onRestore - Called with the id of a deleted comment to restore.
+ */
 export function CommentsSection({
-  ticketId, projectId, comments, members = [], currentMember, reporterId, assigneeId, isLoading = false, focusCommentId, onFocusHandled, onAdd, onEdit, onDelete, onRestore,
+  ticketId,
+  projectId,
+  comments,
+  members = [],
+  currentMember,
+  reporterId,
+  assigneeId,
+  isLoading = false,
+  focusCommentId,
+  onFocusHandled,
+  onAdd,
+  onEdit,
+  onDelete,
+  onRestore,
 }: CommentsSectionProps) {
   const toast = useToast();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -110,8 +188,15 @@ export function CommentsSection({
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [expandedMiddle, setExpandedMiddle] = useState(false);
 
-  const me = useMemo<Person>(() => (currentMember ? personFor(currentMember.name, members.length ? members : [currentMember]) : { name: 'You', initials: 'ME', bg: '#DCEEE1', color: '#2E6F40' }), [currentMember, members]);
-  const isMine = (c: Comment) => c.author === 'user' || (!!currentMember && (c.author === currentMember.name || c.author === currentMember.id));
+  const me = useMemo<Person>(
+    () =>
+      currentMember
+        ? personFor(currentMember.name, members.length ? members : [currentMember])
+        : { name: 'You', initials: 'ME', bg: '#DCEEE1', color: '#2E6F40' },
+    [currentMember, members],
+  );
+  const isMine = (c: Comment) =>
+    c.author === 'user' || (!!currentMember && (c.author === currentMember.name || c.author === currentMember.id));
   const author = currentMember?.name ?? 'user';
 
   const suggestMembers = useMemo<SuggestMember[]>(() => {
@@ -122,12 +207,20 @@ export function CommentsSection({
       const m = members.find((x) => x.id === c.author || x.name.toLowerCase() === c.author.toLowerCase());
       if (m && !onTicket.has(m.id)) onTicket.set(m.id, 'Commented');
     }
-    const row = (m: Member, group: string, note: string): SuggestMember => ({ id: m.id, name: m.name, group, note, ...getAvatarColors(m.color) });
+    const row = (m: Member, group: string, note: string): SuggestMember => ({
+      id: m.id,
+      name: m.name,
+      group,
+      note,
+      ...getAvatarColors(m.color),
+    });
     const first = [...onTicket.entries()].flatMap(([id, note]) => {
       const m = members.find((x) => x.id === id);
       return m ? [row(m, 'On this ticket', note)] : [];
     });
-    const rest = members.filter((m) => !onTicket.has(m.id)).map((m) => row(m, 'Everyone else', m.id === currentMember?.id ? 'You' : ''));
+    const rest = members
+      .filter((m) => !onTicket.has(m.id))
+      .map((m) => row(m, 'Everyone else', m.id === currentMember?.id ? 'You' : ''));
     return [...first, ...rest];
   }, [members, comments, assigneeId, reporterId, currentMember]);
 
@@ -142,10 +235,13 @@ export function CommentsSection({
       window.removeEventListener('offline', down);
     };
   }, []);
-  const saveQueue = useCallback((q: QueuedComment[]) => {
-    setQueue(q);
-    writeJson(queueKey(ticketId), q);
-  }, [ticketId]);
+  const saveQueue = useCallback(
+    (q: QueuedComment[]) => {
+      setQueue(q);
+      writeJson(queueKey(ticketId), q);
+    },
+    [ticketId],
+  );
   const flushing = useRef(false);
   useEffect(() => {
     if (!online || queue.length === 0 || flushing.current) return;
@@ -179,7 +275,10 @@ export function CommentsSection({
       setComposing(false);
     } catch {
       setComposing(false);
-      setFailed((f) => [...f.filter((x) => x.id !== retryId), { id: retryId ?? `f-${Date.now()}`, text, at: new Date().toISOString() }]);
+      setFailed((f) => [
+        ...f.filter((x) => x.id !== retryId),
+        { id: retryId ?? `f-${Date.now()}`, text, at: new Date().toISOString() },
+      ]);
     }
   }
 
@@ -207,7 +306,10 @@ export function CommentsSection({
       }
     };
     setUndoFns((m) => ({ ...m, [c.id]: undo }));
-    toast.success('Comment deleted', `Your comment on ${ticketId} was removed.`, UNDO_MS, { label: 'Undo', onClick: () => void undo() });
+    toast.success('Comment deleted', `Your comment on ${ticketId} was removed.`, UNDO_MS, {
+      label: 'Undo',
+      onClick: () => void undo(),
+    });
     setTimeout(() => {
       done = true;
       drop();
@@ -247,8 +349,13 @@ export function CommentsSection({
 
   // ---- layout of the thread --------------------------------------------------
   const visible = useMemo(() => {
-    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost })[] = comments.map((c, i) => ({ kind: 'c', c, i }));
-    for (const g of [...ghosts].sort((a, b) => a.index - b.index)) live.splice(Math.min(g.index, live.length), 0, { kind: 'g', g });
+    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost })[] = comments.map((c, i) => ({
+      kind: 'c',
+      c,
+      i,
+    }));
+    for (const g of [...ghosts].sort((a, b) => a.index - b.index))
+      live.splice(Math.min(g.index, live.length), 0, { kind: 'g', g });
     return live;
   }, [comments, ghosts]);
   const collapseMiddle = !expandedMiddle && comments.length > THREAD_COLLAPSE_OVER;
@@ -277,7 +384,21 @@ export function CommentsSection({
       );
     }
     return (
-      <div key={c.id} className="cm-row" data-comment-id={c.id} data-testid="comment" style={{ position: 'relative', display: 'flex', gap: 12, alignItems: 'flex-start', padding: '8px 10px', margin: '0 -10px', borderRadius: 10 }}>
+      <div
+        key={c.id}
+        className="cm-row"
+        data-comment-id={c.id}
+        data-testid="comment"
+        style={{
+          position: 'relative',
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+          padding: '8px 10px',
+          margin: '0 -10px',
+          borderRadius: 10,
+        }}
+      >
         <Avatar person={p} />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -286,28 +407,97 @@ export function CommentsSection({
               {relative(c.at)}
               <span className="cm-tt">{exactTime(c.at)}</span>
             </span>
-            {c.editedAt && <span data-testid="comment-edited" style={{ fontSize: 12, color: '#9AA8A0' }}>· edited</span>}
+            {c.editedAt && (
+              <span data-testid="comment-edited" style={{ fontSize: 12, color: '#9AA8A0' }}>
+                · edited
+              </span>
+            )}
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}><Collapsible text={c.text} /></div>
+          <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+            <Collapsible text={c.text} />
+          </div>
           {confirmId === c.id && (
-            <div data-testid="comment-delete-confirm" style={{ marginTop: 8, border: '1px solid #F0C4B8', background: '#FDF3F0', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div
+              data-testid="comment-delete-confirm"
+              style={{
+                marginTop: 8,
+                border: '1px solid #F0C4B8',
+                background: '#FDF3F0',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
               <div style={{ fontSize: 13, fontWeight: 700, color: '#A5321E' }}>Delete this comment?</div>
-              <div style={{ fontSize: 12.5, lineHeight: 1.5, color: '#5B6B60' }}>It disappears for everyone on this ticket. You get 10 seconds to undo it. Mentions already sent stay sent.</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.5, color: '#5B6B60' }}>
+                It disappears for everyone on this ticket. You get 10 seconds to undo it. Mentions already sent stay
+                sent.
+              </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirmId(null)}>Cancel</button>
-                <button type="button" className="st-btn st-btn-danger st-btn-sm" data-testid="comment-delete-confirm-yes" onClick={() => void remove(c, index)}>Delete</button>
+                <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirmId(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="st-btn st-btn-danger st-btn-sm"
+                  data-testid="comment-delete-confirm-yes"
+                  onClick={() => void remove(c, index)}
+                >
+                  Delete
+                </button>
               </div>
             </div>
           )}
         </div>
-        <div className="cm-bar" style={{ position: 'absolute', right: 8, top: -14, opacity: confirmId === c.id ? 1 : 0, transition: 'opacity .12s', display: 'flex', gap: 2, background: '#FFFFFF', border: '1px solid #E3E8E5', borderRadius: 8, padding: 3, boxShadow: '0 4px 14px rgba(30,42,34,0.12)', zIndex: 2 }}>
+        <div
+          className="cm-bar"
+          style={{
+            position: 'absolute',
+            right: 8,
+            top: -14,
+            opacity: confirmId === c.id ? 1 : 0,
+            transition: 'opacity .12s',
+            display: 'flex',
+            gap: 2,
+            background: '#FFFFFF',
+            border: '1px solid #E3E8E5',
+            borderRadius: 8,
+            padding: 3,
+            boxShadow: '0 4px 14px rgba(30,42,34,0.12)',
+            zIndex: 2,
+          }}
+        >
           {mine && (
             <>
-              <button type="button" data-testid="comment-edit" style={barBtn()} onClick={() => { setEditingId(c.id); setConfirmId(null); }}><Icon name="i26" size={13} strokeWidth={1.9} />Edit</button>
-              <button type="button" data-testid="comment-delete" style={barBtn(true, confirmId === c.id)} onClick={() => setConfirmId(confirmId === c.id ? null : c.id)}><Icon name="i12" size={13} strokeWidth={1.9} />Delete</button>
+              <button
+                type="button"
+                data-testid="comment-edit"
+                style={barBtn()}
+                onClick={() => {
+                  setEditingId(c.id);
+                  setConfirmId(null);
+                }}
+              >
+                <Icon name="i26" size={13} strokeWidth={1.9} />
+                Edit
+              </button>
+              <button
+                type="button"
+                data-testid="comment-delete"
+                style={barBtn(true, confirmId === c.id)}
+                onClick={() => setConfirmId(confirmId === c.id ? null : c.id)}
+              >
+                <Icon name="i12" size={13} strokeWidth={1.9} />
+                Delete
+              </button>
             </>
           )}
-          <button type="button" data-testid="comment-copy-link" style={barBtn()} onClick={() => copyLink(c)}><Icon name="link" size={13} strokeWidth={1.9} />Copy link</button>
+          <button type="button" data-testid="comment-copy-link" style={barBtn()} onClick={() => copyLink(c)}>
+            <Icon name="link" size={13} strokeWidth={1.9} />
+            Copy link
+          </button>
         </div>
       </div>
     );
@@ -318,10 +508,30 @@ export function CommentsSection({
   visible.forEach((it, idx) => {
     if (it.kind === 'g') {
       rows.push(
-        <div key={`g-${it.g.comment.id}`} data-testid="comment-deleted-rule" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', color: '#9AA8A0', fontSize: 12.5 }}>
+        <div
+          key={`g-${it.g.comment.id}`}
+          data-testid="comment-deleted-rule"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', color: '#9AA8A0', fontSize: 12.5 }}
+        >
           <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
           Comment deleted ·
-          <button type="button" data-testid="comment-undo" onClick={() => undoFns[it.g.comment.id]?.()} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: '#2E6F40', fontWeight: 700, fontFamily: 'inherit', fontSize: 12.5 }}>Undo</button>
+          <button
+            type="button"
+            data-testid="comment-undo"
+            onClick={() => undoFns[it.g.comment.id]?.()}
+            style={{
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              color: '#2E6F40',
+              fontWeight: 700,
+              fontFamily: 'inherit',
+              fontSize: 12.5,
+            }}
+          >
+            Undo
+          </button>
           <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
         </div>,
       );
@@ -332,7 +542,24 @@ export function CommentsSection({
       if (!shownDivider) {
         shownDivider = true;
         rows.push(
-          <button key="more" type="button" data-testid="comments-show-older" onClick={() => setExpandedMiddle(true)} style={{ alignSelf: 'flex-start', border: '1px dashed #C7D2CB', background: '#FBFCFB', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, color: '#2E6F40' }}>
+          <button
+            key="more"
+            type="button"
+            data-testid="comments-show-older"
+            onClick={() => setExpandedMiddle(true)}
+            style={{
+              alignSelf: 'flex-start',
+              border: '1px dashed #C7D2CB',
+              background: '#FBFCFB',
+              borderRadius: 8,
+              padding: '7px 14px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: '#2E6F40',
+            }}
+          >
             Show {hiddenCount} older comments
           </button>,
         );
@@ -344,11 +571,45 @@ export function CommentsSection({
   });
 
   return (
-    <div ref={rootRef} data-testid="comments" id="comments" style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 14, paddingBottom: 28, borderTop: '1px solid #EEF3EF' }}>
+    <div
+      ref={rootRef}
+      data-testid="comments"
+      id="comments"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+        paddingTop: 14,
+        paddingBottom: 28,
+        borderTop: '1px solid #EEF3EF',
+      }}
+    >
       <style>{STYLE}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5B6B60', textTransform: 'uppercase' }}>Comments</span>
-        <span data-testid="comments-count" style={{ fontSize: 11.5, fontWeight: 700, color: '#5B6B60', background: '#EEF1EE', borderRadius: 999, padding: '1px 8px' }}>{isLoading ? '…' : comments.length}</span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            color: '#5B6B60',
+            textTransform: 'uppercase',
+          }}
+        >
+          Comments
+        </span>
+        <span
+          data-testid="comments-count"
+          style={{
+            fontSize: 11.5,
+            fontWeight: 700,
+            color: '#5B6B60',
+            background: '#EEF1EE',
+            borderRadius: 999,
+            padding: '1px 8px',
+          }}
+        >
+          {isLoading ? '…' : comments.length}
+        </span>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: '#9AA8A0' }}>Oldest first</span>
       </div>
 
@@ -367,48 +628,153 @@ export function CommentsSection({
       ) : (
         <>
           {!online && (
-            <div data-testid="comments-offline" style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#FEF6E7', border: '1px solid #F0DBA8', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, color: '#7A4F08' }}>
+            <div
+              data-testid="comments-offline"
+              style={{
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center',
+                background: '#FEF6E7',
+                border: '1px solid #F0DBA8',
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontSize: 12.5,
+                color: '#7A4F08',
+              }}
+            >
               <b>You are offline.</b> Comments are saved here and sent when the connection returns.
             </div>
           )}
           {comments.length === 0 && ghosts.length === 0 && queue.length === 0 && failed.length === 0 && (
-            <div data-testid="comments-empty" style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 0 4px' }}>
+            <div
+              data-testid="comments-empty"
+              style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 0 4px' }}
+            >
               <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>No comments yet</span>
-              <span style={{ fontSize: 13, color: '#5B6B60' }}>Start the conversation. Type @ to mention a teammate or [[ to link a doc.</span>
+              <span style={{ fontSize: 13, color: '#5B6B60' }}>
+                Start the conversation. Type @ to mention a teammate or [[ to link a doc.
+              </span>
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rows}
             {queue.map((q) => (
-              <div key={q.id} data-testid="comment-queued" style={{ display: 'flex', gap: 12, border: '1px dashed #C7D2CB', borderRadius: 10, padding: '8px 12px', margin: '0 -2px', background: '#FBFCFB' }}>
+              <div
+                key={q.id}
+                data-testid="comment-queued"
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  border: '1px dashed #C7D2CB',
+                  borderRadius: 10,
+                  padding: '8px 12px',
+                  margin: '0 -2px',
+                  background: '#FBFCFB',
+                }}
+              >
                 <Avatar person={me} dashed />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
                     <span style={{ fontSize: 12, color: '#9AA8A0' }}>Queued</span>
                   </div>
-                  <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}><MarkdownRenderer>{q.text}</MarkdownRenderer></div>
+                  <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+                    <MarkdownRenderer>{q.text}</MarkdownRenderer>
+                  </div>
                   <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                    <button type="button" onClick={() => { saveQueue(queue.filter((x) => x.id !== q.id)); setComposing(true); writeJson(`kanban.commentDraft.${ticketId}`, q.text); }} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: '#2E6F40', fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit' }}>Edit</button>
-                    <button type="button" data-testid="comment-cancel-send" onClick={() => saveQueue(queue.filter((x) => x.id !== q.id))} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: '#C4432A', fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit' }}>Cancel send</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        saveQueue(queue.filter((x) => x.id !== q.id));
+                        setComposing(true);
+                        writeJson(`kanban.commentDraft.${ticketId}`, q.text);
+                      }}
+                      style={{
+                        border: 'none',
+                        background: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: '#2E6F40',
+                        fontWeight: 700,
+                        fontSize: 12.5,
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="comment-cancel-send"
+                      onClick={() => saveQueue(queue.filter((x) => x.id !== q.id))}
+                      style={{
+                        border: 'none',
+                        background: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: '#C4432A',
+                        fontWeight: 700,
+                        fontSize: 12.5,
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Cancel send
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
             {failed.map((f) => (
-              <div key={f.id} data-testid="comment-failed" style={{ display: 'flex', gap: 12, border: '1px solid #F0C4B8', borderRadius: 10, padding: '8px 12px', background: '#FDF3F0' }}>
+              <div
+                key={f.id}
+                data-testid="comment-failed"
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  border: '1px solid #F0C4B8',
+                  borderRadius: 10,
+                  padding: '8px 12px',
+                  background: '#FDF3F0',
+                }}
+              >
                 <Avatar person={me} />
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
                     <span style={{ fontSize: 12, color: '#C4432A', fontWeight: 600 }}>Not sent</span>
                   </div>
-                  <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}><MarkdownRenderer>{f.text}</MarkdownRenderer></div>
-                  <div style={{ fontSize: 12.5, color: '#A5321E' }}>Couldn't reach the server. Your text is kept; nothing was lost.</div>
+                  <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+                    <MarkdownRenderer>{f.text}</MarkdownRenderer>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#A5321E' }}>
+                    Couldn't reach the server. Your text is kept; nothing was lost.
+                  </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" className="st-btn st-btn-primary st-btn-sm" data-testid="comment-retry" onClick={() => void send(f.text, f.id)}>Retry</button>
-                    <button type="button" className="st-btn st-btn-sm" onClick={() => { setFailed((x) => x.filter((y) => y.id !== f.id)); writeJson(`kanban.commentDraft.${ticketId}`, f.text); setComposing(true); }}>Edit</button>
-                    <button type="button" className="st-btn st-btn-sm" onClick={() => setFailed((x) => x.filter((y) => y.id !== f.id))}>Discard</button>
+                    <button
+                      type="button"
+                      className="st-btn st-btn-primary st-btn-sm"
+                      data-testid="comment-retry"
+                      onClick={() => void send(f.text, f.id)}
+                    >
+                      Retry
+                    </button>
+                    <button
+                      type="button"
+                      className="st-btn st-btn-sm"
+                      onClick={() => {
+                        setFailed((x) => x.filter((y) => y.id !== f.id));
+                        writeJson(`kanban.commentDraft.${ticketId}`, f.text);
+                        setComposing(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="st-btn st-btn-sm"
+                      onClick={() => setFailed((x) => x.filter((y) => y.id !== f.id))}
+                    >
+                      Discard
+                    </button>
                   </div>
                 </div>
               </div>
@@ -416,7 +782,14 @@ export function CommentsSection({
           </div>
 
           {composing ? (
-            <Composer ticketId={ticketId} projectId={projectId} me={me} members={suggestMembers} onCancel={() => setComposing(false)} onSubmit={(t) => void send(t)} />
+            <Composer
+              ticketId={ticketId}
+              projectId={projectId}
+              me={me}
+              members={suggestMembers}
+              onCancel={() => setComposing(false)}
+              onSubmit={(t) => void send(t)}
+            />
           ) : (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <Avatar person={me} />
@@ -425,7 +798,18 @@ export function CommentsSection({
                 data-testid="comment-collapsed"
                 onClick={() => setComposing(true)}
                 onFocus={() => setComposing(true)}
-                style={{ flex: 1, textAlign: 'left', border: '1px solid #E3E8E5', borderRadius: 8, background: '#FFFFFF', padding: '9px 14px', fontFamily: 'inherit', fontSize: 14, color: '#6B7A70', cursor: 'text' }}
+                style={{
+                  flex: 1,
+                  textAlign: 'left',
+                  border: '1px solid #E3E8E5',
+                  borderRadius: 8,
+                  background: '#FFFFFF',
+                  padding: '9px 14px',
+                  fontFamily: 'inherit',
+                  fontSize: 14,
+                  color: '#6B7A70',
+                  cursor: 'text',
+                }}
               >
                 Add a comment…
               </button>

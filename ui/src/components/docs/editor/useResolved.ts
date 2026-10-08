@@ -5,9 +5,6 @@ import { useEditorEnv } from './context';
 /** Resolution of one reference (undefined while loading, null when the request failed). */
 export function useResolved(ref: DocsRefRequest): DocsRefResult | null | undefined {
   const env = useEditorEnv();
-  useSyncExternalStore(
-    env?.resolver.subscribe ?? (() => () => {}),
-    env?.resolver.getVersion ?? (() => 0),
-  );
+  useSyncExternalStore(env?.resolver.subscribe ?? (() => () => {}), env?.resolver.getVersion ?? (() => 0));
   return env?.resolver.get(ref);
 }

@@ -21,7 +21,9 @@ const KINDS: CalloutKind[] = ['info', 'warning', 'success'];
 function CalloutView({ node, decorations, updateAttributes }: NodeViewProps) {
   const kind = (node.attrs.kind as CalloutKind) ?? 'info';
   const s = CALLOUT_STYLE[kind];
-  const focused = decorations.some((d) => (d.type as unknown as { attrs?: { class?: string } }).attrs?.class?.includes('is-focused'));
+  const focused = decorations.some((d) =>
+    (d.type as unknown as { attrs?: { class?: string } }).attrs?.class?.includes('is-focused'),
+  );
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -43,11 +45,7 @@ function CalloutView({ node, decorations, updateAttributes }: NodeViewProps) {
       onMouseLeave={() => setHover(false)}
     >
       {(focused || open || hover) && (
-        <div
-          ref={ref}
-          contentEditable={false}
-          style={{ position: 'absolute', right: 12, top: -14, zIndex: 2 }}
-        >
+        <div ref={ref} contentEditable={false} style={{ position: 'absolute', right: 12, top: -14, zIndex: 2 }}>
           <button
             type="button"
             aria-label="Callout type"
@@ -259,7 +257,11 @@ export const Callout = Node.create({
 
   parseMarkdown(token, h) {
     const children = h.parseChildren((token.tokens as never) ?? []);
-    return h.createNode('callout', { kind: (token as unknown as { kind: string }).kind }, children.length ? children : [h.createNode('paragraph')]);
+    return h.createNode(
+      'callout',
+      { kind: (token as unknown as { kind: string }).kind },
+      children.length ? children : [h.createNode('paragraph')],
+    );
   },
 
   renderMarkdown(node, h) {

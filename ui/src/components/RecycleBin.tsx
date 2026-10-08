@@ -17,6 +17,14 @@ interface RecycleBinProps {
 
 type Filter = 'all' | 'pages' | 'tickets';
 
+/**
+ * Combined Recycle Bin for "Won't do" tickets and deleted pages.
+ * @param props.tickets - "Won't do" tickets to list.
+ * @param props.projectId - Project whose deleted docs pages are listed too.
+ * @param props.onRestore - Called with the ticket id to restore.
+ * @param props.onClose - Called to dismiss the bin.
+ * @param props.onOpenDocsPage - Called with a page id when "Open" on the restore toast is used.
+ */
 export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsPage }: RecycleBinProps) {
   const [visible, setVisible] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
@@ -63,10 +71,19 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
   }, [pages, tickets]);
   const shown = items.filter((i) => filter === 'all' || (filter === 'pages' ? i.kind === 'page' : i.kind === 'ticket'));
   const empty = (kind: Filter) =>
-    kind === 'pages' ? 'No deleted pages.' : kind === 'tickets' ? 'No tickets marked as "Won\'t Do".' : 'The Recycle Bin is empty.';
+    kind === 'pages'
+      ? 'No deleted pages.'
+      : kind === 'tickets'
+        ? 'No tickets marked as "Won\'t Do".'
+        : 'The Recycle Bin is empty.';
 
   const tab = (f: Filter, label: string, n: number) => (
-    <button type="button" className={`dk-tabs-btn ${filter === f ? 'dk-tabs-btn-on' : ''}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+    <button
+      type="button"
+      className={`dk-tabs-btn ${filter === f ? 'dk-tabs-btn-on' : ''}`}
+      aria-pressed={filter === f}
+      onClick={() => setFilter(f)}
+    >
       {label} · {n}
     </button>
   );
@@ -82,7 +99,16 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
         aria-modal="true"
         aria-label="Recycle Bin"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #E3E8E5', flexShrink: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '16px 20px',
+            borderBottom: '1px solid #E3E8E5',
+            flexShrink: 0,
+          }}
+        >
           <span style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Recycle Bin</span>
           {projectId && (
             <button
@@ -100,10 +126,20 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
         {confirmEmpty && (
           <div
             role="alert"
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', background: '#FBE7E4', borderBottom: '1px solid #F0C4B8', fontSize: 12.5, color: '#1E2A22' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 20px',
+              background: '#FBE7E4',
+              borderBottom: '1px solid #F0C4B8',
+              fontSize: 12.5,
+              color: '#1E2A22',
+            }}
           >
             <span style={{ flex: 1 }}>
-              Delete {pages.length} deleted {pages.length === 1 ? 'page' : 'pages'} forever? Tickets are not affected. This can’t be undone.
+              Delete {pages.length} deleted {pages.length === 1 ? 'page' : 'pages'} forever? Tickets are not affected.
+              This can’t be undone.
             </span>
             <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirmEmpty(false)}>
               Cancel
@@ -119,7 +155,16 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid #EEF3EF', flexShrink: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '12px 20px',
+            borderBottom: '1px solid #EEF3EF',
+            flexShrink: 0,
+          }}
+        >
           {tab('all', 'All', items.length)}
           {tab('pages', 'Pages', pages.length)}
           {tab('tickets', 'Tickets', tickets.length)}
@@ -134,7 +179,9 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
             </p>
           )}
           {shown.length === 0 && (
-            <p style={{ margin: 0, padding: '28px 20px', textAlign: 'center', fontSize: 13, color: '#5B6B60' }}>{empty(filter)}</p>
+            <p style={{ margin: 0, padding: '28px 20px', textAlign: 'center', fontSize: 13, color: '#5B6B60' }}>
+              {empty(filter)}
+            </p>
           )}
           {shown.map((it, i) => {
             const last = i === shown.length - 1;
@@ -166,8 +213,19 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
                 first={i === 0}
                 meta={
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9AA8A0', flexShrink: 0, display: 'inline-block' }} />
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>{t.id}</span>
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: '#9AA8A0',
+                        flexShrink: 0,
+                        display: 'inline-block',
+                      }}
+                    />
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>
+                      {t.id}
+                    </span>
                   </span>
                 }
                 lines={[
@@ -185,9 +243,19 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
           })}
         </div>
 
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #E3E8E5', background: '#FBFCFB', fontSize: 12, lineHeight: 1.5, color: '#5B6B60', flexShrink: 0 }}>
-          Pages are deleted forever 30 days after they were removed. If a restored page's parent is gone, it comes back at the top level. Tickets
-          marked as Won’t Do stay here until restored.
+        <div
+          style={{
+            padding: '12px 20px',
+            borderTop: '1px solid #E3E8E5',
+            background: '#FBFCFB',
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: '#5B6B60',
+            flexShrink: 0,
+          }}
+        >
+          Pages are deleted forever 30 days after they were removed. If a restored page's parent is gone, it comes back
+          at the top level. Tickets marked as Won’t Do stay here until restored.
         </div>
       </div>
     </div>

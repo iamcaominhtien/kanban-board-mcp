@@ -1,15 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
 import {
-  useUpdateTicket, useUpdateTicketStatus,
-  useAddComment, useUpdateComment, useDeleteComment, useRestoreComment,
-  useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
-  useAddSubTask, useToggleSubTask, useDeleteSubTask,
-  useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
+  useUpdateTicket,
+  useUpdateTicketStatus,
+  useAddComment,
+  useUpdateComment,
+  useDeleteComment,
+  useRestoreComment,
+  useAddAcceptanceCriterion,
+  useToggleAcceptanceCriterion,
+  useDeleteAcceptanceCriterion,
+  useAddSubTask,
+  useToggleSubTask,
+  useDeleteSubTask,
+  useAddWorkLog,
+  useUpdateWorkLog,
+  useDeleteWorkLog,
   uploadAnyFile,
-  useLinkBlock, useUnlinkBlock,
-  useAddTicketLink, useRemoveTicketLink,
-  useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+  useLinkBlock,
+  useUnlinkBlock,
+  useAddTicketLink,
+  useRemoveTicketLink,
+  useAddTestCase,
+  useUpdateTestCase,
+  useDeleteTestCase,
   useTicketBranches,
   useWorkspaceSettings,
   uploadUrl,
@@ -43,10 +57,10 @@ import styles from './TicketModal.module.css';
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
 
 const TYPE_CONFIG: Record<IssueType, { label: string }> = {
-  bug:     { label: 'Bug' },
+  bug: { label: 'Bug' },
   feature: { label: 'Feature' },
-  task:    { label: 'Task' },
-  chore:   { label: 'Chore' },
+  task: { label: 'Task' },
+  chore: { label: 'Chore' },
 };
 
 function formatDueDate(iso?: string | null): string {
@@ -143,7 +157,9 @@ function TicketModalInner({
   members = [],
 }: TicketModalProps) {
   const localMode = initialMode;
-  const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity'>('main');
+  const [activeTab, setActiveTab] = useState<
+    'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity'
+  >('main');
   const { data: workspaceSettings } = useWorkspaceSettings();
   const workspaceEnabled = workspaceSettings?.enabled !== false;
 
@@ -332,7 +348,7 @@ function TicketModalInner({
     if (!pending) return;
     updateTicketMutation.mutate(
       { ticketId: pending.ticketId, data: { description: pending.value } },
-      { onError: (err) => toast.error("Couldn't save changes", extractError(err)) }
+      { onError: (err) => toast.error("Couldn't save changes", extractError(err)) },
     );
   };
   function scheduleDescriptionSave(value: string) {
@@ -356,7 +372,7 @@ function TicketModalInner({
           toast.error("Couldn't save changes", extractError(err));
           applyTicket(ticket); // the server refused the edit: show what is really saved
         },
-      }
+      },
     );
   }
 
@@ -451,10 +467,7 @@ function TicketModalInner({
   const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
 
   // View switchers tooltips & status dots
-  const allRelevantTestCases = [
-    ...(ticket?.testCases ?? []),
-    ...childTickets.flatMap((ct) => ct.testCases ?? []),
-  ];
+  const allRelevantTestCases = [...(ticket?.testCases ?? []), ...childTickets.flatMap((ct) => ct.testCases ?? [])];
   const passCount = allRelevantTestCases.filter((tc) => tc.status === 'pass').length;
   const failCount = allRelevantTestCases.filter((tc) => tc.status === 'fail').length;
   const runningCount = allRelevantTestCases.filter((tc) => tc.status === 'running').length;
@@ -472,13 +485,12 @@ function TicketModalInner({
   const latestResolvedAt = wlList
     .filter((w) => w.kind === 'resolved')
     .reduce((max, w) => Math.max(max, new Date(w.at).getTime()), 0);
-  const blockedCount = wlList.filter(
-    (w) => w.kind === 'blocked' && new Date(w.at).getTime() > latestResolvedAt,
-  ).length;
+  const blockedCount = wlList.filter((w) => w.kind === 'blocked' && new Date(w.at).getTime() > latestResolvedAt).length;
   const wlDotColor = blockedCount > 0 ? '#C4432A' : wlList.length > 0 ? '#2E6F40' : undefined;
-  const wlTooltip = wlList.length > 0
-    ? `Debug — ${wlList.length} ${wlList.length === 1 ? 'entry' : 'entries'}${blockedCount > 0 ? ` · ${blockedCount} blocked` : ''}`
-    : 'Debug Space';
+  const wlTooltip =
+    wlList.length > 0
+      ? `Debug — ${wlList.length} ${wlList.length === 1 ? 'entry' : 'entries'}${blockedCount > 0 ? ` · ${blockedCount} blocked` : ''}`
+      : 'Debug Space';
 
   // ══════════════════════════════════════════════════════════════
   // RENDER: CREATE MODE (New Ticket)
@@ -486,11 +498,22 @@ function TicketModalInner({
   if (localMode === 'create' || !ticket) {
     return (
       <div className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
-        <div className={`${styles.panel} ${styles.panelNew} ${visible ? styles.panelVisible : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`${styles.panel} ${styles.panelNew} ${visible ? styles.panelVisible : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className={styles.newModalHeader}>
             <span className={styles.newModalTitle}>New Ticket</span>
             <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M6 6L18 18" />
                 <path d="M18 6L6 18" />
               </svg>
@@ -500,7 +523,15 @@ function TicketModalInner({
           <form onSubmit={handleCreateSubmit}>
             <div className={styles.newModalBody}>
               {saveError && (
-                <div style={{ color: '#C4432A', fontSize: 13, background: '#FBE7E4', padding: '8px 12px', borderRadius: 6 }}>
+                <div
+                  style={{
+                    color: '#C4432A',
+                    fontSize: 13,
+                    background: '#FBE7E4',
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                  }}
+                >
                   {saveError}
                 </div>
               )}
@@ -625,39 +656,37 @@ function TicketModalInner({
   // ══════════════════════════════════════════════════════════════
   // RENDER: VIEW MODE (Ticket Detail Panel)
   // ══════════════════════════════════════════════════════════════
-  const rawBranches: TicketBranch[] = (ticketBranches.length > 0
-    ? ticketBranches
-    : (ticket?.branches && ticket.branches.length > 0)
-      ? ticket.branches
-      : []
-  );
+  const rawBranches: TicketBranch[] =
+    ticketBranches.length > 0 ? ticketBranches : ticket?.branches && ticket.branches.length > 0 ? ticket.branches : [];
 
   const branchesList: TicketBranch[] = [
     ...(!rawBranches.some((b) => b.name === 'main' || b.status === 'baseline')
-      ? [{
-          id: 'baseline-main',
-          name: 'main',
-          status: 'baseline' as const,
-          branchFrom: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }]
+      ? [
+          {
+            id: 'baseline-main',
+            name: 'main',
+            status: 'baseline' as const,
+            branchFrom: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ]
       : []),
     ...rawBranches,
   ];
 
   // Use the live list (git-refreshed) rather than ticket.branches, whose counts are stale
-  const defaultBranch = branchesList.find(b => b.status !== 'baseline') || branchesList[0];
-  const activeBranch = branchesList.find(b => b.name === selectedBranchName) || defaultBranch;
+  const defaultBranch = branchesList.find((b) => b.status !== 'baseline') || branchesList[0];
+  const activeBranch = branchesList.find((b) => b.name === selectedBranchName) || defaultBranch;
   const activeBranchName = activeBranch?.name ?? 'main';
   const activeBranchSubtext = activeBranch
-    ? (activeBranch.status === 'baseline'
-        ? 'baseline'
-        : `from ${activeBranch.branchFrom || 'main'}${
-            activeBranch.aheadCount !== undefined
-              ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
-              : ''
-          }`)
+    ? activeBranch.status === 'baseline'
+      ? 'baseline'
+      : `from ${activeBranch.branchFrom || 'main'}${
+          activeBranch.aheadCount !== undefined
+            ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
+            : ''
+        }`
     : 'from main';
 
   return (
@@ -675,7 +704,11 @@ function TicketModalInner({
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.typeContainer} style={{ position: 'relative', cursor: 'pointer' }} title="Change ticket type">
+            <div
+              className={styles.typeContainer}
+              style={{ position: 'relative', cursor: 'pointer' }}
+              title="Change ticket type"
+            >
               <TicketTypeIcon type={ticket.type} size={16} />
               <span>{TYPE_CONFIG[ticket.type].label}</span>
               <select
@@ -700,7 +733,16 @@ function TicketModalInner({
                   onClick={() => onOpenTicket?.(parentTicket)}
                   title={`Parent: ${parentTicket.title}`}
                 >
-                  <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    stroke="#9AA8A0"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
                     <path d="M7.5 8.5L10 11L7.5 13.5" />
                   </svg>
@@ -728,7 +770,16 @@ function TicketModalInner({
               onClick={() => setActiveTab(activeTab === 'test_cases' ? 'main' : 'test_cases')}
               aria-label="Test Cases"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 11L12 14L22 4" />
                 <path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" />
               </svg>
@@ -742,7 +793,16 @@ function TicketModalInner({
               onClick={() => setActiveTab(activeTab === 'debug_space' ? 'main' : 'debug_space')}
               aria-label="Debug Space"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <rect x="3" y="4" width="18" height="16" rx="2" />
                 <path d="M7 9L10 12L7 15" />
                 <path d="M12 15H17" />
@@ -752,17 +812,26 @@ function TicketModalInner({
             </button>
 
             {workspaceEnabled && (
-            <button
-              type="button"
-              className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
-              onClick={() => setActiveTab(activeTab === 'workspace' ? 'main' : 'workspace')}
-              aria-label="Workspace"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
-              </svg>
-              <span className={styles.viewTooltip}>Workspace</span>
-            </button>
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
+                onClick={() => setActiveTab(activeTab === 'workspace' ? 'main' : 'workspace')}
+                aria-label="Workspace"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
+                </svg>
+                <span className={styles.viewTooltip}>Workspace</span>
+              </button>
             )}
 
             <button
@@ -771,7 +840,16 @@ function TicketModalInner({
               onClick={() => setActiveTab(activeTab === 'branches' ? 'main' : 'branches')}
               aria-label="Branches"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <circle cx="6" cy="6" r="2.5" />
                 <circle cx="6" cy="18" r="2.5" />
                 <circle cx="18" cy="6" r="2.5" />
@@ -787,7 +865,16 @@ function TicketModalInner({
               onClick={() => setActiveTab(activeTab === 'activity' ? 'main' : 'activity')}
               aria-label="Activity"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7V12L15 14" />
               </svg>
@@ -804,11 +891,29 @@ function TicketModalInner({
               onClick={() => setIsFullscreen((prev) => !prev)}
             >
               {isFullscreen ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M14 4h6m0 0v6m0-6l-7 7M4 10h6m0 0V4m0 6L3 3" />
                 </svg>
               ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
                 </svg>
               )}
@@ -827,7 +932,16 @@ function TicketModalInner({
                   }
                 }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M3 6h18" />
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
@@ -838,7 +952,15 @@ function TicketModalInner({
             )}
 
             <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M6 6L18 18" />
                 <path d="M18 6L6 18" />
               </svg>
@@ -877,11 +999,7 @@ function TicketModalInner({
 
                   <div className={styles.tagsRow}>
                     {tags.map((tag) => (
-                      <TagPill
-                        key={tag}
-                        tag={tag}
-                        onRemove={() => handleRemoveTag(tag)}
-                      />
+                      <TagPill key={tag} tag={tag} onRemove={() => handleRemoveTag(tag)} />
                     ))}
 
                     {isAddingTag ? (
@@ -898,12 +1016,10 @@ function TicketModalInner({
                         }}
                       />
                     ) : (
-                      <button
-                        type="button"
-                        className={styles.tagAddBtn}
-                        onClick={() => setIsAddingTag(true)}
-                      >
-                        <svg width="9" height="9" viewBox="0 0 12 12"><path d="M6 2V10M2 6H10" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                      <button type="button" className={styles.tagAddBtn} onClick={() => setIsAddingTag(true)}>
+                        <svg width="9" height="9" viewBox="0 0 12 12">
+                          <path d="M6 2V10M2 6H10" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
                         Add tag
                       </button>
                     )}
@@ -930,12 +1046,8 @@ function TicketModalInner({
                 <SubTasksSection
                   subTasks={ticket.subTasks ?? []}
                   onAdd={(text) => addSubTaskMutation.mutate({ ticketId: ticket.id, text })}
-                  onToggle={(id) =>
-                    toggleSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })
-                  }
-                  onDelete={(id) =>
-                    deleteSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })
-                  }
+                  onToggle={(id) => toggleSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })}
+                  onDelete={(id) => deleteSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })}
                 />
 
                 {/* Sub-tickets (child tickets) */}
@@ -995,17 +1107,19 @@ function TicketModalInner({
                     updateTicketStatusMutation.mutate(
                       { ticketId, status: nextStatus },
                       {
-                        onError: (err) =>
-                          toast.error("Couldn't change status", extractError(err)),
+                        onError: (err) => toast.error("Couldn't change status", extractError(err)),
                       },
                     )
                   }
                 />
 
-                <TicketDocsSection ticketId={ticket.id} projectId={ticket.projectId} onOpenPage={(pageId) => onOpenDocsPage?.(pageId)} />
+                <TicketDocsSection
+                  ticketId={ticket.id}
+                  projectId={ticket.projectId}
+                  onOpenPage={(pageId) => onOpenDocsPage?.(pageId)}
+                />
 
                 <hr className={styles.sectionDivider} />
-
 
                 {/* Consolidated Attachments Zone (matching Attachments.dc.html - placed after Comments) */}
                 {(() => {
@@ -1036,7 +1150,7 @@ function TicketModalInner({
                       }
                     }
                     // Non-image files: [name](url) not preceded by !
-                    const linkRegex = /(?<!\!)\[([^\]]+)\]\(([^)]+)\)/g;
+                    const linkRegex = /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g;
                     while ((m = linkRegex.exec(text)) !== null) {
                       const [, name, src] = m;
                       if (src && (src.startsWith('/uploads/') || src.includes('/uploads/'))) {
@@ -1059,12 +1173,12 @@ function TicketModalInner({
 
                   return (
                     <div className={styles.attachmentsZone}>
-                      <div className={styles.attachmentsLabel}>
-                        ATTACHMENTS · {allAttachments.length}
-                      </div>
+                      <div className={styles.attachmentsLabel}>ATTACHMENTS · {allAttachments.length}</div>
                       <div className={styles.attachmentsList}>
                         {allAttachments.map((att, i) => {
-                          const resolvedSrc = att.src.startsWith('/uploads/') ? `${resolveOrigin()}${att.src}` : att.src;
+                          const resolvedSrc = att.src.startsWith('/uploads/')
+                            ? `${resolveOrigin()}${att.src}`
+                            : att.src;
                           if (att.type === 'image') {
                             return (
                               <div key={`att-${i}`} className={styles.attThumbBox}>
@@ -1090,10 +1204,7 @@ function TicketModalInner({
                                 onClick={() => setPreviewAttachment({ url: att.src, fileName: att.name })}
                                 title={`Click to preview ${att.name}`}
                               >
-                                <div
-                                  className={styles.attFileIcon}
-                                  style={{ backgroundColor: meta.bgColor }}
-                                >
+                                <div className={styles.attFileIcon} style={{ backgroundColor: meta.bgColor }}>
                                   <FileCategoryIcon category={meta.category} size={14} color={meta.color} />
                                 </div>
                                 <div className={styles.attFileInfo}>
@@ -1111,7 +1222,16 @@ function TicketModalInner({
                                   onClick={(e) => e.stopPropagation()}
                                   title="Download"
                                 >
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                  <svg
+                                    width="13"
+                                    height="13"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
                                     <path d="M12 4V15" />
                                     <path d="M7 10L12 15L17 10" />
                                     <path d="M5 19H19" />
@@ -1131,7 +1251,15 @@ function TicketModalInner({
                           aria-label="Add attachment"
                           title="Add attachment"
                         >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          >
                             <path d="M12 5V19" />
                             <path d="M5 12H19" />
                           </svg>
@@ -1159,8 +1287,16 @@ function TicketModalInner({
                   assigneeId={ticket.assignee}
                   focusCommentId={focusCommentId}
                   onFocusHandled={() => setFocusCommentId(null)}
-                  onAdd={(t) => addCommentMutation.mutateAsync({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'user' })}
-                  onEdit={(cId, t) => updateCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId, text: t })}
+                  onAdd={(t) =>
+                    addCommentMutation.mutateAsync({
+                      ticketId: ticket.id,
+                      text: t,
+                      author: assigneeMember?.name ?? 'user',
+                    })
+                  }
+                  onEdit={(cId, t) =>
+                    updateCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId, text: t })
+                  }
                   onDelete={(cId) => deleteCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
                   onRestore={(cId) => restoreCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
                 />
@@ -1175,387 +1311,446 @@ function TicketModalInner({
                   />
                 )}
               </>
-          </div>
-
-          {/* Right Meta Sidebar matching ticket-detail-4-sidebar.png */}
-          <aside className={styles.sidebarCol}>
-            {/* 1. Status */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Status</span>
-              <StatusMenu value={status} onChange={handleStatusChange} />
             </div>
 
-            {/* 2. Branch */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Branch</span>
-              <div ref={branchContainerRef} style={{ position: 'relative', width: '100%' }}>
-                <button
-                  type="button"
-                  className={`${styles.branchBtn} ${isBranchPopoverOpen ? styles.branchBtnActive : ''}`}
-                  onClick={() => setIsBranchPopoverOpen((prev) => !prev)}
-                  title={activeBranchName ? `Branch: ${activeBranchName}` : 'Branch: main'}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <circle cx="6" cy="6" r="2.5" />
-                    <circle cx="6" cy="18" r="2.5" />
-                    <circle cx="18" cy="6" r="2.5" />
-                    <path d="M6 8.5V15.5" />
-                    <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
-                  </svg>
-                  <span className={styles.branchText}>{activeBranchName}</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <path d={isBranchPopoverOpen ? "M6 15L12 9L18 15" : "M6 9L12 15L18 9"} />
-                  </svg>
-                </button>
+            {/* Right Meta Sidebar matching ticket-detail-4-sidebar.png */}
+            <aside className={styles.sidebarCol}>
+              {/* 1. Status */}
+              <div className={styles.sidebarRow}>
+                <span className={styles.sidebarLabel}>Status</span>
+                <StatusMenu value={status} onChange={handleStatusChange} />
+              </div>
 
-              {/* Branch Switcher Popover */}
-              {isBranchPopoverOpen && (
-                <div className={styles.branchPopover}>
-                  <div className={styles.branchPopoverHeader}>
-                    Branches of {ticket.id}
-                  </div>
+              {/* 2. Branch */}
+              <div className={styles.sidebarRow}>
+                <span className={styles.sidebarLabel}>Branch</span>
+                <div ref={branchContainerRef} style={{ position: 'relative', width: '100%' }}>
+                  <button
+                    type="button"
+                    className={`${styles.branchBtn} ${isBranchPopoverOpen ? styles.branchBtnActive : ''}`}
+                    onClick={() => setIsBranchPopoverOpen((prev) => !prev)}
+                    title={activeBranchName ? `Branch: ${activeBranchName}` : 'Branch: main'}
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#6D5DD3"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <circle cx="6" cy="6" r="2.5" />
+                      <circle cx="6" cy="18" r="2.5" />
+                      <circle cx="18" cy="6" r="2.5" />
+                      <path d="M6 8.5V15.5" />
+                      <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                    </svg>
+                    <span className={styles.branchText}>{activeBranchName}</span>
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#9AA8A0"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <path d={isBranchPopoverOpen ? 'M6 15L12 9L18 15' : 'M6 9L12 15L18 9'} />
+                    </svg>
+                  </button>
 
-                  <div className={styles.branchList}>
-                    {branchesList.map((b) => {
-                      const isActive = b.name === activeBranchName;
-                      const dotColor =
-                        b.status === 'baseline' ? '#2E6F40' :
-                        b.status === 'merged' ? '#2F6FB0' :
-                        b.status === 'stale' || b.status === 'archived' ? '#C4432A' : '#6D5DD3';
-                      
-                      const badgeClass =
-                        b.status === 'baseline' ? styles.branchBadgeBaseline :
-                        b.status === 'merged' ? styles.branchBadgeMerged :
-                        b.status === 'stale' || b.status === 'archived' ? styles.branchBadgeStale : '';
+                  {/* Branch Switcher Popover */}
+                  {isBranchPopoverOpen && (
+                    <div className={styles.branchPopover}>
+                      <div className={styles.branchPopoverHeader}>Branches of {ticket.id}</div>
 
-                      return (
-                        <button
-                          key={b.id || b.name}
-                          type="button"
-                          className={`${styles.branchRow} ${isActive ? styles.branchRowActive : ''}`}
-                          onClick={() => {
-                            setSelectedBranchName(b.name);
-                            setIsBranchPopoverOpen(false);
-                            if (b.linkedTicketId && allTickets) {
-                              const found = allTickets.find(t => t.id === b.linkedTicketId);
-                              if (found) onOpenTicket?.(found);
-                            }
-                          }}
-                        >
-                          <span className={styles.branchDot} style={{ background: dotColor }} />
-                          <span className={`${styles.branchRowName} ${isActive ? styles.branchRowNameActive : ''}`}>
-                            {b.name}
-                          </span>
-                          {b.worktreePath && (
-                            <span
-                              className={styles.branchWorktreePill}
-                              title={`Worktree: ${b.worktreePath}`}
+                      <div className={styles.branchList}>
+                        {branchesList.map((b) => {
+                          const isActive = b.name === activeBranchName;
+                          const dotColor =
+                            b.status === 'baseline'
+                              ? '#2E6F40'
+                              : b.status === 'merged'
+                                ? '#2F6FB0'
+                                : b.status === 'stale' || b.status === 'archived'
+                                  ? '#C4432A'
+                                  : '#6D5DD3';
+
+                          const badgeClass =
+                            b.status === 'baseline'
+                              ? styles.branchBadgeBaseline
+                              : b.status === 'merged'
+                                ? styles.branchBadgeMerged
+                                : b.status === 'stale' || b.status === 'archived'
+                                  ? styles.branchBadgeStale
+                                  : '';
+
+                          return (
+                            <button
+                              key={b.id || b.name}
+                              type="button"
+                              className={`${styles.branchRow} ${isActive ? styles.branchRowActive : ''}`}
+                              onClick={() => {
+                                setSelectedBranchName(b.name);
+                                setIsBranchPopoverOpen(false);
+                                if (b.linkedTicketId && allTickets) {
+                                  const found = allTickets.find((t) => t.id === b.linkedTicketId);
+                                  if (found) onOpenTicket?.(found);
+                                }
+                              }}
                             >
-                              🌳
-                            </span>
-                          )}
-                          {isActive ? (
-                            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                              <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
-                              <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          ) : (
-                            b.status !== 'open' && (
-                              <span className={`${styles.branchBadge} ${badgeClass}`}>
-                                {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                              <span className={styles.branchDot} style={{ background: dotColor }} />
+                              <span className={`${styles.branchRowName} ${isActive ? styles.branchRowNameActive : ''}`}>
+                                {b.name}
                               </span>
-                            )
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className={styles.repoConfigBox}>
-                    <div className={styles.repoConfigHeader}>
-                      <div className={styles.repoConfigTitle}>
-                        <svg
-                          width="13"
-                          height="13"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className={styles.repoIcon}
-                        >
-                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                        </svg>
-                        <span>Local Git repo</span>
-                        <span className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}>
-                          {ticket.repoPath ? 'override' : project?.repoPath ? 'project' : 'not linked'}
-                        </span>
+                              {b.worktreePath && (
+                                <span className={styles.branchWorktreePill} title={`Worktree: ${b.worktreePath}`}>
+                                  🌳
+                                </span>
+                              )}
+                              {isActive ? (
+                                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                                  <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
+                                  <path
+                                    d="M4.3 7.2L6.1 9L9.8 5"
+                                    stroke="#2E6F40"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              ) : (
+                                b.status !== 'open' && (
+                                  <span className={`${styles.branchBadge} ${badgeClass}`}>
+                                    {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                                  </span>
+                                )
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
-                      {!isEditingRepo && (
-                        <button
-                          type="button"
-                          className={styles.repoActionBtn}
-                          onClick={() => {
-                            setRepoPathDraft(ticket.repoPath ?? project?.repoPath ?? '');
-                            setIsEditingRepo(true);
-                          }}
-                        >
-                          {effectiveRepoPath ? 'Change' : 'Set'}
-                        </button>
-                      )}
-                    </div>
 
-                    {isEditingRepo ? (
-                      <form
-                        className={styles.repoEditForm}
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          saveTicketRepo(repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft);
-                        }}
-                      >
-                        <input
-                          type="text"
-                          className={styles.repoInput}
-                          placeholder="/absolute/path/to/local/git-repo"
-                          value={repoPathDraft}
-                          onChange={(e) => setRepoPathDraft(e.target.value)}
-                          autoFocus
-                        />
-                        <div className={styles.repoFormActions}>
-                          {ticket.repoPath && (
+                      <div className={styles.repoConfigBox}>
+                        <div className={styles.repoConfigHeader}>
+                          <div className={styles.repoConfigTitle}>
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className={styles.repoIcon}
+                            >
+                              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                            </svg>
+                            <span>Local Git repo</span>
+                            <span className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}>
+                              {ticket.repoPath ? 'override' : project?.repoPath ? 'project' : 'not linked'}
+                            </span>
+                          </div>
+                          {!isEditingRepo && (
                             <button
                               type="button"
-                              className={styles.repoBtnSecondary}
-                              onClick={() => saveTicketRepo('')}
+                              className={styles.repoActionBtn}
+                              onClick={() => {
+                                setRepoPathDraft(ticket.repoPath ?? project?.repoPath ?? '');
+                                setIsEditingRepo(true);
+                              }}
                             >
-                              Reset to project
+                              {effectiveRepoPath ? 'Change' : 'Set'}
                             </button>
                           )}
-                          <button
-                            type="button"
-                            className={styles.repoBtnSecondary}
-                            onClick={() => setIsEditingRepo(false)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className={styles.repoBtnPrimary}
-                            disabled={updateTicketMutation.isPending || !repoPathDraft.trim()}
-                          >
-                            Save
-                          </button>
                         </div>
-                      </form>
-                    ) : (
-                      <div className={styles.repoStatusBody}>
-                        {effectiveRepoPath ? (
-                          <span className={styles.repoPathMono} title={effectiveRepoPath}>
-                            {effectiveRepoPath}
-                          </span>
+
+                        {isEditingRepo ? (
+                          <form
+                            className={styles.repoEditForm}
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              saveTicketRepo(repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft);
+                            }}
+                          >
+                            <input
+                              type="text"
+                              className={styles.repoInput}
+                              placeholder="/absolute/path/to/local/git-repo"
+                              value={repoPathDraft}
+                              onChange={(e) => setRepoPathDraft(e.target.value)}
+                              autoFocus
+                            />
+                            <div className={styles.repoFormActions}>
+                              {ticket.repoPath && (
+                                <button
+                                  type="button"
+                                  className={styles.repoBtnSecondary}
+                                  onClick={() => saveTicketRepo('')}
+                                >
+                                  Reset to project
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className={styles.repoBtnSecondary}
+                                onClick={() => setIsEditingRepo(false)}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                className={styles.repoBtnPrimary}
+                                disabled={updateTicketMutation.isPending || !repoPathDraft.trim()}
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </form>
                         ) : (
-                          <span className={styles.repoEmptyDesc}>
-                            Branches only exist on this board until a local repository is linked.
-                          </span>
+                          <div className={styles.repoStatusBody}>
+                            {effectiveRepoPath ? (
+                              <span className={styles.repoPathMono} title={effectiveRepoPath}>
+                                {effectiveRepoPath}
+                              </span>
+                            ) : (
+                              <span className={styles.repoEmptyDesc}>
+                                Branches only exist on this board until a local repository is linked.
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className={styles.branchPopoverFooter}>
-                    <button
-                      type="button"
-                      className={styles.branchFooterBtn}
-                      onClick={() => {
-                        setIsBranchPopoverOpen(false);
-                        setIsCreateBranchModalOpen(true);
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M12 5V19" />
-                        <path d="M5 12H19" />
-                      </svg>
-                      Create branch
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
-                      onClick={() => {
-                        setIsBranchPopoverOpen(false);
-                        setActiveTab('branches');
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                        <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                        <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                        <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                      </svg>
-                      View full graph →
-                    </button>
-                  </div>
+                      <div className={styles.branchPopoverFooter}>
+                        <button
+                          type="button"
+                          className={styles.branchFooterBtn}
+                          onClick={() => {
+                            setIsBranchPopoverOpen(false);
+                            setIsCreateBranchModalOpen(true);
+                          }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          >
+                            <path d="M12 5V19" />
+                            <path d="M5 12H19" />
+                          </svg>
+                          Create branch
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
+                          onClick={() => {
+                            setIsBranchPopoverOpen(false);
+                            setActiveTab('branches');
+                          }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                          </svg>
+                          View full graph →
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <span className={styles.branchSubtext}>
-              {activeBranchSubtext}
-            </span>
-          </div>
-
-            {/* 3. Assignee */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Assignee</span>
-              <div className={styles.sidebarItemInteractive} title="Click to change assignee">
-                {assigneeMember ? (
-                  <>
-                    <MemberAvatar member={assigneeMember} size={22} />
-                    <span>{assigneeMember.name}</span>
-                  </>
-                ) : (
-                  <span style={{ color: '#9AA8A0' }}>Unassigned</span>
-                )}
-                <select
-                  className={styles.sidebarSelect}
-                  value={assignee ?? ''}
-                  onChange={(e) => handleAssigneeChange(e.target.value || null)}
-                >
-                  <option value="">Unassigned</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                <span className={styles.branchSubtext}>{activeBranchSubtext}</span>
               </div>
-            </div>
 
-            {/* 4. Priority */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Priority</span>
-              <div className={styles.sidebarItemInteractive} title="Click to change priority">
-                <PriorityMark priority={priority} width={16} height={15} />
-                <span style={{ textTransform: 'capitalize' }}>{priority}</span>
-                <select
-                  className={styles.sidebarSelect}
-                  value={priority}
-                  onChange={(e) => handlePriorityChange(e.target.value as Priority)}
-                >
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 5. Due Date */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Due Date</span>
-              <div
-                className={styles.sidebarItemInteractive}
-                title="Click to set due date"
-                onClick={() => {
-                  try {
-                    dateInputRef.current?.showPicker?.();
-                  } catch {
-                    dateInputRef.current?.focus();
-                  }
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
-                  <path d="M3.5 10H20.5" />
-                  <path d="M8 3V6.5" />
-                  <path d="M16 3V6.5" />
-                </svg>
-                <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
-                  {dueDate ? formatDueDate(dueDate) : '–'}
-                </span>
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  className={styles.invisibleDateInput}
-                  value={dueDate ?? ''}
-                  onChange={(e) => {
-                    const next = e.target.value || null;
-                    setDueDate(next);
-                    autoSaveField('dueDate', next);
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* 6. Estimate */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Estimate</span>
-              <div className={styles.sidebarItemInteractive} title="Click to change estimate">
-                <span style={estimate === null ? { color: '#9AA8A0' } : undefined}>
-                  {estimate !== null ? `${estimate} pt` : '–'}
-                </span>
-                <select
-                  className={styles.sidebarSelect}
-                  value={estimate ?? ''}
-                  onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">–</option>
-                  <option value="1">1 pt</option>
-                  <option value="2">2 pt</option>
-                  <option value="3">3 pt</option>
-                  <option value="5">5 pt</option>
-                  <option value="8">8 pt</option>
-                  <option value="13">13 pt</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 6b. Done guards */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Done requires</span>
-              <div className={styles.doneGuards}>
-                <label className={styles.guardOption} title="Block moving to Done until every acceptance criterion is checked">
-                  <input
-                    type="checkbox"
-                    checked={blockAcs}
-                    onChange={(e) => {
-                      setBlockAcs(e.target.checked);
-                      autoSaveField('blockDoneIfAcsIncomplete', e.target.checked);
-                    }}
-                  />
-                  All acceptance criteria met
-                </label>
-                <label className={styles.guardOption} title="Block moving to Done until every test case passes">
-                  <input
-                    type="checkbox"
-                    checked={blockTcs}
-                    onChange={(e) => {
-                      setBlockTcs(e.target.checked);
-                      autoSaveField('blockDoneIfTcsIncomplete', e.target.checked);
-                    }}
-                  />
-                  All test cases passed
-                </label>
-              </div>
-            </div>
-
-            {/* 7. Divider */}
-            <div className={styles.sidebarDivider} />
-
-            {/* 8. Audit Metadata */}
-            <div className={styles.auditMeta}>
-              <div>
-                Created {formatRelativeTime(ticket.createdAt)}
-                {(() => {
-                  const creator = members.find((m) => m.id === ticket.createdBy)?.name;
-                  return creator ? (
+              {/* 3. Assignee */}
+              <div className={styles.sidebarRow}>
+                <span className={styles.sidebarLabel}>Assignee</span>
+                <div className={styles.sidebarItemInteractive} title="Click to change assignee">
+                  {assigneeMember ? (
                     <>
-                      {' '}by <span style={{ color: '#5B6B60', fontWeight: 500 }}>{creator}</span>
+                      <MemberAvatar member={assigneeMember} size={22} />
+                      <span>{assigneeMember.name}</span>
                     </>
-                  ) : null;
-                })()}
+                  ) : (
+                    <span style={{ color: '#9AA8A0' }}>Unassigned</span>
+                  )}
+                  <select
+                    className={styles.sidebarSelect}
+                    value={assignee ?? ''}
+                    onChange={(e) => handleAssigneeChange(e.target.value || null)}
+                  >
+                    <option value="">Unassigned</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
-            </div>
-          </aside>
-        </div>
+
+              {/* 4. Priority */}
+              <div className={styles.sidebarRow}>
+                <span className={styles.sidebarLabel}>Priority</span>
+                <div className={styles.sidebarItemInteractive} title="Click to change priority">
+                  <PriorityMark priority={priority} width={16} height={15} />
+                  <span style={{ textTransform: 'capitalize' }}>{priority}</span>
+                  <select
+                    className={styles.sidebarSelect}
+                    value={priority}
+                    onChange={(e) => handlePriorityChange(e.target.value as Priority)}
+                  >
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 5. Due Date */}
+              <div className={styles.sidebarRow}>
+                <span className={styles.sidebarLabel}>Due Date</span>
+                <div
+                  className={styles.sidebarItemInteractive}
+                  title="Click to set due date"
+                  onClick={() => {
+                    try {
+                      dateInputRef.current?.showPicker?.();
+                    } catch {
+                      dateInputRef.current?.focus();
+                    }
+                  }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#5B6B60"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+                    <path d="M3.5 10H20.5" />
+                    <path d="M8 3V6.5" />
+                    <path d="M16 3V6.5" />
+                  </svg>
+                  <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
+                    {dueDate ? formatDueDate(dueDate) : '–'}
+                  </span>
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    className={styles.invisibleDateInput}
+                    value={dueDate ?? ''}
+                    onChange={(e) => {
+                      const next = e.target.value || null;
+                      setDueDate(next);
+                      autoSaveField('dueDate', next);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 6. Estimate */}
+              <div className={styles.sidebarRow}>
+                <span className={styles.sidebarLabel}>Estimate</span>
+                <div className={styles.sidebarItemInteractive} title="Click to change estimate">
+                  <span style={estimate === null ? { color: '#9AA8A0' } : undefined}>
+                    {estimate !== null ? `${estimate} pt` : '–'}
+                  </span>
+                  <select
+                    className={styles.sidebarSelect}
+                    value={estimate ?? ''}
+                    onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
+                  >
+                    <option value="">–</option>
+                    <option value="1">1 pt</option>
+                    <option value="2">2 pt</option>
+                    <option value="3">3 pt</option>
+                    <option value="5">5 pt</option>
+                    <option value="8">8 pt</option>
+                    <option value="13">13 pt</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 6b. Done guards */}
+              <div className={styles.sidebarRow}>
+                <span className={styles.sidebarLabel}>Done requires</span>
+                <div className={styles.doneGuards}>
+                  <label
+                    className={styles.guardOption}
+                    title="Block moving to Done until every acceptance criterion is checked"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={blockAcs}
+                      onChange={(e) => {
+                        setBlockAcs(e.target.checked);
+                        autoSaveField('blockDoneIfAcsIncomplete', e.target.checked);
+                      }}
+                    />
+                    All acceptance criteria met
+                  </label>
+                  <label className={styles.guardOption} title="Block moving to Done until every test case passes">
+                    <input
+                      type="checkbox"
+                      checked={blockTcs}
+                      onChange={(e) => {
+                        setBlockTcs(e.target.checked);
+                        autoSaveField('blockDoneIfTcsIncomplete', e.target.checked);
+                      }}
+                    />
+                    All test cases passed
+                  </label>
+                </div>
+              </div>
+
+              {/* 7. Divider */}
+              <div className={styles.sidebarDivider} />
+
+              {/* 8. Audit Metadata */}
+              <div className={styles.auditMeta}>
+                <div>
+                  Created {formatRelativeTime(ticket.createdAt)}
+                  {(() => {
+                    const creator = members.find((m) => m.id === ticket.createdBy)?.name;
+                    return creator ? (
+                      <>
+                        {' '}
+                        by <span style={{ color: '#5B6B60', fontWeight: 500 }}>{creator}</span>
+                      </>
+                    ) : null;
+                  })()}
+                </div>
+                <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
+              </div>
+            </aside>
+          </div>
         ) : (
           <div key={activeTab} className={`${styles.fullWidthBody} ${styles.tabFadeSlide}`}>
             {activeTab === 'test_cases' && (
@@ -1567,7 +1762,9 @@ function TicketModalInner({
                   ticketTitle: st.title,
                   testCases: st.testCases ?? [],
                 }))}
-                disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
+                disabled={
+                  addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending
+                }
                 onAdd={(tTitle, tDesc) =>
                   new Promise<void>((resolve, reject) =>
                     addTestCaseMutation.mutate(
@@ -1575,22 +1772,18 @@ function TicketModalInner({
                       {
                         onSuccess: () => resolve(),
                         onError: (err: unknown) => reject(err),
-                      }
-                    )
+                      },
+                    ),
                   )
                 }
                 onChange={(updated) => {
                   const old = ticket.testCases ?? [];
-                  const deletedIds = old
-                    .filter((o) => !updated.some((u) => u.id === o.id))
-                    .map((o) => o.id);
+                  const deletedIds = old.filter((o) => !updated.some((u) => u.id === o.id)).map((o) => o.id);
                   const changedItems = updated.filter((u) => {
                     const o = old.find((item) => item.id === u.id);
                     return o && JSON.stringify(o) !== JSON.stringify(u);
                   });
-                  deletedIds.forEach((id) =>
-                    deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id })
-                  );
+                  deletedIds.forEach((id) => deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id }));
                   changedItems.forEach((tc) =>
                     updateTestCaseMutation.mutate({
                       ticketId: ticket.id,
@@ -1607,7 +1800,7 @@ function TicketModalInner({
                         proof: tc.proof ?? null,
                         note: tc.note ?? null,
                       },
-                    })
+                    }),
                   );
                 }}
               />
@@ -1644,12 +1837,8 @@ function TicketModalInner({
                 onOpenTestCase={() => setActiveTab('test_cases')}
               />
             )}
-            {activeTab === 'workspace' && workspaceEnabled && (
-              <WorkspaceSection ticketId={ticket.id} />
-            )}
-            {activeTab === 'branches' && (
-              <BranchesSection ticketId={ticket.id} />
-            )}
+            {activeTab === 'workspace' && workspaceEnabled && <WorkspaceSection ticketId={ticket.id} />}
+            {activeTab === 'branches' && <BranchesSection ticketId={ticket.id} />}
             {activeTab === 'activity' && (
               <ActivitySection
                 ticketId={ticket.id}
@@ -1669,7 +1858,7 @@ function TicketModalInner({
           onClose={() => setIsCreateBranchModalOpen(false)}
           ticketId={ticket.id}
           branches={branchesList}
-          initialBranchFrom={activeBranch?.inRepo === false ? 'main' : (activeBranchName || 'main')}
+          initialBranchFrom={activeBranch?.inRepo === false ? 'main' : activeBranchName || 'main'}
           defaultWorktreeTemplate={project?.worktreeTemplate}
           defaultWorktreeEnabled={project?.worktreeByDefault}
           projectPrefix={project?.prefix}

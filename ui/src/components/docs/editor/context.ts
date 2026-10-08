@@ -16,9 +16,12 @@ export interface EditorEnv {
   onOpenTicket?: (ticketId: string) => void;
 }
 
+/** Editor environment: reference resolver and open callbacks. */
 export const EditorEnvContext = createContext<EditorEnv | null>(null);
+/** Return the editor environment, or null outside an editor. */
 export const useEditorEnv = () => useContext(EditorEnvContext);
 
+/** Return a stable cache key for a reference request. */
 export const refKey = (r: DocsRefRequest) => (r.kind === 'page' ? `p:${r.title}#${r.anchor ?? ''}` : `t:${r.key}`);
 
 /** Batches [[page]] / ticket-key resolution for all chips of one editor into single requests. */

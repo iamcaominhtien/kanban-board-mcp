@@ -6,6 +6,7 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
   simplified?: boolean;
 }
 
+/** Task type icon. */
 export function TaskIcon({ size = 'sm', className, style, ...props }: IconProps) {
   const isSm = size === 'sm' || size === 15;
   const dimension = typeof size === 'number' ? size : isSm ? 15 : 24;
@@ -34,6 +35,7 @@ export function TaskIcon({ size = 'sm', className, style, ...props }: IconProps)
   );
 }
 
+/** Bug type icon. */
 export function BugIcon({ size = 'sm', simplified, className, style, ...props }: IconProps) {
   const isSm = size === 'sm' || size === 15 || simplified;
   const dimension = typeof size === 'number' ? size : isSm ? 15 : 24;
@@ -91,6 +93,7 @@ export function BugIcon({ size = 'sm', simplified, className, style, ...props }:
   );
 }
 
+/** Feature type icon. */
 export function FeatureIcon({ size = 'sm', className, style, ...props }: IconProps) {
   const isSm = size === 'sm' || size === 15;
   const dimension = typeof size === 'number' ? size : isSm ? 15 : 24;
@@ -139,6 +142,7 @@ export function FeatureIcon({ size = 'sm', className, style, ...props }: IconPro
   );
 }
 
+/** Chore type icon. */
 export function ChoreIcon({ size = 'sm', simplified, className, style, ...props }: IconProps) {
   const isSm = size === 'sm' || size === 15 || simplified;
   const dimension = typeof size === 'number' ? size : isSm ? 15 : 24;
@@ -191,11 +195,8 @@ export function ChoreIcon({ size = 'sm', simplified, className, style, ...props 
   );
 }
 
-export function TicketTypeIcon({
-  type,
-  size = 'sm',
-  ...props
-}: { type: IssueType } & IconProps) {
+/** Icon for a ticket type. */
+export function TicketTypeIcon({ type, size = 'sm', ...props }: { type: IssueType } & IconProps) {
   switch (type) {
     case 'bug':
       return <BugIcon size={size} {...props} />;

@@ -63,29 +63,70 @@ function Row({
 }) {
   const path = doc.path ?? [];
   const endsWithTitle = path[path.length - 1] === doc.title;
-  const sub = doc.section ? (endsWithTitle ? path : [...path, doc.title]).join(' › ') : (endsWithTitle ? path.slice(0, -1) : path).join(' › ');
+  const sub = doc.section
+    ? (endsWithTitle ? path : [...path, doc.title]).join(' › ')
+    : (endsWithTitle ? path.slice(0, -1) : path).join(' › ');
   return (
     <div
       className={`tdoc-row ${onRemove ? 'tdoc-manual' : ''}`}
       data-testid={`ticket-doc-${origin}`}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: '#FFFFFF', borderBottom: last ? undefined : '1px solid #EEF3EF' }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '9px 12px',
+        background: '#FFFFFF',
+        borderBottom: last ? undefined : '1px solid #EEF3EF',
+      }}
     >
       <button
         type="button"
         onClick={onOpen}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flex: 1,
+          minWidth: 0,
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          textAlign: 'left',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
       >
         <span style={{ display: 'flex', color: '#2E6F40' }}>
-          {doc.section ? <Icon name="i04" size={16} strokeWidth={1.8} /> : <Icon name="i00" size={16} strokeWidth={1.8} />}
+          {doc.section ? (
+            <Icon name="i04" size={16} strokeWidth={1.8} />
+          ) : (
+            <Icon name="i00" size={16} strokeWidth={1.8} />
+          )}
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>{doc.section ? `${doc.title} › ${doc.section}` : doc.title}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>
+            {doc.section ? `${doc.title} › ${doc.section}` : doc.title}
+          </span>
           {sub && <span style={{ fontSize: 11.5, color: '#9AA8A0' }}>{sub}</span>}
         </span>
       </button>
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
         {doc.labels.map((l) => (
-          <span key={l} data-testid="ticket-doc-origin" style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60', padding: '2px 8px', borderRadius: 999, background: origin === 'page' ? '#E8F1FB' : '#F1F3F1', whiteSpace: 'nowrap' }}>{l}</span>
+          <span
+            key={l}
+            data-testid="ticket-doc-origin"
+            style={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: '#5B6B60',
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: origin === 'page' ? '#E8F1FB' : '#F1F3F1',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {l}
+          </span>
         ))}
       </span>
       {onRemove ? (
@@ -94,12 +135,36 @@ function Row({
           className="tdoc-remove"
           aria-label="Remove link"
           onClick={onRemove}
-          style={{ width: 22, height: 22, borderRadius: 5, border: 'none', background: '#FBE7E4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C4432A', flexShrink: 0, cursor: 'pointer', padding: 0 }}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 5,
+            border: 'none',
+            background: '#FBE7E4',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#C4432A',
+            flexShrink: 0,
+            cursor: 'pointer',
+            padding: 0,
+          }}
         >
           <Icon name="i08" size={12} strokeWidth={2} />
         </button>
       ) : (
-        <span title="Remove the mention to unlink" style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C7D2CB', flexShrink: 0 }}>
+        <span
+          title="Remove the mention to unlink"
+          style={{
+            width: 22,
+            height: 22,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#C7D2CB',
+            flexShrink: 0,
+          }}
+        >
           <Icon name="lock" size={13} strokeWidth={1.9} />
         </span>
       )}
@@ -107,7 +172,17 @@ function Row({
   );
 }
 
-function LinkPopover({ projectId, linked, onPick, onClose }: { projectId?: string; linked: Set<string>; onPick: (item: DocsSuggestItem) => void; onClose: () => void }) {
+function LinkPopover({
+  projectId,
+  linked,
+  onPick,
+  onClose,
+}: {
+  projectId?: string;
+  linked: Set<string>;
+  onPick: (item: DocsSuggestItem) => void;
+  onClose: () => void;
+}) {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -186,14 +261,53 @@ function LinkPopover({ projectId, linked, onPick, onClose }: { projectId?: strin
           placeholder="Search pages…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', font: 'inherit', color: '#1E2A22', padding: 0 }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            font: 'inherit',
+            color: '#1E2A22',
+            padding: 0,
+          }}
         />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px 3px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 10px 3px',
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: '#5B6B60',
+        }}
+      >
         Pages and sections in this space
       </div>
-      <SuggestRows items={items} active={active} query={q} onPick={onPick} onHover={setActive} loading={suggest.isFetching} />
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 12px', padding: '8px 10px 4px', marginTop: 4, borderTop: '1px solid #EEF3EF', fontSize: 11.5, color: '#5B6B60' }}>
+      <SuggestRows
+        items={items}
+        active={active}
+        query={q}
+        onPick={onPick}
+        onHover={setActive}
+        loading={suggest.isFetching}
+      />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '6px 12px',
+          padding: '8px 10px 4px',
+          marginTop: 4,
+          borderTop: '1px solid #EEF3EF',
+          fontSize: 11.5,
+          color: '#5B6B60',
+        }}
+      >
         <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
           <span className="dk-kbd">↑ ↓</span> move
         </span>
@@ -208,7 +322,12 @@ function LinkPopover({ projectId, linked, onPick, onClose }: { projectId?: strin
   );
 }
 
-/** "Linked docs" on a ticket: mentioned / linked manually / pages that mention it, plus "+ Link a doc". */
+/**
+ * "Linked docs" on a ticket: mentioned / linked manually / pages that mention it, plus "+ Link a doc".
+ * @param props.ticketId - Ticket whose linked docs are shown.
+ * @param props.projectId - Project whose pages the "Link a doc" search offers.
+ * @param props.onOpenPage - Called with page id and project id when a doc is opened.
+ */
 export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDocsSectionProps) {
   const toast = useToast();
   const { data } = useTicketDocs(ticketId);
@@ -275,8 +394,20 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
         .tdoc-manual:hover .tdoc-remove, .tdoc-manual:focus-within .tdoc-remove { opacity: 1; }
       `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5B6B60', textTransform: 'uppercase' }}>Linked docs</span>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9AA8A0' }} data-testid="ticket-docs-count">{groups.mentioned.length + groups.manual.length + groups.pages.length}</span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            color: '#5B6B60',
+            textTransform: 'uppercase',
+          }}
+        >
+          Linked docs
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9AA8A0' }} data-testid="ticket-docs-count">
+          {groups.mentioned.length + groups.manual.length + groups.pages.length}
+        </span>
       </div>
       {section('Mentioned in this ticket', groups.mentioned)}
       {section('Linked manually', groups.manual)}
@@ -303,7 +434,14 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
           <Icon name="i01" size={12} strokeWidth={2.6} />
           Link a doc
         </button>
-        {adding && <LinkPopover projectId={projectId} linked={linked} onPick={(i) => void add(i)} onClose={() => setAdding(false)} />}
+        {adding && (
+          <LinkPopover
+            projectId={projectId}
+            linked={linked}
+            onPick={(i) => void add(i)}
+            onClose={() => setAdding(false)}
+          />
+        )}
       </div>
     </div>
   );

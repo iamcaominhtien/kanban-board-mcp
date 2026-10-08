@@ -9,11 +9,26 @@ export function safeSnippet(html: string): string {
   return html.replace(/<(?!\/?mark>)/g, '&lt;');
 }
 
+/**
+ * Render a sanitized search snippet that keeps its `<mark>` highlights.
+ * @param props.html - Snippet HTML; sanitized before rendering.
+ */
 export function Snip({ html, style, className }: { html: string; style?: CSSProperties; className?: string }) {
-  return <div className={`fx-snip ${className ?? ''}`} style={style} dangerouslySetInnerHTML={{ __html: safeSnippet(html) }} />;
+  return (
+    <div
+      className={`fx-snip ${className ?? ''}`}
+      style={style}
+      dangerouslySetInnerHTML={{ __html: safeSnippet(html) }}
+    />
+  );
 }
 
-/** Wraps case-insensitive occurrences of the query words in <mark>. */
+/**
+ * Wraps case-insensitive occurrences of the query words in <mark>.
+ * @param text - Text to scan.
+ * @param q - Search query; its terms and phrases are wrapped.
+ * @returns `text` unchanged when no term is found, else nodes with matches in `<mark>`.
+ */
 export function highlight(text: string, q: string): ReactNode {
   const { terms, phrases } = parseSearchQuery(q);
   const needles = [...terms, ...phrases].filter(Boolean).sort((a, b) => b.length - a.length);
@@ -42,6 +57,7 @@ export function ancestors(p: Pick<DocsSearchPage, 'path' | 'title'>): string[] {
   return path.length && path[path.length - 1] === p.title ? path.slice(0, -1) : path;
 }
 
+/** Return a page's parent title, or "Top level". */
 export function parentLabel(p: Pick<DocsSearchPage, 'path' | 'title'>): string {
   const a = ancestors(p);
   return a.length ? a[a.length - 1] : 'Top level';
@@ -54,6 +70,7 @@ export const AVATAR_COLORS: [string, string][] = [
   ['#FBE4E9', '#B0446E'],
 ];
 
+/** Return a stable avatar color and initials for a name. */
 export function avatarFor(name: string): { bg: string; fg: string; text: string } {
   let h = 0;
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -63,12 +80,28 @@ export function avatarFor(name: string): { bg: string; fg: string; text: string 
   return { bg, fg, text };
 }
 
+/**
+ * Round avatar with initials.
+ * @param props.size - Diameter in px.
+ */
 export function Avatar({ name, size = 20 }: { name: string; size?: number }) {
   const a = avatarFor(name);
   return (
     <span
       title={name}
-      style={{ width: size, height: size, borderRadius: '50%', background: a.bg, color: a.fg, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: a.bg,
+        color: a.fg,
+        fontSize: 11,
+        fontWeight: 700,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
     >
       {a.text}
     </span>
@@ -93,13 +126,32 @@ const STATUS_LABEL: Record<string, string> = {
   done: 'Done',
   wont_do: "Won't do",
 };
+/** Return the dot color of a ticket status. */
 export const statusDot = (s: string) => STATUS_DOT[s] ?? '#9AA8A0';
+/** Return the label of a ticket status. */
 export const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
+/**
+ * Colored dot for a ticket status.
+ * @param props.status - Ticket status that picks the color.
+ * @param props.size - Diameter in px.
+ */
 export function StatusDot({ status, size = 8 }: { status: string; size?: number }) {
-  return <span style={{ width: size, height: size, borderRadius: '50%', background: statusDot(status), flexShrink: 0, display: 'inline-block' }} />;
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: statusDot(status),
+        flexShrink: 0,
+        display: 'inline-block',
+      }}
+    />
+  );
 }
 
+/** Format a past time as "just now", "5m ago", "yesterday" or a date. */
 export function timeAgo(iso: string): string {
   const t = new Date(iso.endsWith('Z') || /[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + 'Z').getTime();
   if (Number.isNaN(t)) return '';
@@ -131,15 +183,22 @@ export const TOKEN_STYLE: Record<Exclude<TokKind, 'plain'>, { fg: string; bg: st
   exclude: { fg: '#C4432A', bg: 'rgba(196,67,42,0.12)' },
 };
 
+/** Split a search query into typed tokens for display. */
 export function tokenize(q: string): Tok[] {
   const t = q.trim();
   if (t.startsWith('[[')) {
     const lead = q.slice(0, q.indexOf('[[') + 2);
-    return [{ text: lead, kind: 'link' }, { text: q.slice(lead.length), kind: 'plain' }];
+    return [
+      { text: lead, kind: 'link' },
+      { text: q.slice(lead.length), kind: 'plain' },
+    ];
   }
   if (t.startsWith('#')) {
     const lead = q.slice(0, q.indexOf('#') + 1);
-    return [{ text: lead, kind: 'hash' }, { text: q.slice(lead.length), kind: 'plain' }];
+    return [
+      { text: lead, kind: 'hash' },
+      { text: q.slice(lead.length), kind: 'plain' },
+    ];
   }
   if (TICKET_KEY.test(t)) return [{ text: q, kind: 'ticket' }];
   const out: Tok[] = [];
@@ -147,13 +206,14 @@ export function tokenize(q: string): Tok[] {
   for (const m of q.matchAll(re)) {
     const s = m[0];
     if (s.startsWith('"')) out.push({ text: s, kind: 'phrase' });
-    else if (s.length > 1 && s.startsWith('-') ) out.push({ text: s, kind: 'exclude' });
+    else if (s.length > 1 && s.startsWith('-')) out.push({ text: s, kind: 'exclude' });
     else if (s === '-') out.push({ text: s, kind: 'exclude' });
     else out.push({ text: s, kind: 'plain' });
   }
   return out;
 }
 
+/** Key-cap element. */
 export function Kbd({ children }: { children: ReactNode }) {
   return <span className="dk-kbd">{children}</span>;
 }

@@ -38,6 +38,8 @@ async def docs_error_handler(request: Request, exc: svc.DocsError) -> JSONRespon
 
 
 class PageCreate(BaseModel):
+    """Request body to create a page."""
+
     title: str
     parent_id: str | None = None
     template: str = "blank"
@@ -45,29 +47,39 @@ class PageCreate(BaseModel):
 
 
 class PageRename(BaseModel):
+    """Request body to rename a page."""
+
     title: str
     rewrite_links: bool = False
 
 
 class PageMove(BaseModel):
+    """Request body to move a page."""
+
     parent_id: str | None = None
     before_id: str | None = None
     after_id: str | None = None
 
 
 class PageDuplicate(BaseModel):
+    """Request body to duplicate a page."""
+
     title: str | None = None
     parent_id: str | None = None
     include_children: bool = False
 
 
 class DraftSave(BaseModel):
+    """Request body to save a draft."""
+
     markdown: str
     title: str | None = None
     base_version: int | None = None
 
 
 class PublishBody(BaseModel):
+    """Request body to publish a draft."""
+
     base_version: int
     note: str | None = None
     markdown: str | None = None
@@ -76,19 +88,27 @@ class PublishBody(BaseModel):
 
 
 class RestoreBody(BaseModel):
+    """Request body to restore a version."""
+
     note: str | None = None
     notify: bool = False
 
 
 class ResolveBody(BaseModel):
+    """Request body listing references to resolve."""
+
     refs: list[dict[str, Any]]
 
 
 class ImportResolveBody(BaseModel):
+    """Request body listing the pages created by an import."""
+
     page_ids: list[str]
 
 
 class TicketDocBody(BaseModel):
+    """Request body to link a ticket to a page."""
+
     page_id: str
 
 
@@ -111,11 +131,13 @@ async def _announce(page: dict[str, Any], note: str | None) -> None:
 
 @router.get("/docs/templates")
 async def get_templates() -> list[dict[str, str]]:
+    """List the page templates."""
     return [{"id": k, **v} for k, v in TEMPLATES.items()]
 
 
 @router.get("/projects/{project_id}/docs/tree")
 async def get_tree(project_id: str, session: Session) -> list[dict[str, Any]]:
+    """Get the project's page tree."""
     return await svc.list_tree(session, project_id)
 
 
@@ -123,6 +145,7 @@ async def get_tree(project_id: str, session: Session) -> list[dict[str, Any]]:
 async def post_page(
     project_id: str, body: PageCreate, session: Session
 ) -> dict[str, Any]:
+    """Create a page."""
     page = await svc.create_page(
         session,
         project_id,
@@ -137,6 +160,7 @@ async def post_page(
 
 @router.get("/projects/{project_id}/docs/by-slug/{slug}")
 async def get_by_slug(project_id: str, slug: str, session: Session) -> dict[str, Any]:
+    """Get a page by slug."""
     return await svc.page_by_slug(session, project_id, slug)
 
 
@@ -144,6 +168,7 @@ async def get_by_slug(project_id: str, slug: str, session: Session) -> dict[str,
 async def get_similar(
     project_id: str, session: Session, slug: str = ""
 ) -> list[dict[str, Any]]:
+    """Suggest pages whose slug or title resembles `slug`."""
     await svc._project(session, project_id)
     return await docs_search.similar(session, project_id, slug)
 
@@ -165,6 +190,7 @@ async def get_search(
     status: str | None = None,
     sort: str = "relevance",
 ) -> dict[str, Any]:
+    """Search pages and tickets."""
     await svc._project(session, project_id)
     return await docs_search.search(
         session,
@@ -186,11 +212,13 @@ async def get_search(
 
 @router.get("/projects/{project_id}/docs/recycle-bin")
 async def get_recycle_bin(project_id: str, session: Session) -> list[dict[str, Any]]:
+    """List pages in the Recycle Bin."""
     return await svc.list_deleted(session, project_id)
 
 
 @router.delete("/projects/{project_id}/docs/recycle-bin")
 async def empty_recycle_bin(project_id: str, session: Session) -> dict[str, int]:
+    """Permanently delete everything in the Recycle Bin."""
     result = await svc.empty_recycle_bin(session, project_id)
     await board_events.publish("invalidate")
     return result
@@ -200,6 +228,7 @@ async def empty_recycle_bin(project_id: str, session: Session) -> dict[str, int]
 async def post_resolve(
     project_id: str, body: ResolveBody, session: Session
 ) -> list[dict[str, Any]]:
+    """Resolve `[[references]]` to pages, sections and tickets."""
     return await svc.resolve_refs(session, project_id, body.refs)
 
 
@@ -245,6 +274,7 @@ async def post_import(
 async def post_import_resolve(
     project_id: str, body: ImportResolveBody, session: Session
 ) -> dict[str, int]:
+    """Re-index links of imported pages and re-point pending links."""
     result = await docs_import.resolve_pages(session, project_id, body.page_ids)
     await board_events.publish("invalidate")
     return result
@@ -252,6 +282,7 @@ async def post_import_resolve(
 
 @router.get("/docs/pages/{page_id}")
 async def get_page(page_id: str, session: Session) -> dict[str, Any]:
+    """Get a page with its content, draft and stats."""
     return await svc.page_detail(session, page_id)
 
 
@@ -265,11 +296,13 @@ async def _mutate(coro: Any) -> Any:
 async def get_rename_preview(
     page_id: str, session: Session, title: str = ""
 ) -> dict[str, Any]:
+    """Preview the link rewrites a rename would make."""
     return await svc.rename_preview(session, page_id, title)
 
 
 @router.get("/docs/pages/{page_id}/delete-preview")
 async def get_delete_preview(page_id: str, session: Session) -> dict[str, Any]:
+    """Preview what deleting a page would affect."""
     return await svc.delete_preview(session, page_id)
 
 
@@ -277,6 +310,7 @@ async def get_delete_preview(page_id: str, session: Session) -> dict[str, Any]:
 async def patch_page(
     page_id: str, body: PageRename, session: Session
 ) -> dict[str, Any]:
+    """Rename a page."""
     return await _mutate(
         svc.rename_page(session, page_id, body.title, rewrite_links=body.rewrite_links)
     )
@@ -284,11 +318,13 @@ async def patch_page(
 
 @router.delete("/docs/pages/{page_id}")
 async def del_page(page_id: str, session: Session) -> dict[str, Any]:
+    """Move a page and its sub-pages to the Recycle Bin."""
     return await _mutate(svc.delete_page(session, page_id))
 
 
 @router.post("/docs/pages/{page_id}/move")
 async def post_move(page_id: str, body: PageMove, session: Session) -> dict[str, Any]:
+    """Move a page."""
     return await _mutate(
         svc.move_page(
             session,
@@ -304,6 +340,7 @@ async def post_move(page_id: str, body: PageMove, session: Session) -> dict[str,
 async def post_duplicate(
     page_id: str, body: PageDuplicate, session: Session
 ) -> dict[str, Any]:
+    """Duplicate a page and its sub-pages."""
     return await _mutate(
         svc.duplicate_page(
             session,
@@ -318,16 +355,19 @@ async def post_duplicate(
 
 @router.post("/docs/pages/{page_id}/restore")
 async def post_restore(page_id: str, session: Session) -> dict[str, Any]:
+    """Restore a page from the Recycle Bin."""
     return await _mutate(svc.restore_page(session, page_id))
 
 
 @router.delete("/docs/pages/{page_id}/purge", status_code=204)
 async def purge(page_id: str, session: Session) -> None:
+    """Permanently delete a page from the Recycle Bin."""
     await _mutate(svc.purge_page(session, page_id))
 
 
 @router.put("/docs/pages/{page_id}/draft")
 async def put_draft(page_id: str, body: DraftSave, session: Session) -> dict[str, Any]:
+    """Save your draft of a page."""
     return await svc.save_draft(
         session,
         page_id,
@@ -339,6 +379,7 @@ async def put_draft(page_id: str, body: DraftSave, session: Session) -> dict[str
 
 @router.delete("/docs/pages/{page_id}/draft")
 async def del_draft(page_id: str, session: Session) -> dict[str, Any]:
+    """Discard your draft of a page."""
     return await _mutate(svc.discard_draft(session, page_id))
 
 
@@ -346,6 +387,7 @@ async def del_draft(page_id: str, session: Session) -> dict[str, Any]:
 async def post_publish(
     page_id: str, body: PublishBody, session: Session
 ) -> dict[str, Any]:
+    """Publish the draft as a new version."""
     page = await _mutate(
         svc.publish_page(
             session,
@@ -363,16 +405,19 @@ async def post_publish(
 
 @router.get("/docs/pages/{page_id}/versions")
 async def get_versions(page_id: str, session: Session) -> list[dict[str, Any]]:
+    """List a page's versions."""
     return await svc.list_versions(session, page_id)
 
 
 @router.get("/docs/pages/{page_id}/versions/{version}")
 async def get_version(page_id: str, version: int, session: Session) -> dict[str, Any]:
+    """Get one version of a page."""
     return await svc.get_version(session, page_id, version)
 
 
 @router.get("/docs/pages/{page_id}/versions/{a}/diff/{b}")
 async def get_diff(page_id: str, a: int, b: int, session: Session) -> dict[str, Any]:
+    """Diff two versions of a page."""
     return await svc.diff_versions(session, page_id, a, b)
 
 
@@ -380,6 +425,7 @@ async def get_diff(page_id: str, a: int, b: int, session: Session) -> dict[str, 
 async def post_restore_version(
     page_id: str, version: int, body: RestoreBody, session: Session
 ) -> dict[str, Any]:
+    """Restore an old version as a new one."""
     page = await _mutate(svc.restore_version(session, page_id, version, note=body.note))
     if body.notify:
         await _announce(page, body.note or f"Restored from v{version}")
@@ -388,11 +434,13 @@ async def post_restore_version(
 
 @router.get("/docs/pages/{page_id}/backlinks")
 async def get_backlinks(page_id: str, session: Session) -> dict[str, Any]:
+    """List the pages and tickets that reference a page."""
     return await svc.backlinks(session, page_id)
 
 
 @router.get("/tickets/{ticket_id}/docs")
 async def get_ticket_docs(ticket_id: str, session: Session) -> list[dict[str, Any]]:
+    """List the pages a ticket references or is linked to."""
     return await svc.docs_for_ticket(session, ticket_id)
 
 
@@ -400,6 +448,7 @@ async def get_ticket_docs(ticket_id: str, session: Session) -> list[dict[str, An
 async def post_ticket_doc(
     ticket_id: str, body: TicketDocBody, session: Session
 ) -> dict[str, Any]:
+    """Link a ticket to a page."""
     result = await svc.link_ticket_doc(session, ticket_id, body.page_id)
     await board_events.publish("invalidate")
     return result
@@ -409,6 +458,7 @@ async def post_ticket_doc(
 async def delete_ticket_doc(
     ticket_id: str, page_id: str, session: Session
 ) -> dict[str, Any]:
+    """Unlink a ticket from a page."""
     result = await svc.unlink_ticket_doc(session, ticket_id, page_id)
     await board_events.publish("invalidate")
     return result

@@ -1,16 +1,5 @@
-
 export type FileCategory =
-  | 'excel'
-  | 'word'
-  | 'powerpoint'
-  | 'pdf'
-  | 'json'
-  | 'text'
-  | 'code'
-  | 'image'
-  | 'media'
-  | 'archive'
-  | 'generic';
+  'excel' | 'word' | 'powerpoint' | 'pdf' | 'json' | 'text' | 'code' | 'image' | 'media' | 'archive' | 'generic';
 
 export interface FileTypeMeta {
   category: FileCategory;
@@ -179,6 +168,7 @@ const CATEGORY_CONFIG: Record<FileCategory, FileTypeMeta> = {
   },
 };
 
+/** Return the lowercase extension without the dot. */
 export function getFileExtension(filename: string): string {
   const clean = filename.split(/[?#]/)[0];
   const lastDot = clean.lastIndexOf('.');
@@ -186,11 +176,13 @@ export function getFileExtension(filename: string): string {
   return clean.slice(lastDot + 1).toLowerCase();
 }
 
+/** Return the category of a file by its extension. */
 export function getFileCategory(filename: string): FileCategory {
   const ext = getFileExtension(filename);
   return CATEGORY_MAP[ext] || 'generic';
 }
 
+/** Return the icon, color and badge for a file. */
 export function getFileTypeMeta(filename: string): FileTypeMeta {
   const cat = getFileCategory(filename);
   const ext = getFileExtension(filename).toUpperCase();
@@ -201,28 +193,34 @@ export function getFileTypeMeta(filename: string): FileTypeMeta {
   };
 }
 
+/** Whether the file can be previewed as text. */
 export function isTextPreviewable(filename: string): boolean {
   const cat = getFileCategory(filename);
   return cat === 'text' || cat === 'json' || cat === 'code';
 }
 
+/** Whether the file is a PDF. */
 export function isPdf(filename: string): boolean {
   return getFileCategory(filename) === 'pdf';
 }
 
+/** Whether the file is an image. */
 export function isImage(filename: string): boolean {
   return getFileCategory(filename) === 'image';
 }
 
+/** Whether the file is audio or video. */
 export function isMedia(filename: string): boolean {
   return getFileCategory(filename) === 'media';
 }
 
+/** Whether the file is an Office document. */
 export function isOfficeDoc(filename: string): boolean {
   const cat = getFileCategory(filename);
   return cat === 'excel' || cat === 'word' || cat === 'powerpoint';
 }
 
+/** Format bytes as "1.5 KB"; empty for missing values. */
 export function formatFileSize(bytes?: number | null): string {
   if (bytes === undefined || bytes === null || isNaN(bytes) || bytes < 0) return '';
   if (bytes < 1024) return `${bytes} B`;
@@ -230,6 +228,7 @@ export function formatFileSize(bytes?: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Strip the path and the server-added hash suffix from a stored file name. */
 export function cleanDisplayFileName(rawName: string): string {
   if (!rawName) return 'Tệp tin';
   let clean = decodeURIComponent(rawName.split(/[?#]/)[0]);
@@ -245,7 +244,12 @@ export function cleanDisplayFileName(rawName: string): string {
   return clean;
 }
 
-/** SVG Icon component for file types */
+/**
+ * SVG Icon component for file types
+ * @param props.category - File category picking the icon shape and default color.
+ * @param props.size - Width and height in px.
+ * @param props.color - Stroke color override; defaults to the category color.
+ */
 export function FileCategoryIcon({
   category,
   size = 20,
@@ -261,7 +265,16 @@ export function FileCategoryIcon({
   switch (category) {
     case 'excel':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <path d="M8 13h8" />
@@ -271,7 +284,16 @@ export function FileCategoryIcon({
       );
     case 'word':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <line x1="16" y1="13" x2="8" y2="13" />
@@ -281,7 +303,16 @@ export function FileCategoryIcon({
       );
     case 'powerpoint':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <path d="M9 13h3a2 2 0 0 0 0-4H9v8" />
@@ -289,7 +320,16 @@ export function FileCategoryIcon({
       );
     case 'pdf':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <path d="M9 15h6" />
@@ -298,7 +338,16 @@ export function FileCategoryIcon({
       );
     case 'json':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="16 18 22 12 16 6" />
           <polyline points="8 6 2 12 8 18" />
           <line x1="14" y1="4" x2="10" y2="20" />
@@ -306,14 +355,32 @@ export function FileCategoryIcon({
       );
     case 'code':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="16 18 22 12 16 6" />
           <polyline points="8 6 2 12 8 18" />
         </svg>
       );
     case 'image':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <polyline points="21 15 16 10 5 21" />
@@ -321,13 +388,31 @@ export function FileCategoryIcon({
       );
     case 'media':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polygon points="5 3 19 12 5 21 5 3" />
         </svg>
       );
     case 'archive':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="21 8 21 21 3 21 3 8" />
           <rect x="1" y="3" width="22" height="5" />
           <line x1="10" y1="12" x2="14" y2="12" />
@@ -336,7 +421,16 @@ export function FileCategoryIcon({
     case 'text':
     default:
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <line x1="16" y1="13" x2="8" y2="13" />

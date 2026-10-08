@@ -10,7 +10,8 @@ const PAD = 14;
 const PAGE = 80;
 const LANE_COLORS = ['#2E6F40', '#6D5DD3', '#2F6FB0', '#C4432A', '#B7791F', '#0F766E'];
 
-const laneColor = (lane: number) => (lane === 0 ? LANE_COLORS[0] : LANE_COLORS[1 + ((lane - 1) % (LANE_COLORS.length - 1))]);
+const laneColor = (lane: number) =>
+  lane === 0 ? LANE_COLORS[0] : LANE_COLORS[1 + ((lane - 1) % (LANE_COLORS.length - 1))];
 
 function relativeDate(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -31,6 +32,7 @@ interface Edge {
   hidden: number; // commits collapsed between the two ends (overview mode)
 }
 
+/** Commit graph of the ticket's linked repo. */
 export function BranchGraph({ ticketId }: { ticketId: string }) {
   const [mode, setMode] = useState<'overview' | 'all'>('overview');
   const [limit, setLimit] = useState(PAGE);
@@ -84,8 +86,8 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
       <div className={styles.empty}>
         <strong>No git repository linked</strong>
         <br />
-        Link a repository to this project or ticket (Settings → Git Repositories, or the branch menu on the ticket)
-        to see the real commit graph here.
+        Link a repository to this project or ticket (Settings → Git Repositories, or the branch menu on the ticket) to
+        see the real commit graph here.
       </div>
     );
   }
@@ -116,14 +118,30 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
   const legendBranches = ticketBranches.filter((b) => b.status !== 'baseline');
 
   const chip = (r: GraphRef) => {
-    if (r.type === 'head') return <span key="head" className={`${styles.chip} ${styles.chipHead}`}>HEAD</span>;
-    if (r.type === 'tag') return <span key={`t-${r.name}`} className={`${styles.chip} ${styles.chipTag}`} title={r.name}>{r.name}</span>;
-    if (r.type === 'remote') return <span key={`r-${r.name}`} className={`${styles.chip} ${styles.chipOther}`} title={r.name}>{r.name}</span>;
+    if (r.type === 'head')
+      return (
+        <span key="head" className={`${styles.chip} ${styles.chipHead}`}>
+          HEAD
+        </span>
+      );
+    if (r.type === 'tag')
+      return (
+        <span key={`t-${r.name}`} className={`${styles.chip} ${styles.chipTag}`} title={r.name}>
+          {r.name}
+        </span>
+      );
+    if (r.type === 'remote')
+      return (
+        <span key={`r-${r.name}`} className={`${styles.chip} ${styles.chipOther}`} title={r.name}>
+          {r.name}
+        </span>
+      );
     const cls = ticketSet.has(r.name) ? styles.chipTicket : r.name === data.base ? styles.chipBase : styles.chipOther;
     const wt = branchByName.get(r.name)?.worktreePath;
     return (
       <span key={`b-${r.name}`} className={`${styles.chip} ${cls}`} title={wt ? `${r.name}\nWorktree: ${wt}` : r.name}>
-        {wt ? '🌳 ' : ''}{r.name}
+        {wt ? '🌳 ' : ''}
+        {r.name}
       </span>
     );
   };
@@ -131,7 +149,10 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
   const edgePath = (e: Edge) => {
     const child = visible[e.from];
     const parent = visible[e.to];
-    const x1 = x(child.lane), y1 = y(e.from), x2 = x(parent.lane), y2 = y(e.to);
+    const x1 = x(child.lane),
+      y1 = y(e.from),
+      x2 = x(parent.lane),
+      y2 = y(e.to);
     if (x1 === x2) return `M${x1} ${y1} L${x2} ${y2}`;
     const r = ROW_H * 0.6;
     if (e.secondParent) {
@@ -182,12 +203,17 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
             return (
               <div key={b.id} className={styles.legendRow}>
                 <span className={styles.legendDot} style={{ background: color }} />
-                <span className={styles.legendName} title={b.name}>{b.name}</span>
+                <span className={styles.legendName} title={b.name}>
+                  {b.name}
+                </span>
                 <span className={`${styles.badge} ${statusBadge[b.status]}`}>
                   {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
                 </span>
                 {b.isCurrent && (
-                  <span className={`${styles.badge} ${styles.badgeHead}`} title="Checked out in the repository's main working tree">
+                  <span
+                    className={`${styles.badge} ${styles.badgeHead}`}
+                    title="Checked out in the repository's main working tree"
+                  >
                     HEAD · checked out
                   </span>
                 )}
@@ -197,7 +223,10 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
                   </span>
                 )}
                 {b.inRepo === false && (
-                  <span className={`${styles.badge} ${styles.badgeMissing}`} title="This branch doesn't exist in the linked repository">
+                  <span
+                    className={`${styles.badge} ${styles.badgeMissing}`}
+                    title="This branch doesn't exist in the linked repository"
+                  >
                     not in repo
                   </span>
                 )}
@@ -247,7 +276,15 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
                   strokeWidth={c.parents.length > 1 ? 2.2 : c.ticketBranches.length ? 2 : 0}
                 />
                 {c.ticketBranches.length > 0 && c.parents.length <= 1 && (
-                  <circle cx={x(c.lane)} cy={y(i)} r={8} fill="none" stroke={laneColor(c.lane)} strokeOpacity={0.35} strokeWidth={2} />
+                  <circle
+                    cx={x(c.lane)}
+                    cy={y(i)}
+                    r={8}
+                    fill="none"
+                    stroke={laneColor(c.lane)}
+                    strokeOpacity={0.35}
+                    strokeWidth={2}
+                  />
                 )}
               </g>
             ))}
@@ -276,7 +313,9 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
                   <span className={styles.subject}>{c.subject}</span>
                   {hiddenAfter > 0 && <span className={styles.hidden}>+{hiddenAfter} commits</span>}
                   <span className={styles.hash}>{c.short}</span>
-                  <span className={styles.author} title={c.author}>{c.author}</span>
+                  <span className={styles.author} title={c.author}>
+                    {c.author}
+                  </span>
                   <span className={styles.date}>{relativeDate(c.date)}</span>
                 </div>
               );
@@ -298,7 +337,6 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
     </div>
   );
 }
-
 
 function CommitPanel({
   ticketId,
@@ -336,14 +374,18 @@ function CommitPanel({
       {error && (
         <div className={styles.panelHead}>
           <div className={styles.error}>Couldn't load this commit: {extractError(error)}</div>
-          <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">×</button>
+          <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">
+            ×
+          </button>
         </div>
       )}
       {data && (
         <>
           <div className={styles.panelHead}>
             <div className={styles.panelSubject}>{data.subject}</div>
-            <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">×</button>
+            <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">
+              ×
+            </button>
           </div>
 
           <div className={styles.panelMeta}>
@@ -352,14 +394,19 @@ function CommitPanel({
               {data.authorEmail && <span className={styles.metaMono}> &lt;{data.authorEmail}&gt;</span>}
             </span>
             <span title={new Date(data.date).toLocaleString()}>
-              {new Date(data.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} · {relativeDate(data.date)}
+              {new Date(data.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} ·{' '}
+              {relativeDate(data.date)}
             </span>
             {data.committer && data.committer !== data.author && (
-              <span>committed by <span className={styles.metaStrong}>{data.committer}</span></span>
+              <span>
+                committed by <span className={styles.metaStrong}>{data.committer}</span>
+              </span>
             )}
             <span>
               <span className={styles.metaMono}>{data.hash}</span>{' '}
-              <button type="button" className={styles.copyBtn} onClick={copyHash}>{copied ? 'Copied' : 'Copy'}</button>
+              <button type="button" className={styles.copyBtn} onClick={copyHash}>
+                {copied ? 'Copied' : 'Copy'}
+              </button>
             </span>
             {data.parents.length > 0 && (
               <span>
@@ -368,7 +415,9 @@ function CommitPanel({
                   <span key={p}>
                     {i > 0 && ', '}
                     {knownHashes.has(p) ? (
-                      <button type="button" className={styles.parentLink} onClick={() => onSelect(p)}>{p.slice(0, 7)}</button>
+                      <button type="button" className={styles.parentLink} onClick={() => onSelect(p)}>
+                        {p.slice(0, 7)}
+                      </button>
                     ) : (
                       <span className={styles.parentText}>{p.slice(0, 7)}</span>
                     )}
@@ -397,7 +446,10 @@ function CommitPanel({
               <div className={styles.files}>
                 {data.files.map((f) => (
                   <div key={`${f.status}-${f.path}`} className={styles.fileRow}>
-                    <span className={`${styles.fileStatus} ${styles['st' + f.status] ?? styles.stM}`} title={statusLabel(f.status)}>
+                    <span
+                      className={`${styles.fileStatus} ${styles['st' + f.status] ?? styles.stM}`}
+                      title={statusLabel(f.status)}
+                    >
                       {f.status}
                     </span>
                     <span className={styles.filePath} title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}>
@@ -421,7 +473,9 @@ function CommitPanel({
               <div className={styles.panelNote}>No file changes in this commit.</div>
             )}
             {data.filesTruncated && (
-              <div className={styles.panelNote}>Showing the first {data.files.length} of {data.fileCount} files.</div>
+              <div className={styles.panelNote}>
+                Showing the first {data.files.length} of {data.fileCount} files.
+              </div>
             )}
           </div>
         </>
@@ -432,6 +486,11 @@ function CommitPanel({
 
 function statusLabel(status: string): string {
   return (
-    { A: 'Added', M: 'Modified', D: 'Deleted', R: 'Renamed', C: 'Copied', T: 'Type changed' } as Record<string, string>
-  )[status] ?? status;
+    (
+      { A: 'Added', M: 'Modified', D: 'Deleted', R: 'Renamed', C: 'Copied', T: 'Type changed' } as Record<
+        string,
+        string
+      >
+    )[status] ?? status
+  );
 }

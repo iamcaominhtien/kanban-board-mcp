@@ -12,7 +12,11 @@ export function DocsFollowToggle({ projectId }: { projectId: string }) {
       aria-checked={on}
       aria-label={on ? 'Following this space' : 'Follow this space'}
       onClick={() => setOn(!on)}
-      title={on ? 'Following: you get a notification when someone publishes a page' : 'Follow space: get a notification when someone publishes a page'}
+      title={
+        on
+          ? 'Following: you get a notification when someone publishes a page'
+          : 'Follow space: get a notification when someone publishes a page'
+      }
       className="dk-icobtn"
       style={on ? { background: '#DCEEE1', color: '#1F5A31' } : undefined}
     >

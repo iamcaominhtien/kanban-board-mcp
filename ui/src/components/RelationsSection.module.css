@@ -3,12 +3,12 @@
   flex-direction: column;
   gap: 10px;
   padding-top: 4px;
-  border-top: 1px solid #EEF3EF;
+  border-top: 1px solid #eef3ef;
 }
 
 .empty {
   font-size: 13px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .label {
@@ -16,7 +16,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .groups {
@@ -34,12 +34,12 @@
 .groupLabel {
   font-size: 10.5px;
   font-weight: 600;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 /* No overflow:hidden here, the status dropdown has to open past the card edge. */
 .cardContainer {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -50,8 +50,8 @@
   align-items: center;
   gap: 9px;
   padding: 9px 12px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #EEF3EF;
+  background: #ffffff;
+  border-bottom: 1px solid #eef3ef;
   position: relative;
   transition: background-color 0.12s ease;
 }
@@ -70,13 +70,13 @@
 }
 
 .row:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .ticketId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   width: 60px;
   flex-shrink: 0;
 }
@@ -88,7 +88,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   cursor: pointer;
 }
 
@@ -97,9 +97,9 @@
 }
 
 .ticketTitleMuted {
-  color: #9AA8A0;
+  color: #9aa8a0;
   text-decoration: line-through;
-  text-decoration-color: #C7D2CB;
+  text-decoration-color: #c7d2cb;
 }
 
 .removeBtn {
@@ -113,14 +113,17 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
-  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .removeBtn:hover {
-  background: #FBE7E4;
-  color: #C4432A;
+  background: #fbe7e4;
+  color: #c4432a;
 }
 
 /* Add Link Button */
@@ -131,17 +134,19 @@
   align-self: flex-start;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
   font-size: 12px;
-  color: #9AA8A0;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .addDashedBtn:hover {
-  border-color: #2E6F40;
-  color: #2E6F40;
+  border-color: #2e6f40;
+  color: #2e6f40;
 }
 
 /* Add link form */
@@ -160,11 +165,11 @@
 .typeSelect {
   padding: 7px 10px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   font-family: inherit;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   outline: none;
   cursor: pointer;
 }
@@ -174,13 +179,13 @@
   min-width: 0;
   padding: 7px 10px;
   border-radius: 6px;
-  border: 1px solid #B9CBBF;
-  background: #FFFFFF;
+  border: 1px solid #b9cbbf;
+  background: #ffffff;
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
   outline: none;
   font-family: inherit;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .cancelBtn {
@@ -193,18 +198,20 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .cancelBtn:hover {
-  background: #EEF3EF;
-  color: #5B6B60;
+  background: #eef3ef;
+  color: #5b6b60;
 }
 
 .resultsList {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden auto;
   display: flex;
@@ -217,9 +224,9 @@
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  background: #FFFFFF;
+  background: #ffffff;
   border: none;
-  border-bottom: 1px solid #EEF3EF;
+  border-bottom: 1px solid #eef3ef;
   width: 100%;
   text-align: left;
   cursor: pointer;
@@ -232,13 +239,13 @@
 }
 
 .resultItem:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .resultId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   width: 60px;
   flex-shrink: 0;
 }
@@ -247,14 +254,14 @@
   flex-grow: 1;
   min-width: 0;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .mark {
-  background: #DCEEE1;
+  background: #dceee1;
   color: inherit;
   border-radius: 2px;
 }
@@ -262,12 +269,12 @@
 .noResults {
   padding: 9px 12px;
   font-size: 12px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-style: italic;
 }
 
 .helperText {
   font-size: 11.5px;
   line-height: 1.5;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }

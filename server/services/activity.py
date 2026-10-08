@@ -13,14 +13,17 @@ _actor: ContextVar[str] = ContextVar("activity_actor", default=HUMAN_ACTOR)
 
 
 def set_actor(name: str) -> Token:
+    """Set the actor recorded on activity entries; return a token for `reset_actor`."""
     return _actor.set(name)
 
 
 def reset_actor(token: Token) -> None:
+    """Restore the actor that was active before `set_actor`."""
     _actor.reset(token)
 
 
 def current_actor() -> str:
+    """Return the actor for the current request or task."""
     return _actor.get()
 
 
@@ -40,6 +43,19 @@ def entry(
     actor: str | None = None,
     at: str | None = None,
 ) -> dict:
+    """Build one activity-log entry for a field change.
+
+    Args:
+        field: Field that changed.
+        from_: Previous value.
+        to: New value.
+        ref: Related id, e.g. a comment id.
+        actor: Who changed it; defaults to the current actor.
+        at: ISO time; defaults to now.
+
+    Returns:
+        The entry as a dict.
+    """
     out: dict[str, Any] = {
         "field": field,
         "from": from_,
@@ -61,7 +77,16 @@ def record(
     ref: str | None = None,
     actor: str | None = None,
 ) -> None:
-    """Append an entry to ``ticket.activity_log`` (caller commits)."""
+    """Append an entry to the ticket's activity log (the caller commits).
+
+    Args:
+        ticket: Ticket whose log to extend.
+        field: Field that changed.
+        from_: Previous value, clipped for storage.
+        to: New value, clipped for storage.
+        ref: Related id, e.g. a comment id.
+        actor: Who changed it; defaults to the current actor.
+    """
     try:
         log = json.loads(ticket.activity_log or "[]")
     except ValueError:

@@ -2,7 +2,11 @@ import type { Editor } from '@tiptap/react';
 import { useEffect, useMemo, useState } from 'react';
 import { headingAnchors } from '../../../utils/docsMarkdown';
 
-/** Built-in "On this page" rail for the editor (the caller can pass its own via the toc slot). */
+/**
+ * Built-in "On this page" rail for the editor (the caller can pass its own via the toc slot).
+ * @param props.editor - Editor whose headings are listed, or `null`.
+ * @param props.markdown - Current Markdown the headings are read from.
+ */
 export function EditorToc({ editor, markdown }: { editor: Editor | null; markdown: string }) {
   const [tick, setTick] = useState(0);
   const [active, setActive] = useState<string | null>(null);
@@ -45,7 +49,17 @@ export function EditorToc({ editor, markdown }: { editor: Editor | null; markdow
   const on = active ?? heads[0].slug;
   return (
     <div style={{ position: 'sticky', top: 0 }} data-testid="editor-toc">
-      <span style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60', marginBottom: 10 }}>
+      <span
+        style={{
+          display: 'block',
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: '#5B6B60',
+          marginBottom: 10,
+        }}
+      >
         On this page
       </span>
       <div style={{ borderLeft: '1px solid #E3E8E5', marginLeft: 1 }}>

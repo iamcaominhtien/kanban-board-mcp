@@ -8,7 +8,10 @@ interface FirstRunProps {
 
 const PREFIX_RE = /^[A-Za-z]{2,5}$/;
 
-/** Shown when the project list came back empty: create the first project, no further loading screen. */
+/**
+ * Shown when the project list came back empty: create the first project, no further loading screen.
+ * @param props.onCreate - Called with the new project's name, prefix and color; resolves when created.
+ */
 export function FirstRun({ onCreate }: FirstRunProps) {
   const [name, setName] = useState('');
   const [prefix, setPrefix] = useState('');
