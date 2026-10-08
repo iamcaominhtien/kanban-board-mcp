@@ -15,10 +15,7 @@ const LINE_STYLE: React.CSSProperties = {
   overflowWrap: 'anywhere',
 };
 
-const TOKEN = new RegExp(
-  `(\\[\\[[^\\]\\n]*\\]\\])|(\`[^\`\\n]*\`)|(\\b${TICKET_KEY_SRC}\\b)`,
-  'g',
-);
+const TOKEN = new RegExp(`(\\[\\[[^\\]\\n]*\\]\\])|(\`[^\`\\n]*\`)|(\\b${TICKET_KEY_SRC}\\b)`, 'g');
 
 function inline(text: string): React.ReactNode {
   const out: React.ReactNode[] = [];
@@ -27,9 +24,24 @@ function inline(text: string): React.ReactNode {
   TOKEN.lastIndex = 0;
   while ((m = TOKEN.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
-    if (m[1]) out.push(<span key={m.index} style={{ color: '#2F6FB0', background: 'rgba(47,111,176,0.10)', borderRadius: 3 }}>{m[1]}</span>);
-    else if (m[2]) out.push(<span key={m.index} style={{ color: '#2E6F40' }}>{m[2]}</span>);
-    else out.push(<span key={m.index} style={{ color: '#6D5DD3', background: 'rgba(109,93,211,0.10)', borderRadius: 3 }}>{m[3]}</span>);
+    if (m[1])
+      out.push(
+        <span key={m.index} style={{ color: '#2F6FB0', background: 'rgba(47,111,176,0.10)', borderRadius: 3 }}>
+          {m[1]}
+        </span>,
+      );
+    else if (m[2])
+      out.push(
+        <span key={m.index} style={{ color: '#2E6F40' }}>
+          {m[2]}
+        </span>,
+      );
+    else
+      out.push(
+        <span key={m.index} style={{ color: '#6D5DD3', background: 'rgba(109,93,211,0.10)', borderRadius: 3 }}>
+          {m[3]}
+        </span>,
+      );
     last = m.index + m[0].length;
   }
   if (last < text.length) out.push(text.slice(last));
@@ -68,14 +80,22 @@ function highlight(lines: string[]) {
     }
     return (
       <div key={i} style={{ display: 'flex', gap: 12 }}>
-        <span style={{ width: 22, textAlign: 'right', color: '#C7D2CB', flexShrink: 0, userSelect: 'none' }}>{i + 1}</span>
+        <span style={{ width: 22, textAlign: 'right', color: '#C7D2CB', flexShrink: 0, userSelect: 'none' }}>
+          {i + 1}
+        </span>
         <span style={LINE_STYLE}>{content}</span>
       </div>
     );
   });
 }
 
-/** Markdown source view (DocsEditor board D): line numbers, highlighting layer under a transparent textarea. */
+/**
+ * Markdown source view (DocsEditor board D): line numbers, highlighting layer under a transparent textarea.
+ * @param props.value - Markdown source.
+ * @param props.onChange - Called with the edited Markdown.
+ * @param props.filename - File name shown in the header.
+ * @param props.readOnly - Disable editing.
+ */
 export function MarkdownPane({ value, onChange, filename, readOnly }: Props) {
   const lines = useMemo(() => value.split('\n'), [value]);
   const rows = useMemo(() => highlight(lines), [lines]);
@@ -105,7 +125,6 @@ export function MarkdownPane({ value, onChange, filename, readOnly }: Props) {
           boxSizing: 'border-box',
         }}
       >
-        
         <div style={{ flex: 1 }} />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}>
           <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{filename}</span>

@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #FBFCFB;
+  background: #fbfcfb;
   box-sizing: border-box;
 }
 
@@ -28,29 +28,31 @@
   gap: 2px;
   padding: 3px;
   border-radius: 8px;
-  background: #EEF3EF;
+  background: #eef3ef;
 }
 
 .viewBtn {
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   background: transparent;
   border: none;
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .viewBtn:hover {
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .viewBtnActive {
-  background: #FFFFFF;
-  color: #1E2A22;
+  background: #ffffff;
+  color: #1e2a22;
   font-weight: 700;
   box-shadow: 0 1px 3px rgba(30, 42, 34, 0.08);
 }
@@ -59,12 +61,12 @@
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .newButton {
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
@@ -78,7 +80,9 @@
   justify-content: center;
   gap: 6px;
   box-shadow: 0 1px 3px rgba(30, 42, 34, 0.1);
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
 }
 
 .newButton:hover {
@@ -121,8 +125,8 @@
 }
 
 .columnDragOver {
-  background: #F6FAF7;
-  outline: 2px dashed #2E6F40;
+  background: #f6faf7;
+  outline: 2px dashed #2e6f40;
   outline-offset: 4px;
 }
 
@@ -145,7 +149,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #5B6B60;
+  color: #5b6b60;
   flex-grow: 1;
 }
 
@@ -153,7 +157,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #ffffff;
   padding: 1px 7px;
   border-radius: 999px;
   min-width: 18px;
@@ -191,7 +195,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px dashed #DCE6DF;
+  border: 1px dashed #dce6df;
   border-radius: 8px;
   min-height: 120px;
   padding: 24px 16px;
@@ -200,18 +204,18 @@
 
 .emptyIcon {
   font-size: 20px;
-  color: #C7D2CB;
+  color: #c7d2cb;
   line-height: 1;
 }
 
 .emptyText {
   font-size: 11.5px;
   font-weight: 500;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .dropTargetGhost {
-  border: 1.5px dashed #9BB3A4;
+  border: 1.5px dashed #9bb3a4;
   background: rgba(104, 186, 127, 0.08);
   border-radius: 8px;
   min-height: 48px;
@@ -220,14 +224,13 @@
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  color: #2E6F40;
+  color: #2e6f40;
   box-sizing: border-box;
 }
 
 .childIndent {
   padding-left: 18px;
 }
-
 
 /* Reserved row for the loading pill: always there, so the pill never pushes the top bar */
 .statusRow {

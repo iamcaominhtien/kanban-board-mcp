@@ -53,6 +53,11 @@ function write(projectId: string, cache: DocsCache) {
   }
 }
 
+/**
+ * Cache a project's page tree for offline use.
+ * @param projectId - Project the tree belongs to.
+ * @param nodes - Page tree to store.
+ */
 export function cacheDocsTree(projectId: string, nodes: DocsTreeNode[]) {
   const c = read(projectId);
   c.tree = { nodes, savedAt: new Date().toISOString() };
@@ -60,6 +65,11 @@ export function cacheDocsTree(projectId: string, nodes: DocsTreeNode[]) {
   emit();
 }
 
+/**
+ * Cache a page for offline reading.
+ * @param projectId - Project the page belongs to.
+ * @param page - Page to store.
+ */
 export function cacheDocsPage(projectId: string, page: DocsPage) {
   const c = read(projectId);
   const entry: CachedDocsPage = {
@@ -79,10 +89,16 @@ export function cacheDocsPage(projectId: string, page: DocsPage) {
   emit();
 }
 
+/**
+ * Return a cached page, or undefined.
+ * @param projectId - Project the page belongs to.
+ * @param pageId - Page to look up.
+ */
 export function getCachedDocsPage(projectId: string, pageId: string): CachedDocsPage | null {
   return read(projectId).pages.find((p) => p.id === pageId) ?? null;
 }
 
+/** Return how many pages are cached and the tree size, if known. */
 export function getDocsCacheStats(projectId: string): { saved: number; total: number | null } {
   const c = read(projectId);
   return { saved: c.pages.length, total: c.tree ? c.tree.nodes.length : null };
@@ -130,6 +146,7 @@ interface ParsedQuery {
   excludes: string[];
 }
 
+/** Split a search query into words, "phrases" and -excluded terms. */
 export function parseSearchQuery(q: string): ParsedQuery {
   const phrases: string[] = [];
   const rest = q.replace(/"([^"]+)"/g, (_, p: string) => {
@@ -172,7 +189,14 @@ function pathOf(nodes: DocsTreeNode[], id: string): string[] {
   return out;
 }
 
-/** Search titles and saved text of the cached pages of one project. Returns the same shape as the server. */
+/**
+ * Search titles and saved text of the cached pages of one project. Returns the same shape as the server.
+ * @param projectId - Project whose cache is searched.
+ * @param q - Search query; supports phrases and excludes.
+ * @param opts.pageId - Limit the search to this page.
+ * @param opts.projectName - Project name used in the response.
+ * @param opts.headingsOnly - Match headings only.
+ */
 export function searchDocsCache(
   projectId: string,
   q: string,
@@ -199,7 +223,12 @@ export function searchDocsCache(
         if (h) {
           hi += 1;
           section = h[1].trim();
-          slug = p.headings[hi]?.slug ?? section.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          slug =
+            p.headings[hi]?.slug ??
+            section
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '');
           if (opts.headingsOnly && needles.some((n) => section.toLowerCase().includes(n))) {
             matches.push({ section, slug, snippet: markAll(section, needles) });
           }
@@ -235,7 +264,13 @@ export function searchDocsCache(
       return at - bt;
     });
   }
-  return { total: pages.length, tookMs: Math.max(1, Math.round(performance.now() - t0)), pages, tickets: [], suggestion: null };
+  return {
+    total: pages.length,
+    tookMs: Math.max(1, Math.round(performance.now() - t0)),
+    pages,
+    tickets: [],
+    suggestion: null,
+  };
 }
 
 // ─── the hook ─────────────────────────────────────────────────────────────────
@@ -251,7 +286,10 @@ export interface DocsOffline {
   cachedCount: number;
   /** For DocsView's offline view: `{savedAt, version}` of a page when offline and it is cached, else undefined. */
   offlineFor: (pageId: string) => { savedAt: string; version: number } | undefined;
-  search: (q: string, opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean }) => DocsSearchResponse;
+  search: (
+    q: string,
+    opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean },
+  ) => DocsSearchResponse;
 }
 
 /**
@@ -267,7 +305,10 @@ export function useDocsOffline(projectId: string): DocsOffline {
     const bump = () => setVersion((v) => v + 1);
     listeners.add(bump);
     const cache = qc.getQueryCache();
-    const consume = (q: { queryKey: readonly unknown[]; state: { data?: unknown; status: string; error: unknown } }) => {
+    const consume = (q: {
+      queryKey: readonly unknown[];
+      state: { data?: unknown; status: string; error: unknown };
+    }) => {
       const k = q.queryKey;
       if (k[0] !== 'docs') return;
       if (q.state.status === 'error') {
@@ -309,7 +350,8 @@ export function useDocsOffline(projectId: string): DocsOffline {
     [online, projectId],
   );
   const search = useCallback(
-    (q: string, opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean }) => searchDocsCache(projectId, q, opts),
+    (q: string, opts?: { pageId?: string | null; projectName?: string; headingsOnly?: boolean }) =>
+      searchDocsCache(projectId, q, opts),
     [projectId],
   );
 

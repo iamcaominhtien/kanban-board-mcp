@@ -14,15 +14,22 @@ interface ColumnProps {
   skeletonCards?: number;
 }
 
+/**
+ * One board column and its draggable ticket cards.
+ * @param props.column - Column definition (status and title).
+ * @param props.tickets - Tickets in this column.
+ * @param props.allTickets - All project tickets, used for lookups such as blockers.
+ * @param props.onCardClick - Called with the clicked ticket.
+ * @param props.memberMap - Members by id, used to render assignees.
+ * @param props.skeletonCards - While tickets load, show this many skeleton cards under the real header.
+ */
 export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
 
   // Sort by createdAt descending (newest first) before applying hierarchy
-  const sorted = [...tickets].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const sorted = [...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Build ordered list: parents first, then their children immediately after
   const ordered: Ticket[] = [];
@@ -49,10 +56,7 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}
-    >
+    <div ref={setNodeRef} className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}>
       <div className={styles.columnHeaderContainer}>
         <div className={styles.columnHeaderTop}>
           <span className={styles.columnLabel}>{column.label}</span>
@@ -68,10 +72,7 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
             </span>
           )}
         </div>
-        <div
-          className={styles.columnBar}
-          style={{ backgroundColor: column.accentColor }}
-        />
+        <div className={styles.columnBar} style={{ backgroundColor: column.accentColor }} />
       </div>
 
       <div className={styles.columnBody} aria-hidden={skeletonCards !== undefined ? true : undefined}>
@@ -86,19 +87,22 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
           ))}
         {skeletonCards === undefined && ordered.length === 0 && !isOver && (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon} aria-hidden="true">◻</span>
+            <span className={styles.emptyIcon} aria-hidden="true">
+              ◻
+            </span>
             <span className={styles.emptyText}>No tickets</span>
           </div>
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
           const childTicketsForThis = (allTickets ?? tickets).filter((t) => t.parentId === ticket.id);
-          const subtaskStats = childTicketsForThis.length > 0
-            ? {
-                total: childTicketsForThis.length,
-                completed: childTicketsForThis.filter((c) => c.status === 'done').length,
-              }
-            : undefined;
+          const subtaskStats =
+            childTicketsForThis.length > 0
+              ? {
+                  total: childTicketsForThis.length,
+                  completed: childTicketsForThis.filter((c) => c.status === 'done').length,
+                }
+              : undefined;
 
           return indented ? (
             <div key={ticket.id} className={styles.childIndent}>
@@ -119,11 +123,7 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
             />
           );
         })}
-        {isOver && (
-          <div className={styles.dropTargetGhost}>
-            Drop here
-          </div>
-        )}
+        {isOver && <div className={styles.dropTargetGhost}>Drop here</div>}
       </div>
     </div>
   );

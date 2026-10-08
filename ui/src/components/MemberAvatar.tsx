@@ -9,6 +9,7 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
+/** Return background and text colors for a member color. */
 export function getAvatarColors(color: string): { bg: string; color: string } {
   const normalized = color.toUpperCase();
   const pairs: Record<string, { bg: string; color: string }> = {
@@ -33,6 +34,11 @@ interface MemberAvatarProps {
   title?: string;
 }
 
+/**
+ * Round avatar with the member's initials.
+ * @param props.size - Diameter in px.
+ * @param props.title - Tooltip text; defaults to the member name.
+ */
 export function MemberAvatar({ member, size = 20, title }: MemberAvatarProps) {
   const { bg, color } = getAvatarColors(member.color);
   return (

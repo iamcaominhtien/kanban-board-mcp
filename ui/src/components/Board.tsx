@@ -12,12 +12,12 @@ import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
 
 const COLUMNS: ColumnType[] = [
-  { id: 'backlog',     label: 'Backlog',      accentColor: 'var(--color-backlog)' },
-  { id: 'todo',        label: 'To Do',        accentColor: 'var(--color-todo)' },
-  { id: 'in-progress', label: 'In Progress',  accentColor: 'var(--color-inprogress)' },
-  { id: 'review',      label: 'Review',       accentColor: 'var(--color-review)' },
-  { id: 'testing',     label: 'Testing',      accentColor: 'var(--color-testing)' },
-  { id: 'done',        label: 'Done',         accentColor: 'var(--color-done)' },
+  { id: 'backlog', label: 'Backlog', accentColor: 'var(--color-backlog)' },
+  { id: 'todo', label: 'To Do', accentColor: 'var(--color-todo)' },
+  { id: 'in-progress', label: 'In Progress', accentColor: 'var(--color-inprogress)' },
+  { id: 'review', label: 'Review', accentColor: 'var(--color-review)' },
+  { id: 'testing', label: 'Testing', accentColor: 'var(--color-testing)' },
+  { id: 'done', label: 'Done', accentColor: 'var(--color-done)' },
 ];
 
 interface BoardProps {
@@ -54,6 +54,24 @@ const SKELETON_COUNTS = [2, 2, 1, 1, 1, 1];
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'review', 'testing', 'done']);
 
+/**
+ * Kanban board with drag-and-drop columns.
+ * @param props.tickets - Tickets after filters, shown in the lanes.
+ * @param props.allTickets - All project tickets, used for lookups such as blockers and sub-task stats.
+ * @param props.onDragEnd - Called with the ticket id and the status column it was dropped on.
+ * @param props.onNewTicket - Called when the "new ticket" action is used.
+ * @param props.onCardClick - Called with the clicked ticket.
+ * @param props.viewMode - Active view; switches between board, list, timeline and docs.
+ * @param props.onViewModeChange - Called when another view is selected.
+ * @param props.docsRequestedPageId - Docs view: page to open once, e.g. from a linked doc or `?docs=` link.
+ * @param props.onDocsRequestHandled - Called after `docsRequestedPageId` has been opened.
+ * @param props.activeType - Active type filter, `all` for none.
+ * @param props.activePriority - Active priority filter, `all` for none.
+ * @param props.activeAssignee - Member id filter, `all` for none.
+ * @param props.loadState - `projects`: project list loading (placeholders); `tickets`: real shell with skeleton cards.
+ * @param props.lanesOverride - Replaces the lanes, e.g. a "couldn't load" panel.
+ * @param props.statusSlot - Content of the reserved status row at the top right.
+ */
 export function Board({
   tickets,
   allTickets,
@@ -79,9 +97,7 @@ export function Board({
   lanesOverride,
   statusSlot,
 }: BoardProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
@@ -107,7 +123,11 @@ export function Board({
         <div className={styles.topBar}>
           {loadState === 'projects' ? (
             <h1 className={styles.title} aria-label="Loading project">
-              <span className={`${loadingStyles.skel} ${loadingStyles.skelTitle}`} style={{ display: 'block' }} aria-hidden="true" />
+              <span
+                className={`${loadingStyles.skel} ${loadingStyles.skelTitle}`}
+                style={{ display: 'block' }}
+                aria-hidden="true"
+              />
             </h1>
           ) : (
             <h1 className={styles.title}>{projectName}</h1>
@@ -145,7 +165,18 @@ export function Board({
               </button>
             </div>
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                style={{ display: 'block', flexShrink: 0 }}
+              >
                 <path d="M12 5v14M5 12h14" />
               </svg>
               <span>New Ticket</span>
@@ -153,20 +184,24 @@ export function Board({
           </div>
         </div>
 
-        <div {...(loadState === 'projects' ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } } : {})}>
-        {viewMode !== 'docs' && (
-        <FilterBar
-          searchQuery={searchQuery}
-          onSearchChange={onSearchChange}
-          activeType={activeType}
-          onTypeChange={onTypeChange}
-          activePriority={activePriority}
-          onPriorityChange={onPriorityChange}
-          members={members}
-          activeAssignee={activeAssignee}
-          onAssigneeChange={onAssigneeChange ?? (() => {})}
-        />
-        )}
+        <div
+          {...(loadState === 'projects'
+            ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } }
+            : {})}
+        >
+          {viewMode !== 'docs' && (
+            <FilterBar
+              searchQuery={searchQuery}
+              onSearchChange={onSearchChange}
+              activeType={activeType}
+              onTypeChange={onTypeChange}
+              activePriority={activePriority}
+              onPriorityChange={onPriorityChange}
+              members={members}
+              activeAssignee={activeAssignee}
+              onAssigneeChange={onAssigneeChange ?? (() => {})}
+            />
+          )}
         </div>
 
         {viewMode === 'docs' && projectId && !loadState ? (

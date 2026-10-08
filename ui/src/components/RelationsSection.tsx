@@ -48,6 +48,17 @@ interface RelationRow {
   linkId?: string;
 }
 
+/**
+ * Ticket's blocks, blocked-by and linked relations.
+ * @param props.ticket - Ticket whose relations are shown.
+ * @param props.allTickets - All project tickets, offered as link targets.
+ * @param props.onLinkBlock - Called with blocker id and blocked id to create a block.
+ * @param props.onUnlinkBlock - Called with blocker id and blocked id to remove a block.
+ * @param props.onAddLink - Called with ticket id, target id and relation type to add a link.
+ * @param props.onRemoveLink - Called with ticket id and link id to remove a link.
+ * @param props.onOpenTicket - Called with a related ticket when it is opened.
+ * @param props.onChangeStatus - Called with a related ticket id and new status from its status menu.
+ */
 export function RelationsSection({
   ticket,
   allTickets,
@@ -128,10 +139,7 @@ export function RelationsSection({
       if (excludeIds.has(t.id)) return false;
       if (t.parentId !== null) return false;
       if (!searchLower) return true;
-      return (
-        t.id.toLowerCase().includes(searchLower) ||
-        t.title.toLowerCase().includes(searchLower)
-      );
+      return t.id.toLowerCase().includes(searchLower) || t.title.toLowerCase().includes(searchLower);
     });
   }, [allTickets, excludeIds, search]);
 
@@ -161,17 +169,13 @@ export function RelationsSection({
     <div className={styles.section}>
       <div className={styles.label}>RELATIONS</div>
 
-      {relations.length === 0 && !showAddForm && (
-        <span className={styles.empty}>No links</span>
-      )}
+      {relations.length === 0 && !showAddForm && <span className={styles.empty}>No links</span>}
 
       {relations.length > 0 && (
         <div className={styles.groups}>
           {Array.from(grouped.entries()).map(([relType, rows]) => (
             <div key={relType} className={styles.group}>
-              <div className={styles.groupLabel}>
-                {RELATION_TYPE_LABELS[relType] ?? relType}
-              </div>
+              <div className={styles.groupLabel}>{RELATION_TYPE_LABELS[relType] ?? relType}</div>
               <div className={styles.cardContainer}>
                 {rows.map((row) => (
                   <div key={`${row.type}-${row.targetId}`} className={styles.row}>
@@ -197,7 +201,15 @@ export function RelationsSection({
                       title="Remove relation"
                       aria-label="Remove relation"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      >
                         <path d="M6 6L18 18" />
                         <path d="M18 6L6 18" />
                       </svg>
@@ -244,7 +256,15 @@ export function RelationsSection({
               onClick={() => setShowAddForm(false)}
               aria-label="Cancel"
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <path d="M6 6L18 18" />
                 <path d="M18 6L6 18" />
               </svg>
@@ -273,12 +293,16 @@ export function RelationsSection({
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          className={styles.addDashedBtn}
-          onClick={() => setShowAddForm(true)}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <button type="button" className={styles.addDashedBtn} onClick={() => setShowAddForm(true)}>
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
             <path d="M12 5V19" />
             <path d="M5 12H19" />
           </svg>

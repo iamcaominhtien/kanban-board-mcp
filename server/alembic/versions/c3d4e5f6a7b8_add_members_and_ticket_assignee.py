@@ -5,6 +5,7 @@ Revises: b2c3d4e5f6a7
 Create Date: 2026-04-08 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -34,8 +35,12 @@ def upgrade() -> None:
         batch_op.add_column(
             sa.Column("assignee", sqlmodel.sql.sqltypes.AutoString(), nullable=True)
         )
-        batch_op.create_foreign_key("fk_ticket_created_by", "member", ["created_by"], ["id"])
-        batch_op.create_foreign_key("fk_ticket_assignee", "member", ["assignee"], ["id"])
+        batch_op.create_foreign_key(
+            "fk_ticket_created_by", "member", ["created_by"], ["id"]
+        )
+        batch_op.create_foreign_key(
+            "fk_ticket_assignee", "member", ["assignee"], ["id"]
+        )
 
 
 def downgrade() -> None:

@@ -22,7 +22,9 @@ export function docsErrorDetail(err: unknown): (DocsErrorDetail & { status?: num
   const detail = e?.response?.data?.detail;
   if (detail && typeof detail === 'object' && 'code' in detail) {
     // error bodies skip the client's response interceptor, so camelCase them here
-    return { ...camelcaseKeys(detail as Record<string, unknown>), status: e.response?.status } as DocsErrorDetail & { status?: number };
+    return { ...camelcaseKeys(detail as Record<string, unknown>), status: e.response?.status } as DocsErrorDetail & {
+      status?: number;
+    };
   }
   return null;
 }
@@ -39,6 +41,7 @@ export const docsKeys = {
   resolve: (projectId: string, refs: DocsRefRequest[]) => ['docs', 'resolve', projectId, refs] as const,
 };
 
+/** Query a project's page tree. */
 export function useDocsTree(projectId: string) {
   return useQuery({
     queryKey: docsKeys.tree(projectId),
@@ -47,6 +50,7 @@ export function useDocsTree(projectId: string) {
   });
 }
 
+/** Query one page (disabled while `pageId` is null). */
 export function useDocsPage(pageId: string | null) {
   return useQuery({
     queryKey: docsKeys.page(pageId ?? ''),
@@ -56,6 +60,7 @@ export function useDocsPage(pageId: string | null) {
   });
 }
 
+/** Query the page templates. */
 export function useDocsTemplates() {
   return useQuery({
     queryKey: docsKeys.templates,
@@ -64,6 +69,7 @@ export function useDocsTemplates() {
   });
 }
 
+/** Query a page's versions. */
 export function useDocsVersions(pageId: string | null) {
   return useQuery({
     queryKey: docsKeys.versions(pageId ?? ''),
@@ -72,24 +78,34 @@ export function useDocsVersions(pageId: string | null) {
   });
 }
 
+/**
+ * Query one version of a page.
+ * @param pageId - Page to load; disabled while `null`.
+ * @param version - Version number; disabled while `null`.
+ */
 export function useDocsVersion(pageId: string | null, version: number | null) {
   return useQuery({
     queryKey: ['docs', 'version', pageId, version] as const,
-    queryFn: async () =>
-      (await client.get<DocsVersionDetail>(`/docs/pages/${pageId}/versions/${version}`)).data,
+    queryFn: async () => (await client.get<DocsVersionDetail>(`/docs/pages/${pageId}/versions/${version}`)).data,
     enabled: !!pageId && version != null,
   });
 }
 
+/**
+ * Query the diff between two versions.
+ * @param pageId - Page to load; disabled while `null`.
+ * @param a - Base version number.
+ * @param b - Compared version number.
+ */
 export function useDocsDiff(pageId: string | null, a: number | null, b: number | null) {
   return useQuery({
     queryKey: docsKeys.diff(pageId ?? '', a ?? 0, b ?? 0),
-    queryFn: async () =>
-      (await client.get<DocsDiff>(`/docs/pages/${pageId}/versions/${a}/diff/${b}`)).data,
+    queryFn: async () => (await client.get<DocsDiff>(`/docs/pages/${pageId}/versions/${a}/diff/${b}`)).data,
     enabled: !!pageId && a != null && b != null,
   });
 }
 
+/** Query the pages and tickets that reference a page. */
 export function useDocsBacklinks(pageId: string | null) {
   return useQuery({
     queryKey: docsKeys.backlinks(pageId ?? ''),
@@ -98,15 +114,16 @@ export function useDocsBacklinks(pageId: string | null) {
   });
 }
 
+/** Query a project's Recycle Bin. */
 export function useDocsRecycleBin(projectId: string) {
   return useQuery({
     queryKey: docsKeys.recycle(projectId),
-    queryFn: async () =>
-      (await client.get<DocsDeletedEntry[]>(`/projects/${projectId}/docs/recycle-bin`)).data,
+    queryFn: async () => (await client.get<DocsDeletedEntry[]>(`/projects/${projectId}/docs/recycle-bin`)).data,
     enabled: !!projectId,
   });
 }
 
+/** Query the pages a ticket references or is linked to. */
 export function useTicketDocs(ticketId: string) {
   return useQuery({
     queryKey: docsKeys.ticketDocs(ticketId),
@@ -115,20 +132,20 @@ export function useTicketDocs(ticketId: string) {
   });
 }
 
-/** Resolve [[page]] and ticket references from rendered markdown (chips, broken-link state). */
+/**
+ * Resolve [[page]] and ticket references from rendered markdown (chips, broken-link state).
+ * @param projectId - Project the references belong to.
+ * @param refs - References to resolve; disabled while empty.
+ */
 export function useResolveRefs(projectId: string, refs: DocsRefRequest[]) {
   return useQuery({
     queryKey: docsKeys.resolve(projectId, refs),
-    queryFn: async () =>
-      (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs })).data,
+    queryFn: async () => (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs })).data,
     enabled: !!projectId && refs.length > 0,
   });
 }
 
-function useDocsMutation<TVars, TData = unknown>(
-  fn: (vars: TVars) => Promise<TData>,
-  projectId: string,
-) {
+function useDocsMutation<TVars, TData = unknown>(fn: (vars: TVars) => Promise<TData>, projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -139,6 +156,7 @@ function useDocsMutation<TVars, TData = unknown>(
   });
 }
 
+/** Mutation: create a page. */
 export function useCreatePage(projectId: string) {
   return useDocsMutation(
     async (v: { title: string; parentId?: string | null; template?: string; markdown?: string }) =>
@@ -147,6 +165,7 @@ export function useCreatePage(projectId: string) {
   );
 }
 
+/** Mutation: rename a page. */
 export function useRenamePage(projectId: string) {
   return useDocsMutation(
     async (v: { pageId: string; title: string }) =>
@@ -155,6 +174,7 @@ export function useRenamePage(projectId: string) {
   );
 }
 
+/** Mutation: move a page. */
 export function useMovePage(projectId: string) {
   return useDocsMutation(
     async (v: { pageId: string; parentId: string | null; beforeId?: string | null; afterId?: string | null }) =>
@@ -169,6 +189,7 @@ export function useMovePage(projectId: string) {
   );
 }
 
+/** Mutation: duplicate a page. */
 export function useDuplicatePage(projectId: string) {
   return useDocsMutation(
     async (v: { pageId: string; title?: string; parentId?: string | null; includeChildren: boolean }) => {
@@ -180,14 +201,15 @@ export function useDuplicatePage(projectId: string) {
   );
 }
 
+/** Mutation: move a page to the Recycle Bin. */
 export function useDeletePage(projectId: string) {
   return useDocsMutation(
-    async (pageId: string) =>
-      (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data,
+    async (pageId: string) => (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data,
     projectId,
   );
 }
 
+/** Mutation: restore a page from the Recycle Bin. */
 export function useRestorePage(projectId: string) {
   return useDocsMutation(
     async (pageId: string) =>
@@ -200,12 +222,14 @@ export function useRestorePage(projectId: string) {
   );
 }
 
+/** Mutation: permanently delete a page. */
 export function usePurgePage(projectId: string) {
   return useDocsMutation(async (pageId: string) => {
     await client.delete(`/docs/pages/${pageId}/purge`);
   }, projectId);
 }
 
+/** Mutation: save your draft. */
 export function useSaveDraft(projectId: string) {
   return useDocsMutation(
     async (v: { pageId: string; markdown: string; title?: string; baseVersion?: number }) =>
@@ -220,6 +244,7 @@ export function useSaveDraft(projectId: string) {
   );
 }
 
+/** Mutation: discard your draft. */
 export function useDiscardDraft(projectId: string) {
   return useDocsMutation(
     async (pageId: string) => (await client.delete<DocsPage>(`/docs/pages/${pageId}/draft`)).data,
@@ -227,9 +252,17 @@ export function useDiscardDraft(projectId: string) {
   );
 }
 
+/** Mutation: publish the draft as a new version. */
 export function usePublishPage(projectId: string) {
   return useDocsMutation(
-    async (v: { pageId: string; baseVersion: number; note?: string; markdown?: string; title?: string; notify?: boolean }) =>
+    async (v: {
+      pageId: string;
+      baseVersion: number;
+      note?: string;
+      markdown?: string;
+      title?: string;
+      notify?: boolean;
+    }) =>
       (
         await client.post<DocsPage>(`/docs/pages/${v.pageId}/publish`, {
           notify: v.notify ?? false,
@@ -243,6 +276,7 @@ export function usePublishPage(projectId: string) {
   );
 }
 
+/** Mutation: restore an old version as a new one. */
 export function useRestoreVersion(projectId: string) {
   return useDocsMutation(
     async (v: { pageId: string; version: number; note?: string }) =>

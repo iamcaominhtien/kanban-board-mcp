@@ -62,16 +62,47 @@ const RESTART_HINT: Record<McpClientId, string> = {
 
 function Icon({ d, size = 13 }: { d: ReactNode; size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       {d}
     </svg>
   );
 }
 
-const CopyIcon = <Icon d={<><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></>} />;
+const CopyIcon = (
+  <Icon
+    d={
+      <>
+        <rect x="9" y="9" width="11" height="11" rx="2" />
+        <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+      </>
+    }
+  />
+);
 const CheckIcon = <Icon d={<path d="M5 12.5l4.5 4.5L19 7.5" />} />;
-const InfoIcon = <Icon d={<><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>} size={14} />;
-const ExternalIcon = <Icon d={<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />} />;
+const InfoIcon = (
+  <Icon
+    d={
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v5M12 8h.01" />
+      </>
+    }
+    size={14}
+  />
+);
+const ExternalIcon = (
+  <Icon d={<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />} />
+);
 
 function Spinner({ dark }: { dark?: boolean }) {
   return <span className={`${styles.spin} ${dark ? styles.spinDark : ''}`} aria-hidden="true" />;
@@ -84,19 +115,42 @@ function highlight(text: string, kind: 'command' | 'json'): ReactNode {
     let last = 0;
     for (const m of text.matchAll(/("(?:[^"\\]|\\.)*")(\s*:)?/g)) {
       const at = m.index ?? 0;
-      if (at > last) out.push(<span key={`p${last}`} className={styles.p}>{text.slice(last, at)}</span>);
-      out.push(<span key={`t${at}`} className={m[2] ? styles.k : styles.s}>{m[1]}</span>);
-      if (m[2]) out.push(<span key={`c${at}`} className={styles.p}>{m[2]}</span>);
+      if (at > last)
+        out.push(
+          <span key={`p${last}`} className={styles.p}>
+            {text.slice(last, at)}
+          </span>,
+        );
+      out.push(
+        <span key={`t${at}`} className={m[2] ? styles.k : styles.s}>
+          {m[1]}
+        </span>,
+      );
+      if (m[2])
+        out.push(
+          <span key={`c${at}`} className={styles.p}>
+            {m[2]}
+          </span>,
+        );
       last = at + m[0].length;
     }
-    if (last < text.length) out.push(<span key="end" className={styles.p}>{text.slice(last)}</span>);
+    if (last < text.length)
+      out.push(
+        <span key="end" className={styles.p}>
+          {text.slice(last)}
+        </span>,
+      );
     return out;
   }
   let words = 0;
   return text.split(/(\s+)/).map((part, i) => {
     if (/^\s+$/.test(part)) return <Fragment key={i}>{part}</Fragment>;
     const cls = words++ < 3 ? styles.c : part.startsWith('--') ? styles.f : undefined;
-    return <span key={i} className={cls}>{part}</span>;
+    return (
+      <span key={i} className={cls}>
+        {part}
+      </span>
+    );
   });
 }
 
@@ -123,7 +177,10 @@ function useCopy() {
   return {
     done,
     copy(text: string) {
-      navigator.clipboard?.writeText(text).then(() => setDone(true), () => setDone(false));
+      navigator.clipboard?.writeText(text).then(
+        () => setDone(true),
+        () => setDone(false),
+      );
     },
   };
 }
@@ -213,22 +270,87 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
     if (picked) onFolder(picked);
   }
 
-  let chip = <span className={`${styles.chip} ${styles.chipNone}`}><span className={styles.dot} />Not installed</span>;
-  if (installing) chip = <span className={`${styles.chip} ${styles.chipNone}`}><Spinner dark />Installing…</span>;
-  else if (error) chip = <span className={`${styles.chip} ${styles.chipErr}`}><span className={styles.dot} />Error</span>;
-  else if (notDetected) chip = <span className={`${styles.chip} ${styles.chipNone}`}><span className={styles.dot} />Not detected</span>;
-  else if (installed && status?.updateAvailable) chip = <span className={`${styles.chip} ${styles.chipWarn}`}><span className={styles.dot} />Update available</span>;
-  else if (installed) chip = <span className={`${styles.chip} ${styles.chipOk}`}><span className={styles.dot} />Installed</span>;
+  let chip = (
+    <span className={`${styles.chip} ${styles.chipNone}`}>
+      <span className={styles.dot} />
+      Not installed
+    </span>
+  );
+  if (installing)
+    chip = (
+      <span className={`${styles.chip} ${styles.chipNone}`}>
+        <Spinner dark />
+        Installing…
+      </span>
+    );
+  else if (error)
+    chip = (
+      <span className={`${styles.chip} ${styles.chipErr}`}>
+        <span className={styles.dot} />
+        Error
+      </span>
+    );
+  else if (notDetected)
+    chip = (
+      <span className={`${styles.chip} ${styles.chipNone}`}>
+        <span className={styles.dot} />
+        Not detected
+      </span>
+    );
+  else if (installed && status?.updateAvailable)
+    chip = (
+      <span className={`${styles.chip} ${styles.chipWarn}`}>
+        <span className={styles.dot} />
+        Update available
+      </span>
+    );
+  else if (installed)
+    chip = (
+      <span className={`${styles.chip} ${styles.chipOk}`}>
+        <span className={styles.dot} />
+        Installed
+      </span>
+    );
 
   let headButton: ReactNode = null;
   if (installing) {
-    headButton = <button type="button" className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBusy}`} disabled><Spinner />Installing…</button>;
+    headButton = (
+      <button type="button" className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBusy}`} disabled>
+        <Spinner />
+        Installing…
+      </button>
+    );
   } else if (error) {
-    headButton = <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} disabled={busy || folderMissing} onClick={() => (error.code === 'request' ? query.refetch() : run('install'))}>Try again</button>;
+    headButton = (
+      <button
+        type="button"
+        className={`${styles.btn} ${styles.btnPrimary}`}
+        disabled={busy || folderMissing}
+        onClick={() => (error.code === 'request' ? query.refetch() : run('install'))}
+      >
+        Try again
+      </button>
+    );
   } else if (notDetected) {
-    headButton = <button type="button" className={styles.btn} onClick={() => query.refetch()}>Check again</button>;
+    headButton = (
+      <button type="button" className={styles.btn} onClick={() => query.refetch()}>
+        Check again
+      </button>
+    );
   } else if (!installed || status?.updateAvailable) {
-    headButton = <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} disabled={busy || folderMissing || !status} onClick={() => { setExpanded(true); run('install'); }}>{installLabel}</button>;
+    headButton = (
+      <button
+        type="button"
+        className={`${styles.btn} ${styles.btnPrimary}`}
+        disabled={busy || folderMissing || !status}
+        onClick={() => {
+          setExpanded(true);
+          run('install');
+        }}
+      >
+        {installLabel}
+      </button>
+    );
   }
 
   const manual = def.id === 'claude-code' ? status?.command : status?.entryJson;
@@ -257,8 +379,19 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
         <>
           <p className={styles.label}>{scope === 'workspace' ? 'Workspace folder' : 'Project folder'}</p>
           <div className={styles.folderRow}>
-            <input className={styles.input} type="text" placeholder="/path/to/project" aria-label="Project folder" value={folder} onChange={(e) => onFolder(e.target.value)} />
-            {isElectron && <button type="button" className={styles.btn} onClick={browse}>Browse…</button>}
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="/path/to/project"
+              aria-label="Project folder"
+              value={folder}
+              onChange={(e) => onFolder(e.target.value)}
+            />
+            {isElectron && (
+              <button type="button" className={styles.btn} onClick={browse}>
+                Browse…
+              </button>
+            )}
           </div>
           {query.isError && folder.trim() && <span className={styles.fail}>{extractError(query.error)}</span>}
         </>
@@ -269,13 +402,17 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
   return (
     <div className={styles.card}>
       <div className={styles.cardHead}>
-        <span className={styles.tile} aria-hidden="true">{def.initials}</span>
+        <span className={styles.tile} aria-hidden="true">
+          {def.initials}
+        </span>
         <div className={styles.headText}>
           <span className={styles.name}>{def.label}</span>
           {notDetected ? (
             <span className={styles.tagline}>
               {def.label} not found on this computer ·{' '}
-              <a className={styles.link} href={def.docsUrl} target="_blank" rel="noreferrer">{def.label} docs</a>
+              <a className={styles.link} href={def.docsUrl} target="_blank" rel="noreferrer">
+                {def.label} docs
+              </a>
             </span>
           ) : (
             <span className={styles.tagline}>{def.tagline}</span>
@@ -283,7 +420,13 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
         </div>
         {chip}
         {headButton}
-        <button type="button" className={`${styles.chevron} ${expanded ? styles.chevronUp : ''}`} aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${def.label}`} onClick={() => setExpanded((v) => !v)}>
+        <button
+          type="button"
+          className={`${styles.chevron} ${expanded ? styles.chevronUp : ''}`}
+          aria-expanded={expanded}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${def.label}`}
+          onClick={() => setExpanded((v) => !v)}
+        >
           <Icon d={<path d="M6 9l6 6 6-6" />} size={16} />
         </button>
       </div>
@@ -292,7 +435,9 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
         <div className={styles.body}>
           {error ? (
             <>
-              <div className={styles.errorBanner} role="alert">{error.message}</div>
+              <div className={styles.errorBanner} role="alert">
+                {error.message}
+              </div>
               {manual && (
                 <>
                   <p className={styles.label}>{def.id === 'claude-code' ? 'Run it yourself' : 'Entry to add'}</p>
@@ -300,58 +445,157 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
                 </>
               )}
               <div className={styles.actions}>
-                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} disabled={busy || folderMissing} onClick={() => run('install')}>Try again</button>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  disabled={busy || folderMissing}
+                  onClick={() => run('install')}
+                >
+                  Try again
+                </button>
                 {manual && <CopyButton text={manual} label={copyText} />}
-                {def.id === 'claude-code'
-                  ? <a className={styles.link} href={def.docsUrl} target="_blank" rel="noreferrer">Claude Code docs</a>
-                  : <button type="button" className={styles.link} onClick={() => openMcpConfigFile(target).catch((e) => setActionError(extractError(e)))}>Open file {ExternalIcon}</button>}
+                {def.id === 'claude-code' ? (
+                  <a className={styles.link} href={def.docsUrl} target="_blank" rel="noreferrer">
+                    Claude Code docs
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.link}
+                    onClick={() => openMcpConfigFile(target).catch((e) => setActionError(extractError(e)))}
+                  >
+                    Open file {ExternalIcon}
+                  </button>
+                )}
               </div>
             </>
           ) : installed ? (
             <>
               <p className={styles.label}>Installed in</p>
               <p className={styles.text}>
-                {def.id === 'claude-code' && <><span className={styles.code}>{scope}</span> scope, in </>}
-                <span className={styles.code}>{status?.storedIn}</span>. Server name <span className={styles.code}>kanban</span>.
+                {def.id === 'claude-code' && (
+                  <>
+                    <span className={styles.code}>{scope}</span> scope, in{' '}
+                  </>
+                )}
+                <span className={styles.code}>{status?.storedIn}</span>. Server name{' '}
+                <span className={styles.code}>kanban</span>.
               </p>
               {status?.updateAvailable && (
                 <>
                   <div className={styles.versions}>
-                    <span>Installed: <span className={styles.code}>{status.installedCommand}</span></span>
+                    <span>
+                      Installed: <span className={styles.code}>{status.installedCommand}</span>
+                    </span>
                   </div>
-                  <p className={styles.hint}>Update replaces the existing kanban entry with the new one. No duplicate is created.</p>
+                  <p className={styles.hint}>
+                    Update replaces the existing kanban entry with the new one. No duplicate is created.
+                  </p>
                 </>
               )}
               {confirmRemove ? (
                 <div className={styles.confirm} role="alertdialog" aria-label={`Remove kanban from ${def.label}`}>
-                  <p className={styles.text}><strong>Remove &quot;kanban&quot; from {def.label}?</strong> This only deletes the kanban entry.</p>
+                  <p className={styles.text}>
+                    <strong>Remove &quot;kanban&quot; from {def.label}?</strong> This only deletes the kanban entry.
+                  </p>
                   <p className={styles.hint}>
-                    {def.id === 'claude-code'
-                      ? <>Runs <span className={styles.code}>claude mcp remove kanban</span>. Your other MCP servers are not touched.</>
-                      : <>Removes only the kanban key from <span className={styles.code}>{status?.storedIn}</span>. Your other MCP servers are not touched.</>}
+                    {def.id === 'claude-code' ? (
+                      <>
+                        Runs <span className={styles.code}>claude mcp remove kanban</span>. Your other MCP servers are
+                        not touched.
+                      </>
+                    ) : (
+                      <>
+                        Removes only the kanban key from <span className={styles.code}>{status?.storedIn}</span>. Your
+                        other MCP servers are not touched.
+                      </>
+                    )}
                   </p>
                   <div className={styles.actions}>
-                    <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setConfirmRemove(false)}>Cancel</button>
-                    <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnDanger}`} disabled={busy} onClick={() => run('remove')}>Remove</button>
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnSm}`}
+                      onClick={() => setConfirmRemove(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnSm} ${styles.btnDanger}`}
+                      disabled={busy}
+                      onClick={() => run('remove')}
+                    >
+                      Remove
+                    </button>
                   </div>
                   <p className={styles.hint}>Reinstall and Test connection are disabled while this is open.</p>
                 </div>
               ) : (
                 <div className={styles.actions}>
-                  {status?.updateAvailable && <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} disabled={busy} onClick={() => run('install')}>Update</button>}
-                  <button type="button" className={`${styles.btn} ${status?.updateAvailable ? '' : styles.btnPrimary} ${styles.btnBusy}`} disabled={busy} onClick={runTest}>
+                  {status?.updateAvailable && (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      disabled={busy}
+                      onClick={() => run('install')}
+                    >
+                      Update
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${status?.updateAvailable ? '' : styles.btnPrimary} ${styles.btnBusy}`}
+                    disabled={busy}
+                    onClick={runTest}
+                  >
                     {test.isPending && <Spinner dark={!!status?.updateAvailable} />}
                     {test.isPending ? 'Testing…' : 'Test connection'}
                   </button>
-                  {!status?.updateAvailable && <button type="button" className={styles.btn} disabled={busy} onClick={() => run('install')}>Reinstall</button>}
-                  <button type="button" className={`${styles.btn} ${styles.btnDangerOutline}`} disabled={busy} onClick={() => { setTestResult(null); setConfirmRemove(true); }}>Remove</button>
-                  {def.id === 'antigravity' && <button type="button" className={styles.link} onClick={() => openMcpConfigFile(target).catch((e) => setActionError(extractError(e)))}>Open file {ExternalIcon}</button>}
+                  {!status?.updateAvailable && (
+                    <button type="button" className={styles.btn} disabled={busy} onClick={() => run('install')}>
+                      Reinstall
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnDangerOutline}`}
+                    disabled={busy}
+                    onClick={() => {
+                      setTestResult(null);
+                      setConfirmRemove(true);
+                    }}
+                  >
+                    Remove
+                  </button>
+                  {def.id === 'antigravity' && (
+                    <button
+                      type="button"
+                      className={styles.link}
+                      onClick={() => openMcpConfigFile(target).catch((e) => setActionError(extractError(e)))}
+                    >
+                      Open file {ExternalIcon}
+                    </button>
+                  )}
                 </div>
               )}
               {testResult && (
                 <>
-                  <div className={testResult.ok ? styles.ok : styles.fail} role="status">{testResult.ok ? CheckIcon : null}{testResult.message}</div>
-                  {testResult.ok && <p className={styles.hint}>{def.id === 'claude-code' ? <>In Claude Code run <span className={styles.code}>/mcp reconnect all</span> so a running session picks up the server.</> : RESTART_HINT[def.id]}</p>}
+                  <div className={testResult.ok ? styles.ok : styles.fail} role="status">
+                    {testResult.ok ? CheckIcon : null}
+                    {testResult.message}
+                  </div>
+                  {testResult.ok && (
+                    <p className={styles.hint}>
+                      {def.id === 'claude-code' ? (
+                        <>
+                          In Claude Code run <span className={styles.code}>/mcp reconnect all</span> so a running
+                          session picks up the server.
+                        </>
+                      ) : (
+                        RESTART_HINT[def.id]
+                      )}
+                    </p>
+                  )}
                 </>
               )}
             </>
@@ -359,9 +603,18 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
             <>
               <p className={styles.label}>What will happen</p>
               <p className={styles.text}>
-                {def.id === 'claude-code'
-                  ? <>The app runs the command below with the Claude Code CLI. It adds one server named <span className={styles.code}>kanban</span> in the scope you pick. Other servers are not touched.</>
-                  : <>The app reads the file below, adds or replaces only the <span className={styles.code}>kanban</span> entry under <span className={styles.code}>mcpServers</span>, and saves it. Every other server stays as it is.</>}
+                {def.id === 'claude-code' ? (
+                  <>
+                    The app runs the command below with the Claude Code CLI. It adds one server named{' '}
+                    <span className={styles.code}>kanban</span> in the scope you pick. Other servers are not touched.
+                  </>
+                ) : (
+                  <>
+                    The app reads the file below, adds or replaces only the <span className={styles.code}>kanban</span>{' '}
+                    entry under <span className={styles.code}>mcpServers</span>, and saves it. Every other server stays
+                    as it is.
+                  </>
+                )}
               </p>
               {scopeChips}
               {manual && (
@@ -373,21 +626,52 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
               {status?.storedIn && (
                 <>
                   <p className={styles.label}>Stored in</p>
-                  <p className={styles.text}><span className={styles.code}>{status.storedIn}</span> {SCOPE_NOTE[scope]}</p>
+                  <p className={styles.text}>
+                    <span className={styles.code}>{status.storedIn}</span> {SCOPE_NOTE[scope]}
+                  </p>
                 </>
               )}
               <div className={styles.actions}>
-                <button type="button" className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBusy}`} disabled={busy || folderMissing || !status} onClick={() => run('install')}>
-                  {installing && <Spinner />}{installing ? 'Installing…' : 'Install'}
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBusy}`}
+                  disabled={busy || folderMissing || !status}
+                  onClick={() => run('install')}
+                >
+                  {installing && <Spinner />}
+                  {installing ? 'Installing…' : 'Install'}
                 </button>
-                {manual && <button type="button" className={styles.btn} disabled={busy} onClick={() => navigator.clipboard?.writeText(manual)}>{CopyIcon}{copyText}</button>}
-                {def.id === 'antigravity' && <button type="button" className={styles.link} onClick={() => openMcpConfigFile(target).catch((e) => setActionError(extractError(e)))}>Open file {ExternalIcon}</button>}
+                {manual && (
+                  <button
+                    type="button"
+                    className={styles.btn}
+                    disabled={busy}
+                    onClick={() => navigator.clipboard?.writeText(manual)}
+                  >
+                    {CopyIcon}
+                    {copyText}
+                  </button>
+                )}
+                {def.id === 'antigravity' && (
+                  <button
+                    type="button"
+                    className={styles.link}
+                    onClick={() => openMcpConfigFile(target).catch((e) => setActionError(extractError(e)))}
+                  >
+                    Open file {ExternalIcon}
+                  </button>
+                )}
               </div>
               <p className={styles.note}>
                 <span className={styles.noteIcon}>{InfoIcon}</span>
-                {def.id === 'claude-code'
-                  ? <span>Needs the Claude Code CLI (<span className={styles.code}>claude</span>) installed on this computer. Project and Local scope also need a project folder.</span>
-                  : <span>{RESTART_HINT.antigravity}</span>}
+                {def.id === 'claude-code' ? (
+                  <span>
+                    Needs the Claude Code CLI (<span className={styles.code}>claude</span>) installed on this computer.
+                    Project and Local scope also need a project folder.
+                  </span>
+                ) : (
+                  <span>{RESTART_HINT.antigravity}</span>
+                )}
               </p>
             </>
           )}
@@ -397,6 +681,7 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
   );
 }
 
+/** Settings panel to install, test and remove the MCP server for AI clients. */
 export function McpIntegrations() {
   const [folder, setFolder] = useState('');
   const [toolCount, setToolCount] = useState<number | null>(null);
@@ -422,11 +707,20 @@ export function McpIntegrations() {
         <>
           <div className={styles.skel} aria-hidden="true" />
           <div className={styles.skel} aria-hidden="true" />
-          <p className={styles.hint} role="status">Checking which tools are installed…</p>
+          <p className={styles.hint} role="status">
+            Checking which tools are installed…
+          </p>
         </>
       ) : (
         CLIENTS.map((def) => (
-          <ClientRow key={def.id} def={def} folder={folder} onFolder={setFolder} onToast={setToast} onToolCount={setToolCount} />
+          <ClientRow
+            key={def.id}
+            def={def}
+            folder={folder}
+            onFolder={setFolder}
+            onToast={setToast}
+            onToolCount={setToolCount}
+          />
         ))
       )}
 

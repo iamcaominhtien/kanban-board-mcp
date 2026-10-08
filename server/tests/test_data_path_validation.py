@@ -1,4 +1,5 @@
 """POST /settings/data-path must only accept folders inside the user's home directory."""
+
 import httpx
 import pytest
 from httpx import ASGITransport
@@ -35,7 +36,9 @@ async def test_rejects_dot_dot_escape(client, fake_home):
     assert r.status_code == 400
 
 
-async def test_rejects_a_sibling_whose_name_starts_with_the_home_name(client, fake_home):
+async def test_rejects_a_sibling_whose_name_starts_with_the_home_name(
+    client, fake_home
+):
     r = await _post(client, str(fake_home) + "-other/data")
     assert r.status_code == 400
 

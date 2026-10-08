@@ -21,6 +21,7 @@ export function refChipHtml(inner: string): string {
   return `<span class="dk-chip dk-chip-page docRef" data-ref="${esc(inner)}" contenteditable="false">${PAGE_ICON}${body}</span>`;
 }
 
+/** HTML for a ticket-key pill in the contentEditable editor. */
 export function keyChipHtml(key: string): string {
   return `<span class="dk-chip dk-chip-ticket docRef" data-key="${esc(key)}" contenteditable="false"><span style="width:7px;height:7px;border-radius:50%;background:#9AA8A0;display:inline-block;flex-shrink:0"></span><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">${esc(key)}</span></span>`;
 }
@@ -32,6 +33,7 @@ export function setKeyPrefix(prefix: string | null): void {
   keyPrefix = prefix && /^[A-Z][A-Z0-9]{0,9}$/i.test(prefix) ? prefix : null;
 }
 
+/** Regex matching ticket keys of the current project, or null. */
 export function keyPattern(): RegExp | null {
   return keyPrefix ? new RegExp(`\\b${keyPrefix}-\\d+\\b`, 'g') : null;
 }
@@ -42,15 +44,21 @@ function tokenRegex(): RegExp {
 
 function inCode(node: Node, root: HTMLElement): boolean {
   for (let n: Node | null = node.parentNode; n && n !== root; n = n.parentNode) {
-    if (n instanceof HTMLElement && (n.tagName === 'CODE' || n.tagName === 'PRE' || n.classList.contains('docRef'))) return true;
+    if (n instanceof HTMLElement && (n.tagName === 'CODE' || n.tagName === 'PRE' || n.classList.contains('docRef')))
+      return true;
   }
   return false;
 }
 
-/** Turn every complete token that does not hold the caret into a pill. Returns true when something changed. */
+/**
+ * Turn every complete token that does not hold the caret into a pill. Returns true when something changed.
+ * @param root - Editable element to scan; text inside code blocks and existing pills is skipped.
+ * @param keepCaret - Leave a token as text while the collapsed caret is inside or at the end of it.
+ */
 export function snapRefTokens(root: HTMLElement, keepCaret = true): boolean {
   const sel = window.getSelection();
-  const caretNode = keepCaret && sel && sel.rangeCount && sel.isCollapsed && root.contains(sel.anchorNode) ? sel.anchorNode : null;
+  const caretNode =
+    keepCaret && sel && sel.rangeCount && sel.isCollapsed && root.contains(sel.anchorNode) ? sel.anchorNode : null;
   const caretOffset = caretNode ? (sel as Selection).anchorOffset : -1;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes: Text[] = [];
@@ -94,7 +102,7 @@ export function snapRefTokens(root: HTMLElement, keepCaret = true): boolean {
 /** Click on a pill: swap it for its raw markdown with the caret inside, so it can be edited. */
 export function expandRefChip(chip: HTMLElement): void {
   const inner = chip.getAttribute('data-ref');
-  const raw = inner != null ? `[[${inner}]]` : chip.getAttribute('data-key') ?? '';
+  const raw = inner != null ? `[[${inner}]]` : (chip.getAttribute('data-key') ?? '');
   const text = document.createTextNode(raw);
   chip.replaceWith(text);
   const sel = window.getSelection();
@@ -109,7 +117,14 @@ export function expandRefChip(chip: HTMLElement): void {
 /** The raw token holding the caret, if any (Esc / → leave it). */
 export function tokenAtCaret(root: HTMLElement): { node: Text; end: number } | null {
   const sel = window.getSelection();
-  if (!sel || !sel.rangeCount || !sel.isCollapsed || !root.contains(sel.anchorNode) || sel.anchorNode?.nodeType !== Node.TEXT_NODE) return null;
+  if (
+    !sel ||
+    !sel.rangeCount ||
+    !sel.isCollapsed ||
+    !root.contains(sel.anchorNode) ||
+    sel.anchorNode?.nodeType !== Node.TEXT_NODE
+  )
+    return null;
   const node = sel.anchorNode as Text;
   for (const m of (node.textContent ?? '').matchAll(tokenRegex())) {
     const start = m.index ?? 0;

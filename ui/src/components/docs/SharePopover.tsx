@@ -7,6 +7,7 @@ interface SharePopoverProps {
   onClose: () => void;
 }
 
+/** Return the shareable URL of a page. */
 export function pageUrl(pageId: string): string {
   const url = new URL(window.location.href);
   url.search = '';
@@ -30,6 +31,11 @@ async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
+/**
+ * Popover to copy a page link.
+ * @param props.page - Page whose link is copied.
+ * @param props.onClose - Called to dismiss the popover.
+ */
 export function SharePopover({ page, onClose }: SharePopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState<'link' | 'ref' | null>(null);
@@ -144,13 +150,27 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60' }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: '#5B6B60',
+          }}
+        >
           Reference in another page
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div
             className="st-input"
-            style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: '#2E6F40', display: 'flex', alignItems: 'center' }}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 12.5,
+              color: '#2E6F40',
+              display: 'flex',
+              alignItems: 'center',
+            }}
           >
             {ref}
           </div>
@@ -159,7 +179,11 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
             className="st-btn"
             aria-label="Copy reference"
             onClick={() => void copy('ref')}
-            style={{ flexShrink: 0, padding: '8px 10px', ...(copied === 'ref' ? { color: '#2E6F40', background: '#F1F8F3' } : {}) }}
+            style={{
+              flexShrink: 0,
+              padding: '8px 10px',
+              ...(copied === 'ref' ? { color: '#2E6F40', background: '#F1F8F3' } : {}),
+            }}
           >
             <Icon name={copied === 'ref' ? 'i10' : 'i24'} size={14} />
           </button>

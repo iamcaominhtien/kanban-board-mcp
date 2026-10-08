@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<Status, string> = {
   review: 'Review',
   testing: 'Testing',
   done: 'Done',
-  wont_do: 'Won\'t Do',
+  wont_do: "Won't Do",
 };
 
 const STATUS_COLORS: Record<Status, string> = {
@@ -185,18 +185,9 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
             const isDone = ticket.status === 'done';
             const overdue = isOverdue(ticket.dueDate, ticket.status);
             return (
-              <button
-                key={ticket.id}
-                type="button"
-                className={styles.row}
-                onClick={() => onCardClick(ticket)}
-              >
-                <span className={`${styles.rowId} ${isDone ? styles.rowIdDone : ''}`}>
-                  {ticket.id}
-                </span>
-                <span className={`${styles.rowTitle} ${isDone ? styles.rowTitleDone : ''}`}>
-                  {ticket.title}
-                </span>
+              <button key={ticket.id} type="button" className={styles.row} onClick={() => onCardClick(ticket)}>
+                <span className={`${styles.rowId} ${isDone ? styles.rowIdDone : ''}`}>{ticket.id}</span>
+                <span className={`${styles.rowTitle} ${isDone ? styles.rowTitleDone : ''}`}>{ticket.title}</span>
 
                 {/* Priority Chip */}
                 {ticket.priority ? (
@@ -225,6 +216,10 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
   );
 }
 
+/**
+ * Sortable table of tickets.
+ * @param props.onCardClick - Called with the ticket whose row is clicked.
+ */
 export function ListView({ tickets, onCardClick }: ListViewProps) {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [sortBy, setSortBy] = useState<SortBy>('dueDate');
@@ -254,10 +249,7 @@ export function ListView({ tickets, onCardClick }: ListViewProps) {
     return tickets.filter((t) => activeStatuses.has(t.status));
   }, [tickets, activeStatuses]);
 
-  const groups = useMemo(
-    () => buildGroups(filteredTickets, groupBy, sortBy),
-    [filteredTickets, groupBy, sortBy],
-  );
+  const groups = useMemo(() => buildGroups(filteredTickets, groupBy, sortBy), [filteredTickets, groupBy, sortBy]);
 
   const allCollapsed = groups.length > 0 && groups.every((g) => collapsedKeys.has(g.key));
 
@@ -293,10 +285,7 @@ export function ListView({ tickets, onCardClick }: ListViewProps) {
     tag: 'Tag',
   };
 
-  const statusFilterText =
-    activeStatuses.size === 0
-      ? 'All'
-      : `${activeStatuses.size} selected`;
+  const statusFilterText = activeStatuses.size === 0 ? 'All' : `${activeStatuses.size} selected`;
 
   return (
     <div className={styles.listView} ref={containerRef}>
@@ -343,7 +332,13 @@ export function ListView({ tickets, onCardClick }: ListViewProps) {
                     <span>By {groupByLabels[g]}</span>
                     {groupBy === g && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                        <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                          stroke="#2E6F40"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                   </button>
@@ -392,7 +387,13 @@ export function ListView({ tickets, onCardClick }: ListViewProps) {
                       <span className={`${styles.checkSquare} ${isChecked ? styles.checkSquareChecked : ''}`}>
                         {isChecked && (
                           <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
-                            <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path
+                              d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                              stroke="#FFFFFF"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           </svg>
                         )}
                       </span>

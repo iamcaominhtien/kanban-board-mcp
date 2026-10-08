@@ -41,6 +41,7 @@ def get_db_path() -> Path:
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a database session (FastAPI dependency)."""
     async with async_session() as session:
         yield session
 
@@ -61,11 +62,17 @@ def _restamp_legacy_revision(sync_conn) -> None:
 
     if not inspect(sync_conn).has_table("alembic_version"):
         return
-    current = sync_conn.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+    current = (
+        sync_conn.execute(text("SELECT version_num FROM alembic_version"))
+        .scalars()
+        .all()
+    )
     for old, new in LEGACY_REVISIONS.items():
         if old in current:
             sync_conn.execute(
-                text("UPDATE alembic_version SET version_num = :new WHERE version_num = :old"),
+                text(
+                    "UPDATE alembic_version SET version_num = :new WHERE version_num = :old"
+                ),
                 {"new": new, "old": old},
             )
 

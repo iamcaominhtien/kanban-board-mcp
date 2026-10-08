@@ -3,7 +3,12 @@ import { useDocsSuggest } from '../../api/docsActions';
 import type { DocsSuggestItem } from '../../types/docsActions';
 import { Icon } from './Icon';
 
-/** Query text in bold green inside a title. */
+/**
+ * Query text in bold green inside a title.
+ * @param text - Title to render.
+ * @param query - Text to emphasise (first case-insensitive occurrence).
+ * @returns `text` unchanged when `query` is blank or not found, else the text with the match in bold.
+ */
 export function boldMatch(text: string, query: string): ReactNode {
   const q = query.trim();
   const at = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
@@ -19,10 +24,18 @@ export function boldMatch(text: string, query: string): ReactNode {
 
 function subLine(item: DocsSuggestItem): string {
   if (item.kind === 'section') return item.path.join(' › ');
-  return item.path.length > 1 ? item.path.join(' › ') : item.path[0] ?? '';
+  return item.path.length > 1 ? item.path.join(' › ') : (item.path[0] ?? '');
 }
 
-/** The pages-and-sections rows shared by the `[[` suggester and the "Link a doc" popover. */
+/**
+ * The pages-and-sections rows shared by the `[[` suggester and the "Link a doc" popover.
+ * @param props.items - Pages and sections to list.
+ * @param props.active - Index of the keyboard-highlighted row.
+ * @param props.query - Current query, emphasised in titles.
+ * @param props.onPick - Called with the picked item.
+ * @param props.onHover - Called with a row index on mouse hover.
+ * @param props.loading - Show a loading row.
+ */
 export function SuggestRows({
   items,
   active,
@@ -40,7 +53,9 @@ export function SuggestRows({
 }) {
   if (!items.length) {
     return (
-      <div style={{ padding: '10px', fontSize: 12.5, color: '#5B6B60' }}>{loading ? 'Searching…' : query.trim() ? `No pages match “${query.trim()}”` : 'Type to search pages'}</div>
+      <div style={{ padding: '10px', fontSize: 12.5, color: '#5B6B60' }}>
+        {loading ? 'Searching…' : query.trim() ? `No pages match “${query.trim()}”` : 'Type to search pages'}
+      </div>
     );
   }
   return (
@@ -62,14 +77,39 @@ export function SuggestRows({
             }}
           >
             <span style={{ display: 'flex', color: it.kind === 'section' || on ? '#2E6F40' : '#9AA8A0' }}>
-              {it.kind === 'section' ? <Icon name="i04" size={15} strokeWidth={2} /> : <Icon name="i00" size={16} strokeWidth={1.8} />}
+              {it.kind === 'section' ? (
+                <Icon name="i04" size={15} strokeWidth={2} />
+              ) : (
+                <Icon name="i00" size={16} strokeWidth={1.8} />
+              )}
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>{boldMatch(it.title, query)}</span>
-              <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subLine(it)}</span>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  color: '#5B6B60',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {subLine(it)}
+              </span>
             </span>
             {on && (
-              <span style={{ marginLeft: 'auto', paddingLeft: 8, fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  paddingLeft: 8,
+                  fontSize: 11.5,
+                  color: '#9AA8A0',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
                 <span className="dk-kbd">Enter</span>
               </span>
             )}
@@ -93,6 +133,9 @@ const OPEN = /\[\[([^[\]\n|]{0,60})$/;
 /**
  * Typing `[[` in a contentEditable editor opens a popover of pages and sections; picking one
  * replaces the typed text with `[[Page]]` or `[[Page#Section]]`.
+ * @param props.editorRef - Editable element of the host editor.
+ * @param props.projectId - Project whose pages are suggested.
+ * @param props.onChanged - Called after the suggester rewrote text in the editor, so the host can sync its value.
  */
 export function DocLinkSuggester({ editorRef, projectId, onChanged }: DocLinkSuggesterProps) {
   const [state, setState] = useState<{ query: string; x: number; y: number } | null>(null);
@@ -198,7 +241,14 @@ export function DocLinkSuggester({ editorRef, projectId, onChanged }: DocLinkSug
       style={{ position: 'fixed', left: state.x, top: state.y + shift, width: 330, zIndex: 2000, padding: 5 }}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <SuggestRows items={items} active={active} query={state.query} onPick={pick} onHover={setActive} loading={suggest.isFetching} />
+      <SuggestRows
+        items={items}
+        active={active}
+        query={state.query}
+        onPick={pick}
+        onHover={setActive}
+        loading={suggest.isFetching}
+      />
     </div>
   );
 }

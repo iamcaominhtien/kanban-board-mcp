@@ -21,7 +21,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .tcAddBtn {
@@ -31,8 +31,8 @@
   padding: 6px 12px;
   border-radius: 6px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
@@ -63,24 +63,24 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 11.5px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   transition: all 0.12s;
 }
 
 .filterChip:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .filterChipActive {
-  border-color: #2E6F40;
-  background: #F1F8F3;
-  color: #1E2A22;
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #1e2a22;
 }
 
 .filterDot {
@@ -100,7 +100,7 @@
 
 .rollupShowLabel {
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .rollupDropdownWrapper {
@@ -114,36 +114,36 @@
   gap: 6px;
   padding: 5px 9px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
-  color: #1E2A22;
+  color: #1e2a22;
   transition: all 0.15s ease;
 }
 
 .rollupDropdownBtn:hover {
-  background: #F6FAF7;
-  border-color: #B9CBBF;
+  background: #f6faf7;
+  border-color: #b9cbbf;
 }
 
 .rollupSep {
   font-size: 11px;
-  color: #C7D2CB;
+  color: #c7d2cb;
 }
 
 .rollupBreakdown {
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .rollupDropdownMenu {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 6px;
   box-shadow: 0 4px 14px rgba(30, 42, 34, 0.12);
   z-index: 50;
@@ -157,7 +157,7 @@
 .rollupMenuItem {
   padding: 6px 12px;
   font-size: 12px;
-  color: #1E2A22;
+  color: #1e2a22;
   background: none;
   border: none;
   text-align: left;
@@ -168,26 +168,26 @@
 }
 
 .rollupMenuItem:hover {
-  background: #F1F8F3;
-  color: #2E6F40;
+  background: #f1f8f3;
+  color: #2e6f40;
 }
 
 .rollupMenuItemActive {
-  background: #F1F8F3;
-  color: #2E6F40;
+  background: #f1f8f3;
+  color: #2e6f40;
   font-weight: 600;
 }
 
 /* Add Form Inline */
 .inlineAddCard {
-  border: 1px solid #2E6F40;
+  border: 1px solid #2e6f40;
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
-  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
+  background: #ffffff;
   position: relative;
   z-index: 1;
 }
@@ -195,10 +195,10 @@
 .inlineAddInput {
   padding: 7px 10px;
   border-radius: 6px;
-  border: 1px solid #B9CBBF;
+  border: 1px solid #b9cbbf;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
   outline: none;
   width: 100%;
@@ -219,8 +219,8 @@
   padding: 5px 12px;
   border-radius: 6px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 600;
@@ -239,16 +239,16 @@
 .btnCancel {
   padding: 5px 12px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
-  color: #5B6B60;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  color: #5b6b60;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
   cursor: pointer;
 }
 
 .btnCancel:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 /* List & Groups */
@@ -266,22 +266,22 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .groupTable {
   display: flex;
   flex-direction: column;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .rowItem {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid #E3E8E5;
+  border-bottom: 1px solid #e3e8e5;
 }
 
 .rowItem:last-child {
@@ -293,12 +293,12 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: #FFFFFF;
+  background: #ffffff;
   transition: background 0.1s;
 }
 
 .tcRowExpanded {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 /* Status Icons & Pulsing Ring */
@@ -326,11 +326,11 @@
 }
 
 .tcStatusDotPending {
-  border: 1.6px solid #9AA8A0;
+  border: 1.6px solid #9aa8a0;
 }
 
 .tcStatusDotRunning {
-  background: #2F6FB0;
+  background: #2f6fb0;
 }
 
 .tcStatusDotRunning::after {
@@ -356,7 +356,7 @@
 .codeMono {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
   width: 26px;
   box-sizing: border-box;
@@ -365,7 +365,7 @@
 .titleArea {
   flex-grow: 1;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -373,7 +373,7 @@
 }
 
 .titleText {
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .titleTextExpanded {
@@ -383,9 +383,9 @@
 .titleInputEdit {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   padding: 3px 6px;
-  border: 1px solid #2E6F40;
+  border: 1px solid #2e6f40;
   border-radius: 4px;
   outline: none;
   width: 100%;
@@ -393,7 +393,7 @@
 
 .timeMeta {
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   white-space: nowrap;
 }
 
@@ -401,8 +401,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #E6E9F5;
-  color: #5B5FA8;
+  background: #e6e9f5;
+  color: #5b5fa8;
   font-size: 9px;
   font-weight: 700;
   display: flex;
@@ -421,24 +421,24 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
   transition: all 0.12s;
 }
 
 .iconBtn:hover {
-  background: #EEF3EF;
-  color: #5B6B60;
+  background: #eef3ef;
+  color: #5b6b60;
 }
 
 .iconBtnActive {
-  color: #5B6B60;
-  background: #EEF3EF;
+  color: #5b6b60;
+  background: #eef3ef;
 }
 
 /* Expanded Card Body */
 .detailsBody {
-  background: #F6FAF7;
+  background: #f6faf7;
   padding: 4px 16px 16px 78px;
   display: flex;
   flex-direction: column;
@@ -456,26 +456,26 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .fieldBox {
   font-size: 12.5px;
-  color: #3A4A3E;
+  color: #3a4a3e;
   line-height: 1.6;
   padding: 8px 10px;
   border-radius: 6px;
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
 }
 
 .fieldBox code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  background: #EEF3EF;
+  background: #eef3ef;
   padding: 1px 5px;
   border-radius: 3px;
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .fileChip {
@@ -483,9 +483,9 @@
   align-items: center;
   gap: 8px;
   padding: 5px 9px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 7px;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .fileIcon {
@@ -504,17 +504,17 @@
   gap: 5px;
   padding: 5px 9px 5px 7px;
   border-radius: 7px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
   font-size: 11.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   transition: all 0.12s;
 }
 
 .fileAddBtn:hover {
-  border-color: #2E6F40;
-  color: #2E6F40;
+  border-color: #2e6f40;
+  color: #2e6f40;
 }
 
 .detailsFooter {
@@ -522,22 +522,22 @@
   align-items: center;
   gap: 10px;
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   padding-top: 4px;
-  border-top: 1px solid #EEF3EF;
+  border-top: 1px solid #eef3ef;
 }
 
 .emptyMsg {
   padding: 24px;
   text-align: center;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-size: 13px;
 }
 
 .fileRemoveBtn {
   border: none;
   background: none;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
@@ -545,7 +545,7 @@
 }
 
 .fileRemoveBtn:hover {
-  color: #C4432A;
+  color: #c4432a;
 }
 
 .fileAddBtn:disabled {

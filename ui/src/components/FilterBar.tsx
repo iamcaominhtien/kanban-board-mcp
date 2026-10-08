@@ -30,6 +30,14 @@ const PRIORITY_OPTIONS: { value: Priority | 'all'; label: string }[] = [
   { value: 'low', label: 'Low' },
 ];
 
+/**
+ * Search, status, priority and tag filters.
+ * @param props.onSearchChange - Called with the new search text.
+ * @param props.onTypeChange - Called with the selected type or `all`.
+ * @param props.onPriorityChange - Called with the selected priority or `all`.
+ * @param props.activeAssignee - Selected member id, `all` for none.
+ * @param props.onAssigneeChange - Called with the selected member id or `all`.
+ */
 export function FilterBar({
   searchQuery,
   onSearchChange,
@@ -145,24 +153,58 @@ export function FilterBar({
                     {opt.value === 'task' && (
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
                         <rect x="3" y="3" width="18" height="18" rx="5" stroke="#2F6FB0" strokeWidth="2.2" />
-                        <path d="M7.5 12.3L10.3 15L16.5 8.2" stroke="#2F6FB0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M7.5 12.3L10.3 15L16.5 8.2"
+                          stroke="#2F6FB0"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                     {opt.value === 'bug' && (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4432A" strokeWidth="2.1" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#C4432A"
+                        strokeWidth="2.1"
+                        strokeLinecap="round"
+                        style={{ flexShrink: 0 }}
+                      >
                         <ellipse cx="12" cy="14" rx="5" ry="6.5" />
                         <circle cx="12" cy="6" r="2.6" />
                         <path d="M7 11H4M7 16H4M17 11H20M17 16H20" />
                       </svg>
                     )}
                     {opt.value === 'feature' && (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#6D5DD3"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ flexShrink: 0 }}
+                      >
                         <path d="M12 3.5A6 6 0 0 0 8.5 14.3C9.3 15 9.8 15.8 9.8 16.8V17.5H14.2V16.8C14.2 15.8 14.7 15 15.5 14.3A6 6 0 0 0 12 3.5Z" />
                         <path d="M10 20.5H14" />
                       </svg>
                     )}
                     {opt.value === 'chore' && (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#5B6B60"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        style={{ flexShrink: 0 }}
+                      >
                         <rect x="4" y="4.5" width="4" height="4" rx="1" />
                         <path d="M10.5 6.5H20M10.5 12H20M10.5 17.5H20" />
                         <rect x="4" y="10" width="4" height="4" rx="1" />
@@ -172,7 +214,13 @@ export function FilterBar({
                     <span className={styles.itemLabel}>{opt.label}</span>
                     {isSelected && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                        <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                          stroke="#2E6F40"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                   </button>
@@ -226,7 +274,13 @@ export function FilterBar({
                   <span className={styles.itemLabel}>{opt.label}</span>
                   {isSelected && (
                     <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                      <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                        stroke="#2E6F40"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </button>
@@ -282,7 +336,13 @@ export function FilterBar({
               <span className={styles.itemLabel}>All Assignees</span>
               {activeAssignee === 'all' && (
                 <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                  <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                    stroke="#2E6F40"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               )}
             </button>
@@ -298,7 +358,13 @@ export function FilterBar({
               <span className={styles.itemLabel}>Unassigned</span>
               {activeAssignee === 'unassigned' && (
                 <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                  <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                    stroke="#2E6F40"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               )}
             </button>
@@ -315,16 +381,19 @@ export function FilterBar({
                     setOpenDropdown(null);
                   }}
                 >
-                  <div
-                    className={styles.miniAvatar}
-                    style={{ background: m.color || '#2E6F40', color: '#FFFFFF' }}
-                  >
+                  <div className={styles.miniAvatar} style={{ background: m.color || '#2E6F40', color: '#FFFFFF' }}>
                     {getMemberInitials(m.name)}
                   </div>
                   <span className={styles.itemLabel}>{m.name}</span>
                   {isSelected && (
                     <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                      <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                        stroke="#2E6F40"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </button>

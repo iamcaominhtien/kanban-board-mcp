@@ -23,3 +23,15 @@ dev = ["pytest-asyncio>=0.23.0", "httpx>=0.28.1", "ruff>=0.9.0"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
+
+[tool.ruff.lint]
+# Public classes, methods and functions need a docstring
+extend-select = ["D101", "D102", "D103", "D107"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest fixtures are imported from sibling test modules and re-declared by name
+"tests/*" = ["F811", "D"]
+"alembic/*" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

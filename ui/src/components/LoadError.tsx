@@ -7,7 +7,12 @@ interface LoadErrorProps {
   lastAttempt?: Date | null;
 }
 
-/** "Couldn't load ..." panel. Only the heading is role=alert, focus moves to Try again. */
+/**
+ * "Couldn't load ..." panel. Only the heading is role=alert, focus moves to Try again.
+ * @param props.title - Heading text, e.g. "Couldn't load tickets".
+ * @param props.onRetry - Called when "Try again" is pressed.
+ * @param props.lastAttempt - Time of the last failed attempt, shown in the panel.
+ */
 export function LoadError({ title, onRetry, lastAttempt }: LoadErrorProps) {
   const btn = useRef<HTMLButtonElement>(null);
   useEffect(() => {

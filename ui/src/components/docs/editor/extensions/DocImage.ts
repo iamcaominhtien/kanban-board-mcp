@@ -11,7 +11,8 @@ export const DocImage = Image.extend({
           const w = el.getAttribute('width') ?? el.style.width;
           return w ? parseInt(w, 10) || null : null;
         },
-        renderHTML: (attrs) => (attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;max-width:100%;height:auto` } : {}),
+        renderHTML: (attrs) =>
+          attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;max-width:100%;height:auto` } : {},
       },
     };
   },

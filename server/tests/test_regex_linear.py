@@ -45,7 +45,9 @@ def test_hostile_input_is_fast(text):
 
 def test_reference_forms_still_parse():
     refs = parse_references("See [[A]], [[A#B]] and [[A#B|label]] and KAN-12.")
-    pages = [(r["title"], r["anchor"], r["display"]) for r in refs if r["kind"] == "page"]
+    pages = [
+        (r["title"], r["anchor"], r["display"]) for r in refs if r["kind"] == "page"
+    ]
     assert pages == [("A", None, None), ("A", "B", None), ("A", "B", "label")]
     assert [r["key"] for r in refs if r["kind"] == "ticket"] == ["KAN-12"]
     assert _strip_inline("a [[P#S|shown]] and [t](http://x) b") == "a shown and t b"
@@ -57,7 +59,10 @@ def test_heading_forms():
     assert h("## Title ##").group(2) == "Title"
     assert h("## C#").group(2) == "C#"
     assert h("#Title") is None and h("####### seven") is None and h("##   ") is None
-    assert [a["slug"] for a in heading_anchors("# One\n## One\n```\n# no\n```")] == ["one", "one-2"]
+    assert [a["slug"] for a in heading_anchors("# One\n## One\n```\n# no\n```")] == [
+        "one",
+        "one-2",
+    ]
 
 
 def test_block_prefix_and_trim_and_mentions():
@@ -65,4 +70,6 @@ def test_block_prefix_and_trim_and_mentions():
     assert strip_block_prefix("> 1. item") == "item"
     assert strip_block_prefix("## Head", headings=True) == "Head"
     assert docs_search._trim_nonword('--"hello world"!') == "hello world"
-    assert mention_ids("hi @[Linh Pham](member:abc-123) and @[X](member:abc-123)") == ["abc-123"]
+    assert mention_ids("hi @[Linh Pham](member:abc-123) and @[X](member:abc-123)") == [
+        "abc-123"
+    ]

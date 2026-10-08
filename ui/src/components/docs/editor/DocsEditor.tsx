@@ -73,8 +73,43 @@ const EMIT_MS = 180;
 // which tears down the "/" and "[[" suggestion views while they are open
 const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
 
+/**
+ * Tiptap WYSIWYG editor that reads and writes Markdown.
+ * @param props.projectId - Project used to resolve references.
+ * @param props.markdown - Markdown to edit; external changes reload the editor.
+ * @param props.mode - Visual (WYSIWYG) or Markdown source view.
+ * @param props.onChange - Called with the Markdown after edits (debounced).
+ * @param props.nodes - Page tree, used for `[[` suggestions.
+ * @param props.currentPageId - Page being edited.
+ * @param props.pageTitle - Title of the page being edited.
+ * @param props.filename - File name shown in the Markdown view.
+ * @param props.header - Rendered at the top of the content column (title field etc.).
+ * @param props.toc - Right rail: undefined for the built-in "On this page", `null` for none, or a custom node.
+ * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
+ * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
+ * @param props.onBlur - Called when the editor loses focus.
+ * @param props.onUserInput - Called on the first real keystroke, paste or drop (tells edits from load-time normalisation).
+ * @param props.readOnly - Disable editing.
+ * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
+ */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
-  { projectId, markdown, mode, onChange, nodes, currentPageId, pageTitle, filename, header, toc, onOpenPage, onOpenTicket, onBlur, onUserInput, readOnly },
+  {
+    projectId,
+    markdown,
+    mode,
+    onChange,
+    nodes,
+    currentPageId,
+    pageTitle,
+    filename,
+    header,
+    toc,
+    onOpenPage,
+    onOpenTicket,
+    onBlur,
+    onUserInput,
+    readOnly,
+  },
   ref,
 ) {
   const toast = useToast();
@@ -114,7 +149,10 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       const chain = ed.chain().focus();
       (at != null ? chain.insertContentAt(at, node) : chain.insertContent(node)).run();
     } catch {
-      live.current.toast.error('Could not upload the image', 'Check the file type (png, jpeg, gif, webp) and size (max 5 MB).');
+      live.current.toast.error(
+        'Could not upload the image',
+        'Check the file type (png, jpeg, gif, webp) and size (max 5 MB).',
+      );
     }
   }, []);
 
@@ -139,11 +177,23 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       accept: (q) => q.length < 90 && !q.includes(']]') && !q.includes('\n'),
       command: ({ editor, range, payload }) => {
         const p = payload as RefPayload;
-        const insert = (content: unknown) => editor.chain().focus().insertContentAt(range, content as never).run();
+        const insert = (content: unknown) =>
+          editor
+            .chain()
+            .focus()
+            .insertContentAt(range, content as never)
+            .run();
         if (p.kind === 'text') insert(p.text);
-        else if (p.kind === 'ticket') insert([{ type: 'ticketRef', attrs: { key: p.key } }, { type: 'text', text: ' ' }]);
+        else if (p.kind === 'ticket')
+          insert([
+            { type: 'ticketRef', attrs: { key: p.key } },
+            { type: 'text', text: ' ' },
+          ]);
         else if (p.kind === 'page')
-          insert([{ type: 'docRef', attrs: { page: p.page, section: p.section, label: p.label } }, { type: 'text', text: ' ' }]);
+          insert([
+            { type: 'docRef', attrs: { page: p.page, section: p.section, label: p.label } },
+            { type: 'text', text: ' ' },
+          ]);
         else {
           void (async () => {
             const parent = live.current.nodes.find((n) => n.id === live.current.currentPageId)?.parentId ?? null;
@@ -155,7 +205,10 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
               live.current.toast.error('Could not create the page', p.title);
               return;
             }
-            insert([{ type: 'docRef', attrs: { page: p.title, section: null, label: p.label } }, { type: 'text', text: ' ' }]);
+            insert([
+              { type: 'docRef', attrs: { page: p.title, section: null, label: p.label } },
+              { type: 'text', text: ' ' },
+            ]);
           })();
         }
       },
@@ -207,7 +260,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         return true;
       },
       handleDrop: (view, event) => {
-        const file = Array.from((event as DragEvent).dataTransfer?.files ?? []).find((f) => f.type.startsWith('image/'));
+        const file = Array.from((event as DragEvent).dataTransfer?.files ?? []).find((f) =>
+          f.type.startsWith('image/'),
+        );
         if (!file) return false;
         const at = view.posAtCoords({ left: (event as DragEvent).clientX, top: (event as DragEvent).clientY })?.pos;
         void uploadImage(file, at);
@@ -298,14 +353,30 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     <EditorEnvContext.Provider value={env}>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }} className="dk-editor-root">
         {mode === 'visual' && (
-          <EditorToolbar editor={editor} disabled={readOnly} onLink={openLink} onPickImage={pickImage} ticketPrefix={ticketPrefix} />
+          <EditorToolbar
+            editor={editor}
+            disabled={readOnly}
+            onLink={openLink}
+            onPickImage={pickImage}
+            ticketPrefix={ticketPrefix}
+          />
         )}
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div
             data-testid="editor-scroll"
-            style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '30px 0 40px', position: 'relative', background: '#FFFFFF' }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              overflowY: 'auto',
+              padding: '30px 0 40px',
+              position: 'relative',
+              background: '#FFFFFF',
+            }}
           >
-            <div ref={hostRef} style={{ width: 640, maxWidth: 'calc(100% - 48px)', margin: '0 auto', position: 'relative' }}>
+            <div
+              ref={hostRef}
+              style={{ width: 640, maxWidth: 'calc(100% - 48px)', margin: '0 auto', position: 'relative' }}
+            >
               {header}
               <div style={{ display: mode === 'visual' ? 'block' : 'none' }}>
                 <div className="dk-md dk-editor">
@@ -324,7 +395,10 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
                               editor
                                 .chain()
                                 .focus()
-                                .insertContentAt(n.pos + n.size, { type: 'paragraph', content: [{ type: 'text', text: '/' }] })
+                                .insertContentAt(n.pos + n.size, {
+                                  type: 'paragraph',
+                                  content: [{ type: 'text', text: '/' }],
+                                })
                                 .run();
                             }}
                           >
@@ -346,7 +420,15 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             </div>
           </div>
           {toc === null ? null : (
-            <div style={{ width: 200, flexShrink: 0, padding: '30px 20px 0 8px', boxSizing: 'border-box', background: '#FFFFFF' }}>
+            <div
+              style={{
+                width: 200,
+                flexShrink: 0,
+                padding: '30px 20px 0 8px',
+                boxSizing: 'border-box',
+                background: '#FFFFFF',
+              }}
+            >
               {toc === undefined ? <EditorToc editor={editor} markdown={markdown} /> : toc}
             </div>
           )}
@@ -355,11 +437,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           <BubbleToolbar editor={editor} linkOpen={linkOpen} setLinkOpen={setLinkOpen} ticketPrefix={ticketPrefix} />
         )}
         {slashState && mode === 'visual' && (
-          <SlashMenu
-            host={slashHost}
-            state={slashState}
-            ctx={{ pickImage, ticketPrefix, pageTitle }}
-          />
+          <SlashMenu host={slashHost} state={slashState} ctx={{ pickImage, ticketPrefix, pageTitle }} />
         )}
         {refState && mode === 'visual' && (
           <RefSuggester

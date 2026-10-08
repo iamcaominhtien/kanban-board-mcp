@@ -35,6 +35,8 @@ const OPT_KEY = 'docsFindOptions';
 /**
  * Ctrl/Cmd+F opens the bar; a second Ctrl/Cmd+F lets the browser's own find run (we stop intercepting while open).
  * Pass `isOpen` so the hook knows. Mount only while a page is shown.
+ * @param onOpen - Called when Ctrl/Cmd+F is pressed while the bar is closed.
+ * @param isOpen - Whether the bar is open; interception stops while true.
  */
 export function useDocsFindHotkey(onOpen: () => void, isOpen: boolean) {
   const ref = useRef({ onOpen, isOpen });
@@ -61,7 +63,10 @@ function loadOpts(): { matchCase: boolean; wholeWord: boolean } {
   }
 }
 
-const HL = typeof CSS !== 'undefined' && 'highlights' in CSS && typeof (window as unknown as { Highlight?: unknown }).Highlight === 'function';
+const HL =
+  typeof CSS !== 'undefined' &&
+  'highlights' in CSS &&
+  typeof (window as unknown as { Highlight?: unknown }).Highlight === 'function';
 
 function buildRegex(q: string, matchCase: boolean, wholeWord: boolean): RegExp | null {
   if (!q) return null;
@@ -97,7 +102,14 @@ function unwrapMarks(root: HTMLElement) {
   parents.forEach((p) => p.normalize());
 }
 
-/** Find (and replace) bar. Design: DocsSearch.dc.html artboard F. Position it inside a `position: relative` container. */
+/**
+ * Find (and replace) bar. Design: DocsSearch.dc.html artboard F. Position it inside a `position: relative` container.
+ * @param props.root - Rendered page content or the editor's DOM element to search.
+ * @param props.editable - Show Replace and Replace all (needs `replaceAdapter` or `onReplace`).
+ * @param props.onClose - Called to close the bar.
+ * @param props.replaceAdapter - Replaces matches inside an editor.
+ * @param props.onReplace - Called with the search text, the replacement and whether to replace all.
+ */
 export function FindInPage({ root, editable = false, onClose, replaceAdapter, onReplace }: FindInPageProps) {
   const toast = useToast();
   const [q, setQ] = useState(() => {
@@ -221,7 +233,9 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
       CSS.highlights.set('docs-find-current', new H(r));
     }
     marksRef.current.forEach((m, i) => m.classList.toggle('docs-find-cur', i === cur));
-    const el = (r.startContainer.nodeType === 1 ? (r.startContainer as HTMLElement) : r.startContainer.parentElement) as HTMLElement | null;
+    const el = (
+      r.startContainer.nodeType === 1 ? (r.startContainer as HTMLElement) : r.startContainer.parentElement
+    ) as HTMLElement | null;
     el?.scrollIntoView({ block: 'center', inline: 'nearest' });
   }, [cur, count]);
 
@@ -234,7 +248,12 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
     if (!canReplace || !dq) return;
     let n = 0;
     if (replaceAdapter) {
-      n = replaceAdapter.replace(dq, replaceWith, { all, matchCase: opts.matchCase, wholeWord: opts.wholeWord, index: cur });
+      n = replaceAdapter.replace(dq, replaceWith, {
+        all,
+        matchCase: opts.matchCase,
+        wholeWord: opts.wholeWord,
+        index: cur,
+      });
     } else {
       onReplace?.(dq, replaceWith, all);
       n = all ? count : 1;
@@ -267,14 +286,37 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
   const counter = useMemo(() => (dq === '' ? '' : `${count ? cur + 1 : 0}/${count}`), [dq, count, cur]);
 
   const tbtn = (label: string, on: boolean, onClick: () => void, child: React.ReactNode) => (
-    <button type="button" aria-label={label} aria-pressed={on} title={label} onClick={onClick} className={`fx-findbtn${on ? ' fx-findbtn-on' : ''}`}>
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={on}
+      title={label}
+      onClick={onClick}
+      className={`fx-findbtn${on ? ' fx-findbtn-on' : ''}`}
+    >
       {child}
     </button>
   );
 
   return (
-    <div ref={barRef} className="docs-root" style={{ position: 'absolute', right: 18, top: 12, zIndex: 40 }} role="search" aria-label="Find in page">
-      <div className="dk-menu" style={{ width: 460, maxWidth: 'calc(100vw - 32px)', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div
+      ref={barRef}
+      className="docs-root"
+      style={{ position: 'absolute', right: 18, top: 12, zIndex: 40 }}
+      role="search"
+      aria-label="Find in page"
+    >
+      <div
+        className="dk-menu"
+        style={{
+          width: 460,
+          maxWidth: 'calc(100vw - 32px)',
+          padding: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <div
             style={{
@@ -300,14 +342,47 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
               aria-label="Find"
               placeholder="Find in page"
               spellCheck={false}
-              style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 500, color: '#1E2A22', fontFamily: 'inherit', padding: 0 }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#1E2A22',
+                fontFamily: 'inherit',
+                padding: 0,
+              }}
             />
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, fontWeight: 500, color: none ? '#C4432A' : '#5B6B60', whiteSpace: 'nowrap' }}>{counter}</span>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11.5,
+                fontWeight: 500,
+                color: none ? '#C4432A' : '#5B6B60',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {counter}
+            </span>
           </div>
-          <button type="button" aria-label="Previous match" title="Previous match (Shift+Enter)" className="fx-findbtn" onClick={() => step(-1)}>
+          <button
+            type="button"
+            aria-label="Previous match"
+            title="Previous match (Shift+Enter)"
+            className="fx-findbtn"
+            onClick={() => step(-1)}
+          >
             <Icon name="i34" size={15} strokeWidth={1.9} />
           </button>
-          <button type="button" aria-label="Next match" title="Next match (Enter)" className="fx-findbtn" onClick={() => step(1)}>
+          <button
+            type="button"
+            aria-label="Next match"
+            title="Next match (Enter)"
+            className="fx-findbtn"
+            onClick={() => step(1)}
+          >
             <Icon name="i06" size={15} strokeWidth={1.9} />
           </button>
           <div style={{ width: 1, height: 16, background: '#DCE6DF', margin: '0 3px' }} />
@@ -316,7 +391,19 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
             'Whole word',
             opts.wholeWord,
             () => setOpts((o) => ({ ...o, wholeWord: !o.wholeWord })),
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, border: '1.5px solid currentColor', borderTop: 'none', padding: '0 2px 1px', lineHeight: 1.1 }}>ab</span>,
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                fontWeight: 700,
+                border: '1.5px solid currentColor',
+                borderTop: 'none',
+                padding: '0 2px 1px',
+                lineHeight: 1.1,
+              }}
+            >
+              ab
+            </span>,
           )}
           <button type="button" aria-label="Close" title="Close (Esc)" className="fx-findbtn" onClick={onClose}>
             <Icon name="i08" size={15} strokeWidth={1.9} />
@@ -324,7 +411,21 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
         </div>
         {canReplace && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '0 9px', height: 30, borderRadius: 7, border: '1px solid #C7D2CB', background: '#FFFFFF', boxSizing: 'border-box' }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '0 9px',
+                height: 30,
+                borderRadius: 7,
+                border: '1px solid #C7D2CB',
+                background: '#FFFFFF',
+                boxSizing: 'border-box',
+              }}
+            >
               <input
                 value={replaceWith}
                 onChange={(e) => setReplaceWith(e.target.value)}
@@ -337,13 +438,36 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
                 }}
                 aria-label="Replace with"
                 placeholder="Replace with"
-                style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 500, color: '#1E2A22', fontFamily: 'inherit', padding: 0 }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#1E2A22',
+                  fontFamily: 'inherit',
+                  padding: 0,
+                }}
               />
             </div>
-            <button type="button" className="st-btn st-btn-sm" style={{ height: 30, padding: '0 10px' }} disabled={!count} onClick={() => doReplace(false)}>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              style={{ height: 30, padding: '0 10px' }}
+              disabled={!count}
+              onClick={() => doReplace(false)}
+            >
               Replace
             </button>
-            <button type="button" className="st-btn st-btn-sm" style={{ height: 30, padding: '0 10px' }} disabled={!count} onClick={() => doReplace(true)}>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              style={{ height: 30, padding: '0 10px' }}
+              disabled={!count}
+              onClick={() => doReplace(true)}
+            >
               Replace all
             </button>
           </div>

@@ -19,7 +19,7 @@
   display: inline-flex;
   gap: 3px;
   padding: 3px;
-  background: #F6FAF7;
+  background: #f6faf7;
   border-radius: 8px;
 }
 
@@ -32,15 +32,15 @@
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
   font-weight: 500;
-  color: #9AA8A0;
+  color: #9aa8a0;
   transition: all 0.12s;
 }
 
 .tabActive {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 0 1px 2px rgba(30, 42, 34, 0.08);
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .brAddBtn {
@@ -49,26 +49,26 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: 6px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   transition: all 0.12s;
 }
 
 .brAddBtn:hover {
-  border-color: #2E6F40;
-  color: #2E6F40;
+  border-color: #2e6f40;
+  color: #2e6f40;
 }
 
 /* List Table */
 .tableCard {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .tableHeader {
@@ -76,13 +76,13 @@
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background: #F6FAF7;
-  border-bottom: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border-bottom: 1px solid #e3e8e5;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .brRow {
@@ -90,16 +90,16 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background: #FFFFFF;
+  background: #ffffff;
   transition: background 0.1s;
 }
 
 .brRow:not(:last-child) {
-  border-bottom: 1px solid #EEF3EF;
+  border-bottom: 1px solid #eef3ef;
 }
 
 .brRow:hover {
-  background: #FAFCFA;
+  background: #fafcfa;
 }
 
 .statusDot {
@@ -114,7 +114,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -124,18 +124,18 @@
 .branchMeta {
   flex-grow: 1;
   font-size: 12.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .metaMono {
   font-family: 'JetBrains Mono', monospace;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .dateCol {
   width: 70px;
   font-size: 11.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
 }
 
@@ -170,39 +170,39 @@
   gap: 5px;
   padding: 4px 8px;
   border-radius: 5px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: nowrap;
   transition: all 0.12s;
 }
 
 .actionBtn:hover {
-  background: #F6FAF7;
-  border-color: #2E6F40;
+  background: #f6faf7;
+  border-color: #2e6f40;
 }
 
 /* Graph Container */
 .graphCard {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 10px;
   padding: 24px 28px;
   box-sizing: border-box;
-  background: #FFFFFF;
+  background: #ffffff;
   overflow-x: auto;
 }
 
 /* Create Branch Popover / Form */
 .createFormCard {
-  border: 1px solid #2E6F40;
+  border: 1px solid #2e6f40;
   border-radius: 10px;
   padding: 16px 18px;
   box-sizing: border-box;
-  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
-  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -211,7 +211,7 @@
 .formTitle {
   font-size: 13px;
   font-weight: 700;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .fieldGroup {
@@ -223,17 +223,17 @@
 .fieldLabel {
   font-size: 11px;
   font-weight: 600;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .textInput {
   padding: 7px 10px;
   border-radius: 6px;
-  border: 1px solid #B9CBBF;
-  background: #FFFFFF;
+  border: 1px solid #b9cbbf;
+  background: #ffffff;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   outline: none;
   width: 100%;
   box-sizing: border-box;
@@ -242,11 +242,11 @@
 .selectInput {
   padding: 7px 10px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #F6FAF7;
+  border: 1px solid #e3e8e5;
+  background: #f6faf7;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   outline: none;
   cursor: pointer;
 }
@@ -262,8 +262,8 @@
   padding: 6px 14px;
   border-radius: 6px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -276,9 +276,9 @@
 .btnCancel {
   padding: 6px 14px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   background: none;
-  color: #5B6B60;
+  color: #5b6b60;
   font-size: 12.5px;
   cursor: pointer;
 }
@@ -286,13 +286,13 @@
 .emptyState {
   padding: 32px;
   text-align: center;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-size: 13px;
 }
 
 .actionBtnDanger:hover {
-  border-color: #C4432A;
-  color: #C4432A;
+  border-color: #c4432a;
+  color: #c4432a;
   background: rgba(196, 67, 42, 0.06);
 }
 
@@ -307,7 +307,7 @@
 .worktreeBadge {
   font-size: 10.5px;
   font-weight: 600;
-  color: #2E6F40;
+  color: #2e6f40;
   background: rgba(46, 111, 64, 0.08);
   padding: 1px 6px;
   border-radius: 4px;
@@ -317,7 +317,7 @@
 .worktreePathMono {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #5B6B60;
+  color: #5b6b60;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -339,8 +339,8 @@
 .dialogCard {
   width: 400px;
   max-width: calc(100vw - 32px);
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 10px;
   padding: 18px 20px;
   box-sizing: border-box;
@@ -354,17 +354,25 @@
 .dialogTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #1E2A22;
+  color: #1e2a22;
   margin: 0;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .dialogPrompt {
   font-size: 13px;
-  color: #5B6B60;
+  color: #5b6b60;
   margin: 0;
   line-height: 1.4;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .dialogCheckboxLabel {
@@ -372,8 +380,8 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  background: #F6FAF7;
-  border: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   cursor: pointer;
   user-select: none;
@@ -382,7 +390,7 @@
 .dialogCheckbox {
   width: 16px;
   height: 16px;
-  accent-color: #2E6F40;
+  accent-color: #2e6f40;
   cursor: pointer;
   margin-top: 2px;
   flex-shrink: 0;
@@ -398,14 +406,18 @@
 .dialogCheckboxTitle {
   font-size: 12px;
   font-weight: 600;
-  color: #1E2A22;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #1e2a22;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .dialogWorktreePath {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #5B6B60;
+  color: #5b6b60;
   word-break: break-all;
 }
 
@@ -420,17 +432,21 @@
   padding: 7px 14px;
   border-radius: 6px;
   border: none;
-  background: #C4432A;
-  color: #FFFFFF;
+  background: #c4432a;
+  color: #ffffff;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: background-color 0.12s;
 }
 
 .dialogBtnDanger:hover:not(:disabled) {
-  background: #A8331D;
+  background: #a8331d;
 }
 
 .dialogBtnDanger:disabled {
@@ -442,12 +458,16 @@
   padding: 7px 14px;
   border-radius: 6px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: background-color 0.12s;
 }
 
@@ -463,27 +483,42 @@
 .dialogBtnCancel {
   padding: 7px 14px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   background: none;
-  color: #5B6B60;
+  color: #5b6b60;
   font-size: 12.5px;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.12s, color 0.12s;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 
 .dialogBtnCancel:hover {
-  background: #F6FAF7;
-  color: #1E2A22;
+  background: #f6faf7;
+  color: #1e2a22;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
-

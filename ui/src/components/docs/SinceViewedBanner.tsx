@@ -21,7 +21,11 @@ function readSeen(pageId: string): number | null {
   }
 }
 
-/** Record that the viewer has seen `version` of the page (also call this after your own publish). */
+/**
+ * Record that the viewer has seen `version` of the page (also call this after your own publish).
+ * @param pageId - Page that was viewed.
+ * @param version - Latest version the viewer has seen.
+ */
 export function markDocsSeen(pageId: string, version: number): void {
   try {
     localStorage.setItem(key(pageId), String(version));
@@ -35,7 +39,11 @@ function listNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** "Changes since you last viewed": collapsed by default, expands to the edits behind it. */
+/**
+ * "Changes since you last viewed": collapsed by default, expands to the edits behind it.
+ * @param props.page - Page to compare against the last viewed version.
+ * @param props.onCompare - Called with two version numbers to open their diff.
+ */
 export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
   const [seen, setSeen] = useState<number | null>(() => readSeen(page.id));
   const [open, setOpen] = useState(false);
@@ -55,7 +63,10 @@ export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
 
   const behind = seen != null && seen < page.version;
   const edits = useMemo(
-    () => (versionsQ.data ?? []).filter((v) => seen != null && v.version > seen && v.version <= page.version).sort((a, b) => b.version - a.version),
+    () =>
+      (versionsQ.data ?? [])
+        .filter((v) => seen != null && v.version > seen && v.version <= page.version)
+        .sort((a, b) => b.version - a.version),
     [versionsQ.data, seen, page.version],
   );
   const diffQ = useDocsDiff(behind ? page.id : null, behind ? seen : null, behind ? page.version : null);
@@ -93,7 +104,11 @@ export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
             {sectionNames.length > 0 && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {sectionNames.map((n) => (
-                  <span key={n} className="mc-chip" style={{ background: '#FFFFFF', border: '1px solid #B9D3EE', color: '#1F5A8E' }}>
+                  <span
+                    key={n}
+                    className="mc-chip"
+                    style={{ background: '#FFFFFF', border: '1px solid #B9D3EE', color: '#1F5A8E' }}
+                  >
                     {n}
                   </span>
                 ))}
@@ -103,18 +118,34 @@ export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
               {edits.map((e) => (
                 <div
                   key={e.version}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 12.5, color: '#1E2A22', borderTop: '1px solid #CFE0F2' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 0',
+                    fontSize: 12.5,
+                    color: '#1E2A22',
+                    borderTop: '1px solid #CFE0F2',
+                  }}
                 >
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700 }}>v{e.version}</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700 }}>
+                    v{e.version}
+                  </span>
                   <Avatar name={e.author} />
                   <b style={{ fontWeight: 600 }}>{displayName(e.author)}</b>
                   <span style={{ color: '#5B6B60' }}>{e.note ?? ''}</span>
-                  <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>{agoText(e.createdAt)}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+                    {agoText(e.createdAt)}
+                  </span>
                 </div>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" className="st-btn st-btn-sm st-btn-primary" onClick={() => onCompare(seen, page.version)}>
+              <button
+                type="button"
+                className="st-btn st-btn-sm st-btn-primary"
+                onClick={() => onCompare(seen, page.version)}
+              >
                 <Icon name="i40" size={13} strokeWidth={2} />
                 Compare v{seen} to v{page.version}
               </button>
@@ -136,7 +167,13 @@ export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
             </button>
           </>
         )}
-        <button type="button" className="dk-icobtn" aria-label="Dismiss" style={{ width: 26, height: 26 }} onClick={markSeen}>
+        <button
+          type="button"
+          className="dk-icobtn"
+          aria-label="Dismiss"
+          style={{ width: 26, height: 26 }}
+          onClick={markSeen}
+        >
           <Icon name="i08" size={14} strokeWidth={2} />
         </button>
       </div>

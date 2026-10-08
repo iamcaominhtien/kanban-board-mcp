@@ -62,15 +62,25 @@ def _doc_ref_keys(text_: str | None) -> list[str]:
 
     seen: dict[str, None] = {}
     for ref in page_ref_contexts(text_ or ""):
-        seen.setdefault(ref["title"] + (f"#{ref['anchor']}" if ref["anchor"] else ""), None)
+        seen.setdefault(
+            ref["title"] + (f"#{ref['anchor']}" if ref["anchor"] else ""), None
+        )
     return list(seen)
 
 
 def _doc_ref_entries(old: str | None, new: str | None, source: str) -> list[dict]:
     """doc_ref_removed / doc_ref_added activity entries for a text edit."""
     before, after = _doc_ref_keys(old), _doc_ref_keys(new)
-    out = [act.entry("doc_ref_removed", key, None, ref=source) for key in before if key not in after]
-    out += [act.entry("doc_ref_added", None, key, ref=source) for key in after if key not in before]
+    out = [
+        act.entry("doc_ref_removed", key, None, ref=source)
+        for key in before
+        if key not in after
+    ]
+    out += [
+        act.entry("doc_ref_added", None, key, ref=source)
+        for key in after
+        if key not in before
+    ]
     return out
 
 
@@ -203,6 +213,18 @@ async def list_tickets(
     q: str | None = None,
     include_wont_do: bool = False,
 ) -> list[Ticket]:
+    """List a project's tickets with optional status, priority and text filters.
+
+    Args:
+        project_id: Project to list.
+        status: Only tickets in this status.
+        priority: Only tickets with this priority.
+        q: Case-insensitive text matched against title and description.
+        include_wont_do: Also return "Won't do" tickets (hidden by default).
+
+    Returns:
+        Matching tickets.
+    """
     stmt = select(Ticket).where(Ticket.project_id == project_id)
     if status is not None:
         stmt = stmt.where(Ticket.status == status)
@@ -223,6 +245,7 @@ async def list_tickets(
 
 
 async def get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
+    """Return a ticket by id, or None."""
     return await session.get(Ticket, ticket_id)
 
 
@@ -242,6 +265,29 @@ async def create_ticket(
     created_by: str | None = None,
     assignee: str | None = None,
 ) -> Ticket:
+    """Validate and create a ticket with the next project number.
+
+    Args:
+        project_id: Owning project.
+        title: Ticket title (trimmed, length-checked).
+        type: Ticket type, e.g. "task", "bug".
+        priority: Priority level.
+        status: Initial board status.
+        description: Markdown description.
+        parent_id: Parent ticket id for a sub-ticket.
+        estimate: Estimate in the project's unit.
+        due_date: ISO due date.
+        start_date: ISO start date.
+        tags: Tag names.
+        created_by: Actor recorded as creator.
+        assignee: Member id; must belong to the project.
+
+    Returns:
+        The created ticket.
+
+    Raises:
+        ValueError: If a field is invalid or the assignee is not a project member.
+    """
     title = _clean_title(title)
     tags = _clean_tags(tags)
     estimate = _clean_estimate(estimate)
@@ -320,6 +366,20 @@ _AUDITABLE = (
 async def update_ticket(
     session: AsyncSession, ticket_id: str, data: TicketUpdate
 ) -> Ticket | None:
+    """Apply a partial update and log the changes; return None if missing.
+
+    Args:
+        ticket_id: Ticket to update.
+        data: Fields to change; unset fields are left alone.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+
+    Raises:
+        ValueError: If "wont_do" lacks a reason or is set on a child ticket, if Done
+            is blocked by open acceptance criteria or test cases, or if the assignee
+            is not a project member.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -384,7 +444,9 @@ async def update_ticket(
     # Per-ticket git repo override; empty/null falls back to the project's repo
     if "repo_path" in update_data:
         raw_repo = (update_data["repo_path"] or "").strip()
-        update_data["repo_path"] = git_repo.normalize_repo_path(raw_repo) if raw_repo else None
+        update_data["repo_path"] = (
+            git_repo.normalize_repo_path(raw_repo) if raw_repo else None
+        )
 
     # Clear wont_do_reason when transitioning away from wont_do
     if "status" in update_data and update_data["status"] != "wont_do":
@@ -394,11 +456,23 @@ async def update_ticket(
 
     for field, new_val in update_data.items():
         if field == "tags":
-            old_tags = _loads(ticket.tags) if isinstance(ticket.tags, str) else (ticket.tags or [])
-            new_tags = new_val if isinstance(new_val, list) else (_loads(new_val) if new_val else [])
+            old_tags = (
+                _loads(ticket.tags)
+                if isinstance(ticket.tags, str)
+                else (ticket.tags or [])
+            )
+            new_tags = (
+                new_val
+                if isinstance(new_val, list)
+                else (_loads(new_val) if new_val else [])
+            )
             if old_tags != new_tags:
                 activity.append(
-                    act.entry("tags", old_tags if old_tags else None, new_tags if new_tags else None)
+                    act.entry(
+                        "tags",
+                        old_tags if old_tags else None,
+                        new_tags if new_tags else None,
+                    )
                 )
             setattr(ticket, field, _dumps(new_tags))
         elif field in _AUDITABLE:
@@ -412,7 +486,9 @@ async def update_ticket(
                     activity.append(act.entry(field, old_val, new_val))
                     activity.extend(_doc_ref_entries(old_val, new_val, field))
                 else:
-                    activity.append(act.entry(field, act.clip(old_val), act.clip(new_val)))
+                    activity.append(
+                        act.entry(field, act.clip(old_val), act.clip(new_val))
+                    )
             setattr(ticket, field, new_val)
         else:
             setattr(ticket, field, new_val)
@@ -427,6 +503,7 @@ async def update_ticket(
 
 
 async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
+    """Delete a ticket; return False if it does not exist."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
@@ -439,14 +516,20 @@ async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
         child.updated_at = now
         session.add(child)
     others = await session.exec(
-        select(Ticket).where(Ticket.project_id == ticket.project_id, Ticket.id != ticket_id)
+        select(Ticket).where(
+            Ticket.project_id == ticket.project_id, Ticket.id != ticket_id
+        )
     )
     for other in others.all():
         blocks = _loads(other.blocks)
         blocked_by = _loads(other.blocked_by)
         links = _loads(other.links)
         new_links = [lk for lk in links if lk.get("target_id") != ticket_id]
-        if ticket_id in blocks or ticket_id in blocked_by or len(new_links) != len(links):
+        if (
+            ticket_id in blocks
+            or ticket_id in blocked_by
+            or len(new_links) != len(links)
+        ):
             other.blocks = _dumps([b for b in blocks if b != ticket_id])
             other.blocked_by = _dumps([b for b in blocked_by if b != ticket_id])
             other.links = _dumps(new_links)
@@ -464,10 +547,16 @@ async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
 
 
 async def _comment_recipients(
-    session: AsyncSession, ticket: Ticket, comments: list, author: str, mentions: list[str]
+    session: AsyncSession,
+    ticket: Ticket,
+    comments: list,
+    author: str,
+    mentions: list[str],
 ) -> list[dict]:
     """Who a new comment notifies: reporter, assignee, earlier commenters and anyone @mentioned (not the author)."""
-    result = await session.exec(select(Member).where(Member.project_id == ticket.project_id))
+    result = await session.exec(
+        select(Member).where(Member.project_id == ticket.project_id)
+    )
     members = list(result.all())
 
     def find(ref: str | None) -> Member | None:
@@ -478,7 +567,12 @@ async def _comment_recipients(
 
     author_member = find(author)
     ids: dict[str, str] = {}
-    for ref in [ticket.created_by, ticket.assignee, *[c.get("author") for c in comments if not c.get("deleted_at")], *mentions]:
+    for ref in [
+        ticket.created_by,
+        ticket.assignee,
+        *[c.get("author") for c in comments if not c.get("deleted_at")],
+        *mentions,
+    ]:
         m = find(ref)
         if m is not None:
             ids.setdefault(m.id, m.name)
@@ -490,6 +584,16 @@ async def _comment_recipients(
 async def add_comment(
     session: AsyncSession, ticket_id: str, text: str, author: str = "user"
 ) -> Ticket | None:
+    """Add a comment, record its mentions and notify the people involved.
+
+    Args:
+        ticket_id: Ticket to comment on.
+        text: Markdown text; `@[Name](member:id)` mentions are recorded.
+        author: Actor name stored with the comment.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -510,7 +614,9 @@ async def add_comment(
             "notified": notified,
         }
     )
-    act.record(ticket, "comment", None, text, ref=comment_id, actor=act.author_actor(author))
+    act.record(
+        ticket, "comment", None, text, ref=comment_id, actor=act.author_actor(author)
+    )
     ticket.comments = _dumps(comments)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -522,7 +628,15 @@ async def add_comment(
 async def delete_comment(
     session: AsyncSession, ticket_id: str, comment_id: str
 ) -> Ticket | None:
-    """Soft delete: the comment keeps its place in the data but is hidden everywhere (Undo restores it)."""
+    """Soft-delete a comment: it is hidden everywhere but keeps its data, so Undo can restore it.
+
+    Args:
+        ticket_id: Ticket holding the comment.
+        comment_id: Comment to hide.
+
+    Returns:
+        The updated ticket, or None if the ticket or comment does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -543,6 +657,15 @@ async def delete_comment(
 async def restore_comment(
     session: AsyncSession, ticket_id: str, comment_id: str
 ) -> Ticket | None:
+    """Undo a comment deletion.
+
+    Args:
+        ticket_id: Ticket holding the comment.
+        comment_id: Comment to restore.
+
+    Returns:
+        The updated ticket, or None if the ticket or comment does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -565,6 +688,16 @@ async def restore_comment(
 async def update_comment(
     session: AsyncSession, ticket_id: str, comment_id: str, text: str
 ) -> Ticket | None:
+    """Edit a comment's text and mark it edited.
+
+    Args:
+        ticket_id: Ticket holding the comment.
+        comment_id: Comment to edit.
+        text: New Markdown text.
+
+    Returns:
+        The updated ticket, or None if the ticket or comment does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -597,6 +730,15 @@ async def update_comment(
 async def add_acceptance_criterion(
     session: AsyncSession, ticket_id: str, text: str
 ) -> Ticket | None:
+    """Append a acceptance criterion.
+
+    Args:
+        ticket_id: Ticket to add to.
+        text: Text of the new item.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -615,6 +757,15 @@ async def add_acceptance_criterion(
 async def toggle_acceptance_criterion(
     session: AsyncSession, ticket_id: str, criterion_id: str
 ) -> Ticket | None:
+    """Flip an acceptance criterion's done state.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        criterion_id: Item to toggle.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -641,6 +792,15 @@ async def toggle_acceptance_criterion(
 async def delete_acceptance_criterion(
     session: AsyncSession, ticket_id: str, criterion_id: str
 ) -> Ticket | None:
+    """Remove an acceptance criterion.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        criterion_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -664,6 +824,15 @@ async def delete_acceptance_criterion(
 async def add_sub_task(
     session: AsyncSession, ticket_id: str, text: str
 ) -> Ticket | None:
+    """Append a sub-task.
+
+    Args:
+        ticket_id: Ticket to add to.
+        text: Text of the new item.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -682,6 +851,15 @@ async def add_sub_task(
 async def toggle_sub_task(
     session: AsyncSession, ticket_id: str, sub_task_id: str
 ) -> Ticket | None:
+    """Flip a sub-task's done state.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        sub_task_id: Item to toggle.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -708,6 +886,15 @@ async def toggle_sub_task(
 async def delete_sub_task(
     session: AsyncSession, ticket_id: str, sub_task_id: str
 ) -> Ticket | None:
+    """Remove a sub-task.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        sub_task_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -741,8 +928,14 @@ def _clean_attachments(attachments: list | None) -> list[dict]:
         url = str(raw.get("url") or "")
         name = str(raw.get("name") or "").strip()
         if not url.startswith("/uploads/") or ".." in url or not name:
-            raise ValueError("Attachments need a name and a /uploads/ url (upload the file first)")
-        item = {"id": str(raw.get("id") or uuid.uuid4()), "name": name[:200], "url": url}
+            raise ValueError(
+                "Attachments need a name and a /uploads/ url (upload the file first)"
+            )
+        item = {
+            "id": str(raw.get("id") or uuid.uuid4()),
+            "name": name[:200],
+            "url": url,
+        }
         if isinstance(raw.get("size"), int):
             item["size"] = raw["size"]
         if raw.get("type"):
@@ -804,6 +997,22 @@ async def add_work_log(
     linked_branch: str | None = None,
     linked_test_case: str | None = None,
 ) -> Ticket | None:
+    """Append a work-log (debug note) entry.
+
+    Args:
+        ticket_id: Ticket to add to.
+        author: Name of the author.
+        role: Author role: PM, Developer, BA, Tester, Designer or Other.
+        note: Markdown note.
+        kind: Entry kind, e.g. "investigation".
+        pinned: Pin the entry to the top.
+        attachments: Files, each `{name, url}` with a `/uploads/` url.
+        linked_branch: Branch id the note relates to.
+        linked_test_case: Test-case id the note relates to.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -853,12 +1062,31 @@ async def update_work_log(
     author: str | None = None,
     role: str | None = None,
 ) -> Ticket | None:
+    """Edit a work-log entry; only the fields you pass are changed.
+
+    Args:
+        ticket_id: Ticket holding the entry.
+        log_id: Entry to edit.
+        note: New note.
+        kind: New kind.
+        pinned: New pinned state.
+        attachments: Replacement attachment list.
+        linked_branch: Branch id the note relates to.
+        linked_test_case: Test-case id the note relates to.
+        author: New author name.
+        role: New author role.
+
+    Returns:
+        The updated ticket, or None if the ticket or entry does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     _validate_work_log_fields(author=author, role=role, note=note, kind=kind)
     if linked_branch is not None or linked_test_case is not None:
-        resolved_branch, resolved_tc = _resolve_work_log_links(ticket, linked_branch, linked_test_case)
+        resolved_branch, resolved_tc = _resolve_work_log_links(
+            ticket, linked_branch, linked_test_case
+        )
     if attachments is not None:
         attachments = _clean_attachments(attachments)
     if note is not None:
@@ -903,13 +1131,24 @@ async def update_work_log(
 async def delete_work_log(
     session: AsyncSession, ticket_id: str, log_id: str
 ) -> Ticket | None:
+    """Remove a work-log entry.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        log_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     logs = _loads(ticket.work_log)
     removed = next((lg for lg in logs if lg.get("id") == log_id), None)
     if removed is not None:
-        act.record(ticket, "work_log", removed.get("note"), None, ref=removed.get("role"))
+        act.record(
+            ticket, "work_log", removed.get("note"), None, ref=removed.get("role")
+        )
     ticket.work_log = _dumps([lg for lg in logs if lg.get("id") != log_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -936,6 +1175,23 @@ async def add_test_case(
     assignee: str | None = None,
     test_data_files: list | None = None,
 ) -> Ticket | None:
+    """Append a test case with the next `TC-n` code.
+
+    Args:
+        ticket_id: Ticket to add to.
+        title: Short title.
+        status: Initial status, e.g. "pending".
+        proof: Evidence for the result (text or link).
+        note: Short note on the result.
+        description: What is being tested.
+        expected_result: Expected outcome.
+        notes: Free-form extra notes.
+        assignee: Member id who runs it.
+        test_data_files: Attached data files.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -995,6 +1251,24 @@ async def update_test_case(
     assignee: str | None = None,
     test_data_files: list | None = None,
 ) -> Ticket | None:
+    """Update a test case; only the fields you pass are changed.
+
+    Args:
+        ticket_id: Ticket holding the test case.
+        tc_id: Test case to update.
+        status: New status.
+        proof: New evidence.
+        note: New short note.
+        title: New title.
+        description: New description.
+        expected_result: New expected outcome.
+        notes: New extra notes.
+        assignee: New assignee member id.
+        test_data_files: Replacement data files.
+
+    Returns:
+        The updated ticket, or None if the ticket or test case does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1008,7 +1282,9 @@ async def update_test_case(
             if status is not None and status != old_status:
                 act.record(ticket, "test_case_status", old_status, status, ref=label)
             if title is not None and title != tc.get("title"):
-                act.record(ticket, "test_case", tc.get("title"), title, ref=tc.get("code"))
+                act.record(
+                    ticket, "test_case", tc.get("title"), title, ref=tc.get("code")
+                )
             if status is not None:
                 tc["status"] = status
                 if status == "running" and old_status != "running":
@@ -1042,13 +1318,24 @@ async def update_test_case(
 async def delete_test_case(
     session: AsyncSession, ticket_id: str, tc_id: str
 ) -> Ticket | None:
+    """Remove a test case.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        tc_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     tcs = _loads(ticket.test_cases)
     removed = next((t for t in tcs if t.get("id") == tc_id), None)
     if removed is not None:
-        act.record(ticket, "test_case", removed.get("title"), None, ref=removed.get("code"))
+        act.record(
+            ticket, "test_case", removed.get("title"), None, ref=removed.get("code")
+        )
     ticket.test_cases = _dumps([t for t in tcs if t.get("id") != tc_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -1060,6 +1347,15 @@ async def delete_test_case(
 async def get_project_activities(
     session: AsyncSession, project_id: str, limit: int = 200
 ) -> list[ActivityEventRead]:
+    """Return the project's most recent activity across tickets, newest first.
+
+    Args:
+        project_id: Project to read.
+        limit: Maximum number of entries.
+
+    Returns:
+        Activity entries with their ticket id and title.
+    """
     tickets = await list_tickets(session, project_id, include_wont_do=True)
     events: list[ActivityEventRead] = []
     for ticket in tickets:
@@ -1127,7 +1423,19 @@ async def _blocks_transitively(
 async def link_block(
     session: AsyncSession, blocker_id: str, blocked_id: str
 ) -> tuple[Ticket, Ticket] | None:
-    """Make blocker_id block blocked_id. Updates both tickets."""
+    """Make `blocker_id` block `blocked_id` and update both tickets.
+
+    Args:
+        blocker_id: Ticket that blocks.
+        blocked_id: Ticket that is blocked.
+
+    Returns:
+        `(blocker, blocked)`, or None if either ticket does not exist.
+
+    Raises:
+        ValueError: If a ticket would block itself, the tickets are in different
+            projects, or the link would create a cycle.
+    """
     if blocker_id == blocked_id:
         raise ValueError("A ticket cannot block itself")
     blocker = await session.get(Ticket, blocker_id)
@@ -1166,7 +1474,15 @@ async def link_block(
 async def unlink_block(
     session: AsyncSession, blocker_id: str, blocked_id: str
 ) -> tuple[Ticket, Ticket] | None:
-    """Remove block relationship between the two tickets."""
+    """Remove the blocks relation between two tickets.
+
+    Args:
+        blocker_id: Ticket that blocks.
+        blocked_id: Ticket that is blocked.
+
+    Returns:
+        `(blocker, blocked)`, or None if either ticket does not exist.
+    """
     blocker = await session.get(Ticket, blocker_id)
     blocked = await session.get(Ticket, blocked_id)
     if blocker is None or blocked is None:
@@ -1226,6 +1542,20 @@ async def add_ticket_link(
     target_id: str,
     relation_type: str,
 ) -> dict:
+    """Link two tickets in the same project and add the inverse link on the target.
+
+    Args:
+        ticket_id: Source ticket.
+        target_id: Ticket to link to.
+        relation_type: One of `relates_to`, `causes`, `caused_by`, `duplicates`, `duplicated_by`.
+
+    Returns:
+        The link created, or the existing one if it is a duplicate.
+
+    Raises:
+        ValueError: If the tickets are the same, either is missing, they are in
+            different projects, or the relation type is invalid.
+    """
     if ticket_id == target_id:
         raise ValueError("A ticket cannot link to itself")
     if relation_type not in VALID_RELATION_TYPES:
@@ -1288,6 +1618,15 @@ async def remove_ticket_link(
     ticket_id: str,
     link_id: str,
 ) -> bool:
+    """Remove a link from both tickets.
+
+    Args:
+        ticket_id: Ticket holding the link.
+        link_id: Link to remove.
+
+    Returns:
+        True if removed, False if the ticket or link was not found.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
@@ -1333,9 +1672,8 @@ async def remove_ticket_link(
 VALID_BRANCH_STATUSES = {"baseline", "open", "merged", "stale", "archived"}
 
 
-async def list_branches(
-    session: AsyncSession, ticket_id: str
-) -> list[dict] | None:
+async def list_branches(session: AsyncSession, ticket_id: str) -> list[dict] | None:
+    """Return a ticket's branches, or None if the ticket is missing."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1361,10 +1699,14 @@ def _sync_branches_with_git(repo_path: str, branches: list[dict]) -> list[dict]:
     synced = []
     for br in branches:
         br = dict(br)
-        br.update(is_current=br.get("name") == current, isCurrent=br.get("name") == current)
+        br.update(
+            is_current=br.get("name") == current, isCurrent=br.get("name") == current
+        )
         if br.get("status") != "baseline":
             try:
-                info = git_repo.branch_info(repo, br["name"], br.get("branch_from") or "main")
+                info = git_repo.branch_info(
+                    repo, br["name"], br.get("branch_from") or "main"
+                )
             except (git_repo.GitRepoError, GitCommandError):
                 # Branch not in this repo (e.g. repo was changed): keep stored values
                 br.update(in_repo=False, inRepo=False)
@@ -1398,6 +1740,27 @@ async def add_branch(
     create_worktree: bool = False,
     worktree_path: str | None = None,
 ) -> Ticket | None:
+    """Record a branch on a ticket, creating it (and optionally a worktree) in the linked repo.
+
+    Args:
+        ticket_id: Ticket to add to.
+        name: Branch name.
+        branch_from: Branch to start from.
+        status: Branch status, one of the valid branch statuses.
+        pr_url: Pull request link.
+        commit_hash: Head commit.
+        linked_ticket_id: Another ticket this branch also serves.
+        ahead_count: Commits ahead of `branch_from`.
+        behind_count: Commits behind `branch_from`.
+        create_worktree: Also create a git worktree.
+        worktree_path: Worktree location; defaults to the configured template.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+
+    Raises:
+        ValueError: If the status is invalid or a worktree is requested without a linked repo.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1416,7 +1779,9 @@ async def add_branch(
     if repo_path:
         # Real git repo linked: create the branch there and use its true state.
         def _create() -> git_repo.BranchInfo:
-            return git_repo.create_branch(git_repo.open_repo(repo_path), name, branch_from)
+            return git_repo.create_branch(
+                git_repo.open_repo(repo_path), name, branch_from
+            )
 
         info = await asyncio.to_thread(_create)
         commit_hash = info.commit_hash
@@ -1440,7 +1805,9 @@ async def add_branch(
             )
 
             def _make_wt() -> str:
-                return git_repo.add_worktree(git_repo.open_repo(repo_path), target_wt, name)
+                return git_repo.add_worktree(
+                    git_repo.open_repo(repo_path), target_wt, name
+                )
 
             try:
                 resolved_worktree_path = await asyncio.to_thread(_make_wt)
@@ -1490,7 +1857,11 @@ async def add_branch(
 
 
 def _git_guard_update(
-    repo_path: str, br: dict, new_name: str | None, new_status: str | None, base: str | None
+    repo_path: str,
+    br: dict,
+    new_name: str | None,
+    new_status: str | None,
+    base: str | None,
 ) -> None:
     """Apply/verify the git side of a branch update before the board record changes."""
     repo = git_repo.open_repo(repo_path)
@@ -1522,6 +1893,28 @@ async def update_branch(
     remove_worktree: bool = False,
     worktree_path: str | None = None,
 ) -> Ticket | None:
+    """Update a branch; only the fields you pass are changed.
+
+    Args:
+        ticket_id: Ticket holding the branch.
+        branch_id: Branch to update.
+        name: New name (renamed in the repo too when linked).
+        status: New status.
+        branch_from: New base branch.
+        pr_url: New pull request link.
+        commit_hash: New head commit.
+        linked_ticket_id: Another ticket this branch also serves.
+        ahead_count: Commits ahead of the base.
+        behind_count: Commits behind the base.
+        remove_worktree: Remove the branch's git worktree.
+        worktree_path: New worktree location.
+
+    Returns:
+        The updated ticket, or None if the ticket or branch does not exist.
+
+    Raises:
+        ValueError: If the status is invalid.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1536,7 +1929,11 @@ async def update_branch(
     for br in branches:
         if br.get("id") == branch_id:
             found = True
-            old_name, old_status, had_worktree = br.get("name"), br.get("status"), br.get("worktree_path")
+            old_name, old_status, had_worktree = (
+                br.get("name"),
+                br.get("status"),
+                br.get("worktree_path"),
+            )
             if repo_for_git and br.get("status") != "baseline":
                 await asyncio.to_thread(
                     _git_guard_update,
@@ -1574,7 +1971,10 @@ async def update_branch(
                     wt = br["worktree_path"]
                     # Errors propagate: the board must not claim the worktree is gone
                     await asyncio.to_thread(
-                        git_repo.remove_worktree, git_repo.open_repo(repo_path), wt, True
+                        git_repo.remove_worktree,
+                        git_repo.open_repo(repo_path),
+                        wt,
+                        True,
                     )
                 br["worktree_path"] = None
                 br["worktreePath"] = None
@@ -1586,9 +1986,13 @@ async def update_branch(
             if name is not None and name != old_name:
                 act.record(ticket, "branch", old_name, name)
             if status is not None and status != old_status:
-                act.record(ticket, "branch_status", old_status, status, ref=br.get("name"))
+                act.record(
+                    ticket, "branch_status", old_status, status, ref=br.get("name")
+                )
             if had_worktree and not br.get("worktree_path"):
-                act.record(ticket, "branch_worktree", had_worktree, None, ref=br.get("name"))
+                act.record(
+                    ticket, "branch_worktree", had_worktree, None, ref=br.get("name")
+                )
             break
     if not found:
         return None
@@ -1608,6 +2012,18 @@ async def delete_branch(
     delete_git_branch: bool = False,
     force: bool = False,
 ) -> Ticket | None:
+    """Remove a branch record, optionally with its worktree and git branch.
+
+    Args:
+        ticket_id: Ticket holding the branch.
+        branch_id: Branch to remove.
+        remove_worktree: Also remove its git worktree.
+        delete_git_branch: Also delete the branch in the repo.
+        force: Force deletion of an unmerged branch.
+
+    Returns:
+        The updated ticket, or None if the ticket or branch does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1635,8 +2051,21 @@ async def delete_branch(
     return ticket
 
 
-async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str) -> Ticket | None:
-    """Check out a ticket branch in the linked repository's main working tree."""
+async def checkout_branch(
+    session: AsyncSession, ticket_id: str, branch_id: str
+) -> Ticket | None:
+    """Check out a ticket branch in the linked repository's main working tree.
+
+    Args:
+        ticket_id: Ticket holding the branch.
+        branch_id: Branch to check out.
+
+    Returns:
+        The updated ticket, or None if the ticket or branch does not exist.
+
+    Raises:
+        ValueError: If no repository is linked.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1646,7 +2075,9 @@ async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str)
         return None
     repo_path = await _project_repo_path(session, ticket)
     if not repo_path:
-        raise ValueError("Link a git repository to this project or ticket before checking out branches")
+        raise ValueError(
+            "Link a git repository to this project or ticket before checking out branches"
+        )
     await asyncio.to_thread(
         lambda: git_repo.checkout_branch(git_repo.open_repo(repo_path), target["name"])
     )
@@ -1657,8 +2088,18 @@ async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str)
     return ticket
 
 
-async def get_branch_graph(session: AsyncSession, ticket_id: str, limit: int = 80) -> dict | None:
-    """Real commit graph for the ticket's branches; ``linked`` is False without a repo."""
+async def get_branch_graph(
+    session: AsyncSession, ticket_id: str, limit: int = 80
+) -> dict | None:
+    """Return the commit graph for the ticket's branches; `linked` is False without a repo.
+
+    Args:
+        ticket_id: Ticket whose branches to draw.
+        limit: Maximum number of commits.
+
+    Returns:
+        Graph data, or None if the ticket does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1696,7 +2137,21 @@ async def get_branch_graph(session: AsyncSession, ticket_id: str, limit: int = 8
     return await asyncio.to_thread(_build)
 
 
-async def get_commit_detail(session: AsyncSession, ticket_id: str, rev: str) -> dict | None:
+async def get_commit_detail(
+    session: AsyncSession, ticket_id: str, rev: str
+) -> dict | None:
+    """Return details of a commit in the ticket's linked repo.
+
+    Args:
+        ticket_id: Ticket whose repo to read.
+        rev: Commit hash or revision.
+
+    Returns:
+        Commit details, or None if the ticket does not exist.
+
+    Raises:
+        ValueError: If no repository is linked.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None

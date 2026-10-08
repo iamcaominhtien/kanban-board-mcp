@@ -1,3 +1,4 @@
+/** Format a past time as "5m ago" or a short date. */
 export function relativeTime(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins < 1) return 'just now';
@@ -9,6 +10,7 @@ export function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/** Format as "Oct 8, 2026, 3:04 PM". */
 export function absoluteTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
     month: 'short',
@@ -24,6 +26,7 @@ export function actorName(actor: string): string {
   return actor === 'agent' ? 'AI agent' : actor === 'user' ? 'You' : actor;
 }
 
+/** Return avatar initials for an actor. */
 export function actorInitials(actor: string): string {
   return actor === 'agent' ? 'AI' : actor === 'user' ? 'ME' : actor.slice(0, 2).toUpperCase();
 }

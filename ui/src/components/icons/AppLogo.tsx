@@ -6,6 +6,7 @@ interface AppLogoProps {
   style?: React.CSSProperties;
 }
 
+/** App logo mark. */
 export function AppLogo({ size = 22, className, style }: AppLogoProps) {
   // Proportions mapped directly from Main.dc.html (size 22 reference):
   // container: 22px, radius 6px, background: #2E6F40

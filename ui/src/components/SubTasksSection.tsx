@@ -9,7 +9,12 @@ interface SubTasksSectionProps {
   onDelete: (id: string) => void;
 }
 
-/** Lightweight checklist inside a ticket. Real child tickets live in SubTicketsSection. */
+/**
+ * Lightweight checklist inside a ticket. Real child tickets live in SubTicketsSection.
+ * @param props.onAdd - Called with the text of a new sub-task.
+ * @param props.onToggle - Called with the id of the sub-task whose done state is flipped.
+ * @param props.onDelete - Called with the id of the sub-task to delete.
+ */
 export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTasksSectionProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newText, setNewText] = useState('');
@@ -64,16 +69,19 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
                 {item.done ? (
                   <svg className={styles.checkDone} viewBox="0 0 14 14" fill="none">
                     <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
-                    <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M4.3 7.2L6.1 9L9.8 5"
+                      stroke="#2E6F40"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 ) : (
                   <div className={styles.checkOpen} />
                 )}
               </button>
-              <span
-                className={item.done ? styles.textDone : styles.text}
-                onClick={() => onToggle(item.id)}
-              >
+              <span className={item.done ? styles.textDone : styles.text} onClick={() => onToggle(item.id)}>
                 {item.text}
               </span>
               <button
@@ -83,7 +91,15 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
                 title="Delete sub-task"
                 aria-label="Delete sub-task"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
                   <path d="M6 6L18 18" />
                   <path d="M18 6L6 18" />
                 </svg>
@@ -109,13 +125,30 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
               }}
             />
             <button type="button" className={styles.actionBtnCancel} onClick={handleCancel} aria-label="Cancel">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <path d="M6 6L18 18" />
                 <path d="M18 6L6 18" />
               </svg>
             </button>
             <button type="button" className={styles.actionBtnSave} onClick={handleSave} aria-label="Save sub-task">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M5 13L10 18L19 6" />
               </svg>
             </button>
@@ -124,7 +157,15 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
         </div>
       ) : (
         <button type="button" className={styles.addDashedBtn} onClick={() => setIsAdding(true)}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
             <path d="M12 5V19" />
             <path d="M5 12H19" />
           </svg>
