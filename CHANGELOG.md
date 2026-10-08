@@ -8,8 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+---
+
+## [2.4.0] - 2026-10-08
+
+The desktop app now tells you when a new version is out and downloads it for you.
+
 ### Added
 - **In-app update notice (desktop)**: the app checks GitHub Releases on launch and every 6 hours; when a newer version exists it shows release notes and downloads the right installer for your OS and CPU (sha256-verified). Windows runs the installer and restarts; macOS opens the disk image. "Later" and "Skip this version" are available.
+- Desktop update checks run in packaged builds only; installing on macOS stays a drag-and-drop because the app is not code-signed.
 
 ---
 
