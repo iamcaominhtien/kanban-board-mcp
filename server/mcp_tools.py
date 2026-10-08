@@ -51,7 +51,7 @@ _VALID_IDEA_COLORS = frozenset(IDEA_COLORS)
 # ---------------------------------------------------------------------------
 
 ProjectId = Annotated[
-    str, Field(description="Project UUID from list_projects (not the prefix).")
+    str, Field(description="Project UUID from get_projects (not the prefix).")
 ]
 TicketId = Annotated[str, Field(description="Ticket ID such as 'IAM-12' (not a UUID).")]
 IdeaId = Annotated[str, Field(description="Idea ticket ID such as 'IDEA-3'.")]
@@ -83,7 +83,9 @@ BranchRef = Annotated[
         description="Branch id (UUID) or branch name (from the ticket's `branches` list)."
     ),
 ]
-MemberId = Annotated[str, Field(description="Member id (UUID) from list_members.")]
+MemberId = Annotated[
+    str, Field(description="Member id (UUID) from get_projects(project_id).")
+]
 
 TicketType = Literal["bug", "feature", "task", "chore"]
 Priority = Literal["low", "medium", "high", "critical"]
@@ -349,7 +351,7 @@ async def update_project(
         project = await svc_projects.update_project(session, project_id, data)
         if project is None:
             raise ValueError(
-                f"Project '{project_id}' not found. Use list_projects to see project ids."
+                f"Project '{project_id}' not found. Use get_projects to see project ids."
             )
         return ProjectRead.model_validate(project).model_dump()
 
@@ -480,7 +482,7 @@ async def create_ticket(
             return _ticket_to_dict(ticket)
     except NoResultFound:
         raise ValueError(
-            f"Project not found: {project_id}. Use list_projects to see project ids."
+            f"Project not found: {project_id}. Use get_projects to see project ids."
         )
 
 
@@ -546,6 +548,12 @@ def _upload_files(data: dict) -> list[dict]:
 
 async def get_ticket(
     ticket_id: TicketId,
+    view: Annotated[
+        Literal["full", "comments"],
+        Field(
+            description="'full' (default): the whole ticket. 'comments': only the comment thread, cheaper when you just need the discussion."
+        ),
+    ] = "full",
     activity_limit: Annotated[
         int | None,
         Field(
@@ -565,7 +573,10 @@ async def get_ticket(
     `files`: uploaded images/files the ticket mentions, with absolute `path` on disk to read.
     Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
     `activity_log` holds the most recent changes (who changed what and when); `activity_total` is how many entries the
-    ticket has in all, so you can tell when more exist (widen with activity_limit or narrow with activity_since)."""
+    ticket has in all, so you can tell when more exist (widen with activity_limit or narrow with activity_since).
+    view='comments' returns just the comment thread (oldest first: id, author, text, at, edited_at, notified)."""
+    if view == "comments":
+        return await list_comments(ticket_id)
     since = _parse_since(activity_since) if activity_since else None
     async with async_session() as session:
         ticket = await svc_tickets.get_ticket(session, ticket_id)
@@ -894,7 +905,7 @@ async def unlink_tickets(
     if not removed:
         raise ValueError(
             f"Link '{link_id}' not found on {ticket_id}. A link has a different id on each of its two tickets: use the "
-            f"ticket you gave to link_tickets, or read the ids from get_ticket('{ticket_id}').links."
+            f"ticket you gave to manage_ticket(action='link'), or read the ids from get_ticket('{ticket_id}').links."
         )
     return {"removed": link_id}
 
@@ -1487,7 +1498,7 @@ async def remove_member(project_id: ProjectId, member_id: MemberId) -> dict:
         removed = await svc_members.remove_member(session, project_id, member_id)
     if not removed:
         raise ValueError(
-            f"Member '{member_id}' not found in this project. Use list_members to see member ids."
+            f"Member '{member_id}' not found in this project. Use get_projects(project_id) to see member ids."
         )
     return {"ok": True}
 
@@ -1801,13 +1812,13 @@ async def get_idea_activity_trail(ticket_id: IdeaId) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 DocsPageId = Annotated[
-    str, Field(description="Docs page id (UUID) from list_docs_pages.")
+    str, Field(description="Docs page id (UUID) from docs_read(action='list').")
 ]
 
 
 def _docs_error(exc: "svc_docs.DocsError") -> ValueError:
     hint = (
-        " Call get_docs_page again, re-apply your edit on the new version, and retry."
+        " Call docs_read(action='get') again, re-apply your edit on the new version, and retry."
         if exc.code == "conflict"
         else ""
     )
@@ -2196,9 +2207,15 @@ def ideas_enabled() -> bool:
 
 
 _INSTRUCTIONS_HEAD = """\
-Kanban board for software projects. Typical flow: list_projects -> list_tickets -> get_ticket -> \
-update_ticket_status('in-progress') -> keep add_work_log (debug journal) / add_comment updated while you work -> \
-add_test_case / toggle_acceptance_criterion -> update_ticket_status('done').
+Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> \
+manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> \
+ticket_items (test_case, criterion) -> manage_ticket(update, status='done').
+
+Tools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the \
+parameters every action takes, and a wrong call is answered with what that action accepts.
+- get_projects, list_tickets, get_ticket, docs_read: read only.
+- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, \
+acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write.
 
 Concepts
 - Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, \
@@ -2209,19 +2226,19 @@ _INSTRUCTIONS_IDEAS = """\
 - Idea Space is separate: ideas have ids 'IDEA-N' and can be promoted to a ticket once approved.
 """
 _INSTRUCTIONS_TAIL = """\
-- Docs: each project has a page tree of Markdown pages: read with list_docs_pages / get_docs_page / search_docs, write with \
-create_docs_page / update_docs_page (send the `version` you read as base_version; a stale one is rejected, so re-read and retry), \
-organise with move/duplicate/delete/restore_docs_page and the *_docs_version tools. Link pages with [[Title#Section]] and tickets by key (IAM-12).
-- Each ticket has a scratch folder: get_ticket_workspace_path, then use your own file tools there.
+- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with \
+docs_write (create, update, move, ...). Send the `version` you read as base_version when updating; a stale one is rejected, \
+so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12).
+- Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry.
 - Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).
-- Omitted optional arguments mean "unchanged". To empty a field use update_ticket's clear_fields{ideas_null}.
+- Omitted optional arguments mean "unchanged". To empty a field use manage_ticket's clear_fields{ideas_null}.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
 - File attachments and images use standard root-relative path '/uploads/{{filename}}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.
-- delete_* tools are permanent; prefer status 'wont_do'{ideas_drop} to retire things.
+- Every `delete` is permanent; prefer status 'wont_do'{ideas_drop} to retire tickets.
 """
 
 
@@ -2254,70 +2271,8 @@ _DELETE = ToolAnnotations(
     readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False
 )
 
-CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
-    # projects & members
-    (list_projects, _READ),
-    (create_project, _WRITE),
-    (update_project, _UPDATE),
-    (list_members, _READ),
-    (add_member, _WRITE),
-    (remove_member, _DELETE),
-    # tickets
-    (list_tickets, _READ),
-    (get_ticket, _READ),
-    (get_ticket_workspace_path, _UPDATE),  # creates the folder on first call
-    (create_ticket, _WRITE),
-    (create_child_ticket, _WRITE),
-    (update_ticket, _UPDATE),
-    (update_ticket_status, _UPDATE),
-    (delete_ticket, _DELETE),
-    # relations
-    (block_ticket, _UPDATE),
-    (unblock_ticket, _UPDATE),
-    (link_tickets, _WRITE),
-    (unlink_tickets, _DELETE),
-    # comments, work log, test cases, criteria, branches
-    (add_comment, _WRITE),
-    (update_comment, _UPDATE),
-    (list_comments, _READ),
-    (restore_comment, _UPDATE),
-    (delete_comment, _DELETE),
-    (add_work_log, _WRITE),
-    (update_work_log, _UPDATE),
-    (delete_work_log, _DELETE),
-    (add_test_case, _WRITE),
-    (update_test_case, _UPDATE),
-    (delete_test_case, _DELETE),
-    (add_acceptance_criterion, _WRITE),
-    (toggle_acceptance_criterion, _WRITE),
-    (delete_acceptance_criterion, _DELETE),
-    (add_sub_task, _WRITE),
-    (toggle_sub_task, _WRITE),
-    (delete_sub_task, _DELETE),
-    (add_branch, _WRITE),
-    (update_branch, _UPDATE),
-    (delete_branch, _DELETE),
-    (checkout_branch, _UPDATE),
-    # docs
-    (list_docs_pages, _READ),
-    (get_docs_page, _READ),
-    (create_docs_page, _WRITE),
-    (update_docs_page, _UPDATE),
-    (search_docs, _READ),
-    (move_docs_page, _UPDATE),
-    (duplicate_docs_page, _WRITE),
-    (delete_docs_page, _DELETE),
-    (restore_docs_page, _UPDATE),
-    (list_docs_recycle_bin, _READ),
-    (list_docs_versions, _READ),
-    (get_docs_version, _READ),
-    (restore_docs_version, _UPDATE),
-    (resolve_docs_links, _READ),
-    (import_docs, _WRITE),
-    (link_ticket_doc, _WRITE),
-    (unlink_ticket_doc, _DELETE),
-]
-
+# The tools the agent sees are the 9 in mcp_facade.CORE_TOOL_TABLE; the one-function-per-verb operations above are
+# what they route to (and what the tests call directly). Only the Idea Space keeps one tool per verb.
 # The Idea Space tools are hidden from the MCP tool list for now (about a quarter of its size). They are fully
 # implemented: set KANBAN_MCP_IDEA_TOOLS=1 to expose them again.
 IDEA_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
@@ -2363,12 +2318,13 @@ def _strip_properties(props: Any) -> Any:
     return {name: _strip_titles(sub) for name, sub in props.items()}
 
 
-TOOL_TABLE = CORE_TOOL_TABLE + IDEA_TOOL_TABLE
-
-
 def register(mcp: FastMCP, include_ideas: bool | None = None) -> None:
     """Register the Kanban MCP tools with the given FastMCP instance.
     `include_ideas` defaults to the KANBAN_MCP_IDEA_TOOLS environment variable (off)."""
+    from mcp_facade import (
+        CORE_TOOL_TABLE,
+    )  # imported late: it builds on the operations defined here
+
     if include_ideas is None:
         include_ideas = ideas_enabled()
     for func, annotations in CORE_TOOL_TABLE + (

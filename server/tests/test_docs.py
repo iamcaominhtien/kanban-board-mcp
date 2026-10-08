@@ -385,7 +385,7 @@ async def test_mcp_docs_tools_round_trip_and_conflict(c, pid, monkeypatch):
         created["id"], "## Steps\n1. stop", page["version"], note="tweak"
     )
     assert updated["version"] == 2
-    with pytest.raises(ValueError, match="get_docs_page"):
+    with pytest.raises(ValueError, match="docs_read"):
         await mcp_tools.update_docs_page(created["id"], "stale", 1)
     draft_only = await mcp_tools.update_docs_page(
         created["id"], "wip", 2, publish=False

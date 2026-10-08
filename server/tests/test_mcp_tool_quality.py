@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+import mcp_facade
 import mcp_tools
 import services.tickets as svc_tickets
 from main import mcp
@@ -39,11 +40,60 @@ def _enum_of(schema: dict) -> list | None:
 
 
 async def test_every_registered_tool_is_in_the_table_and_vice_versa():
-    core = {f.__name__ for f, _ in mcp_tools.CORE_TOOL_TABLE}
+    core = {f.__name__ for f, _ in mcp_facade.CORE_TOOL_TABLE}
     ideas = {f.__name__ for f, _ in mcp_tools.IDEA_TOOL_TABLE}
     assert not core & ideas
+    assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(mcp_tools.TOOL_TABLE) == len(core | ideas) == 69
+    assert len(core) == 9 and len(ideas) == 13
+
+
+async def test_every_operation_is_reachable_through_a_tool():
+    """Folding 56 tools into 9 must not drop a capability: each former tool is an action of one of them."""
+    routed = {
+        op.impl.__name__
+        for table in (
+            mcp_facade._PROJECT_OPS,
+            mcp_facade._TICKET_OPS,
+            mcp_facade._ITEM_OPS,
+            mcp_facade._BRANCH_OPS,
+            mcp_facade._DOCS_READ_OPS,
+            mcp_facade._DOCS_WRITE_OPS,
+        )
+        for op in table.values()
+    }
+    direct = {f.__name__ for f, _ in mcp_facade.CORE_TOOL_TABLE} & {
+        "list_tickets",
+        "get_ticket",
+    }
+    # list_projects/list_members -> get_projects, list_comments -> get_ticket(view='comments'),
+    # create_child_ticket -> manage_ticket(create, parent_id), update_ticket_status -> manage_ticket(update, status)
+    folded = {
+        "list_projects",
+        "list_members",
+        "list_comments",
+        "create_child_ticket",
+        "update_ticket_status",
+    }
+    former = {
+        n
+        for n, f in vars(mcp_tools).items()
+        if callable(f)
+        and getattr(f, "__module__", None) == "mcp_tools"
+        and not n.startswith("_")
+        and n
+        not in {
+            "register",
+            "build_instructions",
+            "ideas_enabled",
+            "notify_on_success",
+        }
+        and "idea" not in n
+        and "assumption" not in n
+        and "microthought" not in n
+    }
+    assert former - routed - direct - folded == set()
+    assert routed <= former
 
 
 async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(
@@ -71,20 +121,21 @@ async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(
 
 
 async def test_every_tool_has_annotations_that_match_its_name():
+    reads = {"get_projects", "list_tickets", "get_ticket", "docs_read"}
     for name, tool in (await _tools(_full_mcp())).items():
         a = tool.annotations
         assert a is not None, name
-        if (
-            name.startswith(("list_", "get_", "search_", "resolve_"))
-            and name != "get_ticket_workspace_path"
-        ):
+        if name in reads or name.startswith(("list_idea", "get_idea")):
             assert a.readOnlyHint is True, name
         else:
             assert a.readOnlyHint is False, name
+        # a tool that has a `delete` / `remove` / `unlink` action is destructive as a whole
         if name.startswith("delete_") or name in {
-            "remove_member",
-            "unlink_tickets",
-            "unlink_ticket_doc",
+            "manage_project",
+            "manage_ticket",
+            "ticket_items",
+            "ticket_branches",
+            "docs_write",
         }:
             assert a.destructiveHint is True, name
         else:
@@ -127,7 +178,7 @@ async def test_schemas_carry_no_redundant_titles():
         for pname, schema in tool.inputSchema.get("properties", {}).items():
             assert "title" not in schema, f"{name}.{pname}"
     # ...but a parameter that is itself called "title" survives
-    assert "title" in (await _tools())["create_ticket"].inputSchema["properties"]
+    assert "title" in (await _tools())["manage_ticket"].inputSchema["properties"]
 
 
 async def test_the_tool_list_stays_compact():
@@ -139,10 +190,10 @@ async def test_the_tool_list_stays_compact():
         )
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    assert default < 37_000, (
+    assert default < 28_000, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 48_000, (
+    assert full < 36_000, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
@@ -152,7 +203,7 @@ async def test_server_instructions_explain_the_ids_and_conventions():
     for text, musts in (
         (
             mcp.instructions or "",
-            ("IAM-12", "clear_fields", "get_ticket_workspace_path", "AI agent"),
+            ("IAM-12", "clear_fields", "workspace", "AI agent"),
         ),
         (
             mcp_tools.build_instructions(True),
@@ -169,12 +220,13 @@ async def test_schema_enums_match_the_services():
     def enum(tool, param):
         return set(_enum_of(tools[tool].inputSchema["properties"][param]))
 
-    assert enum("add_work_log", "kind") == set(svc_tickets.WORK_LOG_KINDS)
-    assert enum("add_work_log", "role") == set(svc_tickets.WORK_LOG_ROLES)
-    assert enum("link_tickets", "relation_type") == set(
+    assert enum("ticket_items", "log_kind") == set(svc_tickets.WORK_LOG_KINDS)
+    assert enum("ticket_items", "role") == set(svc_tickets.WORK_LOG_ROLES)
+    assert enum("ticket_items", "status") == {"pending", "running", "pass", "fail"}
+    assert enum("manage_ticket", "relation_type") == set(
         svc_tickets.VALID_RELATION_TYPES
     )
-    assert enum("add_branch", "status") == set(svc_tickets.VALID_BRANCH_STATUSES)
+    assert enum("ticket_branches", "status") == set(svc_tickets.VALID_BRANCH_STATUSES)
     assert enum("update_idea_status", "new_status") == set(IDEA_STATUSES)
     assert enum("create_idea_ticket", "idea_color") == set(IDEA_COLORS)
     assert enum("create_idea_ticket", "idea_energy") == {
@@ -183,7 +235,7 @@ async def test_schema_enums_match_the_services():
         "hot",
         "big_bet",
     }
-    assert enum("update_ticket", "status") == {
+    assert enum("manage_ticket", "status") == {
         "backlog",
         "todo",
         "in-progress",
@@ -192,6 +244,18 @@ async def test_schema_enums_match_the_services():
         "done",
         "wont_do",
     }
+    # every action name in a description is a real choice, and the other way round
+    for tool, table in (
+        ("manage_project", mcp_facade._PROJECT_OPS),
+        ("manage_ticket", mcp_facade._TICKET_OPS),
+        ("ticket_branches", mcp_facade._BRANCH_OPS),
+        ("docs_read", mcp_facade._DOCS_READ_OPS),
+        ("docs_write", mcp_facade._DOCS_WRITE_OPS),
+    ):
+        assert enum(tool, "action") == set(table), tool
+    pairs = set(mcp_facade._ITEM_OPS)
+    assert enum("ticket_items", "item") == {i for i, _ in pairs}
+    assert enum("ticket_items", "action") == {a for _, a in pairs}
 
 
 async def test_invalid_enum_values_are_rejected_before_any_work():

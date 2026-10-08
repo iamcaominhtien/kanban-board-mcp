@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Changed (breaking for MCP clients)
+
+- **The MCP server now exposes 9 tools instead of 56** (22 instead of 69 with the Idea Space tools). An agent pays for every tool description and schema on every session; grouping by noun keeps every capability while the tool list is about 30% smaller and the choice of tool simpler. Write tools take an `action` (and `ticket_items` an `item`), their descriptions list the parameters each action takes, and a call with a missing or foreign parameter is answered with what that action accepts. The Idea Space tools (hidden by default) are unchanged.
+  - `get_projects` replaces `list_projects` and `list_members`.
+  - `list_tickets` and `get_ticket` stay; `get_ticket(view='comments')` replaces `list_comments`.
+  - `manage_project`: `create_project`, `update_project`, `add_member`, `remove_member`.
+  - `manage_ticket`: `create_ticket` and `create_child_ticket` (`create`, with `parent_id`), `update_ticket` and `update_ticket_status` (`update`), `delete_ticket`, `get_ticket_workspace_path` (`workspace`), `block_ticket`, `unblock_ticket`, `link_tickets`, `unlink_tickets`, `link_ticket_doc`, `unlink_ticket_doc`. For `block`/`unblock`, `ticket_id` is the ticket that waits and `target_id` the one it waits for.
+  - `ticket_items`: comments, work log, acceptance criteria, sub-tasks and test cases (`add`, `update`, `delete`, `toggle`, `restore`). The work log `kind` is now `log_kind`; the deprecated test case `note` alias is gone (use `notes`).
+  - `ticket_branches`: `add_branch`, `update_branch`, `delete_branch`, `checkout_branch`.
+  - `docs_read`: `list_docs_pages`, `get_docs_page`, `search_docs`, `list_docs_versions`, `get_docs_version`, `list_docs_recycle_bin`, `resolve_docs_links`.
+  - `docs_write`: `create_docs_page`, `update_docs_page`, `move_docs_page`, `duplicate_docs_page`, `delete_docs_page`, `restore_docs_page`, `restore_docs_version`, `import_docs`.
+- The write tools are annotated destructive as a whole (one of their actions deletes); the four read tools stay read-only.
+
 ---
 
 ## [2.4.0] - 2026-10-08

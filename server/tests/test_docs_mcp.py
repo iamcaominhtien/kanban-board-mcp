@@ -46,7 +46,7 @@ async def test_versions_diff_restore_and_stale_base(c, pid):
     assert (await mcp_tools.get_docs_version(page["id"], 1))["markdown"] == "## A\nold"
     diff = await mcp_tools.get_docs_version(page["id"], 1, compare_to=2)
     assert (diff["added"], diff["removed"]) == (1, 1)
-    with pytest.raises(ValueError, match="get_docs_page"):
+    with pytest.raises(ValueError, match="docs_read"):
         await mcp_tools.update_docs_page(page["id"], "x", 1)
     back = await mcp_tools.restore_docs_version(page["id"], 1)
     assert back["version"] == 3
