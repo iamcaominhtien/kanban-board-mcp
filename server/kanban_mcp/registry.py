@@ -67,6 +67,14 @@ def _strip_properties(props: Any) -> Any:
     return {name: _strip_titles(sub) for name, sub in props.items()}
 
 
+def _reject_unknown_arguments(tool: Any) -> None:
+    """FastMCP silently drops arguments the tool does not declare, so a misspelt parameter (`titel=...`) would make a
+    call "succeed" without doing what was asked. Make the argument model refuse them instead."""
+    model = tool.fn_metadata.arg_model
+    model.model_config["extra"] = "forbid"
+    model.model_rebuild(force=True)
+
+
 def register(mcp: FastMCP, include_ideas: bool | None = None) -> None:
     """Register the Kanban MCP tools with the given FastMCP instance.
     `include_ideas` defaults to the KANBAN_MCP_IDEA_TOOLS environment variable (off)."""
@@ -77,4 +85,7 @@ def register(mcp: FastMCP, include_ideas: bool | None = None) -> None:
     ):
         mcp.tool(annotations=annotations)(func)
     for tool in mcp._tool_manager.list_tools():
-        tool.parameters = _strip_titles(tool.parameters)
+        tool.parameters = _strip_titles(tool.parameters) | {
+            "additionalProperties": False
+        }
+        _reject_unknown_arguments(tool)

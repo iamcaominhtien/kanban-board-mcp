@@ -523,3 +523,65 @@ def test_every_table_entry_names_real_parameters():
             params = set(inspect.signature(op.impl).parameters)
             for name in op.required + op.optional:
                 assert op.rename.get(name, name) in params, (key, name)
+
+
+async def test_a_misspelt_parameter_is_an_error_not_silently_ignored():
+    p = await _project()
+    t = await _ticket(p)
+    with pytest.raises(ToolError, match="Extra inputs are not permitted"):
+        await call("manage_ticket", action="update", ticket_id=t["id"], titel="typo")
+    with pytest.raises(ToolError, match="Extra inputs are not permitted"):
+        await call("list_tickets", project_id=p["id"], statuss="done")
+    assert (await call("get_ticket", ticket_id=t["id"]))["title"] == "T"
+    for tool in await mcp.list_tools():
+        assert tool.inputSchema["additionalProperties"] is False, tool.name
+
+
+async def test_the_comments_view_refuses_activity_options():
+    p = await _project()
+    t = await _ticket(p)
+    with pytest.raises(ToolError, match="view='full' only"):
+        await call("get_ticket", ticket_id=t["id"], view="comments", activity_limit=3)
+
+
+async def test_tools_work_through_a_real_client_session():
+    """Over the protocol the server also checks results against each tool's output schema."""
+    from mcp.shared.memory import create_connected_server_and_client_session
+
+    async with create_connected_server_and_client_session(mcp._mcp_server) as client:
+
+        async def run(tool: str, **args):
+            result = await client.call_tool(tool, args)
+            assert not result.isError, (tool, args, result.content)
+            return (
+                json.loads(result.content[0].text) if result.content[0].text else None
+            )
+
+        project = await run("manage_project", action="create", name="P", prefix="PRO")
+        assert await run("get_projects") is not None
+        detail = await run("get_projects", project_id=project["id"])
+        assert detail["members"]
+        ticket = await run(
+            "manage_ticket", action="create", project_id=project["id"], title="t"
+        )
+        await run(
+            "ticket_items",
+            ticket_id=ticket["id"],
+            item="criterion",
+            action="add",
+            text="c",
+        )
+        await run(
+            "ticket_branches", ticket_id=ticket["id"], action="add", name="feat/a"
+        )
+        await run("list_tickets", project_id=project["id"])
+        await run("get_ticket", ticket_id=ticket["id"], view="comments")
+        page = await run(
+            "docs_write", action="create", project_id=project["id"], title="Doc"
+        )
+        await run("docs_read", action="get", page_id=page["id"])
+        await run("docs_read", action="search", project_id=project["id"], query="Doc")
+        failed = await client.call_tool(
+            "manage_ticket", {"action": "update", "ticket_id": "NOPE-1", "title": "x"}
+        )
+        assert failed.isError

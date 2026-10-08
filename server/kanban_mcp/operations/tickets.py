@@ -241,6 +241,10 @@ async def get_ticket(
     ticket has in all, so you can tell when more exist (widen with activity_limit or narrow with activity_since).
     view='comments' returns just the comment thread (oldest first: id, author, text, at, edited_at, notified)."""
     if view == "comments":
+        if activity_limit is not None or activity_since is not None:
+            raise ValueError(
+                "activity_limit / activity_since apply to view='full' only; view='comments' returns just the comment thread."
+            )
         return await list_comments(ticket_id)
     since = _parse_since(activity_since) if activity_since else None
     async with common.async_session() as session:
