@@ -1,4 +1,5 @@
 """Backups from older builds must open, and importing a backup must not corrupt the database."""
+
 import sqlite3
 from pathlib import Path
 
@@ -14,7 +15,9 @@ from api import data as data_api
 def _make_db(path: Path, rows: int = 3) -> None:
     conn = sqlite3.connect(path)
     conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)")
-    conn.executemany("INSERT INTO t (v) VALUES (?)", [(f"row {i}",) for i in range(rows)])
+    conn.executemany(
+        "INSERT INTO t (v) VALUES (?)", [(f"row {i}",) for i in range(rows)]
+    )
     conn.commit()
     conn.close()
 
@@ -71,19 +74,39 @@ async def test_database_stamped_with_a_removed_migration_still_upgrades(
 
     async with engine.begin() as conn:
         await conn.run_sync(upgrade_to_parent)
-        await conn.execute(text("UPDATE alembic_version SET version_num = 'f6a7b8c9d0e1'"))
-        await conn.execute(text("ALTER TABLE ticket ADD COLUMN board TEXT NOT NULL DEFAULT 'main'"))
-        await conn.execute(text(
-            "INSERT INTO project (id, name, prefix, color, ticket_counter) "
-            "VALUES ('p1', 'Old project', 'OLD', '#2E6F40', 0)"
-        ))
+        await conn.execute(
+            text("UPDATE alembic_version SET version_num = 'f6a7b8c9d0e1'")
+        )
+        await conn.execute(
+            text("ALTER TABLE ticket ADD COLUMN board TEXT NOT NULL DEFAULT 'main'")
+        )
+        await conn.execute(
+            text(
+                "INSERT INTO project (id, name, prefix, color, ticket_counter) "
+                "VALUES ('p1', 'Old project', 'OLD', '#2E6F40', 0)"
+            )
+        )
 
-    await database.init_db()  # used to fail with "Can't locate revision identified by 'f6a7b8c9d0e1'"
+    await (
+        database.init_db()
+    )  # used to fail with "Can't locate revision identified by 'f6a7b8c9d0e1'"
 
     async with engine.connect() as conn:
-        version = (await conn.execute(text("SELECT version_num FROM alembic_version"))).scalar_one()
-        projects = (await conn.execute(text("SELECT name FROM project"))).scalars().all()
-        tables = (await conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))).scalars().all()
+        version = (
+            await conn.execute(text("SELECT version_num FROM alembic_version"))
+        ).scalar_one()
+        projects = (
+            (await conn.execute(text("SELECT name FROM project"))).scalars().all()
+        )
+        tables = (
+            (
+                await conn.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table'")
+                )
+            )
+            .scalars()
+            .all()
+        )
     await engine.dispose()
 
     assert version != "f6a7b8c9d0e1"

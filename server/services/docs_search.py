@@ -195,6 +195,7 @@ async def rebuild_index(session: AsyncSession) -> None:
 # Query parsing
 # ---------------------------------------------------------------------------
 
+
 def _trim_nonword(text: str) -> str:
     """Strip leading / trailing non-word characters (linear; ``^\W+|\W+$`` is quadratic)."""
     start, end = 0, len(text)
@@ -289,9 +290,7 @@ def _window(plain: str, terms: list[str], width: int = 150) -> str:
 
 
 def _plain_line(raw: str) -> str:
-    return _strip_inline(
-        strip_block_prefix(raw, headings=True)
-    )
+    return _strip_inline(strip_block_prefix(raw, headings=True))
 
 
 def build_matches(

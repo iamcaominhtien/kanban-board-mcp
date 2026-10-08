@@ -33,7 +33,12 @@ from uploads import (
 )
 
 
-mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS, stateless_http=True, streamable_http_path="/")
+mcp = FastMCP(
+    "kanban-mcp",
+    instructions=_mcp_tools.MCP_INSTRUCTIONS,
+    stateless_http=True,
+    streamable_http_path="/",
+)
 
 _mcp_tools.register(mcp)
 
@@ -79,6 +84,7 @@ app.add_middleware(
         "X-Request-Id",
     ],
 )
+
 
 @app.middleware("http")
 async def record_activity_actor(request: Request, call_next):
@@ -137,10 +143,14 @@ async def serve_upload(
     media_type = MIME_BY_EXTENSION.get(ext, "application/octet-stream")
 
     download_name = Path((name or "").replace("\\", "/")).name
-    download_name = "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
+    download_name = (
+        "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
+    )
 
     is_image = ext in SUPPORTED_IMAGE_EXTENSIONS
-    wants_inline = (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
+    wants_inline = (
+        (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
+    )
 
     if not download and (is_image or wants_inline):
         return FileResponse(

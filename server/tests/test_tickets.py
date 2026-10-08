@@ -113,13 +113,18 @@ async def test_update_ticket_status_logs_activity(client: httpx.AsyncClient):
     )
 
 
-async def test_update_ticket_description_and_tags_logs_activity(client: httpx.AsyncClient):
+async def test_update_ticket_description_and_tags_logs_activity(
+    client: httpx.AsyncClient,
+):
     async with client as c:
         project = await _create_project(c)
         ticket = await _create_ticket(c, project["id"])
         r = await c.patch(
             f"/tickets/{ticket['id']}",
-            json={"description": "Updated description content", "tags": ["FRONTEND", "UI"]},
+            json={
+                "description": "Updated description content",
+                "tags": ["FRONTEND", "UI"],
+            },
         )
     assert r.status_code == 200
     body = r.json()
@@ -291,7 +296,9 @@ async def test_add_toggle_delete_sub_task(client: httpx.AsyncClient):
         r_toggle = await c.patch(f"/tickets/{ticket['id']}/sub-tasks/{sub_id}/toggle")
         assert r_toggle.json()["sub_tasks"][0]["done"] is True
 
-        r_blank = await c.post(f"/tickets/{ticket['id']}/sub-tasks", json={"text": "  "})
+        r_blank = await c.post(
+            f"/tickets/{ticket['id']}/sub-tasks", json={"text": "  "}
+        )
         assert r_blank.status_code == 400
 
         r_del = await c.delete(f"/tickets/{ticket['id']}/sub-tasks/{sub_id}")
@@ -341,8 +348,12 @@ async def test_debug_space_extended_work_log_and_update(client: httpx.AsyncClien
         project = await _create_project(c)
         ticket = await _create_ticket(c, project["id"])
         # Links must point at a real branch and test case of the ticket
-        await c.post(f"/tickets/{ticket['id']}/branches", json={"name": "fix/jwt-decode"})
-        await c.post(f"/tickets/{ticket['id']}/test-cases", json={"title": "jwt decode"})
+        await c.post(
+            f"/tickets/{ticket['id']}/branches", json={"name": "fix/jwt-decode"}
+        )
+        await c.post(
+            f"/tickets/{ticket['id']}/test-cases", json={"title": "jwt decode"}
+        )
 
         # Add rich debug entry
         r_add = await c.post(
@@ -353,7 +364,9 @@ async def test_debug_space_extended_work_log_and_update(client: httpx.AsyncClien
                 "note": "Found null pointer in JWT decoder",
                 "kind": "investigation",
                 "pinned": True,
-                "attachments": [{"id": "att-1", "name": "trace.log", "url": "/uploads/trace.log"}],
+                "attachments": [
+                    {"id": "att-1", "name": "trace.log", "url": "/uploads/trace.log"}
+                ],
                 "linked_branch": "fix/jwt-decode",
                 "linked_test_case": "TC-1",
             },
@@ -383,7 +396,10 @@ async def test_debug_space_extended_work_log_and_update(client: httpx.AsyncClien
         assert r_patch.status_code == 200
         entry_upd = r_patch.json()["work_log"][0]
         assert entry_upd["kind"] == "root_cause"
-        assert entry_upd["note"] == "Confirmed root cause: missing fallback when token header has no kid"
+        assert (
+            entry_upd["note"]
+            == "Confirmed root cause: missing fallback when token header has no kid"
+        )
         assert entry_upd["pinned"] is True
         assert entry_upd["updated_at"] is not None
 
@@ -469,7 +485,10 @@ async def test_test_case_extended_fields_and_running_status(client: httpx.AsyncC
         assert r_upd.status_code == 200
         tc1_updated = r_upd.json()["test_cases"][0]
         assert tc1_updated["status"] == "pass"
-        assert tc1_updated["notes"] == "OAuth returned status 200, JWT verified in local storage"
+        assert (
+            tc1_updated["notes"]
+            == "OAuth returned status 200, JWT verified in local storage"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -779,7 +798,9 @@ async def test_workspace_settings_and_ticket_retention(client: httpx.AsyncClient
         assert r_ws2.json()["retention_days"] == 7
 
 
-async def test_remove_member_blocked_when_assigned_to_open_tickets(client: httpx.AsyncClient):
+async def test_remove_member_blocked_when_assigned_to_open_tickets(
+    client: httpx.AsyncClient,
+):
     async with client as c:
         project = await _create_project(c)
         # Create member
@@ -802,7 +823,9 @@ async def test_remove_member_blocked_when_assigned_to_open_tickets(client: httpx
         # Try to delete member while assigned to open ticket
         r_del_blocked = await c.delete(f"/projects/{project['id']}/members/{member_id}")
         assert r_del_blocked.status_code == 400
-        assert "Cannot remove: assigned to 1 open ticket" in r_del_blocked.json()["detail"]
+        assert (
+            "Cannot remove: assigned to 1 open ticket" in r_del_blocked.json()["detail"]
+        )
 
         # Close ticket
         r_done = await c.patch(
@@ -814,6 +837,3 @@ async def test_remove_member_blocked_when_assigned_to_open_tickets(client: httpx
         # Now delete member should succeed
         r_del_ok = await c.delete(f"/projects/{project['id']}/members/{member_id}")
         assert r_del_ok.status_code == 204
-
-
-

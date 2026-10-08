@@ -15,5 +15,7 @@ def version_info() -> dict[str, str]:
         "version": APP_VERSION,
         "latest": APP_VERSION,
         # Overridable so a deployment (or a test) can force the update-required screen
-        "min_supported_version": os.environ.get("KANBAN_MIN_UI_VERSION", MIN_SUPPORTED_UI_VERSION),
+        "min_supported_version": os.environ.get(
+            "KANBAN_MIN_UI_VERSION", MIN_SUPPORTED_UI_VERSION
+        ),
     }

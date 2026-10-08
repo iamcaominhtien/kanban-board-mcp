@@ -38,6 +38,7 @@ def _check_sqlite_file(path: Path) -> str | None:
         return str(exc)
     return None if row and row[0] == "ok" else (row[0] if row else "empty result")
 
+
 router = APIRouter(prefix="/data", tags=["data"])
 
 

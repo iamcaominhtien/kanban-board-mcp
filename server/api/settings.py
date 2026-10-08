@@ -155,21 +155,29 @@ class McpTarget(BaseModel):
 
 
 @router.get("/mcp-clients/{client_id}")
-async def get_mcp_client(client_id: str, scope: str | None = None, folder: str | None = None):
+async def get_mcp_client(
+    client_id: str, scope: str | None = None, folder: str | None = None
+):
     """State of the kanban entry in Claude Code / Antigravity for one scope."""
-    return _mcp_call(mcp_clients.get_status, client_id, scope, folder, await _tool_count())
+    return _mcp_call(
+        mcp_clients.get_status, client_id, scope, folder, await _tool_count()
+    )
 
 
 @router.post("/mcp-clients/{client_id}/install")
 async def install_mcp_client(client_id: str, target: McpTarget):
     """Add (or replace) the kanban entry. Expected failures are returned as `error` on the status."""
-    return _mcp_call(mcp_clients.install, client_id, target.scope, target.folder, await _tool_count())
+    return _mcp_call(
+        mcp_clients.install, client_id, target.scope, target.folder, await _tool_count()
+    )
 
 
 @router.post("/mcp-clients/{client_id}/remove")
 async def remove_mcp_client(client_id: str, target: McpTarget):
     """Remove only the kanban entry."""
-    return _mcp_call(mcp_clients.remove, client_id, target.scope, target.folder, await _tool_count())
+    return _mcp_call(
+        mcp_clients.remove, client_id, target.scope, target.folder, await _tool_count()
+    )
 
 
 @router.post("/mcp-clients/{client_id}/test")

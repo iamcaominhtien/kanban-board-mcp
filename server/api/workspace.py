@@ -143,7 +143,10 @@ async def get_workspace_file(
     headers = {"X-Content-Type-Options": "nosniff"}
     if download:
         return FileResponse(
-            target, filename=target.name, media_type="application/octet-stream", headers=headers
+            target,
+            filename=target.name,
+            media_type="application/octet-stream",
+            headers=headers,
         )
     if image_type:
         return FileResponse(target, media_type=image_type, headers=headers)

@@ -134,9 +134,21 @@ async def test_upload_and_serve_all_file_types(
     monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(tmp_path))
 
     files_to_test = [
-        ("report.xlsx", b"fake-excel-data", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-        ("document.docx", b"fake-word-data", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-        ("slides.pptx", b"fake-ppt-data", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+        (
+            "report.xlsx",
+            b"fake-excel-data",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        (
+            "document.docx",
+            b"fake-word-data",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ),
+        (
+            "slides.pptx",
+            b"fake-ppt-data",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ),
         ("data.json", b'{"key": "value"}', "application/json"),
         ("manual.pdf", b"%PDF-1.4...", "application/pdf"),
     ]
@@ -163,15 +175,18 @@ async def test_upload_and_serve_all_file_types(
         # Inline request for PDF (?inline=1)
         pdf_res = await client.get("/uploads/manual.pdf", params={"inline": "1"})
         # Should have X-File-Path
-        assert "x-file-path" in [k.lower() for k in pdf_res.headers.keys()] or pdf_res.status_code in (200, 404)
-
+        assert "x-file-path" in [
+            k.lower() for k in pdf_res.headers.keys()
+        ] or pdf_res.status_code in (200, 404)
 
 
 def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:
     server_dir = Path(__file__).resolve().parents[1]
     env = os.environ.copy()
     env["KANBAN_DB_PATH"] = str(tmp_path / "desktop-app" / "kanban.db")
-    env["HOME"] = str(tmp_path)  # no ~/.kanban-board/config.json from the developer machine
+    env["HOME"] = str(
+        tmp_path
+    )  # no ~/.kanban-board/config.json from the developer machine
 
     process = subprocess.Popen(
         [sys.executable, "-u", "main.py"],

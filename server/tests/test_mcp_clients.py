@@ -1,4 +1,5 @@
 """Settings -> MCP integrations: install the kanban MCP server into Claude Code / Antigravity."""
+
 import json
 import os
 import shutil
@@ -45,6 +46,7 @@ def fake_home(tmp_path, monkeypatch):
     uv_dir = os.path.dirname(shutil.which("uv") or "/usr/bin/uv")
     monkeypatch.setenv("PATH", f"{uv_dir}:/usr/bin:/bin")  # keep uv, no real claude
     import services.mcp_clients as mc
+
     monkeypatch.setattr(mc, "find_claude", lambda: shutil.which("claude"))
     return home
 
@@ -76,17 +78,22 @@ async def _post(client, cid, action, **body):
 
 # ---- Claude Code
 
+
 async def test_claude_not_detected_without_cli(client, fake_home):
     r = await _get(client, "claude-code")
     s = r.json()
     assert r.status_code == 200
     assert s["detected"] is False and s["installed"] is False
-    assert s["command"].startswith("claude mcp add kanban --transport stdio --scope user")
+    assert s["command"].startswith(
+        "claude mcp add kanban --transport stdio --scope user"
+    )
     assert s["stored_in"] == "~/.claude.json"
     assert s["tool_count"] > 0
 
 
-async def test_claude_install_without_cli_reports_error_and_changes_nothing(client, fake_home):
+async def test_claude_install_without_cli_reports_error_and_changes_nothing(
+    client, fake_home
+):
     r = await _post(client, "claude-code", "install", scope="user")
     assert r.status_code == 200
     assert r.json()["error"]["code"] == "claude_not_found"
@@ -100,24 +107,37 @@ async def test_claude_install_reinstall_remove(client, fake_claude, fake_home):
     entry = json.loads((fake_home / ".claude.json").read_text())["mcpServers"]["kanban"]
     assert entry["command"]
 
-    again = await _post(client, "claude-code", "install", scope="user")  # replaces, no duplicate
+    again = await _post(
+        client, "claude-code", "install", scope="user"
+    )  # replaces, no duplicate
     assert again.json()["error"] is None and again.json()["installed"]
 
     gone = await _post(client, "claude-code", "remove", scope="user")
     assert gone.json()["installed"] is False
-    assert "kanban" not in json.loads((fake_home / ".claude.json").read_text())["mcpServers"]
+    assert (
+        "kanban"
+        not in json.loads((fake_home / ".claude.json").read_text())["mcpServers"]
+    )
 
 
 async def test_claude_stale_entry_is_update_available(client, fake_claude, fake_home):
     (fake_home / ".claude.json").write_text(
-        json.dumps({"mcpServers": {"kanban": {"type": "stdio", "command": "/old/path", "args": []}}})
+        json.dumps(
+            {
+                "mcpServers": {
+                    "kanban": {"type": "stdio", "command": "/old/path", "args": []}
+                }
+            }
+        )
     )
     s = (await _get(client, "claude-code", scope="user")).json()
     assert s["installed"] and s["update_available"]
     assert s["installed_command"] == "/old/path"
 
 
-async def test_claude_cli_failure_is_reported(client, fake_claude, fake_home, monkeypatch):
+async def test_claude_cli_failure_is_reported(
+    client, fake_claude, fake_home, monkeypatch
+):
     monkeypatch.setenv("FAKE_CLAUDE_FAIL", "1")
     s = (await _post(client, "claude-code", "install", scope="user")).json()
     assert s["error"]["code"] == "command_failed" and "boom" in s["error"]["message"]
@@ -130,33 +150,50 @@ async def test_claude_project_scope_needs_a_folder(client, fake_claude, fake_hom
     assert r.status_code == 400
 
 
-async def test_claude_project_scope_reads_mcp_json(client, fake_claude, fake_home, tmp_path):
+async def test_claude_project_scope_reads_mcp_json(
+    client, fake_claude, fake_home, tmp_path
+):
     proj = tmp_path / "proj"
     proj.mkdir()
-    (proj / ".mcp.json").write_text(json.dumps({"mcpServers": {"kanban": {"command": "x", "args": []}}}))
+    (proj / ".mcp.json").write_text(
+        json.dumps({"mcpServers": {"kanban": {"command": "x", "args": []}}})
+    )
     s = (await _get(client, "claude-code", scope="project", folder=str(proj))).json()
     assert s["installed"] and s["stored_in"].endswith(".mcp.json")
 
 
 # ---- Antigravity
 
+
 async def test_antigravity_install_global_merges_and_keeps_others(client, fake_home):
     cfg = fake_home / ".gemini" / "config" / "mcp_config.json"
     cfg.parent.mkdir(parents=True)
-    cfg.write_text(json.dumps({"theme": "x", "mcpServers": {"other": {"command": "x"}}}))
+    cfg.write_text(
+        json.dumps({"theme": "x", "mcpServers": {"other": {"command": "x"}}})
+    )
     s = (await _post(client, "antigravity", "install", scope="global")).json()
     assert s["error"] is None and s["installed"] and s["detected"]
     data = json.loads(cfg.read_text())
     assert data["theme"] == "x" and data["mcpServers"]["other"] == {"command": "x"}
-    assert "type" not in data["mcpServers"]["kanban"] and data["mcpServers"]["kanban"]["command"]
+    assert (
+        "type" not in data["mcpServers"]["kanban"]
+        and data["mcpServers"]["kanban"]["command"]
+    )
 
 
 async def test_antigravity_workspace_scope(client, fake_home, tmp_path):
     proj = tmp_path / "proj"
     proj.mkdir()
-    s = (await _post(client, "antigravity", "install", scope="workspace", folder=str(proj))).json()
+    s = (
+        await _post(
+            client, "antigravity", "install", scope="workspace", folder=str(proj)
+        )
+    ).json()
     assert s["installed"]
-    assert "kanban" in json.loads((proj / ".agents" / "mcp_config.json").read_text())["mcpServers"]
+    assert (
+        "kanban"
+        in json.loads((proj / ".agents" / "mcp_config.json").read_text())["mcpServers"]
+    )
 
 
 async def test_antigravity_remove_only_ours(client, fake_home):
@@ -185,7 +222,10 @@ async def test_antigravity_write_failure_names_the_file(client, fake_home, monke
 
     monkeypatch.setattr("services.mcp_clients.os.replace", deny)
     s = (await _post(client, "antigravity", "install", scope="global")).json()
-    assert s["error"]["code"] == "write_failed" and "Permission denied" in s["error"]["message"]
+    assert (
+        s["error"]["code"] == "write_failed"
+        and "Permission denied" in s["error"]["message"]
+    )
     assert s["entry_json"]  # the manual fallback stays available
 
 

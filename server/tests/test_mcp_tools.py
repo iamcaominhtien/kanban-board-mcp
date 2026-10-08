@@ -99,7 +99,9 @@ async def test_create_ticket_appears_in_list_tickets():
     assert ticket["id"].startswith("LTST-")
 
     listing = await mcp_tools.list_tickets(project_id=project["id"])
-    assert listing["total"] == 1 and listing["count"] == 1 and listing["has_more"] is False
+    assert (
+        listing["total"] == 1 and listing["count"] == 1 and listing["has_more"] is False
+    )
     assert any(t["id"] == ticket["id"] for t in listing["tickets"])
 
 
@@ -257,7 +259,9 @@ async def test_update_comment():
     ticket = await mcp_tools.create_ticket(
         project_id=project["id"], title="Commentable"
     )
-    added = await mcp_tools.add_comment(ticket["id"], text="Hello world", author="alice")
+    added = await mcp_tools.add_comment(
+        ticket["id"], text="Hello world", author="alice"
+    )
     comment_id = added["comments"][0]["id"]
 
     result = await mcp_tools.update_comment(
@@ -293,7 +297,9 @@ async def test_delete_comment():
     ticket = await mcp_tools.create_ticket(
         project_id=project["id"], title="Commentable"
     )
-    added = await mcp_tools.add_comment(ticket["id"], text="Hello world", author="alice")
+    added = await mcp_tools.add_comment(
+        ticket["id"], text="Hello world", author="alice"
+    )
     comment_id = added["comments"][0]["id"]
 
     result = await mcp_tools.delete_comment(ticket["id"], comment_id)
@@ -308,7 +314,10 @@ async def test_list_and_restore_comment():
     await mcp_tools.add_comment(ticket["id"], text="Two", author="bob")
     cid = first["comments"][0]["id"]
     listed = await mcp_tools.list_comments(ticket["id"])
-    assert listed["count"] == 2 and [c["text"] for c in listed["comments"]] == ["One", "Two"]
+    assert listed["count"] == 2 and [c["text"] for c in listed["comments"]] == [
+        "One",
+        "Two",
+    ]
     await mcp_tools.delete_comment(ticket["id"], cid)
     assert (await mcp_tools.list_comments(ticket["id"]))["count"] == 1
     back = await mcp_tools.restore_comment(ticket["id"], cid)
@@ -342,9 +351,7 @@ async def test_add_work_log():
 
 async def test_add_work_log_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.add_work_log(
-            "MISSING-0", author="x", role="Other", note="n"
-        )
+        await mcp_tools.add_work_log("MISSING-0", author="x", role="Other", note="n")
 
 
 # ---------------------------------------------------------------------------
@@ -464,7 +471,9 @@ async def test_update_ticket_description_publishes_sse():
     project = await _seed_project(prefix="SSE1")
     ticket = await mcp_tools.create_ticket(project_id=project["id"], title="SSE ticket")
 
-    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+    with patch.object(
+        mcp_tools.board_events, "publish", new_callable=AsyncMock
+    ) as mock_publish:
         result = await mcp_tools.update_ticket(ticket["id"], description="Updated desc")
 
     assert result is not None
@@ -476,8 +485,12 @@ async def test_add_acceptance_criterion_publishes_sse():
     project = await _seed_project(prefix="SSE2")
     ticket = await mcp_tools.create_ticket(project_id=project["id"], title="AC ticket")
 
-    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
-        result = await mcp_tools.add_acceptance_criterion(ticket["id"], description="Must work")
+    with patch.object(
+        mcp_tools.board_events, "publish", new_callable=AsyncMock
+    ) as mock_publish:
+        result = await mcp_tools.add_acceptance_criterion(
+            ticket["id"], description="Must work"
+        )
 
     assert result is not None
     mock_publish.assert_called_once_with("invalidate")
@@ -488,7 +501,9 @@ async def test_add_test_case_publishes_sse():
     project = await _seed_project(prefix="SSE3")
     ticket = await mcp_tools.create_ticket(project_id=project["id"], title="TC ticket")
 
-    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+    with patch.object(
+        mcp_tools.board_events, "publish", new_callable=AsyncMock
+    ) as mock_publish:
         result = await mcp_tools.add_test_case(ticket["id"], title="Login works")
 
     assert result is not None
@@ -500,7 +515,9 @@ async def test_add_work_log_publishes_sse():
     project = await _seed_project(prefix="SSE4")
     ticket = await mcp_tools.create_ticket(project_id=project["id"], title="WL ticket")
 
-    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+    with patch.object(
+        mcp_tools.board_events, "publish", new_callable=AsyncMock
+    ) as mock_publish:
         result = await mcp_tools.add_work_log(
             ticket["id"], author="dev", role="Developer", note="Did the thing"
         )
@@ -514,8 +531,12 @@ async def test_add_comment_publishes_sse():
     project = await _seed_project(prefix="SSE5")
     ticket = await mcp_tools.create_ticket(project_id=project["id"], title="Cmt ticket")
 
-    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
-        result = await mcp_tools.add_comment(ticket["id"], text="Nice work", author="alice")
+    with patch.object(
+        mcp_tools.board_events, "publish", new_callable=AsyncMock
+    ) as mock_publish:
+        result = await mcp_tools.add_comment(
+            ticket["id"], text="Nice work", author="alice"
+        )
 
     assert result is not None
     mock_publish.assert_called_once_with("invalidate")
@@ -523,7 +544,9 @@ async def test_add_comment_publishes_sse():
 
 @pytest.mark.asyncio
 async def test_update_ticket_nonexistent_does_not_publish_sse():
-    with patch.object(mcp_tools.board_events, "publish", new_callable=AsyncMock) as mock_publish:
+    with patch.object(
+        mcp_tools.board_events, "publish", new_callable=AsyncMock
+    ) as mock_publish:
         with pytest.raises(ValueError, match="not found"):
             await mcp_tools.update_ticket("MISSING-9999", description="ghost")
 

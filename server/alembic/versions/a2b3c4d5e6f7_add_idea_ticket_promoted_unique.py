@@ -25,6 +25,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     with op.batch_alter_table("idea_ticket", schema=None) as batch_op:
-        batch_op.drop_constraint(
-            "uq_idea_ticket_promoted_to_ticket_id", type_="unique"
-        )
+        batch_op.drop_constraint("uq_idea_ticket_promoted_to_ticket_id", type_="unique")

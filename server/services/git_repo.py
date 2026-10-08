@@ -68,7 +68,9 @@ def create_branch(repo: Repo, name: str, base: str) -> BranchInfo:
     try:
         repo.git.branch(name, base_ref)
     except GitCommandError as exc:
-        raise GitRepoError(f"Could not create branch '{name}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not create branch '{name}': {exc.stderr.strip()}"
+        ) from exc
     return branch_info(repo, name, base)
 
 
@@ -77,8 +79,12 @@ def branch_info(repo: Repo, name: str, base: str) -> BranchInfo:
     branch_ref = _resolve_ref(repo, name)
     base_ref = _resolve_ref(repo, base)
     commit = repo.git.rev_parse(branch_ref)
-    behind, ahead = repo.git.rev_list("--left-right", "--count", f"{base_ref}...{branch_ref}").split()
-    return BranchInfo(name=name, commit_hash=commit, ahead_count=int(ahead), behind_count=int(behind))
+    behind, ahead = repo.git.rev_list(
+        "--left-right", "--count", f"{base_ref}...{branch_ref}"
+    ).split()
+    return BranchInfo(
+        name=name, commit_hash=commit, ahead_count=int(ahead), behind_count=int(behind)
+    )
 
 
 def list_local_branches(repo: Repo) -> list[str]:
@@ -192,7 +198,9 @@ def is_merged(repo: Repo, name: str, base: str) -> bool:
     except GitCommandError as exc:
         if exc.status == 1:
             return False
-        raise GitRepoError(f"Could not compare '{name}' with '{base}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not compare '{name}' with '{base}': {exc.stderr.strip()}"
+        ) from exc
 
 
 def rename_branch(repo: Repo, old: str, new: str) -> None:
@@ -202,7 +210,9 @@ def rename_branch(repo: Repo, old: str, new: str) -> None:
     try:
         repo.git.branch("-m", old, new)
     except GitCommandError as exc:
-        raise GitRepoError(f"Could not rename branch '{old}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not rename branch '{old}': {exc.stderr.strip()}"
+        ) from exc
 
 
 def current_branch(repo: Repo) -> str | None:
@@ -226,7 +236,9 @@ def checkout_branch(repo: Repo, name: str) -> None:
     try:
         repo.git.checkout(name)
     except GitCommandError as exc:
-        raise GitRepoError(f"Could not check out '{name}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not check out '{name}': {exc.stderr.strip()}"
+        ) from exc
 
 
 def _parse_refs(decoration: str) -> list[dict]:
@@ -235,11 +247,11 @@ def _parse_refs(decoration: str) -> list[dict]:
     for raw in filter(None, (part.strip() for part in decoration.split(","))):
         if raw.startswith("HEAD -> "):
             refs.append({"name": "HEAD", "type": "head"})
-            refs.append({"name": raw[len("HEAD -> "):], "type": "branch"})
+            refs.append({"name": raw[len("HEAD -> ") :], "type": "branch"})
         elif raw == "HEAD":
             refs.append({"name": "HEAD", "type": "head"})
         elif raw.startswith("tag: "):
-            refs.append({"name": raw[len("tag: "):], "type": "tag"})
+            refs.append({"name": raw[len("tag: ") :], "type": "tag"})
         elif "/" in raw and raw.split("/", 1)[0] == "origin":
             refs.append({"name": raw, "type": "remote"})
         else:
@@ -250,7 +262,9 @@ def _parse_refs(decoration: str) -> list[dict]:
 HARD_LIMIT = 300
 
 
-def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int = 80) -> dict:
+def commit_graph(
+    repo: Repo, bases: list[str], branches: list[str], limit: int = 80
+) -> dict:
     """Commit graph over ``bases`` (mainline) and the ticket's ``branches``.
 
     Returns commits newest-first (topological order) with a ``lane`` per commit:
@@ -266,7 +280,14 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
     fmt = "%H%x1f%P%x1f%an%x1f%aI%x1f%s%x1f%D%x1e"
     # Always reach back to where the ticket's branches forked off, even if that is
     # further than ``limit`` commits ago (bounded by HARD_LIMIT).
-    raw = repo.git.log("--topo-order", f"-n{HARD_LIMIT + 1}", f"--format={fmt}", "--decorate=short", *refs, "--")
+    raw = repo.git.log(
+        "--topo-order",
+        f"-n{HARD_LIMIT + 1}",
+        f"--format={fmt}",
+        "--decorate=short",
+        *refs,
+        "--",
+    )
     all_records = [r.strip("\n") for r in raw.split("\x1e") if r.strip()]
     positions = {rec.split("\x1f", 1)[0]: i for i, rec in enumerate(all_records)}
     window = limit
@@ -296,7 +317,11 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
             }
         )
 
-    mainline = set(repo.git.rev_list("--first-parent", f"-n{window + 1}", base_refs[0], "--").split())
+    mainline = set(
+        repo.git.rev_list(
+            "--first-parent", f"-n{window + 1}", base_refs[0], "--"
+        ).split()
+    )
 
     # Which commits belong to which ticket branch (commits not yet in the base)
     exclusive: dict[str, set[str]] = {}
@@ -317,7 +342,9 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
         else:
             lane = next((i for i, e in enumerate(cols) if i > 0 and e == h), None)
             if lane is None:
-                lane = next((i for i, e in enumerate(cols) if i > 0 and e is None), None)
+                lane = next(
+                    (i for i, e in enumerate(cols) if i > 0 and e is None), None
+                )
                 if lane is None:
                     cols.append(None)
                     lane = len(cols) - 1
@@ -334,7 +361,9 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
             elif p in mainline and lane == 0:
                 continue  # mainline-to-mainline needs no column
             else:
-                free = next((i for i, e in enumerate(cols) if i > 0 and e is None), None)
+                free = next(
+                    (i for i, e in enumerate(cols) if i > 0 and e is None), None
+                )
                 if free is None:
                     cols.append(p)
                 else:
@@ -374,8 +403,12 @@ def commit_detail(repo: Repo, rev: str, max_files: int = MAX_DETAIL_FILES) -> di
     message = message.strip("\n")
     subject, _, body = message.partition("\n")
 
-    name_status = repo.git.show("--first-parent", "-M", "--name-status", "-z", "--format=", full, "--")
-    numstat = repo.git.show("--first-parent", "-M", "--numstat", "-z", "--format=", full, "--")
+    name_status = repo.git.show(
+        "--first-parent", "-M", "--name-status", "-z", "--format=", full, "--"
+    )
+    numstat = repo.git.show(
+        "--first-parent", "-M", "--numstat", "-z", "--format=", full, "--"
+    )
 
     files: list[dict] = []
     tokens = [t for t in name_status.split("\0")]
@@ -384,7 +417,9 @@ def commit_detail(repo: Repo, rev: str, max_files: int = MAX_DETAIL_FILES) -> di
         status = tokens[i]
         kind = status[0]
         if kind in "RC":
-            files.append({"status": kind, "old_path": tokens[i + 1], "path": tokens[i + 2]})
+            files.append(
+                {"status": kind, "old_path": tokens[i + 1], "path": tokens[i + 2]}
+            )
             i += 3
         else:
             files.append({"status": kind, "old_path": None, "path": tokens[i + 1]})

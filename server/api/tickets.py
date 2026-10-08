@@ -495,7 +495,9 @@ async def del_sub_task(
 # ---------------------------------------------------------------------------
 
 
-WorkLogKind = Literal["investigation", "fix_attempt", "root_cause", "blocked", "resolved"]
+WorkLogKind = Literal[
+    "investigation", "fix_attempt", "root_cause", "blocked", "resolved"
+]
 WorkLogRole = Literal["PM", "Developer", "BA", "Tester", "Designer", "Other"]
 
 
@@ -827,7 +829,9 @@ async def get_ticket_branches(ticket_id: str, session: Session) -> list[dict]:
     return branches
 
 
-@router.post("/tickets/{ticket_id}/branches", response_model=TicketRead, status_code=201)
+@router.post(
+    "/tickets/{ticket_id}/branches", response_model=TicketRead, status_code=201
+)
 async def post_branch(
     ticket_id: str, body: BranchCreateBody, session: Session
 ) -> TicketRead:
@@ -908,8 +912,12 @@ async def del_branch(
     return _read(ticket)
 
 
-@router.post("/tickets/{ticket_id}/branches/{branch_id}/checkout", response_model=TicketRead)
-async def post_checkout_branch(ticket_id: str, branch_id: str, session: Session) -> TicketRead:
+@router.post(
+    "/tickets/{ticket_id}/branches/{branch_id}/checkout", response_model=TicketRead
+)
+async def post_checkout_branch(
+    ticket_id: str, branch_id: str, session: Session
+) -> TicketRead:
     try:
         ticket = await checkout_branch(session, ticket_id, branch_id)
     except ValueError as exc:

@@ -18,7 +18,9 @@ class DocsError(Exception):
 _FENCE = re.compile(r"^\s*(```|~~~)")
 # Patterns below are linear on hostile input: body classes exclude the next opener ("[") and are
 # length-bounded, so one unanchored scan never rescans the rest of the text from every start.
-_REF = re.compile(r"\[\[([^\][|#\n]{1,200})(?:#([^\][|\n]{1,200}))?(?:\|([^\][\n]{1,200}))?\]\]")
+_REF = re.compile(
+    r"\[\[([^\][|#\n]{1,200})(?:#([^\][|\n]{1,200}))?(?:\|([^\][\n]{1,200}))?\]\]"
+)
 _LINK = re.compile(r"\[([^\][\n]{1,300})\]\(([^()\n]{0,500})\)")
 _BULLET = re.compile(r"(?:[*+-]|\d{1,9}\.)[ \t]*")
 _CHECKBOX = re.compile(r"\[[ xX]\][ \t]*")
@@ -70,6 +72,8 @@ def strip_block_prefix(line: str, headings: bool = False) -> str:
     if _CHECKBOX.match(line):
         line = _CHECKBOX.sub("", line, count=1)
     return line
+
+
 _TICKET = re.compile(r"\b([A-Z][A-Z0-9]{1,5}-\d+)\b")
 _INLINE_CODE = re.compile(r"`[^`\n]*`")
 

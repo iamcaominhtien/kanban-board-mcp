@@ -18,10 +18,16 @@ class Project(SQLModel, table=True):
     prefix: str = Field(unique=True)  # e.g. "IAM", uppercase, max 6 chars
     color: str  # hex accent color
     ticket_counter: int = Field(default=0)
-    repo_path: Optional[str] = Field(default=None)  # local git repo used for ticket branches
-    worktree_template: Optional[str] = Field(default=None)  # template for branch worktrees
+    repo_path: Optional[str] = Field(
+        default=None
+    )  # local git repo used for ticket branches
+    worktree_template: Optional[str] = Field(
+        default=None
+    )  # template for branch worktrees
     worktree_by_default: bool = Field(default=False)
-    docs_enabled: bool = Field(default=True)  # the Docs space can be switched off per project
+    docs_enabled: bool = Field(
+        default=True
+    )  # the Docs space can be switched off per project
 
 
 class WorkspaceSettings(SQLModel, table=True):
@@ -85,9 +91,13 @@ class Ticket(SQLModel, table=True):
     block_done_if_acs_incomplete: bool = Field(default=False)
     block_done_if_tcs_incomplete: bool = Field(default=False)
     links: str = Field(default="[]")  # JSON: list of {id, target_id, relation_type}
-    branches: str = Field(default="[]")  # JSON: list of {id, name, status, branch_from, ...}
+    branches: str = Field(
+        default="[]"
+    )  # JSON: list of {id, name, status, branch_from, ...}
     workspace_retention_days: Optional[int] = Field(default=None)
-    repo_path: Optional[str] = Field(default=None)  # overrides Project.repo_path when set
+    repo_path: Optional[str] = Field(
+        default=None
+    )  # overrides Project.repo_path when set
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -429,7 +439,9 @@ class IdeaTicketCreateBody(SQLModel):
     @classmethod
     def validate_color(cls, v: str) -> str:
         if v not in IDEA_COLORS:
-            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+            raise ValueError(
+                f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"
+            )
         return v
 
 
@@ -450,7 +462,9 @@ class IdeaTicketUpdate(SQLModel):
     @classmethod
     def validate_color(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and v not in IDEA_COLORS:
-            raise ValueError(f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}")
+            raise ValueError(
+                f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"
+            )
         return v
 
 

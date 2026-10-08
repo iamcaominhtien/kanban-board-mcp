@@ -18,7 +18,9 @@ from services import activity as act
 
 
 async def get_workspace_settings(session: AsyncSession) -> WorkspaceSettings:
-    result = await session.exec(select(WorkspaceSettings).where(WorkspaceSettings.id == 1))
+    result = await session.exec(
+        select(WorkspaceSettings).where(WorkspaceSettings.id == 1)
+    )
     settings = result.first()
     if settings is None:
         settings = WorkspaceSettings(
@@ -143,12 +145,16 @@ def _scan(folder: Path) -> tuple[list[dict[str, Any]], int, float, bool]:
             st = full.stat()
             latest = max(latest, st.st_mtime)
             if len(entries) < MAX_LISTED_ENTRIES:
-                entries.append({
-                    "name": str(full.relative_to(folder)),
-                    "is_dir": True,
-                    "size": 0,
-                    "modified_at": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
-                })
+                entries.append(
+                    {
+                        "name": str(full.relative_to(folder)),
+                        "is_dir": True,
+                        "size": 0,
+                        "modified_at": datetime.fromtimestamp(
+                            st.st_mtime, tz=timezone.utc
+                        ).isoformat(),
+                    }
+                )
             else:
                 truncated = True
         for name in sorted(filenames):
@@ -159,12 +165,16 @@ def _scan(folder: Path) -> tuple[list[dict[str, Any]], int, float, bool]:
             total += st.st_size
             latest = max(latest, st.st_mtime)
             if len(entries) < MAX_LISTED_ENTRIES:
-                entries.append({
-                    "name": str(full.relative_to(folder)),
-                    "is_dir": False,
-                    "size": st.st_size,
-                    "modified_at": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
-                })
+                entries.append(
+                    {
+                        "name": str(full.relative_to(folder)),
+                        "is_dir": False,
+                        "size": st.st_size,
+                        "modified_at": datetime.fromtimestamp(
+                            st.st_mtime, tz=timezone.utc
+                        ).isoformat(),
+                    }
+                )
             else:
                 truncated = True
     entries.sort(key=lambda e: e["name"].split("/"))
@@ -175,7 +185,9 @@ async def _get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
     return await session.get(Ticket, ticket_id)
 
 
-async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[str, Any] | None:
+async def get_ticket_workspace(
+    session: AsyncSession, ticket_id: str
+) -> dict[str, Any] | None:
     ticket = await _get_ticket(session, ticket_id)
     if ticket is None:
         return None
@@ -234,7 +246,9 @@ async def set_ticket_workspace_retention(
     if ticket is None:
         return None
     if retention_days is not None and retention_days < 0:
-        raise WorkspaceError("Retention must be 0 (forever) or a positive number of days")
+        raise WorkspaceError(
+            "Retention must be 0 (forever) or a positive number of days"
+        )
     if ticket.workspace_retention_days != retention_days:
         act.record(
             ticket,
@@ -313,7 +327,9 @@ async def save_upload(
     session: AsyncSession, ticket_id: str, directory: str, filename: str, data: bytes
 ) -> dict[str, Any]:
     if len(data) > MAX_UPLOAD_BYTES:
-        raise WorkspaceError(f"File is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
+        raise WorkspaceError(
+            f"File is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB"
+        )
     folder = await _enabled_folder(session, ticket_id)
     name = _safe_filename(filename)
     rel = f"{directory.strip('/')}/{name}" if directory.strip("/") else name
@@ -326,7 +342,10 @@ async def save_upload(
         target.write_bytes(data)
 
     await asyncio.to_thread(_write)
-    return {"name": str(target.relative_to(os.path.realpath(folder))), "size": len(data)}
+    return {
+        "name": str(target.relative_to(os.path.realpath(folder))),
+        "size": len(data),
+    }
 
 
 async def delete_entry(session: AsyncSession, ticket_id: str, rel: str) -> None:
@@ -377,7 +396,9 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
     else:
         opener = "xdg-open"
     if shutil.which(opener) is None:
-        raise WorkspaceError("No file manager available on this machine; copy the path instead")
+        raise WorkspaceError(
+            "No file manager available on this machine; copy the path instead"
+        )
     subprocess.Popen(  # noqa: S603 - fixed argv
         [opener, "."],
         cwd=folder,
@@ -388,7 +409,9 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
     return str(folder)
 
 
-async def sweep_expired(session: AsyncSession, dry_run: bool = False) -> list[dict[str, Any]]:
+async def sweep_expired(
+    session: AsyncSession, dry_run: bool = False
+) -> list[dict[str, Any]]:
     """Delete workspace folders of closed tickets idle past their retention window.
 
     Only ``<root>/<ticket_id>`` folders are ever touched. Open tickets and tickets
@@ -397,7 +420,9 @@ async def sweep_expired(session: AsyncSession, dry_run: bool = False) -> list[di
     settings = await get_workspace_settings(session)
     if not settings.enabled:
         return []
-    result = await session.exec(select(Ticket).where(Ticket.status.in_(list(CLOSED_STATUSES))))
+    result = await session.exec(
+        select(Ticket).where(Ticket.status.in_(list(CLOSED_STATUSES)))
+    )
     removed: list[dict[str, Any]] = []
     now = time.time()
     for ticket in result.all():
