@@ -7,17 +7,17 @@ import styles from './IdeaCard.module.css';
 const COLOR_MAP: Record<IdeaColor, string> = {
   yellow: 'var(--color-yellow)',
   orange: 'var(--color-orange)',
-  lime:   'var(--color-lime)',
-  pink:   'var(--color-pink)',
-  blue:   'var(--color-blue)',
+  lime: 'var(--color-lime)',
+  pink: 'var(--color-pink)',
+  blue: 'var(--color-blue)',
   purple: 'var(--color-purple)',
-  teal:   'var(--color-teal)',
+  teal: 'var(--color-teal)',
 };
 
 const ENERGY_META: Record<IdeaEnergy, { emoji: string; label: string; activeBg?: string; activeColor?: string }> = {
-  seed:    { emoji: '🌱', label: 'Seed' },
+  seed: { emoji: '🌱', label: 'Seed' },
   concept: { emoji: '💡', label: 'Concept' },
-  hot:     { emoji: '🔥', label: 'Hot',     activeBg: 'var(--color-orange)', activeColor: '#fff' },
+  hot: { emoji: '🔥', label: 'Hot', activeBg: 'var(--color-orange)', activeColor: '#fff' },
   big_bet: { emoji: '🚀', label: 'Big Bet', activeBg: 'var(--color-purple)', activeColor: '#fff' },
 };
 
@@ -83,7 +83,9 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
           onClick={(e) => e.stopPropagation()}
           aria-hidden="true"
           tabIndex={-1}
-        >⠿</button>
+        >
+          ⠿
+        </button>
       )}
 
       <div className={styles.inner}>
@@ -97,7 +99,11 @@ export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: Idea
         {ticket.description && <p className={styles.description}>{ticket.description}</p>}
         {visibleTags.length > 0 && (
           <div className={styles.tags}>
-            {visibleTags.map((tag) => <span key={tag} className={styles.tag}>{tag}</span>)}
+            {visibleTags.map((tag) => (
+              <span key={tag} className={styles.tag}>
+                {tag}
+              </span>
+            ))}
             {extraTagCount > 0 && <span className={styles.tagExtra}>+{extraTagCount}</span>}
           </div>
         )}

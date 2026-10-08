@@ -20,7 +20,15 @@ interface Props {
 }
 
 /** The whole Docs space: DocsView plus the search palette and results, find-in-page, import and notifications. */
-export function DocsSpace({ projectId, projectName, requestedPageId, onRequestHandled, onOpenTicket, onOpenSettings, onBack }: Props) {
+export function DocsSpace({
+  projectId,
+  projectName,
+  requestedPageId,
+  onRequestHandled,
+  onOpenTicket,
+  onOpenSettings,
+  onBack,
+}: Props) {
   const tree = useDocsTree(projectId);
   const nodes = tree.data ?? [];
   const [request, setRequest] = useState<string | null>(null);
@@ -68,11 +76,28 @@ export function DocsSpace({ projectId, projectName, requestedPageId, onRequestHa
         onBodyRef={setRoot}
       />
       {results !== null && (
-        <div className="docs-root" style={{ position: 'absolute', inset: 0, background: '#FFFFFF', zIndex: 40, display: 'flex' }}>
-          <SearchResults projectId={projectId} projectName={projectName} initialQuery={results} onOpenPage={(id) => open(id)} onOpenTicket={onOpenTicket} onBack={() => setResults(null)} />
+        <div
+          className="docs-root"
+          style={{ position: 'absolute', inset: 0, background: '#FFFFFF', zIndex: 40, display: 'flex' }}
+        >
+          <SearchResults
+            projectId={projectId}
+            projectName={projectName}
+            initialQuery={results}
+            onOpenPage={(id) => open(id)}
+            onOpenTicket={onOpenTicket}
+            onBack={() => setResults(null)}
+          />
         </div>
       )}
-      {findOpen && <FindInPage root={root} editable={Boolean(root?.isContentEditable)} replaceAdapter={getActiveReplaceAdapter()} onClose={() => setFindOpen(false)} />}
+      {findOpen && (
+        <FindInPage
+          root={root}
+          editable={Boolean(root?.isContentEditable)}
+          replaceAdapter={getActiveReplaceAdapter()}
+          onClose={() => setFindOpen(false)}
+        />
+      )}
       {palette && (
         <SearchPalette
           projectId={projectId}
@@ -113,4 +138,3 @@ export function DocsSpace({ projectId, projectName, requestedPageId, onRequestHa
     </div>
   );
 }
-

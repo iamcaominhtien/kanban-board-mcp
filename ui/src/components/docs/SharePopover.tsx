@@ -144,13 +144,27 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5B6B60' }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: '#5B6B60',
+          }}
+        >
           Reference in another page
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div
             className="st-input"
-            style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: '#2E6F40', display: 'flex', alignItems: 'center' }}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 12.5,
+              color: '#2E6F40',
+              display: 'flex',
+              alignItems: 'center',
+            }}
           >
             {ref}
           </div>
@@ -159,7 +173,11 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
             className="st-btn"
             aria-label="Copy reference"
             onClick={() => void copy('ref')}
-            style={{ flexShrink: 0, padding: '8px 10px', ...(copied === 'ref' ? { color: '#2E6F40', background: '#F1F8F3' } : {}) }}
+            style={{
+              flexShrink: 0,
+              padding: '8px 10px',
+              ...(copied === 'ref' ? { color: '#2E6F40', background: '#F1F8F3' } : {}),
+            }}
           >
             <Icon name={copied === 'ref' ? 'i10' : 'i24'} size={14} />
           </button>

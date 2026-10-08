@@ -25,7 +25,8 @@ export const Placeholder = Extension.create({
             const { selection } = state;
             if (!selection.empty) return null;
             const { $from } = selection;
-            if ($from.depth !== 1 || $from.parent.type.name !== 'paragraph' || $from.parent.content.size > 0) return null;
+            if ($from.depth !== 1 || $from.parent.type.name !== 'paragraph' || $from.parent.content.size > 0)
+              return null;
             return DecorationSet.create(state.doc, [
               Decoration.widget($from.pos, widget, { side: -1, key: 'ph' }),
               Decoration.node($from.before(), $from.after(), { class: 'dk-empty' }),

@@ -31,7 +31,16 @@ type SaveState = 'saved' | 'saving' | 'error' | 'dirty';
 const AUTOSAVE_MS = 3000;
 const offlineKey = (pageId: string) => `docsOfflineDraft:${pageId}`;
 
-export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onOpenTicket, rail, onEditorRoot }: Props) {
+export function DocsEditScreen({
+  projectId,
+  page,
+  nodes,
+  onExit,
+  onOpenPage,
+  onOpenTicket,
+  rail,
+  onEditorRoot,
+}: Props) {
   const toast = useToast();
   const saveDraft = useSaveDraft(projectId);
   const publish = usePublishPage(projectId);
@@ -57,7 +66,11 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
   const [publishOpen, setPublishOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [conflict, setConflict] = useState<{ latestVersion: number; latestAuthor?: string | null; latestAt?: string | null } | null>(null);
+  const [conflict, setConflict] = useState<{
+    latestVersion: number;
+    latestAuthor?: string | null;
+    latestAt?: string | null;
+  } | null>(null);
 
   const editor = useRef<DocsEditorHandle>(null);
   const mountedAt = useRef(Date.now());
@@ -69,7 +82,14 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
 
   const keepLocal = useCallback(() => {
     try {
-      localStorage.setItem(offlineKey(page.id), JSON.stringify({ markdown: latest.current.markdown, title: latest.current.title, at: new Date().toISOString() }));
+      localStorage.setItem(
+        offlineKey(page.id),
+        JSON.stringify({
+          markdown: latest.current.markdown,
+          title: latest.current.title,
+          at: new Date().toISOString(),
+        }),
+      );
     } catch {
       /* storage full or blocked: the in-memory copy still exists */
     }
@@ -125,7 +145,12 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
   useEffect(
     () => () => {
       if (dirty.current) {
-        saveDraft.mutate({ pageId: page.id, markdown: latest.current.markdown, title: latest.current.title, baseVersion: latest.current.baseVersion });
+        saveDraft.mutate({
+          pageId: page.id,
+          markdown: latest.current.markdown,
+          title: latest.current.title,
+          baseVersion: latest.current.baseVersion,
+        });
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,13 +239,34 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
   };
 
   const saveLabel =
-    saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Not saved — will retry' : saveState === 'dirty' ? 'Unsaved changes' : 'Saved';
+    saveState === 'saving'
+      ? 'Saving…'
+      : saveState === 'error'
+        ? 'Not saved — will retry'
+        : saveState === 'dirty'
+          ? 'Unsaved changes'
+          : 'Saved';
 
   return (
-    <div className="docs-root" data-testid="docs-edit-screen" style={{ flex: 1, minWidth: 0, display: 'flex', minHeight: 0, background: '#FFFFFF' }}>
+    <div
+      className="docs-root"
+      data-testid="docs-edit-screen"
+      style={{ flex: 1, minWidth: 0, display: 'flex', minHeight: 0, background: '#FFFFFF' }}
+    >
       {rail}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <header style={{ display: 'flex', alignItems: 'center', gap: 12, height: 56, padding: '0 24px', borderBottom: '1px solid #E3E8E5', background: '#FFFFFF', flexShrink: 0 }}>
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            height: 56,
+            padding: '0 24px',
+            borderBottom: '1px solid #E3E8E5',
+            background: '#FFFFFF',
+            flexShrink: 0,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
             {page.path.map((p) => (
               <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
@@ -228,7 +274,18 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
                 <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
               </span>
             ))}
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title || 'Untitled'}</span>
+            <span
+              style={{
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: '#1E2A22',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {title || 'Untitled'}
+            </span>
           </div>
           <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>
             <span className="mc-dot" style={{ background: '#B4791E' }} />
@@ -236,20 +293,57 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
           </span>
           <div style={{ flex: 1 }} />
           {!online ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 10px', borderRadius: 999, background: '#FCEFD9', fontSize: 12, fontWeight: 700, color: '#7A4F08', whiteSpace: 'nowrap' }} data-testid="save-state">
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                height: 26,
+                padding: '0 10px',
+                borderRadius: 999,
+                background: '#FCEFD9',
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#7A4F08',
+                whiteSpace: 'nowrap',
+              }}
+              data-testid="save-state"
+            >
               <Icon name="i37" size={13} />
               Offline — changes kept locally
             </span>
           ) : (
-            <span role="status" data-testid="save-state" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', color: saveState === 'error' ? '#C4432A' : saveState === 'saved' ? '#2E6F40' : '#5B6B60' }}>
-              {saveState === 'saving' ? <span className="mc-spin" /> : saveState === 'saved' ? <Icon name="i17" size={14} /> : null}
+            <span
+              role="status"
+              data-testid="save-state"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12.5,
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                color: saveState === 'error' ? '#C4432A' : saveState === 'saved' ? '#2E6F40' : '#5B6B60',
+              }}
+            >
+              {saveState === 'saving' ? (
+                <span className="mc-spin" />
+              ) : saveState === 'saved' ? (
+                <Icon name="i17" size={14} />
+              ) : null}
               {saveLabel}
               {saveState === 'saved' && savedAt && (
-                <span style={{ fontWeight: 500, color: '#9AA8A0' }}>{savedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                <span style={{ fontWeight: 500, color: '#9AA8A0' }}>
+                  {savedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </span>
               )}
             </span>
           )}
-          <div role="group" aria-label="Editor mode" style={{ display: 'flex', padding: 3, borderRadius: 8, background: '#EEF3EF', gap: 2 }}>
+          <div
+            role="group"
+            aria-label="Editor mode"
+            style={{ display: 'flex', padding: 3, borderRadius: 8, background: '#EEF3EF', gap: 2 }}
+          >
             {(['visual', 'markdown'] as const).map((m) => (
               <button
                 key={m}
@@ -260,14 +354,40 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
                   editor.current?.flush();
                   setMode(m);
                 }}
-                style={{ padding: '5px 11px', borderRadius: 6, border: 'none', background: mode === m ? '#FFFFFF' : 'none', boxShadow: mode === m ? '0 1px 2px rgba(30,42,34,0.10)' : 'none', color: mode === m ? '#1E2A22' : '#5B6B60', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: mode === m ? '#FFFFFF' : 'none',
+                  boxShadow: mode === m ? '0 1px 2px rgba(30,42,34,0.10)' : 'none',
+                  color: mode === m ? '#1E2A22' : '#5B6B60',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
               >
                 {m === 'visual' ? 'Visual' : 'Markdown'}
               </button>
             ))}
           </div>
-          <button type="button" className="st-btn st-btn-danger-outline st-btn-sm" onClick={() => setDiscardOpen(true)} data-testid="discard">Discard</button>
-          <button type="button" className="st-btn st-btn-primary st-btn-sm" disabled={Boolean(conflict) || !online} onClick={openPublish} data-testid="publish">
+          <button
+            type="button"
+            className="st-btn st-btn-danger-outline st-btn-sm"
+            onClick={() => setDiscardOpen(true)}
+            data-testid="discard"
+          >
+            Discard
+          </button>
+          <button
+            type="button"
+            className="st-btn st-btn-primary st-btn-sm"
+            disabled={Boolean(conflict) || !online}
+            onClick={openPublish}
+            data-testid="publish"
+          >
             <Icon name="i46" size={13} />
             Publish
           </button>
@@ -288,7 +408,9 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
         {!online && <OfflineBanner onRetry={() => void flush().then((ok) => ok && setOnline(true))} />}
         {online && justBack && <BackOnlineBanner onDismiss={clearJustBack} />}
         {error && !publishOpen && (
-          <div role="alert" style={{ padding: '8px 24px', background: '#FBE7E4', color: '#A5321E', fontSize: 12.5 }}>{error}</div>
+          <div role="alert" style={{ padding: '8px 24px', background: '#FBE7E4', color: '#A5321E', fontSize: 12.5 }}>
+            {error}
+          </div>
         )}
 
         <DocsEditor
@@ -323,7 +445,19 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
                   setTitle(e.target.value);
                   touch();
                 }}
-                style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 32, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.01em', color: '#1E2A22', padding: 0 }}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontFamily: 'inherit',
+                  fontSize: 32,
+                  fontWeight: 800,
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.01em',
+                  color: '#1E2A22',
+                  padding: 0,
+                }}
               />
             </div>
           }
@@ -363,9 +497,17 @@ export function DocsEditScreen({ projectId, page, nodes, onExit, onOpenPage, onO
 }
 
 /** Hands the ProseMirror root to the parent (find-in-page) once it exists. */
-function EditorRootBridge({ editor, onEditorRoot, mode }: { editor: React.RefObject<DocsEditorHandle>; onEditorRoot?: (el: HTMLElement | null) => void; mode: EditorMode }) {
+function EditorRootBridge({
+  editor,
+  onEditorRoot,
+  mode,
+}: {
+  editor: React.RefObject<DocsEditorHandle>;
+  onEditorRoot?: (el: HTMLElement | null) => void;
+  mode: EditorMode;
+}) {
   useEffect(() => {
-    onEditorRoot?.(mode === 'visual' ? editor.current?.getRoot() ?? null : null);
+    onEditorRoot?.(mode === 'visual' ? (editor.current?.getRoot() ?? null) : null);
     return () => onEditorRoot?.(null);
   }, [editor, onEditorRoot, mode]);
   return null;

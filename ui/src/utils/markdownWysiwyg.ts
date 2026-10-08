@@ -7,17 +7,14 @@ import { keyChipHtml, keyPattern, refChipHtml } from './docRefTokens';
 import { resolveOrigin } from '../api/resolveOrigin';
 
 function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /** Allow only http(s), mailto, root-relative and plain relative URLs. */
 export function isSafeUrl(url: string): boolean {
   const trimmed = url.trim();
   if (/^(https?:|mailto:)/i.test(trimmed)) return true;
+  // eslint-disable-next-line no-control-regex -- strip control characters before checking the scheme
   return !/^[a-z][a-z0-9+.-]*:/i.test(trimmed.replace(/[\u0000-\u0020]/g, ''));
 }
 
@@ -110,9 +107,9 @@ function formatInlineMarkdown(text: string): string {
   // Mark / Highlight: <mark>text</mark> or ==text==
   out = out.replace(/==([^=]+)==/g, '<mark>$1</mark>');
 
+  // eslint-disable-next-line no-control-regex -- NUL is the placeholder delimiter
   return out.replace(/\u0000(\d+)\u0000/g, (_m, i) => refChips[Number(i)]);
 }
-
 
 const CALLOUT_RE = /^\[!(NOTE|INFO|TIP|WARNING|DANGER|IMPORTANT|CAUTION)\]\s*(.*)$/i;
 
@@ -210,7 +207,6 @@ function renderListLevel(items: ListItem[], state: { i: number }, indent: number
   return `${out}</${tag}>`;
 }
 
-
 export function markdownToHtml(md: string): string {
   if (!md || !md.trim()) return '<p><br></p>';
 
@@ -241,7 +237,12 @@ export function markdownToHtml(md: string): string {
       } else {
         inCodeBlock = true;
         codeBlockContent = [];
-        codeLang = line.trimStart().slice(3).trim().split(/\s+/)[0].replace(/[^\w+#.-]/g, '');
+        codeLang = line
+          .trimStart()
+          .slice(3)
+          .trim()
+          .split(/\s+/)[0]
+          .replace(/[^\w+#.-]/g, '');
       }
       continue;
     }
@@ -376,6 +377,7 @@ export function markdownToHtml(md: string): string {
 export function htmlToMarkdown(root: HTMLElement): string {
   function serializeInline(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) {
+      // eslint-disable-next-line no-irregular-whitespace -- non-breaking space is matched on purpose
       return (node.nodeValue || '').replace(/ /g, ' ');
     }
 
@@ -524,6 +526,7 @@ export function htmlToMarkdown(root: HTMLElement): string {
 
   function serializeBlock(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) {
+      // eslint-disable-next-line no-irregular-whitespace -- non-breaking space is matched on purpose
       const text = (node.nodeValue || '').replace(/ /g, ' ').trim();
       return text ? `${text}\n\n` : '';
     }
@@ -559,18 +562,25 @@ export function htmlToMarkdown(root: HTMLElement): string {
       case 'blockquote': {
         const calloutType = el.getAttribute('data-callout');
         if (calloutType) {
-          const body = (hasBlockChild(el)
-            ? serializeMixed(el)
-            : Array.from(el.childNodes).map(serializeInline).join('')
+          const body = (
+            hasBlockChild(el) ? serializeMixed(el) : Array.from(el.childNodes).map(serializeInline).join('')
           )
             .trim()
             .replace(/\n\n+/g, '\n');
-          return [`> [!${calloutType.toUpperCase()}]`, ...body.split('\n').map((l) => (l ? `> ${l}` : '>'))].join('\n') + '\n\n';
+          return (
+            [`> [!${calloutType.toUpperCase()}]`, ...body.split('\n').map((l) => (l ? `> ${l}` : '>'))].join('\n') +
+            '\n\n'
+          );
         }
         const inner = hasBlockChild(el)
           ? serializeMixed(el).trim().replace(/\n\n+/g, '\n\n')
           : Array.from(el.childNodes).map(serializeInline).join('').trim();
-        return inner.split('\n').map((l) => (l ? `> ${l}` : '>')).join('\n') + '\n\n';
+        return (
+          inner
+            .split('\n')
+            .map((l) => (l ? `> ${l}` : '>'))
+            .join('\n') + '\n\n'
+        );
       }
       case 'pre': {
         const codeEl = el.querySelector('code');

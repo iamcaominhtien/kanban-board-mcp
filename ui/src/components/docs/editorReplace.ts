@@ -13,7 +13,8 @@ export function createEditorReplaceAdapter(getEditor: () => Editor | null): Find
       ed.state.doc.descendants((node, pos) => {
         if (!node.isText || !node.text) return;
         if (node.marks.some((m) => m.type.name === 'code')) return;
-        for (const m of node.text.matchAll(re)) hits.push({ from: pos + (m.index ?? 0), to: pos + (m.index ?? 0) + m[0].length });
+        for (const m of node.text.matchAll(re))
+          hits.push({ from: pos + (m.index ?? 0), to: pos + (m.index ?? 0) + m[0].length });
       });
       const chosen = opts.all ? hits : hits.slice(opts.index, opts.index + 1);
       if (!chosen.length) return 0;

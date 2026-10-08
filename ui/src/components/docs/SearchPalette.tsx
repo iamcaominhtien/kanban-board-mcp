@@ -61,7 +61,10 @@ function saveRecentSearch(q: string) {
 /** Call whenever a page is viewed; feeds "Recently viewed" in the palette (localStorage `docsRecentPages:<projectId>`). */
 export function rememberDocsPage(projectId: string, pageId: string, title: string) {
   const list = readJson<RecentDocsPage[]>(recentPagesKey(projectId), []);
-  writeJson(recentPagesKey(projectId), [{ id: pageId, title, at: Date.now() }, ...list.filter((p) => p.id !== pageId)].slice(0, 8));
+  writeJson(
+    recentPagesKey(projectId),
+    [{ id: pageId, title, at: Date.now() }, ...list.filter((p) => p.id !== pageId)].slice(0, 8),
+  );
 }
 
 /** Ctrl/Cmd+K, and `/` outside text fields, open the palette. Mount it only while Docs is shown. */
@@ -213,20 +216,34 @@ export function SearchPalette({
     },
     { enabled: searchable && useNet && term.length > 0 },
   );
-  const ticketQ = useDocsSearch(projectId, { q: dTrim, scope: 'tickets', limit: 3 }, { enabled: searchable && useNet && mode === 'ticket' });
+  const ticketQ = useDocsSearch(
+    projectId,
+    { q: dTrim, scope: 'tickets', limit: 3 },
+    { enabled: searchable && useNet && mode === 'ticket' },
+  );
   const noQuotes = useDocsSearch(
     projectId,
-    { q: dTrim.replace(/"/g, ''), scope: apiScope === 'tickets' ? 'space' : apiScope, pageId: scope === 'page' ? pageId : undefined, limit: 1 },
+    {
+      q: dTrim.replace(/"/g, ''),
+      scope: apiScope === 'tickets' ? 'space' : apiScope,
+      pageId: scope === 'page' ? pageId : undefined,
+      limit: 1,
+    },
     { enabled: searchable && useNet && hasPhrase },
   );
   const noExcl = useDocsSearch(
     projectId,
-    { q: parsed.terms.join(' '), scope: apiScope === 'tickets' ? 'space' : apiScope, pageId: scope === 'page' ? pageId : undefined, limit: 1 },
+    {
+      q: parsed.terms.join(' '),
+      scope: apiScope === 'tickets' ? 'space' : apiScope,
+      pageId: scope === 'page' ? pageId : undefined,
+      limit: 1,
+    },
     { enabled: searchable && useNet && hasExclude && parsed.terms.length > 0 },
   );
   // sections of the top page in link mode
   const topLinkPage = mode === 'link' ? main.data?.pages?.[0] : undefined;
-  const linkPage = useDocsPage(mode === 'link' && sectionPart !== '' ? topLinkPage?.pageId ?? null : null);
+  const linkPage = useDocsPage(mode === 'link' && sectionPart !== '' ? (topLinkPage?.pageId ?? null) : null);
 
   // Network failure (no response) behaves like offline: cached pages only.
   const netError = main.isError && !(main.error as { response?: unknown })?.response;
@@ -242,7 +259,7 @@ export function SearchPalette({
         : null,
     [showOffline, projectId, mode, dTrim, term, scope, pageId, projectName],
   );
-  const data: DocsSearchResponse | undefined = showOffline ? offlineData ?? undefined : main.data;
+  const data: DocsSearchResponse | undefined = showOffline ? (offlineData ?? undefined) : main.data;
   const loading = !showOffline && searchable && (typing || (main.isLoading && !main.data));
   const failed = !showOffline && main.isError && !netError;
   const errDetail = failed ? docsErrorDetail(main.error) : null;
@@ -254,8 +271,11 @@ export function SearchPalette({
     if (!words.length) return null;
     const known = new Set(data.pages.map((p) => p.pageId));
     for (const n of nodes) {
-      const age = (Date.now() - new Date(/Z|[+-]\d\d:?\d\d$/.test(n.updatedAt) ? n.updatedAt : n.updatedAt + 'Z').getTime()) / 1000;
-      if (age >= 0 && age < 10 && !known.has(n.id) && words.some((w) => n.title.toLowerCase().includes(w))) return { title: n.title, age: Math.max(1, Math.round(age)) };
+      const age =
+        (Date.now() - new Date(/Z|[+-]\d\d:?\d\d$/.test(n.updatedAt) ? n.updatedAt : n.updatedAt + 'Z').getTime()) /
+        1000;
+      if (age >= 0 && age < 10 && !known.has(n.id) && words.some((w) => n.title.toLowerCase().includes(w)))
+        return { title: n.title, age: Math.max(1, Math.round(age)) };
     }
     return null;
   }, [data, searchable, mode, scope, showOffline, parsed, nodes]);
@@ -272,13 +292,15 @@ export function SearchPalette({
     if (!searchable || tooShort) {
       const rs = recents.slice(0, 4).map<Row>((t) => ({ kind: 'recent-search', key: 'rs:' + t, text: t }));
       if (rs.length) out.push({ title: 'Recent searches', rows: rs });
-      const rp = readJson<RecentDocsPage[]>(recentPagesKey(projectId), []).slice(0, 3).map<Row>((p) => ({
-        kind: 'recent-page',
-        key: 'rp:' + p.id,
-        id: p.id,
-        title: nodeById.get(p.id)?.title ?? p.title,
-        label: parentOf(p.id),
-      }));
+      const rp = readJson<RecentDocsPage[]>(recentPagesKey(projectId), [])
+        .slice(0, 3)
+        .map<Row>((p) => ({
+          kind: 'recent-page',
+          key: 'rp:' + p.id,
+          id: p.id,
+          title: nodeById.get(p.id)?.title ?? p.title,
+          label: parentOf(p.id),
+        }));
       if (rp.length && trimmed.length === 0) out.push({ title: 'Recently viewed', rows: rp });
       return out;
     }
@@ -286,12 +308,23 @@ export function SearchPalette({
     const words = parsed.terms.concat(parsed.phrases);
     const titleHit = (p: DocsSearchPage) => words.some((w) => p.title.toLowerCase().includes(w));
     if (mode === 'link') {
-      out.push({ title: `Pages · ${data.pages.length}`, rows: data.pages.map((p) => ({ kind: 'page', key: 'p:' + p.pageId, page: p, label: parentLabel(p) })) });
+      out.push({
+        title: `Pages · ${data.pages.length}`,
+        rows: data.pages.map((p) => ({ kind: 'page', key: 'p:' + p.pageId, page: p, label: parentLabel(p) })),
+      });
       if (sectionPart !== '' && topLinkPage && linkPage.data) {
-        const secs = linkPage.data.headings.filter((h) => h.text.toLowerCase().includes(sectionPart.toLowerCase()) || sectionPart === '');
+        const secs = linkPage.data.headings.filter(
+          (h) => h.text.toLowerCase().includes(sectionPart.toLowerCase()) || sectionPart === '',
+        );
         out.push({
           title: `Sections of ${topLinkPage.title} · ${secs.length}`,
-          rows: secs.map((h) => ({ kind: 'linksec', key: 'ls:' + h.slug, title: topLinkPage.title, section: h.text, slug: h.slug })),
+          rows: secs.map((h) => ({
+            kind: 'linksec',
+            key: 'ls:' + h.slug,
+            title: topLinkPage.title,
+            section: h.text,
+            slug: h.slug,
+          })),
         });
         // with a section typed, the section list is what Enter inserts
         out.reverse();
@@ -300,7 +333,9 @@ export function SearchPalette({
     }
     if (mode === 'headings') {
       const rows: Row[] = [];
-      data.pages.forEach((p) => p.matches.forEach((m, mi) => rows.push({ kind: 'heading', key: `h:${p.pageId}:${m.slug}`, page: p, mi })));
+      data.pages.forEach((p) =>
+        p.matches.forEach((m, mi) => rows.push({ kind: 'heading', key: `h:${p.pageId}:${m.slug}`, page: p, mi })),
+      );
       out.push({ title: `Headings · ${rows.length}`, rows });
       return out;
     }
@@ -309,7 +344,13 @@ export function SearchPalette({
       if (tickets.length) {
         out.push({
           title: `Ticket · ${tickets.length}`,
-          rows: tickets.map((t) => ({ kind: 'ticket', key: 't:' + t.ticketId, id: t.ticketId, title: t.title, status: t.status })),
+          rows: tickets.map((t) => ({
+            kind: 'ticket',
+            key: 't:' + t.ticketId,
+            id: t.ticketId,
+            title: t.title,
+            status: t.status,
+          })),
         });
       }
       out.push({
@@ -321,7 +362,14 @@ export function SearchPalette({
     if (scope === 'tickets') {
       out.push({
         title: `Tickets · ${data.tickets.length}`,
-        rows: data.tickets.map((t) => ({ kind: 'ticket', key: 't:' + t.ticketId, id: t.ticketId, title: t.title, status: t.status, snippet: t.snippet })),
+        rows: data.tickets.map((t) => ({
+          kind: 'ticket',
+          key: 't:' + t.ticketId,
+          id: t.ticketId,
+          title: t.title,
+          status: t.status,
+          snippet: t.snippet,
+        })),
       });
       return out.filter((s) => s.rows.length);
     }
@@ -350,11 +398,37 @@ export function SearchPalette({
       return out;
     }
     const hits = data.pages.filter(titleHit);
-    if (hits.length && !hasPhrase) out.push({ title: `Pages · ${hits.length}`, rows: hits.map((p) => ({ kind: 'page', key: 'p:' + p.pageId, page: p, label: parentLabel(p) })) });
+    if (hits.length && !hasPhrase)
+      out.push({
+        title: `Pages · ${hits.length}`,
+        rows: hits.map((p) => ({ kind: 'page', key: 'p:' + p.pageId, page: p, label: parentLabel(p) })),
+      });
     const withText = data.pages.filter((p) => p.matches.length);
-    if (withText.length) out.push({ title: `In page content · ${withText.length}`, rows: withText.map((p) => ({ kind: 'content', key: 'c:' + p.pageId, page: p, mi: 0 })) });
+    if (withText.length)
+      out.push({
+        title: `In page content · ${withText.length}`,
+        rows: withText.map((p) => ({ kind: 'content', key: 'c:' + p.pageId, page: p, mi: 0 })),
+      });
     return out;
-  }, [searchable, tooShort, recents, projectId, trimmed, data, parsed, mode, nodes, scope, showOffline, ticketQ.data, sectionPart, topLinkPage, linkPage.data, dTrim, hasPhrase]);
+  }, [
+    searchable,
+    tooShort,
+    recents,
+    projectId,
+    trimmed,
+    data,
+    parsed,
+    mode,
+    nodes,
+    scope,
+    showOffline,
+    ticketQ.data,
+    sectionPart,
+    topLinkPage,
+    linkPage.data,
+    dTrim,
+    hasPhrase,
+  ]);
 
   const flat = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
   useEffect(() => setSel(0), [dq, scope, flat.length]);
@@ -466,7 +540,15 @@ export function SearchPalette({
 
   // ── render helpers ──
   const header = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 18px', borderBottom: '1px solid #E3E8E5' }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '13px 18px',
+        borderBottom: '1px solid #E3E8E5',
+      }}
+    >
       <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
       <div className="fx-qwrap">
         <div className="fx-qback" ref={backRef} aria-hidden="true">
@@ -475,9 +557,19 @@ export function SearchPalette({
           ) : (
             tokenize(q).map((t, i) =>
               t.kind === 'plain' ? (
-                <span key={i}>{(mode === 'link' || mode === 'headings') && i > 0 ? <mark className="fx-mark">{t.text}</mark> : t.text}</span>
+                <span key={i}>
+                  {(mode === 'link' || mode === 'headings') && i > 0 ? (
+                    <mark className="fx-mark">{t.text}</mark>
+                  ) : (
+                    t.text
+                  )}
+                </span>
               ) : (
-                <span key={i} className="fx-qtok" style={{ color: TOKEN_STYLE[t.kind].fg, ['--tok-bg' as string]: TOKEN_STYLE[t.kind].bg }}>
+                <span
+                  key={i}
+                  className="fx-qtok"
+                  style={{ color: TOKEN_STYLE[t.kind].fg, ['--tok-bg' as string]: TOKEN_STYLE[t.kind].bg }}
+                >
                   {t.text}
                 </span>
               ),
@@ -502,7 +594,7 @@ export function SearchPalette({
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         {loading && <span className="mc-spin" />}
-        {!loading && modeChip(mode, hasPhrase, hasExclude, parsed.excludes.length) }
+        {!loading && modeChip(mode, hasPhrase, hasExclude, parsed.excludes.length)}
         {!loading && mode === 'plain' && !hasPhrase && !hasExclude && trimmed !== '' && !syntaxOpen && <Kbd>Esc</Kbd>}
         {!loading && mode === 'plain' && !hasPhrase && !hasExclude && trimmed === '' && !syntaxOpen && <Kbd>Esc</Kbd>}
       </div>
@@ -519,8 +611,20 @@ export function SearchPalette({
           : `${projectName} docs${showOffline ? ' (offline)' : ''}`;
 
   const scopeBar = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '9px 18px', borderBottom: '1px solid #EEF3EF', background: '#FBFCFB', flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '9px 18px',
+        borderBottom: '1px solid #EEF3EF',
+        background: '#FBFCFB',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}
+      >
         <span style={{ fontWeight: 700, color: '#5B6B60' }}>In:</span>
         <span style={{ fontWeight: 700, color: '#1E2A22' }}>{inLabel}</span>
       </div>
@@ -532,7 +636,13 @@ export function SearchPalette({
               key={s.id}
               type="button"
               className={`dk-tabs-btn${on ? ' dk-tabs-btn-on' : ''}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', whiteSpace: 'nowrap' }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '4px 10px',
+                whiteSpace: 'nowrap',
+              }}
               onClick={() => {
                 setScope(s.id);
                 inputRef.current?.focus();
@@ -549,13 +659,21 @@ export function SearchPalette({
   );
 
   const showAllRow =
-    mode === 'plain' && scope === 'space' && !showOffline && data && flat.length > 0 && (data.total > 0) ? (
+    mode === 'plain' && scope === 'space' && !showOffline && data && flat.length > 0 && data.total > 0 ? (
       <div
         role="button"
         tabIndex={-1}
         onClick={showAll}
         className="fx-row"
-        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px 4px', fontSize: 12.5, fontWeight: 600, color: '#2E6F40' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 18px 4px',
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: '#2E6F40',
+        }}
       >
         <Icon name="i09" size={13} strokeWidth={2} />
         Show all {data.total + (data.tickets?.length ?? 0)} results
@@ -593,7 +711,17 @@ export function SearchPalette({
             <span style={{ display: 'flex', color: on ? '#2E6F40' : '#9AA8A0' }}>
               <Icon name="i00" size={16} strokeWidth={1.8} />
             </span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#1E2A22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: 13.5,
+                fontWeight: 600,
+                color: '#1E2A22',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
+              }}
+            >
               {highlight(r.page.title, mode === 'link' ? term : dTrim)}
             </span>
             <div style={{ flex: 1, minWidth: 8 }} />
@@ -618,13 +746,34 @@ export function SearchPalette({
             </span>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                <span style={{ fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>{highlight(r.page.title, dTrim)}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5B6B60', flexWrap: 'nowrap', minWidth: 0 }}>
+                <span style={{ fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>
+                  {highlight(r.page.title, dTrim)}
+                </span>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 12,
+                    color: '#5B6B60',
+                    flexWrap: 'nowrap',
+                    minWidth: 0,
+                  }}
+                >
                   {anc && <span style={{ whiteSpace: 'nowrap' }}>{anc}</span>}
                   {m?.section && (
                     <>
                       <Icon name="i05" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap', color: '#2E6F40', fontWeight: 600 }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          whiteSpace: 'nowrap',
+                          color: '#2E6F40',
+                          fontWeight: 600,
+                        }}
+                      >
                         <Icon name="i04" size={11} strokeWidth={2.2} />
                         {m.section}
                       </span>
@@ -632,7 +781,20 @@ export function SearchPalette({
                   )}
                 </span>
               </div>
-              {m && <Snip html={m.snippet} style={{ fontSize: 12.5, lineHeight: 1.5, color: '#5B6B60', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} />}
+              {m && (
+                <Snip
+                  html={m.snippet}
+                  style={{
+                    fontSize: 12.5,
+                    lineHeight: 1.5,
+                    color: '#5B6B60',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                />
+              )}
             </div>
             {r.offline ? offlineChip : enterKbd}
           </div>
@@ -649,12 +811,35 @@ export function SearchPalette({
             </span>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                <span style={{ fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>{isHead ? highlight(m.section, term) : m.section}</span>
+                <span style={{ fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>
+                  {isHead ? highlight(m.section, term) : m.section}
+                </span>
                 {isHead && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5B6B60', flexWrap: 'nowrap', minWidth: 0 }}>
-                    {ancestors(r.page).length > 0 && <span style={{ whiteSpace: 'nowrap' }}>{parentLabel(r.page)}</span>}
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 12,
+                      color: '#5B6B60',
+                      flexWrap: 'nowrap',
+                      minWidth: 0,
+                    }}
+                  >
+                    {ancestors(r.page).length > 0 && (
+                      <span style={{ whiteSpace: 'nowrap' }}>{parentLabel(r.page)}</span>
+                    )}
                     <Icon name="i05" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap', color: '#2E6F40', fontWeight: 600 }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        whiteSpace: 'nowrap',
+                        color: '#2E6F40',
+                        fontWeight: 600,
+                      }}
+                    >
                       <Icon name="i04" size={11} strokeWidth={2.2} />
                       {r.page.title}
                     </span>
@@ -662,12 +847,25 @@ export function SearchPalette({
                 )}
               </div>
               {m.snippet && !(isHead && m.snippet.replace(/<\/?mark>/g, '') === m.section) && (
-                <Snip html={m.snippet} style={{ fontSize: 12.5, lineHeight: 1.5, color: '#5B6B60', display: '-webkit-box', WebkitLineClamp: isHead ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} />
+                <Snip
+                  html={m.snippet}
+                  style={{
+                    fontSize: 12.5,
+                    lineHeight: 1.5,
+                    color: '#5B6B60',
+                    display: '-webkit-box',
+                    WebkitLineClamp: isHead ? 1 : 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                />
               )}
             </div>
             {isHead && r.page.status === 'draft' ? (
               <span style={{ flexShrink: 0, marginTop: 1 }}>
-                <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>Draft</span>
+                <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>
+                  Draft
+                </span>
               </span>
             ) : (
               enterKbd
@@ -686,7 +884,16 @@ export function SearchPalette({
                 <span style={{ fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>{r.title}</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5B6B60' }}>
                   <Icon name="i05" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap', color: '#2E6F40', fontWeight: 600 }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      whiteSpace: 'nowrap',
+                      color: '#2E6F40',
+                      fontWeight: 600,
+                    }}
+                  >
                     <Icon name="i04" size={11} strokeWidth={2.2} />
                     {highlight(r.section, sectionPart)}
                   </span>
@@ -704,7 +911,9 @@ export function SearchPalette({
             </span>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>{r.id}</span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>
+                  {r.id}
+                </span>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>{r.title}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}>
@@ -723,7 +932,18 @@ export function SearchPalette({
           <div {...common} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 18px' }}>
             <StatusDot status={r.status} />
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#5B6B60' }}>{r.id}</span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#1E2A22', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span
+              style={{
+                fontSize: 13.5,
+                fontWeight: 600,
+                color: '#1E2A22',
+                flex: 1,
+                minWidth: 0,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               {highlight(r.title, dTrim)}
             </span>
           </div>
@@ -735,10 +955,28 @@ export function SearchPalette({
             <span style={{ display: 'flex', color: on ? '#2E6F40' : '#9AA8A0' }}>
               <Icon name="i00" size={16} strokeWidth={1.8} />
             </span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#1E2A22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{r.page.title}</span>
+            <span
+              style={{
+                fontSize: 13.5,
+                fontWeight: 600,
+                color: '#1E2A22',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
+              }}
+            >
+              {r.page.title}
+            </span>
             <div style={{ flex: 1, minWidth: 8 }} />
-            {ancestors(r.page).length > 0 && <span style={{ flexShrink: 0, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}>{parentLabel(r.page)}</span>}
-            <span style={{ flexShrink: 0, fontSize: 11.5, color: '#9AA8A0' }}>{n} {n === 1 ? 'mention' : 'mentions'}</span>
+            {ancestors(r.page).length > 0 && (
+              <span style={{ flexShrink: 0, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+                {parentLabel(r.page)}
+              </span>
+            )}
+            <span style={{ flexShrink: 0, fontSize: 11.5, color: '#9AA8A0' }}>
+              {n} {n === 1 ? 'mention' : 'mentions'}
+            </span>
           </div>
         );
       }
@@ -758,7 +996,14 @@ export function SearchPalette({
                 writeJson(RECENT_SEARCHES, next);
                 setRecents(next);
               }}
-              style={{ display: 'flex', color: '#C7D2CB', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+              style={{
+                display: 'flex',
+                color: '#C7D2CB',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
             >
               <Icon name="i08" size={13} strokeWidth={2} />
             </button>
@@ -770,7 +1015,19 @@ export function SearchPalette({
             <span style={{ display: 'flex', color: '#9AA8A0' }}>
               <Icon name="i00" size={16} strokeWidth={1.8} />
             </span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#1E2A22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{r.title}</span>
+            <span
+              style={{
+                fontSize: 13.5,
+                fontWeight: 600,
+                color: '#1E2A22',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
+              }}
+            >
+              {r.title}
+            </span>
             <div style={{ flex: 1, minWidth: 8 }} />
             <span style={{ flexShrink: 0, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}>{r.label}</span>
           </div>
@@ -800,8 +1057,29 @@ export function SearchPalette({
     // E3 error
     if (failed) {
       return (
-        <div style={{ padding: '26px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#FBE7E4', color: '#C4432A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div
+          style={{
+            padding: '26px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: '#FBE7E4',
+              color: '#C4432A',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
             <Icon name="i22" size={20} strokeWidth={1.9} />
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>Search isn’t available right now</div>
@@ -827,7 +1105,9 @@ export function SearchPalette({
           </div>
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#9AA8A0', marginTop: 6 }}>
             {errDetail?.code ?? 'search_unavailable'}
-            {(errDetail as { requestId?: string } | null)?.requestId ? ` · request ${(errDetail as { requestId?: string }).requestId}` : ''}
+            {(errDetail as { requestId?: string } | null)?.requestId
+              ? ` · request ${(errDetail as { requestId?: string }).requestId}`
+              : ''}
           </div>
         </div>
       );
@@ -838,24 +1118,44 @@ export function SearchPalette({
       return (
         <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#F1F3F1', color: '#7A8A80', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: '#F1F3F1',
+                color: '#7A8A80',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
               <Icon name="i09" size={18} strokeWidth={1.9} />
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>No results for “{trimmed}”</div>
-              <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 1 }}>
-                In {inLabel} · 0 pages
-              </div>
+              <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 1 }}>In {inLabel} · 0 pages</div>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, lineHeight: 1.5, color: '#3A4A3E' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              fontSize: 12.5,
+              lineHeight: 1.5,
+              color: '#3A4A3E',
+            }}
+          >
             <div style={{ display: 'flex', gap: 8 }}>
               <span style={{ color: '#9AA8A0' }}>•</span>
               <span>
                 Check the spelling.
                 {suggestion && (
                   <>
-                    {' '}Did you mean{' '}
+                    {' '}
+                    Did you mean{' '}
                     <b style={{ color: '#2E6F40', cursor: 'pointer' }} onClick={() => setQ(suggestion)}>
                       {suggestion}
                     </b>
@@ -875,7 +1175,12 @@ export function SearchPalette({
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
             {scope !== 'all' && (
-              <button type="button" className="st-btn" style={{ justifyContent: 'flex-start' }} onClick={() => setScope('all')}>
+              <button
+                type="button"
+                className="st-btn"
+                style={{ justifyContent: 'flex-start' }}
+                onClick={() => setScope('all')}
+              >
                 <Icon name="i21" size={14} strokeWidth={1.9} />
                 <span>Search all projects for “{trimmed}”</span>
               </button>
@@ -884,7 +1189,12 @@ export function SearchPalette({
               <button
                 type="button"
                 className="st-btn"
-                style={{ justifyContent: 'flex-start', color: '#2E6F40', borderColor: '#B7D9C0', background: '#F1F8F3' }}
+                style={{
+                  justifyContent: 'flex-start',
+                  color: '#2E6F40',
+                  borderColor: '#B7D9C0',
+                  background: '#F1F8F3',
+                }}
                 onClick={() => {
                   onCreatePage(trimmed);
                   onClose();
@@ -902,7 +1212,21 @@ export function SearchPalette({
     return (
       <div style={{ padding: '2px 0 6px' }} role="listbox">
         {tooShort && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '10px 14px 2px', padding: '9px 11px', borderRadius: 8, background: '#E8F1FB', border: '1px solid #B9D3EE', fontSize: 12, lineHeight: 1.45, color: '#3A4A3E' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 9,
+              margin: '10px 14px 2px',
+              padding: '9px 11px',
+              borderRadius: 8,
+              background: '#E8F1FB',
+              border: '1px solid #B9D3EE',
+              fontSize: 12,
+              lineHeight: 1.45,
+              color: '#3A4A3E',
+            }}
+          >
             <span style={{ display: 'flex', color: '#2F6FB0' }}>
               <Icon name="i28" size={15} strokeWidth={1.9} />
             </span>
@@ -910,7 +1234,21 @@ export function SearchPalette({
           </div>
         )}
         {showOffline && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, margin: '10px 14px 2px', padding: '9px 11px', borderRadius: 8, background: '#FEF6E7', border: '1px solid #F0DBA8', fontSize: 12, lineHeight: 1.45, color: '#3A4A3E' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 9,
+              margin: '10px 14px 2px',
+              padding: '9px 11px',
+              borderRadius: 8,
+              background: '#FEF6E7',
+              border: '1px solid #F0DBA8',
+              fontSize: 12,
+              lineHeight: 1.45,
+              color: '#3A4A3E',
+            }}
+          >
             <span style={{ display: 'flex', color: '#B8860B', marginTop: 1 }}>
               <Icon name="i37" size={15} strokeWidth={1.9} />
             </span>
@@ -923,11 +1261,36 @@ export function SearchPalette({
             </span>
           </div>
         )}
-        {mode === 'link' && !tooShort && <div style={{ padding: '8px 18px 6px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>Link mode: results are copied or inserted as a reference, not opened.</div>}
-        {mode === 'headings' && !tooShort && <div style={{ padding: '8px 18px 6px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>Headings in every page of this space, newest edit first.</div>}
-        {hasPhrase && !tooShort && <div style={{ padding: '8px 18px 6px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>Words must appear together, in this order. Capitals are ignored.</div>}
+        {mode === 'link' && !tooShort && (
+          <div style={{ padding: '8px 18px 6px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+            Link mode: results are copied or inserted as a reference, not opened.
+          </div>
+        )}
+        {mode === 'headings' && !tooShort && (
+          <div style={{ padding: '8px 18px 6px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+            Headings in every page of this space, newest edit first.
+          </div>
+        )}
+        {hasPhrase && !tooShort && (
+          <div style={{ padding: '8px 18px 6px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+            Words must appear together, in this order. Capitals are ignored.
+          </div>
+        )}
         {hasExclude && !tooShort && noExcl.data && noExcl.data.total > (data?.total ?? 0) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 18px 4px', padding: '8px 10px', borderRadius: 8, background: '#FBE7E4', fontSize: 12, lineHeight: 1.4, color: '#A5321E' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              margin: '8px 18px 4px',
+              padding: '8px 10px',
+              borderRadius: 8,
+              background: '#FBE7E4',
+              fontSize: 12,
+              lineHeight: 1.4,
+              color: '#A5321E',
+            }}
+          >
             <Icon name="i08" size={13} strokeWidth={2} style={{ color: '#C4432A' }} />
             <span style={{ flex: 1 }}>
               Hiding {noExcl.data.total - (data?.total ?? 0)} pages that contain “{parsed.excludes.join('”, “')}”
@@ -935,7 +1298,17 @@ export function SearchPalette({
             <button
               type="button"
               onClick={() => setQ(parsed.terms.join(' '))}
-              style={{ border: 'none', background: 'none', fontSize: 12, fontWeight: 700, color: '#A5321E', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'inherit' }}
+              style={{
+                border: 'none',
+                background: 'none',
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#A5321E',
+                cursor: 'pointer',
+                padding: 0,
+                textDecoration: 'underline',
+                fontFamily: 'inherit',
+              }}
             >
               Show them
             </button>
@@ -953,7 +1326,16 @@ export function SearchPalette({
                     writeJson(RECENT_SEARCHES, []);
                     setRecents([]);
                   }}
-                  style={{ border: 'none', background: 'none', fontSize: 12, fontWeight: 600, color: '#2E6F40', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#2E6F40',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'inherit',
+                  }}
                 >
                   Clear
                 </button>
@@ -963,7 +1345,16 @@ export function SearchPalette({
           </div>
         ))}
         {scope === 'page' && sections.length > 0 && searchable && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px 6px', fontSize: 12, color: '#5B6B60' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 18px 6px',
+              fontSize: 12,
+              color: '#5B6B60',
+            }}
+          >
             <Icon name="i69" size={13} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />
             Press <Kbd>Ctrl</Kbd>
             <Kbd>F</Kbd>
@@ -981,7 +1372,18 @@ export function SearchPalette({
           </div>
         )}
         {pending && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 14px 0', padding: '9px 11px', borderRadius: 8, border: '1px dashed #C7D2CB', background: '#FBFCFB' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              margin: '6px 14px 0',
+              padding: '9px 11px',
+              borderRadius: 8,
+              border: '1px dashed #C7D2CB',
+              background: '#FBFCFB',
+            }}
+          >
             <span className="mc-spin" />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1E2A22' }}>
@@ -997,37 +1399,96 @@ export function SearchPalette({
   })();
 
   // footer
-  const countText = data ? (mode === 'ticket' ? null : scope === 'tickets' ? `${data.tickets.length} results · ${data.tookMs} ms` : scope === 'page' ? `${flat.length} matches · ${data.tookMs} ms` : hasExclude ? `${data.total} shown · ${data.tookMs} ms` : `${showOffline ? flat.length : mode === 'headings' ? flat.length : data.total} results · ${data.tookMs} ms`) : null;
+  const countText = data
+    ? mode === 'ticket'
+      ? null
+      : scope === 'tickets'
+        ? `${data.tickets.length} results · ${data.tookMs} ms`
+        : scope === 'page'
+          ? `${flat.length} matches · ${data.tookMs} ms`
+          : hasExclude
+            ? `${data.total} shown · ${data.tookMs} ms`
+            : `${showOffline ? flat.length : mode === 'headings' ? flat.length : data.total} results · ${data.tookMs} ms`
+    : null;
   const footer = (() => {
     const wrap = (left: ReactNode, right?: ReactNode) => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 18px', borderTop: '1px solid #E3E8E5', background: '#FBFCFB' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          padding: '10px 18px',
+          borderTop: '1px solid #E3E8E5',
+          background: '#FBFCFB',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>{left}</div>
         <div style={{ flex: 1 }} />
         {right}
       </div>
     );
-    const count = countText ? <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>{countText}</span> : null;
-    if (loading && !data) return wrap(<span style={{ fontSize: 11.5, color: '#5B6B60' }}>Results appear as soon as the first batch is ready</span>);
-    if (failed) return wrap(<span style={{ fontSize: 11.5, color: '#C4432A', fontWeight: 600 }}>Could not search</span>);
+    const count = countText ? (
+      <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>{countText}</span>
+    ) : null;
+    if (loading && !data)
+      return wrap(
+        <span style={{ fontSize: 11.5, color: '#5B6B60' }}>Results appear as soon as the first batch is ready</span>,
+      );
+    if (failed)
+      return wrap(<span style={{ fontSize: 11.5, color: '#C4432A', fontWeight: 600 }}>Could not search</span>);
     if (tooShort) return wrap(hint(<Kbd>Esc</Kbd>, 'Close'));
     if (pending)
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderTop: '1px solid #E3E8E5', background: '#FBFCFB' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 18px',
+            borderTop: '1px solid #E3E8E5',
+            background: '#FBFCFB',
+          }}
+        >
           <span style={{ display: 'flex', color: '#9AA8A0' }}>
             <Icon name="i20" size={14} strokeWidth={1.9} />
           </span>
-          <span style={{ flex: 1, fontSize: 11.5, lineHeight: 1.45, color: '#5B6B60' }}>A page edited moments ago may take a few seconds to appear.</span>
-          <button type="button" onClick={() => main.refetch()} style={{ border: 'none', background: 'none', fontSize: 11.5, fontWeight: 700, color: '#2E6F40', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <span style={{ flex: 1, fontSize: 11.5, lineHeight: 1.45, color: '#5B6B60' }}>
+            A page edited moments ago may take a few seconds to appear.
+          </span>
+          <button
+            type="button"
+            onClick={() => main.refetch()}
+            style={{
+              border: 'none',
+              background: 'none',
+              fontSize: 11.5,
+              fontWeight: 700,
+              color: '#2E6F40',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
             Refresh
           </button>
         </div>
       );
-    if (noResults) return wrap(hint(<Kbd>Enter</Kbd>, 'Search all projects'), <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>0 results · {data?.tookMs ?? 0} ms</span>);
+    if (noResults)
+      return wrap(
+        hint(<Kbd>Enter</Kbd>, 'Search all projects'),
+        <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+          0 results · {data?.tookMs ?? 0} ms
+        </span>,
+      );
     if (showOffline) return wrap(kbdLabel('Titles and saved text only'), count);
     if (!searchable) {
       return wrap(
         <>
-          {hint(<><Kbd>↑</Kbd> <Kbd>↓</Kbd></>, 'Navigate')}
+          {hint(
+            <>
+              <Kbd>↑</Kbd> <Kbd>↓</Kbd>
+            </>,
+            'Navigate',
+          )}
           {hint(<Kbd>Enter</Kbd>, 'Open')}
           {hint(<Kbd>Tab</Kbd>, 'Scope')}
           {hint(<Kbd>Esc</Kbd>, 'Close')}
@@ -1035,22 +1496,61 @@ export function SearchPalette({
         <button
           type="button"
           onClick={() => setSyntaxOpen((v) => !v)}
-          style={{ border: 'none', background: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: '#5B6B60', cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{
+            border: 'none',
+            background: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            fontSize: 11.5,
+            fontWeight: 600,
+            color: '#5B6B60',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
         >
           <Icon name="i59" size={13} strokeWidth={1.9} />
           Syntax help
         </button>,
       );
     }
-    if (mode === 'link') return wrap(<>{hint(<Kbd>Enter</Kbd>, 'Insert')}{hint(<Kbd>#</Kbd>, 'Pick a section')}</>);
-    if (mode === 'headings') return wrap(<>{hint(<Kbd>Enter</Kbd>, 'Go to heading')}{hint(<><Kbd>Shift</Kbd> <Kbd>Enter</Kbd></>, 'Copy link')}</>);
-    if (mode === 'ticket') return wrap(<>{hint(<Kbd>Enter</Kbd>, 'Open ticket')}{hint(<Kbd>Tab</Kbd>, 'Pages only')}</>);
+    if (mode === 'link')
+      return wrap(
+        <>
+          {hint(<Kbd>Enter</Kbd>, 'Insert')}
+          {hint(<Kbd>#</Kbd>, 'Pick a section')}
+        </>,
+      );
+    if (mode === 'headings')
+      return wrap(
+        <>
+          {hint(<Kbd>Enter</Kbd>, 'Go to heading')}
+          {hint(
+            <>
+              <Kbd>Shift</Kbd> <Kbd>Enter</Kbd>
+            </>,
+            'Copy link',
+          )}
+        </>,
+      );
+    if (mode === 'ticket')
+      return wrap(
+        <>
+          {hint(<Kbd>Enter</Kbd>, 'Open ticket')}
+          {hint(<Kbd>Tab</Kbd>, 'Pages only')}
+        </>,
+      );
     if (scope === 'page') return wrap(hint(<Kbd>Enter</Kbd>, 'Go to match'), count);
     if (scope === 'tickets') return wrap(hint(<Kbd>Enter</Kbd>, 'Open ticket'), count);
     if (scope === 'all' || hasPhrase || hasExclude) return wrap(hint(<Kbd>Enter</Kbd>, 'Open'), count);
     return wrap(
       <>
-        {hint(<><Kbd>↑</Kbd> <Kbd>↓</Kbd></>, 'Navigate')}
+        {hint(
+          <>
+            <Kbd>↑</Kbd> <Kbd>↓</Kbd>
+          </>,
+          'Navigate',
+        )}
         {hint(<Kbd>Enter</Kbd>, 'Open')}
         {hint(<Kbd>Tab</Kbd>, 'Scope')}
         {hint(<Kbd>Esc</Kbd>, 'Close')}
@@ -1068,15 +1568,39 @@ export function SearchPalette({
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(37,61,44,0.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '10vh', boxSizing: 'border-box' }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        background: 'rgba(37,61,44,0.5)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: '10vh',
+        boxSizing: 'border-box',
+      }}
     >
       <div style={{ position: 'relative', width: 620, maxWidth: 'calc(100vw - 32px)' }}>
         <div
-          style={{ width: '100%', borderRadius: 14, border: '1px solid #E3E8E5', boxShadow: '0 24px 64px rgba(30,42,34,0.22)', background: '#FFFFFF', overflow: 'hidden', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}
+          style={{
+            width: '100%',
+            borderRadius: 14,
+            border: '1px solid #E3E8E5',
+            boxShadow: '0 24px 64px rgba(30,42,34,0.22)',
+            background: '#FFFFFF',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
         >
           {header}
           {scopeBar}
-          <div ref={listRef} className="fx-scroll" style={{ maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }}>
+          <div
+            ref={listRef}
+            className="fx-scroll"
+            style={{ maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }}
+          >
             {body}
           </div>
           {footer}
@@ -1088,11 +1612,36 @@ export function SearchPalette({
 }
 
 function modeChip(mode: string, phrase: boolean, exclude: boolean, nExcl: number): ReactNode {
-  if (mode === 'link') return <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>Link a page</span>;
-  if (mode === 'headings') return <span className="mc-chip" style={{ background: '#DCEEE1', color: '#1F5A31' }}>Headings</span>;
-  if (mode === 'ticket') return <span className="mc-chip" style={{ background: '#ECE9FA', color: '#4B3FA8' }}>Ticket</span>;
-  if (phrase) return <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>Exact phrase</span>;
-  if (exclude) return <span className="mc-chip" style={{ background: '#FBE7E4', color: '#A5321E' }}>{nExcl} {nExcl === 1 ? 'exclusion' : 'exclusions'}</span>;
+  if (mode === 'link')
+    return (
+      <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
+        Link a page
+      </span>
+    );
+  if (mode === 'headings')
+    return (
+      <span className="mc-chip" style={{ background: '#DCEEE1', color: '#1F5A31' }}>
+        Headings
+      </span>
+    );
+  if (mode === 'ticket')
+    return (
+      <span className="mc-chip" style={{ background: '#ECE9FA', color: '#4B3FA8' }}>
+        Ticket
+      </span>
+    );
+  if (phrase)
+    return (
+      <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>
+        Exact phrase
+      </span>
+    );
+  if (exclude)
+    return (
+      <span className="mc-chip" style={{ background: '#FBE7E4', color: '#A5321E' }}>
+        {nExcl} {nExcl === 1 ? 'exclusion' : 'exclusions'}
+      </span>
+    );
   return null;
 }
 
@@ -1107,15 +1656,33 @@ const SYNTAX: [string, string][] = [
 
 function SyntaxHelp({ onClose }: { onClose: () => void }) {
   const row = (k: string, d: string) => (
-    <div key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '5px 0', borderTop: '1px solid #EEF3EF' }}>
+    <div
+      key={k}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '5px 0', borderTop: '1px solid #EEF3EF' }}
+    >
       <div style={{ width: 132, flexShrink: 0 }}>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#2E6F40', background: '#F6FAF7', borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap' }}>{k}</span>
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 12,
+            color: '#2E6F40',
+            background: '#F6FAF7',
+            borderRadius: 4,
+            padding: '2px 6px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {k}
+        </span>
       </div>
       <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.45, color: '#3A4A3E' }}>{d}</div>
     </div>
   );
   return (
-    <div className="dk-menu" style={{ position: 'absolute', left: 14, right: 14, top: 62, padding: '14px 16px', zIndex: 2 }}>
+    <div
+      className="dk-menu"
+      style={{ position: 'absolute', left: 14, right: 14, top: 62, padding: '14px 16px', zIndex: 2 }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <Icon name="i59" size={16} strokeWidth={1.9} style={{ color: '#2E6F40' }} />
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Search syntax</span>
@@ -1124,7 +1691,9 @@ function SyntaxHelp({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       {SYNTAX.map(([k, d]) => row(k, d))}
-      <div style={{ paddingTop: 8, borderTop: '1px solid #EEF3EF', ...sectionLabelStyle, marginTop: 4 }}>Filters (planned)</div>
+      <div style={{ paddingTop: 8, borderTop: '1px solid #EEF3EF', ...sectionLabelStyle, marginTop: 4 }}>
+        Filters (planned)
+      </div>
       {row('by:hoa', 'Last edited by a person')}
       {row('is:draft', 'Drafts only')}
     </div>

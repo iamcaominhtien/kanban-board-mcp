@@ -99,7 +99,8 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
     const { $from } = editor.state.selection;
     let depth = $from.depth;
     while (depth > 0 && $from.node(depth).type.name !== 'table') depth -= 1;
-    return (editor.view.nodeDOM($from.before(depth)) as HTMLElement | null)?.querySelector('table') as HTMLTableElement | null | undefined;
+    return (editor.view.nodeDOM($from.before(depth)) as HTMLElement | null)?.querySelector('table') as
+      HTMLTableElement | null | undefined;
   };
   const cellPos = (r: number, c: number) => {
     const cell = tableOf()?.rows[r]?.cells[c];
@@ -151,7 +152,9 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
       onMouseLeave={() => setTip(null)}
       onClick={onClick}
     >
-      <span style={{ display: 'flex', transform: flip === 'y' ? 'scaleY(-1)' : flip === 'x' ? 'scaleX(-1)' : undefined }}>
+      <span
+        style={{ display: 'flex', transform: flip === 'y' ? 'scaleY(-1)' : flip === 'x' ? 'scaleX(-1)' : undefined }}
+      >
         <Icon name={icon} size={15} />
       </span>
     </button>
@@ -168,7 +171,14 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
             key={`c${i}`}
             type="button"
             aria-label={`Select column ${i + 1}`}
-            style={{ ...GRIP(on), pointerEvents: 'auto', left: col.left + 2, width: col.width - 4, top: geo.table.top - 12, height: 6 }}
+            style={{
+              ...GRIP(on),
+              pointerEvents: 'auto',
+              left: col.left + 2,
+              width: col.width - 4,
+              top: geo.table.top - 12,
+              height: 6,
+            }}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => selectCol(i)}
           />
@@ -181,7 +191,14 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
             key={`r${i}`}
             type="button"
             aria-label={`Select row ${i + 1}`}
-            style={{ ...GRIP(on), pointerEvents: 'auto', top: row.top + 2, height: row.height - 4, left: geo.table.left - 14, width: 6 }}
+            style={{
+              ...GRIP(on),
+              pointerEvents: 'auto',
+              top: row.top + 2,
+              height: row.height - 4,
+              left: geo.table.left - 14,
+              width: 6,
+            }}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => selectRow(i)}
           />
@@ -191,7 +208,24 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
         type="button"
         aria-label="Add column"
         title="Add column"
-        style={{ position: 'absolute', pointerEvents: 'auto', left: geo.table.left + geo.table.width - 10, top: geo.table.top + 8, width: 20, height: 20, borderRadius: '50%', background: '#2E6F40', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(30,42,34,0.25)', border: 'none', padding: 0, cursor: 'pointer' }}
+        style={{
+          position: 'absolute',
+          pointerEvents: 'auto',
+          left: geo.table.left + geo.table.width - 10,
+          top: geo.table.top + 8,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: '#2E6F40',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 6px rgba(30,42,34,0.25)',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+        }}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
           caretIn(0, lastCol);
@@ -204,7 +238,23 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
         type="button"
         aria-label="Add row"
         title="Add row"
-        style={{ position: 'absolute', pointerEvents: 'auto', left: geo.table.left - 10, top: geo.table.top + geo.table.height - 10, width: 20, height: 20, borderRadius: '50%', background: '#fff', border: '1px solid #C7D2CB', color: '#5B6B60', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}
+        style={{
+          position: 'absolute',
+          pointerEvents: 'auto',
+          left: geo.table.left - 10,
+          top: geo.table.top + geo.table.height - 10,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: '#fff',
+          border: '1px solid #C7D2CB',
+          color: '#5B6B60',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+          cursor: 'pointer',
+        }}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
           caretIn(lastRow, 0);
@@ -252,7 +302,11 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
             Header row
           </button>
           {sep}
-          {mini(geo.selRows ? 'Delete row' : 'Delete column', () => (geo.selRows ? c().deleteRow().run() : c().deleteColumn().run()), 'i12')}
+          {mini(
+            geo.selRows ? 'Delete row' : 'Delete column',
+            () => (geo.selRows ? c().deleteRow().run() : c().deleteColumn().run()),
+            'i12',
+          )}
           {mini('Delete table', () => c().deleteTable().run(), 'i12', undefined, '#C4432A')}
         </div>
       )}

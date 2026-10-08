@@ -21,7 +21,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .tcAddBtn {
@@ -31,8 +31,8 @@
   padding: 6px 12px;
   border-radius: 6px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
@@ -63,24 +63,24 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 11.5px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   transition: all 0.12s;
 }
 
 .filterChip:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .filterChipActive {
-  border-color: #2E6F40;
-  background: #F1F8F3;
-  color: #1E2A22;
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #1e2a22;
 }
 
 .filterDot {
@@ -102,7 +102,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .dbgPinRow {
@@ -111,14 +111,14 @@
   gap: 10px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: #FDF8E9;
-  border: 1px solid #F0E1AA;
+  background: #fdf8e9;
+  border: 1px solid #f0e1aa;
 }
 
 .pinText {
   flex-grow: 1;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -126,7 +126,7 @@
 
 .pinMeta {
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   white-space: nowrap;
 }
 
@@ -158,14 +158,14 @@
   flex-shrink: 0;
   margin-top: 4px;
   box-sizing: border-box;
-  border: 2.5px solid #FFFFFF;
-  box-shadow: 0 0 0 1px #E3E8E5;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 0 1px #e3e8e5;
 }
 
 .dbgLine {
   width: 2px;
   flex-grow: 1;
-  background: #E3E8E5;
+  background: #e3e8e5;
   margin-top: 2px;
   min-height: 12px;
 }
@@ -175,8 +175,8 @@
   min-width: 0;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -185,7 +185,7 @@
 }
 
 .dbgCard:hover {
-  border-color: #C7D2CB;
+  border-color: #c7d2cb;
 }
 
 .cardHeader {
@@ -223,7 +223,7 @@
 .authorName {
   font-size: 12px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .dbgRoleBadge {
@@ -236,7 +236,7 @@
 
 .timestamp {
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   white-space: nowrap;
 }
 
@@ -250,17 +250,17 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #C7D2CB;
+  color: #c7d2cb;
   flex-shrink: 0;
   transition: color 0.12s;
 }
 
 .dbgPinBtn:hover {
-  color: #C7A339;
+  color: #c7a339;
 }
 
 .dbgPinBtnPinned {
-  color: #C7A339 !important;
+  color: #c7a339 !important;
 }
 
 .deleteBtn {
@@ -273,31 +273,31 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #C7D2CB;
+  color: #c7d2cb;
   flex-shrink: 0;
 }
 
 .deleteBtn:hover {
-  color: #C4432A;
+  color: #c4432a;
 }
 
 .tcMd {
   font-size: 12.5px;
-  color: #3A4A3E;
+  color: #3a4a3e;
   line-height: 1.6;
   padding: 8px 10px;
   border-radius: 6px;
-  background: #F6FAF7;
-  border: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
 }
 
 .tcMd code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  background: #EEF3EF;
+  background: #eef3ef;
   padding: 1px 5px;
   border-radius: 3px;
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .chipsRow {
@@ -313,11 +313,11 @@
   gap: 5px;
   padding: 3px 8px;
   border-radius: 6px;
-  background: #F6FAF7;
-  border: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10.5px;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .tcFileChip {
@@ -325,9 +325,9 @@
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 6px;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .tcFileIcon {
@@ -346,10 +346,10 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border: 1px solid #2E6F40;
+  border: 1px solid #2e6f40;
   border-radius: 10px;
-  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.10);
-  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
+  background: #ffffff;
   box-sizing: border-box;
 }
 
@@ -371,9 +371,9 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   cursor: pointer;
-  border: 1px solid #E3E8E5;
-  background: #F6FAF7;
-  color: #9AA8A0;
+  border: 1px solid #e3e8e5;
+  background: #f6faf7;
+  color: #9aa8a0;
   transition: all 0.12s;
 }
 
@@ -391,9 +391,9 @@
   flex: 1;
   padding: 7px 9px;
   border-radius: 6px;
-  border: 1px solid #C7D2CB;
+  border: 1px solid #c7d2cb;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   outline: none;
   box-sizing: border-box;
@@ -402,17 +402,17 @@
 .roleSelect {
   padding: 7px 9px;
   border-radius: 6px;
-  border: 1px solid #C7D2CB;
+  border: 1px solid #c7d2cb;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   outline: none;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .noteInputBox {
   border-radius: 6px;
-  border: 1px solid #C7D2CB;
+  border: 1px solid #c7d2cb;
   overflow: hidden;
 }
 
@@ -422,7 +422,7 @@
   padding: 8px 10px;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   border: none;
   outline: none;
   resize: vertical;
@@ -439,10 +439,10 @@
 .smallInput {
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   font-size: 11px;
   font-family: 'JetBrains Mono', monospace;
-  color: #5B6B60;
+  color: #5b6b60;
   outline: none;
 }
 
@@ -456,9 +456,9 @@
 .btnCancel {
   padding: 5px 12px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
-  color: #5B6B60;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  color: #5b6b60;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
   cursor: pointer;
@@ -468,8 +468,8 @@
   padding: 5px 14px;
   border-radius: 6px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 600;
@@ -488,7 +488,7 @@
 .emptyMsg {
   padding: 24px;
   text-align: center;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-size: 13px;
 }
 
@@ -502,60 +502,91 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #C7D2CB;
+  color: #c7d2cb;
   flex-shrink: 0;
 }
-.editBtn:hover { color: #2F6FB0; }
+.editBtn:hover {
+  color: #2f6fb0;
+}
 
-.editedTag { color: #B4791E; }
+.editedTag {
+  color: #b4791e;
+}
 
 .attachBtn {
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px dashed #9AA8A0;
-  background: #FFFFFF;
+  border: 1px dashed #9aa8a0;
+  background: #ffffff;
   font-size: 11px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   cursor: pointer;
 }
-.attachBtn:hover:not(:disabled) { border-color: #2E6F40; color: #2E6F40; }
-.attachBtn:disabled { opacity: 0.6; cursor: default; }
+.attachBtn:hover:not(:disabled) {
+  border-color: #2e6f40;
+  color: #2e6f40;
+}
+.attachBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 
 .attName {
   font-size: 11px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.attSize { font-size: 10px; color: #9AA8A0; }
-.attLink { text-decoration: none; cursor: pointer; }
-.attLink:hover { border-color: #2E6F40; background: #F6FAF7; }
+.attSize {
+  font-size: 10px;
+  color: #9aa8a0;
+}
+.attLink {
+  text-decoration: none;
+  cursor: pointer;
+}
+.attLink:hover {
+  border-color: #2e6f40;
+  background: #f6faf7;
+}
 
 .chipRemove {
   border: none;
   background: none;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
   padding: 0 2px;
 }
-.chipRemove:hover { color: #C4432A; }
+.chipRemove:hover {
+  color: #c4432a;
+}
 
-.linkChipBtn { cursor: pointer; font-family: 'JetBrains Mono', monospace; }
-.linkChipBtn:hover { border-color: #2E6F40; color: #2E6F40; background: #FFFFFF; }
-.linkChipMissing { opacity: 0.6; text-decoration: line-through; }
+.linkChipBtn {
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+}
+.linkChipBtn:hover {
+  border-color: #2e6f40;
+  color: #2e6f40;
+  background: #ffffff;
+}
+.linkChipMissing {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
 
 .formError {
   padding: 7px 10px;
   border-radius: 6px;
-  background: #FDEEEC;
-  border: 1px solid #F2C4BE;
-  color: #A93226;
+  background: #fdeeec;
+  border: 1px solid #f2c4be;
+  color: #a93226;
   font-size: 12px;
 }
 
@@ -570,7 +601,7 @@
 }
 .dialog {
   width: min(420px, calc(100vw - 32px));
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 10px;
   padding: 18px 20px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
@@ -578,19 +609,40 @@
   flex-direction: column;
   gap: 10px;
 }
-.dialogTitle { font-size: 14px; font-weight: 700; color: #1E2A22; }
-.dialogBody { font-size: 12.5px; color: #5B6B60; word-break: break-word; }
-.dialogQuote { color: #1E2A22; font-weight: 600; }
-.dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.dialogTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dialogBody {
+  font-size: 12.5px;
+  color: #5b6b60;
+  word-break: break-word;
+}
+.dialogQuote {
+  color: #1e2a22;
+  font-weight: 600;
+}
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
 .btnDanger {
   padding: 7px 14px;
   border-radius: 6px;
   border: none;
-  background: #C0392B;
-  color: #FFFFFF;
+  background: #c0392b;
+  color: #ffffff;
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
 }
-.btnDanger:hover:not(:disabled) { background: #A93226; }
-.btnDanger:disabled { opacity: 0.6; cursor: default; }
+.btnDanger:hover:not(:disabled) {
+  background: #a93226;
+}
+.btnDanger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

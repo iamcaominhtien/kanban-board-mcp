@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { docsErrorDetail, useDocsPage, useDocsRecycleBin, useDocsTree, useMovePage, usePublishPage, useRestorePage } from '../../api/docs';
+import {
+  docsErrorDetail,
+  useDocsPage,
+  useDocsRecycleBin,
+  useDocsTree,
+  useMovePage,
+  usePublishPage,
+  useRestorePage,
+} from '../../api/docs';
 import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
@@ -12,7 +20,16 @@ import { DocsFollowToggle } from './DocsFollowToggle';
 import { DocsHero } from './DocsHero';
 import { DocsPageView, type PageAction } from './DocsPageView';
 import { DocsRail } from './DocsRail';
-import { DeletedPage, DocsDisabled, LoadError, NotFound, PageSkeleton, SlowLoadNote, TopProgress, TreeSkeleton } from './DocsStates';
+import {
+  DeletedPage,
+  DocsDisabled,
+  LoadError,
+  NotFound,
+  PageSkeleton,
+  SlowLoadNote,
+  TopProgress,
+  TreeSkeleton,
+} from './DocsStates';
 import { DocsTree } from './DocsTree';
 import { DuplicateDialog } from './DuplicateDialog';
 import { HistoryDrawer } from './HistoryDrawer';
@@ -71,19 +88,45 @@ function useLoadingStage(active: boolean): 0 | 1 | 2 {
 }
 
 /** Row "···" menu: loads the page, then shows the shared PageMenu. */
-function TreePageMenu({ node, onAction, onClose }: { node: DocsTreeNode; onAction: (a: PageMenuAction) => void; onClose: () => void }) {
+function TreePageMenu({
+  node,
+  onAction,
+  onClose,
+}: {
+  node: DocsTreeNode;
+  onAction: (a: PageMenuAction) => void;
+  onClose: () => void;
+}) {
   const { data } = useDocsPage(node.id);
   if (!data) {
     return (
-      <div className="dk-menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 290, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {[70, 50, 60].map((w) => <div key={w} className="skel" style={{ width: `${w}%`, height: 12 }} />)}
+      <div
+        className="dk-menu"
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 'calc(100% + 6px)',
+          width: 290,
+          padding: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
+        {[70, 50, 60].map((w) => (
+          <div key={w} className="skel" style={{ width: `${w}%`, height: 12 }} />
+        ))}
       </div>
     );
   }
   return <PageMenu page={data} onAction={onAction} onClose={onClose} />;
 }
 
-function cachedToPage(c: NonNullable<ReturnType<ReturnType<typeof useDocsOffline>['getCachedPage']>>, projectId: string, nodes: DocsTreeNode[]): DocsPage {
+function cachedToPage(
+  c: NonNullable<ReturnType<ReturnType<typeof useDocsOffline>['getCachedPage']>>,
+  projectId: string,
+  nodes: DocsTreeNode[],
+): DocsPage {
   const path: DocsPage['path'] = [];
   let cur = c.parentId ? nodes.find((n) => n.id === c.parentId) : undefined;
   while (cur) {
@@ -110,7 +153,19 @@ function cachedToPage(c: NonNullable<ReturnType<ReturnType<typeof useDocsOffline
   };
 }
 
-export function DocsView({ projectId, projectName, requestedPageId, onRequestHandled, onOpenTicket, onImport, onDropFiles, onOpenSettings, onBack, onSearch, onBodyRef }: Props) {
+export function DocsView({
+  projectId,
+  projectName,
+  requestedPageId,
+  onRequestHandled,
+  onOpenTicket,
+  onImport,
+  onDropFiles,
+  onOpenSettings,
+  onBack,
+  onSearch,
+  onBodyRef,
+}: Props) {
   const toast = useToast();
   const offlineApi = useDocsOffline(projectId);
   const tree = useDocsTree(projectId);
@@ -256,7 +311,12 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
   }
 
   const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor);
-  usePageShortcuts((a) => { if (page) void runAction(a, page); }, !!page && !editing && !anyDialog && !offlineCopy);
+  usePageShortcuts(
+    (a) => {
+      if (page) void runAction(a, page);
+    },
+    !!page && !editing && !anyDialog && !offlineCopy,
+  );
 
   async function requestRename(node: DocsTreeNode, title: string) {
     const links = await fetchRenameLinkCount(node.id, title);
@@ -275,10 +335,18 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
   async function replaceSection(from: { title: string; anchor: string }, to: string) {
     if (!livePage || livePage.version < 1) return;
     const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const md = livePage.markdown.replace(new RegExp(`\\[\\[${esc(from.title)}#${esc(from.anchor)}(?=[\\]|])`, 'g'), `[[${from.title}#${to}`);
+    const md = livePage.markdown.replace(
+      new RegExp(`\\[\\[${esc(from.title)}#${esc(from.anchor)}(?=[\\]|])`, 'g'),
+      `[[${from.title}#${to}`,
+    );
     if (md === livePage.markdown) return;
     try {
-      await publish.mutateAsync({ pageId: livePage.id, baseVersion: livePage.version, markdown: md, note: `Link to ${from.title} › ${to} updated` });
+      await publish.mutateAsync({
+        pageId: livePage.id,
+        baseVersion: livePage.version,
+        markdown: md,
+        note: `Link to ${from.title} › ${to} updated`,
+      });
       toast.success(`Link now points to “${to}”`);
     } catch (e) {
       toast.error("Couldn't update the link", docsErrorDetail(e)?.message ?? extractError(e));
@@ -393,24 +461,72 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
     leftOverride = <TreeSkeleton />;
     content =
       stage === 2 ? (
-        <LoadError title="Couldn't load the Docs space" message="The server didn't answer in time. Nothing was changed." error={tree.error} path={`/projects/${projectId}/docs/tree`} failedAt={failedAt} onRetry={() => void tree.refetch()} onBack={onBack} backLabel="Back to Board" autoRetry={false} />
+        <LoadError
+          title="Couldn't load the Docs space"
+          message="The server didn't answer in time. Nothing was changed."
+          error={tree.error}
+          path={`/projects/${projectId}/docs/tree`}
+          failedAt={failedAt}
+          onRetry={() => void tree.refetch()}
+          onBack={onBack}
+          backLabel="Back to Board"
+          autoRetry={false}
+        />
       ) : (
         <PageSkeleton note={stage === 1 ? <SlowLoadNote onRetry={() => void tree.refetch()} /> : undefined} />
       );
   } else if (tree.isError && !cachedTree) {
-    content = <LoadError title="Couldn't load the Docs space" message="The server didn't answer in time. Nothing was changed." error={tree.error} path={`/projects/${projectId}/docs/tree`} failedAt={failedAt} onRetry={() => void tree.refetch()} onBack={onBack} backLabel="Back to Board" />;
+    content = (
+      <LoadError
+        title="Couldn't load the Docs space"
+        message="The server didn't answer in time. Nothing was changed."
+        error={tree.error}
+        path={`/projects/${projectId}/docs/tree`}
+        failedAt={failedAt}
+        onRetry={() => void tree.refetch()}
+        onBack={onBack}
+        backLabel="Back to Board"
+      />
+    );
   } else if (empty) {
-    content = <DocsHero projectName={projectName} onCreate={(t) => setNewPage({ parentId: null, template: t })} onImport={onImport} onDropFiles={onDropFiles} />;
+    content = (
+      <DocsHero
+        projectName={projectName}
+        onCreate={(t) => setNewPage({ parentId: null, template: t })}
+        onImport={onImport}
+        onDropFiles={onDropFiles}
+      />
+    );
   } else if (!selectedId) {
     content = <PageSkeleton />;
   } else if (pageQuery.isLoading && !page) {
     content = (
-      <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
         <TopProgress />
         {pageLoadingStage === 2 ? (
-          <LoadError error={pageQuery.error} path={`/docs/pages/${selectedId}`} failedAt={failedAt} onRetry={() => void pageQuery.refetch()} onBack={goOverview} autoRetry={false} />
+          <LoadError
+            error={pageQuery.error}
+            path={`/docs/pages/${selectedId}`}
+            failedAt={failedAt}
+            onRetry={() => void pageQuery.refetch()}
+            onBack={goOverview}
+            autoRetry={false}
+          />
         ) : (
-          <PageSkeleton title={selNode?.title} crumbs={selNode ? crumbsFor(selNode) : undefined} note={pageLoadingStage === 1 ? <SlowLoadNote onRetry={() => void pageQuery.refetch()} /> : undefined} />
+          <PageSkeleton
+            title={selNode?.title}
+            crumbs={selNode ? crumbsFor(selNode) : undefined}
+            note={pageLoadingStage === 1 ? <SlowLoadNote onRetry={() => void pageQuery.refetch()} /> : undefined}
+          />
         )}
       </div>
     );
@@ -423,16 +539,51 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
         deletedAt={pageError.deletedAt ?? entry?.deletedAt}
         daysLeft={entry?.daysLeft}
         restoring={restore.isPending}
-        onRestore={() => restore.mutate(selectedId, { onSuccess: () => toast.success('Page restored'), onError: (e) => toast.error("Couldn't restore the page", extractError(e)) })}
+        onRestore={() =>
+          restore.mutate(selectedId, {
+            onSuccess: () => toast.success('Page restored'),
+            onError: (e) => toast.error("Couldn't restore the page", extractError(e)),
+          })
+        }
         onHome={goOverview}
       />
     );
   } else if (pageError?.code === 'page_not_found') {
-    content = <NotFound projectId={projectId} path={selectedId} onOpenPage={select} onHome={goOverview} onSearch={onSearch ? () => onSearch() : undefined} />;
+    content = (
+      <NotFound
+        projectId={projectId}
+        path={selectedId}
+        onOpenPage={select}
+        onHome={goOverview}
+        onSearch={onSearch ? () => onSearch() : undefined}
+      />
+    );
   } else if (!page) {
-    content = <LoadError error={pageQuery.error} path={`/docs/pages/${selectedId}`} failedAt={failedAt} onRetry={() => void pageQuery.refetch()} onBack={goOverview} />;
+    content = (
+      <LoadError
+        error={pageQuery.error}
+        path={`/docs/pages/${selectedId}`}
+        failedAt={failedAt}
+        onRetry={() => void pageQuery.refetch()}
+        onBack={goOverview}
+      />
+    );
   } else if (editing && !offlineCopy) {
-    content = <DocsEditScreen key={page.id} projectId={projectId} page={page} nodes={nodes} onOpenPage={select} onOpenTicket={onOpenTicket} onEditorRoot={onBodyRef} onExit={(updated) => { setEditing(false); if (updated) setSelectedId(updated.id); }} />;
+    content = (
+      <DocsEditScreen
+        key={page.id}
+        projectId={projectId}
+        page={page}
+        nodes={nodes}
+        onOpenPage={select}
+        onOpenTicket={onOpenTicket}
+        onEditorRoot={onBodyRef}
+        onExit={(updated) => {
+          setEditing(false);
+          if (updated) setSelectedId(updated.id);
+        }}
+      />
+    );
   } else {
     content = (
       <DocsPageView
@@ -442,11 +593,15 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
         projectName={projectName}
         narrow={narrow}
         offline={offlineCopy ? { savedAt: cachedPage!.savedAt, version: cachedPage!.version } : null}
-        onTryAgain={() => { void pageQuery.refetch(); void tree.refetch(); }}
+        onTryAgain={() => {
+          void pageQuery.refetch();
+          void tree.refetch();
+        }}
         onAction={(a) => void runAction(a, page)}
         onOpenPage={(id, anchor) => {
           select(id);
-          if (anchor) setTimeout(() => document.getElementById(`docs-${anchor}`)?.scrollIntoView({ behavior: 'smooth' }), 300);
+          if (anchor)
+            setTimeout(() => document.getElementById(`docs-${anchor}`)?.scrollIntoView({ behavior: 'smooth' }), 300);
         }}
         onOpenTicket={onOpenTicket}
         onCompare={(from, to) => setHistory({ compare: { from, to } })}
@@ -460,11 +615,32 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
 
   const left =
     leftOverride ??
-    (empty ? treeEl : showRail ? (
+    (empty ? (
+      treeEl
+    ) : showRail ? (
       <>
-        <DocsRail nodes={nodes} selectedId={selectedId} onExpand={showTree} onSearch={() => onSearch?.()} onNewPage={(p) => setNewPage({ parentId: p })} onSelect={select} />
+        <DocsRail
+          nodes={nodes}
+          selectedId={selectedId}
+          onExpand={showTree}
+          onSearch={() => onSearch?.()}
+          onNewPage={(p) => setNewPage({ parentId: p })}
+          onSelect={select}
+        />
         {narrow && railOpen && (
-          <div style={{ position: 'absolute', left: 56, top: 0, bottom: 0, zIndex: 25, boxShadow: '8px 0 24px rgba(30,42,34,0.14)', display: 'flex' }}>{treeEl}</div>
+          <div
+            style={{
+              position: 'absolute',
+              left: 56,
+              top: 0,
+              bottom: 0,
+              zIndex: 25,
+              boxShadow: '8px 0 24px rgba(30,42,34,0.14)',
+              display: 'flex',
+            }}
+          >
+            {treeEl}
+          </div>
         )}
       </>
     ) : (
@@ -472,16 +648,56 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
     ));
 
   return (
-    <div className="docs-root" data-testid="docs-view" style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden', background: '#FFFFFF' }}>
+    <div
+      className="docs-root"
+      data-testid="docs-view"
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#FFFFFF',
+      }}
+    >
       {left}
       {content}
 
       {dragFiles != null && (
-        <div role="presentation" style={{ position: 'absolute', inset: 12, zIndex: 150, borderRadius: 12, border: '2px dashed #2E6F40', background: 'rgba(241,248,243,0.94)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, pointerEvents: 'none' }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#DCEEE1', color: '#2E6F40', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          role="presentation"
+          style={{
+            position: 'absolute',
+            inset: 12,
+            zIndex: 150,
+            borderRadius: 12,
+            border: '2px dashed #2E6F40',
+            background: 'rgba(241,248,243,0.94)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: '#DCEEE1',
+              color: '#2E6F40',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <Icon name="i26" size={22} strokeWidth={1.8} />
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
+            Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}
+          </div>
         </div>
       )}
 
@@ -501,7 +717,15 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
           }}
         />
       )}
-      {moveFor && <MoveToDialog projectId={projectId} page={moveFor} nodes={nodes} onClose={() => setMoveFor(null)} onMoved={() => setMoveFor(null)} />}
+      {moveFor && (
+        <MoveToDialog
+          projectId={projectId}
+          page={moveFor}
+          nodes={nodes}
+          onClose={() => setMoveFor(null)}
+          onMoved={() => setMoveFor(null)}
+        />
+      )}
       {dupFor && (
         <DuplicateDialog
           projectId={projectId}
@@ -514,7 +738,14 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
           }}
         />
       )}
-      {history && page && <HistoryDrawer projectId={projectId} page={page} initialCompare={history.compare} onClose={() => setHistory(null)} />}
+      {history && page && (
+        <HistoryDrawer
+          projectId={projectId}
+          page={page}
+          initialCompare={history.compare}
+          onClose={() => setHistory(null)}
+        />
+      )}
       {deleteFor && (
         <DeleteDialog
           projectId={projectId}
@@ -523,7 +754,10 @@ export function DocsView({ projectId, projectName, requestedPageId, onRequestHan
           onDeleted={(count) => {
             const { id, title } = deleteFor;
             setDeleteFor(null);
-            toast.success(`Moved “${title}” to the Recycle Bin`, count > 1 ? `${count} pages, kept for 30 days` : 'Kept for 30 days');
+            toast.success(
+              `Moved “${title}” to the Recycle Bin`,
+              count > 1 ? `${count} pages, kept for 30 days` : 'Kept for 30 days',
+            );
             if (selectedId === id) {
               localStorage.removeItem(`docsPage:${projectId}`);
               setSelectedId(null);
@@ -565,7 +799,9 @@ async function collectFiles(dt: DataTransfer): Promise<File[]> {
       }
     }
   };
-  const entries = Array.from(dt.items ?? []).map((i) => i.webkitGetAsEntry?.()).filter((e): e is FileSystemEntry => !!e);
+  const entries = Array.from(dt.items ?? [])
+    .map((i) => i.webkitGetAsEntry?.())
+    .filter((e): e is FileSystemEntry => !!e);
   if (entries.length) {
     for (const e of entries) await walk(e, '');
   } else {

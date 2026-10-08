@@ -22,7 +22,9 @@ export function docsErrorDetail(err: unknown): (DocsErrorDetail & { status?: num
   const detail = e?.response?.data?.detail;
   if (detail && typeof detail === 'object' && 'code' in detail) {
     // error bodies skip the client's response interceptor, so camelCase them here
-    return { ...camelcaseKeys(detail as Record<string, unknown>), status: e.response?.status } as DocsErrorDetail & { status?: number };
+    return { ...camelcaseKeys(detail as Record<string, unknown>), status: e.response?.status } as DocsErrorDetail & {
+      status?: number;
+    };
   }
   return null;
 }
@@ -75,8 +77,7 @@ export function useDocsVersions(pageId: string | null) {
 export function useDocsVersion(pageId: string | null, version: number | null) {
   return useQuery({
     queryKey: ['docs', 'version', pageId, version] as const,
-    queryFn: async () =>
-      (await client.get<DocsVersionDetail>(`/docs/pages/${pageId}/versions/${version}`)).data,
+    queryFn: async () => (await client.get<DocsVersionDetail>(`/docs/pages/${pageId}/versions/${version}`)).data,
     enabled: !!pageId && version != null,
   });
 }
@@ -84,8 +85,7 @@ export function useDocsVersion(pageId: string | null, version: number | null) {
 export function useDocsDiff(pageId: string | null, a: number | null, b: number | null) {
   return useQuery({
     queryKey: docsKeys.diff(pageId ?? '', a ?? 0, b ?? 0),
-    queryFn: async () =>
-      (await client.get<DocsDiff>(`/docs/pages/${pageId}/versions/${a}/diff/${b}`)).data,
+    queryFn: async () => (await client.get<DocsDiff>(`/docs/pages/${pageId}/versions/${a}/diff/${b}`)).data,
     enabled: !!pageId && a != null && b != null,
   });
 }
@@ -101,8 +101,7 @@ export function useDocsBacklinks(pageId: string | null) {
 export function useDocsRecycleBin(projectId: string) {
   return useQuery({
     queryKey: docsKeys.recycle(projectId),
-    queryFn: async () =>
-      (await client.get<DocsDeletedEntry[]>(`/projects/${projectId}/docs/recycle-bin`)).data,
+    queryFn: async () => (await client.get<DocsDeletedEntry[]>(`/projects/${projectId}/docs/recycle-bin`)).data,
     enabled: !!projectId,
   });
 }
@@ -119,16 +118,12 @@ export function useTicketDocs(ticketId: string) {
 export function useResolveRefs(projectId: string, refs: DocsRefRequest[]) {
   return useQuery({
     queryKey: docsKeys.resolve(projectId, refs),
-    queryFn: async () =>
-      (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs })).data,
+    queryFn: async () => (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs })).data,
     enabled: !!projectId && refs.length > 0,
   });
 }
 
-function useDocsMutation<TVars, TData = unknown>(
-  fn: (vars: TVars) => Promise<TData>,
-  projectId: string,
-) {
+function useDocsMutation<TVars, TData = unknown>(fn: (vars: TVars) => Promise<TData>, projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -182,8 +177,7 @@ export function useDuplicatePage(projectId: string) {
 
 export function useDeletePage(projectId: string) {
   return useDocsMutation(
-    async (pageId: string) =>
-      (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data,
+    async (pageId: string) => (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data,
     projectId,
   );
 }
@@ -229,7 +223,14 @@ export function useDiscardDraft(projectId: string) {
 
 export function usePublishPage(projectId: string) {
   return useDocsMutation(
-    async (v: { pageId: string; baseVersion: number; note?: string; markdown?: string; title?: string; notify?: boolean }) =>
+    async (v: {
+      pageId: string;
+      baseVersion: number;
+      note?: string;
+      markdown?: string;
+      title?: string;
+      notify?: boolean;
+    }) =>
       (
         await client.post<DocsPage>(`/docs/pages/${v.pageId}/publish`, {
           notify: v.notify ?? false,

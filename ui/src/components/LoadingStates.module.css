@@ -14,7 +14,7 @@
 }
 
 .skel {
-  background: linear-gradient(90deg, #EEF3EF 25%, #F6FAF7 37%, #EEF3EF 63%);
+  background: linear-gradient(90deg, #eef3ef 25%, #f6faf7 37%, #eef3ef 63%);
   background-size: 400px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: 6px;
@@ -24,13 +24,13 @@
   width: 280px;
   height: 120px;
   border-radius: 12px;
-  border: 1px solid #DCE6DF;
+  border: 1px solid #dce6df;
   box-sizing: border-box;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .columnSkeleton {
@@ -49,23 +49,23 @@
   height: 240px;
   width: 100%;
   border-radius: 12px;
-  background: #F6FAF7;
-  border: 1px solid #DCE6DF;
+  background: #f6faf7;
+  border: 1px solid #dce6df;
 }
 
 .spinner {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 3px solid #DCE6DF;
-  border-top-color: #2E6F40;
+  border: 3px solid #dce6df;
+  border-top-color: #2e6f40;
   animation: spin 0.8s linear infinite;
 }
 
 .spinnerText {
   font-size: 13px;
   font-weight: 500;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .buttonSpinner {
@@ -73,7 +73,7 @@
   height: 14px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #FFFFFF;
+  border-top-color: #ffffff;
   animation: spin 0.7s linear infinite;
   display: inline-block;
 }

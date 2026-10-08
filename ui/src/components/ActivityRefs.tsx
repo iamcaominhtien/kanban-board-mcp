@@ -32,7 +32,10 @@ function segments(text: string, prefix: string | null): Seg[] {
 /** Resolves every reference in a list of texts at once (one batch call). */
 export function useRefSegments(projectId: string, texts: string[], prefix: string | null) {
   const parsed = useMemo(() => texts.map((t) => segments(t, prefix)), [texts, prefix]);
-  const refs = useMemo(() => parsed.flatMap((p) => p.filter((s) => s.ref).map((s) => s.ref as DocsRefRequest)), [parsed]);
+  const refs = useMemo(
+    () => parsed.flatMap((p) => p.filter((s) => s.ref).map((s) => s.ref as DocsRefRequest)),
+    [parsed],
+  );
   const resolved = useResolveRefs(projectId, refs);
   return { parsed, resolved: resolved.data };
 }
@@ -79,7 +82,9 @@ export function RefLine({
             <RefChip
               staticPill
               kind={ref.kind}
-              label={s.text ?? (ref.kind === 'ticket' ? ref.key : ref.anchor ? `${ref.title} › ${ref.anchor}` : ref.title)}
+              label={
+                s.text ?? (ref.kind === 'ticket' ? ref.key : ref.anchor ? `${ref.title} › ${ref.anchor}` : ref.title)
+              }
               pageTitle={ref.kind === 'page' ? ref.title : undefined}
               anchor={ref.kind === 'page' ? ref.anchor : null}
               custom={ref.kind === 'page' && !!s.text}

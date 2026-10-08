@@ -191,11 +191,7 @@ export function ChoreIcon({ size = 'sm', simplified, className, style, ...props 
   );
 }
 
-export function TicketTypeIcon({
-  type,
-  size = 'sm',
-  ...props
-}: { type: IssueType } & IconProps) {
+export function TicketTypeIcon({ type, size = 'sm', ...props }: { type: IssueType } & IconProps) {
   switch (type) {
     case 'bug':
       return <BugIcon size={size} {...props} />;

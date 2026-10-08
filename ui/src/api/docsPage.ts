@@ -21,7 +21,10 @@ export function useSimilarPages(projectId: string, slug: string, enabled = true)
 /** How many other pages link to `pageId` by its title (decides between a plain rename and the rewrite-links dialog). */
 export async function fetchRenameLinkCount(pageId: string, title: string): Promise<number> {
   try {
-    const res = await client.get<{ total?: number; affectedPages?: unknown[] }>(`/docs/pages/${pageId}/rename-preview`, { params: { title } });
+    const res = await client.get<{ total?: number; affectedPages?: unknown[] }>(
+      `/docs/pages/${pageId}/rename-preview`,
+      { params: { title } },
+    );
     return res.data.total ?? res.data.affectedPages?.length ?? 0;
   } catch {
     return 0;

@@ -15,11 +15,7 @@ export async function getProject(id: string): Promise<Project> {
   return res.data;
 }
 
-export async function createProject(data: {
-  name: string;
-  prefix: string;
-  color: string;
-}): Promise<Project> {
+export async function createProject(data: { name: string; prefix: string; color: string }): Promise<Project> {
   const res = await client.post<Project>('/projects', data);
   return res.data;
 }
@@ -77,8 +73,7 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Parameters<typeof updateProject>[1]) =>
-      updateProject(id, data),
+    mutationFn: ({ id, ...data }: { id: string } & Parameters<typeof updateProject>[1]) => updateProject(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       queryClient.invalidateQueries({ queryKey: projectKeys.detail(id) });

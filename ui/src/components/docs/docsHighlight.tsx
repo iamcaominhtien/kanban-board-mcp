@@ -4,8 +4,16 @@ import type { ReactNode } from 'react';
 
 type Tok = [cls: string | null, text: string];
 
-const TS_KW = new Set('const let var function return if else for while do switch case break continue new class extends implements interface type enum import export from as default async await try catch finally throw typeof instanceof in of void this super null undefined true false public private protected readonly static'.split(' '));
-const PY_KW = new Set('def class return if elif else for while in not and or is import from as with try except finally raise pass break continue lambda yield async await None True False global nonlocal self'.split(' '));
+const TS_KW = new Set(
+  'const let var function return if else for while do switch case break continue new class extends implements interface type enum import export from as default async await try catch finally throw typeof instanceof in of void this super null undefined true false public private protected readonly static'.split(
+    ' ',
+  ),
+);
+const PY_KW = new Set(
+  'def class return if elif else for while in not and or is import from as with try except finally raise pass break continue lambda yield async await None True False global nonlocal self'.split(
+    ' ',
+  ),
+);
 
 function scan(src: string, rules: [RegExp, (m: RegExpExecArray) => string | null][]): Tok[] {
   const out: Tok[] = [];
@@ -50,7 +58,15 @@ function highlightTs(src: string): Tok[] {
     [/\/\/[^\n]*|\/\*[\s\S]*?\*\//y, () => 'mc-p'],
     [/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`/y, () => 'mc-s'],
     [/\b\d+(?:\.\d+)?\b/y, () => 'mc-f'],
-    [/[A-Za-z_$][\w$]*/y, (m) => (TS_KW.has(m[0]) ? 'mc-k' : /^\s*\(/.test(src.slice(m.index + m[0].length, m.index + m[0].length + 3)) ? 'mc-f' : null)],
+    [
+      /[A-Za-z_$][\w$]*/y,
+      (m) =>
+        TS_KW.has(m[0])
+          ? 'mc-k'
+          : /^\s*\(/.test(src.slice(m.index + m[0].length, m.index + m[0].length + 3))
+            ? 'mc-f'
+            : null,
+    ],
   ]);
 }
 
@@ -59,7 +75,15 @@ function highlightPy(src: string): Tok[] {
     [/#[^\n]*/y, () => 'mc-p'],
     [/"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/y, () => 'mc-s'],
     [/\b\d+(?:\.\d+)?\b/y, () => 'mc-f'],
-    [/[A-Za-z_][\w]*/y, (m) => (PY_KW.has(m[0]) ? 'mc-k' : /^\s*\(/.test(src.slice(m.index + m[0].length, m.index + m[0].length + 3)) ? 'mc-f' : null)],
+    [
+      /[A-Za-z_][\w]*/y,
+      (m) =>
+        PY_KW.has(m[0])
+          ? 'mc-k'
+          : /^\s*\(/.test(src.slice(m.index + m[0].length, m.index + m[0].length + 3))
+            ? 'mc-f'
+            : null,
+    ],
   ]);
 }
 
@@ -107,5 +131,13 @@ export function highlight(code: string, lang?: string): ReactNode {
   else if (['ts', 'tsx', 'typescript', 'js', 'jsx', 'javascript'].includes(l)) toks = highlightTs(code);
   else if (['py', 'python'].includes(l)) toks = highlightPy(code);
   else return code;
-  return toks.map(([cls, text], i) => (cls ? <span key={i} className={cls}>{text}</span> : text));
+  return toks.map(([cls, text], i) =>
+    cls ? (
+      <span key={i} className={cls}>
+        {text}
+      </span>
+    ) : (
+      text
+    ),
+  );
 }

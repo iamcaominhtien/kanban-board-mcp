@@ -23,12 +23,7 @@ export function ActivityLog({ entries }: ActivityLogProps) {
 
   return (
     <div className={styles.section}>
-      <button
-        type="button"
-        className={styles.header}
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-      >
+      <button type="button" className={styles.header} onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
         <span className={styles.headerLabel}>Activity ({entries.length})</span>
         <span className={`${styles.chevron} ${!expanded ? styles.chevronCollapsed : ''}`}>▼</span>
       </button>
@@ -41,7 +36,9 @@ export function ActivityLog({ entries }: ActivityLogProps) {
             [...entries].reverse().map((entry, i) => (
               <div key={`${entry.at}-${i}`} className={styles.entry}>
                 <span className={styles.icon}>🕐</span>
-                <span className={styles.action}>{entry.field}: {entry.from ?? '–'} → {entry.to ?? '–'}</span>
+                <span className={styles.action}>
+                  {entry.field}: {entry.from ?? '–'} → {entry.to ?? '–'}
+                </span>
                 <span className={styles.timestamp}>{formatRelative(entry.at)}</span>
               </div>
             ))

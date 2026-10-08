@@ -8,12 +8,12 @@ import styles from './WorkLogSection.module.css';
 const ROLES: WorkLogEntry['role'][] = ['PM', 'Developer', 'BA', 'Tester', 'Designer', 'Other'];
 
 const ROLE_COLORS: Record<WorkLogEntry['role'], { bg: string; color: string }> = {
-  PM:        { bg: '#EDE9FE', color: '#7C3AED' },
+  PM: { bg: '#EDE9FE', color: '#7C3AED' },
   Developer: { bg: '#DBEAFE', color: '#2563EB' },
-  BA:        { bg: '#FEF3C7', color: '#D97706' },
-  Tester:    { bg: '#D1FAE5', color: '#059669' },
-  Designer:  { bg: '#FCE7F3', color: '#DB2777' },
-  Other:     { bg: '#F3F4F6', color: '#6B7280' },
+  BA: { bg: '#FEF3C7', color: '#D97706' },
+  Tester: { bg: '#D1FAE5', color: '#059669' },
+  Designer: { bg: '#FCE7F3', color: '#DB2777' },
+  Other: { bg: '#F3F4F6', color: '#6B7280' },
 };
 
 interface WorkLogSectionProps {
@@ -52,9 +52,7 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
         onClick={() => setIsExpanded((v) => !v)}
         aria-expanded={isExpanded}
       >
-        <span className={styles.sectionHeader}>
-          {'Work Log (' + entries.length + ')'}
-        </span>
+        <span className={styles.sectionHeader}>{'Work Log (' + entries.length + ')'}</span>
         <span className={styles.chevron + ' ' + (!isExpanded ? styles.chevronCollapsed : '')}>▼</span>
       </button>
 
@@ -64,30 +62,34 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
             <p className={styles.empty}>No work logged yet.</p>
           ) : (
             <div className={styles.entryList}>
-              {[...entries].sort((a, b) => b.at.localeCompare(a.at)).map((entry) => (
-                <div key={entry.id} className={styles.entry}>
-                  <div className={styles.entryHeader}>
-                    <span
-                      className={styles.roleBadge}
-                      style={{ backgroundColor: ROLE_COLORS[entry.role].bg, color: ROLE_COLORS[entry.role].color }}
-                    >
-                      {entry.role}
-                    </span>
-                    <span className={styles.author}>{entry.author}</span>
-                    <span className={styles.timestamp}>{formatDateTime(entry.at)}</span>
+              {[...entries]
+                .sort((a, b) => b.at.localeCompare(a.at))
+                .map((entry) => (
+                  <div key={entry.id} className={styles.entry}>
+                    <div className={styles.entryHeader}>
+                      <span
+                        className={styles.roleBadge}
+                        style={{ backgroundColor: ROLE_COLORS[entry.role].bg, color: ROLE_COLORS[entry.role].color }}
+                      >
+                        {entry.role}
+                      </span>
+                      <span className={styles.author}>{entry.author}</span>
+                      <span className={styles.timestamp}>{formatDateTime(entry.at)}</span>
+                    </div>
+                    <div className={styles.note}>
+                      <MarkdownRenderer>{entry.note}</MarkdownRenderer>
+                    </div>
                   </div>
-                  <div className={styles.note}>
-                    <MarkdownRenderer>{entry.note}</MarkdownRenderer>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
 
           <div className={styles.addArea}>
             <div className={styles.addRow}>
               <div className={styles.inputGroup}>
-                <label htmlFor="wl-author" className={styles.srOnly}>Author</label>
+                <label htmlFor="wl-author" className={styles.srOnly}>
+                  Author
+                </label>
                 <input
                   id="wl-author"
                   className={styles.input}
@@ -97,18 +99,26 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
                 />
               </div>
               <div className={styles.inputGroup}>
-                <label htmlFor="wl-role" className={styles.srOnly}>Role</label>
+                <label htmlFor="wl-role" className={styles.srOnly}>
+                  Role
+                </label>
                 <select
                   id="wl-role"
                   className={styles.select}
                   value={role}
                   onChange={(e) => setRole(e.target.value as WorkLogEntry['role'])}
                 >
-                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
-            <label htmlFor="wl-note" className={styles.srOnly}>Note</label>
+            <label htmlFor="wl-note" className={styles.srOnly}>
+              Note
+            </label>
             <MarkdownEditor
               value={note}
               onChange={setNote}

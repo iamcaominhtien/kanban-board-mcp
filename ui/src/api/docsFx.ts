@@ -52,7 +52,12 @@ export function useDocsSearch(
 
 // ─── Import ───────────────────────────────────────────────────────────────────
 
-function importForm(entries: DocsImportEntry[], parentId: string | null, onConflict: DocsImportConflict, dryRun = false) {
+function importForm(
+  entries: DocsImportEntry[],
+  parentId: string | null,
+  onConflict: DocsImportConflict,
+  dryRun = false,
+) {
   const fd = new FormData();
   if (dryRun) fd.append('dry_run', 'true');
   for (const e of entries) {

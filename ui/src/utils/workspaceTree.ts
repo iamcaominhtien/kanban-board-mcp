@@ -51,8 +51,28 @@ export function visibleEntries(files: WorkspaceFile[], collapsed: Set<string>): 
 }
 
 const TEXT_EXT = new Set([
-  'txt', 'md', 'log', 'json', 'yaml', 'yml', 'toml', 'csv', 'ts', 'tsx', 'js', 'jsx', 'py',
-  'sh', 'html', 'css', 'xml', 'sql', 'ini', 'env', 'diff', 'patch',
+  'txt',
+  'md',
+  'log',
+  'json',
+  'yaml',
+  'yml',
+  'toml',
+  'csv',
+  'ts',
+  'tsx',
+  'js',
+  'jsx',
+  'py',
+  'sh',
+  'html',
+  'css',
+  'xml',
+  'sql',
+  'ini',
+  'env',
+  'diff',
+  'patch',
 ]);
 const IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp']);
 

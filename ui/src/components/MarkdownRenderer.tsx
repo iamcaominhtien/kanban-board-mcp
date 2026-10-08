@@ -112,7 +112,11 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
   const toast = useToast();
   const restorePage = useRestorePage(refs?.projectId ?? '');
   const ticketSurface = !docsProp && !!refs && !plain;
-  const docs: DocsRenderOptions | undefined = docsProp ?? (refs && !plain ? { projectId: refs.projectId, onOpenPage: (id, a) => refs.peek(id, a), onOpenTicket: refs.openTicket } : undefined);
+  const docs: DocsRenderOptions | undefined =
+    docsProp ??
+    (refs && !plain
+      ? { projectId: refs.projectId, onOpenPage: (id, a) => refs.peek(id, a), onOpenTicket: refs.openTicket }
+      : undefined);
   // Clean up any stray uploading:... placeholders before rendering, and preprocess raw <img> tags
   let cleanedContent = children ? children.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '') : '';
   // Support both /api/uploads/ and /uploads/ interchangeably
@@ -163,7 +167,9 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
         remarkPlugins={docs ? [remarkGfm, remarkDocs] : [remarkGfm]}
         rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}
         urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) || url.startsWith('member:') ? url : defaultUrlTransform(url)
+          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) || url.startsWith('member:')
+            ? url
+            : defaultUrlTransform(url)
         }
         components={{
           ...(inline ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> } : {}),
@@ -172,21 +178,34 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
             if (!kind) return <blockquote {...props}>{inner}</blockquote>;
             return (
               <div className={`${styles.callout} ${styles[`callout_${kind}`] ?? ''}`} role="note">
-                <span className={styles.calloutIcon} aria-hidden="true">{CALLOUT_ICONS[kind]}</span>
+                <span className={styles.calloutIcon} aria-hidden="true">
+                  {CALLOUT_ICONS[kind]}
+                </span>
                 <div className={styles.calloutBody}>{inner}</div>
               </div>
             );
           },
-          img: ({ src, alt, ...props }) => (
-            <MarkdownImage src={src} alt={alt} {...props} />
-          ),
+          img: ({ src, alt, ...props }) => <MarkdownImage src={src} alt={alt} {...props} />,
           a: ({ href, children, ...props }) => {
             if (href?.startsWith('member:')) {
               return (
                 <span
                   data-testid="mention-chip"
                   data-member={href.slice(7)}
-                  style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 999, background: '#E8F1FB', border: '1px solid #B9D3EE', color: '#2F6FB0', fontSize: 13, fontWeight: 600, verticalAlign: 1, whiteSpace: 'nowrap' }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    height: 22,
+                    padding: '0 8px',
+                    borderRadius: 999,
+                    background: '#E8F1FB',
+                    border: '1px solid #B9D3EE',
+                    color: '#2F6FB0',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    verticalAlign: 1,
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   {children}
                 </span>
@@ -218,7 +237,11 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
                   onPeek={ticketSurface ? refs?.peek : undefined}
                   onOpenInDocs={ticketSurface ? refs?.openInDocs : undefined}
                   onOpenPage={docs.onOpenPage}
-                  onRestorePage={ticketSurface ? (id) => restorePage.mutate(id, { onSuccess: () => toast.success('Page restored') }) : undefined}
+                  onRestorePage={
+                    ticketSurface
+                      ? (id) => restorePage.mutate(id, { onSuccess: () => toast.success('Page restored') })
+                      : undefined
+                  }
                 />
               );
             }
@@ -239,4 +262,3 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
     </Wrapper>
   );
 }
-

@@ -12,7 +12,7 @@ export function DocsSettingsRow({ project }: { project: Project }) {
   const enabled = project.docsEnabled !== false;
   const [status, setStatus] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const count = useDocsPageCount(project.id, enabled);
-  const hiddenCount = enabled ? count.data ?? null : readCachedPageCount(project.id);
+  const hiddenCount = enabled ? (count.data ?? null) : readCachedPageCount(project.id);
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -29,9 +29,19 @@ export function DocsSettingsRow({ project }: { project: Project }) {
   return (
     <div
       className="docs-root"
-      style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 14px', background: '#F8FAF8', borderRadius: 8, border: '1px solid #E3E8E5' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        padding: '12px 14px',
+        background: '#F8FAF8',
+        borderRadius: 8,
+        border: '1px solid #E3E8E5',
+      }}
     >
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>{project.name} ({project.prefix})</span>
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
+        {project.name} ({project.prefix})
+      </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22', flexGrow: 1 }}>Docs</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -53,16 +63,30 @@ export function DocsSettingsRow({ project }: { project: Project }) {
         </div>
       </div>
       <div className="st-hint">
-        A page tree per project for requirements, designs and decisions. Turning it off hides the Docs tab for everyone; pages are kept and come back when you turn it on again.
+        A page tree per project for requirements, designs and decisions. Turning it off hides the Docs tab for everyone;
+        pages are kept and come back when you turn it on again.
       </div>
       {status && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: status.kind === 'ok' ? '#2E6F40' : '#C4432A' }}>{status.text}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: status.kind === 'ok' ? '#2E6F40' : '#C4432A' }}>
+            {status.text}
+          </span>
         </div>
       )}
       {!enabled && (
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 8, background: '#F1F3F1', border: '1px solid #E3E8E5', fontSize: 12.5, color: '#3A4A3E', lineHeight: 1.45 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 12px',
+            borderRadius: 8,
+            background: '#F1F3F1',
+            border: '1px solid #E3E8E5',
+            fontSize: 12.5,
+            color: '#3A4A3E',
+            lineHeight: 1.45,
+          }}
         >
           <Icon name="i28" size={15} strokeWidth={1.9} style={{ color: '#5B6B60' }} />
           {hiddenCount === null

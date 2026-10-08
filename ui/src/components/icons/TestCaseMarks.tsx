@@ -39,13 +39,7 @@ export function PassIcon({ size = 14, className, style, ...props }: IconProps) {
       {...props}
     >
       <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.6" />
-      <path
-        d="M4.3 7.2L6.1 9L9.8 5"
-        stroke="#2E6F40"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -68,7 +62,15 @@ export function FailIcon({ size = 14, className, style, ...props }: IconProps) {
   );
 }
 
-export function RunningIcon({ size = 15, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+export function RunningIcon({
+  size = 15,
+  className,
+  style,
+}: {
+  size?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
     <span
       className={className}
@@ -120,13 +122,7 @@ export function PendingIcon({ size = 15, className, style, ...props }: IconProps
 
 export type TestCaseStatus = 'pass' | 'fail' | 'running' | 'pending';
 
-export function TestCaseStatusMark({
-  status,
-  size = 14,
-}: {
-  status: TestCaseStatus | string;
-  size?: number;
-}) {
+export function TestCaseStatusMark({ status, size = 14 }: { status: TestCaseStatus | string; size?: number }) {
   switch (status) {
     case 'pass':
       return <PassIcon size={size} />;

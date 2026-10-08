@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #FFFFFF;
+  background: #ffffff;
   min-height: 220px;
   box-sizing: border-box;
 }
@@ -21,7 +21,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .filterList {
@@ -37,23 +37,23 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-size: 11.5px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   transition: all 0.15s ease;
 }
 
 .acFilter:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .acFilterActive {
-  border-color: #2E6F40;
-  background: #F1F8F3;
-  color: #1E2A22;
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #1e2a22;
 }
 
 .emptyState {
@@ -68,8 +68,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #F6FAF7;
-  color: #9AA8A0;
+  background: #f6faf7;
+  color: #9aa8a0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,12 +78,12 @@
 .emptyTitle {
   font-size: 13.5px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .emptyDesc {
   font-size: 12px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   text-align: center;
   max-width: 300px;
   line-height: 1.5;
@@ -100,12 +100,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 0;
-  border-bottom: 1px solid #EEF3EF;
+  border-bottom: 1px solid #eef3ef;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .acDayCount {
@@ -113,7 +113,7 @@
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .acList {
@@ -128,7 +128,7 @@
   top: 20px;
   bottom: 20px;
   width: 1px;
-  background: #E3E8E5;
+  background: #e3e8e5;
   z-index: 0;
 }
 
@@ -153,7 +153,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 0 4px #FFFFFF;
+  box-shadow: 0 0 0 4px #ffffff;
   position: relative;
   box-sizing: border-box;
 }
@@ -171,7 +171,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .acChange {
@@ -187,11 +187,11 @@
   gap: 6px;
   padding: 2px 9px;
   border-radius: 999px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   font-size: 12px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: nowrap;
   max-width: 500px;
   overflow: hidden;
@@ -238,19 +238,19 @@
   cursor: pointer;
   font-size: 11.5px;
   font-weight: 600;
-  color: #2E6F40;
+  color: #2e6f40;
   transition: background 0.15s ease;
 }
 
 .acToggle:hover {
-  background: #F1F8F3;
+  background: #f1f8f3;
 }
 
 .acTime {
   position: relative;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   white-space: nowrap;
   cursor: default;
   flex-shrink: 0;
@@ -262,8 +262,8 @@
   bottom: calc(100% + 4px);
   padding: 5px 9px;
   border-radius: 6px;
-  background: #1E2A22;
-  color: #FFFFFF;
+  background: #1e2a22;
+  color: #ffffff;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 11px;
   line-height: 1.4;
@@ -287,29 +287,29 @@
   align-self: center;
   padding: 7px 14px;
   border-radius: 6px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   transition: all 0.15s ease;
   margin-top: 8px;
 }
 
 .acMore:hover {
-  background: #F6FAF7;
-  border-color: #2E6F40;
-  color: #2E6F40;
+  background: #f6faf7;
+  border-color: #2e6f40;
+  color: #2e6f40;
 }
 
 .diffContainer {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #1E2A22;
+  color: #1e2a22;
   margin-top: 4px;
   width: 100%;
 }
@@ -336,15 +336,15 @@
 }
 
 .diffRemoved {
-  background: #FBE7E4;
+  background: #fbe7e4;
 }
 
 .diffAdded {
-  background: #E6F2E9;
+  background: #e6f2e9;
 }
 
 .diffNormal {
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .diffHighlightRemoved {
@@ -358,13 +358,14 @@
 }
 
 .acSk {
-  background: #EEF3EF;
+  background: #eef3ef;
   display: block;
   animation: acPulse 1.4s ease-in-out infinite;
 }
 
 @keyframes acPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -376,11 +377,11 @@
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .acActor {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
 }

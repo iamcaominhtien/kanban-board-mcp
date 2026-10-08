@@ -15,40 +15,40 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .progressBarTrack {
   flex-grow: 1;
   height: 4px;
   border-radius: 2px;
-  background: #DCE6DF;
+  background: #dce6df;
   overflow: hidden;
   max-width: 120px;
 }
 
 .progressBarFill {
   height: 100%;
-  background: #2E6F40;
+  background: #2e6f40;
   transition: width 0.2s ease;
 }
 
 .progressCount {
   font-size: 11px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .empty {
   font-size: 13px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-style: italic;
 }
 
 .cardContainer {
   display: flex;
   flex-direction: column;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -58,8 +58,8 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #EEF3EF;
+  background: #ffffff;
+  border-bottom: 1px solid #eef3ef;
   position: relative;
   transition: background-color 0.12s ease;
 }
@@ -69,11 +69,11 @@
 }
 
 .row:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .rowActive {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .waveBadge {
@@ -92,20 +92,20 @@
 }
 
 .waveDone {
-  background: #DCEEE1;
-  color: #2E6F40;
+  background: #dceee1;
+  color: #2e6f40;
 }
 
 .waveReady {
-  background: #FFFFFF;
-  border: 1.4px solid #2F6FB0;
-  color: #2F6FB0;
+  background: #ffffff;
+  border: 1.4px solid #2f6fb0;
+  color: #2f6fb0;
 }
 
 .waveBlocked {
-  background: #FFFFFF;
-  border: 1.4px dashed #C7D2CB;
-  color: #9AA8A0;
+  background: #ffffff;
+  border: 1.4px dashed #c7d2cb;
+  color: #9aa8a0;
 }
 
 .statusIconDone {
@@ -118,7 +118,7 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #2F6FB0;
+  background: #2f6fb0;
   flex-shrink: 0;
 }
 
@@ -126,7 +126,7 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  border: 1.6px solid #9AA8A0;
+  border: 1.6px solid #9aa8a0;
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -147,7 +147,7 @@
   padding: 2px 7px 2px 6px;
   border-radius: 3px;
   background: rgba(196, 67, 42, 0.1);
-  color: #C4432A;
+  color: #c4432a;
   font-size: 10px;
   font-weight: 700;
 }
@@ -155,34 +155,34 @@
 .captionText {
   font-size: 11px;
   line-height: 1.5;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .ticketTitleDone {
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   text-decoration: line-through;
-  text-decoration-color: #C7D2CB;
+  text-decoration-color: #c7d2cb;
   cursor: pointer;
 }
 
 .ticketTitleInProgress {
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   font-weight: 500;
   cursor: pointer;
 }
 
 .ticketTitleOpen {
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   cursor: pointer;
 }
 
 .ticketId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
   min-width: 62px;
   text-align: right;
@@ -190,7 +190,7 @@
 
 .ticketIdDone {
   text-decoration: line-through;
-  text-decoration-color: #C7D2CB;
+  text-decoration-color: #c7d2cb;
 }
 
 .unlinkBtn {
@@ -204,9 +204,12 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
-  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .row:hover .unlinkBtn {
@@ -214,8 +217,8 @@
 }
 
 .unlinkBtn:hover {
-  background: #FBE7E4;
-  color: #C4432A;
+  background: #fbe7e4;
+  color: #c4432a;
 }
 
 /* Add Sub-ticket trigger */
@@ -226,26 +229,28 @@
   align-self: flex-start;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px dashed #C7D2CB;
+  border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
   font-size: 12px;
-  color: #9AA8A0;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .addDashedBtn:hover {
-  border-color: #2E6F40;
-  color: #2E6F40;
+  border-color: #2e6f40;
+  color: #2e6f40;
 }
 
 /* Expanded Form Box */
 .expandedBox {
-  border: 1px solid #2E6F40;
+  border: 1px solid #2e6f40;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .tabsRow {
@@ -263,13 +268,15 @@
   cursor: pointer;
   border: none;
   background: none;
-  color: #9AA8A0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .tabActive {
-  background: #F1F8F3;
-  color: #2E6F40;
+  background: #f1f8f3;
+  color: #2e6f40;
 }
 
 .inputRow {
@@ -285,7 +292,7 @@
   outline: none;
   font-family: inherit;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   background: none;
 }
 
@@ -299,13 +306,15 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  color: #9aa8a0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .actionBtnCancel:hover {
-  background: #EEF3EF;
-  color: #5B6B60;
+  background: #eef3ef;
+  color: #5b6b60;
 }
 
 .actionBtnCreate {
@@ -313,12 +322,12 @@
   height: 22px;
   border-radius: 5px;
   border: none;
-  background: #2E6F40;
+  background: #2e6f40;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #FFFFFF;
+  color: #ffffff;
   transition: opacity 0.15s ease;
 }
 
@@ -328,7 +337,7 @@
 
 .helperText {
   font-size: 11.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   padding-left: 2px;
 }
 
@@ -346,12 +355,12 @@
   outline: none;
   font-family: inherit;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   background: none;
 }
 
 .resultsList {
-  border-top: 1px solid #EEF3EF;
+  border-top: 1px solid #eef3ef;
   padding: 4px;
   display: flex;
   flex-direction: column;
@@ -375,13 +384,13 @@
 }
 
 .resultItem:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .resultTitle {
   flex-grow: 1;
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -390,6 +399,6 @@
 .resultId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
 }

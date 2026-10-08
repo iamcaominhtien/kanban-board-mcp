@@ -31,10 +31,10 @@ export type DebugKind = 'investigation' | 'fix_attempt' | 'root_cause' | 'blocke
 
 const DEBUG_KIND_COLORS: Record<DebugKind, string> = {
   investigation: '#2F6FB0',
-  fix_attempt:   '#E2793D',
-  root_cause:    '#6D5DD3',
-  blocked:       '#C4432A',
-  resolved:      '#2E6F40',
+  fix_attempt: '#E2793D',
+  root_cause: '#6D5DD3',
+  blocked: '#C4432A',
+  resolved: '#2E6F40',
 };
 
 export function DebugEntryDot({

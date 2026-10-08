@@ -96,7 +96,14 @@ export function PageInfoPopover({ page, onClose, onOpenHistory, onOpenReferences
       className="dk-menu docs-root"
       role="dialog"
       aria-label="Page info"
-      style={{ position: 'absolute', left: 0, top: 'calc(100% + 8px)', width: 440, zIndex: 60, padding: '6px 16px 12px' }}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 'calc(100% + 8px)',
+        width: 440,
+        zIndex: 60,
+        padding: '6px 16px 12px',
+      }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0 4px' }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Page info</span>
@@ -119,7 +126,14 @@ export function PageInfoPopover({ page, onClose, onOpenHistory, onOpenReferences
           {page.status === 'published' ? 'Published' : 'Draft'}
         </span>
         {onOpenHistory && (
-          <button type="button" style={linkStyle} onClick={() => { onClose(); onOpenHistory(); }}>
+          <button
+            type="button"
+            style={linkStyle}
+            onClick={() => {
+              onClose();
+              onOpenHistory();
+            }}
+          >
             Page history
           </button>
         )}
@@ -132,7 +146,16 @@ export function PageInfoPopover({ page, onClose, onOpenHistory, onOpenReferences
         {stats?.linkedTickets ?? tickets.length}
         {tickets.map((k) => (
           <span key={k} className="dk-chip dk-chip-ticket">
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9AA8A0', flexShrink: 0, display: 'inline-block' }} />
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: '#9AA8A0',
+                flexShrink: 0,
+                display: 'inline-block',
+              }}
+            />
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{k}</span>
           </span>
         ))}
@@ -146,7 +169,14 @@ export function PageInfoPopover({ page, onClose, onOpenHistory, onOpenReferences
           </span>
         )}
         {onOpenReferences && (
-          <button type="button" style={linkStyle} onClick={() => { onClose(); onOpenReferences(); }}>
+          <button
+            type="button"
+            style={linkStyle}
+            onClick={() => {
+              onClose();
+              onOpenReferences();
+            }}
+          >
             Referenced by
           </button>
         )}

@@ -42,7 +42,8 @@ function tokenRegex(): RegExp {
 
 function inCode(node: Node, root: HTMLElement): boolean {
   for (let n: Node | null = node.parentNode; n && n !== root; n = n.parentNode) {
-    if (n instanceof HTMLElement && (n.tagName === 'CODE' || n.tagName === 'PRE' || n.classList.contains('docRef'))) return true;
+    if (n instanceof HTMLElement && (n.tagName === 'CODE' || n.tagName === 'PRE' || n.classList.contains('docRef')))
+      return true;
   }
   return false;
 }
@@ -50,7 +51,8 @@ function inCode(node: Node, root: HTMLElement): boolean {
 /** Turn every complete token that does not hold the caret into a pill. Returns true when something changed. */
 export function snapRefTokens(root: HTMLElement, keepCaret = true): boolean {
   const sel = window.getSelection();
-  const caretNode = keepCaret && sel && sel.rangeCount && sel.isCollapsed && root.contains(sel.anchorNode) ? sel.anchorNode : null;
+  const caretNode =
+    keepCaret && sel && sel.rangeCount && sel.isCollapsed && root.contains(sel.anchorNode) ? sel.anchorNode : null;
   const caretOffset = caretNode ? (sel as Selection).anchorOffset : -1;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes: Text[] = [];
@@ -94,7 +96,7 @@ export function snapRefTokens(root: HTMLElement, keepCaret = true): boolean {
 /** Click on a pill: swap it for its raw markdown with the caret inside, so it can be edited. */
 export function expandRefChip(chip: HTMLElement): void {
   const inner = chip.getAttribute('data-ref');
-  const raw = inner != null ? `[[${inner}]]` : chip.getAttribute('data-key') ?? '';
+  const raw = inner != null ? `[[${inner}]]` : (chip.getAttribute('data-key') ?? '');
   const text = document.createTextNode(raw);
   chip.replaceWith(text);
   const sel = window.getSelection();
@@ -109,7 +111,14 @@ export function expandRefChip(chip: HTMLElement): void {
 /** The raw token holding the caret, if any (Esc / → leave it). */
 export function tokenAtCaret(root: HTMLElement): { node: Text; end: number } | null {
   const sel = window.getSelection();
-  if (!sel || !sel.rangeCount || !sel.isCollapsed || !root.contains(sel.anchorNode) || sel.anchorNode?.nodeType !== Node.TEXT_NODE) return null;
+  if (
+    !sel ||
+    !sel.rangeCount ||
+    !sel.isCollapsed ||
+    !root.contains(sel.anchorNode) ||
+    sel.anchorNode?.nodeType !== Node.TEXT_NODE
+  )
+    return null;
   const node = sel.anchorNode as Text;
   for (const m of (node.textContent ?? '').matchAll(tokenRegex())) {
     const start = m.index ?? 0;
