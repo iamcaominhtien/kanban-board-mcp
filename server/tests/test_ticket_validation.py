@@ -1,9 +1,6 @@
-import httpx
 import pytest
-from httpx import ASGITransport
 
 import mcp_tools
-from main import app
 from tests.test_activity import _ticket, client, setup_db  # noqa: F401  (fixtures)
 
 
