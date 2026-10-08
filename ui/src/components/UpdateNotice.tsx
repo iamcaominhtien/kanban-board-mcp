@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import styles from './UpdateNotice.module.css';
 
 const SKIP_KEY = 'skippedUpdateVersion';
@@ -76,7 +77,11 @@ export function UpdateNotice() {
   return (
     <div className={styles.card} role="status" aria-live="polite">
       <div className={styles.title}>Version {info.version} is available</div>
-      {phase === 'idle' && info.notes && <pre className={styles.notes}>{info.notes.slice(0, 600)}</pre>}
+      {phase === 'idle' && info.notes && (
+        <div className={styles.notes}>
+          <MarkdownRenderer plain>{info.notes}</MarkdownRenderer>
+        </div>
+      )}
       {phase === 'downloading' && (
         <div className={styles.bar} aria-label="Download progress">
           <div className={styles.fill} style={{ width: `${Math.round(progress * 100)}%` }} />

@@ -10,6 +10,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.0.1] - 2026-10-08
+
+### Fixed
+- **Update notice (desktop)** showed release notes as raw Markdown (`###`, `**`); they are now rendered, and long notes scroll instead of being cut off.
+
+---
+
 ## [3.0.0] - 2026-10-08
 
 The MCP server is reworked from 56 tools down to 9, and its code now lives in a package. The MCP changes are breaking for anything that scripts against the MCP tools (see **Changed**), which is why this is a major version. The web UI and REST API are unchanged.
