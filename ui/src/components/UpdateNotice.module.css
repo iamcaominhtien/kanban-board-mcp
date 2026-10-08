@@ -13,7 +13,12 @@
   color: var(--color-text-body);
 }
 
-.title { font-size: 14px; font-weight: 700; color: var(--color-text-pri); margin-bottom: 8px; }
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-pri);
+  margin-bottom: 8px;
+}
 
 .notes {
   margin: 0 0 10px;
@@ -25,20 +30,61 @@
   color: var(--color-text-sec);
 }
 
-.bar { height: 6px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden; margin-bottom: 10px; }
-.fill { height: 100%; background: var(--color-forest); transition: width 0.2s; }
-.hint { font-size: 12px; margin-bottom: 10px; color: var(--color-text-sec); }
-.error { font-size: 12px; margin-bottom: 10px; color: var(--color-wontdo); }
+.bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.fill {
+  height: 100%;
+  background: var(--color-forest);
+  transition: width 0.2s;
+}
+.hint {
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: var(--color-text-sec);
+}
+.error {
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: var(--color-wontdo);
+}
 
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
 
-.primary, .secondary, .link {
+.primary,
+.secondary,
+.link {
   font: inherit;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   border-radius: var(--radius-code);
 }
-.primary { padding: 6px 12px; background: var(--color-forest); color: #fff; border: 0; }
-.secondary { padding: 6px 10px; background: transparent; color: var(--color-text-sec); border: 1px solid var(--color-border); }
-.link { padding: 6px 4px; background: none; border: 0; color: var(--color-forest); text-decoration: underline; }
+.primary {
+  padding: 6px 12px;
+  background: var(--color-forest);
+  color: #fff;
+  border: 0;
+}
+.secondary {
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--color-text-sec);
+  border: 1px solid var(--color-border);
+}
+.link {
+  padding: 6px 4px;
+  background: none;
+  border: 0;
+  color: var(--color-forest);
+  text-decoration: underline;
+}

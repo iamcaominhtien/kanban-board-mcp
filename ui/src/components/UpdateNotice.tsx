@@ -103,8 +103,12 @@ export function UpdateNotice() {
         )}
         {phase !== 'downloading' && (
           <>
-            <button className={styles.secondary} onClick={() => setDismissed(true)}>Later</button>
-            <button className={styles.secondary} onClick={skip}>Skip this version</button>
+            <button className={styles.secondary} onClick={() => setDismissed(true)}>
+              Later
+            </button>
+            <button className={styles.secondary} onClick={skip}>
+              Skip this version
+            </button>
           </>
         )}
         {info.releaseUrl && (
