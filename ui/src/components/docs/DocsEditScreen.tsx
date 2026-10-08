@@ -31,6 +31,7 @@ type SaveState = 'saved' | 'saving' | 'error' | 'dirty';
 const AUTOSAVE_MS = 3000;
 const offlineKey = (pageId: string) => `docsOfflineDraft:${pageId}`;
 
+/** Full-screen page editor with Publish, Discard and conflict handling. */
 export function DocsEditScreen({
   projectId,
   page,

@@ -22,6 +22,7 @@ const Ctx = createContext<DocsRefsValue | null>(null);
 
 export const DocsRefsProvider = Ctx.Provider;
 
+/** Return the surrounding ticket/Docs reference context, or null. */
 export function useDocsRefs(): DocsRefsValue | null {
   return useContext(Ctx);
 }

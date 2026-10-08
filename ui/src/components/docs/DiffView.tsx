@@ -259,6 +259,7 @@ function SectionHead({ g, s, chips }: { g: Group; s: DiffSection; chips: boolean
   );
 }
 
+/** Line and word diff between two versions, inline or side by side. */
 export function DiffView({ diff, mode, leftLabel, rightLabel, activeSection }: DiffViewProps) {
   const groups = useMemo(() => groupRows(diff.rows), [diff.rows]);
 

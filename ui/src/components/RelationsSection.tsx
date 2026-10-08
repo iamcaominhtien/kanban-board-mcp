@@ -48,6 +48,7 @@ interface RelationRow {
   linkId?: string;
 }
 
+/** Ticket's blocks, blocked-by and linked relations. */
 export function RelationsSection({
   ticket,
   allTickets,

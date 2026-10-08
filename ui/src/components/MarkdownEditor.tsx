@@ -49,6 +49,7 @@ interface Props {
   docsProjectId?: string;
 }
 
+/** WYSIWYG Markdown editor for ticket fields, with `[[` references. */
 export function MarkdownEditor({
   value,
   onChange,

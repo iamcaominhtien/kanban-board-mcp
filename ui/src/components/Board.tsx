@@ -54,6 +54,7 @@ const SKELETON_COUNTS = [2, 2, 1, 1, 1, 1];
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'review', 'testing', 'done']);
 
+/** Kanban board with drag-and-drop columns. */
 export function Board({
   tickets,
   allTickets,

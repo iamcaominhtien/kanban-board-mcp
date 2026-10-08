@@ -183,6 +183,7 @@ interface IdeaBoardProps {
   projectId: string;
 }
 
+/** Idea Space board. */
 export function IdeaBoard({ projectId }: IdeaBoardProps) {
   const [tickets, setTickets] = useState<IdeaTicket[]>(projectId ? [] : MOCK_TICKETS);
   const [loading, setLoading] = useState(!!projectId);

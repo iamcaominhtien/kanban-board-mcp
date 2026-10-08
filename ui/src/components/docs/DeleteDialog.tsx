@@ -23,6 +23,7 @@ const rowBase: React.CSSProperties = {
 };
 const roleTag: React.CSSProperties = { marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' };
 
+/** Confirm moving a page and its sub-pages to the Recycle Bin. */
 export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDialogProps) {
   const preview = useDeletePreview(page.id);
   const del = useDeletePage(projectId);

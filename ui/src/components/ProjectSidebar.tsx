@@ -23,6 +23,7 @@ interface ProjectSidebarProps {
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
 
+/** Sidebar listing projects and spaces. */
 export function ProjectSidebar({
   projects,
   currentProjectId,

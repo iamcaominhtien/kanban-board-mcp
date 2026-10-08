@@ -23,6 +23,7 @@ interface CreateBranchModalProps {
   hasRepoLinked?: boolean;
 }
 
+/** Expand the worktree path template for a project, ticket and branch. */
 export function computeDefaultWorktreePath(
   template: string | null | undefined,
   projectPrefix: string = '',
@@ -39,6 +40,7 @@ export function computeDefaultWorktreePath(
     .replace(/\{repo\}/g, 'repo');
 }
 
+/** Dialog to create a branch for a ticket, optionally with a worktree. */
 export function CreateBranchModal({
   isOpen,
   onClose,

@@ -94,6 +94,7 @@ function TemplatePreview({ markdown }: { markdown: string }) {
   );
 }
 
+/** Dialog to create a page, optionally from a template. */
 export function NewPageDialog({
   projectId,
   nodes,

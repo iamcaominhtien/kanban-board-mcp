@@ -31,6 +31,7 @@ interface TicketCardProps {
   subtaskStats?: { total: number; completed: number };
 }
 
+/** Compact ticket card for the board. */
 export function TicketCard({ ticket, memberMap, isDragging, className, onClick, subtaskStats }: TicketCardProps) {
   const typeLabel = TYPE_LABELS[ticket.type] ?? 'Task';
   const due = getDueDateDisplay(ticket.dueDate);

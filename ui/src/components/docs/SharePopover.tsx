@@ -7,6 +7,7 @@ interface SharePopoverProps {
   onClose: () => void;
 }
 
+/** Return the shareable URL of a page. */
 export function pageUrl(pageId: string): string {
   const url = new URL(window.location.href);
   url.search = '';
@@ -30,6 +31,7 @@ async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
+/** Popover to copy a page link. */
 export function SharePopover({ page, onClose }: SharePopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState<'link' | 'ref' | null>(null);

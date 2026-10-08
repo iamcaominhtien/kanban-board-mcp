@@ -262,6 +262,7 @@ export interface ImportDialogProps {
   onReviewLinks?: (pageId: string) => void;
 }
 
+/** Dialog to import Markdown files or folders as pages. */
 export function ImportDialog({
   projectId,
   projectName,

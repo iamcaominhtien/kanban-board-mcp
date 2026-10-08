@@ -10,6 +10,7 @@ export interface DocRefAttrs {
   label: string | null;
 }
 
+/** Serialize reference attrs to `[[Page#Section|label]]`. */
 export function docRefMarkdown(a: DocRefAttrs): string {
   return `[[${a.page}${a.section ? `#${a.section}` : ''}${a.label ? `|${a.label}` : ''}]]`;
 }

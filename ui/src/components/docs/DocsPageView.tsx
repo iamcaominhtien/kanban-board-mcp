@@ -40,6 +40,7 @@ function initials(actor: string): string {
 
 const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: 'nowrap' } as const;
 
+/** Read view of a page: header, content, "On this page" and "Referenced by". */
 export function DocsPageView({
   page,
   projectId,

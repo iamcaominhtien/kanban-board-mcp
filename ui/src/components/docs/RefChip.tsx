@@ -225,6 +225,7 @@ function plain(md: string): string {
     .trim();
 }
 
+/** Return the opening text of a page or of one section. */
 export function excerptOf(markdown: string, anchor?: string | null): string {
   if (anchor) {
     const lines = markdown.split('\n');
@@ -260,6 +261,7 @@ function levenshtein(a: string, b: string): number {
   return dp[a.length][b.length];
 }
 
+/** Return the heading that best matches `wanted`, or null. */
 export function closestHeading(headings: DocsHeading[], wanted: string): DocsHeading | null {
   const w = slugify(wanted);
   let best: DocsHeading | null = null;
@@ -323,6 +325,7 @@ function PageChipBody({
   );
 }
 
+/** Reference pill for a page, section or ticket, with hover card and states. */
 export function RefChip(props: RefChipProps) {
   const { kind, label, result, onOpenPage, onOpenTicket } = props;
   const ticketSurface = props.surface === 'ticket';

@@ -11,6 +11,7 @@ interface DraggableTicketCardProps {
   subtaskStats?: { total: number; completed: number };
 }
 
+/** Ticket card wired to drag and drop. */
 export function DraggableTicketCard({ ticket, onCardClick, memberMap, subtaskStats }: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,

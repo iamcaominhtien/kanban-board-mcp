@@ -32,6 +32,7 @@ export function exactTime(iso?: string | null): string {
   return `${date} · ${time}`;
 }
 
+/** Return up to two initials of a name. */
 export function initials(name?: string | null): string {
   if (!name || !name.trim()) return 'AN';
   const parts = name.trim().split(/\s+/);
@@ -56,9 +57,12 @@ export function personFor(author: string | null | undefined, members: Member[]):
   return { name: display, initials: display === 'You' ? 'ME' : initials(display), bg: '#E6E9F5', color: '#5B5FA8' };
 }
 
+/** Local-storage key for a ticket's comment draft. */
 export const draftKey = (ticketId: string) => `kanban.commentDraft.${ticketId}`;
+/** Local-storage key for a ticket's offline comment queue. */
 export const queueKey = (ticketId: string) => `kanban.commentQueue.${ticketId}`;
 
+/** Read JSON from local storage, falling back on any error. */
 export function readJson<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -68,6 +72,7 @@ export function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+/** Write JSON to local storage, or remove the key when `value` is null. */
 export function writeJson(key: string, value: unknown | null): void {
   try {
     if (value == null || (Array.isArray(value) && value.length === 0) || value === '') localStorage.removeItem(key);

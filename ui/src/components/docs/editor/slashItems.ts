@@ -205,6 +205,7 @@ export const SLASH_ITEMS: SlashItem[] = [
   },
 ];
 
+/** Return the slash-menu items matching a query. */
 export function filterSlash(query: string): SlashItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return SLASH_ITEMS;

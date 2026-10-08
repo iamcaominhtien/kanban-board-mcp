@@ -17,6 +17,7 @@ interface IdeaColumnProps {
   onCardClick: (ticket: IdeaTicket) => void;
 }
 
+/** One Idea Space column. */
 export function IdeaColumn({ column, tickets, onCardClick }: IdeaColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 

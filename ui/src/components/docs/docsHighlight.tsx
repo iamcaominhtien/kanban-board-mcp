@@ -123,6 +123,7 @@ function highlightSh(src: string): Tok[] {
   return out;
 }
 
+/** Syntax-highlight code for a language into React nodes. */
 export function highlight(code: string, lang?: string): ReactNode {
   const l = (lang ?? '').toLowerCase();
   let toks: Tok[];

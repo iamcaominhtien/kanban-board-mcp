@@ -681,6 +681,7 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
   );
 }
 
+/** Settings panel to install, test and remove the MCP server for AI clients. */
 export function McpIntegrations() {
   const [folder, setFolder] = useState('');
   const [toolCount, setToolCount] = useState<number | null>(null);

@@ -28,6 +28,7 @@ export interface StatusMenuProps {
   compact?: boolean;
 }
 
+/** Dropdown to change a ticket's status. */
 export const StatusMenu: React.FC<StatusMenuProps> = ({
   value,
   onChange,

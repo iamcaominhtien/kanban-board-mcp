@@ -10,6 +10,7 @@ interface Props {
   fileSize?: number;
 }
 
+/** Card for an attached file with open and download actions. */
 export function FileAttachmentCard({ url, fileName: rawName, fileSize }: Props) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const displayFileName = cleanDisplayFileName(rawName || url);

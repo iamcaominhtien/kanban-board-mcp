@@ -216,6 +216,7 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
   );
 }
 
+/** Sortable table of tickets. */
 export function ListView({ tickets, onCardClick }: ListViewProps) {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [sortBy, setSortBy] = useState<SortBy>('dueDate');

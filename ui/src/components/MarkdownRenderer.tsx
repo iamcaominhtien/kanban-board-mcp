@@ -106,6 +106,7 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
   );
 }
 
+/** Render Markdown with callouts, images, file cards and doc-reference pills. */
 export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: MarkdownRendererProps) {
   const Wrapper = (inline ? 'span' : 'div') as 'div';
   const refs = useDocsRefs();

@@ -168,6 +168,7 @@ const CATEGORY_CONFIG: Record<FileCategory, FileTypeMeta> = {
   },
 };
 
+/** Return the lowercase extension without the dot. */
 export function getFileExtension(filename: string): string {
   const clean = filename.split(/[?#]/)[0];
   const lastDot = clean.lastIndexOf('.');
@@ -175,11 +176,13 @@ export function getFileExtension(filename: string): string {
   return clean.slice(lastDot + 1).toLowerCase();
 }
 
+/** Return the category of a file by its extension. */
 export function getFileCategory(filename: string): FileCategory {
   const ext = getFileExtension(filename);
   return CATEGORY_MAP[ext] || 'generic';
 }
 
+/** Return the icon, color and badge for a file. */
 export function getFileTypeMeta(filename: string): FileTypeMeta {
   const cat = getFileCategory(filename);
   const ext = getFileExtension(filename).toUpperCase();
@@ -190,28 +193,34 @@ export function getFileTypeMeta(filename: string): FileTypeMeta {
   };
 }
 
+/** Whether the file can be previewed as text. */
 export function isTextPreviewable(filename: string): boolean {
   const cat = getFileCategory(filename);
   return cat === 'text' || cat === 'json' || cat === 'code';
 }
 
+/** Whether the file is a PDF. */
 export function isPdf(filename: string): boolean {
   return getFileCategory(filename) === 'pdf';
 }
 
+/** Whether the file is an image. */
 export function isImage(filename: string): boolean {
   return getFileCategory(filename) === 'image';
 }
 
+/** Whether the file is audio or video. */
 export function isMedia(filename: string): boolean {
   return getFileCategory(filename) === 'media';
 }
 
+/** Whether the file is an Office document. */
 export function isOfficeDoc(filename: string): boolean {
   const cat = getFileCategory(filename);
   return cat === 'excel' || cat === 'word' || cat === 'powerpoint';
 }
 
+/** Format bytes as "1.5 KB"; empty for missing values. */
 export function formatFileSize(bytes?: number | null): string {
   if (bytes === undefined || bytes === null || isNaN(bytes) || bytes < 0) return '';
   if (bytes < 1024) return `${bytes} B`;
@@ -219,6 +228,7 @@ export function formatFileSize(bytes?: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Strip the path and the server-added hash suffix from a stored file name. */
 export function cleanDisplayFileName(rawName: string): string {
   if (!rawName) return 'Tệp tin';
   let clean = decodeURIComponent(rawName.split(/[?#]/)[0]);

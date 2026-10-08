@@ -4,6 +4,7 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
   size?: number;
 }
 
+/** Icon for the Debug Space tab. */
 export function DebugSpaceTabIcon({ size = 18, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -37,6 +38,7 @@ const DEBUG_KIND_COLORS: Record<DebugKind, string> = {
   resolved: '#2E6F40',
 };
 
+/** Colored dot for a work-log entry kind. */
 export function DebugEntryDot({
   kind,
   size = 13,

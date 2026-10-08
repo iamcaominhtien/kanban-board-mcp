@@ -91,6 +91,7 @@ const hdrCell: CSSProperties = {
   color: '#5B6B60',
 };
 
+/** Drawer listing versions with compare and restore. */
 export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCompare, onReopen }: HistoryDrawerProps) {
   const toast = useToast();
   const versionsQ = useDocsVersions(page.id);

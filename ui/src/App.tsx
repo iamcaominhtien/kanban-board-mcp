@@ -32,6 +32,7 @@ const EMPTY_PROJECTS: Project[] = [];
 const EMPTY_TICKETS: Ticket[] = [];
 const EMPTY_MEMBERS: Member[] = [];
 
+/** Application shell: project sidebar, board / list / timeline / Docs views and modals. */
 export default function App() {
   useSSEInvalidation();
   const { status: backendStatus, errorMessage: backendError, retry: retryBackend } = useBackendStatus();

@@ -13,6 +13,7 @@ const HEAD: React.CSSProperties = {
   color: '#5B6B60',
 };
 
+/** Position a floating menu under a rect, flipping to stay inside the viewport. */
 export function useMenuPosition(rect: DOMRect | null, width: number) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -28,6 +29,7 @@ export function useMenuPosition(rect: DOMRect | null, width: number) {
   return { ref, pos };
 }
 
+/** Footer row of key hints for a floating menu. */
 export function MenuFooter({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -48,6 +50,7 @@ export function MenuFooter({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Key-cap plus label pair for a menu footer. */
 export const Hint = ({ k, children }: { k: string; children: React.ReactNode }) => (
   <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
     <span className="dk-kbd">{k}</span>

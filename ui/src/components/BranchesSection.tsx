@@ -51,6 +51,7 @@ function formatDate(iso?: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/** Ticket's branches with create, rename, checkout and delete. */
 export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionProps) {
   const [activeTab, setActiveTab] = useState<'graph' | 'list'>('graph');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

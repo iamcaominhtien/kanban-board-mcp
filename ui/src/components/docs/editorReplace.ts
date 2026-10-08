@@ -37,6 +37,7 @@ let active: FindReplaceAdapter | undefined;
 export function setActiveReplaceAdapter(a: FindReplaceAdapter | undefined) {
   active = a;
 }
+/** Return the mounted editor's find-and-replace adapter, if any. */
 export function getActiveReplaceAdapter(): FindReplaceAdapter | undefined {
   return active;
 }

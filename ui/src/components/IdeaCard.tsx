@@ -27,6 +27,7 @@ interface IdeaCardProps {
   onClick: () => void;
 }
 
+/** Card for an idea ticket. */
 export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: IdeaCardProps) {
   const isDropped = ticket.ideaStatus === 'dropped';
 

@@ -24,6 +24,7 @@ interface Props {
   filePath?: string;
 }
 
+/** Modal that previews an attached or workspace file. */
 export function FilePreviewModal({
   isOpen,
   onClose,

@@ -29,6 +29,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+/** Context provider that renders toasts. */
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -141,6 +142,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
+/** Access the toast API; must be used inside `ToastProvider`. */
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) {
@@ -155,6 +157,7 @@ export interface InlineBannerProps {
   className?: string;
 }
 
+/** Inline confirmation banner. */
 export const InlineBanner: React.FC<InlineBannerProps> = ({ message, icon = '✓', className }) => {
   return (
     <div className={`${styles.inlineBanner} ${className ?? ''}`}>

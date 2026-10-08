@@ -42,6 +42,7 @@ const DocRefInput = DocRef.extend({
   },
 });
 
+/** Assemble the Tiptap extensions for the Docs editor. */
 export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
   return [
     StarterKit.configure({

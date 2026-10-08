@@ -16,6 +16,7 @@ const PRIORITY_COLORS: Record<Priority, { active: string; count: number; label: 
 
 const INACTIVE_COLOR = '#DCE6DF';
 
+/** Icon for a ticket priority. */
 export function PriorityMark({ priority, width = 16, height = 15, className, style, ...props }: PriorityMarkProps) {
   const cfg = PRIORITY_COLORS[priority] ?? PRIORITY_COLORS.medium;
   const count = cfg.count;

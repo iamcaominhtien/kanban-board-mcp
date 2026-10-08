@@ -73,6 +73,7 @@ const EMIT_MS = 180;
 // which tears down the "/" and "[[" suggestion views while they are open
 const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
 
+/** Tiptap WYSIWYG editor that reads and writes Markdown. */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
   {
     projectId,

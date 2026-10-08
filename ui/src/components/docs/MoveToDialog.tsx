@@ -54,6 +54,7 @@ function highlight(text: string, query: string): ReactNode {
   );
 }
 
+/** Dialog to pick a new parent for a page. */
 export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveToDialogProps) {
   const toast = useToast();
   const move = useMovePage(projectId);

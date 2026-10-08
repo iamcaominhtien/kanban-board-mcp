@@ -5,21 +5,25 @@ import type { Project } from '../types/ticket';
 /** A first-load request that takes longer than this is abandoned and the error state is shown. */
 export const LIST_TIMEOUT_MS = 15000;
 
+/** Fetch all projects. */
 export async function listProjects(): Promise<Project[]> {
   const res = await client.get<Project[]>('/projects', { timeout: LIST_TIMEOUT_MS });
   return res.data;
 }
 
+/** Fetch one project. */
 export async function getProject(id: string): Promise<Project> {
   const res = await client.get<Project>(`/projects/${id}`);
   return res.data;
 }
 
+/** Create a project. */
 export async function createProject(data: { name: string; prefix: string; color: string }): Promise<Project> {
   const res = await client.post<Project>('/projects', data);
   return res.data;
 }
 
+/** Update a project. */
 export async function updateProject(
   id: string,
   data: {
@@ -35,6 +39,7 @@ export async function updateProject(
   return res.data;
 }
 
+/** Delete a project. */
 export async function deleteProject(id: string): Promise<void> {
   await client.delete(`/projects/${id}`);
 }
@@ -44,6 +49,7 @@ export const projectKeys = {
   detail: (id: string) => ['projects', id] as const,
 };
 
+/** Query all projects. */
 export function useProjects() {
   return useQuery({
     queryKey: projectKeys.all,
@@ -52,6 +58,7 @@ export function useProjects() {
   });
 }
 
+/** Query one project. */
 export function useProject(id: string) {
   return useQuery({
     queryKey: projectKeys.detail(id),
@@ -60,6 +67,7 @@ export function useProject(id: string) {
   });
 }
 
+/** Mutation: create a project. */
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -70,6 +78,7 @@ export function useCreateProject() {
   });
 }
 
+/** Mutation: update a project. */
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -81,6 +90,7 @@ export function useUpdateProject() {
   });
 }
 
+/** Mutation: delete a project. */
 export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -49,6 +49,7 @@ function writeJson(key: string, v: unknown) {
   }
 }
 
+/** Return the recent search queries from local storage. */
 export function getRecentSearches(): string[] {
   return readJson<string[]>(RECENT_SEARCHES, []).filter((s) => typeof s === 'string');
 }
@@ -142,6 +143,7 @@ const hint = (keys: ReactNode, label: string) => (
   </span>
 );
 
+/** Ctrl/Cmd+K search palette. */
 export function SearchPalette({
   projectId,
   projectName,

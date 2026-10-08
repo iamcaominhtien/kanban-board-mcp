@@ -153,6 +153,7 @@ function cachedToPage(
   };
 }
 
+/** Docs space: tree, page view, editor, search, history and dialogs. */
 export function DocsView({
   projectId,
   projectName,

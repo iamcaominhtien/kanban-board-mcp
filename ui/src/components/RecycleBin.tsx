@@ -17,6 +17,7 @@ interface RecycleBinProps {
 
 type Filter = 'all' | 'pages' | 'tickets';
 
+/** Combined Recycle Bin for "Won't do" tickets and deleted pages. */
 export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsPage }: RecycleBinProps) {
   const [visible, setVisible] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');

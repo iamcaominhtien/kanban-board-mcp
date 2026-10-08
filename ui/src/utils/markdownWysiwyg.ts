@@ -207,6 +207,7 @@ function renderListLevel(items: ListItem[], state: { i: number }, indent: number
   return `${out}</${tag}>`;
 }
 
+/** Convert Markdown to HTML for the contentEditable editor. */
 export function markdownToHtml(md: string): string {
   if (!md || !md.trim()) return '<p><br></p>';
 

@@ -29,6 +29,7 @@ export interface DescriptionImageUpload {
   size: number;
 }
 
+/** Fetch a project's tickets with optional filters. */
 export async function listTickets(
   projectId: string,
   params?: { status?: string; priority?: string; q?: string },
@@ -37,6 +38,7 @@ export async function listTickets(
   return res.data;
 }
 
+/** Create a ticket in a project. */
 export async function createTicket(
   projectId: string,
   data: {
@@ -56,11 +58,13 @@ export async function createTicket(
   return res.data;
 }
 
+/** Fetch one ticket. */
 export async function getTicket(ticketId: string): Promise<Ticket> {
   const res = await client.get<Ticket>(`/tickets/${ticketId}`);
   return res.data;
 }
 
+/** Update ticket fields. */
 export async function updateTicket(
   ticketId: string,
   data: {
@@ -85,11 +89,13 @@ export async function updateTicket(
   return res.data;
 }
 
+/** Move a ticket to another status. */
 export async function updateTicketStatus(ticketId: string, status: Status): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/status`, { status });
   return res.data;
 }
 
+/** Delete a ticket. */
 export async function deleteTicket(ticketId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}`);
 }
@@ -103,6 +109,7 @@ export interface AttachmentUpload {
   markdown: string;
 }
 
+/** Upload an image for Markdown text and return its URL. */
 export async function uploadDescriptionImage(file: File): Promise<DescriptionImageUpload> {
   const formData = new FormData();
   formData.append('file', file);
@@ -135,6 +142,7 @@ export function uploadUrl(url?: string | null, downloadName?: string, download?:
   return qs ? `${base}?${qs}` : base;
 }
 
+/** Fetch a project's "Won't do" tickets. */
 export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
   const res = await client.get<Ticket[]>(`/projects/${projectId}/tickets`, {
     params: { include_wont_do: true, status: 'wont_do' },
@@ -143,59 +151,70 @@ export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
 }
 
 // Comments
+/** Add a comment to a ticket. */
 export async function addComment(ticketId: string, text: string, author = 'user'): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author });
   return res.data;
 }
 
+/** Edit a comment. */
 export async function updateComment(ticketId: string, commentId: string, text: string): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/comments/${commentId}`, { text });
   return res.data;
 }
 
+/** Delete a comment (restorable). */
 export async function deleteComment(ticketId: string, commentId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/comments/${commentId}`);
   return res.data;
 }
 
+/** Restore a deleted comment. */
 export async function restoreComment(ticketId: string, commentId: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/comments/${commentId}/restore`);
   return res.data;
 }
 
 // Acceptance criteria
+/** Add an acceptance criterion. */
 export async function addAcceptanceCriterion(ticketId: string, text: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/acceptance-criteria`, { text });
   return res.data;
 }
 
+/** Toggle an acceptance criterion. */
 export async function toggleAcceptanceCriterion(ticketId: string, criterionId: string): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/acceptance-criteria/${criterionId}/toggle`);
   return res.data;
 }
 
+/** Delete an acceptance criterion. */
 export async function deleteAcceptanceCriterion(ticketId: string, criterionId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/acceptance-criteria/${criterionId}`);
   return res.data;
 }
 
 // Sub-tasks (checklist items)
+/** Add a sub-task. */
 export async function addSubTask(ticketId: string, text: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/sub-tasks`, { text });
   return res.data;
 }
 
+/** Toggle a sub-task. */
 export async function toggleSubTask(ticketId: string, subTaskId: string): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/sub-tasks/${subTaskId}/toggle`);
   return res.data;
 }
 
+/** Delete a sub-task. */
 export async function deleteSubTask(ticketId: string, subTaskId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/sub-tasks/${subTaskId}`);
   return res.data;
 }
 
 // Work log
+/** Add a work-log entry. */
 export async function addWorkLog(
   ticketId: string,
   data: { author: string; role: WorkLogRole | string; note: string } & Partial<WorkLogEntry>,
@@ -204,33 +223,39 @@ export async function addWorkLog(
   return res.data;
 }
 
+/** Edit a work-log entry. */
 export async function updateWorkLog(ticketId: string, entryId: string, data: Partial<WorkLogEntry>): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/work-log/${entryId}`, data);
   return res.data;
 }
 
+/** Delete a work-log entry. */
 export async function deleteWorkLog(ticketId: string, entryId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/work-log/${entryId}`);
   return res.data;
 }
 
 // Test cases
+/** Add a test case. */
 export async function addTestCase(ticketId: string, title: string, extra?: Partial<TestCase>): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/test-cases`, { title, ...extra });
   return res.data;
 }
 
+/** Update a test case. */
 export async function updateTestCase(ticketId: string, testCaseId: string, data: Partial<TestCase>): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`, data);
   return res.data;
 }
 
+/** Delete a test case. */
 export async function deleteTestCase(ticketId: string, testCaseId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`);
   return res.data;
 }
 
 // Links
+/** Link two tickets with a relation type. */
 export async function addTicketLink(
   ticketId: string,
   targetId: string,
@@ -243,16 +268,19 @@ export async function addTicketLink(
   return res.data;
 }
 
+/** Remove a ticket link. */
 export async function removeTicketLink(ticketId: string, linkId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}/links/${linkId}`);
 }
 
 // Branches
+/** Fetch a ticket's branches. */
 export async function listBranches(ticketId: string): Promise<TicketBranch[]> {
   const res = await client.get<TicketBranch[]>(`/tickets/${ticketId}/branches`);
   return res.data;
 }
 
+/** Add a branch to a ticket. */
 export async function createBranch(
   ticketId: string,
   data: {
@@ -272,6 +300,7 @@ export async function createBranch(
   return res.data;
 }
 
+/** Update a branch. */
 export async function updateBranch(
   ticketId: string,
   branchId: string,
@@ -281,6 +310,7 @@ export async function updateBranch(
   return res.data;
 }
 
+/** Delete a branch record. */
 export async function deleteBranch(
   ticketId: string,
   branchId: string,
@@ -294,54 +324,65 @@ export async function deleteBranch(
   return res.data;
 }
 
+/** Fetch the commit graph of the ticket's repo. */
 export async function getBranchGraph(ticketId: string, limit: number): Promise<BranchGraphData> {
   const res = await client.get<BranchGraphData>(`/tickets/${ticketId}/graph`, { params: { limit } });
   return res.data;
 }
 
+/** Fetch details of one commit. */
 export async function getCommitDetail(ticketId: string, rev: string): Promise<CommitDetail> {
   const res = await client.get<CommitDetail>(`/tickets/${ticketId}/commits/${rev}`);
   return res.data;
 }
 
+/** Check out a ticket's branch in the linked repo. */
 export async function checkoutBranch(ticketId: string, branchId: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/branches/${branchId}/checkout`);
   return res.data;
 }
 
 // Workspace
+/** Fetch the workspace settings. */
 export async function getWorkspaceSettings(): Promise<WorkspaceSettings> {
   const res = await client.get<WorkspaceSettings>('/workspace/settings');
   return res.data;
 }
 
+/** Update the workspace settings. */
 export async function updateWorkspaceSettings(data: Partial<WorkspaceSettings>): Promise<WorkspaceSettings> {
   const res = await client.patch<WorkspaceSettings>('/workspace/settings', data);
   return res.data;
 }
 
+/** Fetch a ticket's workspace folder and entries. */
 export async function getTicketWorkspace(ticketId: string): Promise<TicketWorkspaceInfo> {
   const res = await client.get<TicketWorkspaceInfo>(`/tickets/${ticketId}/workspace`);
   return res.data;
 }
 
+/** Set a ticket's workspace retention override. */
 export async function setTicketWorkspaceRetention(ticketId: string, retentionDays: number | null): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/workspace/retention`, { retention_days: retentionDays });
   return res.data;
 }
 
+/** Create a ticket's workspace folder. */
 export async function initTicketWorkspace(ticketId: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/init`);
 }
 
+/** Open a ticket's workspace in the file manager. */
 export async function openTicketWorkspace(ticketId: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/open`);
 }
 
+/** Create a folder in a ticket's workspace. */
 export async function createWorkspaceFolder(ticketId: string, path: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/folders`, { path });
 }
 
+/** Upload a file to a ticket's workspace. */
 export async function uploadWorkspaceFile(ticketId: string, file: File, directory = ''): Promise<void> {
   const formData = new FormData();
   formData.append('file', file);
@@ -349,10 +390,12 @@ export async function uploadWorkspaceFile(ticketId: string, file: File, director
   await client.post(`/tickets/${ticketId}/workspace/files`, formData);
 }
 
+/** Delete a file or folder from a ticket's workspace. */
 export async function deleteWorkspaceEntry(ticketId: string, path: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}/workspace/entry`, { params: { path } });
 }
 
+/** Fetch a text preview of a workspace file. */
 export async function getWorkspacePreview(ticketId: string, path: string): Promise<WorkspaceFilePreview> {
   const res = await client.get<WorkspaceFilePreview>(`/tickets/${ticketId}/workspace/file`, {
     params: { path },
@@ -367,6 +410,7 @@ export function workspaceFileUrl(ticketId: string, path: string, download = fals
   return `${resolveOrigin()}/tickets/${encodeURIComponent(ticketId)}/workspace/file?${qs}`;
 }
 
+/** Delete (or with `dryRun`, list) expired workspaces. */
 export async function sweepWorkspaces(dryRun: boolean): Promise<WorkspaceSweepResult> {
   const res = await client.post<WorkspaceSweepResult>('/workspace/sweep', { dry_run: dryRun });
   return res.data;
@@ -385,6 +429,7 @@ export const ticketKeys = {
 // Queries
 // ---------------------------------------------------------------------------
 
+/** Query a project's tickets. */
 export function useTickets(projectId: string, params?: { status?: string; priority?: string; q?: string }) {
   return useQuery({
     queryKey: [...ticketKeys.all(projectId), params],
@@ -398,6 +443,7 @@ export function useTickets(projectId: string, params?: { status?: string; priori
   });
 }
 
+/** Query one ticket. */
 export function useTicket(ticketId: string) {
   return useQuery({
     queryKey: ticketKeys.detail(ticketId),
@@ -410,6 +456,7 @@ export function useTicket(ticketId: string) {
 // Mutations
 // ---------------------------------------------------------------------------
 
+/** Mutation: create a ticket. */
 export function useCreateTicket(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -420,6 +467,7 @@ export function useCreateTicket(projectId: string) {
   });
 }
 
+/** Mutation: update a ticket. */
 export function useUpdateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -433,6 +481,7 @@ export function useUpdateTicket() {
   });
 }
 
+/** Mutation: change a ticket's status (optimistic). */
 export function useUpdateTicketStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -444,6 +493,7 @@ export function useUpdateTicketStatus() {
   });
 }
 
+/** Mutation: delete a ticket. */
 export function useDeleteTicket(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -470,70 +520,82 @@ function useTicketSubMutation<T>(mutationFn: (arg: T) => Promise<Ticket>) {
   });
 }
 
+/** Mutation: add a comment. */
 export function useAddComment() {
   return useTicketSubMutation(({ ticketId, text, author }: { ticketId: string; text: string; author?: string }) =>
     addComment(ticketId, text, author),
   );
 }
 
+/** Mutation: edit a comment. */
 export function useUpdateComment() {
   return useTicketSubMutation(({ ticketId, commentId, text }: { ticketId: string; commentId: string; text: string }) =>
     updateComment(ticketId, commentId, text),
   );
 }
 
+/** Mutation: restore a deleted comment. */
 export function useRestoreComment() {
   return useTicketSubMutation(({ ticketId, commentId }: { ticketId: string; commentId: string }) =>
     restoreComment(ticketId, commentId),
   );
 }
 
+/** Mutation: delete a comment. */
 export function useDeleteComment() {
   return useTicketSubMutation(({ ticketId, commentId }: { ticketId: string; commentId: string }) =>
     deleteComment(ticketId, commentId),
   );
 }
 
+/** Mutation: add an acceptance criterion. */
 export function useAddAcceptanceCriterion() {
   return useTicketSubMutation(({ ticketId, text }: { ticketId: string; text: string }) =>
     addAcceptanceCriterion(ticketId, text),
   );
 }
 
+/** Mutation: toggle an acceptance criterion. */
 export function useToggleAcceptanceCriterion() {
   return useTicketSubMutation(({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
     toggleAcceptanceCriterion(ticketId, criterionId),
   );
 }
 
+/** Mutation: delete an acceptance criterion. */
 export function useDeleteAcceptanceCriterion() {
   return useTicketSubMutation(({ ticketId, criterionId }: { ticketId: string; criterionId: string }) =>
     deleteAcceptanceCriterion(ticketId, criterionId),
   );
 }
 
+/** Mutation: add a sub-task. */
 export function useAddSubTask() {
   return useTicketSubMutation(({ ticketId, text }: { ticketId: string; text: string }) => addSubTask(ticketId, text));
 }
 
+/** Mutation: toggle a sub-task. */
 export function useToggleSubTask() {
   return useTicketSubMutation(({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
     toggleSubTask(ticketId, subTaskId),
   );
 }
 
+/** Mutation: delete a sub-task. */
 export function useDeleteSubTask() {
   return useTicketSubMutation(({ ticketId, subTaskId }: { ticketId: string; subTaskId: string }) =>
     deleteSubTask(ticketId, subTaskId),
   );
 }
 
+/** Mutation: add a work-log entry. */
 export function useAddWorkLog() {
   return useTicketSubMutation(({ ticketId, data }: { ticketId: string; data: Parameters<typeof addWorkLog>[1] }) =>
     addWorkLog(ticketId, data),
   );
 }
 
+/** Mutation: edit a work-log entry. */
 export function useUpdateWorkLog() {
   return useTicketSubMutation(
     ({ ticketId, entryId, data }: { ticketId: string; entryId: string; data: Parameters<typeof updateWorkLog>[2] }) =>
@@ -541,12 +603,14 @@ export function useUpdateWorkLog() {
   );
 }
 
+/** Mutation: delete a work-log entry. */
 export function useDeleteWorkLog() {
   return useTicketSubMutation(({ ticketId, entryId }: { ticketId: string; entryId: string }) =>
     deleteWorkLog(ticketId, entryId),
   );
 }
 
+/** Mutation: add a test case. */
 export function useAddTestCase() {
   return useTicketSubMutation(
     ({ ticketId, title, ...extra }: { ticketId: string; title: string } & Partial<TestCase>) =>
@@ -554,6 +618,7 @@ export function useAddTestCase() {
   );
 }
 
+/** Mutation: update a test case. */
 export function useUpdateTestCase() {
   return useTicketSubMutation(
     ({
@@ -568,12 +633,14 @@ export function useUpdateTestCase() {
   );
 }
 
+/** Mutation: delete a test case. */
 export function useDeleteTestCase() {
   return useTicketSubMutation(({ ticketId, testCaseId }: { ticketId: string; testCaseId: string }) =>
     deleteTestCase(ticketId, testCaseId),
   );
 }
 
+/** Query a project's "Won't do" tickets. */
 export function useWontDoTickets(projectId: string) {
   return useQuery({
     queryKey: ['wont_do_tickets', projectId],
@@ -582,6 +649,7 @@ export function useWontDoTickets(projectId: string) {
   });
 }
 
+/** Mutation: restore a "Won't do" ticket. */
 export function useRestoreTicket(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -595,16 +663,19 @@ export function useRestoreTicket(projectId: string) {
 
 // Block / Blocked-by relationships
 
+/** Mark a ticket as blocking another. */
 export async function linkBlock(ticketId: string, targetId: string): Promise<{ blocker: Ticket; blocked: Ticket }> {
   const res = await client.post<{ blocker: Ticket; blocked: Ticket }>(`/tickets/${ticketId}/blocks/${targetId}`);
   return res.data;
 }
 
+/** Remove a blocks relation. */
 export async function unlinkBlock(ticketId: string, targetId: string): Promise<{ blocker: Ticket; blocked: Ticket }> {
   const res = await client.delete<{ blocker: Ticket; blocked: Ticket }>(`/tickets/${ticketId}/blocks/${targetId}`);
   return res.data;
 }
 
+/** Mutation: mark a ticket as blocking another. */
 export function useLinkBlock() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -620,6 +691,7 @@ export function useLinkBlock() {
   });
 }
 
+/** Mutation: remove a blocks relation. */
 export function useUnlinkBlock() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -648,11 +720,13 @@ export interface ActivityEvent {
   detail: string | null;
 }
 
+/** Fetch a project's recent activity. */
 export async function listProjectActivities(projectId: string): Promise<ActivityEvent[]> {
   const res = await client.get<ActivityEvent[]>(`/projects/${projectId}/activities`);
   return res.data;
 }
 
+/** Query a project's recent activity. */
 export function useProjectActivities(projectId: string) {
   return useQuery({
     queryKey: ['project_activities', projectId],
@@ -661,6 +735,7 @@ export function useProjectActivities(projectId: string) {
   });
 }
 
+/** Mutation: link two tickets. */
 export function useAddTicketLink(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -679,6 +754,7 @@ export function useAddTicketLink(projectId: string) {
   });
 }
 
+/** Mutation: remove a ticket link. */
 export function useRemoveTicketLink(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -689,6 +765,7 @@ export function useRemoveTicketLink(projectId: string) {
   });
 }
 
+/** Query a ticket's workspace. */
 export function useTicketWorkspace(ticketId: string) {
   return useQuery({
     queryKey: ['ticket_workspace', ticketId],
@@ -697,6 +774,7 @@ export function useTicketWorkspace(ticketId: string) {
   });
 }
 
+/** Query a text preview of a workspace file. */
 export function useWorkspacePreview(ticketId: string, path: string, enabled = true) {
   return useQuery({
     queryKey: ['ticket_workspace', ticketId, 'preview', path],
@@ -705,10 +783,12 @@ export function useWorkspacePreview(ticketId: string, path: string, enabled = tr
   });
 }
 
+/** Query the workspace settings. */
 export function useWorkspaceSettings() {
   return useQuery({ queryKey: ['workspace_settings'], queryFn: getWorkspaceSettings });
 }
 
+/** Mutation: update the workspace settings. */
 export function useUpdateWorkspaceSettings() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -731,6 +811,7 @@ export function useWorkspaceAction<TVars>(ticketId: string, fn: (vars: TVars) =>
   });
 }
 
+/** Mutation: set a ticket's workspace retention. */
 export function useSetTicketWorkspaceRetention() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -743,6 +824,7 @@ export function useSetTicketWorkspaceRetention() {
   });
 }
 
+/** Query a ticket's branches. */
 export function useTicketBranches(ticketId: string) {
   return useQuery({
     queryKey: ['ticket_branches', ticketId],
@@ -751,6 +833,7 @@ export function useTicketBranches(ticketId: string) {
   });
 }
 
+/** Query the commit graph of the ticket's repo. */
 export function useBranchGraph(ticketId: string, limit: number) {
   return useQuery({
     // shares the ['ticket_branches', ticketId] prefix so branch mutations refresh it too
@@ -761,6 +844,7 @@ export function useBranchGraph(ticketId: string, limit: number) {
   });
 }
 
+/** Query details of one commit (disabled while `rev` is null). */
 export function useCommitDetail(ticketId: string, rev: string | null) {
   return useQuery({
     queryKey: ['ticket_branches', ticketId, 'commit', rev],
@@ -770,6 +854,7 @@ export function useCommitDetail(ticketId: string, rev: string | null) {
   });
 }
 
+/** Mutation: add a branch. */
 export function useCreateBranch() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -782,6 +867,7 @@ export function useCreateBranch() {
   });
 }
 
+/** Mutation: update a branch. */
 export function useUpdateBranch() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -801,6 +887,7 @@ export function useUpdateBranch() {
   });
 }
 
+/** Mutation: check out a branch. */
 export function useCheckoutBranch() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -812,6 +899,7 @@ export function useCheckoutBranch() {
   });
 }
 
+/** Mutation: delete a branch record. */
 export function useDeleteBranch() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -11,6 +11,7 @@ const AVATARS = [
   { bg: '#F3E7DC', fg: '#B4791E' },
 ];
 
+/** Return avatar initials for a name ("agent" becomes "AI"). */
 export function initialsOf(name: string): string {
   if (name === 'agent') return 'AI';
   if (name === 'user') return 'ME';
@@ -24,10 +25,12 @@ export function initialsOf(name: string): string {
   );
 }
 
+/** Return the display name for an author. */
 export function displayName(name: string): string {
   return name === 'agent' ? 'AI agent' : name === 'user' ? 'You' : name;
 }
 
+/** Round avatar with initials. */
 export function Avatar({ name, size = 18 }: { name: string; size?: number }) {
   let h = 0;
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -54,9 +57,11 @@ export function Avatar({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
+/** Format as "Oct 8, 3:04 PM". */
 export function fmtDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+/** Format as "Oct 8", with the year when `year` is set. */
 export function fmtDate(iso: string, year = false): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -64,10 +69,12 @@ export function fmtDate(iso: string, year = false): string {
     ...(year ? { year: 'numeric' } : {}),
   });
 }
+/** Format as "3:04 PM". */
 export function fmtTimeOnly(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
+/** Format a past time as "just now", "5 min ago", "2h ago" or a date. */
 export function agoText(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins < 1) return 'just now';
@@ -79,10 +86,12 @@ export function agoText(iso: string): string {
   return fmtDate(iso);
 }
 
+/** Return "1 page" / "2 pages" style text. */
 export function plural(n: number, one: string, many?: string): string {
   return `${n} ${n === 1 ? one : (many ?? `${one}s`)}`;
 }
 
+/** Call `onEscape` on Escape and stop the event from propagating. */
 export function useEscape(onEscape: () => void) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -95,6 +104,7 @@ export function useEscape(onEscape: () => void) {
   }, [onEscape]);
 }
 
+/** Round close button for dialogs and panels. */
 export function CloseButton({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -243,10 +253,12 @@ export function ModalShell({
   );
 }
 
+/** Small muted note for a dialog footer. */
 export function FooterNote({ children }: { children: ReactNode }) {
   return <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>{children}</span>;
 }
 
+/** Flexible spacer that pushes siblings apart. */
 export function Spacer() {
   return <div style={{ flex: 1 }} />;
 }

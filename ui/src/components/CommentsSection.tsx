@@ -148,6 +148,7 @@ const barBtn = (danger?: boolean, on?: boolean): React.CSSProperties => ({
   fontWeight: 600,
 });
 
+/** Comment thread with composer, mentions, edit, delete and undo. */
 export function CommentsSection({
   ticketId,
   projectId,

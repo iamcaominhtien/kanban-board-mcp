@@ -17,6 +17,7 @@ interface RenameDialogProps {
 
 const mono: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };
 
+/** Confirm a rename and choose whether to rewrite links. */
 export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: RenameDialogProps) {
   const toast = useToast();
   const full = useDocsPage(page.id);

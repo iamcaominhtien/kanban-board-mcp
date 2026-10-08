@@ -59,6 +59,7 @@ function Row({ icon, label, last, children }: { icon: string; label: string; las
   );
 }
 
+/** Popover with page stats and quick links. */
 export function PageInfoPopover({ page, onClose, onOpenHistory, onOpenReferences }: PageInfoPopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stats = pageStats(page);

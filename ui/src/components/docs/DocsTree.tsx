@@ -67,6 +67,7 @@ function highlight(text: string, q: string): ReactNode {
   );
 }
 
+/** Page tree with drag-to-reorder, filter, rename and row menu. */
 export function DocsTree({
   projectId,
   projectName,

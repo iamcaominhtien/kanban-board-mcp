@@ -21,6 +21,7 @@ export function refChipHtml(inner: string): string {
   return `<span class="dk-chip dk-chip-page docRef" data-ref="${esc(inner)}" contenteditable="false">${PAGE_ICON}${body}</span>`;
 }
 
+/** HTML for a ticket-key pill in the contentEditable editor. */
 export function keyChipHtml(key: string): string {
   return `<span class="dk-chip dk-chip-ticket docRef" data-key="${esc(key)}" contenteditable="false"><span style="width:7px;height:7px;border-radius:50%;background:#9AA8A0;display:inline-block;flex-shrink:0"></span><span style="font-family:var(--font-mono);font-size:12px;font-weight:600">${esc(key)}</span></span>`;
 }
@@ -32,6 +33,7 @@ export function setKeyPrefix(prefix: string | null): void {
   keyPrefix = prefix && /^[A-Z][A-Z0-9]{0,9}$/i.test(prefix) ? prefix : null;
 }
 
+/** Regex matching ticket keys of the current project, or null. */
 export function keyPattern(): RegExp | null {
   return keyPrefix ? new RegExp(`\\b${keyPrefix}-\\d+\\b`, 'g') : null;
 }

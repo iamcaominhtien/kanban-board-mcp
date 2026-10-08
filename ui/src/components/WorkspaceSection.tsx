@@ -85,6 +85,7 @@ function FileIcon({ entry }: { entry: WorkspaceFile }) {
   );
 }
 
+/** Ticket's workspace folder: browse, upload, preview and delete files. */
 export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectionProps) {
   const { data: ws, isLoading, refetch, isFetching } = useTicketWorkspace(ticketId);
   const setRetention = useSetTicketWorkspaceRetention();

@@ -4,6 +4,7 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
   size?: number;
 }
 
+/** Icon for the Test Cases tab. */
 export function TestCasesTabIcon({ size = 18, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -26,6 +27,7 @@ export function TestCasesTabIcon({ size = 18, className, style, ...props }: Icon
   );
 }
 
+/** Passed test icon. */
 export function PassIcon({ size = 14, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -44,6 +46,7 @@ export function PassIcon({ size = 14, className, style, ...props }: IconProps) {
   );
 }
 
+/** Failed test icon. */
 export function FailIcon({ size = 14, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -62,6 +65,7 @@ export function FailIcon({ size = 14, className, style, ...props }: IconProps) {
   );
 }
 
+/** Running test icon. */
 export function RunningIcon({
   size = 15,
   className,
@@ -104,6 +108,7 @@ export function RunningIcon({
   );
 }
 
+/** Pending test icon. */
 export function PendingIcon({ size = 15, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -122,6 +127,7 @@ export function PendingIcon({ size = 15, className, style, ...props }: IconProps
 
 export type TestCaseStatus = 'pass' | 'fail' | 'running' | 'pending';
 
+/** Icon for a test-case status. */
 export function TestCaseStatusMark({ status, size = 14 }: { status: TestCaseStatus | string; size?: number }) {
   switch (status) {
     case 'pass':

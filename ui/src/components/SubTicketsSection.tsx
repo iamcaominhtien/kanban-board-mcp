@@ -62,6 +62,7 @@ interface SubTicketsSectionProps {
   onUnlinkChild: (childId: string) => void;
 }
 
+/** Ticket's sub-tickets and sub-tasks. */
 export function SubTicketsSection({
   childTickets,
   allTickets,

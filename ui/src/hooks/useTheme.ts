@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Theme } from '../types';
 
+/** Light/dark theme state persisted in local storage. */
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem('theme');

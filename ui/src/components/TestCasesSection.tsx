@@ -423,6 +423,7 @@ function TestCaseRowItem({
   );
 }
 
+/** Ticket's test cases with status and proof. */
 export function TestCasesSection({
   ticketId = 'KAN',
   testCases,

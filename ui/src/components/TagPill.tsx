@@ -20,6 +20,7 @@ const SPECIFIC_TAGS: Record<string, { bg: string; color: string }> = {
   bug: { bg: 'rgba(196,67,42,0.12)', color: '#C4432A' },
 };
 
+/** Return a stable color pair for a tag. */
 export function getTagColor(tag: string): { bg: string; color: string } {
   const normalized = tag.toLowerCase().trim();
   if (SPECIFIC_TAGS[normalized]) {
@@ -41,6 +42,7 @@ interface TagPillProps {
   className?: string;
 }
 
+/** Colored tag chip, removable when `onRemove` is set. */
 export function TagPill({ tag, size = 'small', onRemove, className }: TagPillProps) {
   const { bg, color } = getTagColor(tag);
   const sizeClass = size === 'large' ? styles.tagPillLarge : size === 'medium' ? styles.tagPillMedium : '';

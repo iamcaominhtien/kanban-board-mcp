@@ -15,6 +15,7 @@ export const docsFxKeys = {
   pageCount: (projectId: string) => ['docs', 'page-count', projectId] as const,
 };
 
+/** Search pages and tickets. */
 export async function searchDocs(
   projectId: string,
   p: DocsSearchParams,
@@ -35,6 +36,7 @@ export async function searchDocs(
   return res.data;
 }
 
+/** Query search results (disabled for an empty query). */
 export function useDocsSearch(
   projectId: string,
   p: DocsSearchParams,
@@ -69,6 +71,7 @@ function importForm(
   return fd;
 }
 
+/** Report what importing the files would create, without writing. */
 export async function importDryRun(
   projectId: string,
   entries: DocsImportEntry[],
@@ -96,6 +99,7 @@ export async function importFiles(
   return res.data;
 }
 
+/** Re-index links of the pages an import created. */
 export async function importResolve(projectId: string, pageIds: string[]): Promise<void> {
   await client.post(`/projects/${projectId}/docs/import/resolve`, { page_ids: pageIds });
 }
@@ -104,6 +108,7 @@ export async function importResolve(projectId: string, pageIds: string[]): Promi
 
 const COUNT_KEY = (id: string) => `docsPageCount:${id}`;
 
+/** Read a project's last known page count from local storage. */
 export function readCachedPageCount(projectId: string): number | null {
   try {
     const v = localStorage.getItem(COUNT_KEY(projectId));

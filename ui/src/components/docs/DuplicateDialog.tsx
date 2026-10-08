@@ -31,6 +31,7 @@ const checkRow: React.CSSProperties = {
   color: '#3A4A3E',
 };
 
+/** Dialog to duplicate a page with its sub-pages. */
 export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated }: DuplicateDialogProps) {
   const toast = useToast();
   const duplicate = useDuplicatePage(projectId);

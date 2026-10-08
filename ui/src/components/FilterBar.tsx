@@ -30,6 +30,7 @@ const PRIORITY_OPTIONS: { value: Priority | 'all'; label: string }[] = [
   { value: 'low', label: 'Low' },
 ];
 
+/** Search, status, priority and tag filters. */
 export function FilterBar({
   searchQuery,
   onSearchChange,

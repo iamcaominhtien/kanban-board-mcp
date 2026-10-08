@@ -18,6 +18,7 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/** Plain list of a ticket's activity entries. */
 export function ActivityLog({ entries }: ActivityLogProps) {
   const [expanded, setExpanded] = useState(false);
 

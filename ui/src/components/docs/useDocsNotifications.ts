@@ -20,6 +20,7 @@ export function markOwnPublish(pageId: string) {
 const followKey = (id: string) => `docsFollow:${id}`;
 const followListeners = new Set<() => void>();
 
+/** Return whether the user follows a project's Docs space. */
 export function getDocsFollow(projectId: string): boolean {
   try {
     return localStorage.getItem(followKey(projectId)) === '1';
@@ -28,6 +29,7 @@ export function getDocsFollow(projectId: string): boolean {
   }
 }
 
+/** Follow or unfollow a project's Docs space and notify listeners. */
 export function setDocsFollow(projectId: string, on: boolean) {
   try {
     localStorage.setItem(followKey(projectId), on ? '1' : '0');
@@ -37,6 +39,7 @@ export function setDocsFollow(projectId: string, on: boolean) {
   followListeners.forEach((l) => l());
 }
 
+/** Hook returning `[following, setFollowing]` for a project. */
 export function useDocsFollow(projectId: string): [boolean, (on: boolean) => void] {
   const on = useSyncExternalStore(
     (l) => {

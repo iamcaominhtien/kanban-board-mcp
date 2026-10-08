@@ -32,6 +32,7 @@ interface Edge {
   hidden: number; // commits collapsed between the two ends (overview mode)
 }
 
+/** Commit graph of the ticket's linked repo. */
 export function BranchGraph({ ticketId }: { ticketId: string }) {
   const [mode, setMode] = useState<'overview' | 'all'>('overview');
   const [limit, setLimit] = useState(PAGE);

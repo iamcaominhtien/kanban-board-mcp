@@ -12,10 +12,12 @@ import type {
   RenamedPage,
 } from '../types/docsActions';
 
+/** Return a page's stats, or null when absent. */
 export function pageStats(page: DocsPage): DocsPageStats | null {
   return (page as DocsPage & { stats?: DocsPageStats }).stats ?? null;
 }
 
+/** Query which pages a rename would rewrite links in. */
 export function useRenamePreview(pageId: string, title: string, enabled = true) {
   const t = title.trim();
   return useQuery({
@@ -31,6 +33,7 @@ export function useRenamePreview(pageId: string, title: string, enabled = true) 
   });
 }
 
+/** Mutation: rename a page and rewrite its links. */
 export function useRenameWithLinks(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -48,6 +51,7 @@ export function useRenameWithLinks(projectId: string) {
   });
 }
 
+/** Query what deleting a page would affect. */
 export function useDeletePreview(pageId: string) {
   return useQuery({
     queryKey: ['docs', 'delete-preview', pageId] as const,
@@ -57,6 +61,7 @@ export function useDeletePreview(pageId: string) {
   });
 }
 
+/** Query the project's Recycle Bin entries. */
 export function useRecycleEntries(projectId: string) {
   return useQuery({
     queryKey: docsKeys.recycle(projectId),
@@ -65,6 +70,7 @@ export function useRecycleEntries(projectId: string) {
   });
 }
 
+/** Mutation: permanently delete everything in the Recycle Bin. */
 export function useEmptyRecycleBin(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -78,6 +84,7 @@ export function useEmptyRecycleBin(projectId: string) {
   });
 }
 
+/** Query backlinks with their origin details. */
 export function useBacklinksEx(pageId: string | null) {
   return useQuery({
     queryKey: docsKeys.backlinks(pageId ?? ''),
@@ -86,6 +93,7 @@ export function useBacklinksEx(pageId: string | null) {
   });
 }
 
+/** Mutations to link and unlink a ticket and a page. */
 export function useLinkTicketDoc(ticketId: string) {
   const qc = useQueryClient();
   const done = () => void qc.invalidateQueries({ queryKey: ['docs'] });

@@ -1,5 +1,6 @@
 import type { WorkspaceFile } from '../types/ticket';
 
+/** Format bytes as a short size. */
 export function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 B';
   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -7,6 +8,7 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(1))} ${sizes[i]}`;
 }
 
+/** Format a past time as a short "ago" text. */
 export function formatTimeAgo(iso: string, now = Date.now()): string {
   const sec = Math.floor((now - new Date(iso).getTime()) / 1000);
   if (sec < 60) return 'just now';
@@ -17,6 +19,7 @@ export function formatTimeAgo(iso: string, now = Date.now()): string {
   return `${Math.floor(hr / 24)}d ago`;
 }
 
+/** Format time until `iso` as "in 5h", "in 2d" or "due now". */
 export function formatTimeLeft(iso: string, now = Date.now()): string {
   const ms = new Date(iso).getTime() - now;
   if (ms <= 0) return 'due now';
@@ -25,15 +28,18 @@ export function formatTimeLeft(iso: string, now = Date.now()): string {
   return `in ${Math.ceil(hr / 24)}d`;
 }
 
+/** Return the last path segment. */
 export function baseName(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1);
 }
 
+/** Return the path without its last segment. */
 export function parentDir(path: string): string {
   const i = path.lastIndexOf('/');
   return i < 0 ? '' : path.slice(0, i);
 }
 
+/** Return how many folders deep a path is. */
 export function depthOf(path: string): number {
   return path.split('/').length - 1;
 }
@@ -76,6 +82,7 @@ const TEXT_EXT = new Set([
 ]);
 const IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp']);
 
+/** Return whether a file previews as an image or text. */
 export function previewKind(name: string): 'image' | 'text' {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
   if (IMAGE_EXT.has(ext)) return 'image';

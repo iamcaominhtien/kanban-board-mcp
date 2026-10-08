@@ -15,6 +15,7 @@ function mapSettings(raw: Record<string, string>): SettingsData {
   };
 }
 
+/** Query the app settings. */
 export function useSettings() {
   return useQuery<SettingsData>({
     queryKey: ['settings'],
@@ -25,6 +26,7 @@ export function useSettings() {
   });
 }
 
+/** Mutation: change the data folder. */
 export function useSetDataPath() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -70,6 +72,7 @@ export interface McpTarget {
 
 const mcpKey = (t: McpTarget) => ['settings', 'mcp-client', t.id, t.scope, t.folder];
 
+/** Query an MCP client's install status. */
 export function useMcpClient(target: McpTarget) {
   return useQuery<McpClientStatus>({
     queryKey: mcpKey(target),
@@ -84,6 +87,7 @@ export function useMcpClient(target: McpTarget) {
   });
 }
 
+/** Mutation: install or remove the MCP server for a client. */
 export function useMcpAction() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -98,6 +102,7 @@ export function useMcpAction() {
   });
 }
 
+/** Mutation: test the MCP connection. */
 export function useMcpTest() {
   return useMutation({
     mutationFn: async (target: McpTarget) =>
@@ -110,6 +115,7 @@ export function useMcpTest() {
   });
 }
 
+/** Open a client's MCP config file in the OS editor. */
 export async function openMcpConfigFile(target: McpTarget) {
   await client.post(`/settings/mcp-clients/${target.id}/open-file`, {
     scope: target.scope,

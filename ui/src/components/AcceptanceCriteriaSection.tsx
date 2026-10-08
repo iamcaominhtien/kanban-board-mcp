@@ -11,6 +11,7 @@ interface AcceptanceCriteriaSectionProps {
   onDelete: (id: string) => void;
 }
 
+/** Ticket's acceptance-criteria checklist, with doc-reference pills. */
 export function AcceptanceCriteriaSection({
   acceptanceCriteria,
   onAdd,

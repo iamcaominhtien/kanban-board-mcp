@@ -86,6 +86,7 @@ interface SplashProps {
   onRetryBackend: () => void;
 }
 
+/** Start-up screen with backend status and retry. */
 export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
   const [rootEl] = useState(() => (typeof document === 'undefined' ? null : document.getElementById('kb-splash')));
   const [altEl] = useState(() => (typeof document === 'undefined' ? null : document.getElementById('kb-splash-alt')));

@@ -379,6 +379,7 @@ interface SettingsPanelProps {
   onToggleTheme: () => void;
 }
 
+/** Settings: data folder, theme, Docs switch, workspace and MCP. */
 export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelProps) {
   const { data: settings, isLoading } = useSettings();
   const setDataPath = useSetDataPath();

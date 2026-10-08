@@ -373,6 +373,7 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
   );
 }
 
+/** Ticket's work log (debug notes) with attachments. */
 export function DebugSpaceSection({
   ticketId = 'KAN',
   entries,

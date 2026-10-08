@@ -98,6 +98,7 @@ export function RefLine({
   );
 }
 
+/** Count the reference segments in parsed text. */
 export function countRefs(parsed: Seg[]): number {
   return parsed.filter((s) => s.ref).length;
 }

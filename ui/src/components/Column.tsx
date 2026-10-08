@@ -14,6 +14,7 @@ interface ColumnProps {
   skeletonCards?: number;
 }
 
+/** One board column and its draggable ticket cards. */
 export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 

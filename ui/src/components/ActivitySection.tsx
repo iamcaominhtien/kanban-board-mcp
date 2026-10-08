@@ -417,6 +417,7 @@ function DocRefsRows({ entry, projectId, prefix }: { entry: DocRefsEntry; projec
   );
 }
 
+/** Ticket activity feed with comment deep links and reference pills. */
 export function ActivitySection({
   ticketId,
   entries: rawEntries,

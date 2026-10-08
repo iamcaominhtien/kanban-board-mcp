@@ -28,6 +28,7 @@ const ROWS: [number, number][] = [
   [10, 66],
 ];
 
+/** Loading placeholder for the page tree. */
 export function TreeSkeleton({ width = 248 }: { width?: number }) {
   return (
     <aside
@@ -65,6 +66,7 @@ export function TreeSkeleton({ width = 248 }: { width?: number }) {
   );
 }
 
+/** Loading placeholder for a page. */
 export function PageSkeleton({ title, note, crumbs }: { title?: string; note?: ReactNode; crumbs?: string[] }) {
   return (
     <div

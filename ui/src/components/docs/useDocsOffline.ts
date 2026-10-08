@@ -53,6 +53,7 @@ function write(projectId: string, cache: DocsCache) {
   }
 }
 
+/** Cache a project's page tree for offline use. */
 export function cacheDocsTree(projectId: string, nodes: DocsTreeNode[]) {
   const c = read(projectId);
   c.tree = { nodes, savedAt: new Date().toISOString() };
@@ -60,6 +61,7 @@ export function cacheDocsTree(projectId: string, nodes: DocsTreeNode[]) {
   emit();
 }
 
+/** Cache a page for offline reading. */
 export function cacheDocsPage(projectId: string, page: DocsPage) {
   const c = read(projectId);
   const entry: CachedDocsPage = {
@@ -79,10 +81,12 @@ export function cacheDocsPage(projectId: string, page: DocsPage) {
   emit();
 }
 
+/** Return a cached page, or undefined. */
 export function getCachedDocsPage(projectId: string, pageId: string): CachedDocsPage | null {
   return read(projectId).pages.find((p) => p.id === pageId) ?? null;
 }
 
+/** Return how many pages are cached and the tree size, if known. */
 export function getDocsCacheStats(projectId: string): { saved: number; total: number | null } {
   const c = read(projectId);
   return { saved: c.pages.length, total: c.tree ? c.tree.nodes.length : null };
@@ -130,6 +134,7 @@ interface ParsedQuery {
   excludes: string[];
 }
 
+/** Split a search query into words, "phrases" and -excluded terms. */
 export function parseSearchQuery(q: string): ParsedQuery {
   const phrases: string[] = [];
   const rest = q.replace(/"([^"]+)"/g, (_, p: string) => {

@@ -129,6 +129,7 @@ interface IdeaTicketModalProps {
   ) => Promise<IdeaTicket>;
 }
 
+/** Detail modal for an idea ticket. */
 export function IdeaTicketModal({
   ticket,
   onClose,
