@@ -102,7 +102,21 @@ async def create_idea_ticket(
     tags: list | None = None,
     problem_statement: str | None = None,
 ) -> IdeaTicket:
-    """Create an idea ticket with the next idea number."""
+    """Create an idea ticket with the next idea number.
+
+    Args:
+        project_id: Owning project.
+        title: Idea title.
+        description: Markdown description.
+        idea_color: Card color from the allowed palette.
+        idea_emoji: Emoji shown on the card.
+        idea_energy: Optional effort/energy level.
+        tags: Tag names.
+        problem_statement: The problem the idea solves; required before promotion.
+
+    Returns:
+        The created idea ticket.
+    """
     idea_emoji = _validate_idea_emoji(idea_emoji)
 
     if tags is None:
@@ -145,7 +159,16 @@ async def list_idea_tickets(
     idea_status: str | None = None,
     q: str | None = None,
 ) -> list[IdeaTicket]:
-    """List a project's idea tickets, optionally filtered by status or text."""
+    """List a project's idea tickets.
+
+    Args:
+        project_id: Project to list.
+        idea_status: Only ideas in this status.
+        q: Case-insensitive text matched against title and description.
+
+    Returns:
+        Matching idea tickets.
+    """
     stmt = select(IdeaTicket).where(IdeaTicket.project_id == project_id)
     if idea_status is not None:
         stmt = stmt.where(IdeaTicket.idea_status == idea_status)
@@ -244,7 +267,19 @@ async def update_idea_status(
     new_status: str,
     reason: str | None = None,
 ) -> IdeaTicket:
-    """Move an idea to a new status, recording the reason."""
+    """Move an idea to a new status, recording the reason.
+
+    Args:
+        ticket_id: Idea to move.
+        new_status: Target status.
+        reason: Why the status changed.
+
+    Returns:
+        The updated idea ticket.
+
+    Raises:
+        ValueError: If the idea does not exist, the status is invalid, or the transition is not allowed.
+    """
     ticket = await session.get(IdeaTicket, ticket_id)
     if ticket is None:
         raise ValueError(f"Idea ticket '{ticket_id}' not found")
@@ -283,7 +318,22 @@ async def promote_idea_to_ticket(
     type_: str = "feature",
     priority: str = "medium",
 ) -> Ticket:
-    """Turn an approved idea into a regular ticket and link the two."""
+    """Turn an approved idea into a regular ticket and link the two.
+
+    Args:
+        idea_ticket_id: Idea to promote.
+        project_id: Project that will own the new ticket.
+        title: Ticket title; defaults to the idea's.
+        type_: Ticket type.
+        priority: Ticket priority.
+
+    Returns:
+        The created ticket.
+
+    Raises:
+        ValueError: If the idea or project is missing, the idea is not approved,
+            lacks a problem statement, or was already promoted.
+    """
     ticket = await session.get(IdeaTicket, idea_ticket_id)
     if ticket is None:
         raise ValueError(f"Idea ticket '{idea_ticket_id}' not found")
@@ -339,7 +389,18 @@ _VALID_ASSUMPTION_STATUSES = {"untested", "validated", "invalidated"}
 async def add_assumption(
     session: AsyncSession, ticket_id: str, text: str
 ) -> IdeaTicket:
-    """Append an assumption (max 500 characters)."""
+    """Append an assumption (max 500 characters).
+
+    Args:
+        ticket_id: Idea to add to.
+        text: Text of the new item.
+
+    Returns:
+        The updated idea ticket.
+
+    Raises:
+        ValueError: If the text is empty or too long.
+    """
     text = text.strip()
     if not text:
         raise ValueError("text cannot be empty")
@@ -366,7 +427,19 @@ async def add_assumption(
 async def update_assumption_status(
     session: AsyncSession, ticket_id: str, assumption_id: str, status: str
 ) -> IdeaTicket:
-    """Set the status of an assumption."""
+    """Set the status of an assumption.
+
+    Args:
+        ticket_id: Idea holding the assumption.
+        assumption_id: Assumption to change.
+        status: New status.
+
+    Returns:
+        The updated idea ticket.
+
+    Raises:
+        ValueError: If the status is invalid or the assumption does not exist.
+    """
     if status not in _VALID_ASSUMPTION_STATUSES:
         raise ValueError(
             f"Invalid status '{status}'. Must be one of: {', '.join(sorted(_VALID_ASSUMPTION_STATUSES))}"
@@ -395,7 +468,18 @@ async def update_assumption_status(
 async def delete_assumption(
     session: AsyncSession, ticket_id: str, assumption_id: str
 ) -> IdeaTicket:
-    """Remove an assumption by id."""
+    """Remove an assumption.
+
+    Args:
+        ticket_id: Idea holding the item.
+        assumption_id: Item to remove.
+
+    Returns:
+        The updated idea ticket.
+
+    Raises:
+        ValueError: If the item does not exist.
+    """
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     assumptions = _safe_json(ticket.assumptions)
     original_len = len(assumptions)
@@ -418,7 +502,18 @@ async def delete_assumption(
 async def add_microthought(
     session: AsyncSession, ticket_id: str, text: str
 ) -> IdeaTicket:
-    """Append a microthought (max 500 characters)."""
+    """Append a microthought (max 500 characters).
+
+    Args:
+        ticket_id: Idea to add to.
+        text: Text of the new item.
+
+    Returns:
+        The updated idea ticket.
+
+    Raises:
+        ValueError: If the text is empty or too long.
+    """
     text = text.strip()
     if not text:
         raise ValueError("text cannot be empty")
@@ -435,7 +530,18 @@ async def add_microthought(
 async def delete_microthought(
     session: AsyncSession, ticket_id: str, microthought_id: str
 ) -> IdeaTicket:
-    """Remove a microthought by id."""
+    """Remove a microthought.
+
+    Args:
+        ticket_id: Idea holding the item.
+        microthought_id: Item to remove.
+
+    Returns:
+        The updated idea ticket.
+
+    Raises:
+        ValueError: If the item does not exist.
+    """
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     microthoughts = _safe_json(ticket.microthoughts)
     filtered = [m for m in microthoughts if m.get("id") != microthought_id]

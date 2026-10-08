@@ -21,7 +21,17 @@ async def get_project(session: AsyncSession, project_id: str) -> Project | None:
 
 
 async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
-    """Create a project; the prefix must be uppercase, at most 6 characters."""
+    """Create a project.
+
+    Args:
+        data: Name, prefix and color; the prefix must be uppercase, at most 6 characters.
+
+    Returns:
+        The created project.
+
+    Raises:
+        ValueError: If the prefix is invalid or already used.
+    """
     prefix = data.prefix.strip()
     if not prefix.isupper() or len(prefix) > 6:
         raise ValueError("prefix must be uppercase and at most 6 characters")
@@ -48,7 +58,15 @@ async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
 async def update_project(
     session: AsyncSession, project_id: str, data: ProjectUpdate
 ) -> Project | None:
-    """Apply a partial update; return None if the project does not exist."""
+    """Apply a partial update.
+
+    Args:
+        project_id: Project to update.
+        data: Fields to change; an empty `repo_path` unlinks the repository.
+
+    Returns:
+        The updated project, or None if it does not exist.
+    """
     project = await session.get(Project, project_id)
     if project is None:
         return None
@@ -75,7 +93,17 @@ async def update_project(
 
 
 async def delete_project(session: AsyncSession, project_id: str) -> bool:
-    """Delete a project; return False if it does not exist."""
+    """Delete a project.
+
+    Args:
+        project_id: Project to delete.
+
+    Returns:
+        True if deleted, False if it does not exist.
+
+    Raises:
+        ValueError: If the project still has tickets.
+    """
     project = await session.get(Project, project_id)
     if project is None:
         return False

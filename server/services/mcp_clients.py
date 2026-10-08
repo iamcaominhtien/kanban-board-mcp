@@ -27,7 +27,12 @@ class McpClientError(Exception):
     """An expected failure, reported to the UI as ``error`` on the client status."""
 
     def __init__(self, code: str, message: str):
-        """Store a machine-readable `code` with the message."""
+        """Store a machine-readable `code` with the message.
+
+        Args:
+            code: Short error code for the UI, e.g. "command_failed".
+            message: Human-readable explanation.
+        """
         super().__init__(message)
         self.code = code
         self.message = message
@@ -254,7 +259,20 @@ def _needs_folder(client: str, scope: str) -> bool:
 def get_status(
     client: str, scope: str | None, folder_raw: str | None, tool_count: int
 ) -> dict:
-    """Report whether the MCP server is installed for a client and scope."""
+    """Report whether the MCP server is installed for a client and scope.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope for the client; None uses its default.
+        folder_raw: Project folder, needed for project/local/workspace scopes.
+        tool_count: Number of tools the server exposes, echoed in the status.
+
+    Returns:
+        Status with `installed`, `scope`, `error` and related fields.
+
+    Raises:
+        BadRequest: If the client or scope is unknown.
+    """
     if client not in ("claude-code", "antigravity"):
         raise BadRequest(f"Unknown MCP client '{client}'")
     scope = _scope_for(client, scope)
@@ -309,7 +327,20 @@ def get_status(
 def install(
     client: str, scope: str | None, folder_raw: str | None, tool_count: int
 ) -> dict:
-    """Add or replace the kanban entry. Expected failures come back as ``status['error']``."""
+    """Add or replace the kanban entry; expected failures come back as `status["error"]`.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope for the client; None uses its default.
+        folder_raw: Project folder, needed for project/local/workspace scopes.
+        tool_count: Number of tools the server exposes, echoed in the status.
+
+    Returns:
+        Status with `installed`, `scope`, `error` and related fields.
+
+    Raises:
+        McpClientError: If the client command fails.
+    """
     status = get_status(client, scope, folder_raw, tool_count)
     scope = status["scope"]
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
@@ -344,7 +375,20 @@ def install(
 def remove(
     client: str, scope: str | None, folder_raw: str | None, tool_count: int
 ) -> dict:
-    """Uninstall the MCP server from a client and return the new status."""
+    """Uninstall the MCP server from a client and return the new status.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope for the client; None uses its default.
+        folder_raw: Project folder, needed for project/local/workspace scopes.
+        tool_count: Number of tools the server exposes, echoed in the status.
+
+    Returns:
+        Status with `installed`, `scope`, `error` and related fields.
+
+    Raises:
+        McpClientError: If the client command fails.
+    """
     status = get_status(client, scope, folder_raw, tool_count)
     scope = status["scope"]
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
@@ -375,7 +419,16 @@ def remove(
 
 
 def config_file(client: str, scope: str | None, folder_raw: str | None) -> Path:
-    """Return the client's config file path for a scope."""
+    """Return the client's config file path for a scope.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope; None uses the client's default.
+        folder_raw: Project folder for scopes that need one.
+
+    Returns:
+        The config file path.
+    """
     scope = _scope_for(client, scope)
     folder = _folder(folder_raw, required=_needs_folder(client, scope))
     if client == "antigravity":
@@ -384,7 +437,14 @@ def config_file(client: str, scope: str | None, folder_raw: str | None) -> Path:
 
 
 def open_file(path: Path) -> None:
-    """Open a config file in the OS default editor."""
+    """Open a config file in the OS default editor.
+
+    Args:
+        path: File to open.
+
+    Raises:
+        BadRequest: If the file does not exist or cannot be opened.
+    """
     if not path.exists():
         raise BadRequest(
             f"{path} doesn't exist yet. Install first, or create it yourself."
@@ -403,7 +463,16 @@ def open_file(path: Path) -> None:
 async def test_connection(
     client: str, scope: str | None, folder_raw: str | None
 ) -> dict:
-    """Start the installed server the way the client would and list its tools."""
+    """Start the installed server the way the client would and list its tools.
+
+    Args:
+        client: "claude-code" or "antigravity".
+        scope: Config scope; None uses the client's default.
+        folder_raw: Project folder for scopes that need one.
+
+    Returns:
+        `{ok, tool_count, message}`.
+    """
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 

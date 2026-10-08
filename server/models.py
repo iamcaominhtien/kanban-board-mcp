@@ -477,7 +477,17 @@ class IdeaTicketCreateBody(SQLModel):
     @field_validator("idea_color")
     @classmethod
     def validate_color(cls, v: str) -> str:
-        """Reject an `idea_color` outside the allowed palette."""
+        """Reject an `idea_color` outside the allowed palette.
+
+        Args:
+            v: Submitted color.
+
+        Returns:
+            The color, unchanged.
+
+        Raises:
+            ValueError: If the color is not in the palette.
+        """
         if v not in IDEA_COLORS:
             raise ValueError(
                 f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"
@@ -503,7 +513,17 @@ class IdeaTicketUpdate(SQLModel):
     @field_validator("idea_color")
     @classmethod
     def validate_color(cls, v: Optional[str]) -> Optional[str]:
-        """Reject an `idea_color` outside the allowed palette."""
+        """Reject an `idea_color` outside the allowed palette.
+
+        Args:
+            v: Submitted color, or None when not being changed.
+
+        Returns:
+            The color, unchanged.
+
+        Raises:
+            ValueError: If the color is not in the palette.
+        """
         if v is not None and v not in IDEA_COLORS:
             raise ValueError(
                 f"idea_color must be one of: {', '.join(sorted(IDEA_COLORS))}"

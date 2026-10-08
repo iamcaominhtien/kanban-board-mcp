@@ -32,3 +32,6 @@ extend-select = ["D101", "D102", "D103", "D107"]
 # pytest fixtures are imported from sibling test modules and re-declared by name
 "tests/*" = ["F811", "D"]
 "alembic/*" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

@@ -89,7 +89,15 @@ app.add_middleware(
 
 @app.middleware("http")
 async def record_activity_actor(request: Request, call_next):
-    """REST calls are attributed to the person using the board, or to X-Actor if sent."""
+    """Attribute REST calls to the board user, or to `X-Actor` when the header is sent.
+
+    Args:
+        request: Incoming request.
+        call_next: Next handler in the middleware chain.
+
+    Returns:
+        The downstream response.
+    """
     header = (request.headers.get("x-actor") or "").strip()[:80]
     token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
     try:
@@ -131,7 +139,18 @@ async def serve_upload(
     inline: bool = False,
     view: bool = False,
 ):
-    """Serve an uploaded file inline (images, viewable types) or as a download."""
+    """Serve an uploaded file inline (images, viewable types) or as a download.
+
+    Args:
+        file_path: Path inside the uploads folder.
+        name: File name to suggest for a download.
+        download: Force a download.
+        inline: Show viewable types in the browser.
+        view: Alias of `inline`.
+
+    Raises:
+        HTTPException: 400 for an invalid path; 404 if the file does not exist.
+    """
     resolved = resolve_upload_path(file_path)
     if resolved is None:
         raise HTTPException(status_code=400, detail="Invalid path")
@@ -227,7 +246,11 @@ def _get_ui_dist() -> Path | None:
 
 @app.get("/")
 async def serve_root():
-    """Serve the built UI's index page."""
+    """Serve the built UI's index page.
+
+    Raises:
+        HTTPException: 404 if the UI is not built.
+    """
     dist = _get_ui_dist()
     if dist:
         index = dist / "index.html"
@@ -238,7 +261,14 @@ async def serve_root():
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    """Serve a built UI asset, falling back to the SPA index for client routes."""
+    """Serve a built UI asset, falling back to the SPA index for client routes.
+
+    Args:
+        full_path: Requested path.
+
+    Raises:
+        HTTPException: 400 for an invalid path; 404 if the UI is not built or the path is reserved.
+    """
     dist = _get_ui_dist()
     if not dist:
         raise HTTPException(status_code=404, detail="UI not built")

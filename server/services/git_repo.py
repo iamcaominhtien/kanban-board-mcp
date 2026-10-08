@@ -33,7 +33,17 @@ def normalize_repo_path(path: str) -> str:
 
 
 def open_repo(path: str) -> Repo:
-    """Open a git repository at `path`; raise GitRepoError if it is not one."""
+    """Open a git repository.
+
+    Args:
+        path: Filesystem path of the repository.
+
+    Returns:
+        The opened repository.
+
+    Raises:
+        GitRepoError: If `path` is not a git repository.
+    """
     try:
         return Repo(path)
     except (InvalidGitRepositoryError, NoSuchPathError) as exc:
@@ -52,7 +62,15 @@ def _resolve_ref(repo: Repo, name: str) -> str:
 
 
 def validate_branch_name(repo: Repo, name: str) -> None:
-    """Raise GitRepoError if `name` is not a valid branch name."""
+    """Check a branch name with git's own rules.
+
+    Args:
+        repo: Repository to validate against.
+        name: Proposed branch name.
+
+    Raises:
+        GitRepoError: If the name is not a valid branch name.
+    """
     try:
         repo.git.check_ref_format("--branch", name)
     except GitCommandError as exc:
@@ -60,12 +78,29 @@ def validate_branch_name(repo: Repo, name: str) -> None:
 
 
 def branch_exists(repo: Repo, name: str) -> bool:
-    """Return True if a local branch with this name exists."""
+    """Return True if a local branch with this name exists.
+
+    Args:
+        repo: Repository to search.
+        name: Branch name.
+    """
     return any(head.name == name for head in repo.heads)
 
 
 def create_branch(repo: Repo, name: str, base: str) -> BranchInfo:
-    """Create local branch ``name`` at ``base`` (no checkout, working tree untouched)."""
+    """Create a local branch at a base, without checking it out or touching the working tree.
+
+    Args:
+        repo: Repository to change.
+        name: New branch name.
+        base: Branch or revision to start from.
+
+    Returns:
+        Info about the new branch.
+
+    Raises:
+        GitRepoError: If the branch already exists or git fails.
+    """
     validate_branch_name(repo, name)
     if branch_exists(repo, name):
         raise GitRepoError(f"Branch '{name}' already exists")
@@ -80,7 +115,13 @@ def create_branch(repo: Repo, name: str, base: str) -> BranchInfo:
 
 
 def branch_info(repo: Repo, name: str, base: str) -> BranchInfo:
-    """Tip commit plus ahead/behind counts of ``name`` relative to ``base``."""
+    """Return a branch's tip commit and its ahead/behind counts relative to a base.
+
+    Args:
+        repo: Repository to read.
+        name: Branch to describe.
+        base: Branch to compare against.
+    """
     branch_ref = _resolve_ref(repo, name)
     base_ref = _resolve_ref(repo, base)
     commit = repo.git.rev_parse(branch_ref)
@@ -104,7 +145,18 @@ def resolve_worktree_path(
     ticket_id: str,
     branch_name: str,
 ) -> str:
-    """Resolve a worktree path template with tokens {project}, {ticket}, {ticket_id}, {branch}, {repo}."""
+    """Fill in a worktree path template.
+
+    Args:
+        template: Path with `{project}`, `{ticket}`, `{ticket_id}`, `{branch}` and `{repo}` tokens.
+        repo_path: Repository path, used for `{repo}` and for relative templates.
+        project_prefix: Project prefix for `{project}`.
+        ticket_id: Ticket id for `{ticket}` / `{ticket_id}`.
+        branch_name: Branch name for `{branch}`.
+
+    Returns:
+        The resolved absolute path.
+    """
     sanitized_branch = branch_name.replace("/", "-")
     resolved = (
         template.replace("{project}", project_prefix)
@@ -120,7 +172,19 @@ def resolve_worktree_path(
 
 
 def add_worktree(repo: Repo, path: str, branch: str) -> str:
-    """Create a git worktree at ``path`` for branch ``branch``."""
+    """Create a git worktree for a branch.
+
+    Args:
+        repo: Repository to change.
+        path: Where to create the worktree.
+        branch: Existing branch to check out in it.
+
+    Returns:
+        The resolved worktree path.
+
+    Raises:
+        GitRepoError: If the path exists or git fails.
+    """
     resolved = os.path.realpath(os.path.expanduser(path.strip()))
     if os.path.exists(resolved):
         raise GitRepoError(f"Target worktree path already exists: {resolved}")
@@ -161,7 +225,16 @@ def remove_worktree(repo: Repo, path: str, force: bool = False) -> None:
 
 
 def delete_branch(repo: Repo, name: str, force: bool = False) -> None:
-    """Delete local branch ``name``. Without ``force`` git refuses unmerged branches."""
+    """Delete a local branch.
+
+    Args:
+        repo: Repository to change.
+        name: Branch to delete.
+        force: Delete even if it is unmerged; otherwise git refuses.
+
+    Raises:
+        GitRepoError: If git refuses or fails.
+    """
     if not branch_exists(repo, name):
         return  # already gone, nothing to delete
     try:
@@ -195,7 +268,16 @@ def list_worktrees(repo: Repo) -> list[dict]:
 
 
 def is_merged(repo: Repo, name: str, base: str) -> bool:
-    """True if every commit of ``name`` is already reachable from ``base``."""
+    """Return True if every commit of a branch is already reachable from a base.
+
+    Args:
+        repo: Repository to read.
+        name: Branch to check.
+        base: Branch it should be merged into.
+
+    Raises:
+        GitRepoError: If the comparison fails.
+    """
     branch_ref = _resolve_ref(repo, name)
     base_ref = _resolve_ref(repo, base)
     try:
@@ -210,7 +292,16 @@ def is_merged(repo: Repo, name: str, base: str) -> bool:
 
 
 def rename_branch(repo: Repo, old: str, new: str) -> None:
-    """Rename a local branch; raise GitRepoError if the new name is invalid or taken."""
+    """Rename a local branch.
+
+    Args:
+        repo: Repository to change.
+        old: Current branch name.
+        new: New branch name.
+
+    Raises:
+        GitRepoError: If the new name is invalid or taken, or git fails.
+    """
     validate_branch_name(repo, new)
     if branch_exists(repo, new):
         raise GitRepoError(f"Branch '{new}' already exists")
@@ -231,7 +322,15 @@ def current_branch(repo: Repo) -> str | None:
 
 
 def checkout_branch(repo: Repo, name: str) -> None:
-    """Check out local branch ``name`` in the main working tree, never losing local changes."""
+    """Check out a local branch in the main working tree without losing local changes.
+
+    Args:
+        repo: Repository to change.
+        name: Branch to check out.
+
+    Raises:
+        GitRepoError: If the branch does not exist, the tree has uncommitted changes, or git fails.
+    """
     if not branch_exists(repo, name):
         raise GitRepoError(f"Branch '{name}' does not exist in the repository")
     if current_branch(repo) == name:

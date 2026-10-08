@@ -36,7 +36,17 @@ async def create_member(
     *,
     commit: bool = True,
 ) -> Member:
-    """Add a member, picking a default color when none is given."""
+    """Add a member, picking a default color when none is given.
+
+    Args:
+        project_id: Project to add to.
+        name: Display name.
+        color: Avatar color; defaults to the next palette color.
+        commit: Commit the session; pass False to batch with other changes.
+
+    Returns:
+        The created member.
+    """
     if not color:
         existing = await list_members(session, project_id)
         color = _DEFAULT_COLORS[len(existing) % len(_DEFAULT_COLORS)]
@@ -57,7 +67,18 @@ async def create_member(
 
 
 async def remove_member(session: AsyncSession, project_id: str, member_id: str) -> bool:
-    """Delete a member; return False if not found in that project."""
+    """Delete a member.
+
+    Args:
+        project_id: Project the member belongs to.
+        member_id: Member to remove.
+
+    Returns:
+        True if removed, False if not found in that project.
+
+    Raises:
+        ValueError: If the member created tickets or is still assigned to some.
+    """
     member = await session.get(Member, member_id)
     if member is None or member.project_id != project_id:
         return False
