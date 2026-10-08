@@ -9,7 +9,12 @@ import { agoText, displayName, plural } from './docsShared';
 
 const errMsg = (err: unknown) => docsErrorDetail(err)?.message ?? extractError(err);
 
-/** Data + actions for the deleted-pages half of the Recycle Bin. */
+/**
+ * Data + actions for the deleted-pages half of the Recycle Bin.
+ * @param projectId - Project whose deleted pages are managed.
+ * @param onOpenPage - Called with a page id for the "Open" action after a restore.
+ * @returns Entries with loading and error state, per-row busy and error info, and restore, purge and empty-bin actions.
+ */
 export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) => void) {
   const toast = useToast();
   const query = useRecycleEntries(projectId);
@@ -79,7 +84,16 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
   };
 }
 
-/** One row of the combined Recycle Bin list (page or ticket). */
+/**
+ * One row of the combined Recycle Bin list (page or ticket).
+ * @param props.kind - Whether the row is a deleted page or a ticket.
+ * @param props.meta - Second line (location or ticket key).
+ * @param props.lines - Muted lines under the meta line.
+ * @param props.actions - Action buttons on the right.
+ * @param props.footer - Extra content under the row.
+ * @param props.first - First row of the list (rounded top corners).
+ * @param props.last - Last row of the list (rounded bottom corners).
+ */
 export function BinRow({
   kind,
   title,
@@ -161,7 +175,19 @@ export function BinRow({
   );
 }
 
-/** The deleted-page row, with its restore note and Restore / Delete forever actions. */
+/**
+ * The deleted-page row, with its restore note and Restore / Delete forever actions.
+ * @param props.entry - Deleted page entry.
+ * @param props.busy - A restore or purge for this row is running.
+ * @param props.confirming - Show the "Delete forever" confirmation.
+ * @param props.error - Error message from the last action on this row.
+ * @param props.first - First row of the list (rounded top corners).
+ * @param props.last - Last row of the list (rounded bottom corners).
+ * @param props.onRestore - Called to restore the page.
+ * @param props.onAskPurge - Called to ask for confirmation before deleting forever.
+ * @param props.onCancelPurge - Called to cancel the confirmation.
+ * @param props.onPurge - Called to delete the page permanently.
+ */
 export function PageBinRow({
   entry,
   busy,
@@ -291,7 +317,11 @@ export function PageBinRow({
   );
 }
 
-/** Standalone list of deleted pages (the combined panel in RecycleBin.tsx merges these with tickets). */
+/**
+ * Standalone list of deleted pages (the combined panel in RecycleBin.tsx merges these with tickets).
+ * @param props.projectId - Project whose deleted pages are listed.
+ * @param props.onOpenPage - Called with a page id for the "Open" action after a restore.
+ */
 export function DocsRecycleSection({
   projectId,
   onOpenPage,

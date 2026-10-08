@@ -17,7 +17,17 @@ interface Props {
   onReload: () => void;
 }
 
-/** Amber conflict bar under the editor header (DocsEditor board F): View their changes / Keep mine / Reload. */
+/**
+ * Amber conflict bar under the editor header (DocsEditor board F): View their changes / Keep mine / Reload.
+ * @param props.pageId - Page the conflict belongs to.
+ * @param props.baseVersion - Version the local edit started from.
+ * @param props.latestVersion - Newer version found on the server.
+ * @param props.latestAuthor - Author of the newer version.
+ * @param props.latestAt - ISO time of the newer version.
+ * @param props.busy - Disable the actions while a save or reload runs.
+ * @param props.onKeepMine - Called to overwrite the newer version with the local edit.
+ * @param props.onReload - Called to discard the local edit and load the newer version.
+ */
 export function ConflictBanner({
   pageId,
   baseVersion,

@@ -423,7 +423,15 @@ function TestCaseRowItem({
   );
 }
 
-/** Ticket's test cases with status and proof. */
+/**
+ * Ticket's test cases with status and proof.
+ * @param props.testCases - Test cases of the ticket.
+ * @param props.onChange - Called with the full updated list after an edit.
+ * @param props.onAdd - Called with title and optional description to add a test case; when omitted the list is edited locally via `onChange`.
+ * @param props.readOnly - Hide add, edit and delete controls.
+ * @param props.disabled - Disable the controls, e.g. while a save is running.
+ * @param props.childTestCaseSources - Test cases of child tickets shown as read-only groups.
+ */
 export function TestCasesSection({
   ticketId = 'KAN',
   testCases,

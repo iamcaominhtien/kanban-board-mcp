@@ -148,7 +148,19 @@ const barBtn = (danger?: boolean, on?: boolean): React.CSSProperties => ({
   fontWeight: 600,
 });
 
-/** Comment thread with composer, mentions, edit, delete and undo. */
+/**
+ * Comment thread with composer, mentions, edit, delete and undo.
+ * @param props.currentMember - Member the new comments are written as.
+ * @param props.reporterId - Ticket reporter member id, used for author badges.
+ * @param props.assigneeId - Ticket assignee member id, used for author badges.
+ * @param props.isLoading - First load of the ticket is still running.
+ * @param props.focusCommentId - Comment to scroll to and tint (from "View comment" or a `#comment-id` link).
+ * @param props.onFocusHandled - Called once the focused comment has been scrolled to.
+ * @param props.onAdd - Called with the text; resolves when saved, rejects if the server could not be reached.
+ * @param props.onEdit - Called with the comment id and new text; same promise contract as `onAdd`.
+ * @param props.onDelete - Called with the comment id to delete (undoable via `onRestore`).
+ * @param props.onRestore - Called with the id of a deleted comment to restore.
+ */
 export function CommentsSection({
   ticketId,
   projectId,

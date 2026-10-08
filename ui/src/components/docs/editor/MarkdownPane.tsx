@@ -89,7 +89,13 @@ function highlight(lines: string[]) {
   });
 }
 
-/** Markdown source view (DocsEditor board D): line numbers, highlighting layer under a transparent textarea. */
+/**
+ * Markdown source view (DocsEditor board D): line numbers, highlighting layer under a transparent textarea.
+ * @param props.value - Markdown source.
+ * @param props.onChange - Called with the edited Markdown.
+ * @param props.filename - File name shown in the header.
+ * @param props.readOnly - Disable editing.
+ */
 export function MarkdownPane({ value, onChange, filename, readOnly }: Props) {
   const lines = useMemo(() => value.split('\n'), [value]);
   const rows = useMemo(() => highlight(lines), [lines]);

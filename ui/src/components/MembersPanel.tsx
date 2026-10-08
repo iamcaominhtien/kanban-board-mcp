@@ -28,7 +28,12 @@ interface MembersPanelProps {
   onClose: () => void;
 }
 
-/** Panel to add and remove a project's members. */
+/**
+ * Panel to add and remove a project's members.
+ * @param props.projectId - Project whose members are managed.
+ * @param props.members - Current members.
+ * @param props.onClose - Called to dismiss the panel.
+ */
 export function MembersPanel({ projectId, members, onClose }: MembersPanelProps) {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_MEMBER_COLORS[0]);

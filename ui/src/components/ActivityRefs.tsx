@@ -29,7 +29,13 @@ function segments(text: string, prefix: string | null): Seg[] {
   return out;
 }
 
-/** Resolves every reference in a list of texts at once (one batch call). */
+/**
+ * Resolves every reference in a list of texts at once (one batch call).
+ * @param projectId - Project the references are resolved in.
+ * @param texts - Texts to parse for `[[page]]` references and ticket keys.
+ * @param prefix - Ticket key prefix (e.g. `KAN`), or `null` to skip ticket keys.
+ * @returns `parsed` segments per text and the `resolved` reference results (undefined until loaded).
+ */
 export function useRefSegments(projectId: string, texts: string[], prefix: string | null) {
   const parsed = useMemo(() => texts.map((t) => segments(t, prefix)), [texts, prefix]);
   const refs = useMemo(
@@ -40,7 +46,15 @@ export function useRefSegments(projectId: string, texts: string[], prefix: strin
   return { parsed, resolved: resolved.data };
 }
 
-/** Text with its [[references]] and ticket keys as static pills (no hover card; still clickable). */
+/**
+ * Text with its [[references]] and ticket keys as static pills (no hover card; still clickable).
+ * @param props.parsed - Segments of one text from `useRefSegments`.
+ * @param props.resolved - Resolved references from `useRefSegments`.
+ * @param props.offset - Index of this line's first reference within `resolved`.
+ * @param props.dim - Render the text muted.
+ * @param props.onOpenPage - Called with the page id and optional anchor when a page pill is clicked.
+ * @param props.onOpenTicket - Called with the ticket key when a ticket pill is clicked.
+ */
 export function RefLine({
   parsed,
   resolved,

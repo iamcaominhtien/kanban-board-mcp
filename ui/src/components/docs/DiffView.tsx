@@ -259,7 +259,14 @@ function SectionHead({ g, s, chips }: { g: Group; s: DiffSection; chips: boolean
   );
 }
 
-/** Line and word diff between two versions, inline or side by side. */
+/**
+ * Line and word diff between two versions, inline or side by side.
+ * @param props.diff - Diff between two versions.
+ * @param props.mode - Inline or side-by-side layout.
+ * @param props.leftLabel - Older version column header (side-by-side only).
+ * @param props.rightLabel - Newer version column header (side-by-side only).
+ * @param props.activeSection - Index in `diffSections` of the section marked as current.
+ */
 export function DiffView({ diff, mode, leftLabel, rightLabel, activeSection }: DiffViewProps) {
   const groups = useMemo(() => groupRows(diff.rows), [diff.rows]);
 

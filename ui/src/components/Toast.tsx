@@ -142,7 +142,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
-/** Access the toast API; must be used inside `ToastProvider`. */
+/**
+ * Access the toast API; must be used inside `ToastProvider`.
+ * @throws Error when used outside `ToastProvider`.
+ */
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) {

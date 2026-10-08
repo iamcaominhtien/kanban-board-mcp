@@ -53,7 +53,11 @@ function write(projectId: string, cache: DocsCache) {
   }
 }
 
-/** Cache a project's page tree for offline use. */
+/**
+ * Cache a project's page tree for offline use.
+ * @param projectId - Project the tree belongs to.
+ * @param nodes - Page tree to store.
+ */
 export function cacheDocsTree(projectId: string, nodes: DocsTreeNode[]) {
   const c = read(projectId);
   c.tree = { nodes, savedAt: new Date().toISOString() };
@@ -61,7 +65,11 @@ export function cacheDocsTree(projectId: string, nodes: DocsTreeNode[]) {
   emit();
 }
 
-/** Cache a page for offline reading. */
+/**
+ * Cache a page for offline reading.
+ * @param projectId - Project the page belongs to.
+ * @param page - Page to store.
+ */
 export function cacheDocsPage(projectId: string, page: DocsPage) {
   const c = read(projectId);
   const entry: CachedDocsPage = {
@@ -81,7 +89,11 @@ export function cacheDocsPage(projectId: string, page: DocsPage) {
   emit();
 }
 
-/** Return a cached page, or undefined. */
+/**
+ * Return a cached page, or undefined.
+ * @param projectId - Project the page belongs to.
+ * @param pageId - Page to look up.
+ */
 export function getCachedDocsPage(projectId: string, pageId: string): CachedDocsPage | null {
   return read(projectId).pages.find((p) => p.id === pageId) ?? null;
 }
@@ -177,7 +189,14 @@ function pathOf(nodes: DocsTreeNode[], id: string): string[] {
   return out;
 }
 
-/** Search titles and saved text of the cached pages of one project. Returns the same shape as the server. */
+/**
+ * Search titles and saved text of the cached pages of one project. Returns the same shape as the server.
+ * @param projectId - Project whose cache is searched.
+ * @param q - Search query; supports phrases and excludes.
+ * @param opts.pageId - Limit the search to this page.
+ * @param opts.projectName - Project name used in the response.
+ * @param opts.headingsOnly - Match headings only.
+ */
 export function searchDocsCache(
   projectId: string,
   q: string,

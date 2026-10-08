@@ -13,7 +13,12 @@ const HEAD: React.CSSProperties = {
   color: '#5B6B60',
 };
 
-/** Position a floating menu under a rect, flipping to stay inside the viewport. */
+/**
+ * Position a floating menu under a rect, flipping to stay inside the viewport.
+ * @param rect - Anchor rectangle (the caret); `null` while closed.
+ * @param width - Menu width in px, used to keep it inside the viewport.
+ * @returns Ref for the menu element and its computed `pos` (null until measured).
+ */
 export function useMenuPosition(rect: DOMRect | null, width: number) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -50,7 +55,10 @@ export function MenuFooter({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Key-cap plus label pair for a menu footer. */
+/**
+ * Key-cap plus label pair for a menu footer.
+ * @param props.k - Key-cap text.
+ */
 export const Hint = ({ k, children }: { k: string; children: React.ReactNode }) => (
   <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
     <span className="dk-kbd">{k}</span>
@@ -64,7 +72,12 @@ interface Props {
   ctx: SlashCtx;
 }
 
-/** The "/" block menu (DocsEditor board C). */
+/**
+ * The "/" block menu (DocsEditor board C).
+ * @param props.host - Menu host that routes keyboard events to the menu.
+ * @param props.state - Current menu state (query, position).
+ * @param props.ctx - Editor context passed to the chosen item.
+ */
 export function SlashMenu({ host, state, ctx }: Props) {
   const items = useMemo(() => filterSlash(state.query), [state.query]);
   const [active, setActive] = useState(0);

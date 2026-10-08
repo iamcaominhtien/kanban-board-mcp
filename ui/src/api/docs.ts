@@ -78,7 +78,11 @@ export function useDocsVersions(pageId: string | null) {
   });
 }
 
-/** Query one version of a page. */
+/**
+ * Query one version of a page.
+ * @param pageId - Page to load; disabled while `null`.
+ * @param version - Version number; disabled while `null`.
+ */
 export function useDocsVersion(pageId: string | null, version: number | null) {
   return useQuery({
     queryKey: ['docs', 'version', pageId, version] as const,
@@ -87,7 +91,12 @@ export function useDocsVersion(pageId: string | null, version: number | null) {
   });
 }
 
-/** Query the diff between two versions. */
+/**
+ * Query the diff between two versions.
+ * @param pageId - Page to load; disabled while `null`.
+ * @param a - Base version number.
+ * @param b - Compared version number.
+ */
 export function useDocsDiff(pageId: string | null, a: number | null, b: number | null) {
   return useQuery({
     queryKey: docsKeys.diff(pageId ?? '', a ?? 0, b ?? 0),
@@ -123,7 +132,11 @@ export function useTicketDocs(ticketId: string) {
   });
 }
 
-/** Resolve [[page]] and ticket references from rendered markdown (chips, broken-link state). */
+/**
+ * Resolve [[page]] and ticket references from rendered markdown (chips, broken-link state).
+ * @param projectId - Project the references belong to.
+ * @param refs - References to resolve; disabled while empty.
+ */
 export function useResolveRefs(projectId: string, refs: DocsRefRequest[]) {
   return useQuery({
     queryKey: docsKeys.resolve(projectId, refs),

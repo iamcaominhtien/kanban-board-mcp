@@ -59,7 +59,12 @@ function Row({ icon, label, last, children }: { icon: string; label: string; las
   );
 }
 
-/** Popover with page stats and quick links. */
+/**
+ * Popover with page stats and quick links.
+ * @param props.onClose - Called to dismiss the popover.
+ * @param props.onOpenHistory - Called by the "Page history" link.
+ * @param props.onOpenReferences - Called by the "Referenced by" link.
+ */
 export function PageInfoPopover({ page, onClose, onOpenHistory, onOpenReferences }: PageInfoPopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stats = pageStats(page);

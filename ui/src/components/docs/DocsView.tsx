@@ -153,7 +153,18 @@ function cachedToPage(
   };
 }
 
-/** Docs space: tree, page view, editor, search, history and dialogs. */
+/**
+ * Docs space: tree, page view, editor, search, history and dialogs.
+ * @param props.requestedPageId - Page to open once, e.g. from a linked doc or `?docs=` link.
+ * @param props.onRequestHandled - Called after `requestedPageId` has been opened.
+ * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
+ * @param props.onImport - Called by "Import Markdown" (hero and import strip).
+ * @param props.onDropFiles - Called with Markdown files or folders dropped on the page or picked with "Choose files".
+ * @param props.onOpenSettings - Called to open project settings when Docs is disabled.
+ * @param props.onBack - Called to leave the Docs view.
+ * @param props.onSearch - Called to open search, with the query when the tree filter asks for it.
+ * @param props.onBodyRef - Receives the element holding the rendered page body (for find-in-page).
+ */
 export function DocsView({
   projectId,
   projectName,

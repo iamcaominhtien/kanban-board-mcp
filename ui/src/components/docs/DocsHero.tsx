@@ -197,7 +197,13 @@ interface Props {
   onDropFiles?: (files: File[]) => void;
 }
 
-/** Empty space (A): eyebrow, headline, calls to action, template gallery and the import strip. */
+/**
+ * Empty space (A): eyebrow, headline, calls to action, template gallery and the import strip.
+ * @param props.projectName - Space name used in the headline.
+ * @param props.onCreate - Called to create a page, with a template id when one was chosen.
+ * @param props.onImport - Called to open the import dialog.
+ * @param props.onDropFiles - Called with files dropped on the import strip.
+ */
 export function DocsHero({ projectName, onCreate, onImport, onDropFiles }: Props) {
   const filesRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);

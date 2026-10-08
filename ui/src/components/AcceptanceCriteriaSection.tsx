@@ -11,7 +11,12 @@ interface AcceptanceCriteriaSectionProps {
   onDelete: (id: string) => void;
 }
 
-/** Ticket's acceptance-criteria checklist, with doc-reference pills. */
+/**
+ * Ticket's acceptance-criteria checklist, with doc-reference pills.
+ * @param props.onAdd - Called with the text of a new criterion.
+ * @param props.onToggle - Called with the id of the criterion whose done state is flipped.
+ * @param props.onDelete - Called with the id of the criterion to delete.
+ */
 export function AcceptanceCriteriaSection({
   acceptanceCriteria,
   onAdd,

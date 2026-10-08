@@ -28,7 +28,10 @@ const ROWS: [number, number][] = [
   [10, 66],
 ];
 
-/** Loading placeholder for the page tree. */
+/**
+ * Loading placeholder for the page tree.
+ * @param props.width - Width in px.
+ */
 export function TreeSkeleton({ width = 248 }: { width?: number }) {
   return (
     <aside
@@ -66,7 +69,12 @@ export function TreeSkeleton({ width = 248 }: { width?: number }) {
   );
 }
 
-/** Loading placeholder for a page. */
+/**
+ * Loading placeholder for a page.
+ * @param props.title - Real page title to show instead of a placeholder bar.
+ * @param props.note - Content shown above the skeleton, e.g. a slow-load note.
+ * @param props.crumbs - Breadcrumb segments to show instead of a placeholder.
+ */
 export function PageSkeleton({ title, note, crumbs }: { title?: string; note?: ReactNode; crumbs?: string[] }) {
   return (
     <div
@@ -137,7 +145,10 @@ export function PageSkeleton({ title, note, crumbs }: { title?: string; note?: R
   );
 }
 
-/** D2: shown after 8 s of loading (the skeleton stays). */
+/**
+ * D2: shown after 8 s of loading (the skeleton stays).
+ * @param props.onRetry - Called when "Retry" is pressed.
+ */
 export function SlowLoadNote({ onRetry }: { onRetry: () => void }) {
   return (
     <div
@@ -253,7 +264,12 @@ function StateShell({
 const body = { fontSize: 13, lineHeight: 1.6, color: sage } as const;
 const btnRow = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 } as const;
 
-/** What a failed request looked like, for the E1 detail block. */
+/**
+ * What a failed request looked like, for the E1 detail block.
+ * @param err - Error from a failed request (Axios-style).
+ * @param fallbackPath - Path shown when the error carries no request URL.
+ * @returns `line` as "METHOD /path - status" and the `requestId` from the response, or `null`.
+ */
 export function describeRequest(err: unknown, fallbackPath: string): { line: string; requestId: string | null } {
   const e = err as {
     response?: { status?: number; headers?: Record<string, string> };
@@ -267,7 +283,16 @@ export function describeRequest(err: unknown, fallbackPath: string): { line: str
   return { line: `${method} ${url} · ${status ?? 'no response'}`, requestId };
 }
 
-/** E1: the page (or space) failed to load; auto-retries in 8 s. */
+/**
+ * E1: the page (or space) failed to load; auto-retries in 8 s.
+ * @param props.error - Failure to describe in the detail block.
+ * @param props.path - Request path shown in the detail block.
+ * @param props.failedAt - Time of the failure.
+ * @param props.onRetry - Called on retry, also by the automatic retry.
+ * @param props.onBack - Called by the back button; the button is hidden when omitted.
+ * @param props.backLabel - Label of the back button.
+ * @param props.autoRetry - Retry automatically after 8 s.
+ */
 export function LoadError({
   title = "Couldn't load this page",
   message = "The server didn't answer in time. Nothing was changed on the page.",
@@ -353,7 +378,14 @@ export function LoadError({
   );
 }
 
-/** E2: page not found, with similar pages. */
+/**
+ * E2: page not found, with similar pages.
+ * @param props.projectId - Project used to search for similar pages.
+ * @param props.path - Requested path; its last segment is used as the search slug.
+ * @param props.onOpenPage - Called with the id of a suggested page.
+ * @param props.onHome - Called to go back to the space home.
+ * @param props.onSearch - Called to open search.
+ */
 export function NotFound({
   projectId,
   path,
@@ -451,7 +483,15 @@ export function NotFound({
   );
 }
 
-/** E3: deleted page, restorable. */
+/**
+ * E3: deleted page, restorable.
+ * @param props.deletedBy - Who deleted the page.
+ * @param props.deletedAt - ISO time of deletion.
+ * @param props.daysLeft - Days until the page is purged for good.
+ * @param props.onRestore - Called to restore the page.
+ * @param props.onHome - Called to go back to the space home.
+ * @param props.restoring - A restore is running; disables the button.
+ */
 export function DeletedPage({
   title,
   deletedBy,
@@ -506,7 +546,11 @@ export function DeletedPage({
   );
 }
 
-/** E6: Docs switched off for the project. */
+/**
+ * E6: Docs switched off for the project.
+ * @param props.onOpenSettings - Called by "Open project settings"; the button is hidden when omitted.
+ * @param props.onBack - Called by the back button; hidden when omitted.
+ */
 export function DocsDisabled({ onOpenSettings, onBack }: { onOpenSettings?: () => void; onBack?: () => void }) {
   return (
     <StateShell
@@ -533,7 +577,13 @@ export function DocsDisabled({ onOpenSettings, onBack }: { onOpenSettings?: () =
   );
 }
 
-/** E5: the amber offline banner above a cached page. */
+/**
+ * E5: the amber offline banner above a cached page.
+ * @param props.pageTitle - Title of the cached page.
+ * @param props.savedAt - ISO time the copy was saved.
+ * @param props.version - Cached version number, if known.
+ * @param props.onTryAgain - Called to retry going online; the button is hidden when omitted.
+ */
 export function OfflineBanner({
   pageTitle,
   savedAt,

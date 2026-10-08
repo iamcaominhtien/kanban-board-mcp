@@ -11,7 +11,12 @@ interface DraggableTicketCardProps {
   subtaskStats?: { total: number; completed: number };
 }
 
-/** Ticket card wired to drag and drop. */
+/**
+ * Ticket card wired to drag and drop.
+ * @param props.onCardClick - Called with the ticket when the card is clicked.
+ * @param props.memberMap - Members by id, used to render the assignee.
+ * @param props.subtaskStats - Sub-task totals shown on the card.
+ */
 export function DraggableTicketCard({ ticket, onCardClick, memberMap, subtaskStats }: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,

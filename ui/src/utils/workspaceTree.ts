@@ -8,7 +8,11 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-/** Format a past time as a short "ago" text. */
+/**
+ * Format a past time as a short "ago" text.
+ * @param iso - ISO timestamp in the past.
+ * @param now - Reference time in epoch ms (defaults to the current time).
+ */
 export function formatTimeAgo(iso: string, now = Date.now()): string {
   const sec = Math.floor((now - new Date(iso).getTime()) / 1000);
   if (sec < 60) return 'just now';
@@ -19,7 +23,11 @@ export function formatTimeAgo(iso: string, now = Date.now()): string {
   return `${Math.floor(hr / 24)}d ago`;
 }
 
-/** Format time until `iso` as "in 5h", "in 2d" or "due now". */
+/**
+ * Format time until `iso` as "in 5h", "in 2d" or "due now".
+ * @param iso - ISO timestamp in the future.
+ * @param now - Reference time in epoch ms (defaults to the current time).
+ */
 export function formatTimeLeft(iso: string, now = Date.now()): string {
   const ms = new Date(iso).getTime() - now;
   if (ms <= 0) return 'due now';
@@ -44,7 +52,11 @@ export function depthOf(path: string): number {
   return path.split('/').length - 1;
 }
 
-/** Entries whose every ancestor folder is expanded (i.e. not in `collapsed`). */
+/**
+ * Entries whose every ancestor folder is expanded (i.e. not in `collapsed`).
+ * @param files - Flat list of workspace files with slash-separated names.
+ * @param collapsed - Folder paths that are collapsed.
+ */
 export function visibleEntries(files: WorkspaceFile[], collapsed: Set<string>): WorkspaceFile[] {
   return files.filter((f) => {
     let dir = parentDir(f.name);

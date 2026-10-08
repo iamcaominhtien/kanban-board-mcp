@@ -35,6 +35,8 @@ const OPT_KEY = 'docsFindOptions';
 /**
  * Ctrl/Cmd+F opens the bar; a second Ctrl/Cmd+F lets the browser's own find run (we stop intercepting while open).
  * Pass `isOpen` so the hook knows. Mount only while a page is shown.
+ * @param onOpen - Called when Ctrl/Cmd+F is pressed while the bar is closed.
+ * @param isOpen - Whether the bar is open; interception stops while true.
  */
 export function useDocsFindHotkey(onOpen: () => void, isOpen: boolean) {
   const ref = useRef({ onOpen, isOpen });
@@ -100,7 +102,14 @@ function unwrapMarks(root: HTMLElement) {
   parents.forEach((p) => p.normalize());
 }
 
-/** Find (and replace) bar. Design: DocsSearch.dc.html artboard F. Position it inside a `position: relative` container. */
+/**
+ * Find (and replace) bar. Design: DocsSearch.dc.html artboard F. Position it inside a `position: relative` container.
+ * @param props.root - Rendered page content or the editor's DOM element to search.
+ * @param props.editable - Show Replace and Replace all (needs `replaceAdapter` or `onReplace`).
+ * @param props.onClose - Called to close the bar.
+ * @param props.replaceAdapter - Replaces matches inside an editor.
+ * @param props.onReplace - Called with the search text, the replacement and whether to replace all.
+ */
 export function FindInPage({ root, editable = false, onClose, replaceAdapter, onReplace }: FindInPageProps) {
   const toast = useToast();
   const [q, setQ] = useState(() => {

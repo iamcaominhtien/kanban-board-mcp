@@ -8,13 +8,21 @@ export async function listMembers(projectId: string): Promise<Member[]> {
   return res.data;
 }
 
-/** Add a member. */
+/**
+ * Add a member.
+ * @param projectId - Project to add the member to.
+ * @param data - Member name and optional color.
+ */
 export async function addMember(projectId: string, data: { name: string; color?: string }): Promise<Member> {
   const res = await client.post<Member>(`/projects/${projectId}/members`, data);
   return res.data;
 }
 
-/** Remove a member. */
+/**
+ * Remove a member.
+ * @param projectId - Project owning the member.
+ * @param memberId - Member to remove.
+ */
 export async function removeMember(projectId: string, memberId: string): Promise<void> {
   await client.delete(`/projects/${projectId}/members/${memberId}`);
 }

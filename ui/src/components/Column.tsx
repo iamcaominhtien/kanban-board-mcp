@@ -14,7 +14,15 @@ interface ColumnProps {
   skeletonCards?: number;
 }
 
-/** One board column and its draggable ticket cards. */
+/**
+ * One board column and its draggable ticket cards.
+ * @param props.column - Column definition (status and title).
+ * @param props.tickets - Tickets in this column.
+ * @param props.allTickets - All project tickets, used for lookups such as blockers.
+ * @param props.onCardClick - Called with the clicked ticket.
+ * @param props.memberMap - Members by id, used to render assignees.
+ * @param props.skeletonCards - While tickets load, show this many skeleton cards under the real header.
+ */
 export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 

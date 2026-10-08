@@ -63,7 +63,18 @@ const kb = {
   color: '#5B6B60',
 } as const;
 
-/** The comment box: Write / Preview, markdown toolbar, attachments, draft kept on this device. */
+/**
+ * The comment box: Write / Preview, markdown toolbar, attachments, draft kept on this device.
+ * @param props.ticketId - Ticket the comment belongs to; also keys the saved draft and attachment uploads.
+ * @param props.projectId - Project used for `[[` doc references.
+ * @param props.me - Author shown next to the box.
+ * @param props.members - Members offered for @mentions.
+ * @param props.initial - Starting text; used with `editing` to edit a comment in place.
+ * @param props.editing - Edit mode: label "EDITING" and a Save button, no draft kept.
+ * @param props.autoFocus - Focus the box on mount.
+ * @param props.onSubmit - Called with the comment text.
+ * @param props.onCancel - Called when the box is dismissed.
+ */
 export function Composer({
   ticketId,
   projectId,

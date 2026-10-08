@@ -123,7 +123,12 @@ function highlightSh(src: string): Tok[] {
   return out;
 }
 
-/** Syntax-highlight code for a language into React nodes. */
+/**
+ * Syntax-highlight code for a language into React nodes.
+ * @param code - Source code.
+ * @param lang - Language name or alias (sh, json, ts, js, py, ...).
+ * @returns Highlighted nodes, or the raw `code` for an unknown language.
+ */
 export function highlight(code: string, lang?: string): ReactNode {
   const l = (lang ?? '').toLowerCase();
   let toks: Tok[];

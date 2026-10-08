@@ -91,7 +91,14 @@ const hdrCell: CSSProperties = {
   color: '#5B6B60',
 };
 
-/** Drawer listing versions with compare and restore. */
+/**
+ * Drawer listing versions with compare and restore.
+ * @param props.page - Page whose versions are listed.
+ * @param props.onClose - Called to close the drawer.
+ * @param props.onRestored - Called with the page after a version is restored.
+ * @param props.initialCompare - Open straight into comparing these two versions.
+ * @param props.onReopen - When given, the restore toast offers "View history" and the drawer closes after a restore.
+ */
 export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCompare, onReopen }: HistoryDrawerProps) {
   const toast = useToast();
   const versionsQ = useDocsVersions(page.id);

@@ -94,7 +94,15 @@ function TemplatePreview({ markdown }: { markdown: string }) {
   );
 }
 
-/** Dialog to create a page, optionally from a template. */
+/**
+ * Dialog to create a page, optionally from a template.
+ * @param props.nodes - Page tree, used to pick the parent.
+ * @param props.initialParentId - Preselected parent, or `null` for top level.
+ * @param props.initialTemplate - Preselected template id.
+ * @param props.initialTitle - Prefilled title.
+ * @param props.onClose - Called to dismiss the dialog.
+ * @param props.onCreated - Called with the new page.
+ */
 export function NewPageDialog({
   projectId,
   nodes,

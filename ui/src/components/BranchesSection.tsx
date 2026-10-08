@@ -51,7 +51,11 @@ function formatDate(iso?: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-/** Ticket's branches with create, rename, checkout and delete. */
+/**
+ * Ticket's branches with create, rename, checkout and delete.
+ * @param props.ticketId - Ticket whose branches are managed.
+ * @param props.readOnly - Hide create, rename, checkout and delete actions.
+ */
 export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionProps) {
   const [activeTab, setActiveTab] = useState<'graph' | 'list'>('graph');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

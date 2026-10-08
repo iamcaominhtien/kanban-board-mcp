@@ -31,7 +31,17 @@ type SaveState = 'saved' | 'saving' | 'error' | 'dirty';
 const AUTOSAVE_MS = 3000;
 const offlineKey = (pageId: string) => `docsOfflineDraft:${pageId}`;
 
-/** Full-screen page editor with Publish, Discard and conflict handling. */
+/**
+ * Full-screen page editor with Publish, Discard and conflict handling.
+ * @param props.projectId - Project the page belongs to.
+ * @param props.page - Page being edited.
+ * @param props.nodes - Page tree, used for `[[` suggestions.
+ * @param props.onExit - Called when leaving the editor; receives the updated page after Publish, nothing after Discard.
+ * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
+ * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
+ * @param props.rail - Collapsed tree rail shown at the left while editing.
+ * @param props.onEditorRoot - Receives the ProseMirror root element (for find-in-page).
+ */
 export function DocsEditScreen({
   projectId,
   page,

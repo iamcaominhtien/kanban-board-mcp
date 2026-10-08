@@ -2,7 +2,11 @@ import type { Editor } from '@tiptap/react';
 import { useEffect, useMemo, useState } from 'react';
 import { headingAnchors } from '../../../utils/docsMarkdown';
 
-/** Built-in "On this page" rail for the editor (the caller can pass its own via the toc slot). */
+/**
+ * Built-in "On this page" rail for the editor (the caller can pass its own via the toc slot).
+ * @param props.editor - Editor whose headings are listed, or `null`.
+ * @param props.markdown - Current Markdown the headings are read from.
+ */
 export function EditorToc({ editor, markdown }: { editor: Editor | null; markdown: string }) {
   const [tick, setTick] = useState(0);
   const [active, setActive] = useState<string | null>(null);

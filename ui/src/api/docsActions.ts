@@ -17,7 +17,12 @@ export function pageStats(page: DocsPage): DocsPageStats | null {
   return (page as DocsPage & { stats?: DocsPageStats }).stats ?? null;
 }
 
-/** Query which pages a rename would rewrite links in. */
+/**
+ * Query which pages a rename would rewrite links in.
+ * @param pageId - Page being renamed.
+ * @param title - Proposed new title (trimmed; blank disables the query).
+ * @param enabled - Set false to skip fetching.
+ */
 export function useRenamePreview(pageId: string, title: string, enabled = true) {
   const t = title.trim();
   return useQuery({
@@ -121,7 +126,12 @@ interface SearchResponse {
   }[];
 }
 
-/** Pages and sections matching `q` in a project (the `[[` / "Link a doc" suggester). */
+/**
+ * Pages and sections matching `q` in a project (the `[[` / "Link a doc" suggester).
+ * @param projectId - Project to search; disabled while undefined.
+ * @param q - Search text (trimmed).
+ * @param enabled - Set false to skip fetching.
+ */
 export function useDocsSuggest(projectId: string | undefined, q: string, enabled = true) {
   const query = q.trim();
   return useQuery({

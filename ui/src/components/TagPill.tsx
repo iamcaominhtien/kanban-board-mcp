@@ -42,7 +42,11 @@ interface TagPillProps {
   className?: string;
 }
 
-/** Colored tag chip, removable when `onRemove` is set. */
+/**
+ * Colored tag chip, removable when `onRemove` is set.
+ * @param props.tag - Tag text; the color derives from it.
+ * @param props.onRemove - When set, shows a remove button that calls it.
+ */
 export function TagPill({ tag, size = 'small', onRemove, className }: TagPillProps) {
   const { bg, color } = getTagColor(tag);
   const sizeClass = size === 'large' ? styles.tagPillLarge : size === 'medium' ? styles.tagPillMedium : '';

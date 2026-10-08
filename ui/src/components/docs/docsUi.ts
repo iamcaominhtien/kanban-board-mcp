@@ -34,7 +34,12 @@ export function ticketStatus(status?: string | null) {
   return TICKET_STATUS[status ?? ''] ?? { label: status ?? 'Backlog', color: '#9AA8A0' };
 }
 
-/** Format "Oct 8, 2026 at 3:04 PM · author · v3". */
+/**
+ * Format "Oct 8, 2026 at 3:04 PM · author · v3".
+ * @param iso - ISO timestamp.
+ * @param author - Author name.
+ * @param version - Version number.
+ */
 export function pageFullTime(iso: string, author: string, version: number): string {
   const d = new Date(iso);
   const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

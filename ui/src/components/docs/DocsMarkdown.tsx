@@ -135,7 +135,17 @@ function Checkbox({ checked }: { checked: boolean }) {
   );
 }
 
-/** Reader for a Docs page: the board's dk-md typography with callouts, tables, code, task lists and reference chips. */
+/**
+ * Reader for a Docs page: the board's dk-md typography with callouts, tables, code, task lists and reference chips.
+ * @param props.children - Markdown source of the page.
+ * @param props.projectId - Project used to resolve references.
+ * @param props.projectName - Space name used in reference tooltips.
+ * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
+ * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
+ * @param props.onCreatePage - Called with a title when a missing page reference is created.
+ * @param props.onRestorePage - Called with a page id when a deleted referenced page is restored.
+ * @param props.onReplaceSection - Called when a stale section reference is replaced.
+ */
 export function DocsMarkdown({
   children,
   projectId,

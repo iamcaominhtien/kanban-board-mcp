@@ -23,7 +23,13 @@ const rowBase: React.CSSProperties = {
 };
 const roleTag: React.CSSProperties = { marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' };
 
-/** Confirm moving a page and its sub-pages to the Recycle Bin. */
+/**
+ * Confirm moving a page and its sub-pages to the Recycle Bin.
+ * @param props.projectId - Project the page belongs to.
+ * @param props.page - Page to delete (its sub-pages go with it).
+ * @param props.onClose - Called to dismiss the dialog.
+ * @param props.onDeleted - Called with the number of pages moved to the Recycle Bin.
+ */
 export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDialogProps) {
   const preview = useDeletePreview(page.id);
   const del = useDeletePage(projectId);

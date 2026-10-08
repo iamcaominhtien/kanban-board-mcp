@@ -216,7 +216,10 @@ function GroupSection({ group, collapsed, onToggle, onCardClick }: GroupRowProps
   );
 }
 
-/** Sortable table of tickets. */
+/**
+ * Sortable table of tickets.
+ * @param props.onCardClick - Called with the ticket whose row is clicked.
+ */
 export function ListView({ tickets, onCardClick }: ListViewProps) {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [sortBy, setSortBy] = useState<SortBy>('dueDate');

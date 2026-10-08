@@ -114,7 +114,12 @@ const ctxBox: React.CSSProperties = {
   marginLeft: 2,
 };
 
-/** List of pages and tickets that reference a page. */
+/**
+ * List of pages and tickets that reference a page.
+ * @param props.pageId - Page whose referrers are listed.
+ * @param props.onOpenPage - Called with page id and optional anchor when a referring page is opened.
+ * @param props.onOpenTicket - Called with a ticket id when a referring ticket is opened.
+ */
 export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByProps) {
   const toast = useToast();
   const backlinks = useBacklinksEx(pageId);

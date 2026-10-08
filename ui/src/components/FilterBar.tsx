@@ -30,7 +30,14 @@ const PRIORITY_OPTIONS: { value: Priority | 'all'; label: string }[] = [
   { value: 'low', label: 'Low' },
 ];
 
-/** Search, status, priority and tag filters. */
+/**
+ * Search, status, priority and tag filters.
+ * @param props.onSearchChange - Called with the new search text.
+ * @param props.onTypeChange - Called with the selected type or `all`.
+ * @param props.onPriorityChange - Called with the selected priority or `all`.
+ * @param props.activeAssignee - Selected member id, `all` for none.
+ * @param props.onAssigneeChange - Called with the selected member id or `all`.
+ */
 export function FilterBar({
   searchQuery,
   onSearchChange,

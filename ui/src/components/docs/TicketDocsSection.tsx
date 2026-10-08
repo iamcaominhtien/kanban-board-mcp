@@ -322,7 +322,12 @@ function LinkPopover({
   );
 }
 
-/** "Linked docs" on a ticket: mentioned / linked manually / pages that mention it, plus "+ Link a doc". */
+/**
+ * "Linked docs" on a ticket: mentioned / linked manually / pages that mention it, plus "+ Link a doc".
+ * @param props.ticketId - Ticket whose linked docs are shown.
+ * @param props.projectId - Project whose pages the "Link a doc" search offers.
+ * @param props.onOpenPage - Called with page id and project id when a doc is opened.
+ */
 export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDocsSectionProps) {
   const toast = useToast();
   const { data } = useTicketDocs(ticketId);

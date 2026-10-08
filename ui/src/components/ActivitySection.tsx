@@ -417,7 +417,14 @@ function DocRefsRows({ entry, projectId, prefix }: { entry: DocRefsEntry; projec
   );
 }
 
-/** Ticket activity feed with comment deep links and reference pills. */
+/**
+ * Ticket activity feed with comment deep links and reference pills.
+ * @param props.ticketId - Ticket the entries belong to.
+ * @param props.entries - Raw activity entries to show.
+ * @param props.members - Project members, used to render author names.
+ * @param props.isLoading - Show a loading state while the ticket loads.
+ * @param props.onViewComment - Called with a comment id when its "View comment" link is clicked.
+ */
 export function ActivitySection({
   ticketId,
   entries: rawEntries,

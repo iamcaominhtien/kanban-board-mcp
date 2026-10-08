@@ -48,7 +48,12 @@ export interface Person {
   id?: string;
 }
 
-/** Display info for a comment author (members by id or name; "user" is the GUI's anonymous author). */
+/**
+ * Display info for a comment author (members by id or name; "user" is the GUI's anonymous author).
+ * @param author - Author id or name; `user`, empty or null show as "You".
+ * @param members - Project members matched by id or case-insensitive name.
+ * @returns Name, initials and avatar colors; unknown authors get neutral colors.
+ */
 export function personFor(author: string | null | undefined, members: Member[]): Person {
   const a = author ?? '';
   const found = members.find((m) => m.id === a || m.name.toLowerCase() === a.toLowerCase());
@@ -62,7 +67,11 @@ export const draftKey = (ticketId: string) => `kanban.commentDraft.${ticketId}`;
 /** Local-storage key for a ticket's offline comment queue. */
 export const queueKey = (ticketId: string) => `kanban.commentQueue.${ticketId}`;
 
-/** Read JSON from local storage, falling back on any error. */
+/**
+ * Read JSON from local storage, falling back on any error.
+ * @param key - localStorage key.
+ * @param fallback - Returned when the key is missing, unparsable or storage is blocked.
+ */
 export function readJson<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -72,7 +81,11 @@ export function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-/** Write JSON to local storage, or remove the key when `value` is null. */
+/**
+ * Write JSON to local storage, or remove the key when `value` is null.
+ * @param key - localStorage key.
+ * @param value - Value to store; `null`, `undefined`, an empty array or an empty string removes the key.
+ */
 export function writeJson(key: string, value: unknown | null): void {
   try {
     if (value == null || (Array.isArray(value) && value.length === 0) || value === '') localStorage.removeItem(key);

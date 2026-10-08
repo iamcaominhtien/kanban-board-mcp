@@ -27,7 +27,11 @@ interface IdeaCardProps {
   onClick: () => void;
 }
 
-/** Card for an idea ticket. */
+/**
+ * Card for an idea ticket.
+ * @param props.isDragging - Overrides the drag state, e.g. for a drag overlay.
+ * @param props.onClick - Called when the card is clicked.
+ */
 export function IdeaCard({ ticket, isDragging: externalDragging, onClick }: IdeaCardProps) {
   const isDropped = ticket.ideaStatus === 'dropped';
 

@@ -15,7 +15,12 @@ export const docsFxKeys = {
   pageCount: (projectId: string) => ['docs', 'page-count', projectId] as const,
 };
 
-/** Search pages and tickets. */
+/**
+ * Search pages and tickets.
+ * @param projectId - Project (docs space) to search.
+ * @param p - Search query and options; `q` is required, scope defaults to `space`, empty filters are omitted.
+ * @param signal - Optional abort signal to cancel the request.
+ */
 export async function searchDocs(
   projectId: string,
   p: DocsSearchParams,
@@ -36,7 +41,13 @@ export async function searchDocs(
   return res.data;
 }
 
-/** Query search results (disabled for an empty query). */
+/**
+ * Query search results (disabled for an empty query).
+ * @param projectId - Project (docs space) to search.
+ * @param p - Search query and options.
+ * @param opts.enabled - Set false to skip fetching; also skipped while the project is empty or `p.q` is blank.
+ * @param opts.keepPrevious - Keep the previous results visible while a new search loads.
+ */
 export function useDocsSearch(
   projectId: string,
   p: DocsSearchParams,
@@ -71,7 +82,13 @@ function importForm(
   return fd;
 }
 
-/** Report what importing the files would create, without writing. */
+/**
+ * Report what importing the files would create, without writing.
+ * @param projectId - Project to import into.
+ * @param entries - Files with their relative paths.
+ * @param parentId - Page the import is nested under, or `null` for the root.
+ * @param onConflict - How to handle existing pages with the same name.
+ */
 export async function importDryRun(
   projectId: string,
   entries: DocsImportEntry[],
@@ -85,7 +102,13 @@ export async function importDryRun(
   return res.data;
 }
 
-/** Imports the given entries (the dialog sends one per request, parents first). */
+/**
+ * Imports the given entries (the dialog sends one per request, parents first).
+ * @param projectId - Project to import into.
+ * @param entries - Files with their relative paths.
+ * @param parentId - Page the import is nested under, or `null` for the root.
+ * @param onConflict - How to handle existing pages with the same name.
+ */
 export async function importFiles(
   projectId: string,
   entries: DocsImportEntry[],
@@ -99,7 +122,11 @@ export async function importFiles(
   return res.data;
 }
 
-/** Re-index links of the pages an import created. */
+/**
+ * Re-index links of the pages an import created.
+ * @param projectId - Project owning the pages.
+ * @param pageIds - Imported pages whose references are resolved.
+ */
 export async function importResolve(projectId: string, pageIds: string[]): Promise<void> {
   await client.post(`/projects/${projectId}/docs/import/resolve`, { page_ids: pageIds });
 }
@@ -118,7 +145,11 @@ export function readCachedPageCount(projectId: string): number | null {
   }
 }
 
-/** Number of pages in a project's docs; remembers it locally so it is still known when Docs is switched off. */
+/**
+ * Number of pages in a project's docs; remembers it locally so it is still known when Docs is switched off.
+ * @param projectId - Project whose pages are counted.
+ * @param enabled - Set false to skip fetching; a successful fetch also caches the count in localStorage.
+ */
 export function useDocsPageCount(projectId: string, enabled: boolean) {
   return useQuery({
     queryKey: docsFxKeys.pageCount(projectId),

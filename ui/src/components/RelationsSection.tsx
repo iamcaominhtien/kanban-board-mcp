@@ -48,7 +48,17 @@ interface RelationRow {
   linkId?: string;
 }
 
-/** Ticket's blocks, blocked-by and linked relations. */
+/**
+ * Ticket's blocks, blocked-by and linked relations.
+ * @param props.ticket - Ticket whose relations are shown.
+ * @param props.allTickets - All project tickets, offered as link targets.
+ * @param props.onLinkBlock - Called with blocker id and blocked id to create a block.
+ * @param props.onUnlinkBlock - Called with blocker id and blocked id to remove a block.
+ * @param props.onAddLink - Called with ticket id, target id and relation type to add a link.
+ * @param props.onRemoveLink - Called with ticket id and link id to remove a link.
+ * @param props.onOpenTicket - Called with a related ticket when it is opened.
+ * @param props.onChangeStatus - Called with a related ticket id and new status from its status menu.
+ */
 export function RelationsSection({
   ticket,
   allTickets,

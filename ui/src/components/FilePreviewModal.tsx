@@ -24,7 +24,12 @@ interface Props {
   filePath?: string;
 }
 
-/** Modal that previews an attached or workspace file. */
+/**
+ * Modal that previews an attached or workspace file.
+ * @param props.isOpen - Whether the modal is shown.
+ * @param props.onClose - Called to dismiss the modal.
+ * @param props.filePath - Local disk path of the file, if known; used by "Open in system app" in the desktop app (otherwise read from the server response).
+ */
 export function FilePreviewModal({
   isOpen,
   onClose,

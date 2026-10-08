@@ -31,7 +31,13 @@ interface TicketCardProps {
   subtaskStats?: { total: number; completed: number };
 }
 
-/** Compact ticket card for the board. */
+/**
+ * Compact ticket card for the board.
+ * @param props.memberMap - Members by id, used to render the assignee.
+ * @param props.isDragging - Render the dragging style.
+ * @param props.onClick - Called when the card is clicked.
+ * @param props.subtaskStats - Sub-task totals shown on the card.
+ */
 export function TicketCard({ ticket, memberMap, isDragging, className, onClick, subtaskStats }: TicketCardProps) {
   const typeLabel = TYPE_LABELS[ticket.type] ?? 'Task';
   const due = getDueDateDisplay(ticket.dueDate);

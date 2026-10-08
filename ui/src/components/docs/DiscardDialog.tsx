@@ -13,7 +13,16 @@ interface Props {
   onDiscard: () => void;
 }
 
-/** "Discard your changes?" confirm (DocsEditor board E). Esc = Keep editing. */
+/**
+ * "Discard your changes?" confirm (DocsEditor board E). Esc = Keep editing.
+ * @param props.pageTitle - Title of the page being edited.
+ * @param props.version - Version the draft was based on.
+ * @param props.baseMarkdown - Markdown of that version.
+ * @param props.draftMarkdown - Unpublished draft, diffed against the base.
+ * @param props.savedAt - Time of the last autosave, or `null` if none.
+ * @param props.onClose - Called to keep editing (also Esc).
+ * @param props.onDiscard - Called to throw the draft away.
+ */
 export function DiscardDialog({ pageTitle, version, baseMarkdown, draftMarkdown, savedAt, onClose, onDiscard }: Props) {
   useEscape(onClose);
   const { added, removed } = lineDiffCounts(baseMarkdown, draftMarkdown);

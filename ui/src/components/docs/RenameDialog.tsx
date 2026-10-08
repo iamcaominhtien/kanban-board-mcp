@@ -17,7 +17,13 @@ interface RenameDialogProps {
 
 const mono: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };
 
-/** Confirm a rename and choose whether to rewrite links. */
+/**
+ * Confirm a rename and choose whether to rewrite links.
+ * @param props.page - Page being renamed.
+ * @param props.newTitle - Proposed new title.
+ * @param props.onClose - Called to dismiss the dialog.
+ * @param props.onRenamed - Called with the renamed page.
+ */
 export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: RenameDialogProps) {
   const toast = useToast();
   const full = useDocsPage(page.id);
@@ -269,7 +275,13 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
   );
 }
 
-/** Inline note shown after a heading edit is committed: old anchors keep working through an alias. */
+/**
+ * Inline note shown after a heading edit is committed: old anchors keep working through an alias.
+ * @param props.oldSlug - Anchor before the edit.
+ * @param props.newSlug - Anchor after the edit.
+ * @param props.count - Number of links to the section that keep working.
+ * @param props.from - Where the links come from, shown in the note.
+ */
 export function HeadingRenameNote({
   oldSlug,
   newSlug,

@@ -129,7 +129,18 @@ interface IdeaTicketModalProps {
   ) => Promise<IdeaTicket>;
 }
 
-/** Detail modal for an idea ticket. */
+/**
+ * Detail modal for an idea ticket.
+ * @param props.onClose - Called to dismiss the modal.
+ * @param props.onSave - Called with the edited idea ticket when saved.
+ * @param props.onDrop - Called with the idea id when the idea is dropped (abandoned).
+ * @param props.onStatusChange - Called with the idea id and the new idea status.
+ * @param props.onAddMicrothought - Adds a microthought (ticket id, text) and resolves to the updated idea.
+ * @param props.onDeleteMicrothought - Deletes a microthought (ticket id, microthought id) and resolves to the updated idea.
+ * @param props.onAddAssumption - Adds an assumption (ticket id, text) and resolves to the updated idea.
+ * @param props.onDeleteAssumption - Deletes an assumption (ticket id, assumption id) and resolves to the updated idea.
+ * @param props.onUpdateAssumptionStatus - Sets an assumption status (ticket id, assumption id, status) and resolves to the updated idea.
+ */
 export function IdeaTicketModal({
   ticket,
   onClose,

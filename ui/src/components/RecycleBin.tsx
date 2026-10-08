@@ -17,7 +17,14 @@ interface RecycleBinProps {
 
 type Filter = 'all' | 'pages' | 'tickets';
 
-/** Combined Recycle Bin for "Won't do" tickets and deleted pages. */
+/**
+ * Combined Recycle Bin for "Won't do" tickets and deleted pages.
+ * @param props.tickets - "Won't do" tickets to list.
+ * @param props.projectId - Project whose deleted docs pages are listed too.
+ * @param props.onRestore - Called with the ticket id to restore.
+ * @param props.onClose - Called to dismiss the bin.
+ * @param props.onOpenDocsPage - Called with a page id when "Open" on the restore toast is used.
+ */
 export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsPage }: RecycleBinProps) {
   const [visible, setVisible] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');

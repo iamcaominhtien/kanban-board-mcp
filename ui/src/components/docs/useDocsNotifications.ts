@@ -29,7 +29,11 @@ export function getDocsFollow(projectId: string): boolean {
   }
 }
 
-/** Follow or unfollow a project's Docs space and notify listeners. */
+/**
+ * Follow or unfollow a project's Docs space and notify listeners.
+ * @param projectId - Project whose Docs space is followed.
+ * @param on - Follow when true, unfollow when false.
+ */
 export function setDocsFollow(projectId: string, on: boolean) {
   try {
     localStorage.setItem(followKey(projectId), on ? '1' : '0');
@@ -81,6 +85,8 @@ function parseEvent(data: string): DocsPublishedEvent | null {
 /**
  * While the Follow-space toggle is on for the project, shows a toast
  * "<author> published v<N> of <title>" with an Open action when someone else publishes a page.
+ * @param options.projectId - Project to watch.
+ * @param options.onOpenPage - Called with a page id by the toast's Open action.
  */
 export function useDocsNotifications({
   projectId,

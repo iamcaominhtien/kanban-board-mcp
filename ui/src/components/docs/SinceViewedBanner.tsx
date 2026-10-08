@@ -21,7 +21,11 @@ function readSeen(pageId: string): number | null {
   }
 }
 
-/** Record that the viewer has seen `version` of the page (also call this after your own publish). */
+/**
+ * Record that the viewer has seen `version` of the page (also call this after your own publish).
+ * @param pageId - Page that was viewed.
+ * @param version - Latest version the viewer has seen.
+ */
 export function markDocsSeen(pageId: string, version: number): void {
   try {
     localStorage.setItem(key(pageId), String(version));
@@ -35,7 +39,11 @@ function listNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** "Changes since you last viewed": collapsed by default, expands to the edits behind it. */
+/**
+ * "Changes since you last viewed": collapsed by default, expands to the edits behind it.
+ * @param props.page - Page to compare against the last viewed version.
+ * @param props.onCompare - Called with two version numbers to open their diff.
+ */
 export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
   const [seen, setSeen] = useState<number | null>(() => readSeen(page.id));
   const [open, setOpen] = useState(false);

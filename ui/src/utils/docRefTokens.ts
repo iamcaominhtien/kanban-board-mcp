@@ -50,7 +50,11 @@ function inCode(node: Node, root: HTMLElement): boolean {
   return false;
 }
 
-/** Turn every complete token that does not hold the caret into a pill. Returns true when something changed. */
+/**
+ * Turn every complete token that does not hold the caret into a pill. Returns true when something changed.
+ * @param root - Editable element to scan; text inside code blocks and existing pills is skipped.
+ * @param keepCaret - Leave a token as text while the collapsed caret is inside or at the end of it.
+ */
 export function snapRefTokens(root: HTMLElement, keepCaret = true): boolean {
   const sel = window.getSelection();
   const caretNode =

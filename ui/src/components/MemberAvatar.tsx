@@ -34,7 +34,11 @@ interface MemberAvatarProps {
   title?: string;
 }
 
-/** Round avatar with the member's initials. */
+/**
+ * Round avatar with the member's initials.
+ * @param props.size - Diameter in px.
+ * @param props.title - Tooltip text; defaults to the member name.
+ */
 export function MemberAvatar({ member, size = 20, title }: MemberAvatarProps) {
   const { bg, color } = getAvatarColors(member.color);
   return (

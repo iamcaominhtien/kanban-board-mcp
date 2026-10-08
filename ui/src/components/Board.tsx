@@ -54,7 +54,24 @@ const SKELETON_COUNTS = [2, 2, 1, 1, 1, 1];
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'review', 'testing', 'done']);
 
-/** Kanban board with drag-and-drop columns. */
+/**
+ * Kanban board with drag-and-drop columns.
+ * @param props.tickets - Tickets after filters, shown in the lanes.
+ * @param props.allTickets - All project tickets, used for lookups such as blockers and sub-task stats.
+ * @param props.onDragEnd - Called with the ticket id and the status column it was dropped on.
+ * @param props.onNewTicket - Called when the "new ticket" action is used.
+ * @param props.onCardClick - Called with the clicked ticket.
+ * @param props.viewMode - Active view; switches between board, list, timeline and docs.
+ * @param props.onViewModeChange - Called when another view is selected.
+ * @param props.docsRequestedPageId - Docs view: page to open once, e.g. from a linked doc or `?docs=` link.
+ * @param props.onDocsRequestHandled - Called after `docsRequestedPageId` has been opened.
+ * @param props.activeType - Active type filter, `all` for none.
+ * @param props.activePriority - Active priority filter, `all` for none.
+ * @param props.activeAssignee - Member id filter, `all` for none.
+ * @param props.loadState - `projects`: project list loading (placeholders); `tickets`: real shell with skeleton cards.
+ * @param props.lanesOverride - Replaces the lanes, e.g. a "couldn't load" panel.
+ * @param props.statusSlot - Content of the reserved status row at the top right.
+ */
 export function Board({
   tickets,
   allTickets,

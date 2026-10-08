@@ -244,7 +244,12 @@ export function cleanDisplayFileName(rawName: string): string {
   return clean;
 }
 
-/** SVG Icon component for file types */
+/**
+ * SVG Icon component for file types
+ * @param props.category - File category picking the icon shape and default color.
+ * @param props.size - Width and height in px.
+ * @param props.color - Stroke color override; defaults to the category color.
+ */
 export function FileCategoryIcon({
   category,
   size = 20,

@@ -152,7 +152,13 @@ function Radio({
   );
 }
 
-/** Full-page results (design: DocsSearch.dc.html artboard C). Renders the content area next to the page tree. */
+/**
+ * Full-page results (design: DocsSearch.dc.html artboard C). Renders the content area next to the page tree.
+ * @param props.initialQuery - Query the results start with.
+ * @param props.onOpenPage - Called with page id and optional anchor for a picked result.
+ * @param props.onOpenTicket - Called with a ticket id for a picked ticket.
+ * @param props.onBack - Called to leave the results.
+ */
 export function SearchResults({
   projectId,
   projectName,

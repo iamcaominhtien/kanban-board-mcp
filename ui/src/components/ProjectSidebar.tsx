@@ -23,7 +23,20 @@ interface ProjectSidebarProps {
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
 
-/** Sidebar listing projects and spaces. */
+/**
+ * Sidebar listing projects and spaces.
+ * @param props.onSelectProject - Called with the id of the clicked project.
+ * @param props.onCreateProject - Called with name, prefix and color of a new project; resolves when created.
+ * @param props.onDeleteProject - Called with the id of the project to delete.
+ * @param props.onOpenRecycleBin - Called when the recycle bin entry is clicked.
+ * @param props.onOpenMembers - Called when the members entry is clicked.
+ * @param props.onOpenSettings - Called when the settings entry is clicked.
+ * @param props.wontDoCount - Number of "Won't do" tickets shown as the recycle bin badge.
+ * @param props.activeBoard - Selected space: the main board or the idea board.
+ * @param props.onBoardChange - Called when the other space is selected.
+ * @param props.loadState - `loading`: skeleton rows, static items dimmed; `error`: inline retry row; `empty`: only "New project".
+ * @param props.onRetryProjects - Called when the retry row is clicked.
+ */
 export function ProjectSidebar({
   projects,
   currentProjectId,

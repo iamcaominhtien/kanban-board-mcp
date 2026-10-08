@@ -56,7 +56,13 @@ const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => bool
   { label: 'Code block', run: (e) => e.chain().focus().toggleCodeBlock().run(), on: (e) => e.isActive('codeBlock') },
 ];
 
-/** Floating selection toolbar (DocsEditor board B): dark bubble; the link button turns it into a URL field. */
+/**
+ * Floating selection toolbar (DocsEditor board B): dark bubble; the link button turns it into a URL field.
+ * @param props.editor - Tiptap editor the toolbar acts on.
+ * @param props.linkOpen - Show the URL field instead of the buttons.
+ * @param props.setLinkOpen - Called to open or close the URL field.
+ * @param props.ticketPrefix - Ticket key prefix used by the reference button.
+ */
 export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: Props) {
   const st = useEditorState({
     editor,

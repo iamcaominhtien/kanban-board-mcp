@@ -379,7 +379,12 @@ interface SettingsPanelProps {
   onToggleTheme: () => void;
 }
 
-/** Settings: data folder, theme, Docs switch, workspace and MCP. */
+/**
+ * Settings: data folder, theme, Docs switch, workspace and MCP.
+ * @param props.onClose - Called to dismiss the panel.
+ * @param props.theme - Current theme.
+ * @param props.onToggleTheme - Called to switch between light and dark.
+ */
 export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelProps) {
   const { data: settings, isLoading } = useSettings();
   const setDataPath = useSetDataPath();

@@ -24,7 +24,13 @@ export const SPLASH_TIMING = {
   leaveMs: 200,
 } as const;
 
-/** Delay before the next reachability probe. `elapsedMs` is the time since the page started loading. */
+/**
+ * Delay before the next reachability probe. `elapsedMs` is the time since the page started loading.
+ * @param elapsedMs - Time since the page started loading.
+ * @param slowFailures - Number of failed probes after the fast phase; doubles the backoff.
+ * @param random - Random source in [0, 1) for jitter (injectable for tests).
+ * @returns Delay in ms: fast retry, then fixed retry, then capped exponential backoff with +-10% jitter.
+ */
 export function nextRetryDelay(elapsedMs: number, slowFailures: number, random: () => number = Math.random): number {
   if (elapsedMs < SPLASH_TIMING.maxWaitMs) return SPLASH_TIMING.fastRetryMs;
   if (elapsedMs < SPLASH_TIMING.backoffAfterMs) return SPLASH_TIMING.retryMs;
@@ -86,7 +92,12 @@ interface SplashProps {
   onRetryBackend: () => void;
 }
 
-/** Start-up screen with backend status and retry. */
+/**
+ * Start-up screen with backend status and retry.
+ * @param props.status - Backend reachability state shown.
+ * @param props.errorMessage - Error text shown when the backend is unreachable.
+ * @param props.onRetryBackend - Called when the retry button is pressed.
+ */
 export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
   const [rootEl] = useState(() => (typeof document === 'undefined' ? null : document.getElementById('kb-splash')));
   const [altEl] = useState(() => (typeof document === 'undefined' ? null : document.getElementById('kb-splash-alt')));

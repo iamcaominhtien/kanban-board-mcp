@@ -13,7 +13,14 @@ interface Props {
 
 const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
 
-/** 44px formatting toolbar (DocsEditor board A). */
+/**
+ * 44px formatting toolbar (DocsEditor board A).
+ * @param props.editor - Editor the buttons act on, or `null`.
+ * @param props.disabled - Disable all buttons.
+ * @param props.onLink - Called by the link button.
+ * @param props.onPickImage - Called by the image button.
+ * @param props.ticketPrefix - Ticket key prefix used by the reference button.
+ */
 export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPrefix }: Props) {
   const st = useEditorState({
     editor,

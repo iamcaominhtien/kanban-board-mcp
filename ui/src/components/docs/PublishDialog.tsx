@@ -19,7 +19,17 @@ interface Props {
   onPublish: (note: string, notify: boolean) => void;
 }
 
-/** "Publish changes" dialog (DocsEditor board E): diff summary, version note and Notify members. */
+/**
+ * "Publish changes" dialog (DocsEditor board E): diff summary, version note and Notify members.
+ * @param props.fromVersion - Version the draft is based on.
+ * @param props.baseMarkdown - Markdown of that version.
+ * @param props.draftMarkdown - Unpublished draft, diffed against the base.
+ * @param props.publishing - A publish is running; disables the buttons.
+ * @param props.error - Error from the last publish attempt.
+ * @param props.onClose - Called to dismiss the dialog.
+ * @param props.onReview - Called to review the diff before publishing.
+ * @param props.onPublish - Called with the version note and whether to notify followers.
+ */
 export function PublishDialog({
   pageTitle,
   fromVersion,

@@ -373,7 +373,20 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
   );
 }
 
-/** Ticket's work log (debug notes) with attachments. */
+/**
+ * Ticket's work log (debug notes) with attachments.
+ * @param props.entries - Work-log entries to list.
+ * @param props.branchNames - Ticket branches offered as link targets.
+ * @param props.testCases - Ticket test cases offered as link targets.
+ * @param props.memberNames - Project members suggested when typing the author.
+ * @param props.onAdd - Called with the new entry (without id); may be async.
+ * @param props.onUpdate - Called with the entry id and changed fields.
+ * @param props.onDelete - Called with the entry id to delete.
+ * @param props.onOpenBranch - Called with a branch name when a linked branch is clicked.
+ * @param props.onOpenTestCase - Called with a test case code when a linked test case is clicked.
+ * @param props.readOnly - Hide add, edit and delete controls.
+ * @param props.disabled - Disable the controls, e.g. while a save is running.
+ */
 export function DebugSpaceSection({
   ticketId = 'KAN',
   entries,

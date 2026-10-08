@@ -23,7 +23,12 @@ function stripSharedRoot(entries: DocsImportEntry[]): DocsImportEntry[] {
   return entries;
 }
 
-/** Entries from an `<input type=file>` (webkitRelativePath is set for folder picks). */
+/**
+ * Entries from an `<input type=file>` (webkitRelativePath is set for folder picks).
+ * @param files - Picked files.
+ * @param fromFolder - Strip the folder name shared by all paths (folder picks).
+ * @returns Markdown files only, each with its relative path (`webkitRelativePath` or file name).
+ */
 export function entriesFromFileList(files: FileList | File[], fromFolder = false): DocsImportEntry[] {
   const list = Array.from(files).filter((f) => isMd(f.name));
   const entries = list.map((f) => ({
@@ -86,6 +91,9 @@ export async function entriesFromDataTransfer(dt: DataTransfer): Promise<DocsImp
 /**
  * Window-level drag and drop of .md files or folders. `enabled` should be false while an ImportDialog is open
  * (the dialog has its own drop handling). Render `<DocsDropOverlay {...state} />` to show the "Drop to add N files" zone.
+ * @param options.enabled - Set false while an ImportDialog is open (it has its own drop handling).
+ * @param options.onFiles - Called with the dropped Markdown entries.
+ * @returns Drag state (`dragging`, `count`, `names`) to spread into `DocsDropOverlay`.
  */
 export function useDocsFileDrop({
   enabled,
@@ -149,7 +157,12 @@ export function useDocsFileDrop({
   return state;
 }
 
-/** The "Drop to add N files" zone (Empty C6) shown while files are dragged over the page or dialog. */
+/**
+ * The "Drop to add N files" zone (Empty C6) shown while files are dragged over the page or dialog.
+ * @param props.dragging - Show the overlay.
+ * @param props.count - Number of files being dragged.
+ * @param props.names - Names of the dragged files, when the browser exposes them.
+ */
 export function DocsDropOverlay({ dragging, count, names }: { dragging: boolean; count: number; names: string[] }) {
   if (!dragging) return null;
   return (
@@ -262,7 +275,16 @@ export interface ImportDialogProps {
   onReviewLinks?: (pageId: string) => void;
 }
 
-/** Dialog to import Markdown files or folders as pages. */
+/**
+ * Dialog to import Markdown files or folders as pages.
+ * @param props.nodes - Page tree, used to pick the destination.
+ * @param props.initialFiles - Files to import when the dialog opens.
+ * @param props.initialEntries - Entries with relative paths (from `useDocsFileDrop` or folder drops).
+ * @param props.initialParentId - Page to place the imported pages under (default top level).
+ * @param props.onClose - Called to dismiss the dialog.
+ * @param props.onDone - Called with the created page ids when the import finishes (also after the dialog was closed).
+ * @param props.onReviewLinks - Shows "Review links" on the result toast when pages with unresolved links were created.
+ */
 export function ImportDialog({
   projectId,
   projectName,

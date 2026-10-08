@@ -29,7 +29,11 @@ export interface DescriptionImageUpload {
   size: number;
 }
 
-/** Fetch a project's tickets with optional filters. */
+/**
+ * Fetch a project's tickets with optional filters.
+ * @param projectId - Project to list tickets of.
+ * @param params - Optional server-side filters: status, priority, and free-text search `q`.
+ */
 export async function listTickets(
   projectId: string,
   params?: { status?: string; priority?: string; q?: string },
@@ -38,7 +42,11 @@ export async function listTickets(
   return res.data;
 }
 
-/** Create a ticket in a project. */
+/**
+ * Create a ticket in a project.
+ * @param projectId - Project the ticket is created in.
+ * @param data - Ticket fields; only `title` is required, dates are ISO strings, `parentId` makes it a child ticket.
+ */
 export async function createTicket(
   projectId: string,
   data: {
@@ -64,7 +72,11 @@ export async function getTicket(ticketId: string): Promise<Ticket> {
   return res.data;
 }
 
-/** Update ticket fields. */
+/**
+ * Update ticket fields.
+ * @param ticketId - Ticket to update.
+ * @param data - Fields to change; omitted fields stay as is, `null` clears nullable fields.
+ */
 export async function updateTicket(
   ticketId: string,
   data: {
@@ -89,7 +101,11 @@ export async function updateTicket(
   return res.data;
 }
 
-/** Move a ticket to another status. */
+/**
+ * Move a ticket to another status.
+ * @param ticketId - Ticket to move.
+ * @param status - Target status column.
+ */
 export async function updateTicketStatus(ticketId: string, status: Status): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/status`, { status });
   return res.data;
@@ -130,7 +146,14 @@ export async function uploadAttachment(file: File): Promise<DebugAttachment> {
   return uploadAnyFile(file);
 }
 
-/** Absolute URL for a stored upload (the UI may be served from another origin). */
+/**
+ * Absolute URL for a stored upload (the UI may be served from another origin).
+ * @param url - Stored upload path; must start with `/uploads/`.
+ * @param downloadName - File name suggested to the browser (`name` query param).
+ * @param download - Force a download (attachment) instead of in-browser display.
+ * @param inline - Force inline display.
+ * @returns Absolute URL, or an empty string when `url` is empty or not an upload path.
+ */
 export function uploadUrl(url?: string | null, downloadName?: string, download?: boolean, inline?: boolean): string {
   if (!url || typeof url !== 'string' || !url.startsWith('/uploads/')) return '';
   const base = `${resolveOrigin()}${url}`;
@@ -151,70 +174,116 @@ export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
 }
 
 // Comments
-/** Add a comment to a ticket. */
+/**
+ * Add a comment to a ticket.
+ * @param ticketId - Ticket to comment on.
+ * @param text - Comment body (Markdown).
+ * @param author - Display name of the author.
+ */
 export async function addComment(ticketId: string, text: string, author = 'user'): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author });
   return res.data;
 }
 
-/** Edit a comment. */
+/**
+ * Edit a comment.
+ * @param ticketId - Ticket owning the comment.
+ * @param commentId - Comment to edit.
+ * @param text - New comment body.
+ */
 export async function updateComment(ticketId: string, commentId: string, text: string): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/comments/${commentId}`, { text });
   return res.data;
 }
 
-/** Delete a comment (restorable). */
+/**
+ * Delete a comment (restorable).
+ * @param ticketId - Ticket owning the comment.
+ * @param commentId - Comment to delete.
+ */
 export async function deleteComment(ticketId: string, commentId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/comments/${commentId}`);
   return res.data;
 }
 
-/** Restore a deleted comment. */
+/**
+ * Restore a deleted comment.
+ * @param ticketId - Ticket owning the comment.
+ * @param commentId - Previously deleted comment to restore.
+ */
 export async function restoreComment(ticketId: string, commentId: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/comments/${commentId}/restore`);
   return res.data;
 }
 
 // Acceptance criteria
-/** Add an acceptance criterion. */
+/**
+ * Add an acceptance criterion.
+ * @param ticketId - Ticket to add the criterion to.
+ * @param text - Criterion text.
+ */
 export async function addAcceptanceCriterion(ticketId: string, text: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/acceptance-criteria`, { text });
   return res.data;
 }
 
-/** Toggle an acceptance criterion. */
+/**
+ * Toggle an acceptance criterion.
+ * @param ticketId - Ticket owning the criterion.
+ * @param criterionId - Criterion whose done state is flipped.
+ */
 export async function toggleAcceptanceCriterion(ticketId: string, criterionId: string): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/acceptance-criteria/${criterionId}/toggle`);
   return res.data;
 }
 
-/** Delete an acceptance criterion. */
+/**
+ * Delete an acceptance criterion.
+ * @param ticketId - Ticket owning the criterion.
+ * @param criterionId - Criterion to delete.
+ */
 export async function deleteAcceptanceCriterion(ticketId: string, criterionId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/acceptance-criteria/${criterionId}`);
   return res.data;
 }
 
 // Sub-tasks (checklist items)
-/** Add a sub-task. */
+/**
+ * Add a sub-task.
+ * @param ticketId - Ticket to add the sub-task to.
+ * @param text - Sub-task text.
+ */
 export async function addSubTask(ticketId: string, text: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/sub-tasks`, { text });
   return res.data;
 }
 
-/** Toggle a sub-task. */
+/**
+ * Toggle a sub-task.
+ * @param ticketId - Ticket owning the sub-task.
+ * @param subTaskId - Sub-task whose done state is flipped.
+ */
 export async function toggleSubTask(ticketId: string, subTaskId: string): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/sub-tasks/${subTaskId}/toggle`);
   return res.data;
 }
 
-/** Delete a sub-task. */
+/**
+ * Delete a sub-task.
+ * @param ticketId - Ticket owning the sub-task.
+ * @param subTaskId - Sub-task to delete.
+ */
 export async function deleteSubTask(ticketId: string, subTaskId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/sub-tasks/${subTaskId}`);
   return res.data;
 }
 
 // Work log
-/** Add a work-log entry. */
+/**
+ * Add a work-log entry.
+ * @param ticketId - Ticket to log work on.
+ * @param data - Entry fields; `author`, `role` and `note` are required.
+ */
 export async function addWorkLog(
   ticketId: string,
   data: { author: string; role: WorkLogRole | string; note: string } & Partial<WorkLogEntry>,
@@ -223,39 +292,67 @@ export async function addWorkLog(
   return res.data;
 }
 
-/** Edit a work-log entry. */
+/**
+ * Edit a work-log entry.
+ * @param ticketId - Ticket owning the entry.
+ * @param entryId - Work-log entry to edit.
+ * @param data - Fields to change.
+ */
 export async function updateWorkLog(ticketId: string, entryId: string, data: Partial<WorkLogEntry>): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/work-log/${entryId}`, data);
   return res.data;
 }
 
-/** Delete a work-log entry. */
+/**
+ * Delete a work-log entry.
+ * @param ticketId - Ticket owning the entry.
+ * @param entryId - Work-log entry to delete.
+ */
 export async function deleteWorkLog(ticketId: string, entryId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/work-log/${entryId}`);
   return res.data;
 }
 
 // Test cases
-/** Add a test case. */
+/**
+ * Add a test case.
+ * @param ticketId - Ticket to add the test case to.
+ * @param title - Test case title.
+ * @param extra - Additional test case fields merged into the request.
+ */
 export async function addTestCase(ticketId: string, title: string, extra?: Partial<TestCase>): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/test-cases`, { title, ...extra });
   return res.data;
 }
 
-/** Update a test case. */
+/**
+ * Update a test case.
+ * @param ticketId - Ticket owning the test case.
+ * @param testCaseId - Test case to edit.
+ * @param data - Fields to change.
+ */
 export async function updateTestCase(ticketId: string, testCaseId: string, data: Partial<TestCase>): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`, data);
   return res.data;
 }
 
-/** Delete a test case. */
+/**
+ * Delete a test case.
+ * @param ticketId - Ticket owning the test case.
+ * @param testCaseId - Test case to delete.
+ */
 export async function deleteTestCase(ticketId: string, testCaseId: string): Promise<Ticket> {
   const res = await client.delete<Ticket>(`/tickets/${ticketId}/test-cases/${testCaseId}`);
   return res.data;
 }
 
 // Links
-/** Link two tickets with a relation type. */
+/**
+ * Link two tickets with a relation type.
+ * @param ticketId - Source ticket.
+ * @param targetId - Ticket being linked to.
+ * @param relationType - Kind of relation between the two tickets.
+ */
 export async function addTicketLink(
   ticketId: string,
   targetId: string,
@@ -268,7 +365,11 @@ export async function addTicketLink(
   return res.data;
 }
 
-/** Remove a ticket link. */
+/**
+ * Remove a ticket link.
+ * @param ticketId - Ticket owning the link.
+ * @param linkId - Link to remove.
+ */
 export async function removeTicketLink(ticketId: string, linkId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}/links/${linkId}`);
 }
@@ -280,7 +381,11 @@ export async function listBranches(ticketId: string): Promise<TicketBranch[]> {
   return res.data;
 }
 
-/** Add a branch to a ticket. */
+/**
+ * Add a branch to a ticket.
+ * @param ticketId - Ticket the branch is recorded on.
+ * @param data - Branch fields; `name` is required, `create_worktree` also creates a git worktree.
+ */
 export async function createBranch(
   ticketId: string,
   data: {
@@ -300,7 +405,12 @@ export async function createBranch(
   return res.data;
 }
 
-/** Update a branch. */
+/**
+ * Update a branch.
+ * @param ticketId - Ticket owning the branch.
+ * @param branchId - Branch to update.
+ * @param data - Fields to change; `remove_worktree` detaches the worktree.
+ */
 export async function updateBranch(
   ticketId: string,
   branchId: string,
@@ -310,7 +420,14 @@ export async function updateBranch(
   return res.data;
 }
 
-/** Delete a branch record. */
+/**
+ * Delete a branch record.
+ * @param ticketId - Ticket owning the branch.
+ * @param branchId - Branch to delete.
+ * @param opts.removeWorktree - Also remove the branch's git worktree.
+ * @param opts.deleteGitBranch - Also delete the git branch itself.
+ * @param opts.force - Delete even if the branch has unmerged work.
+ */
 export async function deleteBranch(
   ticketId: string,
   branchId: string,
@@ -324,19 +441,31 @@ export async function deleteBranch(
   return res.data;
 }
 
-/** Fetch the commit graph of the ticket's repo. */
+/**
+ * Fetch the commit graph of the ticket's repo.
+ * @param ticketId - Ticket whose repository graph is fetched.
+ * @param limit - Maximum number of commits returned.
+ */
 export async function getBranchGraph(ticketId: string, limit: number): Promise<BranchGraphData> {
   const res = await client.get<BranchGraphData>(`/tickets/${ticketId}/graph`, { params: { limit } });
   return res.data;
 }
 
-/** Fetch details of one commit. */
+/**
+ * Fetch details of one commit.
+ * @param ticketId - Ticket whose repository is queried.
+ * @param rev - Commit hash or revision to inspect.
+ */
 export async function getCommitDetail(ticketId: string, rev: string): Promise<CommitDetail> {
   const res = await client.get<CommitDetail>(`/tickets/${ticketId}/commits/${rev}`);
   return res.data;
 }
 
-/** Check out a ticket's branch in the linked repo. */
+/**
+ * Check out a ticket's branch in the linked repo.
+ * @param ticketId - Ticket owning the branch.
+ * @param branchId - Branch to check out.
+ */
 export async function checkoutBranch(ticketId: string, branchId: string): Promise<Ticket> {
   const res = await client.post<Ticket>(`/tickets/${ticketId}/branches/${branchId}/checkout`);
   return res.data;
@@ -361,7 +490,11 @@ export async function getTicketWorkspace(ticketId: string): Promise<TicketWorksp
   return res.data;
 }
 
-/** Set a ticket's workspace retention override. */
+/**
+ * Set a ticket's workspace retention override.
+ * @param ticketId - Ticket whose workspace is configured.
+ * @param retentionDays - Days to keep workspace files, or `null` for the default.
+ */
 export async function setTicketWorkspaceRetention(ticketId: string, retentionDays: number | null): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}/workspace/retention`, { retention_days: retentionDays });
   return res.data;
@@ -377,12 +510,21 @@ export async function openTicketWorkspace(ticketId: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/open`);
 }
 
-/** Create a folder in a ticket's workspace. */
+/**
+ * Create a folder in a ticket's workspace.
+ * @param ticketId - Ticket owning the workspace.
+ * @param path - Folder path relative to the workspace root.
+ */
 export async function createWorkspaceFolder(ticketId: string, path: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/folders`, { path });
 }
 
-/** Upload a file to a ticket's workspace. */
+/**
+ * Upload a file to a ticket's workspace.
+ * @param ticketId - Ticket owning the workspace.
+ * @param file - File to upload.
+ * @param directory - Target folder relative to the workspace root (root by default).
+ */
 export async function uploadWorkspaceFile(ticketId: string, file: File, directory = ''): Promise<void> {
   const formData = new FormData();
   formData.append('file', file);
@@ -390,12 +532,20 @@ export async function uploadWorkspaceFile(ticketId: string, file: File, director
   await client.post(`/tickets/${ticketId}/workspace/files`, formData);
 }
 
-/** Delete a file or folder from a ticket's workspace. */
+/**
+ * Delete a file or folder from a ticket's workspace.
+ * @param ticketId - Ticket owning the workspace.
+ * @param path - File or folder path relative to the workspace root.
+ */
 export async function deleteWorkspaceEntry(ticketId: string, path: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}/workspace/entry`, { params: { path } });
 }
 
-/** Fetch a text preview of a workspace file. */
+/**
+ * Fetch a text preview of a workspace file.
+ * @param ticketId - Ticket owning the workspace.
+ * @param path - File path relative to the workspace root.
+ */
 export async function getWorkspacePreview(ticketId: string, path: string): Promise<WorkspaceFilePreview> {
   const res = await client.get<WorkspaceFilePreview>(`/tickets/${ticketId}/workspace/file`, {
     params: { path },
@@ -403,7 +553,13 @@ export async function getWorkspacePreview(ticketId: string, path: string): Promi
   return res.data;
 }
 
-/** URL of a workspace file, usable in <img src> or as a download link. */
+/**
+ * URL of a workspace file, usable in <img src> or as a download link.
+ * @param ticketId - Ticket owning the workspace.
+ * @param path - File path relative to the workspace root.
+ * @param download - Request the file as a download instead of inline.
+ * @returns Absolute URL of the workspace file endpoint.
+ */
 export function workspaceFileUrl(ticketId: string, path: string, download = false): string {
   const qs = new URLSearchParams({ path });
   if (download) qs.set('download', 'true');
@@ -429,7 +585,11 @@ export const ticketKeys = {
 // Queries
 // ---------------------------------------------------------------------------
 
-/** Query a project's tickets. */
+/**
+ * Query a project's tickets.
+ * @param projectId - Project to load; the query is disabled while empty.
+ * @param params - Optional filters; part of the query key, previous results stay while a new filter loads.
+ */
 export function useTickets(projectId: string, params?: { status?: string; priority?: string; q?: string }) {
   return useQuery({
     queryKey: [...ticketKeys.all(projectId), params],
@@ -663,13 +823,23 @@ export function useRestoreTicket(projectId: string) {
 
 // Block / Blocked-by relationships
 
-/** Mark a ticket as blocking another. */
+/**
+ * Mark a ticket as blocking another.
+ * @param ticketId - Ticket that blocks.
+ * @param targetId - Ticket that becomes blocked.
+ * @returns Both updated tickets.
+ */
 export async function linkBlock(ticketId: string, targetId: string): Promise<{ blocker: Ticket; blocked: Ticket }> {
   const res = await client.post<{ blocker: Ticket; blocked: Ticket }>(`/tickets/${ticketId}/blocks/${targetId}`);
   return res.data;
 }
 
-/** Remove a blocks relation. */
+/**
+ * Remove a blocks relation.
+ * @param ticketId - Ticket that blocks.
+ * @param targetId - Ticket to unblock.
+ * @returns Both updated tickets.
+ */
 export async function unlinkBlock(ticketId: string, targetId: string): Promise<{ blocker: Ticket; blocked: Ticket }> {
   const res = await client.delete<{ blocker: Ticket; blocked: Ticket }>(`/tickets/${ticketId}/blocks/${targetId}`);
   return res.data;
@@ -774,7 +944,12 @@ export function useTicketWorkspace(ticketId: string) {
   });
 }
 
-/** Query a text preview of a workspace file. */
+/**
+ * Query a text preview of a workspace file.
+ * @param ticketId - Ticket owning the workspace.
+ * @param path - File path relative to the workspace root.
+ * @param enabled - Set false to skip fetching.
+ */
 export function useWorkspacePreview(ticketId: string, path: string, enabled = true) {
   return useQuery({
     queryKey: ['ticket_workspace', ticketId, 'preview', path],
@@ -800,7 +975,11 @@ export function useUpdateWorkspaceSettings() {
   });
 }
 
-/** Run a workspace mutation and refresh that ticket's file listing afterwards. */
+/**
+ * Run a workspace mutation and refresh that ticket's file listing afterwards.
+ * @param ticketId - Ticket whose workspace queries are invalidated after the action settles.
+ * @param fn - Workspace operation to run as the mutation.
+ */
 export function useWorkspaceAction<TVars>(ticketId: string, fn: (vars: TVars) => Promise<void>) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -833,7 +1012,11 @@ export function useTicketBranches(ticketId: string) {
   });
 }
 
-/** Query the commit graph of the ticket's repo. */
+/**
+ * Query the commit graph of the ticket's repo.
+ * @param ticketId - Ticket whose graph is loaded; disabled while empty.
+ * @param limit - Maximum number of commits.
+ */
 export function useBranchGraph(ticketId: string, limit: number) {
   return useQuery({
     // shares the ['ticket_branches', ticketId] prefix so branch mutations refresh it too
@@ -844,7 +1027,11 @@ export function useBranchGraph(ticketId: string, limit: number) {
   });
 }
 
-/** Query details of one commit (disabled while `rev` is null). */
+/**
+ * Query details of one commit (disabled while `rev` is null).
+ * @param ticketId - Ticket whose repository is queried.
+ * @param rev - Commit to load; the query is disabled while `null`.
+ */
 export function useCommitDetail(ticketId: string, rev: string | null) {
   return useQuery({
     queryKey: ['ticket_branches', ticketId, 'commit', rev],

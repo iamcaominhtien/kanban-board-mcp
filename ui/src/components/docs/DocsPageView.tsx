@@ -40,7 +40,23 @@ function initials(actor: string): string {
 
 const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: 'nowrap' } as const;
 
-/** Read view of a page: header, content, "On this page" and "Referenced by". */
+/**
+ * Read view of a page: header, content, "On this page" and "Referenced by".
+ * @param props.page - Page to show.
+ * @param props.projectId - Project the page belongs to.
+ * @param props.projectName - Space name shown in the header.
+ * @param props.narrow - Use the compact layout (no side panel).
+ * @param props.offline - Set when showing a saved copy while offline; editing is off.
+ * @param props.onTryAgain - Called to retry loading the live page.
+ * @param props.onAction - Called with the chosen page menu action.
+ * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
+ * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
+ * @param props.onCompare - Called with two version numbers to open their diff.
+ * @param props.onCreatePage - Called with a title when a missing page reference is created.
+ * @param props.onRestorePage - Called with a page id when a deleted referenced page is restored.
+ * @param props.onReplaceSection - Called when a stale section reference is replaced.
+ * @param props.onBodyRef - Receives the element holding the rendered body (for find-in-page).
+ */
 export function DocsPageView({
   page,
   projectId,

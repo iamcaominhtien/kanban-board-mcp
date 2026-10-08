@@ -28,7 +28,13 @@ export interface StatusMenuProps {
   compact?: boolean;
 }
 
-/** Dropdown to change a ticket's status. */
+/**
+ * Dropdown to change a ticket's status.
+ * @param props.value - Current status.
+ * @param props.onChange - Called with the newly selected status.
+ * @param props.disabled - Disable the dropdown.
+ * @param props.compact - Small pill for list rows; the menu opens right-aligned.
+ */
 export const StatusMenu: React.FC<StatusMenuProps> = ({
   value,
   onChange,

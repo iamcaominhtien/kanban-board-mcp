@@ -62,7 +62,15 @@ interface SubTicketsSectionProps {
   onUnlinkChild: (childId: string) => void;
 }
 
-/** Ticket's sub-tickets and sub-tasks. */
+/**
+ * Ticket's sub-tickets and sub-tasks.
+ * @param props.childTickets - Tickets already linked as children.
+ * @param props.allTickets - All project tickets, offered as link candidates.
+ * @param props.currentTicketId - Parent ticket, excluded from the candidates.
+ * @param props.onOpenTicket - Called with a child ticket when it is opened.
+ * @param props.onLinkChild - Called with the id of a ticket to attach as a child.
+ * @param props.onUnlinkChild - Called with the id of a child to detach.
+ */
 export function SubTicketsSection({
   childTickets,
   allTickets,

@@ -29,7 +29,11 @@ function cellIndexOf(dom: HTMLElement | null): { col: number; row: number } | nu
   return { col: cell.cellIndex, row: (cell.parentElement as HTMLTableRowElement).rowIndex };
 }
 
-/** Column/row grips, insert handles and the cell toolbar for the table that holds the caret (board G). */
+/**
+ * Column/row grips, insert handles and the cell toolbar for the table that holds the caret (board G).
+ * @param props.editor - Tiptap editor holding the table.
+ * @param props.hostRef - Container the controls are positioned in.
+ */
 export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: RefObject<HTMLDivElement> }) {
   const [geo, setGeo] = useState<Geo | null>(null);
   const [tip, setTip] = useState<string | null>(null);

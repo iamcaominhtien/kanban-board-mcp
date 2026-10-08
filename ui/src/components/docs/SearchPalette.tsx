@@ -59,7 +59,12 @@ function saveRecentSearch(q: string) {
   writeJson(RECENT_SEARCHES, [t, ...getRecentSearches().filter((s) => s !== t)].slice(0, 8));
 }
 
-/** Call whenever a page is viewed; feeds "Recently viewed" in the palette (localStorage `docsRecentPages:<projectId>`). */
+/**
+ * Call whenever a page is viewed; feeds "Recently viewed" in the palette (localStorage `docsRecentPages:<projectId>`).
+ * @param projectId - Project the page belongs to.
+ * @param pageId - Viewed page.
+ * @param title - Page title shown in "Recently viewed".
+ */
 export function rememberDocsPage(projectId: string, pageId: string, title: string) {
   const list = readJson<RecentDocsPage[]>(recentPagesKey(projectId), []);
   writeJson(
@@ -143,7 +148,17 @@ const hint = (keys: ReactNode, label: string) => (
   </span>
 );
 
-/** Ctrl/Cmd+K search palette. */
+/**
+ * Ctrl/Cmd+K search palette.
+ * @param props.pageId - Currently open page; enables the "This page" scope.
+ * @param props.onClose - Called to close the palette.
+ * @param props.onOpenPage - Called with page id and optional anchor for a picked page or section.
+ * @param props.onOpenTicket - Called with a ticket id for a picked ticket.
+ * @param props.onOpenResults - Called with the query to open the full results.
+ * @param props.onCreatePage - Called with a title; adds a "Create page" row when nothing was found.
+ * @param props.onFilterTree - Called with the query; adds "Filter the tree instead" in the error state.
+ * @param props.initialQuery - Query typed when the palette opens.
+ */
 export function SearchPalette({
   projectId,
   projectName,

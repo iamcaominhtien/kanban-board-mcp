@@ -225,7 +225,12 @@ function plain(md: string): string {
     .trim();
 }
 
-/** Return the opening text of a page or of one section. */
+/**
+ * Return the opening text of a page or of one section.
+ * @param markdown - Page Markdown.
+ * @param anchor - Section slug; when found, the excerpt is that section's text.
+ * @returns Plain text of the section, else the page opening text (headings removed, up to 320 chars).
+ */
 export function excerptOf(markdown: string, anchor?: string | null): string {
   if (anchor) {
     const lines = markdown.split('\n');
@@ -261,7 +266,11 @@ function levenshtein(a: string, b: string): number {
   return dp[a.length][b.length];
 }
 
-/** Return the heading that best matches `wanted`, or null. */
+/**
+ * Return the heading that best matches `wanted`, or null.
+ * @param headings - Headings of the page.
+ * @param wanted - Heading text or slug to look for.
+ */
 export function closestHeading(headings: DocsHeading[], wanted: string): DocsHeading | null {
   const w = slugify(wanted);
   let best: DocsHeading | null = null;

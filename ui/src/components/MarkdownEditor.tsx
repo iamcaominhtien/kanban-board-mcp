@@ -49,7 +49,23 @@ interface Props {
   docsProjectId?: string;
 }
 
-/** WYSIWYG Markdown editor for ticket fields, with `[[` references. */
+/**
+ * WYSIWYG Markdown editor for ticket fields, with `[[` references.
+ * @param props.value - Current Markdown.
+ * @param props.onChange - Called with the Markdown on every edit.
+ * @param props.onBlur - Called with the Markdown when the editor loses focus.
+ * @param props.onSubmit - Called when the submit shortcut is used.
+ * @param props.onCancel - Called when editing is cancelled (Escape).
+ * @param props.onUploadImage - Uploads a pasted or dropped image and resolves to the Markdown to insert.
+ * @param props.onUploadFile - Uploads a non-image file and resolves to the Markdown to insert, plus optional url and name.
+ * @param props.onUploadComplete - Called with the Markdown after an upload has been inserted.
+ * @param props.readOnly - Show rendered Markdown only, no editing.
+ * @param props.startInEditMode - Open directly in edit mode.
+ * @param props.disableClickOutside - Do not leave edit mode on an outside click.
+ * @param props.compact - Use the compact layout.
+ * @param props.actions - Extra controls rendered next to the editor.
+ * @param props.docsProjectId - When set, typing `[[` offers pages and sections of this project's docs.
+ */
 export function MarkdownEditor({
   value,
   onChange,

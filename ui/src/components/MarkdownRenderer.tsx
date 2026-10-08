@@ -106,7 +106,13 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
   );
 }
 
-/** Render Markdown with callouts, images, file cards and doc-reference pills. */
+/**
+ * Render Markdown with callouts, images, file cards and doc-reference pills.
+ * @param props.children - Markdown source.
+ * @param props.docs - Options for resolving doc references.
+ * @param props.plain - Never turn references into pills (e.g. raw previews).
+ * @param props.inline - Render a single line inline: paragraphs are unwrapped.
+ */
 export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: MarkdownRendererProps) {
   const Wrapper = (inline ? 'span' : 'div') as 'div';
   const refs = useDocsRefs();

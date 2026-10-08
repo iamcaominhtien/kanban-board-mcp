@@ -23,7 +23,11 @@ export async function createProject(data: { name: string; prefix: string; color:
   return res.data;
 }
 
-/** Update a project. */
+/**
+ * Update a project.
+ * @param id - Project to update.
+ * @param data - Fields to change; omitted fields stay as is, nullable fields accept `null` to clear.
+ */
 export async function updateProject(
   id: string,
   data: {

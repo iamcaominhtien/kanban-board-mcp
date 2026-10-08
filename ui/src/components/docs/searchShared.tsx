@@ -9,7 +9,10 @@ export function safeSnippet(html: string): string {
   return html.replace(/<(?!\/?mark>)/g, '&lt;');
 }
 
-/** Render a sanitized search snippet that keeps its `<mark>` highlights. */
+/**
+ * Render a sanitized search snippet that keeps its `<mark>` highlights.
+ * @param props.html - Snippet HTML; sanitized before rendering.
+ */
 export function Snip({ html, style, className }: { html: string; style?: CSSProperties; className?: string }) {
   return (
     <div
@@ -20,7 +23,12 @@ export function Snip({ html, style, className }: { html: string; style?: CSSProp
   );
 }
 
-/** Wraps case-insensitive occurrences of the query words in <mark>. */
+/**
+ * Wraps case-insensitive occurrences of the query words in <mark>.
+ * @param text - Text to scan.
+ * @param q - Search query; its terms and phrases are wrapped.
+ * @returns `text` unchanged when no term is found, else nodes with matches in `<mark>`.
+ */
 export function highlight(text: string, q: string): ReactNode {
   const { terms, phrases } = parseSearchQuery(q);
   const needles = [...terms, ...phrases].filter(Boolean).sort((a, b) => b.length - a.length);
@@ -72,7 +80,10 @@ export function avatarFor(name: string): { bg: string; fg: string; text: string 
   return { bg, fg, text };
 }
 
-/** Round avatar with initials. */
+/**
+ * Round avatar with initials.
+ * @param props.size - Diameter in px.
+ */
 export function Avatar({ name, size = 20 }: { name: string; size?: number }) {
   const a = avatarFor(name);
   return (
@@ -120,7 +131,11 @@ export const statusDot = (s: string) => STATUS_DOT[s] ?? '#9AA8A0';
 /** Return the label of a ticket status. */
 export const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
-/** Colored dot for a ticket status. */
+/**
+ * Colored dot for a ticket status.
+ * @param props.status - Ticket status that picks the color.
+ * @param props.size - Diameter in px.
+ */
 export function StatusDot({ status, size = 8 }: { status: string; size?: number }) {
   return (
     <span

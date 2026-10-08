@@ -30,7 +30,11 @@ export function displayName(name: string): string {
   return name === 'agent' ? 'AI agent' : name === 'user' ? 'You' : name;
 }
 
-/** Round avatar with initials. */
+/**
+ * Round avatar with initials.
+ * @param props.name - Author name; initials and color derive from it.
+ * @param props.size - Diameter in px.
+ */
 export function Avatar({ name, size = 18 }: { name: string; size?: number }) {
   let h = 0;
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -61,7 +65,11 @@ export function Avatar({ name, size = 18 }: { name: string; size?: number }) {
 export function fmtDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
-/** Format as "Oct 8", with the year when `year` is set. */
+/**
+ * Format as "Oct 8", with the year when `year` is set.
+ * @param iso - ISO timestamp.
+ * @param year - Append the year.
+ */
 export function fmtDate(iso: string, year = false): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -86,7 +94,12 @@ export function agoText(iso: string): string {
   return fmtDate(iso);
 }
 
-/** Return "1 page" / "2 pages" style text. */
+/**
+ * Return "1 page" / "2 pages" style text.
+ * @param n - Count.
+ * @param one - Singular noun.
+ * @param many - Plural noun; defaults to `one` plus "s".
+ */
 export function plural(n: number, one: string, many?: string): string {
   return `${n} ${n === 1 ? one : (many ?? `${one}s`)}`;
 }
@@ -146,7 +159,20 @@ interface ModalShellProps {
   testId?: string;
 }
 
-/** Centered dialog with the board's scrim, header (icon badge, title, subtitle, close) and grey footer. */
+/**
+ * Centered dialog with the board's scrim, header (icon badge, title, subtitle, close) and grey footer.
+ * @param props.width - Dialog width in px.
+ * @param props.ariaLabel - Accessible label of the dialog.
+ * @param props.title - Header title.
+ * @param props.subtitle - Text under the title.
+ * @param props.icon - Icon id for the round badge left of the title; omit for none.
+ * @param props.iconTone - Badge color.
+ * @param props.onClose - Called on close button, scrim click or Esc.
+ * @param props.footer - Content of the grey footer.
+ * @param props.bodyStyle - Style overrides for the body.
+ * @param props.zIndex - Stacking order of the scrim.
+ * @param props.testId - `data-testid` of the dialog.
+ */
 export function ModalShell({
   width,
   ariaLabel,
@@ -263,7 +289,12 @@ export function Spacer() {
   return <div style={{ flex: 1 }} />;
 }
 
-/** `+12 −3` pair in mono, green / red. */
+/**
+ * `+12 −3` pair in mono, green / red.
+ * @param props.added - Added line count.
+ * @param props.removed - Removed line count.
+ * @param props.size - Font size in px.
+ */
 export function PlusMinus({ added, removed, size = 12 }: { added: number; removed: number; size?: number }) {
   return (
     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: size }}>

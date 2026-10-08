@@ -12,6 +12,9 @@ interface LoadingPillProps {
 /**
  * Status pill in a reserved row (so it never pushes the top bar). The live region is always
  * present and only its content changes, so screen readers announce it once.
+ * @param props.state - Pill state; `hidden` fades the pill out.
+ * @param props.what - What is loading, e.g. "projects" gives "Loading projects...".
+ * @param props.onRetry - Called by the retry action when loading failed.
  */
 export function LoadingPill({ state, what, onRetry }: LoadingPillProps) {
   const [shown, setShown] = useState<PillState>(state);

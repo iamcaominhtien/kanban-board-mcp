@@ -116,6 +116,11 @@ interface Props {
 /**
  * One suggester for every text field: `[[` pages, `#` sections of the chosen page, `KAN-` tickets and
  * `@` members. The menu opens under the caret, or above it when there is no room (design: TicketDocRefs D).
+ * @param props.targetRef - Field the suggester listens to: a contentEditable editor, a textarea or a single-line input.
+ * @param props.projectId - Project whose pages and tickets are suggested.
+ * @param props.keyPrefix - Ticket prefix (e.g. `KAN`): typing `KAN-` offers tickets.
+ * @param props.members - Members offered after `@` (comment composer).
+ * @param props.onChanged - Called after a pick rewrote the field.
  */
 export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChanged }: Props) {
   const [state, setState] = useState<Open | null>(null);
@@ -566,7 +571,11 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
   );
 }
 
-/** The suggester wired to the surrounding ticket (project and ticket prefix come from the context). */
+/**
+ * The suggester wired to the surrounding ticket (project and ticket prefix come from the context).
+ * @param props.targetRef - Field the suggester listens to.
+ * @param props.onChanged - Called after a pick rewrote the field.
+ */
 export function TicketRefSuggester({
   targetRef,
   onChanged,

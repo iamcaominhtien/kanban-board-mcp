@@ -23,7 +23,13 @@ interface CreateBranchModalProps {
   hasRepoLinked?: boolean;
 }
 
-/** Expand the worktree path template for a project, ticket and branch. */
+/**
+ * Expand the worktree path template for a project, ticket and branch.
+ * @param template - Path template with `{project}`, `{ticket_id}`, `{ticket}`, `{branch}`, `{repo}`; blank uses the built-in default.
+ * @param projectPrefix - Replaces `{project}` (placeholder `PROJ` when empty).
+ * @param ticketId - Replaces `{ticket_id}` and `{ticket}` (placeholder `TICKET` when empty).
+ * @param branchName - Replaces `{branch}` with `/` turned into `-`.
+ */
 export function computeDefaultWorktreePath(
   template: string | null | undefined,
   projectPrefix: string = '',
@@ -40,7 +46,18 @@ export function computeDefaultWorktreePath(
     .replace(/\{repo\}/g, 'repo');
 }
 
-/** Dialog to create a branch for a ticket, optionally with a worktree. */
+/**
+ * Dialog to create a branch for a ticket, optionally with a worktree.
+ * @param props.isOpen - Whether the dialog is shown.
+ * @param props.onClose - Called to dismiss the dialog.
+ * @param props.branches - Existing branches offered as the base branch.
+ * @param props.initialBranchFrom - Base branch preselected on open.
+ * @param props.onSuccess - Called with the new branch name after it is created.
+ * @param props.defaultWorktreeTemplate - Project worktree path template.
+ * @param props.defaultWorktreeEnabled - Whether "create worktree" starts checked.
+ * @param props.projectPrefix - Project key prefix used in the worktree path.
+ * @param props.hasRepoLinked - False when the project has no repository; worktree options are then unavailable.
+ */
 export function CreateBranchModal({
   isOpen,
   onClose,

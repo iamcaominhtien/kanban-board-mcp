@@ -37,7 +37,16 @@ const ORIGIN_WORDS: Record<string, string> = {
   manual: 'manual link',
 };
 
-/** The 480px read-only preview that slides over the ticket modal when a pill is clicked. */
+/**
+ * The 480px read-only preview that slides over the ticket modal when a pill is clicked.
+ * @param props.target - Page and optional anchor being previewed.
+ * @param props.projectId - Project the page belongs to.
+ * @param props.ticketId - Ticket the panel was opened from.
+ * @param props.onSwitch - Called with a new target when a link inside the preview is followed.
+ * @param props.onClose - Called to dismiss the panel.
+ * @param props.onOpenInDocs - Called with page id and anchor to open the page in the Docs view.
+ * @param props.onOpenTicket - Called with a ticket id when a ticket pill is clicked.
+ */
 export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, onOpenInDocs, onOpenTicket }: Props) {
   const toast = useToast();
   const { data: page, isLoading, isError, refetch } = useDocsPage(target.hint?.deleted ? null : target.pageId);

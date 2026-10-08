@@ -546,7 +546,11 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-/** Timeline of tickets over time. */
+/**
+ * Timeline of tickets over time.
+ * @param props.projectId - Project the timeline belongs to.
+ * @param props.onCardClick - Called with the clicked ticket.
+ */
 export function TimelineView({ tickets, projectId, onCardClick }: TimelineViewProps) {
   const [subMode, setSubMode] = useState<SubMode>('gantt');
 

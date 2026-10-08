@@ -11,7 +11,15 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-/** The 56px icon rail used below 1200 px or when the tree is collapsed: one icon per root page, hover flyout per folder. */
+/**
+ * The 56px icon rail used below 1200 px or when the tree is collapsed: one icon per root page, hover flyout per folder.
+ * @param props.nodes - Page tree; root pages become icons.
+ * @param props.selectedId - Currently open page id.
+ * @param props.onExpand - Called to expand the full tree.
+ * @param props.onSearch - Called to open search.
+ * @param props.onNewPage - Called with the parent page id, or `null` for a root page.
+ * @param props.onSelect - Called with the id of the selected page.
+ */
 export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onSelect }: Props) {
   const roots = useMemo(
     () =>

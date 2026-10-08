@@ -31,7 +31,11 @@ async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
-/** Popover to copy a page link. */
+/**
+ * Popover to copy a page link.
+ * @param props.page - Page whose link is copied.
+ * @param props.onClose - Called to dismiss the popover.
+ */
 export function SharePopover({ page, onClose }: SharePopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState<'link' | 'ref' | null>(null);

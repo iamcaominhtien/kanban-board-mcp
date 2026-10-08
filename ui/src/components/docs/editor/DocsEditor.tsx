@@ -73,7 +73,25 @@ const EMIT_MS = 180;
 // which tears down the "/" and "[[" suggestion views while they are open
 const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
 
-/** Tiptap WYSIWYG editor that reads and writes Markdown. */
+/**
+ * Tiptap WYSIWYG editor that reads and writes Markdown.
+ * @param props.projectId - Project used to resolve references.
+ * @param props.markdown - Markdown to edit; external changes reload the editor.
+ * @param props.mode - Visual (WYSIWYG) or Markdown source view.
+ * @param props.onChange - Called with the Markdown after edits (debounced).
+ * @param props.nodes - Page tree, used for `[[` suggestions.
+ * @param props.currentPageId - Page being edited.
+ * @param props.pageTitle - Title of the page being edited.
+ * @param props.filename - File name shown in the Markdown view.
+ * @param props.header - Rendered at the top of the content column (title field etc.).
+ * @param props.toc - Right rail: undefined for the built-in "On this page", `null` for none, or a custom node.
+ * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
+ * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
+ * @param props.onBlur - Called when the editor loses focus.
+ * @param props.onUserInput - Called on the first real keystroke, paste or drop (tells edits from load-time normalisation).
+ * @param props.readOnly - Disable editing.
+ * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
+ */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
   {
     projectId,

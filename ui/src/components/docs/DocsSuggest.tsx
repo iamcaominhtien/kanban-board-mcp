@@ -3,7 +3,12 @@ import { useDocsSuggest } from '../../api/docsActions';
 import type { DocsSuggestItem } from '../../types/docsActions';
 import { Icon } from './Icon';
 
-/** Query text in bold green inside a title. */
+/**
+ * Query text in bold green inside a title.
+ * @param text - Title to render.
+ * @param query - Text to emphasise (first case-insensitive occurrence).
+ * @returns `text` unchanged when `query` is blank or not found, else the text with the match in bold.
+ */
 export function boldMatch(text: string, query: string): ReactNode {
   const q = query.trim();
   const at = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
@@ -22,7 +27,15 @@ function subLine(item: DocsSuggestItem): string {
   return item.path.length > 1 ? item.path.join(' › ') : (item.path[0] ?? '');
 }
 
-/** The pages-and-sections rows shared by the `[[` suggester and the "Link a doc" popover. */
+/**
+ * The pages-and-sections rows shared by the `[[` suggester and the "Link a doc" popover.
+ * @param props.items - Pages and sections to list.
+ * @param props.active - Index of the keyboard-highlighted row.
+ * @param props.query - Current query, emphasised in titles.
+ * @param props.onPick - Called with the picked item.
+ * @param props.onHover - Called with a row index on mouse hover.
+ * @param props.loading - Show a loading row.
+ */
 export function SuggestRows({
   items,
   active,
@@ -120,6 +133,9 @@ const OPEN = /\[\[([^[\]\n|]{0,60})$/;
 /**
  * Typing `[[` in a contentEditable editor opens a popover of pages and sections; picking one
  * replaces the typed text with `[[Page]]` or `[[Page#Section]]`.
+ * @param props.editorRef - Editable element of the host editor.
+ * @param props.projectId - Project whose pages are suggested.
+ * @param props.onChanged - Called after the suggester rewrote text in the editor, so the host can sync its value.
  */
 export function DocLinkSuggester({ editorRef, projectId, onChanged }: DocLinkSuggesterProps) {
   const [state, setState] = useState<{ query: string; x: number; y: number } | null>(null);

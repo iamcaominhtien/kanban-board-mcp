@@ -1,4 +1,8 @@
-/** Compare two "major.minor.patch" versions. Returns <0, 0 or >0. Non-numeric parts count as 0. */
+/**
+ * Compare two "major.minor.patch" versions. Returns <0, 0 or >0. Non-numeric parts count as 0.
+ * @param a - First version, optional leading `v`.
+ * @param b - Version compared against.
+ */
 export function compareSemver(a: string, b: string): number {
   const parse = (v: string) =>
     v

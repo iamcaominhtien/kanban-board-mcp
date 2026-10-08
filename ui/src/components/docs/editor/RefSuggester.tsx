@@ -73,7 +73,15 @@ function Highlight({ text, q }: { text: string; q: string }) {
   );
 }
 
-/** The "[[" suggester (DocsEditor board H, DocsRefs board A): pages, then #sections, then KAN- tickets. */
+/**
+ * The "[[" suggester (DocsEditor board H, DocsRefs board A): pages, then #sections, then KAN- tickets.
+ * @param props.host - Menu host that routes keyboard events to the menu.
+ * @param props.state - Current suggester state (query, position).
+ * @param props.nodes - Page tree, source of page and section suggestions.
+ * @param props.tickets - Tickets offered after the `KAN-` trigger.
+ * @param props.currentPageId - Page being edited, to offer its own sections.
+ * @param props.onClose - Called to dismiss the menu.
+ */
 export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClose }: Props) {
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);

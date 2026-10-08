@@ -88,7 +88,15 @@ interface CardProps {
   onOpenDocs: () => void;
 }
 
-/** Page or section hover card on a pill inside a ticket (design: TicketDocRefs B). */
+/**
+ * Page or section hover card on a pill inside a ticket (design: TicketDocRefs B).
+ * @param props.pageId - Referenced page.
+ * @param props.anchor - Referenced section anchor, or `null` for the whole page.
+ * @param props.arrowLeft - Horizontal position of the card arrow in px.
+ * @param props.flipped - Card sits above the pill instead of below.
+ * @param props.onPeek - Called to open the side preview.
+ * @param props.onOpenDocs - Called to open the page in the Docs view.
+ */
 export function TicketPageCard({ pageId, anchor, arrowLeft, flipped, onPeek, onOpenDocs }: CardProps) {
   const { data: page, isError, refetch, isFetching } = useDocsPage(pageId);
   // a card never stays on a spinner: after 4 s the loading card turns into the failed card
@@ -385,7 +393,16 @@ function Loaded({
   );
 }
 
-/** Card for a pill whose page sits in the Recycle Bin. */
+/**
+ * Card for a pill whose page sits in the Recycle Bin.
+ * @param props.arrowLeft - Horizontal position of the card arrow in px.
+ * @param props.flipped - Card sits above the pill instead of below.
+ * @param props.canRestore - Show the Restore action.
+ * @param props.deletedBy - Who deleted the page.
+ * @param props.deletedAt - ISO time of deletion.
+ * @param props.onRestore - Called to restore the page.
+ * @param props.onOpenBin - Called to open the Recycle Bin.
+ */
 export function TicketDeletedCard({
   arrowLeft,
   flipped,

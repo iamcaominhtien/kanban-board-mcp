@@ -67,7 +67,22 @@ function highlight(text: string, q: string): ReactNode {
   );
 }
 
-/** Page tree with drag-to-reorder, filter, rename and row menu. */
+/**
+ * Page tree with drag-to-reorder, filter, rename and row menu.
+ * @param props.nodes - Flat page tree nodes.
+ * @param props.selectedId - Currently open page id.
+ * @param props.loadingId - Page whose content is loading (row spinner).
+ * @param props.onSelect - Called with the id of the clicked page.
+ * @param props.onNewPage - Called with the parent page id, or `null` for a root page.
+ * @param props.onRequestRename - Called with the node and typed title; the lead decides between a plain rename and the rewrite-links dialog.
+ * @param props.renamingId - Page being renamed inline (controlled), or `null`.
+ * @param props.onRenamingChange - Called to start or stop inline rename.
+ * @param props.onMove - Called with moved id, new parent and the siblings before and after it; a returned promise keeps the row spinner on while saving.
+ * @param props.onCollapse - Called to collapse the tree.
+ * @param props.renderMenu - Renders the row "···" menu content; `close` dismisses the menu.
+ * @param props.onOpenSearch - Called with the filter text on Enter or "Search page content".
+ * @param props.headerExtra - Slot in the header next to the collapse button.
+ */
 export function DocsTree({
   projectId,
   projectName,

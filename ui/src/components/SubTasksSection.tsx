@@ -9,7 +9,12 @@ interface SubTasksSectionProps {
   onDelete: (id: string) => void;
 }
 
-/** Lightweight checklist inside a ticket. Real child tickets live in SubTicketsSection. */
+/**
+ * Lightweight checklist inside a ticket. Real child tickets live in SubTicketsSection.
+ * @param props.onAdd - Called with the text of a new sub-task.
+ * @param props.onToggle - Called with the id of the sub-task whose done state is flipped.
+ * @param props.onDelete - Called with the id of the sub-task to delete.
+ */
 export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTasksSectionProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newText, setNewText] = useState('');

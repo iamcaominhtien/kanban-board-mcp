@@ -21,7 +21,10 @@ interface WorkLogSectionProps {
   onAdd: (entry: Omit<WorkLogEntry, 'id'>) => void;
 }
 
-/** Read-only work-log entries with an add form. */
+/**
+ * Read-only work-log entries with an add form.
+ * @param props.onAdd - Called with the new entry (without id).
+ */
 export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
   const [author, setAuthor] = useState('');
   const [role, setRole] = useState<WorkLogEntry['role']>('Developer');
