@@ -10,6 +10,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [2.3.1] - 2026-10-08
+
+### Added
+- **MCP `get_ticket`** now returns `files`: every uploaded image or file the ticket mentions (description, comments, work log, attachments) with its absolute `path` on the server's disk, so an AI running next to the server can read it.
+
+### Changed
+- **Docs**: an unpublished page (for example one just imported from Markdown) now shows a read-only preview of its draft under the "not published yet" notice, instead of hiding the content.
+- **Docs editor**: the callout type chip (Info / Warning / Success) also appears on hover, not only for the callout that holds the cursor.
+
+### Fixed
+- **Docs reader**: `> [!SUCCESS]`, `[!OK]` and `[!WARN]` callouts rendered as plain quotes with the marker text; they now render as green / amber callouts.
+
+---
+
 ## [2.3.0] - 2026-10-06
 
 Docs space: a per-project page tree with a real WYSIWYG editor (Tiptap) that still stores Markdown, built from the Docs design boards; doc references and a rebuilt Comments section inside tickets; full MCP coverage. Mobile layout and roles / access requests are intentionally not part of this release.
