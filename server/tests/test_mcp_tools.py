@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-import mcp_tools
+from kanban_mcp import common, operations as ops
 from database import async_session as real_async_session
 
 DATABASE_URL_TEST = "sqlite+aiosqlite:///:memory:"
@@ -21,9 +21,9 @@ test_async_session = sessionmaker(
 async def setup_db(monkeypatch):
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-    monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
+    monkeypatch.setattr(common, "async_session", test_async_session)
     yield
-    monkeypatch.setattr(mcp_tools, "async_session", real_async_session)
+    monkeypatch.setattr(common, "async_session", real_async_session)
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
@@ -42,7 +42,7 @@ async def _seed_project(name: str = "Test", prefix: str | None = None) -> dict:
             + "".join(c for c in str(uuid.uuid4()).replace("-", "") if c.isalnum())[:3]
         ).upper()
     )
-    return await mcp_tools.create_project(name=name, prefix=prefix, color="#aabbcc")
+    return await ops.create_project(name=name, prefix=prefix, color="#aabbcc")
 
 
 # ---------------------------------------------------------------------------
@@ -51,13 +51,13 @@ async def _seed_project(name: str = "Test", prefix: str | None = None) -> dict:
 
 
 async def test_list_projects_returns_list():
-    result = await mcp_tools.list_projects()
+    result = await ops.list_projects()
     assert isinstance(result, list)
 
 
 async def test_list_projects_shows_created_project():
     await _seed_project(name="Alpha", prefix="ALPHA")
-    result = await mcp_tools.list_projects()
+    result = await ops.list_projects()
     assert any(p["prefix"] == "ALPHA" for p in result)
 
 
@@ -67,9 +67,7 @@ async def test_list_projects_shows_created_project():
 
 
 async def test_create_project_returns_correct_fields():
-    result = await mcp_tools.create_project(
-        name="My App", prefix="MYAPP", color="#ff0000"
-    )
+    result = await ops.create_project(name="My App", prefix="MYAPP", color="#ff0000")
     assert result["name"] == "My App"
     assert result["prefix"] == "MYAPP"
     assert result["color"] == "#ff0000"
@@ -78,7 +76,7 @@ async def test_create_project_returns_correct_fields():
 
 
 async def test_create_project_uppercases_prefix():
-    result = await mcp_tools.create_project(name="Lower", prefix="low")
+    result = await ops.create_project(name="Lower", prefix="low")
     assert result["prefix"] == "LOW"
 
 
@@ -89,7 +87,7 @@ async def test_create_project_uppercases_prefix():
 
 async def test_create_ticket_appears_in_list_tickets():
     project = await _seed_project(prefix="LTST")
-    ticket = await mcp_tools.create_ticket(
+    ticket = await ops.create_ticket(
         project_id=project["id"],
         title="My first ticket",
         type="task",
@@ -98,7 +96,7 @@ async def test_create_ticket_appears_in_list_tickets():
     assert ticket["title"] == "My first ticket"
     assert ticket["id"].startswith("LTST-")
 
-    listing = await mcp_tools.list_tickets(project_id=project["id"])
+    listing = await ops.list_tickets(project_id=project["id"])
     assert (
         listing["total"] == 1 and listing["count"] == 1 and listing["has_more"] is False
     )
@@ -107,15 +105,15 @@ async def test_create_ticket_appears_in_list_tickets():
 
 async def test_list_tickets_filter_by_status():
     project = await _seed_project(prefix="FILT")
-    await mcp_tools.create_ticket(
+    await ops.create_ticket(
         project_id=project["id"], title="In progress ticket", status="in-progress"
     )
-    await mcp_tools.create_ticket(
+    await ops.create_ticket(
         project_id=project["id"], title="Backlog ticket", status="backlog"
     )
 
     in_progress = (
-        await mcp_tools.list_tickets(project_id=project["id"], status="in-progress")
+        await ops.list_tickets(project_id=project["id"], status="in-progress")
     )["tickets"]
     assert all(t["status"] == "in-progress" for t in in_progress)
     assert len(in_progress) == 1
@@ -128,8 +126,8 @@ async def test_list_tickets_filter_by_status():
 
 async def test_get_ticket_returns_ticket():
     project = await _seed_project(prefix="GETK")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="Fetch me")
-    result = await mcp_tools.get_ticket(ticket["id"])
+    ticket = await ops.create_ticket(project_id=project["id"], title="Fetch me")
+    result = await ops.get_ticket(ticket["id"])
     assert result is not None
     assert result["id"] == ticket["id"]
     assert result["title"] == "Fetch me"
@@ -137,23 +135,23 @@ async def test_get_ticket_returns_ticket():
 
 async def test_get_ticket_lists_uploaded_files_with_absolute_paths():
     project = await _seed_project(prefix="GETF")
-    ticket = await mcp_tools.create_ticket(
+    ticket = await ops.create_ticket(
         project_id=project["id"],
         title="With files",
         description="Look: ![shot](/uploads/shot.png) and [spec](/uploads/spec.pdf)",
     )
-    result = await mcp_tools.get_ticket(ticket["id"])
+    result = await ops.get_ticket(ticket["id"])
     files = {f["url"]: f for f in result["files"]}
     assert set(files) == {"/uploads/shot.png", "/uploads/spec.pdf"}
     assert files["/uploads/shot.png"]["path"].startswith("/")
     assert files["/uploads/shot.png"]["path"].endswith("shot.png")
-    plain = await mcp_tools.create_ticket(project_id=project["id"], title="No files")
-    assert "files" not in await mcp_tools.get_ticket(plain["id"])
+    plain = await ops.create_ticket(project_id=project["id"], title="No files")
+    assert "files" not in await ops.get_ticket(plain["id"])
 
 
 async def test_get_ticket_raises_for_missing_id():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.get_ticket("MISSING-9999")
+        await ops.get_ticket("MISSING-9999")
 
 
 # ---------------------------------------------------------------------------
@@ -163,21 +161,21 @@ async def test_get_ticket_raises_for_missing_id():
 
 async def test_update_ticket_status_changes_status():
     project = await _seed_project(prefix="UPD")
-    ticket = await mcp_tools.create_ticket(
+    ticket = await ops.create_ticket(
         project_id=project["id"], title="Status test", status="backlog"
     )
 
-    updated = await mcp_tools.update_ticket_status(ticket["id"], "done")
+    updated = await ops.update_ticket_status(ticket["id"], "done")
     assert updated is not None
     assert updated["status"] == "done"
 
-    fetched = await mcp_tools.get_ticket(ticket["id"])
+    fetched = await ops.get_ticket(ticket["id"])
     assert fetched["status"] == "done"
 
 
 async def test_update_ticket_status_raises_for_missing():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.update_ticket_status("MISSING-0", "done")
+        await ops.update_ticket_status("MISSING-0", "done")
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +185,7 @@ async def test_update_ticket_status_raises_for_missing():
 
 async def test_create_ticket_unknown_project_raises():
     with pytest.raises(ValueError, match="Project not found"):
-        await mcp_tools.create_ticket(project_id=str(uuid.uuid4()), title="x")
+        await ops.create_ticket(project_id=str(uuid.uuid4()), title="x")
 
 
 # ---------------------------------------------------------------------------
@@ -198,10 +196,10 @@ async def test_create_ticket_unknown_project_raises():
 async def test_list_tickets_percent_is_literal_not_wildcard():
     """q='%' should only match tickets whose title contains '%', not all tickets."""
     project = await _seed_project(prefix="PCT")
-    await mcp_tools.create_ticket(project_id=project["id"], title="50% done")
-    await mcp_tools.create_ticket(project_id=project["id"], title="no percent here")
+    await ops.create_ticket(project_id=project["id"], title="50% done")
+    await ops.create_ticket(project_id=project["id"], title="no percent here")
 
-    results = (await mcp_tools.list_tickets(project_id=project["id"], q="%"))["tickets"]
+    results = (await ops.list_tickets(project_id=project["id"], q="%"))["tickets"]
     assert len(results) == 1
     assert "%" in results[0]["title"]
 
@@ -213,15 +211,15 @@ async def test_list_tickets_percent_is_literal_not_wildcard():
 
 async def test_update_ticket_title():
     project = await _seed_project(prefix="UTT")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="Old Title")
-    updated = await mcp_tools.update_ticket(ticket["id"], title="New Title")
+    ticket = await ops.create_ticket(project_id=project["id"], title="Old Title")
+    updated = await ops.update_ticket(ticket["id"], title="New Title")
     assert updated is not None
     assert updated["title"] == "New Title"
 
 
 async def test_update_ticket_unknown_id_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.update_ticket("MISSING-0", title="x")
+        await ops.update_ticket("MISSING-0", title="x")
 
 
 # ---------------------------------------------------------------------------
@@ -231,12 +229,8 @@ async def test_update_ticket_unknown_id_raises():
 
 async def test_add_comment():
     project = await _seed_project(prefix="CMT")
-    ticket = await mcp_tools.create_ticket(
-        project_id=project["id"], title="Commentable"
-    )
-    result = await mcp_tools.add_comment(
-        ticket["id"], text="Hello world", author="alice"
-    )
+    ticket = await ops.create_ticket(project_id=project["id"], title="Commentable")
+    result = await ops.add_comment(ticket["id"], text="Hello world", author="alice")
     assert result is not None
     assert any(
         c["text"] == "Hello world" and c["author"] == "alice"
@@ -246,7 +240,7 @@ async def test_add_comment():
 
 async def test_add_comment_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.add_comment("MISSING-0", text="hi", author="bob")
+        await ops.add_comment("MISSING-0", text="hi", author="bob")
 
 
 # ---------------------------------------------------------------------------
@@ -256,15 +250,11 @@ async def test_add_comment_unknown_ticket_raises():
 
 async def test_update_comment():
     project = await _seed_project(prefix="UCM")
-    ticket = await mcp_tools.create_ticket(
-        project_id=project["id"], title="Commentable"
-    )
-    added = await mcp_tools.add_comment(
-        ticket["id"], text="Hello world", author="alice"
-    )
+    ticket = await ops.create_ticket(project_id=project["id"], title="Commentable")
+    added = await ops.add_comment(ticket["id"], text="Hello world", author="alice")
     comment_id = added["comments"][0]["id"]
 
-    result = await mcp_tools.update_comment(
+    result = await ops.update_comment(
         ticket["id"], comment_id, text="**Edited** message"
     )
     assert result is not None
@@ -275,16 +265,14 @@ async def test_update_comment():
 
 async def test_update_comment_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.update_comment("MISSING-0", "some-id", text="hi")
+        await ops.update_comment("MISSING-0", "some-id", text="hi")
 
 
 async def test_update_comment_unknown_comment_raises():
     project = await _seed_project(prefix="UCM2")
-    ticket = await mcp_tools.create_ticket(
-        project_id=project["id"], title="Commentable"
-    )
+    ticket = await ops.create_ticket(project_id=project["id"], title="Commentable")
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.update_comment(ticket["id"], "missing-comment", text="hi")
+        await ops.update_comment(ticket["id"], "missing-comment", text="hi")
 
 
 # ---------------------------------------------------------------------------
@@ -294,39 +282,35 @@ async def test_update_comment_unknown_comment_raises():
 
 async def test_delete_comment():
     project = await _seed_project(prefix="DCM")
-    ticket = await mcp_tools.create_ticket(
-        project_id=project["id"], title="Commentable"
-    )
-    added = await mcp_tools.add_comment(
-        ticket["id"], text="Hello world", author="alice"
-    )
+    ticket = await ops.create_ticket(project_id=project["id"], title="Commentable")
+    added = await ops.add_comment(ticket["id"], text="Hello world", author="alice")
     comment_id = added["comments"][0]["id"]
 
-    result = await mcp_tools.delete_comment(ticket["id"], comment_id)
+    result = await ops.delete_comment(ticket["id"], comment_id)
     assert result is not None
     assert result["comments"] == []
 
 
 async def test_list_and_restore_comment():
     project = await _seed_project(prefix="LCM")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="Thread")
-    first = await mcp_tools.add_comment(ticket["id"], text="One", author="alice")
-    await mcp_tools.add_comment(ticket["id"], text="Two", author="bob")
+    ticket = await ops.create_ticket(project_id=project["id"], title="Thread")
+    first = await ops.add_comment(ticket["id"], text="One", author="alice")
+    await ops.add_comment(ticket["id"], text="Two", author="bob")
     cid = first["comments"][0]["id"]
-    listed = await mcp_tools.list_comments(ticket["id"])
+    listed = await ops.list_comments(ticket["id"])
     assert listed["count"] == 2 and [c["text"] for c in listed["comments"]] == [
         "One",
         "Two",
     ]
-    await mcp_tools.delete_comment(ticket["id"], cid)
-    assert (await mcp_tools.list_comments(ticket["id"]))["count"] == 1
-    back = await mcp_tools.restore_comment(ticket["id"], cid)
+    await ops.delete_comment(ticket["id"], cid)
+    assert (await ops.list_comments(ticket["id"]))["count"] == 1
+    back = await ops.restore_comment(ticket["id"], cid)
     assert [c["text"] for c in back["comments"]] == ["One", "Two"]
 
 
 async def test_delete_comment_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.delete_comment("MISSING-0", "some-id")
+        await ops.delete_comment("MISSING-0", "some-id")
 
 
 # ---------------------------------------------------------------------------
@@ -336,10 +320,8 @@ async def test_delete_comment_unknown_ticket_raises():
 
 async def test_add_work_log():
     project = await _seed_project(prefix="WLG")
-    ticket = await mcp_tools.create_ticket(
-        project_id=project["id"], title="Work log test"
-    )
-    result = await mcp_tools.add_work_log(
+    ticket = await ops.create_ticket(project_id=project["id"], title="Work log test")
+    result = await ops.add_work_log(
         ticket["id"], author="dev", role="Developer", note="Implemented feature X"
     )
     assert result is not None
@@ -351,7 +333,7 @@ async def test_add_work_log():
 
 async def test_add_work_log_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.add_work_log("MISSING-0", author="x", role="Other", note="n")
+        await ops.add_work_log("MISSING-0", author="x", role="Other", note="n")
 
 
 # ---------------------------------------------------------------------------
@@ -361,10 +343,8 @@ async def test_add_work_log_unknown_ticket_raises():
 
 async def test_add_test_case():
     project = await _seed_project(prefix="TCX")
-    ticket = await mcp_tools.create_ticket(
-        project_id=project["id"], title="Test case ticket"
-    )
-    result = await mcp_tools.add_test_case(
+    ticket = await ops.create_ticket(project_id=project["id"], title="Test case ticket")
+    result = await ops.add_test_case(
         ticket["id"], title="Login works", status="pending"
     )
     assert result is not None
@@ -376,7 +356,7 @@ async def test_add_test_case():
 
 async def test_add_test_case_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.add_test_case("MISSING-0", title="x")
+        await ops.add_test_case("MISSING-0", title="x")
 
 
 # ---------------------------------------------------------------------------
@@ -386,10 +366,10 @@ async def test_add_test_case_unknown_ticket_raises():
 
 async def test_update_test_case_status():
     project = await _seed_project(prefix="UTC")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="TC update")
-    with_tc = await mcp_tools.add_test_case(ticket["id"], title="Should pass")
+    ticket = await ops.create_ticket(project_id=project["id"], title="TC update")
+    with_tc = await ops.add_test_case(ticket["id"], title="Should pass")
     tc_id = with_tc["test_cases"][0]["id"]
-    updated = await mcp_tools.update_test_case(
+    updated = await ops.update_test_case(
         ticket["id"], test_case_id=tc_id, status="pass", proof="screenshot.png"
     )
     assert updated is not None
@@ -400,9 +380,7 @@ async def test_update_test_case_status():
 
 async def test_update_test_case_unknown_ticket_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.update_test_case(
-            "MISSING-0", test_case_id="fake-id", status="pass"
-        )
+        await ops.update_test_case("MISSING-0", test_case_id="fake-id", status="pass")
 
 
 # ---------------------------------------------------------------------------
@@ -412,10 +390,8 @@ async def test_update_test_case_unknown_ticket_raises():
 
 async def test_create_child_ticket():
     project = await _seed_project(prefix="CHD")
-    parent = await mcp_tools.create_ticket(
-        project_id=project["id"], title="Parent ticket"
-    )
-    child = await mcp_tools.create_child_ticket(
+    parent = await ops.create_ticket(project_id=project["id"], title="Parent ticket")
+    child = await ops.create_child_ticket(
         parent_ticket_id=parent["id"], title="Child ticket", type="task"
     )
     assert child is not None
@@ -425,22 +401,16 @@ async def test_create_child_ticket():
 
 async def test_create_child_ticket_unknown_parent_raises():
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.create_child_ticket(
-            parent_ticket_id="MISSING-9999", title="orphan"
-        )
+        await ops.create_child_ticket(parent_ticket_id="MISSING-9999", title="orphan")
 
 
 async def test_create_child_ticket_depth_violation_raises():
     project = await _seed_project(prefix="DEEP")
-    parent = await mcp_tools.create_ticket(project_id=project["id"], title="Parent")
-    child = await mcp_tools.create_child_ticket(
-        parent_ticket_id=parent["id"], title="Child"
-    )
+    parent = await ops.create_ticket(project_id=project["id"], title="Parent")
+    child = await ops.create_child_ticket(parent_ticket_id=parent["id"], title="Child")
     assert child is not None
     with pytest.raises(ValueError, match="1 level"):
-        await mcp_tools.create_child_ticket(
-            parent_ticket_id=child["id"], title="Grandchild"
-        )
+        await ops.create_child_ticket(parent_ticket_id=child["id"], title="Grandchild")
 
 
 # ---------------------------------------------------------------------------
@@ -450,11 +420,9 @@ async def test_create_child_ticket_depth_violation_raises():
 
 async def test_update_test_case_unknown_id_raises():
     project = await _seed_project(prefix="UTCU")
-    ticket = await mcp_tools.create_ticket(
-        project_id=project["id"], title="TC unknown id"
-    )
+    ticket = await ops.create_ticket(project_id=project["id"], title="TC unknown id")
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.update_test_case(
+        await ops.update_test_case(
             ticket_id=ticket["id"],
             test_case_id=str(uuid.uuid4()),
             status="pass",
@@ -469,12 +437,12 @@ from unittest.mock import AsyncMock, patch  # noqa: E402
 @pytest.mark.asyncio
 async def test_update_ticket_description_publishes_sse():
     project = await _seed_project(prefix="SSE1")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="SSE ticket")
+    ticket = await ops.create_ticket(project_id=project["id"], title="SSE ticket")
 
     with patch.object(
-        mcp_tools.board_events, "publish", new_callable=AsyncMock
+        common.board_events, "publish", new_callable=AsyncMock
     ) as mock_publish:
-        result = await mcp_tools.update_ticket(ticket["id"], description="Updated desc")
+        result = await ops.update_ticket(ticket["id"], description="Updated desc")
 
     assert result is not None
     mock_publish.assert_called_once_with("invalidate")
@@ -483,12 +451,12 @@ async def test_update_ticket_description_publishes_sse():
 @pytest.mark.asyncio
 async def test_add_acceptance_criterion_publishes_sse():
     project = await _seed_project(prefix="SSE2")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="AC ticket")
+    ticket = await ops.create_ticket(project_id=project["id"], title="AC ticket")
 
     with patch.object(
-        mcp_tools.board_events, "publish", new_callable=AsyncMock
+        common.board_events, "publish", new_callable=AsyncMock
     ) as mock_publish:
-        result = await mcp_tools.add_acceptance_criterion(
+        result = await ops.add_acceptance_criterion(
             ticket["id"], description="Must work"
         )
 
@@ -499,12 +467,12 @@ async def test_add_acceptance_criterion_publishes_sse():
 @pytest.mark.asyncio
 async def test_add_test_case_publishes_sse():
     project = await _seed_project(prefix="SSE3")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="TC ticket")
+    ticket = await ops.create_ticket(project_id=project["id"], title="TC ticket")
 
     with patch.object(
-        mcp_tools.board_events, "publish", new_callable=AsyncMock
+        common.board_events, "publish", new_callable=AsyncMock
     ) as mock_publish:
-        result = await mcp_tools.add_test_case(ticket["id"], title="Login works")
+        result = await ops.add_test_case(ticket["id"], title="Login works")
 
     assert result is not None
     mock_publish.assert_called_once_with("invalidate")
@@ -513,12 +481,12 @@ async def test_add_test_case_publishes_sse():
 @pytest.mark.asyncio
 async def test_add_work_log_publishes_sse():
     project = await _seed_project(prefix="SSE4")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="WL ticket")
+    ticket = await ops.create_ticket(project_id=project["id"], title="WL ticket")
 
     with patch.object(
-        mcp_tools.board_events, "publish", new_callable=AsyncMock
+        common.board_events, "publish", new_callable=AsyncMock
     ) as mock_publish:
-        result = await mcp_tools.add_work_log(
+        result = await ops.add_work_log(
             ticket["id"], author="dev", role="Developer", note="Did the thing"
         )
 
@@ -529,14 +497,12 @@ async def test_add_work_log_publishes_sse():
 @pytest.mark.asyncio
 async def test_add_comment_publishes_sse():
     project = await _seed_project(prefix="SSE5")
-    ticket = await mcp_tools.create_ticket(project_id=project["id"], title="Cmt ticket")
+    ticket = await ops.create_ticket(project_id=project["id"], title="Cmt ticket")
 
     with patch.object(
-        mcp_tools.board_events, "publish", new_callable=AsyncMock
+        common.board_events, "publish", new_callable=AsyncMock
     ) as mock_publish:
-        result = await mcp_tools.add_comment(
-            ticket["id"], text="Nice work", author="alice"
-        )
+        result = await ops.add_comment(ticket["id"], text="Nice work", author="alice")
 
     assert result is not None
     mock_publish.assert_called_once_with("invalidate")
@@ -545,9 +511,9 @@ async def test_add_comment_publishes_sse():
 @pytest.mark.asyncio
 async def test_update_ticket_nonexistent_does_not_publish_sse():
     with patch.object(
-        mcp_tools.board_events, "publish", new_callable=AsyncMock
+        common.board_events, "publish", new_callable=AsyncMock
     ) as mock_publish:
         with pytest.raises(ValueError, match="not found"):
-            await mcp_tools.update_ticket("MISSING-9999", description="ghost")
+            await ops.update_ticket("MISSING-9999", description="ghost")
 
     mock_publish.assert_not_called()

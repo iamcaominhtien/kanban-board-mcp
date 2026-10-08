@@ -10,7 +10,7 @@ from mcp.server.fastmcp import FastMCP
 
 import events as board_events
 
-import mcp_tools as _mcp_tools
+import kanban_mcp
 from api.projects import router as projects_router
 from api.tickets import router as tickets_router
 from api.members import router as members_router
@@ -35,12 +35,12 @@ from uploads import (
 
 mcp = FastMCP(
     "kanban-mcp",
-    instructions=_mcp_tools.MCP_INSTRUCTIONS,
+    instructions=kanban_mcp.MCP_INSTRUCTIONS,
     stateless_http=True,
     streamable_http_path="/",
 )
 
-_mcp_tools.register(mcp)
+kanban_mcp.register(mcp)
 
 
 @asynccontextmanager

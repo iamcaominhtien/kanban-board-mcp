@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-import mcp_tools
+from kanban_mcp import common, operations as ops
 from database import get_session
 from main import app
 
@@ -33,7 +33,7 @@ async def setup_db(monkeypatch, tmp_path):
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     app.dependency_overrides[get_session] = override_get_session
-    monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
+    monkeypatch.setattr(common, "async_session", test_async_session)
     yield
     app.dependency_overrides.pop(get_session, None)
     async with test_engine.begin() as conn:
@@ -150,18 +150,16 @@ async def test_attachments_are_validated_and_edit_sets_updated_at(client):
 
 
 async def test_mcp_can_delete_work_log_and_is_validated():
-    p = await mcp_tools.create_project(name="M", prefix="MWL")
-    t = await mcp_tools.create_ticket(project_id=p["id"], title="x")
-    added = await mcp_tools.add_work_log(
-        t["id"], author="agent", role="Developer", note="n"
-    )
+    p = await ops.create_project(name="M", prefix="MWL")
+    t = await ops.create_ticket(project_id=p["id"], title="x")
+    added = await ops.add_work_log(t["id"], author="agent", role="Developer", note="n")
     lid = added["work_log"][0]["id"]
     with pytest.raises(ValueError):
-        await mcp_tools.add_work_log(t["id"], author="a", role="Wizard", note="n")
-    result = await mcp_tools.delete_work_log(t["id"], lid)
+        await ops.add_work_log(t["id"], author="a", role="Wizard", note="n")
+    result = await ops.delete_work_log(t["id"], lid)
     assert result["work_log"] == []
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.delete_work_log("NOPE-1", lid)
+        await ops.delete_work_log("NOPE-1", lid)
 
 
 async def test_upload_any_file_and_serve_it_as_a_download(client, tmp_path):
