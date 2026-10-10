@@ -105,9 +105,19 @@ function parseReadyPort(output) {
   return null;
 }
 
-function getMcpStdioBinaryPath({ isPackaged, platform, resourcesPath, desktopDir }) {
+function getMcpStdioBinaryPath({
+  isPackaged,
+  platform,
+  resourcesPath,
+  desktopDir,
+  existsSync = fs.existsSync,
+}) {
   const ext = getBinaryExtension(platform);
   if (isPackaged) {
+    const onedirBinary = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-mcp-stdio${ext}`);
+    if (existsSync(onedirBinary)) {
+      return onedirBinary;
+    }
     return path.join(resourcesPath, `kanban-mcp-stdio${ext}`);
   }
 

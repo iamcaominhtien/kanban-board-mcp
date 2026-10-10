@@ -114,6 +114,19 @@ test('getMcpStdioBinaryPath resolves packaged and dev locations', () => {
 
   assert.equal(
     getMcpStdioBinaryPath({
+      isPackaged: true,
+      platform: 'darwin',
+      resourcesPath: '/Applications/Kanban.app/Contents/Resources',
+      desktopDir: '/repo/desktop',
+      existsSync: (p) =>
+        p ===
+        '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio/kanban-mcp-stdio',
+    }),
+    '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio/kanban-mcp-stdio'
+  );
+
+  assert.equal(
+    getMcpStdioBinaryPath({
       isPackaged: false,
       platform: 'win32',
       resourcesPath: 'C:/ignored',
