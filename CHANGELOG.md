@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Added
+- **Application log export**: the server now writes a rotating log (`~/.kanban-board/logs/kanban.log`, override with `KANBAN_LOG_DIR`) with app and uvicorn messages, failed requests (4xx/5xx) and uncaught exceptions with tracebacks. **Settings → Application Logs** exports it as a `.log` file for a chosen time range (presets or custom From/To) and minimum level; also available as `GET /logs/export?since=&until=&level=`.
+
 ---
 
 ## [3.0.1] - 2026-10-08
