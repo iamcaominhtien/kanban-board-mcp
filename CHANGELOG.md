@@ -8,8 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- Migrations at startup no longer reset Python logging (`fileConfig` in `alembic/env.py` removed root handlers and disabled existing loggers).
+
 ### Added
-- **Application log export**: the server now writes a rotating log (`~/.kanban-board/logs/kanban.log`, override with `KANBAN_LOG_DIR`) with app and uvicorn messages, failed requests (4xx/5xx) and uncaught exceptions with tracebacks. **Settings → Application Logs** exports it as a `.log` file for a chosen time range (presets or custom From/To) and minimum level; also available as `GET /logs/export?since=&until=&level=`.
+- **Application log export**: the server now writes a rotating log (`~/.kanban-board/logs/kanban.log`, override with `KANBAN_LOG_DIR`) with app and uvicorn messages, failed requests (4xx/5xx) uncaught exceptions with tracebacks, errors from the web UI (uncaught errors, unhandled rejections, `console.error`; logger `ui`) and the stdio MCP process (own file `kanban-mcp-stdio.log`, merged on export, logger names prefixed `stdio:`). **Settings → Application Logs** exports it as a `.log` file for a chosen time range (presets or custom From/To) and minimum level; also available as `GET /logs/export?since=&until=&level=`.
 
 ---
 

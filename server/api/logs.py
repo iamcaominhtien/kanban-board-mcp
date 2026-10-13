@@ -1,15 +1,57 @@
+import logging
 import platform
 import sys
+import time
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 import app_logging
 import database as db
 from version import version_info
 
 router = APIRouter(prefix="/logs", tags=["logs"])
+client_logger = logging.getLogger("ui")
+
+# The server accepts requests from any origin, so cap what a client can write.
+_CLIENT_LOGS_PER_MINUTE = 60
+_client_log_times: list[float] = []
+
+
+class ClientLogEntry(BaseModel):
+    """An error or warning reported by the web UI."""
+
+    level: str = Field("error", pattern="^(warning|error)$")
+    message: str = Field(max_length=2000)
+    stack: str | None = Field(None, max_length=8000)
+    url: str | None = Field(None, max_length=500)
+
+
+@router.post("/client", status_code=204)
+async def log_client_event(entry: ClientLogEntry) -> None:
+    """Record an error from the web UI in the application log.
+
+    Args:
+        entry: The reported message, optional stack and page URL.
+
+    Raises:
+        HTTPException: 429 when more than 60 entries arrive within a minute.
+    """
+    now = time.monotonic()
+    while _client_log_times and now - _client_log_times[0] > 60:
+        _client_log_times.pop(0)
+    if len(_client_log_times) >= _CLIENT_LOGS_PER_MINUTE:
+        raise HTTPException(status_code=429, detail="Too many client log entries")
+    _client_log_times.append(now)
+    client_logger.log(
+        logging.ERROR if entry.level == "error" else logging.WARNING,
+        "%s%s%s",
+        entry.message,
+        f" (at {entry.url})" if entry.url else "",
+        f"\n{entry.stack}" if entry.stack else "",
+    )
 
 
 def _parse_time(name: str, value: str | None) -> datetime | None:

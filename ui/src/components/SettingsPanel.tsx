@@ -637,7 +637,7 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
           <div className={styles.section}>
             <span className={styles.sectionTitle}>Application Logs</span>
             <div className={styles.hint}>
-              Export the app log (errors, warnings and server activity) to share when something goes wrong. Leave the
+              Export the app log (server activity, UI errors, MCP errors and warnings) to share when something goes wrong. Leave the
               range empty to export everything that is kept (up to ~30 MB).
             </div>
             <div className={styles.inputRow}>

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from logging.config import fileConfig
 
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -11,8 +12,11 @@ import models  # noqa: F401 — registers all SQLModel tables into metadata
 
 config = context.config
 
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# fileConfig() drops the root handlers and disables every logger created so far, which would
+# silence the app's file log when migrations run inside the server. Only configure logging
+# when running as the standalone `alembic` CLI, where nothing is set up yet.
+if config.config_file_name is not None and not logging.getLogger().handlers:
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = SQLModel.metadata
 
