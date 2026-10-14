@@ -6,6 +6,12 @@ from PyInstaller.utils.hooks import collect_submodules, collect_data_files, copy
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _WORKSPACE_ROOT = os.path.dirname(_HERE)
 
+# Stdlib / dev-only packages the apps never import; leaving them out shrinks the bundle.
+EXCLUDES = [
+    'tkinter', '_tkinter', 'turtle', 'idlelib', 'lib2to3', 'pydoc_data',
+    'pytest', '_pytest', 'IPython', 'matplotlib', 'numpy', 'pandas', 'PIL',
+]
+
 def get_base_analysis_args(entry_point, app_name):
     # Common hidden imports for both binaries
     sqlmodel_hidden = collect_submodules('sqlmodel')
@@ -38,4 +44,5 @@ def get_base_analysis_args(entry_point, app_name):
         'pathex': [_WORKSPACE_ROOT, os.path.join(_WORKSPACE_ROOT, 'server')],
         'datas': alembic_data + pydantic_meta,
         'hiddenimports': hidden_imports,
+        'excludes': EXCLUDES,
     }

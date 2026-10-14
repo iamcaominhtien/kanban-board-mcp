@@ -23,7 +23,7 @@ test('buildBackendLaunchSpec uses packaged binary and user data db path', () => 
     devPythonExists: false,
   });
 
-  assert.equal(spec.command, 'C:/Kanban/resources/kanban-server.exe');
+  assert.equal(spec.command, 'C:/Kanban/resources/kanban-server/kanban-server.exe');
   assert.deepEqual(spec.args, []);
   assert.equal(spec.options.env.EXISTING, '1');
   assert.equal(

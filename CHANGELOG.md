@@ -10,6 +10,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.1.2] - 2026-10-14
+
+### Fixed
+- Desktop: the bundled `kanban-server` is now also a PyInstaller one-folder build, so the app no longer unpacks the whole backend to a temp folder on every launch (the cause of the slow macOS startup). The backend now lives at `Resources/kanban-server/kanban-server`. Unused stdlib and dev-only packages are excluded from both bundles.
+
 ## [3.1.1] - 2026-10-14
 
 ### Fixed
