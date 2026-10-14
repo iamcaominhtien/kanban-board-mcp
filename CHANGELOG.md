@@ -10,6 +10,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.1.1] - 2026-10-14
+
+### Fixed
+- Desktop: the bundled `kanban-mcp-stdio` is now a PyInstaller one-folder build with UPX disabled. The one-file build unpacked to a temp folder on every launch, which macOS scanned each time (~28 s startup), so MCP clients timed out (`CONNECT_TIMEOUT` after 30000 ms). The binary now lives at `Resources/kanban-mcp-stdio/kanban-mcp-stdio`; the old `Resources/kanban-mcp-stdio` path is a folder. The VS Code `mcp.json` entry written by older versions is migrated automatically. Claude Code and other clients registered by hand must be re-installed from Settings -> MCP (the Update action) or re-added with the new path.
+
+---
+
 ## [3.1.0] - 2026-10-14
 
 ### Added

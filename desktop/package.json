@@ -1,6 +1,6 @@
 {
   "name": "kanban-board-desktop",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Kanban Board MCP Desktop App",
   "main": "main.js",
   "scripts": {
@@ -83,8 +83,8 @@
           "to": "kanban-server.exe"
         },
         {
-          "from": "../dist-python/kanban-mcp-stdio.exe",
-          "to": "kanban-mcp-stdio.exe"
+          "from": "../dist-python/kanban-mcp-stdio",
+          "to": "kanban-mcp-stdio"
         }
       ]
     },

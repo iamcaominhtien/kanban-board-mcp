@@ -105,10 +105,26 @@ function parseReadyPort(output) {
   return null;
 }
 
-function getMcpStdioBinaryPath({ isPackaged, platform, resourcesPath, desktopDir }) {
+// Pre-onedir installs shipped a single `kanban-mcp-stdio` file in Resources; that
+// path is now a directory, so configs written by older versions must be migrated.
+function getLegacyMcpStdioBinaryPath({ platform, resourcesPath }) {
+  return path.join(resourcesPath, `kanban-mcp-stdio${getBinaryExtension(platform)}`);
+}
+
+function getMcpStdioBinaryPath({
+  isPackaged,
+  platform,
+  resourcesPath,
+  desktopDir,
+  existsSync = fs.existsSync,
+}) {
   const ext = getBinaryExtension(platform);
   if (isPackaged) {
-    return path.join(resourcesPath, `kanban-mcp-stdio${ext}`);
+    const onedirBinary = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-mcp-stdio${ext}`);
+    if (existsSync(onedirBinary)) {
+      return onedirBinary;
+    }
+    return getLegacyMcpStdioBinaryPath({ platform, resourcesPath });
   }
 
   return path.join(desktopDir, '..', 'server', 'mcp_stdio.py');
@@ -135,6 +151,7 @@ module.exports = {
   StartupProfiler,
   buildBackendLaunchSpec,
   getBinaryExtension,
+  getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   parseReadyPort,
   resolveConfiguredUploadsDir,

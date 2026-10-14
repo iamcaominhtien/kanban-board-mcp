@@ -244,3 +244,47 @@ async def test_test_connection_starts_the_real_server(client, fake_home):
     r = await _post(client, "antigravity", "test", scope="global")
     assert r.json()["ok"] is True, r.json()
     assert r.json()["tool_count"] > 0
+
+
+def test_stdio_command_frozen_prefers_onedir(tmp_path, monkeypatch):
+    import services.mcp_clients as mc
+
+    fake_bin = tmp_path / "kanban-server"
+    fake_bin.touch()
+    monkeypatch.setattr(mc.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(mc.sys, "executable", str(fake_bin))
+
+    # Without onedir folder, falls back to sibling file
+    cmd, args = mc.stdio_command()
+    expected_fallback = str(
+        tmp_path / ("kanban-mcp-stdio.exe" if os.name == "nt" else "kanban-mcp-stdio")
+    )
+    assert cmd == expected_fallback
+    assert args == []
+
+    # With onedir folder and binary inside
+    onedir = tmp_path / "kanban-mcp-stdio"
+    onedir.mkdir()
+    onedir_bin = onedir / (
+        "kanban-mcp-stdio.exe" if os.name == "nt" else "kanban-mcp-stdio"
+    )
+    onedir_bin.touch()
+
+    cmd, args = mc.stdio_command()
+    assert cmd == str(onedir_bin)
+    assert args == []
+
+
+def test_stdio_command_frozen_ignores_empty_onedir_folder(tmp_path, monkeypatch):
+    import services.mcp_clients as mc
+
+    fake_bin = tmp_path / "kanban-server"
+    fake_bin.touch()
+    (tmp_path / "kanban-mcp-stdio").mkdir()
+    monkeypatch.setattr(mc.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(mc.sys, "executable", str(fake_bin))
+
+    cmd, _ = mc.stdio_command()
+    assert cmd == str(
+        tmp_path / ("kanban-mcp-stdio.exe" if os.name == "nt" else "kanban-mcp-stdio")
+    )

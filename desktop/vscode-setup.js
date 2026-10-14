@@ -87,9 +87,12 @@ function writeJsonAtomic(
  * Register the kanban-board MCP server in VS Code's mcp.json.
  * - Safe merge: never overwrites existing server entries.
  * - Only writes if the entry doesn't already exist or the path has changed.
+ * - With `migrateFromCommand`, only an existing entry whose command equals that
+ *   value is rewritten; a missing or user-customised entry is left alone.
  * - Returns one of:
  *   'registered'         — entry was created or updated successfully
  *   'already-registered' — entry already exists with the same path
+ *   'not-stale'          — migrate mode only: no entry pointing at `migrateFromCommand`
  *   'vscode-not-found'   — VS Code user config directory not found
  *   'parse-error'        — mcp.json exists but could not be parsed
  *   'write-error'        — atomic write to disk failed
@@ -104,6 +107,7 @@ function registerMcpServer(
     writeFileSync = fs.writeFileSync,
     renameSync = fs.renameSync,
     unlinkSync = fs.unlinkSync,
+    migrateFromCommand = null,
   } = {}
 ) {
   const mcpConfigPath = getConfigPath();
@@ -117,6 +121,13 @@ function registerMcpServer(
   if (config === null) {
     console.error('[vscode-setup] mcp.json is corrupt — skipping to avoid data loss');
     return 'parse-error';
+  }
+
+  if (
+    migrateFromCommand &&
+    config.servers?.['kanban-board']?.command !== migrateFromCommand
+  ) {
+    return 'not-stale';
   }
 
   const mergeResult = mergeMcpConfig(config, mcpStdioBinaryPath, dbPath);

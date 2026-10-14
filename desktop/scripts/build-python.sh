@@ -47,5 +47,5 @@ echo "--- Building kanban-mcp-stdio binary ---"
 echo ""
 echo "=== Build complete ==="
 echo "Binaries in: $OUTPUT_DIR"
-ls -lh "$OUTPUT_DIR/kanban-server" "$OUTPUT_DIR/kanban-mcp-stdio" 2>/dev/null || \
-ls -lh "$OUTPUT_DIR/kanban-server.exe" "$OUTPUT_DIR/kanban-mcp-stdio.exe" 2>/dev/null
+ls -lh "$OUTPUT_DIR/kanban-server" 2>/dev/null || ls -lh "$OUTPUT_DIR/kanban-server.exe" 2>/dev/null || true
+ls -lhd "$OUTPUT_DIR/kanban-mcp-stdio"* 2>/dev/null || true
