@@ -1,14 +1,18 @@
 """Builds the tool list on a FastMCP server: the 9 tools, plus the Idea Space ones when they are switched on."""
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import ValidationError
 from mcp.types import ToolAnnotations
 
 from . import operations as ops
 from .settings import ideas_enabled
 from .tools import CORE_TOOL_TABLE
+
+logger = logging.getLogger(__name__)
 
 _READ = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 _WRITE = ToolAnnotations(
@@ -75,6 +79,38 @@ def _reject_unknown_arguments(tool: Any) -> None:
     model.model_rebuild(force=True)
 
 
+def _log_tool_failures(mcp: FastMCP) -> None:
+    """FastMCP turns a failing tool into an error reply for the agent and logs nothing, so a bug in a tool
+    is invisible on the server side. Log every failure: a bad call from the agent (invalid arguments, or a
+    ValueError the tool raises on purpose such as "ticket not found") as a warning, anything else raised inside a tool as an error with its traceback. Argument values are not logged."""
+    manager = mcp._tool_manager
+    call_tool = manager.call_tool
+
+    async def logged_call_tool(name: str, arguments: dict[str, Any], *args, **kwargs):
+        try:
+            return await call_tool(name, arguments, *args, **kwargs)
+        except Exception as exc:
+            cause = exc.__cause__ or exc
+            if isinstance(cause, (ValidationError, ValueError)) or cause is exc:
+                logger.warning(
+                    "MCP tool %s rejected (arguments: %s): %s",
+                    name,
+                    sorted(arguments),
+                    exc,
+                )
+            else:
+                logger.error(
+                    "MCP tool %s failed (arguments: %s): %s",
+                    name,
+                    sorted(arguments),
+                    cause,
+                    exc_info=cause,
+                )
+            raise
+
+    manager.call_tool = logged_call_tool
+
+
 def register(mcp: FastMCP, include_ideas: bool | None = None) -> None:
     """Register the Kanban MCP tools with the given FastMCP instance.
     `include_ideas` defaults to the KANBAN_MCP_IDEA_TOOLS environment variable (off)."""
@@ -89,3 +125,4 @@ def register(mcp: FastMCP, include_ideas: bool | None = None) -> None:
             "additionalProperties": False
         }
         _reject_unknown_arguments(tool)
+    _log_tool_failures(mcp)

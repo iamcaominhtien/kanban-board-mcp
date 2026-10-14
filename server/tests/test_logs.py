@@ -201,3 +201,41 @@ async def test_startup_migrations_keep_file_logging(log_dir, tmp_path, monkeypat
             if h not in before:
                 root.removeHandler(h)
                 h.close()
+
+
+async def test_mcp_tool_failures_are_logged(caplog):
+    from mcp.server.fastmcp import FastMCP
+
+    import kanban_mcp
+
+    server = FastMCP("t")
+    kanban_mcp.register(server)
+
+    with caplog.at_level(logging.WARNING, logger="kanban_mcp.registry"):
+        with pytest.raises(Exception, match="Extra inputs"):
+            await server.call_tool("get_projects", {"not_a_param": 1})
+    assert "MCP tool get_projects rejected" in caplog.text
+    assert "not_a_param" in caplog.text
+    caplog.clear()
+
+    async def not_found(*a, **k):
+        raise ValueError("Ticket 'X-1' not found")
+
+    tool = server._tool_manager.get_tool("get_projects")
+    tool.fn = not_found
+    with caplog.at_level(logging.WARNING, logger="kanban_mcp.registry"):
+        with pytest.raises(Exception, match="not found"):
+            await server.call_tool("get_projects", {})
+    assert [r.levelno for r in caplog.records] == [logging.WARNING]
+    caplog.clear()
+
+    async def boom(*a, **k):
+        raise RuntimeError("db exploded")
+
+    tool.fn = boom
+    with caplog.at_level(logging.WARNING, logger="kanban_mcp.registry"):
+        with pytest.raises(Exception, match="db exploded"):
+            await server.call_tool("get_projects", {})
+    record = next(r for r in caplog.records if "failed" in r.getMessage())
+    assert record.levelno == logging.ERROR
+    assert record.exc_info and "db exploded" in str(record.exc_info[1])

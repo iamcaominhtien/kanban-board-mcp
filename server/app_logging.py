@@ -101,6 +101,8 @@ def setup_logging(stdio: bool = False) -> None:
     if root.level == logging.NOTSET or root.level > logging.INFO:
         root.setLevel(logging.INFO)
     _handler = handler
+    # Alembic announces every plugin it loads at INFO; that is noise, not diagnostics.
+    logging.getLogger("alembic.runtime.plugins").setLevel(logging.WARNING)
 
     def _log_uncaught(exc_type, exc, tb) -> None:
         if not issubclass(exc_type, KeyboardInterrupt):
