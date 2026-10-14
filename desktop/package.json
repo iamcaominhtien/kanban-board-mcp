@@ -79,8 +79,8 @@
       ],
       "extraResources": [
         {
-          "from": "../dist-python/kanban-server.exe",
-          "to": "kanban-server.exe"
+          "from": "../dist-python/kanban-server",
+          "to": "kanban-server"
         },
         {
           "from": "../dist-python/kanban-mcp-stdio",

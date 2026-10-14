@@ -63,7 +63,8 @@ function buildBackendLaunchSpec({
   const stdio = ['ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
-    const binaryPath = path.join(resourcesPath, `kanban-server${getBinaryExtension(platform)}`);
+    // onedir layout: Resources/kanban-server/kanban-server[.exe] (no per-launch temp extraction)
+    const binaryPath = path.join(resourcesPath, 'kanban-server', `kanban-server${getBinaryExtension(platform)}`);
     return {
       command: binaryPath,
       args: [],
