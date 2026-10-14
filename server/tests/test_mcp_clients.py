@@ -273,3 +273,18 @@ def test_stdio_command_frozen_prefers_onedir(tmp_path, monkeypatch):
     cmd, args = mc.stdio_command()
     assert cmd == str(onedir_bin)
     assert args == []
+
+
+def test_stdio_command_frozen_ignores_empty_onedir_folder(tmp_path, monkeypatch):
+    import services.mcp_clients as mc
+
+    fake_bin = tmp_path / "kanban-server"
+    fake_bin.touch()
+    (tmp_path / "kanban-mcp-stdio").mkdir()
+    monkeypatch.setattr(mc.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(mc.sys, "executable", str(fake_bin))
+
+    cmd, _ = mc.stdio_command()
+    assert cmd == str(
+        tmp_path / ("kanban-mcp-stdio.exe" if os.name == "nt" else "kanban-mcp-stdio")
+    )

@@ -52,7 +52,7 @@ def stdio_command() -> tuple[str, list[str]]:
         ext = ".exe" if os.name == "nt" else ""
         parent = Path(sys.executable).resolve().parent
         onedir_binary = parent / "kanban-mcp-stdio" / f"kanban-mcp-stdio{ext}"
-        if onedir_binary.exists():
+        if onedir_binary.is_file():
             return str(onedir_binary), []
         return str(parent / f"kanban-mcp-stdio{ext}"), []
     uv = shutil.which("uv") or "uv"

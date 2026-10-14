@@ -59,4 +59,3 @@ coll = COLLECT(
     upx_exclude=[],
     name='kanban-mcp-stdio',
 )
-

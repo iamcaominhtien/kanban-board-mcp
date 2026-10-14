@@ -4,6 +4,7 @@ const path = require('node:path');
 
 const {
   buildBackendLaunchSpec,
+  getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   parseReadyPort,
   shouldRunVscodeSetup,
@@ -101,6 +102,17 @@ test('parseReadyPort extracts a ready signal from aggregated stdout', () => {
   assert.equal(parseReadyPort('booting only\n'), null);
 });
 
+test('getLegacyMcpStdioBinaryPath points at the pre-onedir single file', () => {
+  assert.equal(
+    getLegacyMcpStdioBinaryPath({ platform: 'darwin', resourcesPath: '/R' }),
+    '/R/kanban-mcp-stdio'
+  );
+  assert.equal(
+    getLegacyMcpStdioBinaryPath({ platform: 'win32', resourcesPath: 'C:/R' }),
+    'C:/R/kanban-mcp-stdio.exe'
+  );
+});
+
 test('getMcpStdioBinaryPath resolves packaged and dev locations', () => {
   assert.equal(
     getMcpStdioBinaryPath({
@@ -108,8 +120,20 @@ test('getMcpStdioBinaryPath resolves packaged and dev locations', () => {
       platform: 'darwin',
       resourcesPath: '/Applications/Kanban.app/Contents/Resources',
       desktopDir: '/repo/desktop',
+      existsSync: () => false,
     }),
     '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio'
+  );
+
+  assert.equal(
+    getMcpStdioBinaryPath({
+      isPackaged: true,
+      platform: 'win32',
+      resourcesPath: 'C:/App/resources',
+      desktopDir: 'C:/repo/desktop',
+      existsSync: (p) => p.endsWith('kanban-mcp-stdio/kanban-mcp-stdio.exe'),
+    }),
+    'C:/App/resources/kanban-mcp-stdio/kanban-mcp-stdio.exe'
   );
 
   assert.equal(

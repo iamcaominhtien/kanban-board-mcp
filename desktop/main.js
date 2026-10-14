@@ -7,6 +7,7 @@ const { setupUpdater } = require('./updater');
 const {
   StartupProfiler,
   buildBackendLaunchSpec,
+  getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   parseReadyPort,
   shouldRunVscodeSetup,
@@ -231,22 +232,26 @@ function launchBackend() {
 
       // VS Code MCP setup — one-time, packaged builds only
       const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
-      if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists: fs.existsSync(setupFlag) })) {
-        const dbPath = path.join(app.getPath('userData'), 'kanban.db');
-        const result = registerMcpServer(
-          getMcpStdioBinaryPath({
-            isPackaged: app.isPackaged,
-            platform: process.platform,
-            resourcesPath: process.resourcesPath,
-            desktopDir: __dirname,
-          }),
-          dbPath
-        );
+      const setupFlagExists = fs.existsSync(setupFlag);
+      const dbPath = path.join(app.getPath('userData'), 'kanban.db');
+      const binaryOptions = {
+        isPackaged: app.isPackaged,
+        platform: process.platform,
+        resourcesPath: process.resourcesPath,
+        desktopDir: __dirname,
+      };
+      if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists })) {
+        const result = registerMcpServer(getMcpStdioBinaryPath(binaryOptions), dbPath);
         if (shouldWriteSetupFlag(result)) {
           try {
             fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
           } catch { /* non-fatal */ }
         }
+      } else if (app.isPackaged) {
+        // Older versions registered the single-file binary, which is now a folder.
+        registerMcpServer(getMcpStdioBinaryPath(binaryOptions), dbPath, {
+          migrateFromCommand: getLegacyMcpStdioBinaryPath(binaryOptions),
+        });
       }
 
       // Notify renderer that the backend is accepting requests
