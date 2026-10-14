@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from mcp.server.fastmcp import FastMCP
 
+import app_logging
 import events as board_events
 
 import kanban_mcp
@@ -16,6 +19,7 @@ from api.tickets import router as tickets_router
 from api.members import router as members_router
 from api.settings import router as settings_router
 from api.data import router as data_router
+from api.logs import router as logs_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
 from api.docs import docs_error_handler, router as docs_router
@@ -32,6 +36,9 @@ from uploads import (
     resolve_upload_path,
 )
 
+
+app_logging.setup_logging()
+logger = logging.getLogger("kanban.http")
 
 mcp = FastMCP(
     "kanban-mcp",
@@ -53,6 +60,7 @@ async def lifespan(app: FastAPI):
     """Run the MCP session manager, DB init and background sweeper for the app's lifetime."""
     async with mcp.session_manager.run():
         await init_db()
+        logger.info("Server started (version %s)", version_info().get("version"))
         sweeper = asyncio.create_task(
             svc_workspace.sweep_loop(lambda: database.async_session())
         )
@@ -106,6 +114,40 @@ async def record_activity_actor(request: Request, call_next):
         svc_activity.reset_actor(token)
 
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log failed requests (4xx at WARNING, 5xx and raised errors at ERROR) with timing.
+
+    Args:
+        request: Incoming request.
+        call_next: Next handler in the middleware chain.
+
+    Returns:
+        The downstream response.
+    """
+    started = time.monotonic()
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "%s %s raised after %dms",
+            request.method,
+            request.url.path,
+            (time.monotonic() - started) * 1000,
+        )
+        raise
+    if response.status_code >= 400:
+        logger.log(
+            logging.ERROR if response.status_code >= 500 else logging.WARNING,
+            "%s %s -> %d (%dms)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            (time.monotonic() - started) * 1000,
+        )
+    return response
+
+
 app.mount("/mcp", mcp.streamable_http_app())
 
 app.include_router(projects_router)
@@ -116,6 +158,7 @@ app.include_router(data_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
 app.include_router(docs_router)
+app.include_router(logs_router)
 app.add_exception_handler(DocsError, docs_error_handler)
 
 

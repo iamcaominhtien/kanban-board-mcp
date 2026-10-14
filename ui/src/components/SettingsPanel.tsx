@@ -379,6 +379,12 @@ interface SettingsPanelProps {
   onToggleTheme: () => void;
 }
 
+/** Format a Date as the local `YYYY-MM-DDTHH:mm` value a datetime-local input expects. */
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /**
  * Settings: data folder, theme, Docs switch, workspace and MCP.
  * @param props.onClose - Called to dismiss the panel.
@@ -393,6 +399,10 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
   const [folderStatus, setFolderStatus] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [logSince, setLogSince] = useState('');
+  const [logUntil, setLogUntil] = useState('');
+  const [logLevel, setLogLevel] = useState('INFO');
+  const [logStatus, setLogStatus] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   const isElectron = !!(window as any).electronAPI?.selectFolder;
@@ -442,6 +452,50 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
       URL.revokeObjectURL(url);
     } catch (e: any) {
       setExportStatus(`Export failed: ${e?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  /** Fill the log range with the last `hours` hours (null clears it = whole log). */
+  function setLogPreset(hours: number | null) {
+    if (hours === null) {
+      setLogSince('');
+      setLogUntil('');
+      return;
+    }
+    setLogSince(toLocalInputValue(new Date(Date.now() - hours * 3600_000)));
+    setLogUntil('');
+  }
+
+  async function handleLogExport() {
+    setLogStatus(null);
+    const since = logSince ? new Date(logSince) : null;
+    const until = logUntil ? new Date(logUntil) : null;
+    if (since && until && since > until) {
+      setLogStatus('Error: "From" must be before "To".');
+      return;
+    }
+    try {
+      const origin = await resolveOrigin();
+      const params = new URLSearchParams({ level: logLevel });
+      if (since) params.set('since', since.toISOString());
+      if (until) params.set('until', until.toISOString());
+      const res = await fetch(`${origin}/logs/export?${params}`);
+      if (!res.ok) {
+        setLogStatus(`Export error: ${await res.text()}`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kanban-log-${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')}.log`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setLogStatus('✓ Log exported.');
+    } catch (e: any) {
+      setLogStatus(`Export failed: ${e?.message ?? 'Unknown error'}`);
     }
   }
 
@@ -575,6 +629,71 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
             <button type="button" className={styles.btn} onClick={onToggleTheme} style={{ alignSelf: 'flex-start' }}>
               {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
             </button>
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* Application Logs Section */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Application Logs</span>
+            <div className={styles.hint}>
+              Export the app log (server activity, UI errors, MCP errors and warnings) to share when something goes
+              wrong. Leave the range empty to export everything that is kept (up to ~30 MB).
+            </div>
+            <div className={styles.inputRow}>
+              <label className={styles.hint} style={{ flex: 1 }}>
+                From
+                <input
+                  type="datetime-local"
+                  className={styles.input}
+                  value={logSince}
+                  onChange={(e) => setLogSince(e.target.value)}
+                />
+              </label>
+              <label className={styles.hint} style={{ flex: 1 }}>
+                To
+                <input
+                  type="datetime-local"
+                  className={styles.input}
+                  value={logUntil}
+                  onChange={(e) => setLogUntil(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className={styles.inputRow} style={{ flexWrap: 'wrap' }}>
+              <button type="button" className={styles.btn} onClick={() => setLogPreset(1)}>
+                Last hour
+              </button>
+              <button type="button" className={styles.btn} onClick={() => setLogPreset(24)}>
+                Last 24h
+              </button>
+              <button type="button" className={styles.btn} onClick={() => setLogPreset(24 * 7)}>
+                Last 7 days
+              </button>
+              <button type="button" className={styles.btn} onClick={() => setLogPreset(null)}>
+                All
+              </button>
+            </div>
+            <div className={styles.inputRow}>
+              <select
+                className={styles.input}
+                style={{ width: 'auto' }}
+                value={logLevel}
+                onChange={(e) => setLogLevel(e.target.value)}
+                aria-label="Minimum log level"
+              >
+                <option value="INFO">Info and above</option>
+                <option value="WARNING">Warnings and errors</option>
+                <option value="ERROR">Errors only</option>
+                <option value="DEBUG">Everything</option>
+              </select>
+              <button type="button" className={styles.btn} onClick={handleLogExport}>
+                ⬇ Export Logs
+              </button>
+            </div>
+            {logStatus && (
+              <span className={logStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>{logStatus}</span>
+            )}
           </div>
 
           <div className={styles.divider} />
