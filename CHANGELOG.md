@@ -8,11 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-### Fixed
-- Migrations at startup no longer reset Python logging (`fileConfig` in `alembic/env.py` removed root handlers and disabled existing loggers).
+---
+
+## [3.1.0] - 2026-10-14
 
 ### Added
-- **Application log export**: the server now writes a rotating log (`~/.kanban-board/logs/kanban.log`, override with `KANBAN_LOG_DIR`) with app and uvicorn messages, failed requests (4xx/5xx) uncaught exceptions with tracebacks, errors from the web UI (uncaught errors, unhandled rejections, `console.error`; logger `ui`) failed MCP tool calls (invalid arguments and `ValueError` as warnings, unexpected exceptions as errors with traceback) and the stdio MCP process (own file `kanban-mcp-stdio.log`, merged on export, logger names prefixed `stdio:`). **Settings → Application Logs** exports it as a `.log` file for a chosen time range (presets or custom From/To) and minimum level; also available as `GET /logs/export?since=&until=&level=`.
+- **Application log export.** The server now keeps a rotating log (`~/.kanban-board/logs/kanban.log`, 5 MB x 6 files, override the folder with `KANBAN_LOG_DIR`) so errors that never reach the screen can be traced. It records:
+  - app and uvicorn messages, failed requests (4xx as warnings, 5xx as errors) and uncaught exceptions with tracebacks;
+  - errors from the web UI (uncaught errors, unhandled rejections, `console.error`; logger `ui`);
+  - failed MCP tool calls (invalid arguments and `ValueError` as warnings, unexpected exceptions as errors with traceback; argument values are not logged);
+  - the stdio MCP process, in its own file `kanban-mcp-stdio.log` (logger names prefixed `stdio:`), merged into the export in time order.
+- **Settings -> Application Logs** exports the log as a `.log` file for a chosen time range (presets or custom From/To) and minimum level. Also available as `GET /logs/export?since=&until=&level=`.
+
+### Fixed
+- Migrations at startup no longer reset Python logging (`fileConfig` in `alembic/env.py` removed the root handlers and disabled existing loggers).
 
 ---
 
