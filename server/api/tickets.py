@@ -53,6 +53,9 @@ from services.tickets import (
     update_test_case,
     update_ticket,
     update_work_log,
+    reopen_ticket,
+    set_pending,
+    clear_pending,
 )
 
 router = APIRouter(tags=["tickets"])
@@ -316,6 +319,106 @@ async def patch_status(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+class ReopenBody(BaseModel):
+    """Request body to reopen a ticket."""
+
+    reason: Optional[str] = None
+    reset_ac: bool = False
+    reset_tests: bool = False
+    unassign: bool = False
+    reopen_parent: bool = False
+    actor: Optional[str] = "user"
+
+
+@router.post("/tickets/{ticket_id}/reopen", response_model=TicketRead)
+async def post_reopen(
+    ticket_id: str, body: ReopenBody, session: Session
+) -> TicketRead:
+    """Reopen a ticket that was Done or Won't Do, moving it to To Do."""
+    try:
+        ticket = await reopen_ticket(
+            session,
+            ticket_id,
+            reason=body.reason,
+            reset_ac=body.reset_ac,
+            reset_tests=body.reset_tests,
+            unassign=body.unassign,
+            reopen_parent=body.reopen_parent,
+            actor=body.actor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+class SetPendingBody(BaseModel):
+    """Request body to mark a ticket as pending."""
+
+    reason_type: Literal["ticket", "person", "party"]
+    ticket_id: Optional[str] = None
+    member_id: Optional[str] = None
+    party: Optional[str] = None
+    note: Optional[str] = None
+    add_blocked_by: bool = False
+    actor: Optional[str] = "user"
+
+
+@router.put("/tickets/{ticket_id}/pending", response_model=TicketRead)
+async def put_pending(
+    ticket_id: str, body: SetPendingBody, session: Session
+) -> TicketRead:
+    """Set the Pending flag on a ticket."""
+    try:
+        ticket = await set_pending(
+            session,
+            ticket_id,
+            reason_type=body.reason_type,
+            ticket_target_id=body.ticket_id,
+            member_id=body.member_id,
+            party=body.party,
+            note=body.note,
+            add_blocked_by=body.add_blocked_by,
+            actor=body.actor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+class ClearPendingBody(BaseModel):
+    """Request body to resume a pending ticket."""
+
+    reason: Optional[str] = None
+    add_comment: bool = False
+    actor: Optional[str] = "user"
+
+
+@router.delete("/tickets/{ticket_id}/pending", response_model=TicketRead)
+@router.post("/tickets/{ticket_id}/resume", response_model=TicketRead)
+async def delete_pending_route(
+    ticket_id: str, session: Session, body: Optional[ClearPendingBody] = None
+) -> TicketRead:
+    """Resume a pending ticket."""
+    b = body or ClearPendingBody()
+    ticket = await clear_pending(
+        session,
+        ticket_id,
+        reason=b.reason,
+        add_comment=b.add_comment,
+        actor=b.actor,
+    )
     if ticket is None:
         _404()
     await board_events.publish("invalidate")

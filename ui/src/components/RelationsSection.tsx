@@ -188,6 +188,24 @@ export function RelationsSection({
                     >
                       {row.ticket.title}
                     </span>
+                    {ticket.pending &&
+                      ticket.pendingReasonType === 'ticket' &&
+                      ticket.pendingTicketId === row.targetId && (
+                        <span
+                          style={{
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            background: '#e8edf3',
+                            border: '1px solid #b8c4d2',
+                            color: '#34455a',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Pending reason
+                        </span>
+                      )}
                     <StatusMenu
                       compact
                       value={row.ticket.status}

@@ -837,3 +837,79 @@ async def test_remove_member_blocked_when_assigned_to_open_tickets(
         # Now delete member should succeed
         r_del_ok = await c.delete(f"/projects/{project['id']}/members/{member_id}")
         assert r_del_ok.status_code == 204
+
+
+async def test_reopen_ticket_lifecycle(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        ticket = await _create_ticket(c, project["id"], title="Done task")
+
+        # Add AC and TC
+        await c.post(
+            f"/tickets/{ticket['id']}/acceptance-criteria",
+            json={"text": "Must work"},
+        )
+        t_ac = (await c.get(f"/tickets/{ticket['id']}")).json()
+        ac_id = t_ac["acceptance_criteria"][0]["id"]
+        await c.post(f"/tickets/{ticket['id']}/acceptance-criteria/{ac_id}/toggle")
+
+        # Mark done
+        r_done = await c.patch(
+            f"/tickets/{ticket['id']}/status",
+            json={"status": "done"},
+        )
+        assert r_done.status_code == 200
+
+        # Cannot reopen open ticket (e.g. if already open)
+        # Reopen from done
+        r_reopen = await c.post(
+            f"/tickets/{ticket['id']}/reopen",
+            json={
+                "reason": "Found regression in production",
+                "reset_ac": True,
+                "actor": "Linh Pham",
+            },
+        )
+        assert r_reopen.status_code == 200
+        reopened = r_reopen.json()
+        assert reopened["status"] == "todo"
+        assert reopened["reopen_count"] == 1
+        assert reopened["last_reopen_reason"] == "Found regression in production"
+        assert reopened["last_reopened_by"] == "Linh Pham"
+        assert len(reopened["reopen_history"]) == 1
+        assert reopened["acceptance_criteria"][0]["done"] is False
+
+
+async def test_pending_ticket_lifecycle(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        t1 = await _create_ticket(c, project["id"], title="Blocker task")
+        t2 = await _create_ticket(c, project["id"], title="Blocked task")
+
+        # Set pending waiting on ticket
+        r_pen = await c.put(
+            f"/tickets/{t2['id']}/pending",
+            json={
+                "reason_type": "ticket",
+                "ticket_id": t1["id"],
+                "note": "Waiting on API contract",
+                "add_blocked_by": True,
+            },
+        )
+        assert r_pen.status_code == 200
+        pen = r_pen.json()
+        assert pen["pending"] is True
+        assert pen["pending_ticket_id"] == t1["id"]
+        assert pen["pending_reason_type"] == "ticket"
+        assert pen["pending_note"] == "Waiting on API contract"
+        assert t1["id"] in pen["blocked_by"]
+
+        # Resume ticket
+        r_res = await c.post(
+            f"/tickets/{t2['id']}/resume",
+            json={"reason": "Contract finalized", "add_comment": True},
+        )
+        assert r_res.status_code == 200
+        res = r_res.json()
+        assert res["pending"] is False
+        assert any("Contract finalized" in comm["text"] for comm in res["comments"])

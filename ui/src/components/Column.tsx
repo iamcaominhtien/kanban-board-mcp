@@ -63,13 +63,32 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
           {skeletonCards !== undefined ? (
             <span className={`${loading.skel} ${loading.skelBadge}`} aria-hidden="true" />
           ) : (
-            <span
-              className={styles.columnBadge}
-              style={{ backgroundColor: column.accentColor }}
-              aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
-            >
-              {tickets.length}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span
+                className={styles.columnBadge}
+                style={{ backgroundColor: column.accentColor }}
+                aria-label={`${tickets.length - tickets.filter((t) => t.pending).length} active tickets`}
+              >
+                {tickets.length - tickets.filter((t) => t.pending).length}
+              </span>
+              {tickets.filter((t) => t.pending).length > 0 && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#34455A',
+                    background: '#E8EDF3',
+                    border: '1px solid #B8C4D2',
+                    borderRadius: 10,
+                    padding: '1px 6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={`${tickets.filter((t) => t.pending).length} pending`}
+                >
+                  +{tickets.filter((t) => t.pending).length} pending
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className={styles.columnBar} style={{ backgroundColor: column.accentColor }} />

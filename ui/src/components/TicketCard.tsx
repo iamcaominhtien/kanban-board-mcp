@@ -44,6 +44,11 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
   const isBlocked = (ticket.blockedBy ?? []).length > 0;
   const isDone = ticket.status === 'done';
+  const isReopened =
+    (ticket.reopenCount ?? 0) > 0 &&
+    ticket.status !== 'done' &&
+    ticket.status !== 'wont_do';
+  const isPending = !!ticket.pending;
   const completedAC = (ticket.acceptanceCriteria ?? []).filter((s) => s.done).length;
   const totalAC = (ticket.acceptanceCriteria ?? []).length;
   const hasSubtasks = subtaskStats && subtaskStats.total > 0;
@@ -52,6 +57,7 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
     styles.card,
     isDragging ? styles.cardDragging : '',
     isBlocked ? styles.cardBlocked : '',
+    isPending ? styles.cardPending : '',
     isDone ? styles.cardDone : '',
     hasSubtasks ? styles.cardParent : '',
     className ?? '',
@@ -62,8 +68,21 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
   const visibleTags = (ticket.tags ?? []).slice(0, 3);
   const overflowCount = (ticket.tags ?? []).length - visibleTags.length;
 
+  const pendingTargetLabel =
+    ticket.pendingReasonType === 'ticket'
+      ? ticket.pendingTicketId
+        ? `#${ticket.pendingTicketId}`
+        : 'Ticket'
+      : ticket.pendingParty ||
+        (ticket.pendingMemberId && memberMap?.get(ticket.pendingMemberId)?.name) ||
+        ticket.pendingMemberId ||
+        'Party';
+
   return (
     <div className={cardClasses} onClick={onClick}>
+      {/* Striped rail for pending cards */}
+      {isPending && <div className={styles.pendingRail} />}
+
       {/* Floating Blocked Badge */}
       {isBlocked && (
         <div className={styles.blockedBadge} title={`Blocked by ${ticket.blockedBy.join(', ')}`} aria-label="Blocked">
@@ -80,6 +99,29 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
           <div className={styles.typeContainer}>
             <TicketTypeIcon type={ticket.type} size={15} />
             <span className={styles.typeLabel}>{typeLabel}</span>
+            {isReopened && (
+              <span
+                className={styles.reopenedBadge}
+                title={`Reopened ${ticket.reopenCount} time${(ticket.reopenCount ?? 0) > 1 ? 's' : ''}${
+                  ticket.lastReopenedAt ? ` (last ${new Date(ticket.lastReopenedAt).toLocaleDateString()})` : ''
+                }${ticket.lastReopenReason ? `: "${ticket.lastReopenReason}"` : ''}`}
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#C77700"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Reopened{(ticket.reopenCount ?? 0) > 1 ? ` x${ticket.reopenCount}` : ''}
+              </span>
+            )}
           </div>
 
           <div className={styles.headerRight}>
@@ -141,6 +183,31 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
             </div>
             <span className={styles.subtaskText}>
               {subtaskStats.completed}/{subtaskStats.total} sub-tasks
+            </span>
+          </div>
+        )}
+
+        {/* Pending reason strip */}
+        {isPending && (
+          <div
+            className={styles.pendingStrip}
+            title={`Pending: Waiting on ${pendingTargetLabel}${ticket.pendingNote ? ` - "${ticket.pendingNote}"` : ''}`}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#5B6F86" style={{ flexShrink: 0 }}>
+              <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+              <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+            </svg>
+            <span style={{ color: '#5B6F86', fontSize: 10.5 }}>Waiting on</span>
+            <span
+              style={{
+                fontWeight: 600,
+                color: '#34455A',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {pendingTargetLabel}
             </span>
           </div>
         )}

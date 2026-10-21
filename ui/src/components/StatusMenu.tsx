@@ -28,6 +28,8 @@ export interface StatusMenuProps {
   compact?: boolean;
   /** Allow selecting won't do status. Sub-tickets should pass false. Defaults to true. */
   allowWontDo?: boolean;
+  /** Callback when Reopen action is clicked (shown only on Done or Won't Do tickets) */
+  onReopen?: () => void;
 }
 
 /**
@@ -45,6 +47,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   className,
   compact = false,
   allowWontDo = true,
+  onReopen,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -79,8 +82,14 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
     setIsOpen(false);
   };
 
+  const handleReopenClick = () => {
+    setIsOpen(false);
+    onReopen?.();
+  };
+
   const mainStatuses = STATUS_OPTIONS.filter((opt) => opt.status !== 'wont_do');
   const wontDoOption = STATUS_OPTIONS.find((opt) => opt.status === 'wont_do')!;
+  const showReopenOption = (value === 'done' || value === 'wont_do') && !!onReopen;
 
   return (
     <div ref={containerRef} className={`${styles.container} ${compact ? styles.compact : ''} ${className ?? ''}`}>
@@ -122,6 +131,53 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
 
       {isOpen && (
         <div className={styles.dropdown} role="listbox">
+          {showReopenOption && (
+            <>
+              <button
+                type="button"
+                className={styles.item}
+                onClick={handleReopenClick}
+                style={{
+                  background: '#FFFAF0',
+                  color: '#8A4B00',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#C77700"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  <span>Reopen</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: '1px 5px',
+                    borderRadius: 3,
+                    background: '#FFF1D6',
+                    border: '1px solid #F0C77A',
+                    color: '#8A4B00',
+                  }}
+                >
+                  R
+                </span>
+              </button>
+              <div className={styles.divider} />
+            </>
+          )}
           {mainStatuses.map((opt) => {
             const isActive = opt.status === value;
             return (

@@ -111,6 +111,58 @@ export async function updateTicketStatus(ticketId: string, status: Status): Prom
   return res.data;
 }
 
+/**
+ * Reopen a ticket that was Done or Won't Do, moving it to To Do.
+ */
+export async function reopenTicket(
+  ticketId: string,
+  data: {
+    reason?: string;
+    resetAc?: boolean;
+    resetTests?: boolean;
+    unassign?: boolean;
+    reopenParent?: boolean;
+    actor?: string;
+  },
+): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/reopen`, data);
+  return res.data;
+}
+
+/**
+ * Flag a ticket as Pending.
+ */
+export async function setTicketPending(
+  ticketId: string,
+  data: {
+    reasonType: 'ticket' | 'person' | 'party';
+    ticketId?: string;
+    memberId?: string;
+    party?: string;
+    note?: string;
+    addBlockedBy?: boolean;
+    actor?: string;
+  },
+): Promise<Ticket> {
+  const res = await client.put<Ticket>(`/tickets/${ticketId}/pending`, data);
+  return res.data;
+}
+
+/**
+ * Resume a pending ticket.
+ */
+export async function resumeTicket(
+  ticketId: string,
+  data?: {
+    reason?: string;
+    addComment?: boolean;
+    actor?: string;
+  },
+): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/resume`, data ?? {});
+  return res.data;
+}
+
 /** Delete a ticket. */
 export async function deleteTicket(ticketId: string): Promise<void> {
   await client.delete(`/tickets/${ticketId}`);
@@ -661,6 +713,61 @@ export function useDeleteTicket(projectId: string) {
     onSuccess: (_, ticketId) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(projectId) });
       queryClient.removeQueries({ queryKey: ticketKeys.detail(ticketId) });
+    },
+  });
+}
+
+/** Mutation: reopen a ticket. */
+export function useReopenTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      data,
+    }: {
+      ticketId: string;
+      data: Parameters<typeof reopenTicket>[1];
+    }) => reopenTicket(ticketId, data),
+    onSuccess: (ticket) => {
+      queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
+      queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });
+    },
+  });
+}
+
+/** Mutation: mark a ticket as pending. */
+export function useSetPending() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      data,
+    }: {
+      ticketId: string;
+      data: Parameters<typeof setTicketPending>[1];
+    }) => setTicketPending(ticketId, data),
+    onSuccess: (ticket) => {
+      queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
+    },
+  });
+}
+
+/** Mutation: resume a pending ticket. */
+export function useResumeTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      data,
+    }: {
+      ticketId: string;
+      data?: Parameters<typeof resumeTicket>[1];
+    }) => resumeTicket(ticketId, data),
+    onSuccess: (ticket) => {
+      queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
     },
   });
 }

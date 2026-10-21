@@ -110,6 +110,21 @@ class Ticket(SQLModel, table=True):
     repo_path: Optional[str] = Field(
         default=None
     )  # overrides Project.repo_path when set
+    # Reopen fields
+    reopen_count: int = Field(default=0)
+    last_reopened_at: Optional[str] = Field(default=None)
+    last_reopened_by: Optional[str] = Field(default=None, foreign_key="member.id")
+    last_reopen_reason: Optional[str] = Field(default=None)
+    reopen_history: str = Field(default="[]")
+    # Pending fields
+    pending: bool = Field(default=False)
+    pending_reason_type: Optional[str] = Field(default=None)  # ticket | person | party
+    pending_ticket_id: Optional[str] = Field(default=None)
+    pending_member_id: Optional[str] = Field(default=None)
+    pending_party: Optional[str] = Field(default=None)
+    pending_note: Optional[str] = Field(default=None)
+    pending_since: Optional[str] = Field(default=None)
+    pending_by: Optional[str] = Field(default=None)
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -414,6 +429,21 @@ class TicketRead(SQLModel):
     branches: list[Any] = []
     workspace_retention_days: Optional[int] = None
     repo_path: Optional[str] = None
+    # Reopen fields
+    reopen_count: int = 0
+    last_reopened_at: Optional[str] = None
+    last_reopened_by: Optional[str] = None
+    last_reopen_reason: Optional[str] = None
+    reopen_history: list[Any] = []
+    # Pending fields
+    pending: bool = False
+    pending_reason_type: Optional[str] = None
+    pending_ticket_id: Optional[str] = None
+    pending_member_id: Optional[str] = None
+    pending_party: Optional[str] = None
+    pending_note: Optional[str] = None
+    pending_since: Optional[str] = None
+    pending_by: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -454,6 +484,19 @@ class TicketRead(SQLModel):
             branches=_parse_json_list(getattr(ticket, "branches", "[]")),
             workspace_retention_days=getattr(ticket, "workspace_retention_days", None),
             repo_path=getattr(ticket, "repo_path", None),
+            reopen_count=getattr(ticket, "reopen_count", 0) or 0,
+            last_reopened_at=getattr(ticket, "last_reopened_at", None),
+            last_reopened_by=getattr(ticket, "last_reopened_by", None),
+            last_reopen_reason=getattr(ticket, "last_reopen_reason", None),
+            reopen_history=_parse_json_list(getattr(ticket, "reopen_history", "[]")),
+            pending=bool(getattr(ticket, "pending", False)),
+            pending_reason_type=getattr(ticket, "pending_reason_type", None),
+            pending_ticket_id=getattr(ticket, "pending_ticket_id", None),
+            pending_member_id=getattr(ticket, "pending_member_id", None),
+            pending_party=getattr(ticket, "pending_party", None),
+            pending_note=getattr(ticket, "pending_note", None),
+            pending_since=getattr(ticket, "pending_since", None),
+            pending_by=getattr(ticket, "pending_by", None),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

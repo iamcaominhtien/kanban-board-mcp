@@ -27,6 +27,9 @@ import {
   useTicketBranches,
   useWorkspaceSettings,
   uploadUrl,
+  useReopenTicket,
+  useSetPending,
+  useResumeTicket,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
@@ -54,6 +57,9 @@ import { TagPill } from './TagPill';
 import { useToast } from './Toast';
 import { Icon } from './docs/Icon';
 import { WontDoDialog } from './WontDoDialog';
+import { ReopenDialog } from './ReopenDialog';
+import { SetPendingDialog } from './SetPendingDialog';
+import { ResumeDialog } from './ResumeDialog';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
@@ -183,10 +189,24 @@ function TicketModalInner({
   const [wontDoReason, setWontDoReason] = useState<string | null>(ticket?.wontDoReason ?? null);
   const [isWontDoOpen, setIsWontDoOpen] = useState(false);
   const [isSubmittingWontDo, setIsSubmittingWontDo] = useState(false);
+
+  const [isReopenOpen, setIsReopenOpen] = useState(false);
+  const [isSubmittingReopen, setIsSubmittingReopen] = useState(false);
+
+  const [isPendingOpen, setIsPendingOpen] = useState(false);
+  const [isSubmittingPending, setIsSubmittingPending] = useState(false);
+
+  const [isResumeOpen, setIsResumeOpen] = useState(false);
+  const [isSubmittingResume, setIsSubmittingResume] = useState(false);
+
+  const [showReopenHistory, setShowReopenHistory] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const toast = useToast();
   const updateTicketMutation = useUpdateTicket();
+  const reopenMutation = useReopenTicket();
+  const setPendingMutation = useSetPending();
+  const resumeMutation = useResumeTicket();
   const addCommentMutation = useAddComment();
   const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
@@ -451,6 +471,114 @@ function TicketModalInner({
     }
   }
 
+  async function handleConfirmReopen(payload: {
+    reason?: string;
+    resetAc?: boolean;
+    resetTests?: boolean;
+    unassign?: boolean;
+    reopenParent?: boolean;
+  }) {
+    if (!ticket) return;
+    setIsSubmittingReopen(true);
+    try {
+      await reopenMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: payload,
+      });
+      setStatus('todo');
+      setIsReopenOpen(false);
+      toast.success('Ticket Reopened', `${ticket.id} moved to To Do with Reopened marker`);
+    } catch (err) {
+      toast.error("Couldn't reopen ticket", extractError(err));
+    } finally {
+      setIsSubmittingReopen(false);
+    }
+  }
+
+  async function handleConfirmPending(payload: {
+    reasonType: 'ticket' | 'person' | 'party';
+    pendingTicketId?: string;
+    pendingMemberId?: string;
+    pendingParty?: string;
+    note?: string;
+    alsoAddBlockedBy?: boolean;
+  }) {
+    if (!ticket) return;
+    setIsSubmittingPending(true);
+    try {
+      await setPendingMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: {
+          reasonType: payload.reasonType,
+          ticketId: payload.pendingTicketId,
+          memberId: payload.pendingMemberId,
+          party: payload.pendingParty,
+          note: payload.note,
+          addBlockedBy: payload.alsoAddBlockedBy,
+        },
+      });
+      setIsPendingOpen(false);
+      const targetName = payload.pendingTicketId
+        ? `#${payload.pendingTicketId}`
+        : payload.pendingParty || 'party';
+      toast.success('Marked as Pending', `${ticket.id} is waiting on ${targetName}`);
+    } catch (err) {
+      toast.error("Couldn't mark as pending", extractError(err));
+    } finally {
+      setIsSubmittingPending(false);
+    }
+  }
+
+  async function handleConfirmResume(payload: { reason?: string; addComment?: boolean }) {
+    if (!ticket) return;
+    setIsSubmittingResume(true);
+    try {
+      await resumeMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: payload,
+      });
+      setIsResumeOpen(false);
+      toast.success('Ticket Resumed', `${ticket.id} pending flag cleared`);
+    } catch (err) {
+      toast.error("Couldn't resume ticket", extractError(err));
+    } finally {
+      setIsSubmittingResume(false);
+    }
+  }
+
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (
+        activeTag === 'input' ||
+        activeTag === 'textarea' ||
+        (document.activeElement as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+      if (isReopenOpen || isPendingOpen || isResumeOpen || isWontDoOpen) {
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        if (status === 'done' || status === 'wont_do') {
+          e.preventDefault();
+          setIsReopenOpen(true);
+        }
+      } else if (e.key === 'p' || e.key === 'P') {
+        if (status !== 'done' && status !== 'wont_do') {
+          e.preventDefault();
+          if (ticket?.pending) {
+            setIsResumeOpen(true);
+          } else {
+            setIsPendingOpen(true);
+          }
+        }
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [status, ticket?.pending, isReopenOpen, isPendingOpen, isResumeOpen, isWontDoOpen]);
+
   function handlePriorityChange(newPriority: Priority) {
     setPriority(newPriority);
     autoSaveField('priority', newPriority);
@@ -525,6 +653,9 @@ function TicketModalInner({
   const assigneeMember = members.find((m) => m.id === assignee);
   const childTickets = ticket ? allTickets.filter((t) => t.parentId === ticket.id) : [];
   const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
+  const pendingBlockerTicket = ticket?.pendingTicketId
+    ? allTickets.find((t) => t.id === ticket.pendingTicketId)
+    : undefined;
 
   // View switchers tooltips & status dots
   const allRelevantTestCases = [...(ticket?.testCases ?? []), ...childTickets.flatMap((ct) => ct.testCases ?? [])];
@@ -1047,14 +1178,214 @@ function TicketModalInner({
                         </span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className={styles.wontDoRestoreBtn}
-                      onClick={handleRestoreFromWontDo}
-                      title="Restore ticket to Backlog"
-                    >
-                      Restore to Backlog
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        type="button"
+                        style={{
+                          flexShrink: 0,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          padding: '5px 11px',
+                          borderRadius: 6,
+                          border: '1px solid #F0C77A',
+                          background: '#FFF1D6',
+                          color: '#8A4B00',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                        onClick={() => setIsReopenOpen(true)}
+                        title="Reopen ticket to To Do (R)"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#C77700"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                        <span>Reopen</span>
+                        <span style={{ fontSize: 10, opacity: 0.8 }}>R</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.wontDoRestoreBtn}
+                        onClick={handleRestoreFromWontDo}
+                        title="Restore ticket to Backlog"
+                      >
+                        Restore to Backlog
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reopen Banner */}
+                {ticket &&
+                  (ticket.reopenCount ?? 0) > 0 &&
+                  status !== 'done' &&
+                  status !== 'wont_do' && (
+                    <div className={styles.reopenBanner} role="status">
+                      <div className={styles.reopenBannerHeader}>
+                        <div className={styles.reopenBannerContent}>
+                          <span className={styles.reopenBannerIcon}>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#C77700"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                              <path d="M3 3v5h5" />
+                            </svg>
+                          </span>
+                          <div className={styles.reopenBannerText}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span className={styles.reopenBannerTitle}>
+                                Reopened #{ticket.reopenCount}
+                              </span>
+                              {ticket.lastReopenedAt && (
+                                <span style={{ fontSize: 11.5, color: '#8A4B00', opacity: 0.85 }}>
+                                  · {new Date(ticket.lastReopenedAt).toLocaleDateString()}
+                                  {ticket.lastReopenedBy ? ` by ${ticket.lastReopenedBy}` : ''}
+                                </span>
+                              )}
+                            </div>
+                            <span className={styles.reopenBannerReason}>
+                              <strong>Reason:</strong> {ticket.lastReopenReason || 'No reason specified'}
+                            </span>
+                          </div>
+                        </div>
+                        {ticket.reopenHistory && ticket.reopenHistory.length > 0 && (
+                          <button
+                            type="button"
+                            className={styles.reopenHistoryToggle}
+                            onClick={() => setShowReopenHistory((prev) => !prev)}
+                          >
+                            {showReopenHistory
+                              ? 'Hide history'
+                              : `History (${ticket.reopenHistory.length})`}
+                          </button>
+                        )}
+                      </div>
+                      {showReopenHistory && ticket.reopenHistory && (
+                        <div className={styles.reopenHistoryList}>
+                          {ticket.reopenHistory.map((entry, idx) => (
+                            <div key={idx} className={styles.reopenHistoryItem}>
+                              <div style={{ fontWeight: 600 }}>
+                                Reopen #{entry.reopenCount ?? (ticket.reopenHistory!.length - idx)} ·{' '}
+                                {new Date(entry.at).toLocaleDateString()}
+                                {entry.actor ? ` by ${entry.actor}` : ''}
+                                <span style={{ fontWeight: 400, color: '#8A4B00', marginLeft: 6 }}>
+                                  ({entry.fromStatus} → To Do)
+                                </span>
+                              </div>
+                              {entry.reason && (
+                                <div style={{ fontStyle: 'italic' }}>"{entry.reason}"</div>
+                              )}
+                              {entry.sideEffects && entry.sideEffects.length > 0 && (
+                                <div style={{ fontSize: 11, color: '#A05A00' }}>
+                                  {entry.sideEffects.includes('reset_ac') ? '• Reset ACs ' : ''}
+                                  {entry.sideEffects.includes('reset_tests') ? '• Reset tests ' : ''}
+                                  {entry.sideEffects.includes('unassigned') ? '• Unassigned ' : ''}
+                                  {entry.sideEffects.includes('reopened_parent') ? '• Reopened parent ' : ''}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                {/* Pending Banner */}
+                {ticket && ticket.pending && (
+                  <div className={styles.pendingBanner} role="status">
+                    <div className={styles.pendingBannerContent}>
+                      <span className={styles.pendingBannerIcon}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#5B6F86">
+                          <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+                          <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+                        </svg>
+                      </span>
+                      <div className={styles.pendingBannerText}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span className={styles.pendingBannerTitle}>
+                            Pending since{' '}
+                            {ticket.pendingSince
+                              ? new Date(ticket.pendingSince).toLocaleDateString()
+                              : 'recent'}
+                            {ticket.pendingBy ? ` · set by ${ticket.pendingBy}` : ''}
+                          </span>
+                        </div>
+                        <div className={styles.pendingBannerDetail}>
+                          <strong>Waiting on: </strong>
+                          {ticket.pendingReasonType === 'ticket' ? (
+                            <span>
+                              <strong>#{ticket.pendingTicketId}</strong>
+                              {pendingBlockerTicket && (
+                                <>
+                                  {' · '}
+                                  <span>{pendingBlockerTicket.title}</span>
+                                  <span
+                                    style={{
+                                      marginLeft: 6,
+                                      fontSize: 11,
+                                      padding: '1px 5px',
+                                      borderRadius: 3,
+                                      background: '#E8EDF3',
+                                      color: '#34455A',
+                                      textTransform: 'capitalize',
+                                    }}
+                                  >
+                                    {pendingBlockerTicket.status.replace('_', ' ')}
+                                  </span>
+                                </>
+                              )}
+                            </span>
+                          ) : (
+                            <span>
+                              <strong>
+                                {ticket.pendingParty ||
+                                  (ticket.pendingMemberId &&
+                                    members.find((m) => m.id === ticket.pendingMemberId)?.name) ||
+                                  ticket.pendingMemberId ||
+                                  'Person / Party'}
+                              </strong>
+                            </span>
+                          )}
+                          {ticket.pendingNote && <span> — "{ticket.pendingNote}"</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.pendingBannerActions}>
+                      <button
+                        type="button"
+                        className={styles.pendingBannerBtn}
+                        onClick={() => setIsPendingOpen(true)}
+                        title="Change pending reason"
+                      >
+                        Change reason
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.pendingBannerBtn} ${styles.pendingBannerBtnPrimary}`}
+                        onClick={() => setIsResumeOpen(true)}
+                        title="Resume ticket (P)"
+                      >
+                        Resume
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1402,7 +1733,85 @@ function TicketModalInner({
               {/* 1. Status */}
               <div className={styles.sidebarRow}>
                 <span className={styles.sidebarLabel}>Status</span>
-                <StatusMenu value={status} onChange={handleStatusChange} allowWontDo={!ticket?.parentId} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                  <StatusMenu
+                    value={status}
+                    onChange={handleStatusChange}
+                    allowWontDo={!ticket?.parentId}
+                    onReopen={() => setIsReopenOpen(true)}
+                  />
+                  {(status === 'done' || status === 'wont_do') && (
+                    <button
+                      type="button"
+                      onClick={() => setIsReopenOpen(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        background: '#FFF1D6',
+                        border: '1px solid #F0C77A',
+                        color: '#8A4B00',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                      title="Reopen ticket (R)"
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#C77700"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                      <span>Reopen</span>
+                      <span style={{ fontSize: 10, opacity: 0.8 }}>R</span>
+                    </button>
+                  )}
+                  {status !== 'done' && status !== 'wont_do' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (ticket?.pending) {
+                          setIsResumeOpen(true);
+                        } else {
+                          setIsPendingOpen(true);
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        background: ticket?.pending ? '#E8EDF3' : '#fff',
+                        border: ticket?.pending ? '1px solid #B8C4D2' : '1px solid #CBD5E1',
+                        color: ticket?.pending ? '#34455A' : '#5B6B60',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                      title={ticket?.pending ? 'Pending (click to resume - P)' : 'Mark as pending (P)'}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={ticket?.pending ? '#34455A' : '#5B6F86'}>
+                        <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+                        <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+                      </svg>
+                      <span>Pending</span>
+                      <span style={{ fontSize: 10, opacity: 0.8 }}>P</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* 2. Branch */}
@@ -1959,6 +2368,38 @@ function TicketModalInner({
           isSubmitting={isSubmittingWontDo}
           onConfirm={handleConfirmWontDo}
           onClose={() => setIsWontDoOpen(false)}
+        />
+
+        <ReopenDialog
+          isOpen={isReopenOpen}
+          ticket={ticket}
+          parentTicket={parentTicket}
+          members={members}
+          isSubmitting={isSubmittingReopen}
+          onClose={() => setIsReopenOpen(false)}
+          onConfirm={handleConfirmReopen}
+        />
+
+        <SetPendingDialog
+          isOpen={isPendingOpen}
+          ticket={ticket}
+          allTickets={allTickets}
+          members={members}
+          isSubmitting={isSubmittingPending}
+          onClose={() => setIsPendingOpen(false)}
+          onConfirm={handleConfirmPending}
+          onResume={() => {
+            setIsPendingOpen(false);
+            setIsResumeOpen(true);
+          }}
+        />
+
+        <ResumeDialog
+          isOpen={isResumeOpen}
+          ticket={ticket}
+          isSubmitting={isSubmittingResume}
+          onClose={() => setIsResumeOpen(false)}
+          onConfirm={handleConfirmResume}
         />
       </div>
     </div>

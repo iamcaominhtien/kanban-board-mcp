@@ -452,6 +452,17 @@ async def update_ticket(
     if "status" in update_data and update_data["status"] != "wont_do":
         update_data.setdefault("wont_do_reason", None)
 
+    # Clear pending flag when transitioning to done or wont_do
+    if update_data.get("status") in ("done", "wont_do") and getattr(ticket, "pending", False):
+        update_data["pending"] = False
+        update_data["pending_reason_type"] = None
+        update_data["pending_ticket_id"] = None
+        update_data["pending_member_id"] = None
+        update_data["pending_party"] = None
+        update_data["pending_note"] = None
+        update_data["pending_since"] = None
+        update_data["pending_by"] = None
+
     activity = _loads(ticket.activity_log)
 
     for field, new_val in update_data.items():
@@ -2161,3 +2172,251 @@ async def get_commit_detail(
     return await asyncio.to_thread(
         lambda: git_repo.commit_detail(git_repo.open_repo(repo_path), rev)
     )
+
+
+async def reopen_ticket(
+    session: AsyncSession,
+    ticket_id: str,
+    reason: str | None = None,
+    reset_ac: bool = False,
+    reset_tests: bool = False,
+    unassign: bool = False,
+    reopen_parent: bool = False,
+    actor: str | None = None,
+) -> Ticket | None:
+    """Reopen a ticket that was Done or Won't Do, moving it to To Do."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+
+    if ticket.status not in ("done", "wont_do"):
+        raise ValueError("Only tickets in Done or Won't Do can be reopened")
+
+    now_iso = datetime.now(UTC).isoformat()
+    prev_status = ticket.status
+
+    ticket.status = "todo"
+    ticket.wont_do_reason = None
+
+    side_effects = []
+    if unassign:
+        ticket.assignee = None
+        side_effects.append("unassigned")
+
+    if reset_ac:
+        acs = _loads(ticket.acceptance_criteria)
+        if acs:
+            for ac in acs:
+                if isinstance(ac, dict):
+                    ac["done"] = False
+            ticket.acceptance_criteria = _dumps(acs)
+            side_effects.append("ac_reset")
+
+    if reset_tests:
+        tcs = _loads(ticket.test_cases)
+        if tcs:
+            for tc in tcs:
+                if isinstance(tc, dict):
+                    tc["status"] = "pending"
+            ticket.test_cases = _dumps(tcs)
+            side_effects.append("tests_reset")
+
+    ticket.reopen_count = (getattr(ticket, "reopen_count", 0) or 0) + 1
+    ticket.last_reopened_at = now_iso
+    ticket.last_reopened_by = actor
+    ticket.last_reopen_reason = reason.strip() if reason and reason.strip() else None
+
+    # History list (newest first)
+    history = _loads(getattr(ticket, "reopen_history", "[]"))
+    history_entry = {
+        "id": str(uuid.uuid4()),
+        "reopen_count": ticket.reopen_count,
+        "actor": actor,
+        "reason": ticket.last_reopen_reason,
+        "from_status": prev_status,
+        "at": now_iso,
+        "side_effects": side_effects,
+    }
+    history.insert(0, history_entry)
+    ticket.reopen_history = _dumps(history)
+
+    # Activity log entry
+    activity = _loads(ticket.activity_log)
+    activity.append({
+        "field": "reopen",
+        "from": prev_status,
+        "to": "todo",
+        "actor": actor or "user",
+        "reason": ticket.last_reopen_reason,
+        "reopen_count": ticket.reopen_count,
+        "side_effects": side_effects,
+        "at": now_iso,
+    })
+    ticket.activity_log = _dumps(activity)
+    ticket.updated_at = now_iso
+
+    session.add(ticket)
+
+    # Reopen parent if requested
+    if reopen_parent and ticket.parent_id:
+        parent = await session.get(Ticket, ticket.parent_id)
+        if parent is not None and parent.status in ("done", "wont_do"):
+            parent_prev = parent.status
+            parent.status = "todo"
+            parent.wont_do_reason = None
+            parent.reopen_count = (getattr(parent, "reopen_count", 0) or 0) + 1
+            parent.last_reopened_at = now_iso
+            parent.last_reopened_by = actor
+            parent.last_reopen_reason = f"Reopened by child {ticket.id}"
+            parent_hist = _loads(getattr(parent, "reopen_history", "[]"))
+            parent_hist.insert(0, {
+                "id": str(uuid.uuid4()),
+                "reopen_count": parent.reopen_count,
+                "actor": actor,
+                "reason": parent.last_reopen_reason,
+                "from_status": parent_prev,
+                "at": now_iso,
+                "side_effects": ["child_reopened"],
+            })
+            parent.reopen_history = _dumps(parent_hist)
+            parent_act = _loads(parent.activity_log)
+            parent_act.append({
+                "field": "reopen",
+                "from": parent_prev,
+                "to": "todo",
+                "actor": actor or "user",
+                "reason": parent.last_reopen_reason,
+                "reopen_count": parent.reopen_count,
+                "at": now_iso,
+            })
+            parent.activity_log = _dumps(parent_act)
+            parent.updated_at = now_iso
+            session.add(parent)
+
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def set_pending(
+    session: AsyncSession,
+    ticket_id: str,
+    reason_type: str,
+    ticket_target_id: str | None = None,
+    member_id: str | None = None,
+    party: str | None = None,
+    note: str | None = None,
+    add_blocked_by: bool = False,
+    actor: str | None = None,
+) -> Ticket | None:
+    """Flag a ticket as Pending."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+
+    if ticket.status in ("done", "wont_do"):
+        raise ValueError("Done or Won't Do tickets cannot be marked as pending")
+
+    if reason_type not in ("ticket", "person", "party"):
+        raise ValueError(f"Invalid reason_type '{reason_type}'")
+
+    now_iso = datetime.now(UTC).isoformat()
+    if not getattr(ticket, "pending", False):
+        ticket.pending_since = now_iso
+
+    ticket.pending = True
+    ticket.pending_reason_type = reason_type
+    ticket.pending_ticket_id = ticket_target_id if reason_type == "ticket" else None
+    ticket.pending_member_id = member_id if reason_type == "person" else None
+    ticket.pending_party = party.strip() if party and party.strip() else None
+    ticket.pending_note = note.strip() if note and note.strip() else None
+    ticket.pending_by = actor
+
+    # If waiting on a ticket and add_blocked_by is true:
+    if reason_type == "ticket" and ticket_target_id and add_blocked_by:
+        target = await session.get(Ticket, ticket_target_id)
+        if target is not None:
+            blocked_by = _loads(ticket.blocked_by)
+            if ticket_target_id not in blocked_by:
+                blocked_by.append(ticket_target_id)
+                ticket.blocked_by = _dumps(blocked_by)
+            blocks = _loads(target.blocks)
+            if ticket.id not in blocks:
+                blocks.append(ticket.id)
+                target.blocks = _dumps(blocks)
+                session.add(target)
+
+    # Activity log
+    activity = _loads(ticket.activity_log)
+    activity.append({
+        "field": "pending_set",
+        "actor": actor or "user",
+        "reason_type": reason_type,
+        "target_id": ticket_target_id,
+        "member_id": member_id,
+        "party": ticket.pending_party,
+        "note": ticket.pending_note,
+        "at": now_iso,
+    })
+    ticket.activity_log = _dumps(activity)
+    ticket.updated_at = now_iso
+
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def clear_pending(
+    session: AsyncSession,
+    ticket_id: str,
+    reason: str | None = None,
+    add_comment: bool = False,
+    actor: str | None = None,
+) -> Ticket | None:
+    """Clear the Pending flag on a ticket (Resume)."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+
+    if not getattr(ticket, "pending", False):
+        return ticket
+
+    now_iso = datetime.now(UTC).isoformat()
+    clean_reason = reason.strip() if reason and reason.strip() else None
+
+    # If add_comment is set:
+    if add_comment and clean_reason:
+        comments = _loads(ticket.comments)
+        comment_entry = {
+            "id": str(uuid.uuid4()),
+            "text": f"Resumed from Pending: {clean_reason}",
+            "author": actor or "user",
+            "at": now_iso,
+        }
+        comments.append(comment_entry)
+        ticket.comments = _dumps(comments)
+
+    ticket.pending = False
+    ticket.pending_reason_type = None
+    ticket.pending_ticket_id = None
+    ticket.pending_member_id = None
+    ticket.pending_party = None
+    ticket.pending_note = None
+    ticket.pending_since = None
+    ticket.pending_by = None
+
+    activity = _loads(ticket.activity_log)
+    activity.append({
+        "field": "pending_cleared",
+        "actor": actor or "user",
+        "reason": clean_reason,
+        "at": now_iso,
+    })
+    ticket.activity_log = _dumps(activity)
+    ticket.updated_at = now_iso
+
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket

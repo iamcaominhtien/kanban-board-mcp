@@ -1398,3 +1398,167 @@
   background: #fbe7e4;
   border-color: #c4432a;
 }
+
+.reopenBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fffaf0;
+  border: 1px solid #f0c77a;
+  border-left: 3px solid #d98a00;
+  margin-bottom: 16px;
+}
+
+.reopenBannerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reopenBannerContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.reopenBannerIcon {
+  color: #c77700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.reopenBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.reopenBannerTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a4b00;
+}
+
+.reopenBannerReason {
+  font-size: 13px;
+  color: #5c3200;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.reopenHistoryToggle {
+  background: none;
+  border: none;
+  color: #c77700;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-align: left;
+}
+
+.reopenHistoryList {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #f0c77a;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reopenHistoryItem {
+  font-size: 12px;
+  color: #5c3200;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pendingBanner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f4f6f9;
+  border: 1px solid #b8c4d2;
+  border-left: 3px solid #6b7f96;
+  margin-bottom: 16px;
+}
+
+.pendingBannerContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pendingBannerIcon {
+  color: #5b6f86;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pendingBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pendingBannerTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #34455a;
+}
+
+.pendingBannerDetail {
+  font-size: 13px;
+  color: #1e293b;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.pendingBannerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pendingBannerBtn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid #b8c4d2;
+  background: #fff;
+  color: #34455a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.pendingBannerBtn:hover {
+  background: #e8edf3;
+}
+
+.pendingBannerBtnPrimary {
+  background: #5b6f86;
+  border-color: #5b6f86;
+  color: #fff;
+}
+
+.pendingBannerBtnPrimary:hover {
+  background: #4a5c70;
+}
+

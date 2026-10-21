@@ -15,6 +15,7 @@ import {
   useUpdateTicketStatus,
   useWontDoTickets,
   useRestoreTicket,
+  reopenTicket,
 } from './api/tickets';
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
@@ -173,6 +174,29 @@ export default function App() {
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
     const dragged = localTickets.find((t) => t.id === ticketId);
+    if (dragged && (dragged.status === 'done' || dragged.status === 'wont_do')) {
+      try {
+        await reopenTicket(ticketId, {});
+        setLocalTickets((prev) =>
+          prev.map((t) =>
+            t.id === ticketId
+              ? {
+                  ...t,
+                  status: 'todo',
+                  reopenCount: (t.reopenCount || 0) + 1,
+                  lastReopenedAt: new Date().toISOString(),
+                }
+              : t,
+          ),
+        );
+        toast.success('Ticket Reopened', `${dragged.id} moved to To Do with Reopened marker`);
+      } catch (err) {
+        setLocalTickets(tickets);
+        toast.error("Couldn't reopen ticket", extractError(err));
+      }
+      return;
+    }
+
     if (newStatus === 'in-progress') {
       if (dragged && (dragged.blockedBy ?? []).length > 0) {
         setBlockedDragPending({ ticketId, newStatus });
@@ -181,12 +205,28 @@ export default function App() {
     }
 
     // Update local state synchronously to prevent snap-back
-    setLocalTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
+    setLocalTickets((prev) =>
+      prev.map((t) =>
+        t.id === ticketId
+          ? {
+              ...t,
+              status: newStatus,
+              // If moved to done, backend clears pending
+              pending: newStatus === 'done' ? false : t.pending,
+            }
+          : t,
+      ),
+    );
 
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
       if (newStatus === 'done' && dragged) {
         toast.success('Moved to Done', `${dragged.id} · ${dragged.title}`);
+      } else if (dragged?.pending) {
+        const target = dragged.pendingTicketId
+          ? `#${dragged.pendingTicketId}`
+          : dragged.pendingParty || 'person';
+        toast.success(`${dragged.id} moved to ${newStatus}`, `Still pending — waiting on ${target}`);
       }
     } catch (err) {
       // Rollback local state on error
