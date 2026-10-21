@@ -26,6 +26,8 @@ export interface StatusMenuProps {
   className?: string;
   /** Small pill used inside list rows (e.g. Relations); the menu opens right-aligned. */
   compact?: boolean;
+  /** Allow selecting won't do status. Sub-tickets should pass false. Defaults to true. */
+  allowWontDo?: boolean;
 }
 
 /**
@@ -34,6 +36,7 @@ export interface StatusMenuProps {
  * @param props.onChange - Called with the newly selected status.
  * @param props.disabled - Disable the dropdown.
  * @param props.compact - Small pill for list rows; the menu opens right-aligned.
+ * @param props.allowWontDo - Whether won't do status is allowed.
  */
 export const StatusMenu: React.FC<StatusMenuProps> = ({
   value,
@@ -41,6 +44,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   disabled = false,
   className,
   compact = false,
+  allowWontDo = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,29 +150,33 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
             );
           })}
 
-          <div className={styles.divider} />
+          {(allowWontDo || value === 'wont_do') && (
+            <>
+              <div className={styles.divider} />
 
-          <button
-            type="button"
-            className={`${styles.item} ${value === wontDoOption.status ? styles.itemActive : ''}`}
-            onClick={() => handleSelect(wontDoOption.status)}
-            role="option"
-            aria-selected={value === wontDoOption.status}
-          >
-            <span className={styles.dot} style={{ backgroundColor: wontDoOption.dotColor }} />
-            <span className={styles.itemText}>{wontDoOption.label}</span>
-            {value === wontDoOption.status && (
-              <svg className={styles.checkmark} viewBox="0 0 14 14" fill="none">
-                <path
-                  d="M3.5 7.2L5.7 9.5L10.5 4.3"
-                  stroke="#2E6F40"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            )}
-          </button>
+              <button
+                type="button"
+                className={`${styles.item} ${value === wontDoOption.status ? styles.itemActive : ''}`}
+                onClick={() => handleSelect(wontDoOption.status)}
+                role="option"
+                aria-selected={value === wontDoOption.status}
+              >
+                <span className={styles.dot} style={{ backgroundColor: wontDoOption.dotColor }} />
+                <span className={styles.itemText}>{wontDoOption.label}</span>
+                {value === wontDoOption.status && (
+                  <svg className={styles.checkmark} viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                      stroke="#2E6F40"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

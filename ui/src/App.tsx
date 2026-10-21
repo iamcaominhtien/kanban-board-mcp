@@ -127,19 +127,24 @@ export default function App() {
 
   const [modalState, setModalState] = useState<{ mode: 'create' } | { mode: 'view'; ticketId: string } | null>(null);
 
+  const allAvailableTickets = useMemo(() => {
+    const wontDoIds = new Set(wontDoTickets.map((t) => t.id));
+    return [...tickets.filter((t) => !wontDoIds.has(t.id)), ...wontDoTickets];
+  }, [tickets, wontDoTickets]);
+
   const deepLinkHandled = useRef(false);
   useEffect(() => {
-    if (deepLinkHandled.current || tickets.length === 0) return;
-    deepLinkHandled.current = true; // always mark handled after first run
+    if (deepLinkHandled.current || allAvailableTickets.length === 0) return;
     const params = new URLSearchParams(window.location.search);
     const ticketId = params.get('ticket');
     if (ticketId) {
-      const found = tickets.find((t) => t.id.toLowerCase() === ticketId.toLowerCase());
+      const found = allAvailableTickets.find((t) => t.id.toLowerCase() === ticketId.toLowerCase());
       if (found) {
+        deepLinkHandled.current = true;
         setModalState({ mode: 'view', ticketId: found.id }); // URL already has the param — openTicketModal would double-replaceState
       }
     }
-  }, [tickets]);
+  }, [allAvailableTickets]);
 
   function openDocsPage(pageId: string) {
     setViewMode('docs');
@@ -162,7 +167,9 @@ export default function App() {
   }
 
   const modalTicket =
-    modalState && modalState.mode !== 'create' ? tickets.find((t) => t.id === modalState.ticketId) : undefined;
+    modalState && modalState.mode !== 'create'
+      ? allAvailableTickets.find((t) => t.id === modalState.ticketId)
+      : undefined;
 
   async function handleDragEnd(ticketId: string, newStatus: Status) {
     const dragged = localTickets.find((t) => t.id === ticketId);
@@ -474,7 +481,7 @@ export default function App() {
                     mode="create"
                     onSave={handleCreateTicket}
                     onClose={closeModal}
-                    allTickets={tickets}
+                    allTickets={allAvailableTickets}
                     onOpenTicket={(t) => openTicketModal(t.id)}
                     members={members}
                   />
@@ -486,7 +493,7 @@ export default function App() {
                     onDelete={handleDeleteTicket}
                     onClose={closeModal}
                     onOpenDocsPage={openDocsPage}
-                    allTickets={tickets}
+                    allTickets={allAvailableTickets}
                     onOpenTicket={(t) => openTicketModal(t.id)}
                     members={members}
                   />

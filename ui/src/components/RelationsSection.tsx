@@ -192,6 +192,7 @@ export function RelationsSection({
                       compact
                       value={row.ticket.status}
                       disabled={!onChangeStatus}
+                      allowWontDo={false}
                       onChange={(next) => onChangeStatus?.(row.ticket.id, next)}
                     />
                     <button

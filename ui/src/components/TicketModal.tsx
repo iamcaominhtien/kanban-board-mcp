@@ -52,6 +52,8 @@ import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
 import { TagPill } from './TagPill';
 import { useToast } from './Toast';
+import { Icon } from './docs/Icon';
+import { WontDoDialog } from './WontDoDialog';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
@@ -178,6 +180,9 @@ function TicketModalInner({
   const [blockTcs, setBlockTcs] = useState(ticket?.blockDoneIfTcsIncomplete ?? false);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
   const [assignee, setAssignee] = useState<string | null>(ticket?.assignee ?? null);
+  const [wontDoReason, setWontDoReason] = useState<string | null>(ticket?.wontDoReason ?? null);
+  const [isWontDoOpen, setIsWontDoOpen] = useState(false);
+  const [isSubmittingWontDo, setIsSubmittingWontDo] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const toast = useToast();
@@ -300,6 +305,7 @@ function TicketModalInner({
     setStartDate(ticket.startDate ?? null);
     setEstimate(ticket.estimate ?? null);
     setAssignee(ticket.assignee ?? null);
+    setWontDoReason(ticket.wontDoReason ?? null);
     setBlockAcs(ticket.blockDoneIfAcsIncomplete);
     setBlockTcs(ticket.blockDoneIfTcsIncomplete);
   }
@@ -310,7 +316,6 @@ function TicketModalInner({
       applyTicket(ticket);
       setIsFullscreen(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket]);
 
   function handleClose() {
@@ -384,10 +389,65 @@ function TicketModalInner({
   }
 
   function handleStatusChange(newStatus: Status) {
+    if (newStatus === 'wont_do') {
+      setIsWontDoOpen(true);
+      return;
+    }
+    const prevStatus = status;
     setStatus(newStatus);
-    autoSaveField('status', newStatus);
-    if (newStatus === 'done' && ticket) {
-      toast.success('Moved to Done', `${ticket.id} · ${ticket.title}`);
+    if (!ticket) return;
+
+    if (prevStatus === 'wont_do') {
+      setWontDoReason(null);
+      updateTicketMutation.mutate(
+        { ticketId: ticket.id, data: { status: newStatus, wontDoReason: null } },
+        {
+          onSuccess: () => toast.success('Ticket restored', `${ticket.id} moved to ${newStatus}`),
+          onError: (err) => {
+            toast.error("Couldn't save changes", extractError(err));
+            applyTicket(ticket);
+          },
+        },
+      );
+    } else {
+      autoSaveField('status', newStatus);
+      if (newStatus === 'done') {
+        toast.success('Moved to Done', `${ticket.id} · ${ticket.title}`);
+      }
+    }
+  }
+
+  async function handleConfirmWontDo(reason: string) {
+    if (!ticket) return;
+    setIsSubmittingWontDo(true);
+    try {
+      await updateTicketMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: { status: 'wont_do', wontDoReason: reason.trim() },
+      });
+      setStatus('wont_do');
+      setWontDoReason(reason.trim());
+      setIsWontDoOpen(false);
+      toast.success("Marked as Won't Do", `${ticket.id} moved to Recycle Bin`);
+    } catch (err) {
+      toast.error("Couldn't mark as Won't Do", extractError(err));
+    } finally {
+      setIsSubmittingWontDo(false);
+    }
+  }
+
+  async function handleRestoreFromWontDo() {
+    if (!ticket) return;
+    try {
+      await updateTicketMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: { status: 'backlog', wontDoReason: null },
+      });
+      setStatus('backlog');
+      setWontDoReason(null);
+      toast.success('Ticket restored', `${ticket.id} moved back to Backlog`);
+    } catch (err) {
+      toast.error("Couldn't restore ticket", extractError(err));
     }
   }
 
@@ -974,6 +1034,30 @@ function TicketModalInner({
             {/* Main Column */}
             <div className={styles.mainCol}>
               <>
+                {status === 'wont_do' && (
+                  <div className={styles.wontDoBanner} role="status">
+                    <div className={styles.wontDoBannerContent}>
+                      <span className={styles.wontDoBannerIcon}>
+                        <Icon name="i14" size={16} />
+                      </span>
+                      <div className={styles.wontDoBannerText}>
+                        <span className={styles.wontDoBannerTitle}>This ticket is marked as Won't Do</span>
+                        <span className={styles.wontDoBannerReason}>
+                          <strong>Reason:</strong> {wontDoReason || ticket.wontDoReason || 'No reason provided'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.wontDoRestoreBtn}
+                      onClick={handleRestoreFromWontDo}
+                      title="Restore ticket to Backlog"
+                    >
+                      Restore to Backlog
+                    </button>
+                  </div>
+                )}
+
                 {/* Title & Tags */}
                 <div className={styles.titleArea}>
                   {isEditingTitle ? (
@@ -1318,7 +1402,7 @@ function TicketModalInner({
               {/* 1. Status */}
               <div className={styles.sidebarRow}>
                 <span className={styles.sidebarLabel}>Status</span>
-                <StatusMenu value={status} onChange={handleStatusChange} />
+                <StatusMenu value={status} onChange={handleStatusChange} allowWontDo={!ticket?.parentId} />
               </div>
 
               {/* 2. Branch */}
@@ -1866,6 +1950,15 @@ function TicketModalInner({
           onSuccess={(newBranch) => {
             setSelectedBranchName(newBranch);
           }}
+        />
+
+        <WontDoDialog
+          isOpen={isWontDoOpen}
+          ticketId={ticket.id}
+          ticketTitle={ticket.title}
+          isSubmitting={isSubmittingWontDo}
+          onConfirm={handleConfirmWontDo}
+          onClose={() => setIsWontDoOpen(false)}
         />
       </div>
     </div>
