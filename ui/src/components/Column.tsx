@@ -16,6 +16,8 @@ interface ColumnProps {
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
   onDelete?: (ticket: Ticket) => void;
+  /** What the card being dragged carries: a closed ticket (reopen) or a pending one. */
+  dragKind?: 'reopen' | 'pending' | null;
 }
 
 /**
@@ -38,6 +40,7 @@ export function Column({
   onPending,
   onResume,
   onDelete,
+  dragKind = null,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
@@ -180,7 +183,13 @@ export function Column({
             />
           );
         })}
-        {isOver && <div className={styles.dropTargetGhost}>Drop here</div>}
+        {isOver && (
+          <div
+            className={`${styles.dropTargetGhost} ${dragKind === 'reopen' ? styles.dropTargetReopen : ''} ${dragKind === 'pending' ? styles.dropTargetPending : ''}`}
+          >
+            {dragKind === 'reopen' ? 'Drop to reopen' : dragKind === 'pending' ? 'Drop - stays pending' : 'Drop here'}
+          </div>
+        )}
       </div>
     </div>
   );

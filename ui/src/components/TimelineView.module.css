@@ -455,3 +455,89 @@
 .eventDetailDim {
   color: #9aa8a0;
 }
+
+/* Reopened / Pending markers (TicketReopen E3, TicketPending F3) */
+.ganttIconBadgeReopen,
+.ganttIconBadgePending {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ganttIconBadgeReopen {
+  background: #fff1d6;
+  border: 1px solid #f0c77a;
+}
+
+.ganttIconBadgePending {
+  background: #e8edf3;
+  border: 1px solid #b8c4d2;
+}
+
+.ganttEarlierDone {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 16px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(135deg, #c9ddd0 0 4px, #e3efe7 4px 8px);
+  color: #2e6f40;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.ganttReopenMarker {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 18px;
+  border-radius: 999px;
+  background: #d98a00;
+  border: 2px solid #fff1d6;
+  box-sizing: border-box;
+  z-index: 4;
+}
+
+.ganttPendingNow,
+.ganttPendingPast {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 16px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(135deg, rgba(52, 69, 90, 0.85) 0 3px, rgba(255, 255, 255, 0.25) 3px 6px);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.ganttPendingPast {
+  opacity: 0.4;
+}
+
+.legendHatch {
+  display: inline-block;
+  width: 18px;
+  height: 10px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(135deg, #34455a 0 3px, #d3dae3 3px 6px);
+}
+
+.legendReopen {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  border-radius: 999px;
+  background: #d98a00;
+  border: 2px solid #fff1d6;
+  box-sizing: border-box;
+}

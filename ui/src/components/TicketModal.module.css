@@ -1553,13 +1553,30 @@
 }
 
 .pendingBannerBtnPrimary {
-  background: #5b6f86;
-  border-color: #5b6f86;
+  background: #2e6f40;
+  border-color: #2e6f40;
   color: #fff;
 }
 
 .pendingBannerBtnPrimary:hover {
-  background: #4a5c70;
+  background: #265a34;
+}
+
+.pendingBannerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pendingBannerIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e8edf3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0;
 }
 
 /* E1 Auto-prompt banner: Blocker is Done */
@@ -1763,3 +1780,39 @@
 }
 
 
+
+/* Full-width banner strip under the modal header */
+.mainTabWrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.bannerStack {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.bannerStack > .reopenBanner,
+.bannerStack > .pendingBanner,
+.bannerStack > .promptBannerDone,
+.bannerStack > .wontDoBanner {
+  margin: 0;
+  border-radius: 0;
+  border-width: 0 0 1px 0;
+  border-style: solid;
+  padding: 14px 28px;
+}
+
+.bannerStack > .reopenBanner {
+  background: #fffaf0;
+  border-color: #f0c77a;
+}
+
+.bannerStack > .pendingBanner {
+  background: #f4f6f9;
+  border-color: #b8c4d2;
+  align-items: center;
+}

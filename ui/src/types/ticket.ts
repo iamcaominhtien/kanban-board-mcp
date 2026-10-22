@@ -154,6 +154,7 @@ export interface Ticket {
   pendingSince?: string | null;
   pendingBy?: string | null;
   completedAt?: string | null;
+  completedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -164,6 +165,7 @@ export interface ReopenHistoryEntry {
   actor?: string | null;
   reason?: string | null;
   fromStatus: Status;
+  previousCompletedAt?: string | null;
   at: string;
   sideEffects?: string[];
 }

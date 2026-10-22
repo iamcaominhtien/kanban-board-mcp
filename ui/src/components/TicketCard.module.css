@@ -16,6 +16,7 @@
     transform 0.15s ease;
   user-select: none;
   min-height: 140px;
+  container-type: inline-size;
 }
 
 .card:hover {
@@ -204,11 +205,22 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-width: 0;
 }
 
+/* Narrow cards (< ~220px of content): badges collapse to icon + xN (TicketReopen C2) */
+@container (max-width: 250px) {
+  .badgeLabel {
+    display: none;
+  }
+}
+
 .typeLabel {
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 500;
   color: #5b6b60;
@@ -222,6 +234,8 @@
 }
 
 .cardId {
+  white-space: nowrap;
+  flex-shrink: 0;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   color: #9aa8a0;
@@ -352,6 +366,10 @@
   background: #f1f8f3;
   border: 1px solid #a2d8b3;
   margin-top: 2px;
+}
+
+.blockerDoneText strong {
+  white-space: nowrap;
 }
 
 .blockerDoneText {

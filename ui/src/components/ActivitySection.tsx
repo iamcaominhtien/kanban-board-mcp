@@ -14,7 +14,20 @@ interface ActivitySectionProps {
   onViewComment?: (commentId: string) => void;
 }
 
-type FilterGroup = 'all' | 'status' | 'assignee' | 'priority' | 'comments' | 'branch' | 'other';
+type FilterGroup =
+  | 'all'
+  | 'status'
+  | 'reopened'
+  | 'pending'
+  | 'assignee'
+  | 'priority'
+  | 'comments'
+  | 'branch'
+  | 'other';
+
+const isReopenField = (field: string) => field === 'reopen' || field.startsWith('reopen_child');
+const isPendingField = (field: string) =>
+  field === 'pending_set' || field === 'pending_cleared' || field === 'pending_prompt';
 
 interface DiffRow {
   type: 'added' | 'removed' | 'normal';
@@ -241,6 +254,12 @@ function getInitials(name: string): string {
 }
 
 const FIELD_DISPLAY_NAMES: Record<string, string> = {
+  reopen: 'Reopened',
+  reopen_child_ac: 'Acceptance criteria',
+  reopen_child_tests: 'Test results',
+  pending_set: 'Pending',
+  pending_cleared: 'Resumed',
+  pending_prompt: 'Prompt',
   status: 'Status',
   assignee: 'Assignee',
   priority: 'Priority',
@@ -302,6 +321,128 @@ const MONO_FIELDS = new Set([
   'blocked_by',
   'parent_id',
 ]);
+
+const fmtDay = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+
+/** Rows for reopen / pending / resume events (TicketReopen F, TicketPending G). */
+function MarkerRow({ entry, members }: { entry: any; members: Member[] }) {
+  const who = actorLabel(entry.actor, members) ?? 'Someone';
+  const memberName = (id?: string | null) => members.find((m) => m.id === id)?.name ?? id ?? 'Person';
+  const quoteTone = {
+    reopen: ['#FFF6E5', '#F0C77A'],
+    pending: ['#EEF1F6', '#B8C4D2'],
+    resumed: ['#EEF6F0', '#8FCBA0'],
+  } as const;
+  const quote = (text: string | null | undefined, tone: keyof typeof quoteTone) =>
+    text ? (
+      <div
+        style={{
+          fontSize: 12.5,
+          color: '#1E2A22',
+          marginTop: 6,
+          padding: '6px 12px',
+          background: quoteTone[tone][0],
+          borderLeft: `3px solid ${quoteTone[tone][1]}`,
+          borderRadius: 4,
+        }}
+      >
+        &ldquo;{text}&rdquo;
+      </div>
+    ) : null;
+  const meta = (text: string) => <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 3 }}>{text}</div>;
+  const mono = { fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 } as const;
+
+  if (entry.field === 'reopen') {
+    const parts = [`Reopen #${entry.reopenCount}`];
+    if (entry.keptAssignee) parts.push(`kept assignee ${memberName(entry.keptAssignee)}`);
+    if (entry.previousCompletedAt) parts.push(`completion date ${fmtDay(entry.previousCompletedAt)} cleared`);
+    const from = getStatusInfo(entry.from);
+    const to = getStatusInfo(entry.to);
+    return (
+      <>
+        <div className={styles.acChange}>
+          <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
+            <b>{who}</b> reopened this ticket
+          </span>
+          <span className={styles.acChip}>
+            <span className={styles.statusDot} style={{ background: from.dotColor }} />
+            {from.label}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12H19" />
+            <path d="M13 6L19 12L13 18" />
+          </svg>
+          <span className={styles.acChip}>
+            <span className={styles.statusDot} style={{ background: to.dotColor }} />
+            {to.label}
+          </span>
+        </div>
+        {quote(entry.reason, 'reopen')}
+        {meta(parts.join(' - '))}
+      </>
+    );
+  }
+  if (entry.field === 'reopen_child_ac' || entry.field === 'reopen_child_tests') {
+    const what = entry.field === 'reopen_child_ac' ? 'unchecked' : 'reset';
+    const noun = entry.field === 'reopen_child_ac' ? 'criteria' : entry.count === 1 ? 'test result' : 'test results';
+    return (
+      <div className={styles.acChange}>
+        <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
+          <b>{who}</b> {what} {entry.count} {noun} while reopening
+        </span>
+      </div>
+    );
+  }
+  if (entry.field === 'pending_set') {
+    const target =
+      entry.reasonType === 'ticket' ? (
+        <span style={mono}>{entry.targetId}</span>
+      ) : (
+        <b>{entry.reasonType === 'person' ? memberName(entry.memberId) : entry.party}</b>
+      );
+    return (
+      <>
+        <div className={styles.acChange}>
+          <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
+            <b>{who}</b> {entry.changed ? 'changed the pending reason' : 'marked this ticket pending'} · waiting on {target}
+          </span>
+        </div>
+        {quote(entry.note, 'pending')}
+        {entry.addedBlockedBy && entry.targetId && meta(`Also added Blocked by ${entry.targetId}`)}
+      </>
+    );
+  }
+  if (entry.field === 'pending_cleared') {
+    const w = entry.wasWaitingOn ?? {};
+    const was =
+      w.reasonType === 'ticket' ? w.targetId : w.reasonType === 'person' ? memberName(w.memberId) : w.party;
+    const days = entry.durationDays ?? 0;
+    return (
+      <>
+        <div className={styles.acChange}>
+          <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
+            <b>{who}</b> resumed this ticket{' '}
+            <span style={{ color: '#8A99A8' }}>
+              after {days === 0 ? 'less than a day' : `${days} ${days === 1 ? 'day' : 'days'}`}
+            </span>
+          </span>
+        </div>
+        {quote(entry.reason, 'resumed')}
+        {was && meta(`Was waiting on ${was}`)}
+      </>
+    );
+  }
+  // pending_prompt: written by the system, never clears the flag
+  return (
+    <div className={styles.acChange}>
+      <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
+        System: <span style={mono}>{entry.blockerId}</span>{' '}
+        {entry.cause === 'blocker_done' ? 'done' : 'removed'} - prompt shown
+      </span>
+    </div>
+  );
+}
 
 function actorLabel(actor: string | undefined, members: Member[]): string | null {
   if (!actor) return null;
@@ -442,6 +583,16 @@ export function ActivitySection({
     for (const e of rawEntries) {
       if (e.field !== 'doc_ref_added' && e.field !== 'doc_ref_removed') {
         out.push(e);
+        // One child row per optional side effect of a reopen (TicketReopen F)
+        if (e.field === 'reopen') {
+          const x = e as any;
+          if (x.acResetCount > 0) {
+            out.push({ field: 'reopen_child_ac', from: null, to: null, at: e.at, actor: e.actor, count: x.acResetCount } as any);
+          }
+          if (x.testsResetCount > 0) {
+            out.push({ field: 'reopen_child_tests', from: null, to: null, at: e.at, actor: e.actor, count: x.testsResetCount } as any);
+          }
+        }
         continue;
       }
       const key = `${e.at.slice(0, 19)}|${e.ref ?? ''}|${e.actor ?? ''}`;
@@ -476,6 +627,8 @@ export function ActivitySection({
   // Counts for filters
   const counts = useMemo(() => {
     let status = 0;
+    let reopened = 0;
+    let pending = 0;
     let assignee = 0;
     let priority = 0;
     let comments = 0;
@@ -484,6 +637,8 @@ export function ActivitySection({
 
     for (const e of entries) {
       if (e.field === 'status') status++;
+      else if (isReopenField(e.field)) reopened++;
+      else if (isPendingField(e.field)) pending++;
       else if (e.field === 'assignee') assignee++;
       else if (e.field === 'priority') priority++;
       else if (COMMENT_FIELDS.has(e.field)) comments++;
@@ -494,6 +649,8 @@ export function ActivitySection({
     return {
       all: entries.length,
       status,
+      reopened,
+      pending,
       assignee,
       priority,
       comments,
@@ -507,6 +664,8 @@ export function ActivitySection({
     const list = entries.filter((e) => {
       if (filter === 'all') return true;
       if (filter === 'status') return e.field === 'status';
+      if (filter === 'reopened') return isReopenField(e.field);
+      if (filter === 'pending') return isPendingField(e.field);
       if (filter === 'assignee') return e.field === 'assignee';
       if (filter === 'priority') return e.field === 'priority';
       if (filter === 'comments') return COMMENT_FIELDS.has(e.field);
@@ -514,6 +673,8 @@ export function ActivitySection({
       if (filter === 'other') {
         return (
           !['status', 'assignee', 'priority'].includes(e.field) &&
+          !isReopenField(e.field) &&
+          !isPendingField(e.field) &&
           !COMMENT_FIELDS.has(e.field) &&
           !isBranchField(e.field)
         );
@@ -549,6 +710,18 @@ export function ActivitySection({
   // Bubble Icon and styling
   const renderBubble = (field: string) => {
     switch (field) {
+      case 'reopen':
+        return iconBubble('#FFF1D6', '#C77700', ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5']);
+      case 'reopen_child_ac':
+        return iconBubble('#F1F3F1', '#5B6B60', ['M5 12.5L10 17.5L19 7']);
+      case 'reopen_child_tests':
+        return iconBubble('#F1F3F1', '#5B6B60', ['M9 3H15', 'M10 3V9L5 19C4.5 20 5.2 21 6.3 21H17.7C18.8 21 19.5 20 19 19L14 9V3']);
+      case 'pending_set':
+        return iconBubble('#E8EDF3', '#5B6F86', ['M8.5 5.5V18.5', 'M15.5 5.5V18.5']);
+      case 'pending_cleared':
+        return iconBubble('#DCEEE1', '#2E6F40', ['M7 4L19 12L7 20Z']);
+      case 'pending_prompt':
+        return iconBubble('#F1F3F1', '#8C9BAE', ['M6 16V11A6 6 0 0 1 18 11V16L20 18H4Z', 'M10 21H14']);
       case 'status':
         return (
           <div className={styles.acBubble} style={{ background: '#E1EEFB', color: '#2F6FB0' }}>
@@ -931,13 +1104,17 @@ export function ActivitySection({
             [
               ['all', 'All'],
               ['status', 'Status'],
+              ['reopened', 'Reopened'],
+              ['pending', 'Pending'],
               ['assignee', 'Assignee'],
               ['priority', 'Priority'],
               ['comments', 'Comments'],
               ['branch', 'Branch'],
               ['other', 'Other'],
             ] as [FilterGroup, string][]
-          ).map(([key, label]) => (
+          )
+            .filter(([key]) => (key !== 'reopened' && key !== 'pending') || counts[key] > 0)
+            .map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -1010,7 +1187,9 @@ export function ActivitySection({
                             )}
                           </span>
 
-                          {isDescription && diffData ? (
+                          {entry.field.startsWith('reopen') || isPendingField(entry.field) ? (
+                            <MarkerRow entry={entry as any} members={members} />
+                          ) : isDescription && diffData ? (
                             <>
                               <div className={styles.acChange}>
                                 <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>edited</span>
@@ -1128,7 +1307,7 @@ export function ActivitySection({
                         </div>
 
                         <span className={styles.acTime} style={isDescription ? { paddingTop: '2px' } : undefined}>
-                          {actorLabel(entry.actor, members) && (
+                          {actorLabel(entry.actor, members) && !isReopenField(entry.field) && !isPendingField(entry.field) && (
                             <span className={styles.acActor}>{actorLabel(entry.actor, members)} · </span>
                           )}
                           {isToday ? formatRelative(entry.at) : formatClockTime(entry.at)}

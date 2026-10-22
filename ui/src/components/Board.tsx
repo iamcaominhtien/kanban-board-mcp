@@ -115,6 +115,13 @@ export function Board({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
+  const dragKind: 'reopen' | 'pending' | null = !activeTicket
+    ? null
+    : activeTicket.status === 'done' || activeTicket.status === 'wont_do'
+      ? 'reopen'
+      : activeTicket.pending
+        ? 'pending'
+        : null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
 
   function handleDragStart(event: DragStartEvent) {
@@ -263,7 +270,7 @@ export function Board({
             ))}
           </div>
         ) : viewMode === 'list' ? (
-          <ListView tickets={tickets} onCardClick={onCardClick} />
+          <ListView tickets={tickets} members={members} onCardClick={onCardClick} />
         ) : viewMode === 'timeline' ? (
           <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} />
         ) : (
@@ -282,6 +289,7 @@ export function Board({
                   onPending={onPending}
                   onResume={onResume}
                   onDelete={onDelete}
+                  dragKind={dragKind}
                 />
               );
             })}
@@ -291,7 +299,12 @@ export function Board({
 
       <DragOverlay>
         {activeTicket ? (
-          <div style={{ pointerEvents: 'none', width: 280 }}>
+          <div style={{ pointerEvents: 'none', width: 280, position: 'relative' }}>
+            {dragKind && (
+              <span className={dragKind === 'reopen' ? styles.dragLabelReopen : styles.dragLabelPending}>
+                {dragKind === 'reopen' ? 'Reopen' : 'Still pending'}
+              </span>
+            )}
             <TicketCard ticket={activeTicket} memberMap={memberMap} isDragging={true} />
           </div>
         ) : null}

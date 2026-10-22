@@ -27,7 +27,7 @@ interface SetPendingDialogProps {
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string }> = {
   backlog: { label: 'Backlog', dotColor: '#C7D2CB' },
   todo: { label: 'To Do', dotColor: '#9AA8A0' },
-  in_progress: { label: 'In Progress', dotColor: '#2F6FB0' },
+  'in-progress': { label: 'In Progress', dotColor: '#2F6FB0' },
   review: { label: 'Review', dotColor: '#6D5DD3' },
   testing: { label: 'Testing', dotColor: '#B4571F' },
   done: { label: 'Done', dotColor: '#2E6F40' },
@@ -62,7 +62,7 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
 
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [customParty, setCustomParty] = useState<string>('');
-  const [notifyThem, setNotifyThem] = useState<boolean>(true);
+  const [notifyThem, setNotifyThem] = useState<boolean>(false);
 
   const [note, setNote] = useState<string>('');
 
@@ -86,7 +86,7 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
         setCustomParty('');
         setNote('');
         setAlsoAddBlockedBy(true);
-        setNotifyThem(true);
+        setNotifyThem(false);
       }
       setTicketSearch('');
       setTimeout(() => {
@@ -968,7 +968,7 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                     Could not mark {ticket.id} pending
                   </span>
                   <span style={{ fontSize: 12, color: '#8A3220', lineHeight: 1.4 }}>
-                    {error || `The server returned an error. Nothing was changed - the ticket is still ${currentStatusConfig.label}.`}
+                    {`The server returned an error. Nothing was changed - the ticket is still ${currentStatusConfig.label}.`}
                   </span>
                 </div>
               </div>

@@ -70,6 +70,9 @@ export function FilterBar({
   onFilterPendingChange,
   hidePending = false,
   onHidePendingChange,
+  totalReopens30d = 0,
+  waitingOnTicketsCount = 0,
+  waitingOnPersonsCount = 0,
 }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<'type' | 'priority' | 'assignee' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,65 +89,84 @@ export function FilterBar({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {/* E1 Project hint: Reopened rework */}
-      {reopenedCount > 0 && !filterReopened && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '7px 12px',
-            borderRadius: 6,
-            background: '#FFFAF0',
-            border: '1px solid #F0C77A',
-            fontSize: 12.5,
-            color: '#8A4B00',
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-          </svg>
-          <span>
-            <b>{reopenedCount} tickets</b> are reopened rework
-          </span>
-          <span
-            onClick={() => onFilterReopenedChange?.(true)}
-            style={{ marginLeft: 'auto', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}
-          >
-            Show only reopened
-          </span>
-        </div>
-      )}
-
-      {/* F1 Project hint: Pending tickets */}
-      {pendingCount > 0 && !filterPending && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '7px 12px',
-            borderRadius: 6,
-            background: '#F4F6F9',
-            border: '1px solid #B8C4D2',
-            fontSize: 12.5,
-            color: '#34455A',
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <path d="M8.5 5.5V18.5" />
-            <path d="M15.5 5.5V18.5" />
-          </svg>
-          <span>
-            <b>{pendingCount} tickets</b> are pending
-          </span>
-          <span
-            onClick={() => onFilterPendingChange?.(true)}
-            style={{ marginLeft: 'auto', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}
-          >
-            Show only pending
-          </span>
+      {/* Project hints: E1 (Reopened) and F1 (Pending); chips beside the secondary counts, link on the right */}
+      {(reopenedCount > 0 || pendingCount > 0) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minHeight: 30 }}>
+          {reopenedCount > 0 && (
+            <>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 11px',
+                  borderRadius: 999,
+                  background: '#FFFAF0',
+                  border: '1px solid #F0C77A',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: '#8A4B00',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                {reopenedCount} {reopenedCount === 1 ? 'ticket is' : 'tickets are'} reopened rework
+              </span>
+              <span style={{ fontSize: 12.5, color: '#5B6B60' }}>
+                {totalReopens30d} {totalReopens30d === 1 ? 'reopen' : 'reopens'} in the last 30 days
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={() => onFilterReopenedChange?.(!filterReopened)}
+                onKeyDown={(e) => e.key === 'Enter' && onFilterReopenedChange?.(!filterReopened)}
+                style={{ fontSize: 12.5, fontWeight: 700, color: '#2E6F40', cursor: 'pointer' }}
+              >
+                {filterReopened ? 'Show all' : 'Show only reopened'}
+              </span>
+            </>
+          )}
+          {pendingCount > 0 && (
+            <>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 11px',
+                  borderRadius: 999,
+                  background: '#F4F6F9',
+                  border: '1px solid #B8C4D2',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: '#34455A',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M8.5 5.5V18.5" />
+                  <path d="M15.5 5.5V18.5" />
+                </svg>
+                {pendingCount} {pendingCount === 1 ? 'ticket is' : 'tickets are'} pending
+              </span>
+              <span style={{ fontSize: 12.5, color: '#5B6B60' }}>
+                {waitingOnTicketsCount} waiting on tickets, {waitingOnPersonsCount} on people or parties
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  onFilterPendingChange?.(!filterPending);
+                  if (!filterPending && hidePending) onHidePendingChange?.(false);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && onFilterPendingChange?.(!filterPending)}
+                style={{ fontSize: 12.5, fontWeight: 700, color: '#2E6F40', cursor: 'pointer' }}
+              >
+                {filterPending ? 'Show all' : 'Show only pending'}
+              </span>
+            </>
+          )}
         </div>
       )}
 
@@ -418,6 +440,7 @@ export function FilterBar({
               {reopenedCount}
             </span>
           )}
+          {filterReopened && <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>×</span>}
         </button>
 
         {/* F1 Pending Filter Chip */}
@@ -465,11 +488,14 @@ export function FilterBar({
               {pendingCount}
             </span>
           )}
+          {filterPending && <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>×</span>}
         </button>
 
-        {/* F1 Hide Pending Toggle */}
+        {/* F1 Hide Pending Toggle (switch) */}
         <button
           type="button"
+          role="switch"
+          aria-checked={hidePending}
           onClick={() => {
             onHidePendingChange?.(!hidePending);
             if (!hidePending && filterPending) {
@@ -479,19 +505,42 @@ export function FilterBar({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 5,
-            padding: '5px 10px',
-            borderRadius: 6,
-            border: hidePending ? '1.5px solid #2E6F40' : '1px solid #E3E8E5',
-            background: hidePending ? '#F1F8F3' : '#FFFFFF',
-            color: hidePending ? '#2E6F40' : '#5B6B60',
+            gap: 8,
+            padding: '4px 6px',
+            border: 'none',
+            background: 'transparent',
+            color: '#1E2A22',
             fontSize: 12.5,
-            fontWeight: hidePending ? 600 : 500,
+            fontWeight: 500,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
           title="Hide pending tickets"
         >
+          <span
+            style={{
+              position: 'relative',
+              width: 30,
+              height: 18,
+              borderRadius: 999,
+              background: hidePending ? '#2E6F40' : '#D3DAE3',
+              transition: 'background 0.15s ease',
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: hidePending ? 14 : 2,
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                background: '#fff',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                transition: 'left 0.15s ease',
+              }}
+            />
+          </span>
           Hide pending
         </button>
       </div>

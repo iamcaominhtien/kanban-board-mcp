@@ -1,3 +1,4 @@
+import { ConflictActions, ConflictNotice } from './ConflictNotice';
 import React, { useState, useEffect, useRef } from 'react';
 import type { Ticket, Member } from '../types/ticket';
 import { DOCS_SCRIM, useEscape } from './docs/docsShared';
@@ -20,6 +21,10 @@ interface ReopenDialogProps {
     reopenParent?: boolean;
   }) => void;
   onRetry?: () => void;
+  /** Open the ticket (conflict: someone reopened it first). */
+  onViewTicket?: () => void;
+  /** Reason typed in the drop popover (More options). */
+  initialReason?: string;
 }
 
 /**
@@ -38,8 +43,11 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
   onClose,
   onConfirm,
   onRetry,
+  onViewTicket,
+  initialReason = '',
 }) => {
   useEscape(isSubmitting ? () => {} : onClose);
+  const isConflict = !!error && /can be reopened/i.test(error);
 
   const effectiveParent = parentTicket ?? (allTickets ? allTickets.find((t) => t.id === ticket.parentId) : null);
   const effectiveSubtasks =
@@ -79,7 +87,7 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setReason('');
+      setReason(initialReason);
       setResetAc(false);
       setResetTests(false);
       setUnassign(false);
@@ -116,15 +124,10 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
   const charCount = reason.length;
   const counterColor = charCount >= 240 ? '#C4432A' : charCount >= 220 ? '#C77700' : '#9AA8A0';
 
-  const completedDateStr = ticket.completedAt
-    ? new Date(ticket.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : ticket.updatedAt
-    ? new Date(ticket.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : 'Oct 17';
-
-  const lastReopenedDateStr = ticket.lastReopenedAt
-    ? new Date(ticket.lastReopenedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : 'Oct 14';
+  const shortDate = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+  const completedDateStr = shortDate(ticket.completedAt);
+  const lastReopenedDateStr = shortDate(ticket.lastReopenedAt);
 
   return (
     <div
@@ -333,8 +336,8 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                 </span>
                 <span>
                   {isWontDo
-                    ? `The Won't Do decision (${completedDateStr}) is cleared`
-                    : `Completion date (${completedDateStr}) is cleared`}
+                    ? `The Won't Do decision${completedDateStr ? ` (${completedDateStr})` : ''} is cleared`
+                    : `Completion date${completedDateStr ? ` (${completedDateStr})` : ''} is cleared`}
                 </span>
               </div>
 
@@ -346,7 +349,9 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                 </span>
                 <span>
                   Marked <b>Reopened</b>, reopen #{nextReopenCount}
-                  {ticket.reopenCount ? <span style={{ color: '#9AA8A0' }}> (last {lastReopenedDateStr})</span> : null}
+                  {ticket.reopenCount && lastReopenedDateStr ? (
+                    <span style={{ color: '#9AA8A0' }}> (last {lastReopenedDateStr})</span>
+                  ) : null}
                 </span>
               </div>
             </div>
@@ -593,8 +598,9 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
             </div>
 
             {/* B4 Error State Box */}
-            {error && (
+            {error && !isConflict && (
               <div
+                title={error ?? undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
@@ -625,10 +631,16 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                     Could not reopen {ticket.id}
                   </span>
                   <span style={{ fontSize: 12, color: '#8A3220', lineHeight: 1.4 }}>
-                    {error || `The server returned an error. Nothing was changed - the ticket is still ${fromStatusLabel}.`}
+                    The server returned an error. Nothing was changed - the ticket is still {fromStatusLabel}.
                   </span>
                 </div>
               </div>
+            )}
+            {isConflict && (
+              <ConflictNotice
+                who={ticket.lastReopenedBy || 'Someone'}
+                message={`already reopened ${ticket.id} a moment ago. It is now in To Do.`}
+              />
             )}
           </div>
 
@@ -643,6 +655,10 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
               background: '#FBFCFB',
             }}
           >
+            {isConflict ? (
+              <ConflictActions onView={onViewTicket} onClose={onClose} />
+            ) : (
+              <>
             <button
               type="button"
               disabled={isSubmitting}
@@ -703,6 +719,8 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
               </svg>
               {isSubmitting ? 'Reopening...' : error ? 'Retry' : 'Reopen'}
             </button>
+              </>
+            )}
           </div>
         </form>
       </div>

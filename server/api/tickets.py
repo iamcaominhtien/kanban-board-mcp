@@ -8,7 +8,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
-from models import ActivityEventRead, TicketCreateBody, TicketRead, TicketUpdate
+from models import (
+    ActivityEventRead,
+    Ticket,
+    TicketCreateBody,
+    TicketRead,
+    TicketUpdate,
+)
 from uploads import (
     MAX_ATTACHMENT_BYTES,
     MAX_DESCRIPTION_IMAGE_BYTES,
@@ -429,6 +435,10 @@ async def delete_pending_route(
 ) -> TicketRead:
     """Resume a pending ticket."""
     b = body or ClearPendingBody()
+    current = await session.get(Ticket, ticket_id)
+    if current is not None and not current.pending:
+        # someone resumed it meanwhile: nothing is applied
+        raise HTTPException(status_code=409, detail=f"{ticket_id} is no longer pending")
     ticket = await clear_pending(
         session,
         ticket_id,

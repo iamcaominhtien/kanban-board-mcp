@@ -535,6 +535,25 @@ async def update_ticket(
     ticket.activity_log = _dumps(activity)
     ticket.updated_at = datetime.now(UTC).isoformat()
 
+    if update_data.get("status") in ("done", "wont_do"):
+        # "Mark done anyway" also clears the flags of the ticket's pending sub-tasks
+        kids = await session.exec(
+            select(Ticket).where(
+                Ticket.parent_id == ticket.id,
+                Ticket.pending == True,  # noqa: E712
+            )
+        )
+        for kid in kids.all():
+            kid.pending = False
+            kid.pending_reason_type = None
+            kid.pending_ticket_id = None
+            kid.pending_member_id = None
+            kid.pending_party = None
+            kid.pending_note = None
+            kid.pending_since = None
+            kid.pending_by = None
+            session.add(kid)
+
     if (
         update_data.get("status") in ("done", "wont_do")
         and previous_status != update_data["status"]

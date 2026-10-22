@@ -27,9 +27,6 @@ import {
   useTicketBranches,
   useWorkspaceSettings,
   uploadUrl,
-  useReopenTicket,
-  useSetPending,
-  useResumeTicket,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
@@ -58,6 +55,8 @@ import { useToast } from './Toast';
 import { Icon } from './docs/Icon';
 import { WontDoDialog } from './WontDoDialog';
 import { ReopenDialog } from './ReopenDialog';
+import { PendingCloseConfirm } from './PendingCloseConfirm';
+import { useMarkerActions } from '../hooks/useMarkerActions';
 import { SetPendingDialog } from './SetPendingDialog';
 import { ResumeDialog } from './ResumeDialog';
 import styles from './TicketModal.module.css';
@@ -70,6 +69,23 @@ const TYPE_CONFIG: Record<IssueType, { label: string }> = {
   task: { label: 'Task' },
   chore: { label: 'Chore' },
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  backlog: 'Backlog',
+  todo: 'To Do',
+  'in-progress': 'In Progress',
+  review: 'Review',
+  testing: 'Testing',
+  done: 'Done',
+  wont_do: "Won't Do",
+};
+
+/** 'Oct 21' (design date format) */
+function fmtShortDate(iso?: string | null): string {
+  if (!iso) return 'recently';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? 'recently' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 function formatDueDate(iso?: string | null): string {
   if (!iso) return 'Set date';
@@ -206,9 +222,6 @@ function TicketModalInner({
 
   const toast = useToast();
   const updateTicketMutation = useUpdateTicket();
-  const reopenMutation = useReopenTicket();
-  const setPendingMutation = useSetPending();
-  const resumeMutation = useResumeTicket();
   const addCommentMutation = useAddComment();
   const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
@@ -410,7 +423,14 @@ function TicketModalInner({
     }
   }
 
-  function handleStatusChange(newStatus: Status) {
+  const [closeConfirmStatus, setCloseConfirmStatus] = useState<'done' | 'wont_do' | null>(null);
+
+  function handleStatusChange(newStatus: Status, confirmed = false) {
+    // A pending ticket that is closed loses its flag: confirm first (TicketPending E2)
+    if (ticket?.pending && (newStatus === 'done' || newStatus === 'wont_do') && !confirmed) {
+      setCloseConfirmStatus(newStatus);
+      return;
+    }
     if (newStatus === 'wont_do') {
       setIsWontDoOpen(true);
       return;
@@ -473,59 +493,37 @@ function TicketModalInner({
     }
   }
 
-  async function handleConfirmReopen(payload: {
-    reason?: string;
-    resetAc?: boolean;
-    resetTests?: boolean;
-    unassign?: boolean;
-    reopenParent?: boolean;
-  }) {
+  const markers = useMarkerActions(members);
+  const [reopenError, setReopenError] = useState<string | null>(null);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [lastReopenPayload, setLastReopenPayload] = useState<Parameters<typeof markers.reopen>[1] | null>(null);
+
+  async function handleConfirmReopen(payload: Parameters<typeof markers.reopen>[1]) {
     if (!ticket) return;
     setIsSubmittingReopen(true);
+    setReopenError(null);
+    setLastReopenPayload(payload);
     try {
-      await reopenMutation.mutateAsync({
-        ticketId: ticket.id,
-        data: payload,
-      });
+      await markers.reopen(ticket, payload);
       setStatus('todo');
       setIsReopenOpen(false);
-      toast.success('Ticket Reopened', `${ticket.id} moved to To Do with Reopened marker`);
     } catch (err) {
-      toast.error("Couldn't reopen ticket", extractError(err));
+      setReopenError(extractError(err));
     } finally {
       setIsSubmittingReopen(false);
     }
   }
 
-  async function handleConfirmPending(payload: {
-    reasonType: 'ticket' | 'person' | 'party';
-    pendingTicketId?: string;
-    pendingMemberId?: string;
-    pendingParty?: string;
-    note?: string;
-    alsoAddBlockedBy?: boolean;
-  }) {
+  async function handleConfirmPending(payload: Parameters<typeof markers.setPending>[1]) {
     if (!ticket) return;
     setIsSubmittingPending(true);
+    setPendingError(null);
     try {
-      await setPendingMutation.mutateAsync({
-        ticketId: ticket.id,
-        data: {
-          reasonType: payload.reasonType,
-          ticketId: payload.pendingTicketId,
-          memberId: payload.pendingMemberId,
-          party: payload.pendingParty,
-          note: payload.note,
-          addBlockedBy: payload.alsoAddBlockedBy,
-        },
-      });
+      await markers.setPending(ticket, payload);
       setIsPendingOpen(false);
-      const targetName = payload.pendingTicketId
-        ? `#${payload.pendingTicketId}`
-        : payload.pendingParty || 'party';
-      toast.success('Marked as Pending', `${ticket.id} is waiting on ${targetName}`);
     } catch (err) {
-      toast.error("Couldn't mark as pending", extractError(err));
+      setPendingError(extractError(err));
     } finally {
       setIsSubmittingPending(false);
     }
@@ -534,15 +532,12 @@ function TicketModalInner({
   async function handleConfirmResume(payload: { reason?: string; addComment?: boolean }) {
     if (!ticket) return;
     setIsSubmittingResume(true);
+    setResumeError(null);
     try {
-      await resumeMutation.mutateAsync({
-        ticketId: ticket.id,
-        data: payload,
-      });
+      await markers.resume(ticket, payload);
       setIsResumeOpen(false);
-      toast.success('Ticket Resumed', `${ticket.id} pending flag cleared`);
     } catch (err) {
-      toast.error("Couldn't resume ticket", extractError(err));
+      setResumeError(extractError(err));
     } finally {
       setIsSubmittingResume(false);
     }
@@ -1235,10 +1230,9 @@ function TicketModalInner({
 
         {/* Body */}
         {activeTab === 'main' ? (
-          <div key="main" className={`${styles.detailBody} ${styles.tabFadeSlide}`}>
-            {/* Main Column */}
-            <div className={styles.mainCol}>
-              <>
+          <div key="main" className={styles.mainTabWrap}>
+          {/* Banners sit full width under the header (TicketReopen D1 / TicketPending D1) */}
+          <div className={styles.bannerStack}>
                 {status === 'wont_do' && (
                   <div className={styles.wontDoBanner} role="status">
                     <div className={styles.wontDoBannerContent}>
@@ -1325,15 +1319,15 @@ function TicketModalInner({
                         </span>
                         <div className={styles.promptBannerDoneText}>
                           <div className={styles.promptBannerDoneTitle}>
-                            <strong>#{pendingBlockerTicket.id}</strong> is done. Resume{' '}
-                            <strong>#{ticket.id}</strong>?
+                            <strong>{pendingBlockerTicket.id}</strong> is done. Resume{' '}
+                            <strong>{ticket.id}</strong>?
                           </div>
                           <div className={styles.promptBannerDoneSubtitle}>
                             Pending since{' '}
                             {ticket.pendingSince
-                              ? new Date(ticket.pendingSince).toLocaleDateString()
+                              ? fmtShortDate(ticket.pendingSince)
                               : 'recent'}{' '}
-                            · waiting on #{pendingBlockerTicket.id} (Done)
+                            · waiting on {pendingBlockerTicket.id} (Done)
                           </div>
                         </div>
                       </div>
@@ -1390,7 +1384,7 @@ function TicketModalInner({
                           <div className={styles.reopenBannerText}>
                             <span className={styles.reopenBannerTitle}>Blocker removed</span>
                             <span className={styles.reopenBannerReason}>
-                              <strong>#{pendingBlockerTicket.id}</strong> was moved to Won't Do. This ticket is still pending on it.
+                              <strong>{pendingBlockerTicket.id}</strong> was moved to Won't Do. This ticket is still pending on it.
                             </span>
                           </div>
                         </div>
@@ -1433,16 +1427,16 @@ function TicketModalInner({
                             <span className={styles.pendingBannerTitle}>
                               Pending since{' '}
                               {ticket.pendingSince
-                                ? new Date(ticket.pendingSince).toLocaleDateString()
+                                ? fmtShortDate(ticket.pendingSince)
                                 : 'recent'}
-                              {ticket.pendingBy ? ` · set by ${ticket.pendingBy}` : ''}
+                              {ticket.pendingBy ? ` - set by ${ticket.pendingBy}` : ''}
                             </span>
                           </div>
                           <div className={styles.pendingBannerDetail}>
-                            <strong>Waiting on: </strong>
+                            Waiting on{' '}
                             {ticket.pendingReasonType === 'ticket' ? (
                               <span>
-                                <strong>#{ticket.pendingTicketId}</strong>
+                                <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>{ticket.pendingTicketId}</strong>
                                 {pendingBlockerTicket && (
                                   <>
                                     {' · '}
@@ -1458,7 +1452,8 @@ function TicketModalInner({
                                         textTransform: 'capitalize',
                                       }}
                                     >
-                                      {pendingBlockerTicket.status.replace('_', ' ')}
+                                      <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#2F6FD0', marginRight: 5 }} />
+                                      {STATUS_LABELS[pendingBlockerTicket.status] ?? pendingBlockerTicket.status}
                                     </span>
                                   </>
                                 )}
@@ -1474,7 +1469,7 @@ function TicketModalInner({
                                 </strong>
                               </span>
                             )}
-                            {ticket.pendingNote && <span> — "{ticket.pendingNote}"</span>}
+                            {ticket.pendingNote && <span> · {ticket.pendingNote}</span>}
                           </div>
                         </div>
                       </div>
@@ -1485,6 +1480,7 @@ function TicketModalInner({
                           onClick={() => setIsPendingOpen(true)}
                           title="Change pending reason"
                         >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
                           Change reason
                         </button>
                         <button
@@ -1493,6 +1489,7 @@ function TicketModalInner({
                           onClick={() => setIsResumeOpen(true)}
                           title="Resume ticket (P)"
                         >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="6 4 20 12 6 20 6 4" /></svg>
                           Resume
                         </button>
                       </div>
@@ -1524,17 +1521,10 @@ function TicketModalInner({
                           </span>
                           <div className={styles.reopenBannerText}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span className={styles.reopenBannerTitle}>
-                                Reopened #{ticket.reopenCount}
-                              </span>
-                              <span style={{ fontSize: 12.5, color: '#5C3200' }}>
-                                by <strong>{ticket.lastReopenedBy || 'Team'}</strong>
-                                {ticket.lastReopenedAt && (
-                                  <> on {new Date(ticket.lastReopenedAt).toLocaleDateString()}</>
-                                )}
-                                {ticket.lastReopenReason && (
-                                  <> — "{ticket.lastReopenReason}"</>
-                                )}
+                              <span style={{ fontSize: 13, color: '#5C3200' }}>
+                                Reopened by <strong>{ticket.lastReopenedBy || 'Team'}</strong>
+                                {ticket.lastReopenedAt && <> on {fmtShortDate(ticket.lastReopenedAt)}</>}
+                                {ticket.lastReopenReason && <> - "{ticket.lastReopenReason}"</>}
                               </span>
                             </div>
                           </div>
@@ -1548,13 +1538,18 @@ function TicketModalInner({
                               reopenHistoryRef.current?.scrollIntoView({ behavior: 'smooth' });
                             }}
                           >
-                            View history ({ticket.reopenHistory.length})
+                            View history
                           </button>
                         )}
                       </div>
                     </div>
                   )}
 
+          </div>
+          <div className={`${styles.detailBody} ${styles.tabFadeSlide}`}>
+            {/* Main Column */}
+            <div className={styles.mainCol}>
+              <>
                 {/* Title & Tags */}
                 <div className={styles.titleArea}>
                   {isEditingTitle ? (
@@ -1774,11 +1769,12 @@ function TicketModalInner({
                                   </span>
                                   <span style={{ fontSize: 12, color: '#9AA8A0' }}>
                                     {entry.at
-                                      ? new Date(entry.at).toLocaleString([], {
+                                      ? new Date(entry.at).toLocaleString('en-US', {
                                           month: 'short',
                                           day: 'numeric',
                                           hour: '2-digit',
                                           minute: '2-digit',
+                                          hour12: false,
                                         })
                                       : 'recently'}
                                   </span>
@@ -1834,12 +1830,12 @@ function TicketModalInner({
                                     <path d="M5 12.5L10 17.5L19 7" />
                                   </svg>
                                   <span>
-                                    Previously completed{' '}
-                                    {((entry as any).fromStatus ?? (entry as any).from_status)
-                                      ? ((entry as any).fromStatus ?? (entry as any).from_status) === 'wont_do'
-                                        ? "Won't Do"
-                                        : 'Done'
-                                      : 'Done'}
+                                    {(entry as any).fromStatus === 'wont_do' || (entry as any).from_status === 'wont_do'
+                                      ? "Previously marked Won't Do"
+                                      : 'Previously completed'}
+                                    {((entry as any).previousCompletedAt ?? (entry as any).previous_completed_at)
+                                      ? ` ${fmtShortDate((entry as any).previousCompletedAt ?? (entry as any).previous_completed_at)}`
+                                      : ''}
                                     {((entry as any).sideEffects ?? (entry as any).side_effects)?.length > 0
                                       ? ` · ${((entry as any).sideEffects ?? (entry as any).side_effects).join(', ')}`
                                       : ''}
@@ -2130,7 +2126,7 @@ function TicketModalInner({
               {/* 1. Status */}
               <div className={styles.sidebarRow}>
                 <span className={styles.sidebarLabel}>Status</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', flexWrap: 'wrap' }}>
                   <StatusMenu
                     value={status}
                     onChange={handleStatusChange}
@@ -2147,7 +2143,7 @@ function TicketModalInner({
                         gap: 4,
                         padding: '4px 8px',
                         borderRadius: 6,
-                        background: '#FFF1D6',
+                        background: '#fff',
                         border: '1px solid #F0C77A',
                         color: '#8A4B00',
                         fontSize: 12,
@@ -2171,7 +2167,7 @@ function TicketModalInner({
                         <path d="M3 3v5h5" />
                       </svg>
                       <span>Reopen</span>
-                      <span style={{ fontSize: 10, opacity: 0.8 }}>R</span>
+                      <kbd style={{ fontSize: 10, fontFamily: 'inherit', border: '1px solid #F0C77A', borderRadius: 4, padding: '0 4px', background: '#FFFAF0' }}>R</kbd>
                     </button>
                   )}
                   {status !== 'done' && status !== 'wont_do' && (
@@ -2205,10 +2201,52 @@ function TicketModalInner({
                         <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
                       </svg>
                       <span>Pending</span>
-                      <span style={{ fontSize: 10, opacity: 0.8 }}>P</span>
+                      <kbd style={{ fontSize: 10, fontFamily: 'inherit', border: '1px solid #B8C4D2', borderRadius: 4, padding: '0 4px', background: '#fff' }}>P</kbd>
                     </button>
                   )}
+                  {(ticket.reopenCount ?? 0) > 0 && status !== 'done' && status !== 'wont_do' && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '2px 8px 2px 6px',
+                        borderRadius: 999,
+                        background: '#FFF1D6',
+                        border: '1px solid #F0C77A',
+                        color: '#8A4B00',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                      Reopened
+                      {(ticket.reopenCount ?? 0) > 1 && (
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(199,119,0,0.16)', padding: '0 4px', borderRadius: 999 }}>
+                          x{ticket.reopenCount}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
+                {(status === 'done' || status === 'wont_do') && ticket.completedAt && (
+                  <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6 }}>
+                    {status === 'done' ? 'Completed' : "Marked Won't Do"} {fmtShortDate(ticket.completedAt)}
+                    {ticket.completedBy ? ` by ${ticket.completedBy}` : ''}
+                  </div>
+                )}
+                {status !== 'done' && status !== 'wont_do' && (ticket.reopenCount ?? 0) > 0 && !ticket.pending && (
+                  <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6 }}>Completion date cleared</div>
+                )}
+                {ticket.pending && (
+                  <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6, lineHeight: 1.4 }}>
+                    Pending does not change the status. Click or press P to resume.
+                  </div>
+                )}
               </div>
 
               {/* Reopens meta row (D1) */}
@@ -2216,37 +2254,19 @@ function TicketModalInner({
                 <div className={styles.sidebarRow}>
                   <span className={styles.sidebarLabel}>Reopens</span>
                   <div style={{ fontSize: 12, color: '#2C3A30' }}>
-                    <span style={{ fontWeight: 600, color: '#8A4B00' }}>
-                      Reopened {ticket.reopenCount}x
+                    <span style={{ fontWeight: 700, color: '#8A4B00', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                      Reopened {ticket.reopenCount}×
                     </span>
                     {ticket.lastReopenedAt && (
-                      <div style={{ fontSize: 11, color: '#6A7870', marginTop: 2 }}>
-                        Last {new Date(ticket.lastReopenedAt).toLocaleDateString()}
+                      <div style={{ fontSize: 11.5, color: '#6A7870', marginTop: 2, paddingLeft: 17 }}>
+                        Last {fmtShortDate(ticket.lastReopenedAt)}
                         {ticket.lastReopenedBy ? ` by ${ticket.lastReopenedBy}` : ''}
                       </div>
                     )}
-                  </div>
-                </div>
-              )}
-
-              {/* Pending meta row (D1) */}
-              {ticket.pending && (
-                <div className={styles.sidebarRow}>
-                  <span className={styles.sidebarLabel}>Pending</span>
-                  <div style={{ fontSize: 11.5, color: '#5B6F86', lineHeight: 1.4 }}>
-                    Waiting on{' '}
-                    <strong>
-                      {ticket.pendingReasonType === 'ticket'
-                        ? `#${ticket.pendingTicketId}`
-                        : ticket.pendingParty ||
-                          (ticket.pendingMemberId &&
-                            members.find((m) => m.id === ticket.pendingMemberId)?.name) ||
-                          ticket.pendingMemberId ||
-                          'Person'}
-                    </strong>
-                    <div style={{ fontSize: 11, color: '#8A99A8', marginTop: 1 }}>
-                      Pending does not change status. Press P to resume.
-                    </div>
                   </div>
                 </div>
               )}
@@ -2681,6 +2701,7 @@ function TicketModalInner({
               </div>
             </aside>
           </div>
+          </div>
         ) : (
           <div key={activeTab} className={`${styles.fullWidthBody} ${styles.tabFadeSlide}`}>
             {activeTab === 'test_cases' && (
@@ -2813,7 +2834,13 @@ function TicketModalInner({
           parentTicket={parentTicket}
           members={members}
           isSubmitting={isSubmittingReopen}
-          onClose={() => setIsReopenOpen(false)}
+          error={reopenError}
+          onRetry={() => lastReopenPayload && handleConfirmReopen(lastReopenPayload)}
+          onViewTicket={() => setIsReopenOpen(false)}
+          onClose={() => {
+            setIsReopenOpen(false);
+            setReopenError(null);
+          }}
           onConfirm={handleConfirmReopen}
         />
 
@@ -2823,7 +2850,11 @@ function TicketModalInner({
           allTickets={allTickets}
           members={members}
           isSubmitting={isSubmittingPending}
-          onClose={() => setIsPendingOpen(false)}
+          error={pendingError}
+          onClose={() => {
+            setIsPendingOpen(false);
+            setPendingError(null);
+          }}
           onConfirm={handleConfirmPending}
           onResume={() => {
             setIsPendingOpen(false);
@@ -2831,11 +2862,34 @@ function TicketModalInner({
           }}
         />
 
+        {closeConfirmStatus && ticket && (
+          <PendingCloseConfirm
+            ticket={ticket}
+            targetStatus={closeConfirmStatus}
+            allTickets={allTickets}
+            members={members}
+            onCancel={() => setCloseConfirmStatus(null)}
+            onResumeFirst={() => {
+              setCloseConfirmStatus(null);
+              setIsResumeOpen(true);
+            }}
+            onProceed={() => {
+              const target = closeConfirmStatus;
+              setCloseConfirmStatus(null);
+              handleStatusChange(target, true);
+            }}
+          />
+        )}
+
         <ResumeDialog
           isOpen={isResumeOpen}
           ticket={ticket}
           isSubmitting={isSubmittingResume}
-          onClose={() => setIsResumeOpen(false)}
+          error={resumeError}
+          onClose={() => {
+            setIsResumeOpen(false);
+            setResumeError(null);
+          }}
           onConfirm={handleConfirmResume}
         />
       </div>

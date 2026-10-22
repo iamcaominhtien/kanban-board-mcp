@@ -343,7 +343,8 @@
 }
 
 .rowTitle {
-  flex-grow: 1;
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 13px;
   color: #1e2a22;
   white-space: nowrap;
@@ -430,4 +431,64 @@
 .chipDone {
   background: rgba(46, 111, 64, 0.14);
   color: #2e6f40;
+}
+
+/* Reopened / Pending markers (TicketReopen E2, TicketPending F2) */
+.rowReopened {
+  background: #fffaf0;
+}
+
+.rowPending {
+  background-color: #f4f6f9;
+  background-image: repeating-linear-gradient(135deg, #6b7f96 0 3px, #d3dae3 3px 6px);
+  background-size: 4px 100%;
+  background-repeat: no-repeat;
+}
+
+.reopenedBadge,
+.pendingChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.reopenedBadge {
+  background: #fff1d6;
+  border: 1px solid #f0c77a;
+  color: #8a4b00;
+}
+
+.reopenedCount {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(199, 119, 0, 0.16);
+  padding: 0 4px;
+  border-radius: 999px;
+}
+
+.pendingChip {
+  background: #e8edf3;
+  border: 1px solid #b8c4d2;
+  color: #34455a;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowGlyphs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 34px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.pendingChipTicket {
+  font-family: 'JetBrains Mono', monospace;
 }

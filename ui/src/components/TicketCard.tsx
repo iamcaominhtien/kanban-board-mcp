@@ -4,6 +4,8 @@ import { MemberAvatar } from './MemberAvatar';
 import { TagPill } from './TagPill';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import styles from './TicketCard.module.css';
+import { HoverTip } from './HoverTip';
+import { STATUS_NAMES } from '../hooks/useMarkerActions';
 
 const TYPE_LABELS: Record<IssueType, string> = {
   bug: 'Bug',
@@ -72,7 +74,8 @@ export function TicketCard({
   const typeLabel = TYPE_LABELS[ticket.type] ?? 'Task';
   const due = getDueDateDisplay(ticket.dueDate);
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
-  const isBlocked = (ticket.blockedBy ?? []).length > 0;
+  // A pending ticket shows one signal: the pending chip replaces the blocked lock (TicketPending I)
+  const isBlocked = (ticket.blockedBy ?? []).length > 0 && !ticket.pending;
   const isClosed = ticket.status === 'done' || ticket.status === 'wont_do';
   const isDone = ticket.status === 'done';
   const isReopened = (ticket.reopenCount ?? 0) > 0 && !isClosed;
@@ -105,28 +108,66 @@ export function TicketCard({
   const pendingTargetLabel =
     ticket.pendingReasonType === 'ticket'
       ? ticket.pendingTicketId
-        ? `#${ticket.pendingTicketId}`
+        ? ticket.pendingTicketId
         : 'Ticket'
       : ticket.pendingParty ||
         (ticket.pendingMemberId && memberMap?.get(ticket.pendingMemberId)?.name) ||
         ticket.pendingMemberId ||
         'Party';
 
-  // Tooltip content for Reopened badge
-  const reopenTooltip = `Reopened ${ticket.reopenCount || 1}x\n${
-    ticket.lastReopenedBy || 'Author'
-  }, ${ticket.lastReopenedAt ? new Date(ticket.lastReopenedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'recent'}\n"${
-    ticket.lastReopenReason || 'Rework required'
-  }"`;
+  const fmtDay = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  const who = (name?: string | null) =>
+    name === 'user' ? 'You' : name === 'agent' ? 'AI agent' : (name ?? 'Someone');
 
-  // Tooltip content for Pending strip
-  const pendingTooltip = `Pending · Waiting on ${pendingTargetLabel}${
-    blockerTicket ? ` - ${blockerTicket.title}` : ''
-  }\n${ticket.pendingNote ? `"${ticket.pendingNote}"\n` : ''}Set by ${
-    ticket.pendingBy || 'Author'
-  }${ticket.pendingSince ? ` on ${new Date(ticket.pendingSince).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}${
-    blockerTicket ? `\nLive status: ${blockerTicket.status}` : ''
-  }`;
+  // Hover tooltip of the Reopened badge (TicketReopen C1): who, when, why, and the reopen before
+  const previousReopen = (ticket.reopenHistory ?? [])[1];
+  const tipHead = { fontWeight: 700, fontSize: 12.5 } as const;
+  const tipMuted = {
+    color: '#A9B8AE',
+    borderTop: '1px solid rgba(255,255,255,0.14)',
+    paddingTop: 4,
+    marginTop: 2,
+  } as const;
+  const reopenTip = (
+    <>
+      <span style={tipHead}>Reopened {ticket.reopenCount || 1}x</span>
+      <span>
+        {who(ticket.lastReopenedBy)}
+        {ticket.lastReopenedAt ? `, ${fmtDay(ticket.lastReopenedAt)}` : ''}
+      </span>
+      {ticket.lastReopenReason && <span>&ldquo;{ticket.lastReopenReason}&rdquo;</span>}
+      {previousReopen && (
+        <span style={tipMuted}>
+          Before: {who(previousReopen.actor)}, {fmtDay(previousReopen.at)}
+        </span>
+      )}
+    </>
+  );
+
+  // Hover tooltip of the Pending strip (TicketPending C1/C2), with the live status of a ticket blocker
+  const pendingTip = (
+    <>
+      <span style={tipHead}>Pending</span>
+      <span>
+        Waiting on{' '}
+        <b style={ticket.pendingReasonType === 'ticket' ? { fontFamily: "'JetBrains Mono', monospace" } : undefined}>
+          {pendingTargetLabel}
+        </b>
+        {blockerTicket ? <> - {blockerTicket.title}</> : null}
+      </span>
+      {ticket.pendingNote && <span>&ldquo;{ticket.pendingNote}&rdquo;</span>}
+      <span style={tipMuted}>
+        Set by {who(ticket.pendingBy)}
+        {ticket.pendingSince ? ` on ${fmtDay(ticket.pendingSince)}` : ''}
+      </span>
+      {blockerTicket && (
+        <span style={tipMuted}>
+          {STATUS_NAMES[blockerTicket.status] ?? blockerTicket.status} - live status of {blockerTicket.id}
+        </span>
+      )}
+    </>
+  );
 
   function handleMenuClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -298,27 +339,27 @@ export function TicketCard({
 
             {/* Reopened badge matching TicketReopen.dc.html C1 */}
             {isReopened && (
-              <span className={styles.reopenedBadge} title={reopenTooltip}>
+              <HoverTip className={styles.reopenedBadge} tip={reopenTip}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                   <path d="M3 3v5h5" />
                 </svg>
-                Reopened
+                <span className={styles.badgeLabel}>Reopened</span>
                 {(ticket.reopenCount ?? 0) > 1 && (
                   <span className={styles.reopenedCount}>x{ticket.reopenCount}</span>
                 )}
-              </span>
+              </HoverTip>
             )}
 
             {/* Pending chip matching TicketPending.dc.html C1/C2 */}
             {isPending && (
-              <span className={styles.pendingChip} title={pendingTooltip}>
+              <HoverTip className={styles.pendingChip} tip={pendingTip}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <path d="M8.5 5.5V18.5" />
                   <path d="M15.5 5.5V18.5" />
                 </svg>
-                Pending
-              </span>
+                <span className={styles.badgeLabel}>Pending</span>
+              </HoverTip>
             )}
           </div>
 
@@ -378,7 +419,7 @@ export function TicketCard({
 
         {/* Pending reason strip matching TicketPending.dc.html C1 */}
         {isPending && (
-          <div className={styles.pendingStrip} title={pendingTooltip}>
+          <HoverTip as="div" className={styles.pendingStrip} tip={pendingTip}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M8.5 5.5V18.5" />
               <path d="M15.5 5.5V18.5" />
@@ -386,7 +427,7 @@ export function TicketCard({
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
               Waiting on <span style={{ fontFamily: ticket.pendingReasonType === 'ticket' ? "'JetBrains Mono', monospace" : 'inherit', fontWeight: 700 }}>{pendingTargetLabel}</span>
             </span>
-          </div>
+          </HoverTip>
         )}
 
         {/* E1 Auto behaviour: Blocker Done prompt on card */}

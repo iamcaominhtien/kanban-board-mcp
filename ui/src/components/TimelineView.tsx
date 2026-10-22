@@ -39,6 +39,49 @@ function formatDateString(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+// Pending periods (TicketPending F3) and reopen markers / earlier Done spans (TicketReopen E3), from the ticket's own data
+interface PendingPeriod {
+  start: Date;
+  end: Date;
+  open: boolean;
+}
+
+function pendingPeriods(ticket: Ticket, today: Date): PendingPeriod[] {
+  const out: PendingPeriod[] = [];
+  let from: Date | null = null;
+  const log = [...(ticket.activityLog ?? [])].sort(
+    (a, b) => new Date(a.at ?? 0).getTime() - new Date(b.at ?? 0).getTime(),
+  );
+  for (const e of log) {
+    const at = parseDate(e.at);
+    if (!at) continue;
+    if (e.field === 'pending_set' && !from) from = at;
+    if (e.field === 'pending_cleared' && from) {
+      out.push({ start: from, end: at, open: false });
+      from = null;
+    }
+  }
+  if (ticket.pending) {
+    const since = from ?? parseDate(ticket.pendingSince);
+    if (since) out.push({ start: since, end: today, open: true });
+  }
+  return out;
+}
+
+interface ReopenMark {
+  at: Date;
+  doneFrom: Date | null;
+}
+
+function reopenMarks(ticket: Ticket): ReopenMark[] {
+  return (ticket.reopenHistory ?? [])
+    .map((h) => ({
+      at: parseDate(h.at),
+      doneFrom: parseDate(h.previousCompletedAt),
+    }))
+    .filter((m): m is ReopenMark => m.at !== null);
+}
+
 // ─── Event helpers ────────────────────────────────────────────────────────────
 
 type EventCategory = 'created' | 'status_changed' | 'commented' | 'other';
@@ -258,6 +301,22 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                   <span className={styles.ganttTicketTitle} title={ticket.title}>
                     {ticket.title}
                   </span>
+                  {(ticket.reopenCount ?? 0) > 0 && ticket.status !== 'done' && ticket.status !== 'wont_do' && (
+                    <span className={styles.ganttIconBadgeReopen} title={`Reopened ${ticket.reopenCount}x`}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                    </span>
+                  )}
+                  {ticket.pending && (
+                    <span className={styles.ganttIconBadgePending} title="Pending">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8.5 5.5V18.5" />
+                        <path d="M15.5 5.5V18.5" />
+                      </svg>
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -380,6 +439,44 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                     )}
                   </button>
 
+                  {/* Earlier Done spans (faded) and reopen markers */}
+                  {reopenMarks(ticket).map((m, i) => {
+                    const px = (d: Date) => daysBetween(rangeStart, d) * DAY_WIDTH;
+                    const doneLeft = m.doneFrom ? px(m.doneFrom) : null;
+                    return (
+                      <span key={`reopen-${i}`}>
+                        {doneLeft !== null && m.at >= rangeStart && (
+                          <span
+                            className={styles.ganttEarlierDone}
+                            style={{ left: Math.max(doneLeft, 0), width: Math.max(px(m.at) - Math.max(doneLeft, 0), MIN_BAR_PX) }}
+                          >
+                            Done
+                          </span>
+                        )}
+                        {m.at >= rangeStart && m.at <= rangeEnd && (
+                          <span className={styles.ganttReopenMarker} style={{ left: px(m.at) - 5 }} title="Reopened" />
+                        )}
+                      </span>
+                    );
+                  })}
+
+                  {/* Pending bands (hatched; faded once resumed) */}
+                  {pendingPeriods(ticket, today).map((p, i) => {
+                    const start = p.start < rangeStart ? rangeStart : p.start;
+                    const end = p.end > rangeEnd ? rangeEnd : p.end;
+                    if (end < start) return null;
+                    const left = daysBetween(rangeStart, start) * DAY_WIDTH;
+                    const width = Math.max(daysBetween(start, end) * DAY_WIDTH, 8);
+                    return (
+                      <span
+                        key={`pending-${i}`}
+                        className={p.open ? styles.ganttPendingNow : styles.ganttPendingPast}
+                        style={{ left, width }}
+                        title={p.open ? 'Pending now' : 'Past pending'}
+                      />
+                    );
+                  })}
+
                   {/* Overdue text notice if narrow bar */}
                   {isOverdue && widthPx <= 24 && rawEnd && (
                     <span className={styles.overdueNotice} style={{ left: leftPx + widthPx + 8 }}>
@@ -406,6 +503,22 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
         <span className={styles.legendItem}>
           <span className={styles.legendDot} style={{ background: '#68BA7F', opacity: 0.6 }} />
           Done
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendHatch} />
+          Pending now
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendHatch} style={{ opacity: 0.4 }} />
+          Past pending
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendReopen} />
+          Reopened
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendDot} style={{ background: '#C9DDD0' }} />
+          Earlier Done span
         </span>
         <span className={styles.legendItem}>
           <span className={styles.legendLine} />

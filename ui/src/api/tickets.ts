@@ -129,6 +129,12 @@ export async function reopenTicket(
   return res.data;
 }
 
+/** Undo the latest reopen (the toast's Undo). */
+export async function undoReopenTicket(ticketId: string): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/reopen/undo`);
+  return res.data;
+}
+
 /**
  * Flag a ticket as Pending.
  */
@@ -728,6 +734,19 @@ export function useReopenTicket() {
       ticketId: string;
       data: Parameters<typeof reopenTicket>[1];
     }) => reopenTicket(ticketId, data),
+    onSuccess: (ticket) => {
+      queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
+      queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });
+    },
+  });
+}
+
+/** Mutation: undo the latest reopen. */
+export function useUndoReopen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: string) => undoReopenTicket(ticketId),
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });

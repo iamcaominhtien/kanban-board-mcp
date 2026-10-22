@@ -1,3 +1,4 @@
+import { ConflictNotice } from './ConflictNotice';
 import React, { useState, useEffect, useRef } from 'react';
 import type { Ticket, Member } from '../types/ticket';
 import { DOCS_SCRIM, useEscape } from './docs/docsShared';
@@ -16,7 +17,7 @@ interface ResumeDialogProps {
 const STATUS_CONFIG: Record<string, string> = {
   backlog: 'Backlog',
   todo: 'To Do',
-  in_progress: 'In Progress',
+  'in-progress': 'In Progress',
   review: 'Review',
   testing: 'Testing',
   done: 'Done',
@@ -298,8 +299,12 @@ export const ResumeDialog: React.FC<ResumeDialogProps> = ({
             </div>
 
             {/* Error State Box */}
-            {error && (
+            {error && /no longer pending/i.test(error) && (
+              <ConflictNotice who="Someone" message={`already resumed ${ticket.id} a moment ago. It is no longer pending.`} />
+            )}
+            {error && !/no longer pending/i.test(error) && (
               <div
+                title={error}
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
@@ -330,7 +335,7 @@ export const ResumeDialog: React.FC<ResumeDialogProps> = ({
                     Could not resume {ticket.id}
                   </span>
                   <span style={{ fontSize: 12, color: '#8A3220', lineHeight: 1.4 }}>
-                    {error || 'The server returned an error.'}
+                    The server returned an error. Nothing was changed - the ticket is still pending.
                   </span>
                 </div>
               </div>
