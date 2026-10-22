@@ -10,6 +10,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.2.0] - 2026-10-22
+
+### Added
+- **Reopen** a Done / Won't Do ticket (lands in To Do with an amber *Reopened* badge, reopen history, banner and 8 s Undo), from the detail, the status menu, the card menu, `R`, or by dragging a card out of a closed column (inline confirm at the drop point).
+- **Pending** flag (waiting on a ticket, a person or a party) that keeps the ticket's column: striped rail, reason strip, `+N pending` column counts, `P` shortcut, Resume with optional comment, blocker-done / blocker-removed prompts, and a confirm before a pending ticket is closed.
+- Filter bar chips (`Reopened`, `Pending`, `Hide pending`), project hints, List sorts (*Most reopened*, *Pending first*, *Longest pending*) and markers in List, Timeline and the Activity feed.
+- MCP: `manage_ticket` actions `reopen`, `pend` and `resume`; `list_tickets` filters `pending` / `reopened`.
+- REST: `POST /tickets/{id}/reopen`, `POST /tickets/{id}/reopen/undo`, `PUT|DELETE /tickets/{id}/pending`, `POST /tickets/{id}/resume`; `completed_at` / `completed_by` on tickets.
+- Won't Do now asks for a reason; comments are shown newest first.
+
+---
+
 ## [3.1.2] - 2026-10-14
 
 ### Fixed

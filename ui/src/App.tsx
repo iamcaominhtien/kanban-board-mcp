@@ -16,6 +16,12 @@ import {
   useWontDoTickets,
   useRestoreTicket,
 } from './api/tickets';
+import { ReopenDialog } from './components/ReopenDialog';
+import { SetPendingDialog } from './components/SetPendingDialog';
+import { ResumeDialog } from './components/ResumeDialog';
+import { ReopenDropPopover } from './components/ReopenDropPopover';
+import { PendingCloseConfirm } from './components/PendingCloseConfirm';
+import { pendingTarget, STATUS_NAMES, useMarkerActions } from './hooks/useMarkerActions';
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
@@ -114,6 +120,62 @@ export default function App() {
     setLocalTickets(tickets);
   }, [tickets]);
 
+  const [filterReopened, setFilterReopened] = useState(false);
+  const [filterPending, setFilterPending] = useState(false);
+  const [hidePending, setHidePending] = useState(false);
+
+  const [reopenTargetTicket, setReopenTargetTicket] = useState<Ticket | null>(null);
+  const [pendingTargetTicket, setPendingTargetTicket] = useState<Ticket | null>(null);
+  const [resumeTargetTicket, setResumeTargetTicket] = useState<Ticket | null>(null);
+
+  const markers = useMarkerActions(members);
+  const [markerBusy, setMarkerBusy] = useState(false);
+  const [reopenError, setReopenError] = useState<string | null>(null);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [lastReopenPayload, setLastReopenPayload] = useState<Parameters<typeof markers.reopen>[1] | null>(null);
+  // Card dropped out of Done / Won't Do: the move waits for a confirm at the drop point (TicketReopen A3)
+  const [dropReopen, setDropReopen] = useState<{ ticket: Ticket; x: number; y: number; reason: string } | null>(null);
+  // Moving a pending ticket to Done: confirm first (TicketPending E2)
+  const [closeConfirm, setCloseConfirm] = useState<{ ticketId: string; newStatus: Status } | null>(null);
+  const lastPointer = useRef({ x: 400, y: 300 });
+  const hoveredTicketId = useRef<string | null>(null);
+  useEffect(() => {
+    const track = (e: PointerEvent) => {
+      lastPointer.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('pointermove', track);
+    window.addEventListener('pointerup', track);
+    return () => {
+      window.removeEventListener('pointermove', track);
+      window.removeEventListener('pointerup', track);
+    };
+  }, []);
+
+  const reopenedCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && t.status !== 'done' && (t.reopenCount ?? 0) > 0).length,
+    [localTickets],
+  );
+  const pendingCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending).length,
+    [localTickets],
+  );
+  const totalReopens30d = useMemo(() => {
+    const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return localTickets.reduce(
+      (acc, t) => acc + (t.reopenHistory ?? []).filter((h) => new Date(h.at).getTime() >= since).length,
+      0,
+    );
+  }, [localTickets]);
+  const waitingOnTicketsCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending && t.pendingReasonType === 'ticket').length,
+    [localTickets],
+  );
+  const waitingOnPersonsCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending && t.pendingReasonType !== 'ticket').length,
+    [localTickets],
+  );
+
   // Search is applied server-side via `q`; only chip filters remain here
   const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
@@ -122,24 +184,121 @@ export default function App() {
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
       const matchesAssignee =
         activeAssignee === 'all' || (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
-      return matchesType && matchesPriority && matchesAssignee;
+      const matchesReopened =
+        !filterReopened || ((t.reopenCount ?? 0) > 0 && t.status !== 'done' && t.status !== 'wont_do');
+      const matchesPending = !filterPending || Boolean(t.pending);
+      const matchesHidePending = !hidePending || !t.pending;
+      return (
+        matchesType && matchesPriority && matchesAssignee && matchesReopened && matchesPending && matchesHidePending
+      );
     });
+
+  async function handleConfirmReopen(payload: Parameters<typeof markers.reopen>[1]) {
+    const target = reopenTargetTicket ?? dropReopen?.ticket;
+    if (!target) return;
+    setMarkerBusy(true);
+    setReopenError(null);
+    setLastReopenPayload(payload);
+    try {
+      await markers.reopen(target, payload);
+      setReopenTargetTicket(null);
+      setDropReopen(null);
+    } catch (err) {
+      setReopenError(extractError(err));
+    } finally {
+      setMarkerBusy(false);
+    }
+  }
+
+  async function handleConfirmPending(payload: Parameters<typeof markers.setPending>[1]) {
+    if (!pendingTargetTicket) return;
+    setMarkerBusy(true);
+    setPendingError(null);
+    try {
+      await markers.setPending(pendingTargetTicket, payload);
+      setPendingTargetTicket(null);
+    } catch (err) {
+      setPendingError(extractError(err));
+    } finally {
+      setMarkerBusy(false);
+    }
+  }
+
+  async function handleConfirmResume(payload: { reason?: string; addComment?: boolean }) {
+    if (!resumeTargetTicket) return;
+    setMarkerBusy(true);
+    setResumeError(null);
+    try {
+      await markers.resume(resumeTargetTicket, payload);
+      setResumeTargetTicket(null);
+    } catch (err) {
+      setResumeError(extractError(err));
+    } finally {
+      setMarkerBusy(false);
+    }
+  }
 
   const [modalState, setModalState] = useState<{ mode: 'create' } | { mode: 'view'; ticketId: string } | null>(null);
 
+  // R / P on the hovered card (TicketReopen A4, TicketPending A3); the ticket modal has its own handler
+  useEffect(() => {
+    const over = (e: MouseEvent) => {
+      hoveredTicketId.current =
+        (e.target as HTMLElement | null)?.closest?.('[data-ticket-id]')?.getAttribute('data-ticket-id') ?? null;
+    };
+    const key = (e: KeyboardEvent) => {
+      if (modalState || reopenTargetTicket || pendingTargetTicket || resumeTargetTicket || dropReopen || closeConfirm)
+        return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (document.activeElement?.tagName || '').toLowerCase();
+      if (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        (document.activeElement as HTMLElement)?.isContentEditable
+      )
+        return;
+      const k = e.key.toLowerCase();
+      if (k !== 'r' && k !== 'p') return;
+      const t = localTickets.find((x) => x.id === hoveredTicketId.current);
+      if (!t) return;
+      const closed = t.status === 'done' || t.status === 'wont_do';
+      if (k === 'r' && closed) {
+        e.preventDefault();
+        setReopenTargetTicket(t);
+      } else if (k === 'p' && !closed) {
+        e.preventDefault();
+        if (t.pending) setResumeTargetTicket(t);
+        else setPendingTargetTicket(t);
+      }
+      // R on an open ticket and P on a closed one are ignored (no toast)
+    };
+    window.addEventListener('mouseover', over);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('mouseover', over);
+      window.removeEventListener('keydown', key);
+    };
+  }, [modalState, reopenTargetTicket, pendingTargetTicket, resumeTargetTicket, dropReopen, closeConfirm, localTickets]);
+
+  const allAvailableTickets = useMemo(() => {
+    const wontDoIds = new Set(wontDoTickets.map((t) => t.id));
+    return [...tickets.filter((t) => !wontDoIds.has(t.id)), ...wontDoTickets];
+  }, [tickets, wontDoTickets]);
+
   const deepLinkHandled = useRef(false);
   useEffect(() => {
-    if (deepLinkHandled.current || tickets.length === 0) return;
-    deepLinkHandled.current = true; // always mark handled after first run
+    if (deepLinkHandled.current || allAvailableTickets.length === 0) return;
     const params = new URLSearchParams(window.location.search);
     const ticketId = params.get('ticket');
     if (ticketId) {
-      const found = tickets.find((t) => t.id.toLowerCase() === ticketId.toLowerCase());
+      const found = allAvailableTickets.find((t) => t.id.toLowerCase() === ticketId.toLowerCase());
       if (found) {
+        deepLinkHandled.current = true;
         setModalState({ mode: 'view', ticketId: found.id }); // URL already has the param — openTicketModal would double-replaceState
       }
     }
-  }, [tickets]);
+  }, [allAvailableTickets]);
 
   function openDocsPage(pageId: string) {
     setViewMode('docs');
@@ -162,10 +321,23 @@ export default function App() {
   }
 
   const modalTicket =
-    modalState && modalState.mode !== 'create' ? tickets.find((t) => t.id === modalState.ticketId) : undefined;
+    modalState && modalState.mode !== 'create'
+      ? allAvailableTickets.find((t) => t.id === modalState.ticketId)
+      : undefined;
 
-  async function handleDragEnd(ticketId: string, newStatus: Status) {
+  async function handleDragEnd(ticketId: string, newStatus: Status, confirmed = false) {
     const dragged = localTickets.find((t) => t.id === ticketId);
+    if (dragged && (dragged.status === 'done' || dragged.status === 'wont_do')) {
+      // Not applied until confirmed: the card snaps back and a popover opens at the drop point
+      setDropReopen({ ticket: dragged, ...lastPointer.current, reason: '' });
+      return;
+    }
+
+    if (dragged?.pending && newStatus === 'done' && !confirmed) {
+      setCloseConfirm({ ticketId, newStatus });
+      return;
+    }
+
     if (newStatus === 'in-progress') {
       if (dragged && (dragged.blockedBy ?? []).length > 0) {
         setBlockedDragPending({ ticketId, newStatus });
@@ -174,12 +346,33 @@ export default function App() {
     }
 
     // Update local state synchronously to prevent snap-back
-    setLocalTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
+    setLocalTickets((prev) =>
+      prev.map((t) =>
+        t.id === ticketId
+          ? {
+              ...t,
+              status: newStatus,
+              // If moved to done, backend clears pending
+              pending: newStatus === 'done' ? false : t.pending,
+            }
+          : t,
+      ),
+    );
 
     try {
       await updateStatusMutation.mutateAsync({ ticketId, status: newStatus });
       if (newStatus === 'done' && dragged) {
         toast.success('Moved to Done', `${dragged.id} · ${dragged.title}`);
+      } else if (dragged?.pending) {
+        toast.success(
+          `${dragged.id} moved to ${STATUS_NAMES[newStatus] ?? newStatus}`,
+          `Still pending - waiting on ${pendingTarget(dragged, members)}`,
+          8000,
+          {
+            label: 'Undo',
+            onClick: () => updateStatusMutation.mutate({ ticketId, status: dragged.status }),
+          },
+        );
       }
     } catch (err) {
       // Rollback local state on error
@@ -443,7 +636,7 @@ export default function App() {
             <>
               <Board
                 tickets={filteredTickets}
-                allTickets={localTickets}
+                allTickets={allAvailableTickets}
                 onDragEnd={handleDragEnd}
                 onNewTicket={handleOpenCreate}
                 onCardClick={handleOpenView}
@@ -465,6 +658,21 @@ export default function App() {
                 loadState={boardLoadState}
                 lanesOverride={lanesOverride}
                 statusSlot={loadingPill}
+                filterReopened={filterReopened}
+                onFilterReopenedChange={setFilterReopened}
+                filterPending={filterPending}
+                onFilterPendingChange={setFilterPending}
+                hidePending={hidePending}
+                onHidePendingChange={setHidePending}
+                reopenedCount={reopenedCount}
+                pendingCount={pendingCount}
+                totalReopens30d={totalReopens30d}
+                waitingOnTicketsCount={waitingOnTicketsCount}
+                waitingOnPersonsCount={waitingOnPersonsCount}
+                onReopen={setReopenTargetTicket}
+                onPending={setPendingTargetTicket}
+                onResume={setResumeTargetTicket}
+                onDelete={(t) => handleDeleteTicket(t.id)}
               />
               {!boardLoadState &&
                 modalState &&
@@ -474,7 +682,7 @@ export default function App() {
                     mode="create"
                     onSave={handleCreateTicket}
                     onClose={closeModal}
-                    allTickets={tickets}
+                    allTickets={allAvailableTickets}
                     onOpenTicket={(t) => openTicketModal(t.id)}
                     members={members}
                   />
@@ -486,11 +694,104 @@ export default function App() {
                     onDelete={handleDeleteTicket}
                     onClose={closeModal}
                     onOpenDocsPage={openDocsPage}
-                    allTickets={tickets}
+                    allTickets={allAvailableTickets}
                     onOpenTicket={(t) => openTicketModal(t.id)}
                     members={members}
                   />
                 ) : null)}
+
+              {/* Standalone Dialogs opened from Card menus */}
+              {reopenTargetTicket && (
+                <ReopenDialog
+                  ticket={reopenTargetTicket}
+                  allTickets={allAvailableTickets}
+                  members={members}
+                  onClose={() => {
+                    setReopenTargetTicket(null);
+                    setReopenError(null);
+                  }}
+                  onConfirm={handleConfirmReopen}
+                  isSubmitting={markerBusy}
+                  error={reopenError}
+                  onRetry={() => lastReopenPayload && handleConfirmReopen(lastReopenPayload)}
+                  onViewTicket={() => {
+                    const t = reopenTargetTicket;
+                    setReopenTargetTicket(null);
+                    setReopenError(null);
+                    openTicketModal(t.id);
+                  }}
+                  initialReason={dropReopen?.reason}
+                />
+              )}
+              {dropReopen && !reopenTargetTicket && (
+                <ReopenDropPopover
+                  ticket={dropReopen.ticket}
+                  x={dropReopen.x}
+                  y={dropReopen.y}
+                  isSubmitting={markerBusy}
+                  onCancel={() => setDropReopen(null)}
+                  onMoreOptions={(reason) => {
+                    setReopenTargetTicket(dropReopen.ticket);
+                    setDropReopen({ ...dropReopen, reason });
+                  }}
+                  onConfirm={(reason) => handleConfirmReopen({ reason: reason || undefined })}
+                />
+              )}
+              {pendingTargetTicket && (
+                <SetPendingDialog
+                  ticket={pendingTargetTicket}
+                  allTickets={allAvailableTickets}
+                  members={members}
+                  onClose={() => {
+                    setPendingTargetTicket(null);
+                    setPendingError(null);
+                  }}
+                  onConfirm={handleConfirmPending}
+                  onResumeClick={() => {
+                    const t = pendingTargetTicket;
+                    setPendingTargetTicket(null);
+                    setResumeTargetTicket(t);
+                  }}
+                  isSubmitting={markerBusy}
+                  error={pendingError}
+                />
+              )}
+              {resumeTargetTicket && (
+                <ResumeDialog
+                  ticket={resumeTargetTicket}
+                  members={members}
+                  onClose={() => {
+                    setResumeTargetTicket(null);
+                    setResumeError(null);
+                  }}
+                  onConfirm={handleConfirmResume}
+                  isSubmitting={markerBusy}
+                  error={resumeError}
+                />
+              )}
+              {closeConfirm &&
+                (() => {
+                  const t = localTickets.find((x) => x.id === closeConfirm.ticketId);
+                  if (!t) return null;
+                  return (
+                    <PendingCloseConfirm
+                      ticket={t}
+                      targetStatus="done"
+                      allTickets={allAvailableTickets}
+                      members={members}
+                      onCancel={() => setCloseConfirm(null)}
+                      onResumeFirst={() => {
+                        setCloseConfirm(null);
+                        setResumeTargetTicket(t);
+                      }}
+                      onProceed={() => {
+                        const c = closeConfirm;
+                        setCloseConfirm(null);
+                        void handleDragEnd(c.ticketId, c.newStatus, true);
+                      }}
+                    />
+                  );
+                })()}
             </>
           )}
           {recycleBinOpen && (

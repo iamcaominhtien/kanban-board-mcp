@@ -149,3 +149,8 @@
   left: auto;
   right: 0;
 }
+
+/* While the ticket is closed the other statuses are muted: choosing one runs the Reopen confirm */
+.itemMuted {
+  opacity: 0.55;
+}

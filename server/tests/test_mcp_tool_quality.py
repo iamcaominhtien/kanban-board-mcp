@@ -184,10 +184,10 @@ async def test_the_tool_list_stays_compact():
         )
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    assert default < 28_000, (
+    assert default < 30_000, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 36_000, (
+    assert full < 38_000, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

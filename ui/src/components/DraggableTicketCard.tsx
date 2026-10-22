@@ -6,18 +6,30 @@ import { TicketCard } from './TicketCard';
 
 interface DraggableTicketCardProps {
   ticket: Ticket;
+  allTickets?: Ticket[];
   onCardClick?: (ticket: Ticket) => void;
   memberMap?: Map<string, Member>;
   subtaskStats?: { total: number; completed: number };
+  onReopen?: (ticket: Ticket) => void;
+  onPending?: (ticket: Ticket) => void;
+  onResume?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
 }
 
 /**
  * Ticket card wired to drag and drop.
- * @param props.onCardClick - Called with the ticket when the card is clicked.
- * @param props.memberMap - Members by id, used to render the assignee.
- * @param props.subtaskStats - Sub-task totals shown on the card.
  */
-export function DraggableTicketCard({ ticket, onCardClick, memberMap, subtaskStats }: DraggableTicketCardProps) {
+export function DraggableTicketCard({
+  ticket,
+  allTickets,
+  onCardClick,
+  memberMap,
+  subtaskStats,
+  onReopen,
+  onPending,
+  onResume,
+  onDelete,
+}: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,
   });
@@ -61,7 +73,16 @@ export function DraggableTicketCard({ ticket, onCardClick, memberMap, subtaskSta
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={handleClick}>
-      <TicketCard ticket={ticket} memberMap={memberMap} subtaskStats={subtaskStats} />
+      <TicketCard
+        ticket={ticket}
+        allTickets={allTickets}
+        memberMap={memberMap}
+        subtaskStats={subtaskStats}
+        onReopen={onReopen}
+        onPending={onPending}
+        onResume={onResume}
+        onDelete={onDelete}
+      />
     </div>
   );
 }

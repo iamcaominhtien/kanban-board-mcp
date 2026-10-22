@@ -64,6 +64,7 @@ const STYLE = `
 @keyframes cm-load { from { width: 25%; } to { width: 85%; } }
 .cm-sk { background: linear-gradient(90deg,#EEF3EF,#F6FAF7,#EEF3EF); background-size: 200% 100%; animation: cm-sk 1.2s linear infinite; border-radius: 6px; }
 @keyframes cm-sk { to { background-position: -200% 0; } }
+.cm-sort-btn:hover { background: #F6FAF7; border-color: #C7D2CB; color: #1E2A22; }
 `;
 
 function Avatar({ person, dashed }: { person: Person; dashed?: boolean }) {
@@ -187,6 +188,15 @@ export function CommentsSection({
   const [queue, setQueue] = useState<QueuedComment[]>(() => readJson<QueuedComment[]>(queueKey(ticketId), []));
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [expandedMiddle, setExpandedMiddle] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>(() => {
+    try {
+      const saved = localStorage.getItem('kanban.comments.sortOrder');
+      if (saved === 'oldest' || saved === 'newest') return saved;
+    } catch {
+      // ignore
+    }
+    return 'newest';
+  });
 
   const me = useMemo<Person>(
     () =>
@@ -356,8 +366,11 @@ export function CommentsSection({
     }));
     for (const g of [...ghosts].sort((a, b) => a.index - b.index))
       live.splice(Math.min(g.index, live.length), 0, { kind: 'g', g });
+    if (sortOrder === 'newest') {
+      live.reverse();
+    }
     return live;
-  }, [comments, ghosts]);
+  }, [comments, ghosts, sortOrder]);
   const collapseMiddle = !expandedMiddle && comments.length > THREAD_COLLAPSE_OVER;
   const hiddenCount = collapseMiddle ? comments.length - 1 - TAIL : 0;
 
@@ -538,7 +551,11 @@ export function CommentsSection({
       return;
     }
     const { c, i } = it;
-    if (collapseMiddle && i > 0 && i < comments.length - TAIL) {
+    const isCollapsed =
+      collapseMiddle &&
+      (sortOrder === 'newest' ? idx >= TAIL && idx < visible.length - 1 : idx > 0 && idx < visible.length - TAIL);
+
+    if (isCollapsed) {
       if (!shownDivider) {
         shownDivider = true;
         rows.push(
@@ -566,7 +583,6 @@ export function CommentsSection({
       }
       return;
     }
-    void idx;
     rows.push(renderComment(c, i));
   });
 
@@ -610,7 +626,40 @@ export function CommentsSection({
         >
           {isLoading ? '…' : comments.length}
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: '#9AA8A0' }}>Oldest first</span>
+        <button
+          type="button"
+          data-testid="comments-sort-order"
+          onClick={() => {
+            const next = sortOrder === 'newest' ? 'oldest' : 'newest';
+            setSortOrder(next);
+            try {
+              localStorage.setItem('kanban.comments.sortOrder', next);
+            } catch {
+              // ignore
+            }
+          }}
+          className="cm-sort-btn"
+          style={{
+            marginLeft: 'auto',
+            border: '1px solid #DCE3DF',
+            background: '#FFFFFF',
+            borderRadius: 6,
+            padding: '3px 8px',
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#435348',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            fontFamily: 'inherit',
+            transition: 'all 0.15s ease',
+          }}
+          title={`Currently ${sortOrder === 'newest' ? 'newest first' : 'oldest first'}. Click to toggle.`}
+        >
+          <span style={{ color: '#2E6F40', fontSize: 13, lineHeight: 1 }}>⇅</span>
+          <span>{sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}</span>
+        </button>
       </div>
 
       {isLoading ? (
@@ -645,6 +694,167 @@ export function CommentsSection({
               <b>You are offline.</b> Comments are saved here and sent when the connection returns.
             </div>
           )}
+
+          {sortOrder === 'newest' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {composing ? (
+                <Composer
+                  ticketId={ticketId}
+                  projectId={projectId}
+                  me={me}
+                  members={suggestMembers}
+                  onCancel={() => setComposing(false)}
+                  onSubmit={(t) => void send(t)}
+                />
+              ) : (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <Avatar person={me} />
+                  <button
+                    type="button"
+                    data-testid="comment-collapsed"
+                    onClick={() => setComposing(true)}
+                    onFocus={() => setComposing(true)}
+                    style={{
+                      flex: 1,
+                      textAlign: 'left',
+                      border: '1px solid #E3E8E5',
+                      borderRadius: 8,
+                      background: '#FFFFFF',
+                      padding: '9px 14px',
+                      fontFamily: 'inherit',
+                      fontSize: 14,
+                      color: '#6B7A70',
+                      cursor: 'text',
+                    }}
+                  >
+                    Add a comment…
+                  </button>
+                </div>
+              )}
+              {queue.map((q) => (
+                <div
+                  key={q.id}
+                  data-testid="comment-queued"
+                  style={{
+                    display: 'flex',
+                    gap: 12,
+                    border: '1px dashed #C7D2CB',
+                    borderRadius: 10,
+                    padding: '8px 12px',
+                    margin: '0 -2px',
+                    background: '#FBFCFB',
+                  }}
+                >
+                  <Avatar person={me} dashed />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
+                      <span style={{ fontSize: 12, color: '#9AA8A0' }}>Queued</span>
+                    </div>
+                    <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+                      <MarkdownRenderer>{q.text}</MarkdownRenderer>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          saveQueue(queue.filter((x) => x.id !== q.id));
+                          setComposing(true);
+                          writeJson(`kanban.commentDraft.${ticketId}`, q.text);
+                        }}
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          color: '#2E6F40',
+                          fontWeight: 700,
+                          fontSize: 12.5,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="comment-cancel-send"
+                        onClick={() => saveQueue(queue.filter((x) => x.id !== q.id))}
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          color: '#C4432A',
+                          fontWeight: 700,
+                          fontSize: 12.5,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Cancel send
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {failed.map((f) => (
+                <div
+                  key={f.id}
+                  data-testid="comment-failed"
+                  style={{
+                    display: 'flex',
+                    gap: 12,
+                    border: '1px solid #F0C4B8',
+                    borderRadius: 10,
+                    padding: '8px 12px',
+                    background: '#FDF3F0',
+                  }}
+                >
+                  <Avatar person={me} />
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
+                      <span style={{ fontSize: 12, color: '#C4432A', fontWeight: 600 }}>Not sent</span>
+                    </div>
+                    <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+                      <MarkdownRenderer>{f.text}</MarkdownRenderer>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#A5321E' }}>
+                      Couldn't reach the server. Your text is kept; nothing was lost.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="st-btn st-btn-primary st-btn-sm"
+                        data-testid="comment-retry"
+                        onClick={() => void send(f.text, f.id)}
+                      >
+                        Retry
+                      </button>
+                      <button
+                        type="button"
+                        className="st-btn st-btn-sm"
+                        onClick={() => {
+                          setFailed((x) => x.filter((y) => y.id !== f.id));
+                          writeJson(`kanban.commentDraft.${ticketId}`, f.text);
+                          setComposing(true);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="st-btn st-btn-sm"
+                        onClick={() => setFailed((x) => x.filter((y) => y.id !== f.id))}
+                      >
+                        Discard
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {comments.length === 0 && ghosts.length === 0 && queue.length === 0 && failed.length === 0 && (
             <div
               data-testid="comments-empty"
@@ -658,163 +868,168 @@ export function CommentsSection({
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rows}
-            {queue.map((q) => (
-              <div
-                key={q.id}
-                data-testid="comment-queued"
-                style={{
-                  display: 'flex',
-                  gap: 12,
-                  border: '1px dashed #C7D2CB',
-                  borderRadius: 10,
-                  padding: '8px 12px',
-                  margin: '0 -2px',
-                  background: '#FBFCFB',
-                }}
-              >
-                <Avatar person={me} dashed />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
-                    <span style={{ fontSize: 12, color: '#9AA8A0' }}>Queued</span>
+            {sortOrder === 'oldest' && (
+              <>
+                {queue.map((q) => (
+                  <div
+                    key={q.id}
+                    data-testid="comment-queued"
+                    style={{
+                      display: 'flex',
+                      gap: 12,
+                      border: '1px dashed #C7D2CB',
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      margin: '0 -2px',
+                      background: '#FBFCFB',
+                    }}
+                  >
+                    <Avatar person={me} dashed />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
+                        <span style={{ fontSize: 12, color: '#9AA8A0' }}>Queued</span>
+                      </div>
+                      <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+                        <MarkdownRenderer>{q.text}</MarkdownRenderer>
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            saveQueue(queue.filter((x) => x.id !== q.id));
+                            setComposing(true);
+                            writeJson(`kanban.commentDraft.${ticketId}`, q.text);
+                          }}
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            color: '#2E6F40',
+                            fontWeight: 700,
+                            fontSize: 12.5,
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="comment-cancel-send"
+                          onClick={() => saveQueue(queue.filter((x) => x.id !== q.id))}
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            color: '#C4432A',
+                            fontWeight: 700,
+                            fontSize: 12.5,
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          Cancel send
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
-                    <MarkdownRenderer>{q.text}</MarkdownRenderer>
+                ))}
+                {failed.map((f) => (
+                  <div
+                    key={f.id}
+                    data-testid="comment-failed"
+                    style={{
+                      display: 'flex',
+                      gap: 12,
+                      border: '1px solid #F0C4B8',
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      background: '#FDF3F0',
+                    }}
+                  >
+                    <Avatar person={me} />
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
+                        <span style={{ fontSize: 12, color: '#C4432A', fontWeight: 600 }}>Not sent</span>
+                      </div>
+                      <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+                        <MarkdownRenderer>{f.text}</MarkdownRenderer>
+                      </div>
+                      <div style={{ fontSize: 12.5, color: '#A5321E' }}>
+                        Couldn't reach the server. Your text is kept; nothing was lost.
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          type="button"
+                          className="st-btn st-btn-primary st-btn-sm"
+                          data-testid="comment-retry"
+                          onClick={() => void send(f.text, f.id)}
+                        >
+                          Retry
+                        </button>
+                        <button
+                          type="button"
+                          className="st-btn st-btn-sm"
+                          onClick={() => {
+                            setFailed((x) => x.filter((y) => y.id !== f.id));
+                            writeJson(`kanban.commentDraft.${ticketId}`, f.text);
+                            setComposing(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="st-btn st-btn-sm"
+                          onClick={() => setFailed((x) => x.filter((y) => y.id !== f.id))}
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        saveQueue(queue.filter((x) => x.id !== q.id));
-                        setComposing(true);
-                        writeJson(`kanban.commentDraft.${ticketId}`, q.text);
-                      }}
-                      style={{
-                        border: 'none',
-                        background: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        color: '#2E6F40',
-                        fontWeight: 700,
-                        fontSize: 12.5,
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      data-testid="comment-cancel-send"
-                      onClick={() => saveQueue(queue.filter((x) => x.id !== q.id))}
-                      style={{
-                        border: 'none',
-                        background: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        color: '#C4432A',
-                        fontWeight: 700,
-                        fontSize: 12.5,
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      Cancel send
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {failed.map((f) => (
-              <div
-                key={f.id}
-                data-testid="comment-failed"
-                style={{
-                  display: 'flex',
-                  gap: 12,
-                  border: '1px solid #F0C4B8',
-                  borderRadius: 10,
-                  padding: '8px 12px',
-                  background: '#FDF3F0',
-                }}
-              >
-                <Avatar person={me} />
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{me.name}</span>
-                    <span style={{ fontSize: 12, color: '#C4432A', fontWeight: 600 }}>Not sent</span>
-                  </div>
-                  <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
-                    <MarkdownRenderer>{f.text}</MarkdownRenderer>
-                  </div>
-                  <div style={{ fontSize: 12.5, color: '#A5321E' }}>
-                    Couldn't reach the server. Your text is kept; nothing was lost.
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      className="st-btn st-btn-primary st-btn-sm"
-                      data-testid="comment-retry"
-                      onClick={() => void send(f.text, f.id)}
-                    >
-                      Retry
-                    </button>
-                    <button
-                      type="button"
-                      className="st-btn st-btn-sm"
-                      onClick={() => {
-                        setFailed((x) => x.filter((y) => y.id !== f.id));
-                        writeJson(`kanban.commentDraft.${ticketId}`, f.text);
-                        setComposing(true);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="st-btn st-btn-sm"
-                      onClick={() => setFailed((x) => x.filter((y) => y.id !== f.id))}
-                    >
-                      Discard
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                ))}
+              </>
+            )}
           </div>
 
-          {composing ? (
-            <Composer
-              ticketId={ticketId}
-              projectId={projectId}
-              me={me}
-              members={suggestMembers}
-              onCancel={() => setComposing(false)}
-              onSubmit={(t) => void send(t)}
-            />
-          ) : (
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <Avatar person={me} />
-              <button
-                type="button"
-                data-testid="comment-collapsed"
-                onClick={() => setComposing(true)}
-                onFocus={() => setComposing(true)}
-                style={{
-                  flex: 1,
-                  textAlign: 'left',
-                  border: '1px solid #E3E8E5',
-                  borderRadius: 8,
-                  background: '#FFFFFF',
-                  padding: '9px 14px',
-                  fontFamily: 'inherit',
-                  fontSize: 14,
-                  color: '#6B7A70',
-                  cursor: 'text',
-                }}
-              >
-                Add a comment…
-              </button>
-            </div>
-          )}
+          {sortOrder === 'oldest' &&
+            (composing ? (
+              <Composer
+                ticketId={ticketId}
+                projectId={projectId}
+                me={me}
+                members={suggestMembers}
+                onCancel={() => setComposing(false)}
+                onSubmit={(t) => void send(t)}
+              />
+            ) : (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <Avatar person={me} />
+                <button
+                  type="button"
+                  data-testid="comment-collapsed"
+                  onClick={() => setComposing(true)}
+                  onFocus={() => setComposing(true)}
+                  style={{
+                    flex: 1,
+                    textAlign: 'left',
+                    border: '1px solid #E3E8E5',
+                    borderRadius: 8,
+                    background: '#FFFFFF',
+                    padding: '9px 14px',
+                    fontFamily: 'inherit',
+                    fontSize: 14,
+                    color: '#6B7A70',
+                    cursor: 'text',
+                  }}
+                >
+                  Add a comment…
+                </button>
+              </div>
+            ))}
         </>
       )}
     </div>

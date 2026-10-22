@@ -138,9 +138,39 @@ export interface Ticket {
   branches?: TicketBranch[];
   workspaceRetentionDays?: number | null;
   repoPath?: string | null;
+  // Reopen fields
+  reopenCount?: number;
+  lastReopenedAt?: string | null;
+  lastReopenedBy?: string | null;
+  lastReopenReason?: string | null;
+  reopenHistory?: ReopenHistoryEntry[];
+  // Pending fields
+  pending?: boolean;
+  pendingReasonType?: 'ticket' | 'person' | 'party' | null;
+  pendingTicketId?: string | null;
+  pendingMemberId?: string | null;
+  pendingParty?: string | null;
+  pendingNote?: string | null;
+  pendingSince?: string | null;
+  pendingBy?: string | null;
+  completedAt?: string | null;
+  completedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ReopenHistoryEntry {
+  id: string;
+  reopenCount: number;
+  actor?: string | null;
+  reason?: string | null;
+  fromStatus: Status;
+  previousCompletedAt?: string | null;
+  at: string;
+  sideEffects?: string[];
+}
+
+export type PendingReasonType = 'ticket' | 'person' | 'party';
 
 export interface WorkspaceSettings {
   id: number;

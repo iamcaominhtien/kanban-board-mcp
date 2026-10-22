@@ -11,6 +11,9 @@ TicketAction = Literal[
     "create",
     "update",
     "delete",
+    "reopen",
+    "pend",
+    "resume",
     "workspace",
     "block",
     "unblock",
@@ -53,6 +56,18 @@ TICKET_OPS = {
         ),
     ),
     "delete": Op(ops.delete_ticket, ("ticket_id",)),
+    "reopen": Op(
+        ops.reopen_ticket,
+        ("ticket_id",),
+        ("reason", "reset_ac", "reset_tests", "unassign", "reopen_parent"),
+    ),
+    "pend": Op(
+        ops.set_ticket_pending,
+        ("ticket_id", "reason_type"),
+        ("target_id", "member_id", "party", "note", "add_blocked_by"),
+        rename={"target_id": "target_ticket_id"},
+    ),
+    "resume": Op(ops.resume_ticket, ("ticket_id",), ("reason", "add_comment")),
     "workspace": Op(ops.get_ticket_workspace_path, ("ticket_id",)),
     "block": Op(
         ops.block_ticket,
@@ -170,10 +185,48 @@ async def manage_ticket(
             description="update: fields to EMPTY (e.g. unassign). Needed because omitting a field means 'leave unchanged'."
         ),
     ] = None,
+    reason: Annotated[
+        str | None,
+        Field(description="reopen / resume: why (max 240)."),
+    ] = None,
+    reset_ac: Annotated[
+        bool | None, Field(description="reopen: uncheck all criteria.")
+    ] = None,
+    reset_tests: Annotated[
+        bool | None, Field(description="reopen: reset test cases to pending.")
+    ] = None,
+    unassign: Annotated[
+        bool | None, Field(description="reopen: clear the assignee.")
+    ] = None,
+    reopen_parent: Annotated[
+        bool | None,
+        Field(description="reopen: also reopen the parent."),
+    ] = None,
+    reason_type: Annotated[
+        Literal["ticket", "person", "party"] | None,
+        Field(
+            description="pend: waits on a ticket (target_id), person (member_id) or party."
+        ),
+    ] = None,
+    member_id: Annotated[
+        str | None, Field(description="pend/person: member id (UUID).")
+    ] = None,
+    party: Annotated[
+        str | None,
+        Field(description="pend/party: who is waited on (max 240)."),
+    ] = None,
+    note: Annotated[str | None, Field(description="pend: detail (max 240).")] = None,
+    add_blocked_by: Annotated[
+        bool | None,
+        Field(description="pend/ticket: also add a block relation."),
+    ] = None,
+    add_comment: Annotated[
+        bool | None, Field(description="resume: record `reason` as a comment.")
+    ] = None,
     target_id: Annotated[
         str | None,
         Field(
-            description="The other ticket's ID (same project): block/unblock: the ticket that must be finished first; link: the ticket to relate to."
+            description="The other ticket's ID (same project for block/link): block/unblock: the ticket that must be finished first; link: the ticket to relate to; pend: the ticket waited on."
         ),
     ] = None,
     relation_type: Annotated[
@@ -200,6 +253,9 @@ async def manage_ticket(
     - create: project_id, title [, description, type, priority, status, parent_id, estimate, due_date, start_date, tags, assignee]. The ID comes from the project prefix ('IAM-5'). With parent_id it is a sub-ticket. Returns the ticket.
     - update: ticket_id plus any fields to change; omitted fields are untouched, so a plain status move is just (ticket_id, status). To empty a nullable field name it in clear_fields. 'wont_do' needs wont_do_reason and is not allowed for sub-tickets. Also takes repo_path, block_done_if_acs_incomplete, block_done_if_tcs_incomplete. Returns the ticket.
     - delete: ticket_id. PERMANENT. Sub-tickets are detached and kept; block/link references to it are removed; its workspace folder is deleted. To retire a ticket but keep its history use update with status='wont_do'.
+    - reopen: ticket_id [, reason, reset_ac, reset_tests, unassign, reopen_parent]. Moves a 'done' / 'wont_do' ticket back to 'todo' and records it in its reopen history. Returns the ticket.
+    - pend: ticket_id, reason_type ('ticket' + target_id, 'person' + member_id, or 'party' + party) [, note, add_blocked_by]. Parks the ticket as Pending without changing its status; not for done / wont_do. Returns the ticket.
+    - resume: ticket_id [, reason, add_comment]. Clears Pending. Returns the ticket.
     - workspace: ticket_id. Gets (and creates if missing) the ticket's local scratch folder: {enabled, path, exists}. Read and write files there with your own file tools (logs, repro scripts, drafts); nothing goes through MCP. If `enabled` is false, do not use it.
     - block / unblock: ticket_id, target_id. ticket_id cannot proceed until target_id is done (it shows a lock on the board); same project, no circular chains, statuses do not change. Returns {blocker, blocked}.
     - link: ticket_id, target_id, relation_type. A non-blocking relation (use block for dependencies). Returns {id, target_id, relation_type}; keep `id` for unlink.

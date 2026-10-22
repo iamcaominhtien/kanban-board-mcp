@@ -160,6 +160,8 @@ def _ticket_summary(ticket: Ticket) -> dict:
         "start_date": ticket.start_date,
         "due_date": ticket.due_date,
         "blocked_by": _loads(ticket.blocked_by),
+        "pending": bool(ticket.pending),
+        "reopen_count": ticket.reopen_count or 0,
         "acceptance_criteria": {
             "done": sum(1 for a in acs if a.get("done")),
             "total": len(acs),

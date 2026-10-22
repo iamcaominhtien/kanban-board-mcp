@@ -12,6 +12,12 @@ interface ColumnProps {
   memberMap?: Map<string, Member>;
   /** Tickets are still loading: real lane header, skeleton cards (same size as real cards, so nothing moves). */
   skeletonCards?: number;
+  onReopen?: (ticket: Ticket) => void;
+  onPending?: (ticket: Ticket) => void;
+  onResume?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
+  /** What the card being dragged carries: a closed ticket (reopen) or a pending one. */
+  dragKind?: 'reopen' | 'pending' | null;
 }
 
 /**
@@ -23,7 +29,19 @@ interface ColumnProps {
  * @param props.memberMap - Members by id, used to render assignees.
  * @param props.skeletonCards - While tickets load, show this many skeleton cards under the real header.
  */
-export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
+export function Column({
+  column,
+  tickets,
+  allTickets,
+  onCardClick,
+  memberMap,
+  skeletonCards,
+  onReopen,
+  onPending,
+  onResume,
+  onDelete,
+  dragKind = null,
+}: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -63,13 +81,45 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
           {skeletonCards !== undefined ? (
             <span className={`${loading.skel} ${loading.skelBadge}`} aria-hidden="true" />
           ) : (
-            <span
-              className={styles.columnBadge}
-              style={{ backgroundColor: column.accentColor }}
-              aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
-            >
-              {tickets.length}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span
+                className={styles.columnBadge}
+                style={{ backgroundColor: column.accentColor }}
+                aria-label={`${tickets.length - tickets.filter((t) => t.pending).length} active tickets`}
+              >
+                {tickets.length - tickets.filter((t) => t.pending).length}
+              </span>
+              {tickets.filter((t) => t.pending).length > 0 && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: '#34455A',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={`${tickets.filter((t) => t.pending).length} pending`}
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#5B6F86"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <path d="M8.5 5.5V18.5" />
+                    <path d="M15.5 5.5V18.5" />
+                  </svg>
+                  +{tickets.filter((t) => t.pending).length} pending
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className={styles.columnBar} style={{ backgroundColor: column.accentColor }} />
@@ -108,22 +158,38 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
             <div key={ticket.id} className={styles.childIndent}>
               <DraggableTicketCard
                 ticket={ticket}
+                allTickets={allTickets}
                 onCardClick={onCardClick}
                 memberMap={memberMap}
                 subtaskStats={subtaskStats}
+                onReopen={onReopen}
+                onPending={onPending}
+                onResume={onResume}
+                onDelete={onDelete}
               />
             </div>
           ) : (
             <DraggableTicketCard
               key={ticket.id}
               ticket={ticket}
+              allTickets={allTickets}
               onCardClick={onCardClick}
               memberMap={memberMap}
               subtaskStats={subtaskStats}
+              onReopen={onReopen}
+              onPending={onPending}
+              onResume={onResume}
+              onDelete={onDelete}
             />
           );
         })}
-        {isOver && <div className={styles.dropTargetGhost}>Drop here</div>}
+        {isOver && (
+          <div
+            className={`${styles.dropTargetGhost} ${dragKind === 'reopen' ? styles.dropTargetReopen : ''} ${dragKind === 'pending' ? styles.dropTargetPending : ''}`}
+          >
+            {dragKind === 'reopen' ? 'Drop to reopen' : dragKind === 'pending' ? 'Drop - stays pending' : 'Drop here'}
+          </div>
+        )}
       </div>
     </div>
   );

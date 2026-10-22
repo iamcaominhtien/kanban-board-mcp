@@ -238,3 +238,39 @@
   flex-shrink: 0;
   margin-bottom: -16px;
 }
+
+/* Drag hints for a closed (reopen) or pending card (TicketReopen A3, TicketPending C3) */
+.dropTargetReopen {
+  border-color: #f0c77a;
+  background: #fffaf0;
+  color: #8a4b00;
+}
+
+.dropTargetPending {
+  border-color: #b8c4d2;
+  background: #f4f6f9;
+  color: #34455a;
+}
+
+.dragLabelReopen,
+.dragLabelPending {
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  z-index: 5;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dragLabelReopen {
+  background: #fff1d6;
+  border: 1px solid #f0c77a;
+  color: #8a4b00;
+}
+
+.dragLabelPending {
+  background: #5b6f86;
+  color: #fff;
+}

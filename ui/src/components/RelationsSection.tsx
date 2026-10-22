@@ -39,6 +39,8 @@ interface RelationsSectionProps {
   onRemoveLink?: (ticketId: string, linkId: string) => void;
   onOpenTicket?: (ticket: Ticket) => void;
   onChangeStatus?: (ticketId: string, status: Status) => void;
+  /** One click, no dialog: mark the ticket pending on this blocker (TicketPending A4). */
+  onMarkPending?: (blockerId: string) => void;
 }
 
 interface RelationRow {
@@ -68,6 +70,7 @@ export function RelationsSection({
   onRemoveLink,
   onOpenTicket,
   onChangeStatus,
+  onMarkPending,
 }: RelationsSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedType, setSelectedType] = useState<RelationTypeKey>('blocks');
@@ -143,6 +146,8 @@ export function RelationsSection({
     });
   }, [allTickets, excludeIds, search]);
 
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
+
   function handleRemove(rel: RelationRow) {
     if (rel.type === 'blocks') {
       onUnlinkBlock(ticket.id, rel.targetId);
@@ -188,10 +193,29 @@ export function RelationsSection({
                     >
                       {row.ticket.title}
                     </span>
+                    {ticket.pending &&
+                      ticket.pendingReasonType === 'ticket' &&
+                      ticket.pendingTicketId === row.targetId && (
+                        <span
+                          style={{
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            background: '#e8edf3',
+                            border: '1px solid #b8c4d2',
+                            color: '#34455a',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Pending reason
+                        </span>
+                      )}
                     <StatusMenu
                       compact
                       value={row.ticket.status}
                       disabled={!onChangeStatus}
+                      allowWontDo={false}
                       onChange={(next) => onChangeStatus?.(row.ticket.id, next)}
                     />
                     <button
@@ -217,6 +241,74 @@ export function RelationsSection({
                   </div>
                 ))}
               </div>
+              {relType === 'blockedBy' &&
+                onMarkPending &&
+                !ticket.pending &&
+                ticket.status !== 'done' &&
+                ticket.status !== 'wont_do' &&
+                rows
+                  .filter(
+                    (r) =>
+                      r.ticket.status !== 'done' &&
+                      r.ticket.status !== 'wont_do' &&
+                      !dismissedSuggestions.has(r.targetId),
+                  )
+                  .slice(0, 1)
+                  .map((r) => (
+                    <div
+                      key={`suggest-${r.targetId}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                        marginTop: 6,
+                        padding: '7px 10px',
+                        borderRadius: 8,
+                        background: '#F4F6F9',
+                        border: '1px solid #B8C4D2',
+                        fontSize: 12,
+                        color: '#34455A',
+                      }}
+                    >
+                      <span style={{ flex: 1, minWidth: 160 }}>
+                        <b style={{ fontFamily: "'JetBrains Mono', monospace" }}>{r.targetId}</b> is not done yet. Mark
+                        this ticket as pending?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onMarkPending(r.targetId)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: '#5B6F86',
+                          color: '#fff',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Mark pending
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDismissedSuggestions((prev) => new Set(prev).add(r.targetId))}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          border: '1px solid #B8C4D2',
+                          background: '#fff',
+                          color: '#34455A',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  ))}
             </div>
           ))}
         </div>
