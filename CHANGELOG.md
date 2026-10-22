@@ -8,6 +8,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+---
+
+## [3.2.0] - 2026-10-22
+
 ### Added
 - **Reopen** a Done / Won't Do ticket (lands in To Do with an amber *Reopened* badge, reopen history, banner and 8 s Undo), from the detail, the status menu, the card menu, `R`, or by dragging a card out of a closed column (inline confirm at the drop point).
 - **Pending** flag (waiting on a ticket, a person or a party) that keeps the ticket's column: striped rail, reason strip, `+N pending` column counts, `P` shortcut, Resume with optional comment, blocker-done / blocker-removed prompts, and a confirm before a pending ticket is closed.
