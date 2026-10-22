@@ -113,7 +113,7 @@ class Ticket(SQLModel, table=True):
     # Reopen fields
     reopen_count: int = Field(default=0)
     last_reopened_at: Optional[str] = Field(default=None)
-    last_reopened_by: Optional[str] = Field(default=None, foreign_key="member.id")
+    last_reopened_by: Optional[str] = Field(default=None)
     last_reopen_reason: Optional[str] = Field(default=None)
     reopen_history: str = Field(default="[]")
     # Pending fields

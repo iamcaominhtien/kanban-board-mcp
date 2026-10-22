@@ -585,3 +585,43 @@ async def test_tools_work_through_a_real_client_session():
             "manage_ticket", {"action": "update", "ticket_id": "NOPE-1", "title": "x"}
         )
         assert failed.isError
+
+
+async def test_reopen_pend_and_resume_through_manage_ticket():
+    p = await _project()
+    t = await _ticket(p)
+    other = await _ticket(p, title="Other")
+    tid = t["id"]
+
+    with pytest.raises(Exception, match="Done or Won't Do"):
+        await call("manage_ticket", action="reopen", ticket_id=tid)
+
+    pending = await call(
+        "manage_ticket",
+        action="pend",
+        ticket_id=tid,
+        reason_type="ticket",
+        target_id=other["id"],
+        add_blocked_by=True,
+    )
+    assert pending["pending"] is True and pending["status"] == t["status"]
+    assert other["id"] in pending["blocked_by"]
+    assert pending["pending_by"]  # attributed to the agent
+
+    with pytest.raises(Exception, match="target_id|ticket_id is required"):
+        await call("manage_ticket", action="pend", ticket_id=tid, reason_type="ticket")
+
+    resumed = await call(
+        "manage_ticket",
+        action="resume",
+        ticket_id=tid,
+        reason="unblocked",
+        add_comment=True,
+    )
+    assert resumed["pending"] is False
+
+    await call("manage_ticket", action="update", ticket_id=tid, status="done")
+    reopened = await call(
+        "manage_ticket", action="reopen", ticket_id=tid, reason="regression"
+    )
+    assert reopened["status"] == "todo" and reopened["reopen_count"] == 1

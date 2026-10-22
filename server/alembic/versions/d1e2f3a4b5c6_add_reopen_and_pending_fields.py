@@ -30,14 +30,14 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("last_reopened_by", _S(), nullable=True))
         batch_op.add_column(sa.Column("last_reopen_reason", _S(), nullable=True))
         batch_op.add_column(
-            sa.Column(
-                "reopen_history", _S(), nullable=False, server_default="[]"
-            )
+            sa.Column("reopen_history", _S(), nullable=False, server_default="[]")
         )
 
         # Pending fields
         batch_op.add_column(
-            sa.Column("pending", sa.Boolean(), nullable=False, server_default=sa.false())
+            sa.Column(
+                "pending", sa.Boolean(), nullable=False, server_default=sa.false()
+            )
         )
         batch_op.add_column(sa.Column("pending_reason_type", _S(), nullable=True))
         batch_op.add_column(sa.Column("pending_ticket_id", _S(), nullable=True))

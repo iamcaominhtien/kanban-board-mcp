@@ -913,3 +913,71 @@ async def test_pending_ticket_lifecycle(client: httpx.AsyncClient):
         res = r_res.json()
         assert res["pending"] is False
         assert any("Contract finalized" in comm["text"] for comm in res["comments"])
+
+
+async def test_set_pending_validates_its_target(client: httpx.AsyncClient):
+    async with client as c:
+        project = await _create_project(c)
+        t = await _create_ticket(c, project["id"], title="A")
+        url = f"/tickets/{t['id']}/pending"
+
+        for body in (
+            {"reason_type": "ticket"},
+            {"reason_type": "ticket", "ticket_id": t["id"]},
+            {"reason_type": "ticket", "ticket_id": "NOPE-1"},
+            {"reason_type": "person"},
+            {"reason_type": "person", "member_id": "missing"},
+            {"reason_type": "party", "party": "   "},
+            {"reason_type": "party", "party": "x" * 241},
+        ):
+            r = await c.put(url, json=body)
+            assert r.status_code == 400, body
+        assert (await c.get(f"/tickets/{t['id']}")).json()["pending"] is False
+
+        r = await c.put(
+            url, json={"reason_type": "party", "party": "Client", "note": "n"}
+        )
+        assert r.status_code == 200
+        assert r.json()["pending_party"] == "Client"
+
+        # switching to another reason drops the old party
+        t2 = await _create_ticket(c, project["id"], title="B")
+        r = await c.put(url, json={"reason_type": "ticket", "ticket_id": t2["id"]})
+        assert r.json()["pending_party"] is None
+
+
+async def test_closed_ticket_cannot_be_pending_and_open_ticket_cannot_reopen(
+    client: httpx.AsyncClient,
+):
+    async with client as c:
+        project = await _create_project(c)
+        t = await _create_ticket(c, project["id"], title="A")
+        assert (await c.post(f"/tickets/{t['id']}/reopen", json={})).status_code == 400
+        await c.patch(f"/tickets/{t['id']}/status", json={"status": "done"})
+        r = await c.put(
+            f"/tickets/{t['id']}/pending",
+            json={"reason_type": "party", "party": "X"},
+        )
+        assert r.status_code == 400
+
+
+async def test_reopen_reason_is_limited_and_parent_can_be_reopened(
+    client: httpx.AsyncClient,
+):
+    async with client as c:
+        project = await _create_project(c)
+        parent = await _create_ticket(c, project["id"], title="P")
+        child = await _create_ticket(c, project["id"], "C", parent_id=parent["id"])
+        await c.patch(f"/tickets/{child['id']}/status", json={"status": "done"})
+        await c.patch(f"/tickets/{parent['id']}/status", json={"status": "done"})
+
+        r = await c.post(f"/tickets/{child['id']}/reopen", json={"reason": "x" * 241})
+        assert r.status_code == 400
+
+        r = await c.post(
+            f"/tickets/{child['id']}/reopen",
+            json={"reason": "again", "reopen_parent": True},
+        )
+        assert r.status_code == 200
+        p = (await c.get(f"/tickets/{parent['id']}")).json()
+        assert p["status"] == "todo" and p["reopen_count"] == 1

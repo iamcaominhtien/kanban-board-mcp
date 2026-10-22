@@ -337,9 +337,7 @@ class ReopenBody(BaseModel):
 
 
 @router.post("/tickets/{ticket_id}/reopen", response_model=TicketRead)
-async def post_reopen(
-    ticket_id: str, body: ReopenBody, session: Session
-) -> TicketRead:
+async def post_reopen(ticket_id: str, body: ReopenBody, session: Session) -> TicketRead:
     """Reopen a ticket that was Done or Won't Do, moving it to To Do."""
     try:
         ticket = await reopen_ticket(

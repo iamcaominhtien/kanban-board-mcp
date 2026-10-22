@@ -4,6 +4,7 @@ import json
 import re
 import services.tickets as svc_tickets
 import services.workspace as svc_workspace
+from services import activity as svc_activity
 from datetime import datetime, timezone
 from models import TicketUpdate
 from pydantic import Field
@@ -478,3 +479,109 @@ async def delete_ticket(ticket_id: TicketId) -> dict:
     if not found:
         raise _missing_ticket(ticket_id)
     return {"deleted": ticket_id}
+
+
+@notify_on_success
+async def reopen_ticket(
+    ticket_id: TicketId,
+    reason: Annotated[
+        str | None, Field(description="Why it is being reopened (max 240 chars).")
+    ] = None,
+    reset_ac: Annotated[
+        bool, Field(description="Uncheck every acceptance criterion.")
+    ] = False,
+    reset_tests: Annotated[
+        bool, Field(description="Set every test case back to 'pending'.")
+    ] = False,
+    unassign: Annotated[bool, Field(description="Clear the assignee.")] = False,
+    reopen_parent: Annotated[
+        bool, Field(description="Also reopen the parent if it is Done / Won't Do.")
+    ] = False,
+) -> dict:
+    """Reopen a ticket that is 'done' or 'wont_do': it moves to 'todo', its reopen count goes up and the reopen is added to
+    its history. Refused for tickets in any other status. Returns the updated ticket."""
+    return await _edit_ticket(
+        ticket_id,
+        lambda s: svc_tickets.reopen_ticket(
+            s,
+            ticket_id,
+            reason=reason,
+            reset_ac=reset_ac,
+            reset_tests=reset_tests,
+            unassign=unassign,
+            reopen_parent=reopen_parent,
+            actor=svc_activity.AGENT_ACTOR,
+        ),
+    )
+
+
+@notify_on_success
+async def set_ticket_pending(
+    ticket_id: TicketId,
+    reason_type: Annotated[
+        Literal["ticket", "person", "party"],
+        Field(description="What the ticket waits on."),
+    ],
+    target_ticket_id: Annotated[
+        str | None,
+        Field(description="reason_type='ticket': ID of the ticket waited on."),
+    ] = None,
+    member_id: Annotated[
+        str | None,
+        Field(description="reason_type='person': member id (UUID) waited on."),
+    ] = None,
+    party: Annotated[
+        str | None,
+        Field(
+            description="reason_type='party': external team / client waited on (max 240 chars)."
+        ),
+    ] = None,
+    note: Annotated[
+        str | None, Field(description="Optional detail (max 240 chars).")
+    ] = None,
+    add_blocked_by: Annotated[
+        bool,
+        Field(
+            description="reason_type='ticket': also add a 'blocked by' relation (same project)."
+        ),
+    ] = False,
+) -> dict:
+    """Flag a ticket as Pending: parked while it waits on a ticket, a person or an outside party. Its status and column do
+    not change. Not allowed for 'done' / 'wont_do' tickets. Returns the updated ticket."""
+    return await _edit_ticket(
+        ticket_id,
+        lambda s: svc_tickets.set_pending(
+            s,
+            ticket_id,
+            reason_type=reason_type,
+            ticket_target_id=target_ticket_id,
+            member_id=member_id,
+            party=party,
+            note=note,
+            add_blocked_by=add_blocked_by,
+            actor=svc_activity.AGENT_ACTOR,
+        ),
+    )
+
+
+@notify_on_success
+async def resume_ticket(
+    ticket_id: TicketId,
+    reason: Annotated[
+        str | None, Field(description="Why work resumes (max 240 chars).")
+    ] = None,
+    add_comment: Annotated[
+        bool, Field(description="Also record `reason` as a comment.")
+    ] = False,
+) -> dict:
+    """Clear the Pending flag of a ticket. A ticket that is not pending is returned unchanged. Returns the updated ticket."""
+    return await _edit_ticket(
+        ticket_id,
+        lambda s: svc_tickets.clear_pending(
+            s,
+            ticket_id,
+            reason=reason,
+            add_comment=add_comment,
+            actor=svc_activity.AGENT_ACTOR,
+        ),
+    )
