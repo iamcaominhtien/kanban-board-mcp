@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import type { IssueType, Member, Ticket } from '../types';
 import { MemberAvatar } from './MemberAvatar';
 import { TagPill } from './TagPill';
@@ -24,40 +25,73 @@ function getDueDateDisplay(dueDate: string | null): { label: string; overdue: bo
 
 interface TicketCardProps {
   ticket: Ticket;
+  allTickets?: Ticket[];
   memberMap?: Map<string, Member>;
   isDragging?: boolean;
   className?: string;
   onClick?: () => void;
   subtaskStats?: { total: number; completed: number };
+  onReopen?: (ticket: Ticket) => void;
+  onPending?: (ticket: Ticket) => void;
+  onResume?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
 }
 
 /**
- * Compact ticket card for the board.
- * @param props.memberMap - Members by id, used to render the assignee.
- * @param props.isDragging - Render the dragging style.
- * @param props.onClick - Called when the card is clicked.
- * @param props.subtaskStats - Sub-task totals shown on the card.
+ * Pixel-perfect TicketCard strictly matching TicketPending.dc.html (C1, C2) and TicketReopen.dc.html (C1, C2).
  */
-export function TicketCard({ ticket, memberMap, isDragging, className, onClick, subtaskStats }: TicketCardProps) {
+export function TicketCard({
+  ticket,
+  allTickets = [],
+  memberMap,
+  isDragging,
+  className,
+  onClick,
+  subtaskStats,
+  onReopen,
+  onPending,
+  onResume,
+  onDelete,
+}: TicketCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dismissPrompt, setDismissPrompt] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [menuOpen]);
+
   const typeLabel = TYPE_LABELS[ticket.type] ?? 'Task';
   const due = getDueDateDisplay(ticket.dueDate);
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
   const isBlocked = (ticket.blockedBy ?? []).length > 0;
+  const isClosed = ticket.status === 'done' || ticket.status === 'wont_do';
   const isDone = ticket.status === 'done';
-  const isReopened =
-    (ticket.reopenCount ?? 0) > 0 &&
-    ticket.status !== 'done' &&
-    ticket.status !== 'wont_do';
+  const isReopened = (ticket.reopenCount ?? 0) > 0 && !isClosed;
   const isPending = !!ticket.pending;
-  const completedAC = (ticket.acceptanceCriteria ?? []).filter((s) => s.done).length;
-  const totalAC = (ticket.acceptanceCriteria ?? []).length;
   const hasSubtasks = subtaskStats && subtaskStats.total > 0;
+
+  // E1 Blocker Done prompt condition
+  const blockerTicket =
+    isPending && ticket.pendingReasonType === 'ticket' && ticket.pendingTicketId
+      ? allTickets.find((t) => t.id === ticket.pendingTicketId)
+      : null;
+  const isBlockerDone = blockerTicket && blockerTicket.status === 'done' && !dismissPrompt;
 
   const cardClasses = [
     styles.card,
     isDragging ? styles.cardDragging : '',
     isBlocked ? styles.cardBlocked : '',
     isPending ? styles.cardPending : '',
+    isReopened ? styles.cardReopened : '',
     isDone ? styles.cardDone : '',
     hasSubtasks ? styles.cardParent : '',
     className ?? '',
@@ -78,9 +112,37 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
         ticket.pendingMemberId ||
         'Party';
 
+  // Tooltip content for Reopened badge
+  const reopenTooltip = `Reopened ${ticket.reopenCount || 1}x\n${
+    ticket.lastReopenedBy || 'Author'
+  }, ${ticket.lastReopenedAt ? new Date(ticket.lastReopenedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'recent'}\n"${
+    ticket.lastReopenReason || 'Rework required'
+  }"`;
+
+  // Tooltip content for Pending strip
+  const pendingTooltip = `Pending · Waiting on ${pendingTargetLabel}${
+    blockerTicket ? ` - ${blockerTicket.title}` : ''
+  }\n${ticket.pendingNote ? `"${ticket.pendingNote}"\n` : ''}Set by ${
+    ticket.pendingBy || 'Author'
+  }${ticket.pendingSince ? ` on ${new Date(ticket.pendingSince).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}${
+    blockerTicket ? `\nLive status: ${blockerTicket.status}` : ''
+  }`;
+
+  function handleMenuClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    setMenuOpen((prev) => !prev);
+  }
+
+  function copyTicketLink(e: React.MouseEvent) {
+    e.stopPropagation();
+    const url = `${window.location.origin}/#ticket-${ticket.id}`;
+    navigator.clipboard.writeText(url);
+    setMenuOpen(false);
+  }
+
   return (
     <div className={cardClasses} onClick={onClick}>
-      {/* Striped rail for pending cards */}
+      {/* Striped rail for pending cards matching TicketPending.dc.html C1 */}
       {isPending && <div className={styles.pendingRail} />}
 
       {/* Floating Blocked Badge */}
@@ -93,33 +155,169 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
         </div>
       )}
 
+      {/* Card ... Context Menu button matching TicketPending.dc.html A1 */}
+      <div className={styles.menuButton} onClick={handleMenuClick} title="Card options">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#5B6B60" style={{ flexShrink: 0 }}>
+          <circle cx="5" cy="12" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="19" cy="12" r="1.8" />
+        </svg>
+
+        {/* Dropdown Menu */}
+        {menuOpen && (
+          <div ref={menuRef} className={styles.menuDropdown} onClick={(e) => e.stopPropagation()}>
+            {isClosed ? (
+              /* A2 · Card menu in closed column (Reopen ticket) */
+              <>
+                <button
+                  type="button"
+                  className={`${styles.menuItem} ${styles.menuItemReopen}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onReopen?.(ticket);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  <span>Reopen ticket</span>
+                  <span className={styles.menuShortcut}>R</span>
+                </button>
+                <div className={styles.menuDivider} />
+              </>
+            ) : isPending ? (
+              /* A1 · Card menu, pending ticket (Resume ticket, Change reason...) */
+              <>
+                <button
+                  type="button"
+                  className={`${styles.menuItem} ${styles.menuItemResume}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onResume?.(ticket);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M7.5 4.8V19.2L19 12Z" />
+                  </svg>
+                  <span>Resume ticket</span>
+                  <span className={styles.menuShortcut}>P</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.menuItem}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onPending?.(ticket);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A4A3E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M4 20H8L19 9L15 5L4 16Z" />
+                  </svg>
+                  <span>Change reason...</span>
+                </button>
+                <div className={styles.menuDivider} />
+              </>
+            ) : (
+              /* A1 · Card menu, open ticket (Mark as pending...) */
+              <>
+                <button
+                  type="button"
+                  className={`${styles.menuItem} ${styles.menuItemPending}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onPending?.(ticket);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M8.5 5.5V18.5" />
+                    <path d="M15.5 5.5V18.5" />
+                  </svg>
+                  <span>Mark as pending...</span>
+                  <span className={styles.menuShortcut}>P</span>
+                </button>
+                <div className={styles.menuDivider} />
+              </>
+            )}
+
+            <button
+              type="button"
+              className={styles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                onClick?.();
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A4A3E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M14 3H21V10" />
+                <path d="M21 3L11 13" />
+                <path d="M19 14V19A2 2 0 0 1 17 21H5A2 2 0 0 1 3 19V7A2 2 0 0 1 5 5H10" />
+              </svg>
+              <span>Open ticket</span>
+            </button>
+            <button type="button" className={styles.menuItem} onClick={copyTicketLink}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A4A3E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+                <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+              </svg>
+              <span>Copy link</span>
+            </button>
+            <div className={styles.menuDivider} />
+            <button
+              type="button"
+              className={styles.menuItem}
+              style={{ color: '#C4432A' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                onDelete?.(ticket);
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C4432A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M3 6H21" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              </svg>
+              <span>Move to Recycle Bin</span>
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className={styles.cardContent}>
-        {/* Header: Type icon + label, and ID + drag dots */}
+        {/* Header: Type icon + label, Reopened badge, Pending chip, ID */}
         <div className={styles.cardHeader}>
           <div className={styles.typeContainer}>
             <TicketTypeIcon type={ticket.type} size={15} />
             <span className={styles.typeLabel}>{typeLabel}</span>
+
+            {/* Reopened badge matching TicketReopen.dc.html C1 */}
             {isReopened && (
-              <span
-                className={styles.reopenedBadge}
-                title={`Reopened ${ticket.reopenCount} time${(ticket.reopenCount ?? 0) > 1 ? 's' : ''}${
-                  ticket.lastReopenedAt ? ` (last ${new Date(ticket.lastReopenedAt).toLocaleDateString()})` : ''
-                }${ticket.lastReopenReason ? `: "${ticket.lastReopenReason}"` : ''}`}
-              >
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#C77700"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+              <span className={styles.reopenedBadge} title={reopenTooltip}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                   <path d="M3 3v5h5" />
                 </svg>
-                Reopened{(ticket.reopenCount ?? 0) > 1 ? ` x${ticket.reopenCount}` : ''}
+                Reopened
+                {(ticket.reopenCount ?? 0) > 1 && (
+                  <span className={styles.reopenedCount}>x{ticket.reopenCount}</span>
+                )}
+              </span>
+            )}
+
+            {/* Pending chip matching TicketPending.dc.html C1/C2 */}
+            {isPending && (
+              <span className={styles.pendingChip} title={pendingTooltip}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M8.5 5.5V18.5" />
+                  <path d="M15.5 5.5V18.5" />
+                </svg>
+                Pending
               </span>
             )}
           </div>
@@ -147,16 +345,7 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
           <div className={styles.tagsRow}>
             {ticket.parentId && (
               <span className={styles.parentChip} title={`Sub-ticket of ${ticket.parentId}`}>
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  stroke="#9AA8A0"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
                   <path d="M7.5 8.5L10 11L7.5 13.5" />
                 </svg>
@@ -187,28 +376,47 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
           </div>
         )}
 
-        {/* Pending reason strip */}
+        {/* Pending reason strip matching TicketPending.dc.html C1 */}
         {isPending && (
-          <div
-            className={styles.pendingStrip}
-            title={`Pending: Waiting on ${pendingTargetLabel}${ticket.pendingNote ? ` - "${ticket.pendingNote}"` : ''}`}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#5B6F86" style={{ flexShrink: 0 }}>
-              <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
-              <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+          <div className={styles.pendingStrip} title={pendingTooltip}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M8.5 5.5V18.5" />
+              <path d="M15.5 5.5V18.5" />
             </svg>
-            <span style={{ color: '#5B6F86', fontSize: 10.5 }}>Waiting on</span>
-            <span
-              style={{
-                fontWeight: 600,
-                color: '#34455A',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {pendingTargetLabel}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+              Waiting on <span style={{ fontFamily: ticket.pendingReasonType === 'ticket' ? "'JetBrains Mono', monospace" : 'inherit', fontWeight: 700 }}>{pendingTargetLabel}</span>
             </span>
+          </div>
+        )}
+
+        {/* E1 Auto behaviour: Blocker Done prompt on card */}
+        {isBlockerDone && (
+          <div className={styles.blockerDonePrompt} onClick={(e) => e.stopPropagation()}>
+            <span className={styles.blockerDoneText}>
+              <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>{ticket.pendingTicketId}</strong> is done. Resume <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>{ticket.id}</strong>?
+            </span>
+            <div className={styles.blockerDoneButtons}>
+              <button
+                type="button"
+                className={styles.blockerDoneBtnResume}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onResume?.(ticket);
+                }}
+              >
+                Resume
+              </button>
+              <button
+                type="button"
+                className={styles.blockerDoneBtnKeep}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDismissPrompt(true);
+                }}
+              >
+                Keep pending
+              </button>
+            </div>
           </div>
         )}
 
@@ -222,53 +430,34 @@ export function TicketCard({ ticket, memberMap, isDragging, className, onClick, 
                 width: 20,
                 height: 20,
                 borderRadius: '50%',
-                background: '#EEF1EE',
-                color: '#9AA8A0',
-                fontSize: 10,
-                fontWeight: 700,
+                background: '#EEF3EF',
+                border: '1px dashed #C7D2CB',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0,
+                fontSize: 10,
+                color: '#9AA8A0',
               }}
-              title="Unassigned"
             >
-              –
+              ?
             </div>
           )}
 
-          <PriorityMark priority={ticket.priority} width={15} height={14} />
+          <PriorityMark priority={ticket.priority} />
 
-          <span className={styles.footerSpacer} />
+          <div className={styles.footerSpacer} />
 
-          {ticket.estimate !== null && ticket.estimate !== undefined && (
-            <span className={styles.estimate}>{ticket.estimate} pt</span>
-          )}
-
-          {totalAC > 0 && (
-            <span className={completedAC === totalAC ? styles.subtasksDone : styles.subtasksProgress}>
-              {completedAC}/{totalAC}
-            </span>
-          )}
+          {ticket.estimate && <span className={styles.estimate}>{ticket.estimate} pt</span>}
 
           {due && (
             <span className={due.overdue ? styles.dueDateOverdue : styles.dueDate}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={due.overdue ? '#C4432A' : '#5B6B60'}
-                strokeWidth={due.overdue ? 2.2 : 2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
                 <path d="M3.5 10H20.5" />
                 <path d="M8 3V6.5" />
                 <path d="M16 3V6.5" />
               </svg>
-              Due {due.label}
+              {due.label}
             </span>
           )}
         </div>

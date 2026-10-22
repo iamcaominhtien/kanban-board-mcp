@@ -15,8 +15,14 @@ import {
   useUpdateTicketStatus,
   useWontDoTickets,
   useRestoreTicket,
+  useReopenTicket,
+  useSetPending,
+  useResumeTicket,
   reopenTicket,
 } from './api/tickets';
+import { ReopenDialog } from './components/ReopenDialog';
+import { SetPendingDialog } from './components/SetPendingDialog';
+import { ResumeDialog } from './components/ResumeDialog';
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
@@ -115,6 +121,39 @@ export default function App() {
     setLocalTickets(tickets);
   }, [tickets]);
 
+  const [filterReopened, setFilterReopened] = useState(false);
+  const [filterPending, setFilterPending] = useState(false);
+  const [hidePending, setHidePending] = useState(false);
+
+  const [reopenTargetTicket, setReopenTargetTicket] = useState<Ticket | null>(null);
+  const [pendingTargetTicket, setPendingTargetTicket] = useState<Ticket | null>(null);
+  const [resumeTargetTicket, setResumeTargetTicket] = useState<Ticket | null>(null);
+
+  const reopenMutation = useReopenTicket();
+  const setPendingMutation = useSetPending();
+  const resumeMutation = useResumeTicket();
+
+  const reopenedCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && (t.reopenCount ?? 0) > 0).length,
+    [localTickets],
+  );
+  const pendingCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending).length,
+    [localTickets],
+  );
+  const totalReopens30d = useMemo(
+    () => localTickets.reduce((acc, t) => acc + (t.reopenCount ?? 0), 0),
+    [localTickets],
+  );
+  const waitingOnTicketsCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending && t.pendingReasonType === 'ticket').length,
+    [localTickets],
+  );
+  const waitingOnPersonsCount = useMemo(
+    () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending && t.pendingReasonType !== 'ticket').length,
+    [localTickets],
+  );
+
   // Search is applied server-side via `q`; only chip filters remain here
   const filteredTickets = localTickets
     .filter((t) => t.status !== 'wont_do')
@@ -123,8 +162,93 @@ export default function App() {
       const matchesPriority = activePriority === 'all' || t.priority === activePriority;
       const matchesAssignee =
         activeAssignee === 'all' || (activeAssignee === 'unassigned' ? !t.assignee : t.assignee === activeAssignee);
-      return matchesType && matchesPriority && matchesAssignee;
+      const matchesReopened = !filterReopened || (t.reopenCount ?? 0) > 0;
+      const matchesPending = !filterPending || Boolean(t.pending);
+      const matchesHidePending = !hidePending || !t.pending;
+      return (
+        matchesType &&
+        matchesPriority &&
+        matchesAssignee &&
+        matchesReopened &&
+        matchesPending &&
+        matchesHidePending
+      );
     });
+
+  async function handleConfirmReopen(payload: {
+    reason?: string;
+    resetAc?: boolean;
+    resetTests?: boolean;
+    unassign?: boolean;
+    reopenParent?: boolean;
+  }) {
+    if (!reopenTargetTicket) return;
+    try {
+      await reopenMutation.mutateAsync({
+        ticketId: reopenTargetTicket.id,
+        data: {
+          reason: payload.reason,
+          resetAc: payload.resetAc,
+          resetTests: payload.resetTests,
+          unassign: payload.unassign,
+          reopenParent: payload.reopenParent,
+        },
+      });
+      toast.success('Ticket Reopened', `${reopenTargetTicket.id} moved to To Do with Reopened marker`);
+      setReopenTargetTicket(null);
+    } catch (err) {
+      toast.error("Couldn't reopen ticket", extractError(err));
+    }
+  }
+
+  async function handleConfirmPending(payload: {
+    reasonType: 'ticket' | 'person' | 'party';
+    pendingTicketId?: string;
+    pendingMemberId?: string;
+    pendingParty?: string;
+    note?: string;
+    alsoAddBlockedBy?: boolean;
+    notify?: boolean;
+  }) {
+    if (!pendingTargetTicket) return;
+    try {
+      await setPendingMutation.mutateAsync({
+        ticketId: pendingTargetTicket.id,
+        data: {
+          reasonType: payload.reasonType,
+          ticketId: payload.pendingTicketId,
+          memberId: payload.pendingMemberId,
+          party: payload.pendingParty,
+          note: payload.note,
+          addBlockedBy: payload.alsoAddBlockedBy,
+        },
+      });
+      const targetName =
+        payload.reasonType === 'ticket'
+          ? `#${payload.pendingTicketId}`
+          : payload.pendingParty ||
+            (payload.pendingMemberId && members.find((m) => m.id === payload.pendingMemberId)?.name) ||
+            'Person';
+      toast.success('Marked as Pending', `${pendingTargetTicket.id} is waiting on ${targetName}`);
+      setPendingTargetTicket(null);
+    } catch (err) {
+      toast.error("Couldn't set pending", extractError(err));
+    }
+  }
+
+  async function handleConfirmResume(payload: { reason?: string; addComment?: boolean }) {
+    if (!resumeTargetTicket) return;
+    try {
+      await resumeMutation.mutateAsync({
+        ticketId: resumeTargetTicket.id,
+        data: payload,
+      });
+      toast.success('Ticket Resumed', `${resumeTargetTicket.id} pending flag cleared`);
+      setResumeTargetTicket(null);
+    } catch (err) {
+      toast.error("Couldn't resume ticket", extractError(err));
+    }
+  }
 
   const [modalState, setModalState] = useState<{ mode: 'create' } | { mode: 'view'; ticketId: string } | null>(null);
 
@@ -490,7 +614,7 @@ export default function App() {
             <>
               <Board
                 tickets={filteredTickets}
-                allTickets={localTickets}
+                allTickets={allAvailableTickets}
                 onDragEnd={handleDragEnd}
                 onNewTicket={handleOpenCreate}
                 onCardClick={handleOpenView}
@@ -512,6 +636,21 @@ export default function App() {
                 loadState={boardLoadState}
                 lanesOverride={lanesOverride}
                 statusSlot={loadingPill}
+                filterReopened={filterReopened}
+                onFilterReopenedChange={setFilterReopened}
+                filterPending={filterPending}
+                onFilterPendingChange={setFilterPending}
+                hidePending={hidePending}
+                onHidePendingChange={setHidePending}
+                reopenedCount={reopenedCount}
+                pendingCount={pendingCount}
+                totalReopens30d={totalReopens30d}
+                waitingOnTicketsCount={waitingOnTicketsCount}
+                waitingOnPersonsCount={waitingOnPersonsCount}
+                onReopen={setReopenTargetTicket}
+                onPending={setPendingTargetTicket}
+                onResume={setResumeTargetTicket}
+                onDelete={(t) => handleDeleteTicket(t.id)}
               />
               {!boardLoadState &&
                 modalState &&
@@ -538,6 +677,40 @@ export default function App() {
                     members={members}
                   />
                 ) : null)}
+
+              {/* Standalone Dialogs opened from Card menus */}
+              {reopenTargetTicket && (
+                <ReopenDialog
+                  ticket={reopenTargetTicket}
+                  allTickets={allAvailableTickets}
+                  onClose={() => setReopenTargetTicket(null)}
+                  onConfirm={handleConfirmReopen}
+                  isSubmitting={reopenMutation.isPending}
+                />
+              )}
+              {pendingTargetTicket && (
+                <SetPendingDialog
+                  ticket={pendingTargetTicket}
+                  allTickets={allAvailableTickets}
+                  members={members}
+                  onClose={() => setPendingTargetTicket(null)}
+                  onConfirm={handleConfirmPending}
+                  onResumeClick={() => {
+                    const t = pendingTargetTicket;
+                    setPendingTargetTicket(null);
+                    setResumeTargetTicket(t);
+                  }}
+                  isSubmitting={setPendingMutation.isPending}
+                />
+              )}
+              {resumeTargetTicket && (
+                <ResumeDialog
+                  ticket={resumeTargetTicket}
+                  onClose={() => setResumeTargetTicket(null)}
+                  onConfirm={handleConfirmResume}
+                  isSubmitting={resumeMutation.isPending}
+                />
+              )}
             </>
           )}
           {recycleBinOpen && (

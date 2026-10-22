@@ -72,9 +72,20 @@
   opacity: 0.72;
 }
 
+/* Reopened Card matching TicketReopen.dc.html C1 */
+.cardReopened {
+  border-color: #f0c77a !important;
+}
+
+/* Pending Card matching TicketPending.dc.html C1 */
 .cardPending {
-  background: #f8fafc !important;
-  border-color: #b8c4d2 !important;
+  background: #fbfcfd !important;
+  border: 1px solid #d6dde6 !important;
+  padding-left: 19px !important;
+}
+
+.cardPending .cardTitle {
+  color: #5b6b60 !important;
 }
 
 .pendingRail {
@@ -83,44 +94,69 @@
   top: 0;
   bottom: 0;
   width: 5px;
-  background: repeating-linear-gradient(
-    -45deg,
-    #b8c4d2,
-    #b8c4d2 4px,
-    #e8edf3 4px,
-    #e8edf3 8px
-  );
+  background: repeating-linear-gradient(135deg, #6b7f96 0 3px, #d3dae3 3px 6px);
   border-top-left-radius: 7px;
   border-bottom-left-radius: 7px;
 }
 
+/* Reopened badge matching TicketReopen.dc.html C1/C2 */
 .reopenedBadge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 1px 6px;
-  border-radius: 4px;
+  gap: 4px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 999px;
   background: #fff1d6;
   border: 1px solid #f0c77a;
   color: #8a4b00;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
   line-height: 1.3;
 }
 
-.pendingStrip {
-  display: flex;
+.reopenedCount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a4b00;
+  background: rgba(199, 119, 0, 0.16);
+  padding: 0 4px;
+  border-radius: 999px;
+  margin-left: 1px;
+}
+
+/* Pending Chip matching TicketPending.dc.html C1/C2 */
+.pendingChip {
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border-radius: 4px;
-  background: #f4f6f9;
+  gap: 4px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 999px;
+  background: #e8edf3;
   border: 1px solid #b8c4d2;
   color: #34455a;
   font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* Waiting on reason strip matching TicketPending.dc.html C1 */
+.pendingStrip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #e8edf3;
+  border: 1px solid #b8c4d2;
+  font-size: 11.5px;
+  color: #34455a;
   font-weight: 500;
-  margin-top: 1px;
-  overflow: hidden;
+  min-width: 0;
+  margin-top: 2px;
+  cursor: pointer;
 }
 
 .blockedBadge {
@@ -160,12 +196,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
+  position: relative;
 }
 
 .typeContainer {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .typeLabel {
@@ -178,6 +218,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-right: 28px;
 }
 
 .cardId {
@@ -193,6 +234,159 @@
   opacity: 0;
   transition: opacity 0.15s;
   color: #b7c4bc;
+}
+
+/* Card ... menu button matching TicketPending.dc.html A1 */
+.menuButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #f1f8f3;
+  border: 1px solid #d7e8dc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  cursor: pointer;
+  color: #5b6b60;
+  transition: all 0.15s ease;
+}
+
+.menuButton:hover {
+  background: #e3f2e7;
+  color: #1e2a22;
+}
+
+/* Context menu dropdown matching TicketPending.dc.html A1 and TicketReopen.dc.html A2 */
+.menuDropdown {
+  position: absolute;
+  right: 0;
+  top: 28px;
+  width: 224px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #3a4a3e;
+  font-weight: 400;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  transition: background 0.1s ease;
+}
+
+.menuItem:hover {
+  background: #f6faf7;
+}
+
+.menuItemReopen {
+  background: #fffaf0 !important;
+  color: #8a4b00 !important;
+  font-weight: 600 !important;
+}
+
+.menuItemPending {
+  background: #f4f6f9 !important;
+  color: #34455a !important;
+  font-weight: 600 !important;
+}
+
+.menuItemResume {
+  background: #f1f8f3 !important;
+  color: #2e6f40 !important;
+  font-weight: 600 !important;
+}
+
+.menuShortcut {
+  font-family: 'JetBrains Mono', monospace;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 1px solid #d4ddd7;
+  border-bottom-width: 2px;
+  background: #f6faf7;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6b60;
+  margin-left: auto;
+}
+
+.menuDivider {
+  height: 1px;
+  background: #eef3ef;
+  margin: 4px 6px;
+}
+
+/* Card Blocker Done auto-prompt strip matching TicketPending.dc.html E1 */
+.blockerDonePrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #f1f8f3;
+  border: 1px solid #a2d8b3;
+  margin-top: 2px;
+}
+
+.blockerDoneText {
+  font-size: 11px;
+  color: #2e6f40;
+  line-height: 1.35;
+}
+
+.blockerDoneButtons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.blockerDoneBtnResume {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #2e6f40;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.blockerDoneBtnKeep {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #d4ddd7;
+  color: #5b6b60;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .cardTitle {

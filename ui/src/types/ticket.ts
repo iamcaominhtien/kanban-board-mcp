@@ -153,6 +153,7 @@ export interface Ticket {
   pendingNote?: string | null;
   pendingSince?: string | null;
   pendingBy?: string | null;
+  completedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

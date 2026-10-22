@@ -199,7 +199,9 @@ function TicketModalInner({
   const [isResumeOpen, setIsResumeOpen] = useState(false);
   const [isSubmittingResume, setIsSubmittingResume] = useState(false);
 
-  const [showReopenHistory, setShowReopenHistory] = useState(false);
+  const [showReopenHistory, setShowReopenHistory] = useState(true);
+  const [dismissPrompt, setDismissPrompt] = useState(false);
+  const reopenHistoryRef = useRef<HTMLDivElement>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const toast = useToast();
@@ -951,6 +953,78 @@ function TicketModalInner({
             >
               {ticket.id}
             </button>
+
+            {/* Reopened Header Badge */}
+            {(ticket.reopenCount ?? 0) > 0 && status !== 'done' && status !== 'wont_do' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: '#FFF1D6',
+                  border: '1px solid #F0C77A',
+                  color: '#8A4B00',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  marginLeft: 6,
+                }}
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#C77700"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Reopened
+                {(ticket.reopenCount ?? 0) > 1 && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      background: '#FDE3A7',
+                      padding: '0 4px',
+                      borderRadius: 3,
+                      fontWeight: 700,
+                    }}
+                  >
+                    x{ticket.reopenCount}
+                  </span>
+                )}
+              </span>
+            )}
+
+            {/* Pending Header Badge */}
+            {ticket.pending && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: '#E8EDF3',
+                  border: '1px solid #B8C4D2',
+                  color: '#34455A',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  marginLeft: 6,
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#5B6F86">
+                  <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+                  <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+                </svg>
+                Pending
+              </span>
+            )}
           </div>
 
           {/* View switcher tabs */}
@@ -1226,7 +1300,206 @@ function TicketModalInner({
                   </div>
                 )}
 
-                {/* Reopen Banner */}
+                {/* E1 Auto Prompt Banner: Blocker is Done */}
+                {ticket &&
+                  ticket.pending &&
+                  pendingBlockerTicket &&
+                  pendingBlockerTicket.status === 'done' &&
+                  !dismissPrompt && (
+                    <div className={styles.promptBannerDone} role="alert">
+                      <div className={styles.promptBannerDoneContent}>
+                        <span style={{ color: '#2E6F40', display: 'flex', flexShrink: 0 }}>
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#2E6F40"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="9 11 12 14 22 4" />
+                          </svg>
+                        </span>
+                        <div className={styles.promptBannerDoneText}>
+                          <div className={styles.promptBannerDoneTitle}>
+                            <strong>#{pendingBlockerTicket.id}</strong> is done. Resume{' '}
+                            <strong>#{ticket.id}</strong>?
+                          </div>
+                          <div className={styles.promptBannerDoneSubtitle}>
+                            Pending since{' '}
+                            {ticket.pendingSince
+                              ? new Date(ticket.pendingSince).toLocaleDateString()
+                              : 'recent'}{' '}
+                            · waiting on #{pendingBlockerTicket.id} (Done)
+                          </div>
+                        </div>
+                      </div>
+                      <div className={styles.promptBannerActions}>
+                        <button
+                          type="button"
+                          className={styles.promptResumeBtn}
+                          onClick={() => setIsResumeOpen(true)}
+                          title="Resume ticket"
+                        >
+                          Resume
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.promptDismissBtn}
+                          onClick={() => setDismissPrompt(true)}
+                          title="Keep pending"
+                        >
+                          Keep pending
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* E3 Auto Prompt Banner: Blocker is Won't Do */}
+                {ticket &&
+                  ticket.pending &&
+                  pendingBlockerTicket &&
+                  pendingBlockerTicket.status === 'wont_do' &&
+                  !dismissPrompt && (
+                    <div
+                      className={styles.reopenBanner}
+                      style={{ borderLeft: '3px solid #C77700', marginBottom: 16 }}
+                      role="alert"
+                    >
+                      <div className={styles.reopenBannerHeader}>
+                        <div className={styles.reopenBannerContent}>
+                          <span className={styles.reopenBannerIcon}>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#C77700"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                              <line x1="12" y1="9" x2="12" y2="13" />
+                              <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                          </span>
+                          <div className={styles.reopenBannerText}>
+                            <span className={styles.reopenBannerTitle}>Blocker removed</span>
+                            <span className={styles.reopenBannerReason}>
+                              <strong>#{pendingBlockerTicket.id}</strong> was moved to Won't Do. This ticket is still pending on it.
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            className={styles.pendingBannerBtn}
+                            onClick={() => setIsPendingOpen(true)}
+                          >
+                            Change reason
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.pendingBannerBtn} ${styles.pendingBannerBtnPrimary}`}
+                            onClick={() => setIsResumeOpen(true)}
+                          >
+                            Resume
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Normal Pending Banner (D1/D2) */}
+                {ticket &&
+                  ticket.pending &&
+                  (!pendingBlockerTicket ||
+                    (pendingBlockerTicket.status !== 'done' && pendingBlockerTicket.status !== 'wont_do') ||
+                    dismissPrompt) && (
+                    <div className={styles.pendingBanner} role="status">
+                      <div className={styles.pendingBannerContent}>
+                        <span className={styles.pendingBannerIcon}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="#5B6F86">
+                            <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+                            <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+                          </svg>
+                        </span>
+                        <div className={styles.pendingBannerText}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className={styles.pendingBannerTitle}>
+                              Pending since{' '}
+                              {ticket.pendingSince
+                                ? new Date(ticket.pendingSince).toLocaleDateString()
+                                : 'recent'}
+                              {ticket.pendingBy ? ` · set by ${ticket.pendingBy}` : ''}
+                            </span>
+                          </div>
+                          <div className={styles.pendingBannerDetail}>
+                            <strong>Waiting on: </strong>
+                            {ticket.pendingReasonType === 'ticket' ? (
+                              <span>
+                                <strong>#{ticket.pendingTicketId}</strong>
+                                {pendingBlockerTicket && (
+                                  <>
+                                    {' · '}
+                                    <span>{pendingBlockerTicket.title}</span>
+                                    <span
+                                      style={{
+                                        marginLeft: 6,
+                                        fontSize: 11,
+                                        padding: '1px 5px',
+                                        borderRadius: 3,
+                                        background: '#E8EDF3',
+                                        color: '#34455A',
+                                        textTransform: 'capitalize',
+                                      }}
+                                    >
+                                      {pendingBlockerTicket.status.replace('_', ' ')}
+                                    </span>
+                                  </>
+                                )}
+                              </span>
+                            ) : (
+                              <span>
+                                <strong>
+                                  {ticket.pendingParty ||
+                                    (ticket.pendingMemberId &&
+                                      members.find((m) => m.id === ticket.pendingMemberId)?.name) ||
+                                    ticket.pendingMemberId ||
+                                    'Person / Party'}
+                                </strong>
+                              </span>
+                            )}
+                            {ticket.pendingNote && <span> — "{ticket.pendingNote}"</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={styles.pendingBannerActions}>
+                        <button
+                          type="button"
+                          className={styles.pendingBannerBtn}
+                          onClick={() => setIsPendingOpen(true)}
+                          title="Change pending reason"
+                        >
+                          Change reason
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.pendingBannerBtn} ${styles.pendingBannerBtnPrimary}`}
+                          onClick={() => setIsResumeOpen(true)}
+                          title="Resume ticket (P)"
+                        >
+                          Resume
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Reopen Banner (D1/D2) */}
                 {ticket &&
                   (ticket.reopenCount ?? 0) > 0 &&
                   status !== 'done' &&
@@ -1250,144 +1523,37 @@ function TicketModalInner({
                             </svg>
                           </span>
                           <div className={styles.reopenBannerText}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <span className={styles.reopenBannerTitle}>
                                 Reopened #{ticket.reopenCount}
                               </span>
-                              {ticket.lastReopenedAt && (
-                                <span style={{ fontSize: 11.5, color: '#8A4B00', opacity: 0.85 }}>
-                                  · {new Date(ticket.lastReopenedAt).toLocaleDateString()}
-                                  {ticket.lastReopenedBy ? ` by ${ticket.lastReopenedBy}` : ''}
-                                </span>
-                              )}
+                              <span style={{ fontSize: 12.5, color: '#5C3200' }}>
+                                by <strong>{ticket.lastReopenedBy || 'Team'}</strong>
+                                {ticket.lastReopenedAt && (
+                                  <> on {new Date(ticket.lastReopenedAt).toLocaleDateString()}</>
+                                )}
+                                {ticket.lastReopenReason && (
+                                  <> — "{ticket.lastReopenReason}"</>
+                                )}
+                              </span>
                             </div>
-                            <span className={styles.reopenBannerReason}>
-                              <strong>Reason:</strong> {ticket.lastReopenReason || 'No reason specified'}
-                            </span>
                           </div>
                         </div>
                         {ticket.reopenHistory && ticket.reopenHistory.length > 0 && (
                           <button
                             type="button"
                             className={styles.reopenHistoryToggle}
-                            onClick={() => setShowReopenHistory((prev) => !prev)}
+                            onClick={() => {
+                              setShowReopenHistory(true);
+                              reopenHistoryRef.current?.scrollIntoView({ behavior: 'smooth' });
+                            }}
                           >
-                            {showReopenHistory
-                              ? 'Hide history'
-                              : `History (${ticket.reopenHistory.length})`}
+                            View history ({ticket.reopenHistory.length})
                           </button>
                         )}
                       </div>
-                      {showReopenHistory && ticket.reopenHistory && (
-                        <div className={styles.reopenHistoryList}>
-                          {ticket.reopenHistory.map((entry, idx) => (
-                            <div key={idx} className={styles.reopenHistoryItem}>
-                              <div style={{ fontWeight: 600 }}>
-                                Reopen #{entry.reopenCount ?? (ticket.reopenHistory!.length - idx)} ·{' '}
-                                {new Date(entry.at).toLocaleDateString()}
-                                {entry.actor ? ` by ${entry.actor}` : ''}
-                                <span style={{ fontWeight: 400, color: '#8A4B00', marginLeft: 6 }}>
-                                  ({entry.fromStatus} → To Do)
-                                </span>
-                              </div>
-                              {entry.reason && (
-                                <div style={{ fontStyle: 'italic' }}>"{entry.reason}"</div>
-                              )}
-                              {entry.sideEffects && entry.sideEffects.length > 0 && (
-                                <div style={{ fontSize: 11, color: '#A05A00' }}>
-                                  {entry.sideEffects.includes('reset_ac') ? '• Reset ACs ' : ''}
-                                  {entry.sideEffects.includes('reset_tests') ? '• Reset tests ' : ''}
-                                  {entry.sideEffects.includes('unassigned') ? '• Unassigned ' : ''}
-                                  {entry.sideEffects.includes('reopened_parent') ? '• Reopened parent ' : ''}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )}
-
-                {/* Pending Banner */}
-                {ticket && ticket.pending && (
-                  <div className={styles.pendingBanner} role="status">
-                    <div className={styles.pendingBannerContent}>
-                      <span className={styles.pendingBannerIcon}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#5B6F86">
-                          <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
-                          <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
-                        </svg>
-                      </span>
-                      <div className={styles.pendingBannerText}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span className={styles.pendingBannerTitle}>
-                            Pending since{' '}
-                            {ticket.pendingSince
-                              ? new Date(ticket.pendingSince).toLocaleDateString()
-                              : 'recent'}
-                            {ticket.pendingBy ? ` · set by ${ticket.pendingBy}` : ''}
-                          </span>
-                        </div>
-                        <div className={styles.pendingBannerDetail}>
-                          <strong>Waiting on: </strong>
-                          {ticket.pendingReasonType === 'ticket' ? (
-                            <span>
-                              <strong>#{ticket.pendingTicketId}</strong>
-                              {pendingBlockerTicket && (
-                                <>
-                                  {' · '}
-                                  <span>{pendingBlockerTicket.title}</span>
-                                  <span
-                                    style={{
-                                      marginLeft: 6,
-                                      fontSize: 11,
-                                      padding: '1px 5px',
-                                      borderRadius: 3,
-                                      background: '#E8EDF3',
-                                      color: '#34455A',
-                                      textTransform: 'capitalize',
-                                    }}
-                                  >
-                                    {pendingBlockerTicket.status.replace('_', ' ')}
-                                  </span>
-                                </>
-                              )}
-                            </span>
-                          ) : (
-                            <span>
-                              <strong>
-                                {ticket.pendingParty ||
-                                  (ticket.pendingMemberId &&
-                                    members.find((m) => m.id === ticket.pendingMemberId)?.name) ||
-                                  ticket.pendingMemberId ||
-                                  'Person / Party'}
-                              </strong>
-                            </span>
-                          )}
-                          {ticket.pendingNote && <span> — "{ticket.pendingNote}"</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.pendingBannerActions}>
-                      <button
-                        type="button"
-                        className={styles.pendingBannerBtn}
-                        onClick={() => setIsPendingOpen(true)}
-                        title="Change pending reason"
-                      >
-                        Change reason
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.pendingBannerBtn} ${styles.pendingBannerBtnPrimary}`}
-                        onClick={() => setIsResumeOpen(true)}
-                        title="Resume ticket (P)"
-                      >
-                        Resume
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Title & Tags */}
                 <div className={styles.titleArea}>
@@ -1456,6 +1622,237 @@ function TicketModalInner({
                     docsProjectId={ticket.projectId}
                   />
                 </div>
+
+                {/* D1 / D4 REOPEN HISTORY Section */}
+                {ticket && (ticket.reopenCount ?? 0) > 0 && (
+                  <div
+                    ref={reopenHistoryRef}
+                    style={{
+                      border: '1px solid #E3E8E5',
+                      borderRadius: 8,
+                      padding: '12px 14px',
+                      background: '#FBFCFB',
+                      marginTop: 18,
+                    }}
+                    role="region"
+                    aria-label="Reopen History"
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                      }}
+                      onClick={() => setShowReopenHistory((prev) => !prev)}
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#5B6B60"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          flexShrink: 0,
+                          transform: showReopenHistory ? 'rotate(0deg)' : 'rotate(-90deg)',
+                          transition: 'transform 0.15s ease',
+                        }}
+                      >
+                        <path d="M6 9L12 15L18 9" />
+                      </svg>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          color: '#9AA8A0',
+                        }}
+                      >
+                        REOPEN HISTORY
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: '#8A4B00',
+                          background: '#FFF1D6',
+                          padding: '0 6px',
+                          borderRadius: 999,
+                        }}
+                      >
+                        {ticket.reopenCount || (ticket.reopenHistory?.length || 1)}
+                      </span>
+                    </div>
+
+                    {showReopenHistory && (
+                      <div style={{ borderTop: '1px solid #EEF3EF', marginTop: 10 }}>
+                        {(ticket.reopenHistory && ticket.reopenHistory.length > 0
+                          ? ticket.reopenHistory
+                          : [
+                              {
+                                id: 'fallback',
+                                reopen_count: ticket.reopenCount,
+                                actor: ticket.lastReopenedBy || 'Team',
+                                reason: ticket.lastReopenReason || 'No reason specified',
+                                from_status: 'done',
+                                at: ticket.lastReopenedAt || new Date().toISOString(),
+                                side_effects: [],
+                              },
+                            ]
+                        ).map((entry, idx, arr) => {
+                          const initials = (entry.actor || 'U')
+                            .split(' ')
+                            .map((p) => p[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase();
+                          const isLast = idx === arr.length - 1;
+                          const count =
+                            (entry as any).reopenCount ??
+                            (entry as any).reopen_count ??
+                            (ticket.reopenCount ? ticket.reopenCount - idx : 1);
+
+                          return (
+                            <div
+                              key={entry.id || idx}
+                              style={{
+                                display: 'flex',
+                                gap: 12,
+                                padding: '12px 0',
+                                borderBottom: isLast ? 'none' : '1px solid #EEF3EF',
+                              }}
+                            >
+                              <div
+                                title={entry.actor || 'User'}
+                                style={{
+                                  width: 26,
+                                  height: 26,
+                                  borderRadius: '50%',
+                                  background: '#FBE4E9',
+                                  color: '#B0446E',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {initials}
+                              </div>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 5,
+                                  flex: 1,
+                                  minWidth: 0,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                      color: '#1E2A22',
+                                    }}
+                                  >
+                                    {entry.actor || 'Team member'}
+                                  </span>
+                                  <span style={{ fontSize: 12, color: '#9AA8A0' }}>
+                                    {entry.at
+                                      ? new Date(entry.at).toLocaleString([], {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })
+                                      : 'recently'}
+                                  </span>
+                                  <span style={{ flexGrow: 1 }} />
+                                  <span
+                                    style={{
+                                      fontFamily: "'JetBrains Mono', monospace",
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      color: '#8A4B00',
+                                      background: '#FFF1D6',
+                                      border: '1px solid #F0C77A',
+                                      padding: '1px 6px',
+                                      borderRadius: 999,
+                                    }}
+                                  >
+                                    Reopen #{count}
+                                  </span>
+                                </div>
+
+                                {entry.reason && (
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      color: '#3A4A3E',
+                                      lineHeight: 1.45,
+                                    }}
+                                  >
+                                    "{entry.reason}"
+                                  </div>
+                                )}
+
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontSize: 12,
+                                    color: '#5B6B60',
+                                  }}
+                                >
+                                  <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="#2E6F40"
+                                    strokeWidth="2.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    style={{ flexShrink: 0 }}
+                                  >
+                                    <path d="M5 12.5L10 17.5L19 7" />
+                                  </svg>
+                                  <span>
+                                    Previously completed{' '}
+                                    {((entry as any).fromStatus ?? (entry as any).from_status)
+                                      ? ((entry as any).fromStatus ?? (entry as any).from_status) === 'wont_do'
+                                        ? "Won't Do"
+                                        : 'Done'
+                                      : 'Done'}
+                                    {((entry as any).sideEffects ?? (entry as any).side_effects)?.length > 0
+                                      ? ` · ${((entry as any).sideEffects ?? (entry as any).side_effects).join(', ')}`
+                                      : ''}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Sub-tasks (checklist) */}
                 <SubTasksSection
@@ -1813,6 +2210,46 @@ function TicketModalInner({
                   )}
                 </div>
               </div>
+
+              {/* Reopens meta row (D1) */}
+              {(ticket.reopenCount ?? 0) > 0 && (
+                <div className={styles.sidebarRow}>
+                  <span className={styles.sidebarLabel}>Reopens</span>
+                  <div style={{ fontSize: 12, color: '#2C3A30' }}>
+                    <span style={{ fontWeight: 600, color: '#8A4B00' }}>
+                      Reopened {ticket.reopenCount}x
+                    </span>
+                    {ticket.lastReopenedAt && (
+                      <div style={{ fontSize: 11, color: '#6A7870', marginTop: 2 }}>
+                        Last {new Date(ticket.lastReopenedAt).toLocaleDateString()}
+                        {ticket.lastReopenedBy ? ` by ${ticket.lastReopenedBy}` : ''}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Pending meta row (D1) */}
+              {ticket.pending && (
+                <div className={styles.sidebarRow}>
+                  <span className={styles.sidebarLabel}>Pending</span>
+                  <div style={{ fontSize: 11.5, color: '#5B6F86', lineHeight: 1.4 }}>
+                    Waiting on{' '}
+                    <strong>
+                      {ticket.pendingReasonType === 'ticket'
+                        ? `#${ticket.pendingTicketId}`
+                        : ticket.pendingParty ||
+                          (ticket.pendingMemberId &&
+                            members.find((m) => m.id === ticket.pendingMemberId)?.name) ||
+                          ticket.pendingMemberId ||
+                          'Person'}
+                    </strong>
+                    <div style={{ fontSize: 11, color: '#8A99A8', marginTop: 1 }}>
+                      Pending does not change status. Press P to resume.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 2. Branch */}
               <div className={styles.sidebarRow}>

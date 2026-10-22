@@ -48,6 +48,21 @@ interface BoardProps {
   lanesOverride?: ReactNode;
   /** Content of the reserved status row at the top right (the loading pill). */
   statusSlot?: ReactNode;
+  filterReopened?: boolean;
+  onFilterReopenedChange?: (val: boolean) => void;
+  filterPending?: boolean;
+  onFilterPendingChange?: (val: boolean) => void;
+  hidePending?: boolean;
+  onHidePendingChange?: (val: boolean) => void;
+  reopenedCount?: number;
+  pendingCount?: number;
+  totalReopens30d?: number;
+  waitingOnTicketsCount?: number;
+  waitingOnPersonsCount?: number;
+  onReopen?: (ticket: Ticket) => void;
+  onPending?: (ticket: Ticket) => void;
+  onResume?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
 }
 
 const SKELETON_COUNTS = [2, 2, 1, 1, 1, 1];
@@ -56,21 +71,6 @@ const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'revie
 
 /**
  * Kanban board with drag-and-drop columns.
- * @param props.tickets - Tickets after filters, shown in the lanes.
- * @param props.allTickets - All project tickets, used for lookups such as blockers and sub-task stats.
- * @param props.onDragEnd - Called with the ticket id and the status column it was dropped on.
- * @param props.onNewTicket - Called when the "new ticket" action is used.
- * @param props.onCardClick - Called with the clicked ticket.
- * @param props.viewMode - Active view; switches between board, list, timeline and docs.
- * @param props.onViewModeChange - Called when another view is selected.
- * @param props.docsRequestedPageId - Docs view: page to open once, e.g. from a linked doc or `?docs=` link.
- * @param props.onDocsRequestHandled - Called after `docsRequestedPageId` has been opened.
- * @param props.activeType - Active type filter, `all` for none.
- * @param props.activePriority - Active priority filter, `all` for none.
- * @param props.activeAssignee - Member id filter, `all` for none.
- * @param props.loadState - `projects`: project list loading (placeholders); `tickets`: real shell with skeleton cards.
- * @param props.lanesOverride - Replaces the lanes, e.g. a "couldn't load" panel.
- * @param props.statusSlot - Content of the reserved status row at the top right.
  */
 export function Board({
   tickets,
@@ -96,6 +96,21 @@ export function Board({
   loadState,
   lanesOverride,
   statusSlot,
+  filterReopened,
+  onFilterReopenedChange,
+  filterPending,
+  onFilterPendingChange,
+  hidePending,
+  onHidePendingChange,
+  reopenedCount,
+  pendingCount,
+  totalReopens30d,
+  waitingOnTicketsCount,
+  waitingOnPersonsCount,
+  onReopen,
+  onPending,
+  onResume,
+  onDelete,
 }: BoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
@@ -200,6 +215,17 @@ export function Board({
               members={members}
               activeAssignee={activeAssignee}
               onAssigneeChange={onAssigneeChange ?? (() => {})}
+              filterReopened={filterReopened}
+              onFilterReopenedChange={onFilterReopenedChange}
+              filterPending={filterPending}
+              onFilterPendingChange={onFilterPendingChange}
+              hidePending={hidePending}
+              onHidePendingChange={onHidePendingChange}
+              reopenedCount={reopenedCount}
+              pendingCount={pendingCount}
+              totalReopens30d={totalReopens30d}
+              waitingOnTicketsCount={waitingOnTicketsCount}
+              waitingOnPersonsCount={waitingOnPersonsCount}
             />
           )}
         </div>
@@ -249,9 +275,13 @@ export function Board({
                   key={col.id}
                   column={col}
                   tickets={colTickets}
-                  allTickets={tickets}
+                  allTickets={allTickets}
                   onCardClick={onCardClick}
                   memberMap={memberMap}
+                  onReopen={onReopen}
+                  onPending={onPending}
+                  onResume={onResume}
+                  onDelete={onDelete}
                 />
               );
             })}

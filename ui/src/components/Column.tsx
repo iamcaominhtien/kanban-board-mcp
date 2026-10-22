@@ -12,6 +12,10 @@ interface ColumnProps {
   memberMap?: Map<string, Member>;
   /** Tickets are still loading: real lane header, skeleton cards (same size as real cards, so nothing moves). */
   skeletonCards?: number;
+  onReopen?: (ticket: Ticket) => void;
+  onPending?: (ticket: Ticket) => void;
+  onResume?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
 }
 
 /**
@@ -23,7 +27,18 @@ interface ColumnProps {
  * @param props.memberMap - Members by id, used to render assignees.
  * @param props.skeletonCards - While tickets load, show this many skeleton cards under the real header.
  */
-export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
+export function Column({
+  column,
+  tickets,
+  allTickets,
+  onCardClick,
+  memberMap,
+  skeletonCards,
+  onReopen,
+  onPending,
+  onResume,
+  onDelete,
+}: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
@@ -75,16 +90,29 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
                 <span
                   style={{
                     fontSize: 11,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     color: '#34455A',
-                    background: '#E8EDF3',
-                    border: '1px solid #B8C4D2',
-                    borderRadius: 10,
-                    padding: '1px 6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
                     whiteSpace: 'nowrap',
                   }}
                   title={`${tickets.filter((t) => t.pending).length} pending`}
                 >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#5B6F86"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <path d="M8.5 5.5V18.5" />
+                    <path d="M15.5 5.5V18.5" />
+                  </svg>
                   +{tickets.filter((t) => t.pending).length} pending
                 </span>
               )}
@@ -127,18 +155,28 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
             <div key={ticket.id} className={styles.childIndent}>
               <DraggableTicketCard
                 ticket={ticket}
+                allTickets={allTickets}
                 onCardClick={onCardClick}
                 memberMap={memberMap}
                 subtaskStats={subtaskStats}
+                onReopen={onReopen}
+                onPending={onPending}
+                onResume={onResume}
+                onDelete={onDelete}
               />
             </div>
           ) : (
             <DraggableTicketCard
               key={ticket.id}
               ticket={ticket}
+              allTickets={allTickets}
               onCardClick={onCardClick}
               memberMap={memberMap}
               subtaskStats={subtaskStats}
+              onReopen={onReopen}
+              onPending={onPending}
+              onResume={onResume}
+              onDelete={onDelete}
             />
           );
         })}
