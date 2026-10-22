@@ -952,13 +952,13 @@ async def test_closed_ticket_cannot_be_pending_and_open_ticket_cannot_reopen(
     async with client as c:
         project = await _create_project(c)
         t = await _create_ticket(c, project["id"], title="A")
-        assert (await c.post(f"/tickets/{t['id']}/reopen", json={})).status_code == 400
+        assert (await c.post(f"/tickets/{t['id']}/reopen", json={})).status_code == 409
         await c.patch(f"/tickets/{t['id']}/status", json={"status": "done"})
         r = await c.put(
             f"/tickets/{t['id']}/pending",
             json={"reason_type": "party", "party": "X"},
         )
-        assert r.status_code == 400
+        assert r.status_code == 422
 
 
 async def test_reopen_reason_is_limited_and_parent_can_be_reopened(
@@ -981,3 +981,62 @@ async def test_reopen_reason_is_limited_and_parent_can_be_reopened(
         assert r.status_code == 200
         p = (await c.get(f"/tickets/{parent['id']}")).json()
         assert p["status"] == "todo" and p["reopen_count"] == 1
+
+
+async def test_undo_reopen_restores_status_count_and_history(
+    client: httpx.AsyncClient,
+):
+    async with client as c:
+        project = await _create_project(c)
+        t = await _create_ticket(c, project["id"], title="A")
+        await c.patch(f"/tickets/{t['id']}/status", json={"status": "done"})
+        done = (await c.get(f"/tickets/{t['id']}")).json()
+        assert done["completed_at"]
+
+        await c.post(f"/tickets/{t['id']}/reopen", json={"reason": "r"})
+        r = await c.post(f"/tickets/{t['id']}/reopen/undo")
+        assert r.status_code == 200
+        undone = r.json()
+        assert undone["status"] == "done"
+        assert undone["reopen_count"] == 0 and undone["reopen_history"] == []
+        assert undone["completed_at"] == done["completed_at"]
+        assert not any(e["field"] == "reopen" for e in undone["activity_log"])
+
+        # nothing left to undo
+        assert (await c.post(f"/tickets/{t['id']}/reopen/undo")).status_code == 409
+
+
+async def test_reopen_and_resume_write_marker_activity_with_details(
+    client: httpx.AsyncClient,
+):
+    async with client as c:
+        project = await _create_project(c)
+        blocker = await _create_ticket(c, project["id"], title="B")
+        t = await _create_ticket(c, project["id"], title="A")
+        await c.put(
+            f"/tickets/{t['id']}/pending",
+            json={
+                "reason_type": "ticket",
+                "ticket_id": blocker["id"],
+                "add_blocked_by": True,
+            },
+        )
+        # the blocker finishing writes a system prompt on the waiting ticket; the flag stays
+        await c.patch(f"/tickets/{blocker['id']}/status", json={"status": "done"})
+        waiting = (await c.get(f"/tickets/{t['id']}")).json()
+        assert waiting["pending"] is True
+        prompt = [e for e in waiting["activity_log"] if e["field"] == "pending_prompt"]
+        assert (
+            prompt
+            and prompt[0]["cause"] == "blocker_done"
+            and prompt[0]["actor"] == "system"
+        )
+
+        resumed = (
+            await c.post(f"/tickets/{t['id']}/resume", json={"reason": "ok"})
+        ).json()
+        cleared = [
+            e for e in resumed["activity_log"] if e["field"] == "pending_cleared"
+        ][0]
+        assert cleared["was_waiting_on"]["target_id"] == blocker["id"]
+        assert cleared["duration_days"] == 0

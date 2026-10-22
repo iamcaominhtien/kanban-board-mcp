@@ -259,6 +259,20 @@ class DocsAnchorAlias(SQLModel, table=True):
 # ---------------------------------------------------------------------------
 
 
+def _completion_of(ticket: Any) -> dict:
+    """completed_at / completed_by of a closed ticket: its latest move into Done or Won't Do."""
+    if ticket.status not in ("done", "wont_do"):
+        return {"completed_at": None, "completed_by": None}
+    for e in reversed(_parse_json_list(ticket.activity_log)):
+        if (
+            isinstance(e, dict)
+            and e.get("field") == "status"
+            and e.get("to") == ticket.status
+        ):
+            return {"completed_at": e.get("at"), "completed_by": e.get("actor")}
+    return {"completed_at": None, "completed_by": None}
+
+
 def _parse_json_list(v: Any) -> list:
     """Parse a JSON string to a list, or pass through if already a list."""
     if isinstance(v, str):
@@ -444,6 +458,9 @@ class TicketRead(SQLModel):
     pending_note: Optional[str] = None
     pending_since: Optional[str] = None
     pending_by: Optional[str] = None
+    # When / by whom a Done or Won't Do ticket was closed (derived from the activity log)
+    completed_at: Optional[str] = None
+    completed_by: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -497,6 +514,7 @@ class TicketRead(SQLModel):
             pending_note=getattr(ticket, "pending_note", None),
             pending_since=getattr(ticket, "pending_since", None),
             pending_by=getattr(ticket, "pending_by", None),
+            **_completion_of(ticket),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )

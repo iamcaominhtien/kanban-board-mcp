@@ -54,6 +54,7 @@ from services.tickets import (
     update_ticket,
     update_work_log,
     reopen_ticket,
+    undo_reopen,
     set_pending,
     clear_pending,
 )
@@ -351,7 +352,22 @@ async def post_reopen(ticket_id: str, body: ReopenBody, session: Session) -> Tic
             actor=body.actor,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        # The status changed since the dialog opened (someone else reopened it): conflict
+        code = 409 if "can be reopened" in str(exc) else 400
+        raise HTTPException(status_code=code, detail=str(exc)) from exc
+    if ticket is None:
+        _404()
+    await board_events.publish("invalidate")
+    return _read(ticket)
+
+
+@router.post("/tickets/{ticket_id}/reopen/undo", response_model=TicketRead)
+async def post_undo_reopen(ticket_id: str, session: Session) -> TicketRead:
+    """Undo the latest reopen (toast Undo)."""
+    try:
+        ticket = await undo_reopen(session, ticket_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
@@ -388,7 +404,10 @@ async def put_pending(
             actor=body.actor,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=422 if "cannot be marked as pending" in str(exc) else 400,
+            detail=str(exc),
+        ) from exc
     if ticket is None:
         _404()
     await board_events.publish("invalidate")
