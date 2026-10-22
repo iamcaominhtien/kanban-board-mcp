@@ -47,6 +47,16 @@ async def list_tickets(
             description="Include tickets with status 'wont_do' (the board's recycle bin)."
         ),
     ] = True,
+    pending: Annotated[
+        bool | None,
+        Field(description="true: only Pending tickets; false: leave them out."),
+    ] = None,
+    reopened: Annotated[
+        bool | None,
+        Field(
+            description="true: only tickets still marked Reopened; false: leave them out."
+        ),
+    ] = None,
     detail: Annotated[
         bool,
         Field(
@@ -74,6 +84,8 @@ async def list_tickets(
             priority=priority,
             q=q,
             include_wont_do=include_wont_do,
+            pending=pending,
+            reopened=reopened,
         )
     page = tickets[offset : offset + limit]
     convert = _ticket_to_dict if detail else _ticket_summary

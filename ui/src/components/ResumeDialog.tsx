@@ -213,7 +213,11 @@ export const ResumeDialog: React.FC<ResumeDialogProps> = ({
               </span>
               <span>
                 Waiting on{' '}
-                <b style={{ fontFamily: ticket.pendingReasonType === 'ticket' ? "'JetBrains Mono', monospace" : 'inherit' }}>
+                <b
+                  style={{
+                    fontFamily: ticket.pendingReasonType === 'ticket' ? "'JetBrains Mono', monospace" : 'inherit',
+                  }}
+                >
                   {targetDescription}
                 </b>
                 {ticket.pendingNote ? ` - "${ticket.pendingNote}"` : ''}
@@ -283,7 +287,17 @@ export const ResumeDialog: React.FC<ResumeDialogProps> = ({
                 }}
               >
                 {addComment && (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FFFFFF"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
                     <path d="M5 12.5L10 17.5L19 7" />
                   </svg>
                 )}
@@ -300,7 +314,10 @@ export const ResumeDialog: React.FC<ResumeDialogProps> = ({
 
             {/* Error State Box */}
             {error && /no longer pending/i.test(error) && (
-              <ConflictNotice who="Someone" message={`already resumed ${ticket.id} a moment ago. It is no longer pending.`} />
+              <ConflictNotice
+                who="Someone"
+                message={`already resumed ${ticket.id} a moment ago. It is no longer pending.`}
+              />
             )}
             {error && !/no longer pending/i.test(error) && (
               <div

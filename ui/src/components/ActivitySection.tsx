@@ -15,15 +15,7 @@ interface ActivitySectionProps {
 }
 
 type FilterGroup =
-  | 'all'
-  | 'status'
-  | 'reopened'
-  | 'pending'
-  | 'assignee'
-  | 'priority'
-  | 'comments'
-  | 'branch'
-  | 'other';
+  'all' | 'status' | 'reopened' | 'pending' | 'assignee' | 'priority' | 'comments' | 'branch' | 'other';
 
 const isReopenField = (field: string) => field === 'reopen' || field.startsWith('reopen_child');
 const isPendingField = (field: string) =>
@@ -322,11 +314,38 @@ const MONO_FIELDS = new Set([
   'parent_id',
 ]);
 
+/** Reopen / pending / resume events as the API sends them (keys camel-cased). */
+interface MarkerEntry extends ActivityEntry {
+  reason?: string | null;
+  reopenCount?: number;
+  keptAssignee?: string | null;
+  previousCompletedAt?: string | null;
+  acResetCount?: number;
+  testsResetCount?: number;
+  count?: number;
+  reasonType?: 'ticket' | 'person' | 'party';
+  targetId?: string | null;
+  memberId?: string | null;
+  party?: string | null;
+  note?: string | null;
+  changed?: boolean;
+  addedBlockedBy?: boolean;
+  durationDays?: number;
+  wasWaitingOn?: {
+    reasonType?: string | null;
+    targetId?: string | null;
+    memberId?: string | null;
+    party?: string | null;
+  };
+  blockerId?: string;
+  cause?: string;
+}
+
 const fmtDay = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
 
 /** Rows for reopen / pending / resume events (TicketReopen F, TicketPending G). */
-function MarkerRow({ entry, members }: { entry: any; members: Member[] }) {
+function MarkerRow({ entry, members }: { entry: MarkerEntry; members: Member[] }) {
   const who = actorLabel(entry.actor, members) ?? 'Someone';
   const memberName = (id?: string | null) => members.find((m) => m.id === id)?.name ?? id ?? 'Person';
   const quoteTone = {
@@ -369,7 +388,16 @@ function MarkerRow({ entry, members }: { entry: any; members: Member[] }) {
             <span className={styles.statusDot} style={{ background: from.dotColor }} />
             {from.label}
           </span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#9AA8A0"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M5 12H19" />
             <path d="M13 6L19 12L13 18" />
           </svg>
@@ -405,7 +433,8 @@ function MarkerRow({ entry, members }: { entry: any; members: Member[] }) {
       <>
         <div className={styles.acChange}>
           <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
-            <b>{who}</b> {entry.changed ? 'changed the pending reason' : 'marked this ticket pending'} · waiting on {target}
+            <b>{who}</b> {entry.changed ? 'changed the pending reason' : 'marked this ticket pending'} · waiting on{' '}
+            {target}
           </span>
         </div>
         {quote(entry.note, 'pending')}
@@ -415,8 +444,7 @@ function MarkerRow({ entry, members }: { entry: any; members: Member[] }) {
   }
   if (entry.field === 'pending_cleared') {
     const w = entry.wasWaitingOn ?? {};
-    const was =
-      w.reasonType === 'ticket' ? w.targetId : w.reasonType === 'person' ? memberName(w.memberId) : w.party;
+    const was = w.reasonType === 'ticket' ? w.targetId : w.reasonType === 'person' ? memberName(w.memberId) : w.party;
     const days = entry.durationDays ?? 0;
     return (
       <>
@@ -437,8 +465,8 @@ function MarkerRow({ entry, members }: { entry: any; members: Member[] }) {
   return (
     <div className={styles.acChange}>
       <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
-        System: <span style={mono}>{entry.blockerId}</span>{' '}
-        {entry.cause === 'blocker_done' ? 'done' : 'removed'} - prompt shown
+        System: <span style={mono}>{entry.blockerId}</span> {entry.cause === 'blocker_done' ? 'done' : 'removed'} -
+        prompt shown
       </span>
     </div>
   );
@@ -587,10 +615,24 @@ export function ActivitySection({
         if (e.field === 'reopen') {
           const x = e as any;
           if (x.acResetCount > 0) {
-            out.push({ field: 'reopen_child_ac', from: null, to: null, at: e.at, actor: e.actor, count: x.acResetCount } as any);
+            out.push({
+              field: 'reopen_child_ac',
+              from: null,
+              to: null,
+              at: e.at,
+              actor: e.actor,
+              count: x.acResetCount,
+            } as any);
           }
           if (x.testsResetCount > 0) {
-            out.push({ field: 'reopen_child_tests', from: null, to: null, at: e.at, actor: e.actor, count: x.testsResetCount } as any);
+            out.push({
+              field: 'reopen_child_tests',
+              from: null,
+              to: null,
+              at: e.at,
+              actor: e.actor,
+              count: x.testsResetCount,
+            } as any);
           }
         }
         continue;
@@ -715,7 +757,10 @@ export function ActivitySection({
       case 'reopen_child_ac':
         return iconBubble('#F1F3F1', '#5B6B60', ['M5 12.5L10 17.5L19 7']);
       case 'reopen_child_tests':
-        return iconBubble('#F1F3F1', '#5B6B60', ['M9 3H15', 'M10 3V9L5 19C4.5 20 5.2 21 6.3 21H17.7C18.8 21 19.5 20 19 19L14 9V3']);
+        return iconBubble('#F1F3F1', '#5B6B60', [
+          'M9 3H15',
+          'M10 3V9L5 19C4.5 20 5.2 21 6.3 21H17.7C18.8 21 19.5 20 19 19L14 9V3',
+        ]);
       case 'pending_set':
         return iconBubble('#E8EDF3', '#5B6F86', ['M8.5 5.5V18.5', 'M15.5 5.5V18.5']);
       case 'pending_cleared':
@@ -1115,15 +1160,15 @@ export function ActivitySection({
           )
             .filter(([key]) => (key !== 'reopened' && key !== 'pending') || counts[key] > 0)
             .map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              className={`${styles.acFilter} ${filter === key ? styles.acFilterActive : ''}`}
-              onClick={() => setFilter(key)}
-            >
-              {label} ({counts[key]})
-            </button>
-          ))}
+              <button
+                key={key}
+                type="button"
+                className={`${styles.acFilter} ${filter === key ? styles.acFilterActive : ''}`}
+                onClick={() => setFilter(key)}
+              >
+                {label} ({counts[key]})
+              </button>
+            ))}
         </div>
       </div>
 
@@ -1188,7 +1233,7 @@ export function ActivitySection({
                           </span>
 
                           {entry.field.startsWith('reopen') || isPendingField(entry.field) ? (
-                            <MarkerRow entry={entry as any} members={members} />
+                            <MarkerRow entry={entry as MarkerEntry} members={members} />
                           ) : isDescription && diffData ? (
                             <>
                               <div className={styles.acChange}>
@@ -1307,9 +1352,11 @@ export function ActivitySection({
                         </div>
 
                         <span className={styles.acTime} style={isDescription ? { paddingTop: '2px' } : undefined}>
-                          {actorLabel(entry.actor, members) && !isReopenField(entry.field) && !isPendingField(entry.field) && (
-                            <span className={styles.acActor}>{actorLabel(entry.actor, members)} · </span>
-                          )}
+                          {actorLabel(entry.actor, members) &&
+                            !isReopenField(entry.field) &&
+                            !isPendingField(entry.field) && (
+                              <span className={styles.acActor}>{actorLabel(entry.actor, members)} · </span>
+                            )}
                           {isToday ? formatRelative(entry.at) : formatClockTime(entry.at)}
                           <span className={styles.acTt}>
                             {fullDate}

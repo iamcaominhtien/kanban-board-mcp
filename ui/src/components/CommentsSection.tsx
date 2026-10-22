@@ -553,9 +553,7 @@ export function CommentsSection({
     const { c, i } = it;
     const isCollapsed =
       collapseMiddle &&
-      (sortOrder === 'newest'
-        ? idx >= TAIL && idx < visible.length - 1
-        : idx > 0 && idx < visible.length - TAIL);
+      (sortOrder === 'newest' ? idx >= TAIL && idx < visible.length - 1 : idx > 0 && idx < visible.length - TAIL);
 
     if (isCollapsed) {
       if (!shownDivider) {

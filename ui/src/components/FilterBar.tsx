@@ -108,7 +108,17 @@ export function FilterBar({
                   color: '#8A4B00',
                 }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#C77700"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                   <path d="M3 3v5h5" />
                 </svg>
@@ -144,7 +154,17 @@ export function FilterBar({
                   color: '#34455A',
                 }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5B6F86"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
                   <path d="M8.5 5.5V18.5" />
                   <path d="M15.5 5.5V18.5" />
                 </svg>
@@ -244,7 +264,13 @@ export function FilterBar({
                       <span className={styles.itemLabel}>{opt.label}</span>
                       {isSelected && (
                         <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                          <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          <path
+                            d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                            stroke="#2E6F40"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
                         </svg>
                       )}
                     </button>
@@ -298,7 +324,13 @@ export function FilterBar({
                     <span className={styles.itemLabel}>{opt.label}</span>
                     {isSelected && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                        <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                          stroke="#2E6F40"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                   </button>
@@ -320,8 +352,8 @@ export function FilterBar({
             {activeAssignee === 'all'
               ? 'All'
               : activeAssignee === 'unassigned'
-              ? 'Unassigned'
-              : members.find((m) => m.id === activeAssignee)?.name ?? 'All'}
+                ? 'Unassigned'
+                : (members.find((m) => m.id === activeAssignee)?.name ?? 'All')}
             <svg
               className={`${styles.chevronIcon} ${openDropdown === 'assignee' ? styles.chevronRotated : ''}`}
               width="9"
@@ -351,7 +383,13 @@ export function FilterBar({
                 <span className={styles.itemLabel}>All Assignees</span>
                 {activeAssignee === 'all' && (
                   <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                    <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                      stroke="#2E6F40"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 )}
               </button>
@@ -366,7 +404,13 @@ export function FilterBar({
                 <span className={styles.itemLabel}>Unassigned</span>
                 {activeAssignee === 'unassigned' && (
                   <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                    <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                      stroke="#2E6F40"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 )}
               </button>
@@ -388,7 +432,13 @@ export function FilterBar({
                     <span className={styles.itemLabel}>{m.name}</span>
                     {isSelected && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                        <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                          stroke="#2E6F40"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                   </button>
@@ -421,7 +471,17 @@ export function FilterBar({
           }}
           title="Toggle Reopened tickets filter"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#C77700"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
@@ -440,7 +500,11 @@ export function FilterBar({
               {reopenedCount}
             </span>
           )}
-          {filterReopened && <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>×</span>}
+          {filterReopened && (
+            <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>
+              ×
+            </span>
+          )}
         </button>
 
         {/* F1 Pending Filter Chip */}
@@ -469,7 +533,17 @@ export function FilterBar({
           }}
           title="Toggle Pending tickets filter"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#5B6F86"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
             <path d="M8.5 5.5V18.5" />
             <path d="M15.5 5.5V18.5" />
           </svg>
@@ -488,7 +562,11 @@ export function FilterBar({
               {pendingCount}
             </span>
           )}
-          {filterPending && <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>×</span>}
+          {filterPending && (
+            <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>
+              ×
+            </span>
+          )}
         </button>
 
         {/* F1 Hide Pending Toggle (switch) */}

@@ -51,11 +51,7 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
 
   const effectiveParent = parentTicket ?? (allTickets ? allTickets.find((t) => t.id === ticket.parentId) : null);
   const effectiveSubtasks =
-    subtaskTickets.length > 0
-      ? subtaskTickets
-      : allTickets
-      ? allTickets.filter((t) => t.parentId === ticket.id)
-      : [];
+    subtaskTickets.length > 0 ? subtaskTickets : allTickets ? allTickets.filter((t) => t.parentId === ticket.id) : [];
 
   const [reason, setReason] = useState('');
   const [resetAc, setResetAc] = useState(false);
@@ -74,11 +70,9 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
   const assigneeMember = members.find((m) => m.id === ticket.assignee);
   const assigneeName = assigneeMember?.name || ticket.assignee || 'Assignee';
 
-  const isParentDone =
-    effectiveParent && (effectiveParent.status === 'done' || effectiveParent.status === 'wont_do');
+  const isParentDone = effectiveParent && (effectiveParent.status === 'done' || effectiveParent.status === 'wont_do');
   const allSubtasksDone =
-    effectiveSubtasks.length > 0 &&
-    effectiveSubtasks.every((st) => st.status === 'done' || st.status === 'wont_do');
+    effectiveSubtasks.length > 0 && effectiveSubtasks.every((st) => st.status === 'done' || st.status === 'wont_do');
 
   const nextReopenCount = (ticket.reopenCount || 0) + 1;
   const isWontDo = ticket.status === 'wont_do';
@@ -94,6 +88,7 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
       setReopenParent(true);
       setTimeout(() => inputRef.current?.focus(), 80);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the initial reason is read once, when the dialog opens
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -194,7 +189,16 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexGrow: 1, minWidth: 0 }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: '#1E2A22' }}>Reopen {ticket.id}?</span>
-                <span style={{ fontSize: 12.5, color: '#5B6B60', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    color: '#5B6B60',
+                    lineHeight: 1.35,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {ticket.title}
                 </span>
               </div>
@@ -302,9 +306,7 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                       display: 'inline-block',
                     }}
                   />
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1E2A22', whiteSpace: 'nowrap' }}>
-                    To Do
-                  </span>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1E2A22', whiteSpace: 'nowrap' }}>To Do</span>
                 </span>
               </div>
 
@@ -316,9 +318,28 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
               )}
 
               {/* Check items */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, lineHeight: 1.45, color: '#3A4A3E' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
+                  fontSize: 12.5,
+                  lineHeight: 1.45,
+                  color: '#3A4A3E',
+                }}
+              >
                 <span style={{ marginTop: 2 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2E6F40"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
                     <path d="M5 12.5L10 17.5L19 7" />
                   </svg>
                 </span>
@@ -328,9 +349,28 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                 </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, lineHeight: 1.45, color: '#3A4A3E' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
+                  fontSize: 12.5,
+                  lineHeight: 1.45,
+                  color: '#3A4A3E',
+                }}
+              >
                 <span style={{ marginTop: 2 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2E6F40"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
                     <path d="M5 12.5L10 17.5L19 7" />
                   </svg>
                 </span>
@@ -341,9 +381,28 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                 </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, lineHeight: 1.45, color: '#3A4A3E' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
+                  fontSize: 12.5,
+                  lineHeight: 1.45,
+                  color: '#3A4A3E',
+                }}
+              >
                 <span style={{ marginTop: 2 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2E6F40"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
                     <path d="M5 12.5L10 17.5L19 7" />
                   </svg>
                 </span>
@@ -387,7 +446,17 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                   }}
                 >
                   {reopenParent && (
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
                       <path d="M5 12.5L10 17.5L19 7" />
                     </svg>
                   )}
@@ -395,7 +464,9 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <span style={{ fontSize: 13, color: '#1E2A22', fontWeight: 600, lineHeight: 1.4 }}>
                     Also reopen parent{' '}
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{parentTicket.id}</span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+                      {parentTicket.id}
+                    </span>
                   </span>
                   <span style={{ fontSize: 12, color: '#8A4B00', lineHeight: 1.4 }}>
                     A Done parent cannot keep an open sub-task, so it moves to To Do too.
@@ -405,7 +476,7 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
             )}
 
             {/* B7 Parent whose sub-tasks are all Done */}
-            {allSubtasksDone && subtaskTickets.length > 0 && (
+            {allSubtasksDone && (
               <div
                 style={{
                   display: 'flex',
@@ -421,11 +492,35 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                 }}
               >
                 <span>
-                  Its {subtaskTickets.length} sub-tasks ({subtaskTickets.map((s) => s.id).join(', ')}){' '}
-                  <b>stay Done</b>; reopen them one by one if needed.
+                  Its {effectiveSubtasks.length} sub-{effectiveSubtasks.length === 1 ? 'task' : 'tasks'} (
+                  {effectiveSubtasks.map((s) => s.id).join(', ')}) <b>stay Done</b>; reopen them one by one if needed.
                 </span>
               </div>
             )}
+
+            {/* Blocking relation still open: allowed, with a warning row (TicketReopen G) */}
+            {(allTickets ?? [])
+              .filter((t) => (t.blockedBy ?? []).includes(ticket.id) && t.status !== 'done' && t.status !== 'wont_do')
+              .slice(0, 1)
+              .map((dep) => (
+                <div
+                  key={dep.id}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    background: '#FFFAF0',
+                    border: '1px solid #F0C77A',
+                    fontSize: 12,
+                    color: '#5C3200',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <b>Heads up:</b> <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{dep.id}</span> is
+                  blocked by <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{ticket.id}</span>. Reopening{' '}
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{ticket.id}</span> shows the blocked badge
+                  on <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{dep.id}</span> again.
+                </div>
+              ))}
 
             {/* Reason (optional) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -493,7 +588,17 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                   }}
                 >
                   {resetAc && (
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
                       <path d="M5 12.5L10 17.5L19 7" />
                     </svg>
                   )}
@@ -536,7 +641,17 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
                   }}
                 >
                   {resetTests && (
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
                       <path d="M5 12.5L10 17.5L19 7" />
                     </svg>
                   )}
@@ -553,48 +668,52 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
             {/* Assignee Segmented Control */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1E2A22', flexGrow: 1 }}>Assignee</span>
-              <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 8, background: '#EEF3EF' }}>
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={() => setUnassign(false)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    background: !unassign ? '#FFFFFF' : 'transparent',
-                    color: !unassign ? '#1E2A22' : '#5B6B60',
-                    boxShadow: !unassign ? '0 1px 2px rgba(30,42,34,0.10)' : 'none',
-                    border: 'none',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-                  }}
-                >
-                  Keep {assigneeName}
-                </button>
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={() => setUnassign(true)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    background: unassign ? '#FFFFFF' : 'transparent',
-                    color: unassign ? '#1E2A22' : '#5B6B60',
-                    boxShadow: unassign ? '0 1px 2px rgba(30,42,34,0.10)' : 'none',
-                    border: 'none',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-                  }}
-                >
-                  Unassign
-                </button>
-              </div>
+              {!assigneeMember ? (
+                <span style={{ fontSize: 12.5, color: '#9AA8A0' }}>Unassigned</span>
+              ) : (
+                <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 8, background: '#EEF3EF' }}>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => setUnassign(false)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 6,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      background: !unassign ? '#FFFFFF' : 'transparent',
+                      color: !unassign ? '#1E2A22' : '#5B6B60',
+                      boxShadow: !unassign ? '0 1px 2px rgba(30,42,34,0.10)' : 'none',
+                      border: 'none',
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                    }}
+                  >
+                    Keep {assigneeName}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => setUnassign(true)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 6,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      background: unassign ? '#FFFFFF' : 'transparent',
+                      color: unassign ? '#1E2A22' : '#5B6B60',
+                      boxShadow: unassign ? '0 1px 2px rgba(30,42,34,0.10)' : 'none',
+                      border: 'none',
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                    }}
+                  >
+                    Unassign
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* B4 Error State Box */}
@@ -659,66 +778,66 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
               <ConflictActions onView={onViewTicket} onClose={onClose} />
             ) : (
               <>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={onClose}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                padding: '7px 13px',
-                borderRadius: 8,
-                border: '1px solid #E3E8E5',
-                background: '#FFFFFF',
-                color: isSubmitting ? '#9AA8A0' : '#1E2A22',
-                fontSize: 13,
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                padding: '8px 14px',
-                borderRadius: 8,
-                background: '#2E6F40',
-                color: '#FFFFFF',
-                fontSize: 13,
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                border: 'none',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.75 : 1,
-                fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-              }}
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#FFFFFF"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ flexShrink: 0 }}
-              >
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-              </svg>
-              {isSubmitting ? 'Reopening...' : error ? 'Retry' : 'Reopen'}
-            </button>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={onClose}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '7px 13px',
+                    borderRadius: 8,
+                    border: '1px solid #E3E8E5',
+                    background: '#FFFFFF',
+                    color: isSubmitting ? '#9AA8A0' : '#1E2A22',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    background: '#2E6F40',
+                    color: '#FFFFFF',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    border: 'none',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitting ? 0.75 : 1,
+                    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                  }}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FFFFFF"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  {isSubmitting ? 'Reopening...' : error ? 'Retry' : 'Reopen'}
+                </button>
               </>
             )}
           </div>

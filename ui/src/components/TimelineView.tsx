@@ -303,7 +303,16 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                   </span>
                   {(ticket.reopenCount ?? 0) > 0 && ticket.status !== 'done' && ticket.status !== 'wont_do' && (
                     <span className={styles.ganttIconBadgeReopen} title={`Reopened ${ticket.reopenCount}x`}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#C77700"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                         <path d="M3 3v5h5" />
                       </svg>
@@ -311,7 +320,16 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                   )}
                   {ticket.pending && (
                     <span className={styles.ganttIconBadgePending} title="Pending">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#5B6F86"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M8.5 5.5V18.5" />
                         <path d="M15.5 5.5V18.5" />
                       </svg>
@@ -448,7 +466,10 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                         {doneLeft !== null && m.at >= rangeStart && (
                           <span
                             className={styles.ganttEarlierDone}
-                            style={{ left: Math.max(doneLeft, 0), width: Math.max(px(m.at) - Math.max(doneLeft, 0), MIN_BAR_PX) }}
+                            style={{
+                              left: Math.max(doneLeft, 0),
+                              width: Math.max(px(m.at) - Math.max(doneLeft, 0), MIN_BAR_PX),
+                            }}
                           >
                             Done
                           </span>

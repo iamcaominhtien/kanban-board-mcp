@@ -66,8 +66,12 @@ export const PendingCloseConfirm: React.FC<PendingCloseConfirmProps> = ({
           lineHeight: 1.5,
         }}
       >
-        It is waiting on <span style={ticket.pendingReasonType === 'ticket' ? mono : { fontWeight: 700 }}>{pendingTarget(ticket, members)}</span>
-        {blocker ? <> ({STATUS_NAMES[blocker.status] ?? blocker.status})</> : null}. Marking it {targetStatus === 'done' ? 'done' : "Won't Do"} also clears Pending.
+        It is waiting on{' '}
+        <span style={ticket.pendingReasonType === 'ticket' ? mono : { fontWeight: 700 }}>
+          {pendingTarget(ticket, members)}
+        </span>
+        {blocker ? <> ({STATUS_NAMES[blocker.status] ?? blocker.status})</> : null}. Marking it{' '}
+        {targetStatus === 'done' ? 'done' : "Won't Do"} also clears Pending.
       </div>
       {pendingChildren.length > 0 && (
         <div

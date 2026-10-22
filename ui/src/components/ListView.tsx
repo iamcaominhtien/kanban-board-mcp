@@ -3,14 +3,7 @@ import type { Member, Priority, Status, Ticket } from '../types';
 import styles from './ListView.module.css';
 
 type GroupBy = 'status' | 'priority' | 'tag';
-type SortBy =
-  | 'createdAt'
-  | 'priority'
-  | 'dueDate'
-  | 'updatedAt'
-  | 'mostReopened'
-  | 'pendingFirst'
-  | 'longestPending';
+type SortBy = 'createdAt' | 'priority' | 'dueDate' | 'updatedAt' | 'mostReopened' | 'pendingFirst' | 'longestPending';
 
 const SORT_LABELS: Record<SortBy, string> = {
   createdAt: 'Board order',
@@ -103,9 +96,7 @@ function sortTickets(tickets: Ticket[], sortBy: SortBy): Ticket[] {
         return time(b.updatedAt) - time(a.updatedAt);
       case 'mostReopened':
         // by reopen count, ties by last reopened
-        return (
-          (b.reopenCount ?? 0) - (a.reopenCount ?? 0) || time(b.lastReopenedAt) - time(a.lastReopenedAt)
-        );
+        return (b.reopenCount ?? 0) - (a.reopenCount ?? 0) || time(b.lastReopenedAt) - time(a.lastReopenedAt);
       case 'pendingFirst':
         return Number(!!b.pending) - Number(!!a.pending);
       case 'longestPending': {
@@ -184,7 +175,17 @@ function buildGroups(tickets: Ticket[], groupBy: GroupBy, sortBy: SortBy): Group
 
 function ReopenGlyph({ size = 11 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#C77700" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#C77700"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
       <path d="M3 3v5h5" />
     </svg>
@@ -193,7 +194,17 @@ function ReopenGlyph({ size = 11 }: { size?: number }) {
 
 function PauseGlyph({ size = 11 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#5B6F86" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#5B6F86"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
       <path d="M8.5 5.5V18.5" />
       <path d="M15.5 5.5V18.5" />
     </svg>
@@ -213,11 +224,7 @@ function isOverdue(dateStr: string | null, status: Status): boolean {
 
 function pendingLabel(ticket: Ticket, members: Member[]): string {
   if (ticket.pendingReasonType === 'ticket') return ticket.pendingTicketId ?? 'Ticket';
-  return (
-    ticket.pendingParty ||
-    members.find((m) => m.id === ticket.pendingMemberId)?.name ||
-    'Party'
-  );
+  return ticket.pendingParty || members.find((m) => m.id === ticket.pendingMemberId)?.name || 'Party';
 }
 
 interface GroupRowProps {
@@ -274,11 +281,16 @@ function GroupSection({ group, members, collapsed, onToggle, onCardClick }: Grou
                   <span className={styles.reopenedBadge}>
                     <ReopenGlyph />
                     Reopened
-                    {(ticket.reopenCount ?? 0) > 1 && <span className={styles.reopenedCount}>x{ticket.reopenCount}</span>}
+                    {(ticket.reopenCount ?? 0) > 1 && (
+                      <span className={styles.reopenedCount}>x{ticket.reopenCount}</span>
+                    )}
                   </span>
                 )}
                 {pending && (
-                  <span className={`${styles.pendingChip} ${ticket.pendingReasonType === 'ticket' ? styles.pendingChipTicket : ''}`} title={`Pending: waiting on ${pendingLabel(ticket, members)}`}>
+                  <span
+                    className={`${styles.pendingChip} ${ticket.pendingReasonType === 'ticket' ? styles.pendingChipTicket : ''}`}
+                    title={`Pending: waiting on ${pendingLabel(ticket, members)}`}
+                  >
                     <PauseGlyph />
                     {pendingLabel(ticket, members)}
                   </span>
@@ -519,7 +531,18 @@ export function ListView({ tickets, members = [], onCardClick }: ListViewProps) 
               onClick={() => setOpenDropdown(openDropdown === 'sort' ? null : 'sort')}
             >
               {SORT_LABELS[sortBy]}
-              <svg className={styles.chevronIcon} width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                className={styles.chevronIcon}
+                width="9"
+                height="9"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M6 9L12 15L18 9" />
               </svg>
             </button>
@@ -538,7 +561,13 @@ export function ListView({ tickets, members = [], onCardClick }: ListViewProps) 
                     <span style={{ flexGrow: 1 }}>{SORT_LABELS[o]}</span>
                     {sortBy === o && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
-                        <path d="M3.5 7.2L5.7 9.5L10.5 4.3" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M3.5 7.2L5.7 9.5L10.5 4.3"
+                          stroke="#2E6F40"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                   </button>

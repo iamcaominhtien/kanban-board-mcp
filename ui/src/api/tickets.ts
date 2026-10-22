@@ -727,13 +727,8 @@ export function useDeleteTicket(projectId: string) {
 export function useReopenTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      ticketId,
-      data,
-    }: {
-      ticketId: string;
-      data: Parameters<typeof reopenTicket>[1];
-    }) => reopenTicket(ticketId, data),
+    mutationFn: ({ ticketId, data }: { ticketId: string; data: Parameters<typeof reopenTicket>[1] }) =>
+      reopenTicket(ticketId, data),
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
@@ -759,13 +754,8 @@ export function useUndoReopen() {
 export function useSetPending() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      ticketId,
-      data,
-    }: {
-      ticketId: string;
-      data: Parameters<typeof setTicketPending>[1];
-    }) => setTicketPending(ticketId, data),
+    mutationFn: ({ ticketId, data }: { ticketId: string; data: Parameters<typeof setTicketPending>[1] }) =>
+      setTicketPending(ticketId, data),
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
@@ -777,13 +767,8 @@ export function useSetPending() {
 export function useResumeTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      ticketId,
-      data,
-    }: {
-      ticketId: string;
-      data?: Parameters<typeof resumeTicket>[1];
-    }) => resumeTicket(ticketId, data),
+    mutationFn: ({ ticketId, data }: { ticketId: string; data?: Parameters<typeof resumeTicket>[1] }) =>
+      resumeTicket(ticketId, data),
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });

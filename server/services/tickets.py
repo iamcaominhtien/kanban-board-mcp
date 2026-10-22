@@ -212,6 +212,8 @@ async def list_tickets(
     priority: str | None = None,
     q: str | None = None,
     include_wont_do: bool = False,
+    pending: bool | None = None,
+    reopened: bool | None = None,
 ) -> list[Ticket]:
     """List a project's tickets with optional status, priority and text filters.
 
@@ -221,11 +223,19 @@ async def list_tickets(
         priority: Only tickets with this priority.
         q: Case-insensitive text matched against title and description.
         include_wont_do: Also return "Won't do" tickets (hidden by default).
+        pending: True for only pending tickets, False to leave them out.
+        reopened: True for only tickets that still carry the Reopened badge
+            (reopened and not Done / Won't Do again), False to leave them out.
 
     Returns:
         Matching tickets.
     """
     stmt = select(Ticket).where(Ticket.project_id == project_id)
+    if pending is not None:
+        stmt = stmt.where(Ticket.pending == pending)  # noqa: E712
+    if reopened is not None:
+        carries = (Ticket.reopen_count > 0) & Ticket.status.notin_(["done", "wont_do"])  # type: ignore[attr-defined]
+        stmt = stmt.where(carries if reopened else ~carries)
     if status is not None:
         stmt = stmt.where(Ticket.status == status)
     elif not include_wont_do:

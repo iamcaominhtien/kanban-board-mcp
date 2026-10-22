@@ -625,3 +625,29 @@ async def test_reopen_pend_and_resume_through_manage_ticket():
         "manage_ticket", action="reopen", ticket_id=tid, reason="regression"
     )
     assert reopened["status"] == "todo" and reopened["reopen_count"] == 1
+
+
+async def test_list_tickets_filters_pending_and_reopened():
+    p = await _project()
+    a = await _ticket(p, title="A")
+    b = await _ticket(p, title="B")
+    await call(
+        "manage_ticket",
+        action="pend",
+        ticket_id=a["id"],
+        reason_type="party",
+        party="Acme",
+    )
+    await call("manage_ticket", action="update", ticket_id=b["id"], status="done")
+    await call("manage_ticket", action="reopen", ticket_id=b["id"])
+
+    only_pending = await call("list_tickets", project_id=p["id"], pending=True)
+    assert [t["id"] for t in only_pending["tickets"]] == [a["id"]]
+    assert only_pending["tickets"][0]["pending"] is True
+
+    only_reopened = await call("list_tickets", project_id=p["id"], reopened=True)
+    assert [t["id"] for t in only_reopened["tickets"]] == [b["id"]]
+    assert only_reopened["tickets"][0]["reopen_count"] == 1
+
+    rest = await call("list_tickets", project_id=p["id"], pending=False, reopened=False)
+    assert rest["total"] == 0

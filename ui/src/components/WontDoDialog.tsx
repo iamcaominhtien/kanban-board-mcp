@@ -110,7 +110,9 @@ export function WontDoDialog({
           disabled={isSubmitting}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#9AA8A0' }}>
-          <span>Press <b>⌘ + Enter</b> to confirm</span>
+          <span>
+            Press <b>⌘ + Enter</b> to confirm
+          </span>
           <span>{ticketTitle}</span>
         </div>
       </form>

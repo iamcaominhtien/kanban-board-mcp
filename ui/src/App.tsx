@@ -139,6 +139,7 @@ export default function App() {
   // Moving a pending ticket to Done: confirm first (TicketPending E2)
   const [closeConfirm, setCloseConfirm] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const lastPointer = useRef({ x: 400, y: 300 });
+  const hoveredTicketId = useRef<string | null>(null);
   useEffect(() => {
     const track = (e: PointerEvent) => {
       lastPointer.current = { x: e.clientX, y: e.clientY };
@@ -159,16 +160,13 @@ export default function App() {
     () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending).length,
     [localTickets],
   );
-  const totalReopens30d = useMemo(
-    () => {
-      const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      return localTickets.reduce(
-        (acc, t) => acc + (t.reopenHistory ?? []).filter((h) => new Date(h.at).getTime() >= since).length,
-        0,
-      );
-    },
-    [localTickets],
-  );
+  const totalReopens30d = useMemo(() => {
+    const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return localTickets.reduce(
+      (acc, t) => acc + (t.reopenHistory ?? []).filter((h) => new Date(h.at).getTime() >= since).length,
+      0,
+    );
+  }, [localTickets]);
   const waitingOnTicketsCount = useMemo(
     () => localTickets.filter((t) => t.status !== 'wont_do' && t.pending && t.pendingReasonType === 'ticket').length,
     [localTickets],
@@ -191,12 +189,7 @@ export default function App() {
       const matchesPending = !filterPending || Boolean(t.pending);
       const matchesHidePending = !hidePending || !t.pending;
       return (
-        matchesType &&
-        matchesPriority &&
-        matchesAssignee &&
-        matchesReopened &&
-        matchesPending &&
-        matchesHidePending
+        matchesType && matchesPriority && matchesAssignee && matchesReopened && matchesPending && matchesHidePending
       );
     });
 
@@ -246,6 +239,47 @@ export default function App() {
   }
 
   const [modalState, setModalState] = useState<{ mode: 'create' } | { mode: 'view'; ticketId: string } | null>(null);
+
+  // R / P on the hovered card (TicketReopen A4, TicketPending A3); the ticket modal has its own handler
+  useEffect(() => {
+    const over = (e: MouseEvent) => {
+      hoveredTicketId.current =
+        (e.target as HTMLElement | null)?.closest?.('[data-ticket-id]')?.getAttribute('data-ticket-id') ?? null;
+    };
+    const key = (e: KeyboardEvent) => {
+      if (modalState || reopenTargetTicket || pendingTargetTicket || resumeTargetTicket || dropReopen || closeConfirm)
+        return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (document.activeElement?.tagName || '').toLowerCase();
+      if (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        (document.activeElement as HTMLElement)?.isContentEditable
+      )
+        return;
+      const k = e.key.toLowerCase();
+      if (k !== 'r' && k !== 'p') return;
+      const t = localTickets.find((x) => x.id === hoveredTicketId.current);
+      if (!t) return;
+      const closed = t.status === 'done' || t.status === 'wont_do';
+      if (k === 'r' && closed) {
+        e.preventDefault();
+        setReopenTargetTicket(t);
+      } else if (k === 'p' && !closed) {
+        e.preventDefault();
+        if (t.pending) setResumeTargetTicket(t);
+        else setPendingTargetTicket(t);
+      }
+      // R on an open ticket and P on a closed one are ignored (no toast)
+    };
+    window.addEventListener('mouseover', over);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('mouseover', over);
+      window.removeEventListener('keydown', key);
+    };
+  }, [modalState, reopenTargetTicket, pendingTargetTicket, resumeTargetTicket, dropReopen, closeConfirm, localTickets]);
 
   const allAvailableTickets = useMemo(() => {
     const wontDoIds = new Set(wontDoTickets.map((t) => t.id));

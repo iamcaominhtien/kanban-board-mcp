@@ -72,7 +72,7 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (ticket.pending) {
-        setActiveTab(ticket.pendingReasonType === 'person' ? 'person' : 'ticket');
+        setActiveTab(ticket.pendingReasonType === 'ticket' ? 'ticket' : 'person');
         setSelectedTicketId(ticket.pendingTicketId || '');
         setSelectedMemberId(ticket.pendingMemberId || '');
         setCustomParty(ticket.pendingParty || '');
@@ -116,8 +116,7 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
   const selectedTicket = allTickets.find((t) => t.id === selectedTicketId);
   const selectedMember = members.find((m) => m.id === selectedMemberId);
 
-  const canSubmit =
-    activeTab === 'ticket' ? !!selectedTicketId : !!selectedMemberId || !!customParty.trim();
+  const canSubmit = activeTab === 'ticket' ? !!selectedTicketId : !!selectedMemberId || !!customParty.trim();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -234,8 +233,17 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                 <span style={{ fontSize: 16, fontWeight: 700, color: '#1E2A22' }}>
                   {isAlreadyPending ? 'Change pending reason' : `Mark ${ticket.id} as pending`}
                 </span>
-                <span style={{ fontSize: 12.5, color: '#5B6B60', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {ticket.title} - {currentStatusConfig.label}
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    color: '#5B6B60',
+                    lineHeight: 1.35,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {isAlreadyPending ? ticket.title : `${ticket.title} - ${currentStatusConfig.label}`}
                 </span>
               </div>
               <button
@@ -295,10 +303,16 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   Waiting on{' '}
-                  <strong style={{ fontFamily: ticket.pendingReasonType === 'ticket' ? "'JetBrains Mono', monospace" : 'inherit' }}>
+                  <strong
+                    style={{
+                      fontFamily: ticket.pendingReasonType === 'ticket' ? "'JetBrains Mono', monospace" : 'inherit',
+                    }}
+                  >
                     {ticket.pendingReasonType === 'ticket'
                       ? ticket.pendingTicketId
-                      : ticket.pendingParty || (ticket.pendingMemberId && members.find((m) => m.id === ticket.pendingMemberId)?.name) || 'Person'}
+                      : ticket.pendingParty ||
+                        (ticket.pendingMemberId && members.find((m) => m.id === ticket.pendingMemberId)?.name) ||
+                        'Person'}
                   </strong>
                   {pendingBlockerTicket && (
                     <span
@@ -694,7 +708,17 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                     }}
                   >
                     {alsoAddBlockedBy && selectedTicket && (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#FFFFFF"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ flexShrink: 0 }}
+                      >
                         <path d="M5 12.5L10 17.5L19 7" />
                       </svg>
                     )}
@@ -779,7 +803,17 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                         </div>
                         {m.name}
                         {isSelected && (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#2E6F40"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{ flexShrink: 0 }}
+                          >
                             <path d="M5 12.5L10 17.5L19 7" />
                           </svg>
                         )}
@@ -791,7 +825,15 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                 {/* Divider: or a name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0' }}>
                   <div style={{ height: 1, flexGrow: 1, background: '#EEF3EF' }} />
-                  <span style={{ fontSize: 11, color: '#9AA8A0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: '#9AA8A0',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
                     or a name
                   </span>
                   <div style={{ height: 1, flexGrow: 1, background: '#EEF3EF' }} />
@@ -935,6 +977,12 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
               </div>
             )}
 
+            {isAlreadyPending && (
+              <div style={{ fontSize: 12, color: '#9AA8A0', lineHeight: 1.45 }}>
+                Changing the reason keeps the original date and logs one activity entry.
+              </div>
+            )}
+
             {/* B6 Error State Box */}
             {error && (
               <div
@@ -1008,7 +1056,17 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                   fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#2E6F40"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
                   <path d="M7.5 4.8V19.2L19 12Z" />
                 </svg>
                 Resume
@@ -1074,13 +1132,7 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
                   <path d="M8.5 5.5V18.5" />
                   <path d="M15.5 5.5V18.5" />
                 </svg>
-                {isSubmitting
-                  ? 'Saving...'
-                  : error
-                  ? 'Retry'
-                  : isAlreadyPending
-                  ? 'Save changes'
-                  : 'Mark pending'}
+                {isSubmitting ? 'Saving...' : error ? 'Retry' : isAlreadyPending ? 'Save changes' : 'Mark pending'}
               </button>
             </div>
           </div>

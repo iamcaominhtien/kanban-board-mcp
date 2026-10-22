@@ -227,6 +227,8 @@ async def get_tickets(
     priority: Optional[str] = None,
     q: Optional[str] = None,
     include_wont_do: bool = False,
+    pending: Optional[bool] = None,
+    reopened: Optional[bool] = None,
 ) -> list[TicketRead]:
     """List a project's tickets with optional filters."""
     tickets = await list_tickets(
@@ -236,6 +238,8 @@ async def get_tickets(
         priority=priority,
         q=q,
         include_wont_do=include_wont_do,
+        pending=pending,
+        reopened=reopened,
     )
     return [_read(t) for t in tickets]
 

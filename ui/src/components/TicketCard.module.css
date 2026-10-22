@@ -492,3 +492,29 @@
   font-weight: 600;
   color: #c4432a;
 }
+
+/* E3: blocker removed (Won't Do / deleted) */
+.blockerGonePrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: #fffaf0;
+  border: 1px solid #f0c77a;
+}
+
+.blockerGonePrompt .blockerDoneText {
+  color: #5c3200;
+}
+
+.blockerGoneBtn {
+  padding: 2px 9px;
+  border-radius: 5px;
+  border: 1px solid #f0c77a;
+  background: #fff;
+  color: #8a4b00;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}

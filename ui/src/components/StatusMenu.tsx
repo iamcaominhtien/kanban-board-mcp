@@ -78,8 +78,13 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   }, [isOpen]);
 
   const handleSelect = (status: Status) => {
-    onChange(status);
     setIsOpen(false);
+    // While a ticket is closed, choosing another status runs the same Reopen confirm (lands in To Do)
+    if ((value === 'done' || value === 'wont_do') && status !== value && status !== 'wont_do' && onReopen) {
+      onReopen();
+      return;
+    }
+    onChange(status);
   };
 
   const handleReopenClick = () => {
@@ -184,7 +189,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
               <button
                 key={opt.status}
                 type="button"
-                className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
+                className={`${styles.item} ${isActive ? styles.itemActive : ''} ${showReopenOption && !isActive ? styles.itemMuted : ''}`}
                 onClick={() => handleSelect(opt.status)}
                 role="option"
                 aria-selected={isActive}
