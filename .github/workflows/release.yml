@@ -3,6 +3,7 @@ name: Auto Release on PR Merge
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write  # needed for git push (README update) and gh release create
