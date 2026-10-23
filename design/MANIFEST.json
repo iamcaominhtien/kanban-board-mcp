@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1792584105-26d0",
-  "exported": "2026-10-21",
+  "canvas_version": "1792727511-31c8",
+  "exported": "2026-10-23",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -34,6 +34,46 @@
       "page": "components",
       "w": 680,
       "h": 620
+    },
+    "AiBoardAssistant.dc.html": {
+      "bytes": 274378,
+      "sha256": "5ca27b0a187cbe7e4ee41f6d4746dfe3d7e416bcb3e897415e2d3cbb7cb33114",
+      "title": "Board AI — assistant & suggestions",
+      "page": "screens",
+      "w": 1480,
+      "h": 7960
+    },
+    "AiMembers.dc.html": {
+      "bytes": 219755,
+      "sha256": "d3513e3f2747d8445b9576b773cff2cdcddfbf2f61bb33ec8e4e7facd3935402",
+      "title": "AI members — list & register",
+      "page": "screens",
+      "w": 1480,
+      "h": 7980
+    },
+    "AiProviderConfig.dc.html": {
+      "bytes": 238168,
+      "sha256": "01dd233efcacc5d16c7494f6504ba9673eceeedbcc0025b8a6f8926f6cf8259b",
+      "title": "AI provider configuration",
+      "page": "screens",
+      "w": 1480,
+      "h": 7975
+    },
+    "AiSafetyCost.dc.html": {
+      "bytes": 336509,
+      "sha256": "fdbaa589d309b09f3f9d52d2c944eacb66c597e314a5896a94c4d9701198cebd",
+      "title": "AI safety & cost",
+      "page": "screens",
+      "w": 1480,
+      "h": 7910
+    },
+    "AiTicketWork.dc.html": {
+      "bytes": 280284,
+      "sha256": "7d369b668acab1a840d34c3bfb7bc5801e1ba7852504da05a9de0704a9cf0330",
+      "title": "AI work on tickets",
+      "page": "components",
+      "w": 1380,
+      "h": 7970
     },
     "AppLoading.dc.html": {
       "bytes": 94480,
