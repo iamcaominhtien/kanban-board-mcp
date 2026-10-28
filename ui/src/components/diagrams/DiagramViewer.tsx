@@ -32,16 +32,18 @@ export function DiagramViewer({ diagram, version, onClose }: Props) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === '+' || e.key === '=') setZoom((z) => Math.min(MAX, z * 1.2));
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      } else if (e.key === '+' || e.key === '=') setZoom((z) => Math.min(MAX, z * 1.2));
       else if (e.key === '-') setZoom((z) => Math.max(MIN, z / 1.2));
       else if (e.key === '0') {
         setZoom(1);
         setPan({ x: 0, y: 0 });
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [onClose]);
 
   // a non-passive wheel listener so the page behind does not scroll while zooming
@@ -71,7 +73,13 @@ export function DiagramViewer({ diagram, version, onClose }: Props) {
   }
 
   return createPortal(
-    <div className={styles.viewer} role="dialog" aria-modal="true" aria-label={`${diagram.label}, full size`}>
+    <div
+      className={styles.viewer}
+      data-diagram-layer
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${diagram.label}, full size`}
+    >
       <div className={styles.viewerBar}>
         <span className={styles.chip}>
           <DiagramIcon name="drawio" size={13} /> draw.io

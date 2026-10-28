@@ -10,6 +10,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.5.0] - 2026-10-28
+
+### Added
+- **Diagrams (draw.io)** (#167). Draw flows and sketches in any markdown field with the real draw.io editor: ticket description, ticket comments and Docs pages. A diagram is stored as an editable `.drawio` file plus an SVG preview made on save, and sits in the text as one line, `[Auth flow](diagram:dg_8f2a)` (the label is the alt text; `![label](diagram:id)` also works).
+- Start a drawing from the **Diagram** action in the description toolbar and the comment composer, or with `/diagram` in Docs; import a `.drawio`, `.xml` or `.svg` (exported from draw.io with its data) by choosing or dropping it. The file opens in the editor first so it can be checked before saving.
+- Inline diagrams show a hover / focus toolbar: Edit, Download (`.drawio`, SVG, PNG 2x, copy as image), View full size (zoom and pan) and Copy link, plus a short text summary. States: editor loading, editor unreachable (the diagram stays visible and downloadable), saving and save failed, edit conflict (Save as copy / Reload theirs), read-only, missing diagram, empty diagram and too large. The editor keeps a local draft and asks before closing with unsaved edits.
+- API: `POST /projects/{id}/diagrams`, `GET|PUT|DELETE /diagrams/{id}`, `POST /diagrams/{id}/restore`, `GET /diagrams/{id}/versions`, `/svg` and `/download?format=drawio|svg`, `GET /projects/{id}/diagrams?deleted=true` (Recycle Bin). 2 MB limit per file with a clear `diagram_too_large` error; a save needs `base_version`, a stale one answers `409 diagram_conflict`; deleting only unlinks. Members add and edit, viewers view and download.
+- Docs: each page version records the diagram versions it used, so restoring a page restores its diagrams.
+- Settings: **Diagrams (draw.io)** chooses where the editor runs (admin setting): self-hosted by default (`http://localhost:8080`, for example the `jgraph/drawio` image) or the public diagrams.net editor, which receives the drawing while the editor is open.
+
+---
+
 ## [3.4.0] - 2026-10-28
 
 ### Added

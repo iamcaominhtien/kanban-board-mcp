@@ -213,6 +213,8 @@ export function MarkdownEditor({
 
     function handleClickOutside(e: MouseEvent) {
       if (isFilePickerOpenRef.current) return;
+      // the draw.io editor layer and viewer sit outside this field but belong to it
+      if ((e.target as HTMLElement).closest?.('[data-diagram-layer]')) return;
       if (isLinkPopoverOpen) {
         // If clicking inside link popover, don't close
         const popover = document.querySelector(`.${styles.linkPopover}`);
@@ -1214,7 +1216,6 @@ export function MarkdownEditor({
                   }}
                 >
                   <DiagramIcon name="drawio" size={14} />
-                  {!compact && <span style={{ marginLeft: 5, fontSize: 12, fontWeight: 600 }}>Diagram</span>}
                 </button>
                 {diagramMenuOpen && (
                   <div

@@ -49,12 +49,17 @@ export function DiagramEmbed({ id, label, version, small, onReplace, saveTo, rea
     const close = (e: MouseEvent) => {
       if (!root.current?.contains(e.target as Node)) setMenu(false);
     };
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(false);
+    // capture phase: Escape closes the menu only, not the ticket or page behind it
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      setMenu(false);
+    };
     document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', esc);
+    window.addEventListener('keydown', esc, true);
     return () => {
       document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', esc);
+      window.removeEventListener('keydown', esc, true);
     };
   }, [menu]);
 
@@ -69,7 +74,7 @@ export function DiagramEmbed({ id, label, version, small, onReplace, saveTo, rea
   }
   if (q.isError || !q.data) {
     return (
-      <span className={cls} data-testid="diagram-missing" role="note">
+      <span className={cls} data-testid="diagram-missing" role="note" onClick={(e) => e.stopPropagation()}>
         <span className={styles.state}>
           <span className={styles.stateTitle}>Diagram not found</span>
           <span className={styles.stateText}>It was deleted, or you do not have access. Alt text: “{label}”.</span>
@@ -99,7 +104,13 @@ export function DiagramEmbed({ id, label, version, small, onReplace, saveTo, rea
 
   if (d.empty) {
     return (
-      <span className={cls} id={`diagram-${d.id}`} data-testid="diagram-empty" role="note">
+      <span
+        className={cls}
+        id={`diagram-${d.id}`}
+        data-testid="diagram-empty"
+        role="note"
+        onClick={(e) => e.stopPropagation()}
+      >
         <span className={styles.state}>
           <span className={styles.stateTitle}>Empty diagram</span>
           <span className={styles.stateText}>Nothing drawn yet.</span>
@@ -121,6 +132,7 @@ export function DiagramEmbed({ id, label, version, small, onReplace, saveTo, rea
 
   return (
     <figure
+      onClick={(e) => e.stopPropagation()}
       ref={root}
       className={cls}
       id={`diagram-${d.id}`}

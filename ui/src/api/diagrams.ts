@@ -72,11 +72,12 @@ export function diagramFailure(err: unknown): DiagramFailure {
       code: String(d.code ?? 'error'),
       message: String(d.message ?? 'Something went wrong'),
       status,
-      latestVersion: d.latestVersion as number | undefined,
-      latestAuthor: d.latestAuthor as string | undefined,
-      latestAt: d.latestAt as string | undefined,
-      sizeBytes: d.sizeBytes as number | undefined,
-      limitBytes: d.limitBytes as number | undefined,
+      // error bodies are not run through the snake→camel converter, so read the API's own names
+      latestVersion: d.latest_version as number | undefined,
+      latestAuthor: d.latest_author as string | undefined,
+      latestAt: d.latest_at as string | undefined,
+      sizeBytes: d.size_bytes as number | undefined,
+      limitBytes: d.limit_bytes as number | undefined,
     };
   }
   return { code: status ? 'error' : 'offline', message: e?.message || 'Could not reach the server', status };

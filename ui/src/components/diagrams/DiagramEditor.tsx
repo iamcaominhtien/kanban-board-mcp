@@ -338,9 +338,13 @@ export function DiagramEditor({ request, onClose }: Props) {
   }
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !confirmClose && cancel();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      if (!confirmClose) cancel();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   });
 
   const saveTo = request.saveTo;
@@ -353,6 +357,7 @@ export function DiagramEditor({ request, onClose }: Props) {
       aria-modal="true"
       aria-label="Diagram editor"
       data-testid="diagram-editor"
+      data-diagram-layer
     >
       <div className={styles.sheet}>
         <div className={styles.bar}>
