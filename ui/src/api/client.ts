@@ -21,6 +21,13 @@ client.interceptors.response.use((response) => {
 // Transform request bodies: camelCase → snake_case, and resolve baseURL per-request
 client.interceptors.request.use((config) => {
   config.baseURL = resolveOrigin();
+  // Act as a named project member (Docs comment roles); the board's own user is the default.
+  try {
+    const actor = localStorage.getItem('kanbanActor');
+    if (actor) config.headers.set('X-Actor', actor);
+  } catch {
+    /* storage unavailable */
+  }
   if (config.data && typeof config.data === 'object' && !isFormDataPayload(config.data)) {
     config.data = snakecaseKeys(config.data as Record<string, unknown>, { deep: true });
   }

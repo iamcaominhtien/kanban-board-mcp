@@ -67,6 +67,8 @@ class Member(SQLModel, table=True):
     project_id: str = Field(foreign_key="project.id")
     name: str
     color: str  # hex color for avatar background
+    # Docs comment rights: viewer reads, member comments and resolves, admin also deletes any comment.
+    role: str = Field(default="member")
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -254,6 +256,73 @@ class DocsAnchorAlias(SQLModel, table=True):
     new_slug: str
 
 
+class DocsCommentThread(SQLModel, table=True):
+    """A comment thread on a Docs page: inline (tied to selected text) or page-level."""
+
+    __tablename__ = "docs_comment_thread"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    kind: str = Field(default="inline")  # inline | page
+    status: str = Field(default="open")  # open | resolved
+    anchor_quote: Optional[str] = Field(default=None)
+    anchor_prefix: str = Field(default="")
+    anchor_suffix: str = Field(default="")
+    anchor_section: Optional[str] = Field(default=None)
+    anchor_state: str = Field(default="attached")  # attached | orphaned
+    anchor_pos: Optional[int] = Field(
+        default=None
+    )  # offset of the match in the page text
+    created_by: str = Field(default="user")
+    created_at: str = Field(default_factory=_now_iso)
+    resolved_by: Optional[str] = Field(default=None)
+    resolved_at: Optional[str] = Field(default=None)
+
+
+class DocsComment(SQLModel, table=True):
+    """One comment in a thread; the first is the thread's opening comment."""
+
+    __tablename__ = "docs_comment"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    thread_id: str = Field(foreign_key="docs_comment_thread.id", index=True)
+    author: str = Field(default="user")
+    body: str = Field(default="")
+    mentions: str = Field(default="[]")  # JSON list of member ids
+    created_at: str = Field(default_factory=_now_iso)
+    edited_at: Optional[str] = Field(default=None)
+
+
+class DocsCommentRead(SQLModel, table=True):
+    """When a reader last opened a thread (drives the unread dot)."""
+
+    __tablename__ = "docs_comment_read"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    thread_id: str = Field(foreign_key="docs_comment_thread.id", index=True)
+    reader: str
+    read_at: str = Field(default_factory=_now_iso)
+
+
+class DocsCommentEvent(SQLModel, table=True):
+    """Activity entry for comment events; `recipients` are the people it notifies."""
+
+    __tablename__ = "docs_comment_event"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    thread_id: Optional[str] = Field(default=None)
+    comment_id: Optional[str] = Field(default=None)
+    kind: str  # comment | reply | resolved | reopened
+    actor: str = Field(default="user")
+    mentioned: str = Field(default="[]")  # JSON list of member names
+    recipients: str = Field(default="[]")  # JSON list of names to notify
+    page_title: str = Field(default="")
+    snippet: str = Field(default="")
+    created_at: str = Field(default_factory=_now_iso)
+
+
 # ---------------------------------------------------------------------------
 # Request / Response schemas (not table=True)
 # ---------------------------------------------------------------------------
@@ -331,6 +400,13 @@ class MemberCreate(SQLModel):
 
     name: str
     color: Optional[str] = None
+    role: str = "member"
+
+
+class MemberRoleUpdate(SQLModel):
+    """Payload to change a member's Docs role."""
+
+    role: str
 
 
 class MemberRead(SQLModel):
@@ -340,6 +416,7 @@ class MemberRead(SQLModel):
     project_id: str
     name: str
     color: str
+    role: str = "member"
     created_at: str
 
 

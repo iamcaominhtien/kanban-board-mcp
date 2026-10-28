@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
 import { Callout } from './Callout';
+import { CommentHighlights } from './CommentHighlights';
 import { CodeBlock } from './CodeBlock';
 import { DocImage } from './DocImage';
 import { DocRef } from './DocRef';
@@ -15,6 +16,7 @@ import { TableMethods } from './TableMethods';
 import { TicketRef } from './TicketRef';
 
 export interface ExtensionOptions {
+  onCommentSelect?: (threadId: string) => void;
   isTicket: (key: string) => boolean;
   onLink: () => void;
 }
@@ -68,6 +70,7 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     MathBlock,
     TicketRef.configure({ isTicket: opts.isTicket }),
     HeadingAnchors,
+    CommentHighlights.configure({ onSelect: (id) => opts.onCommentSelect?.(id) }),
     TableMethods,
     Placeholder,
     Shortcuts.configure({ onLink: opts.onLink }),

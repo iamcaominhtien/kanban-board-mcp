@@ -27,6 +27,21 @@ export async function removeMember(projectId: string, memberId: string): Promise
   await client.delete(`/projects/${projectId}/members/${memberId}`);
 }
 
+/**
+ * Change a member's Docs role.
+ * @param projectId - Project owning the member.
+ * @param memberId - Member to change.
+ * @param role - New role.
+ */
+export async function setMemberRole(
+  projectId: string,
+  memberId: string,
+  role: 'viewer' | 'member' | 'admin',
+): Promise<Member> {
+  const res = await client.patch<Member>(`/projects/${projectId}/members/${memberId}`, { role });
+  return res.data;
+}
+
 export const memberKeys = {
   all: (projectId: string) => ['members', projectId] as const,
 };
@@ -58,6 +73,19 @@ export function useRemoveMember(projectId: string) {
     mutationFn: (memberId: string) => removeMember(projectId, memberId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.all(projectId) });
+    },
+  });
+}
+
+/** Mutation: change a member's Docs role. */
+export function useSetMemberRole(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { memberId: string; role: 'viewer' | 'member' | 'admin' }) =>
+      setMemberRole(projectId, v.memberId, v.role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.all(projectId) });
+      queryClient.invalidateQueries({ queryKey: ['docs', 'comments'] });
     },
   });
 }
