@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+---
+
+## [3.6.0] - 2026-10-28
+
+### Added
+- Desktop: **Settings → Updates** shows the installed version and when the app last looked for a new one, with a **Check for updates** button and an **Open releases page** link for downloading the installer by hand. A manual check brings the update notice back, even for a version that was skipped, and a failed automatic check is shown there instead of staying silent.
+
 ### Fixed
 - Desktop (Windows): the "new version available" notice never appeared on machines behind a proxy or an antivirus that scans HTTPS. The update check and download now use Electron's network stack, which follows the system proxy and certificate store.
 
