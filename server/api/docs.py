@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import events as board_events
 from database import get_session
 from services import docs as svc
+from services import docs_comments
 from services import docs_import, docs_search
 from services.docs_templates import TEMPLATES
 
@@ -462,3 +463,140 @@ async def delete_ticket_doc(
     result = await svc.unlink_ticket_doc(session, ticket_id, page_id)
     await board_events.publish("invalidate")
     return result
+
+
+# --- comments -------------------------------------------------------------------
+
+
+class AnchorBody(BaseModel):
+    """The selected text a comment is attached to."""
+
+    quote: str
+    prefix: str = ""
+    suffix: str = ""
+    section: str | None = None
+
+
+class ThreadCreate(BaseModel):
+    """Request body to start a comment thread."""
+
+    kind: str = "inline"
+    body: str
+    anchor: AnchorBody | None = None
+
+
+class CommentBody(BaseModel):
+    """Request body to reply to or edit a comment."""
+
+    body: str
+
+
+class AnchorPreviewBody(BaseModel):
+    """Markdown whose effect on open comment anchors should be checked."""
+
+    markdown: str
+
+
+@router.get("/docs/pages/{page_id}/comments")
+async def get_comments(
+    page_id: str, session: Session, state: str = "all", kind: str | None = None
+) -> dict[str, Any]:
+    """List a page's comment threads (inline and page), with counts and your role."""
+    return await docs_comments.list_comments(session, page_id, state=state, kind=kind)
+
+
+@router.post("/docs/pages/{page_id}/comments", status_code=201)
+async def post_thread(
+    page_id: str, body: ThreadCreate, session: Session
+) -> dict[str, Any]:
+    """Start a thread: an inline comment on selected text or a page comment."""
+    out = await docs_comments.create_thread(
+        session,
+        page_id,
+        kind=body.kind,
+        body=body.body,
+        anchor=body.anchor.model_dump() if body.anchor else None,
+    )
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.post("/docs/pages/{page_id}/comments/anchor-preview")
+async def post_anchor_preview(
+    page_id: str, body: AnchorPreviewBody, session: Session
+) -> dict[str, Any]:
+    """Say which open inline comments would be orphaned by publishing this Markdown."""
+    return await docs_comments.anchor_preview(session, page_id, body.markdown)
+
+
+@router.post("/docs/comments/threads/{thread_id}/replies", status_code=201)
+async def post_reply(
+    thread_id: str, body: CommentBody, session: Session
+) -> dict[str, Any]:
+    """Reply in a thread."""
+    out = await docs_comments.add_reply(session, thread_id, body.body)
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.post("/docs/comments/threads/{thread_id}/resolve")
+async def post_resolve_thread(thread_id: str, session: Session) -> dict[str, Any]:
+    """Resolve a thread."""
+    out = await docs_comments.set_status(session, thread_id, "resolved")
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.post("/docs/comments/threads/{thread_id}/reopen")
+async def post_reopen(thread_id: str, session: Session) -> dict[str, Any]:
+    """Reopen a resolved thread."""
+    out = await docs_comments.set_status(session, thread_id, "open")
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.post("/docs/comments/threads/{thread_id}/reattach")
+async def post_reattach(
+    thread_id: str, body: AnchorBody, session: Session
+) -> dict[str, Any]:
+    """Attach a thread (typically an orphaned one) to a new selection."""
+    out = await docs_comments.reattach(session, thread_id, body.model_dump())
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.post("/docs/comments/threads/{thread_id}/read")
+async def post_read(thread_id: str, session: Session) -> dict[str, Any]:
+    """Mark a thread as read by you."""
+    return await docs_comments.mark_read(session, thread_id)
+
+
+@router.patch("/docs/comments/{comment_id}")
+async def patch_comment(
+    comment_id: str, body: CommentBody, session: Session
+) -> dict[str, Any]:
+    """Edit your own comment."""
+    out = await docs_comments.edit_comment(session, comment_id, body.body)
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.delete("/docs/comments/{comment_id}")
+async def del_comment(comment_id: str, session: Session) -> dict[str, Any]:
+    """Delete a comment (the first comment of a thread removes the whole thread)."""
+    out = await docs_comments.delete_comment(session, comment_id)
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.get("/projects/{project_id}/docs/comment-events")
+async def get_comment_events(
+    project_id: str,
+    session: Session,
+    recipient: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """Comment Activity for a project; `recipient` keeps only the events that notify that person."""
+    return await docs_comments.list_events(
+        session, project_id, recipient=recipient, limit=limit
+    )

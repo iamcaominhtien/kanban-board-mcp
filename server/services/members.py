@@ -33,6 +33,7 @@ async def create_member(
     project_id: str,
     name: str,
     color: str | None = None,
+    role: str = "member",
     *,
     commit: bool = True,
 ) -> Member:
@@ -42,6 +43,7 @@ async def create_member(
         project_id: Project to add to.
         name: Display name.
         color: Avatar color; defaults to the next palette color.
+        role: Docs comment role: viewer, member or admin.
         commit: Commit the session; pass False to batch with other changes.
 
     Returns:
@@ -55,6 +57,7 @@ async def create_member(
         project_id=project_id,
         name=name,
         color=color,
+        role=role,
     )
     session.add(member)
     if commit:
@@ -118,3 +121,34 @@ async def remove_member(session: AsyncSession, project_id: str, member_id: str) 
     await session.delete(member)
     await session.commit()
     return True
+
+
+MEMBER_ROLES = ("viewer", "member", "admin")
+
+
+async def set_member_role(
+    session: AsyncSession, project_id: str, member_id: str, role: str
+) -> Member | None:
+    """Change a member's Docs role.
+
+    Args:
+        project_id: Project the member belongs to.
+        member_id: Member to change.
+        role: New role: viewer, member or admin.
+
+    Returns:
+        The updated member, or None if not found in that project.
+
+    Raises:
+        ValueError: If the role is not one of `MEMBER_ROLES`.
+    """
+    if role not in MEMBER_ROLES:
+        raise ValueError(f"Invalid role '{role}'. Valid roles: {list(MEMBER_ROLES)}")
+    member = await session.get(Member, member_id)
+    if member is None or member.project_id != project_id:
+        return None
+    member.role = role
+    session.add(member)
+    await session.commit()
+    await session.refresh(member)
+    return member

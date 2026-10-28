@@ -20,6 +20,7 @@ export interface Member {
   projectId: string;
   name: string;
   color: string;
+  role?: 'viewer' | 'member' | 'admin';
   createdAt: string;
 }
 

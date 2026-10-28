@@ -11,6 +11,8 @@ interface Props {
   linkOpen: boolean;
   setLinkOpen: (open: boolean) => void;
   ticketPrefix: string;
+  /** Show a Comment button; called when it is pressed. */
+  onComment?: () => void;
 }
 
 const SEP = <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.22)', margin: '0 4px' }} />;
@@ -62,8 +64,9 @@ const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => bool
  * @param props.linkOpen - Show the URL field instead of the buttons.
  * @param props.setLinkOpen - Called to open or close the URL field.
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
+ * @param props.onComment - Shows a Comment button that starts an inline comment on the selection.
  */
-export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: Props) {
+export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onComment }: Props) {
   const st = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -293,6 +296,17 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix }: P
             <Btn label="Ticket" onClick={() => editor.chain().focus().insertContent(`[[${ticketPrefix}-`).run()}>
               <Icon name="i13" size={15} />
             </Btn>
+            {onComment && (
+              <>
+                {SEP}
+                <Btn label="Comment" wide onClick={onComment}>
+                  <Icon name="comment" size={15} />
+                  <span style={{ fontSize: 12 }} data-testid="bubble-comment">
+                    Comment
+                  </span>
+                </Btn>
+              </>
+            )}
           </>
         )}
         <div

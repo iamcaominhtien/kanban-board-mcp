@@ -6,6 +6,7 @@ import { FindInPage, useDocsFindHotkey } from './FindInPage';
 import { ImportDialog } from './ImportDialog';
 import { SearchPalette, rememberDocsPage, useDocsSearchHotkey } from './SearchPalette';
 import { SearchResults } from './SearchResults';
+import { useCommentNotifications } from './comments/useCommentNotifications';
 import { useDocsNotifications } from './useDocsNotifications';
 import './docs.css';
 
@@ -52,6 +53,7 @@ export function DocsSpace({
     setRequest(id);
   }, []);
   useDocsNotifications({ projectId, onOpenPage: open });
+  useCommentNotifications({ projectId, onOpenPage: open });
   useDocsSearchHotkey(() => setPalette({}));
   useDocsFindHotkey(() => setFindOpen(true), findOpen);
 

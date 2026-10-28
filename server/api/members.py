@@ -5,8 +5,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
-from models import MemberCreate, MemberRead
-from services.members import create_member, list_members, remove_member
+from models import MemberCreate, MemberRead, MemberRoleUpdate
+from services.members import (
+    create_member,
+    list_members,
+    remove_member,
+    set_member_role,
+)
 
 router = APIRouter(tags=["members"])
 
@@ -27,7 +32,24 @@ async def post_member(
     project_id: str, data: MemberCreate, session: Session
 ) -> MemberRead:
     """Add a member to a project."""
-    member = await create_member(session, project_id, data.name, data.color)
+    if data.role not in ("viewer", "member", "admin"):
+        raise HTTPException(status_code=422, detail="Invalid role")
+    member = await create_member(session, project_id, data.name, data.color, data.role)
+    await board_events.publish("invalidate")
+    return MemberRead.model_validate(member)
+
+
+@router.patch("/projects/{project_id}/members/{member_id}", response_model=MemberRead)
+async def patch_member(
+    project_id: str, member_id: str, data: MemberRoleUpdate, session: Session
+) -> MemberRead:
+    """Change a member's Docs role (viewer, member or admin)."""
+    try:
+        member = await set_member_role(session, project_id, member_id, data.role)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if member is None:
+        raise HTTPException(status_code=404, detail="Member not found")
     await board_events.publish("invalidate")
     return MemberRead.model_validate(member)
 

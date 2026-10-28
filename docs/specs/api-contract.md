@@ -77,6 +77,32 @@ ProjectRead shape (after camelCase):
 | PATCH | /tickets/{id}/test-cases/{tcId} | `{status, proof?, note?}` | TicketRead |
 | DELETE | /tickets/{id}/test-cases/{tcId} | — | TicketRead |
 
+### Docs comments
+Comments belong to a Docs page (not a version) and follow it through history and restore; a page in the Recycle Bin hides its comments, and purging it deletes them. The caller is the `X-Actor` header (default `user`, the board owner = admin; `agent` = member; any other name is looked up among the project's members by name, and an unknown name is read-only).
+
+| Method | Path | Body | Response | Status |
+|---|---|---|---|---|
+| GET | /docs/pages/{pageId}/comments | query: `state?=all\|open\|resolved`, `kind?=inline\|page` | `{threads, counts, role, me, members}` | 200/404/410/422 |
+| POST | /docs/pages/{pageId}/comments | `{kind: "inline"\|"page", body, anchor?: {quote, prefix, suffix, section}}` | Thread | 201/403/422 |
+| POST | /docs/pages/{pageId}/comments/anchor-preview | `{markdown}` | `{count, orphaned: [{id, quote}]}` | 200 |
+| POST | /docs/comments/threads/{threadId}/replies | `{body}` | Thread | 201/403/404/422 |
+| POST | /docs/comments/threads/{threadId}/resolve · /reopen | — | Thread | 200/403/422 |
+| POST | /docs/comments/threads/{threadId}/reattach | `{quote, prefix, suffix, section}` | Thread | 200/403/422 |
+| POST | /docs/comments/threads/{threadId}/read | — | Thread | 200 |
+| PATCH | /docs/comments/{commentId} | `{body}` | Thread | 200/403/404 |
+| DELETE | /docs/comments/{commentId} | — | `{deleted: "comment"\|"thread", thread_id}` | 200/403/404 |
+| GET | /projects/{projectId}/docs/comment-events | query: `recipient?`, `limit?` | CommentEvent[] (Activity, newest first) | 200 |
+| PATCH | /projects/{projectId}/members/{memberId} | `{role: "viewer"\|"member"\|"admin"}` | MemberRead | 200/404/422 |
+
+Rules:
+- **Permissions**: viewer reads; member comments, replies, resolves and reopens; the author edits and deletes their own comments; an admin deletes any. Errors use `{detail: {code, message}}`: `read_only` (viewer writes), `not_author`.
+- Deleting the first comment of a thread deletes the whole thread; deleting a reply removes only that reply. Page comments cannot be resolved.
+- **Anchors**: `{quote, prefix, suffix, section}` are plain text of one block (paragraph, list item, table cell, code block); the page Markdown is never changed. On every publish/restore the anchors are re-matched against the new text: an exact hit (best by prefix/suffix/section) or a close fuzzy hit keeps the thread attached and refreshes its quote and position; no hit sets `anchor.state = "orphaned"` (and `number = null`). An orphaned thread whose exact text returns is attached again.
+- **Numbers**: `number` is set only on open, attached inline threads, in page order.
+- **Mentions**: `@Name` or the picker's `@[Name](member:id)`; only project members are recognised (`comment.mentions`).
+- **Notifications / Activity**: each comment, reply, resolve and reopen writes a `CommentEvent` `{kind: comment|reply|resolved|reopened, actor, mentioned[], recipients[], page_title, snippet, created_at}`. `recipients` = people mentioned, plus (replies, resolve, reopen) the thread starter and everyone who replied — never the actor.
+- Thread shape: `{id, page_id, kind, status, number, anchor{quote,prefix,suffix,section,state,pos}|null, created_by, created_at, resolved_by, resolved_at, unread, can_reply, can_resolve, comments[{id, author, body, mentions[{id,name}], created_at, edited_at, can_edit, can_delete}]}`.
+
 ## TicketRead shape (as received by frontend, after camelCase)
 ```json
 {

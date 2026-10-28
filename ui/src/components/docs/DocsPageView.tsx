@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DocsPage } from '../../types/docs';
 import { absoluteTime, actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
 import { OfflineBanner } from './DocsStates';
+import { CommentsPanel } from './comments/CommentsPanel';
+import { PageComments } from './comments/PageComments';
+import { ComposePopover, SelectionToolbar, type Pick } from './comments/SelectionComment';
+import { useCommentsController } from './comments/useCommentsController';
+import { CommentBadges, useCommentHighlights } from './comments/useCommentHighlights';
+import { getAvatarColors } from '../MemberAvatar';
+import './comments/comments.css';
 import { avatarColors, pageFullTime } from './docsUi';
 import { Icon } from './Icon';
 import { PageInfoPopover } from './PageInfoPopover';
@@ -82,15 +89,49 @@ export function DocsPageView({
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [bodyEl, setBodyEl] = useState<HTMLDivElement | null>(null);
+  const [compose, setCompose] = useState<Pick | null>(null);
+  const cc = useCommentsController(page.id);
+  const commentsData = cc.query.data;
+  const inlineThreads = useMemo(() => (commentsData?.threads ?? []).filter((t) => t.kind === 'inline'), [commentsData]);
+  const suggest = useMemo(
+    () => (commentsData?.members ?? []).map((m) => ({ id: m.id, name: m.name, ...getAvatarColors(m.color) })),
+    [commentsData],
+  );
+  const commentTotal = commentsData ? commentsData.counts.all + commentsData.counts.page : 0;
+  const anyUnread = !!commentsData?.threads.some((t) => t.unread);
+  const canComment = !offline && commentsData?.role !== 'viewer' && page.version > 0;
   const headings = page.headings.filter((h) => h.level <= 3);
 
   const setBody = useCallback(
     (el: HTMLDivElement | null) => {
       bodyRef.current = el;
+      setBodyEl(el);
       onBodyRef?.(el);
     },
     [onBodyRef],
   );
+
+  const badges = useCommentHighlights({
+    root: bodyEl,
+    threads: inlineThreads,
+    activeId: cc.activeId,
+    revision: page.markdown + page.version,
+    onSelect: cc.activate,
+    pending: compose?.range ?? null,
+  });
+
+  function onPick(p: Pick) {
+    if (cc.reattachId) {
+      const threadId = cc.reattachId;
+      void cc.actions.reattach.mutateAsync({ threadId, anchor: p.anchor }).then(() => {
+        cc.setReattachId(null);
+        cc.activate(threadId);
+      });
+      return;
+    }
+    setCompose(p);
+  }
 
   // close popovers on outside click
   useEffect(() => {
@@ -418,6 +459,22 @@ export function DocsPageView({
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 2 }}>
+                  {!offline && (
+                    <button
+                      type="button"
+                      className="st-btn"
+                      aria-pressed={cc.open}
+                      data-testid="comments-button"
+                      onClick={() => cc.setOpen((v) => !v)}
+                    >
+                      <Icon name="comment" size={14} strokeWidth={1.9} />
+                      Comments
+                      <span className="dc-btn-count" data-testid="comments-count">
+                        {commentTotal}
+                      </span>
+                      {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
+                    </button>
+                  )}
                   <div data-popover style={{ position: 'relative' }}>
                     <button
                       type="button"
@@ -483,7 +540,8 @@ export function DocsPageView({
               </div>
             </div>
             <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 4px' }} />
-            <div ref={setBody} data-testid="page-body">
+            <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
+              <CommentBadges badges={badges} activeId={cc.activeId} onSelect={cc.activate} />
               {!published && (
                 <div
                   style={{
@@ -521,10 +579,30 @@ export function DocsPageView({
                 </DocsMarkdown>
               )}
             </div>
+            {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
             <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
           </div>
         </div>
-        {!narrow && headings.length > 0 && (
+        {cc.open && !offline && (
+          <CommentsPanel
+            pageId={page.id}
+            projectId={projectId}
+            version={page.version}
+            data={commentsData}
+            loading={cc.query.isLoading}
+            error={cc.query.isError}
+            onRetry={() => void cc.query.refetch()}
+            actions={cc.actions}
+            tab={cc.tab}
+            onTab={cc.setTab}
+            activeId={cc.activeId}
+            onActivate={cc.activate}
+            reattachId={cc.reattachId}
+            onReattach={cc.setReattachId}
+            onClose={() => cc.setOpen(false)}
+          />
+        )}
+        {!narrow && !cc.open && headings.length > 0 && (
           <nav
             aria-label="On this page"
             className="dk-toc"
@@ -549,6 +627,26 @@ export function DocsPageView({
           </nav>
         )}
       </div>
+      <SelectionToolbar
+        root={bodyEl}
+        label={cc.reattachId ? 'Attach here' : 'Comment'}
+        enabled={canComment && !compose}
+        onPick={onPick}
+      />
+      {compose && (
+        <ComposePopover
+          pick={compose}
+          projectId={projectId}
+          members={suggest}
+          onCancel={() => setCompose(null)}
+          onSubmit={async (text) => {
+            const t = await cc.actions.createThread.mutateAsync({ kind: 'inline', body: text, anchor: compose.anchor });
+            setCompose(null);
+            window.getSelection()?.removeAllRanges();
+            cc.created(t);
+          }}
+        />
+      )}
     </div>
   );
 }

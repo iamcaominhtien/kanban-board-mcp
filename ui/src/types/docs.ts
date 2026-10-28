@@ -151,3 +151,74 @@ export interface DocsErrorDetail {
   deletedBy?: string;
   deletedAt?: string;
 }
+
+export type CommentRole = 'viewer' | 'member' | 'admin';
+
+export interface DocsAnchor {
+  quote: string | null;
+  prefix: string;
+  suffix: string;
+  section: string | null;
+  state: 'attached' | 'orphaned';
+  pos: number | null;
+}
+
+export interface DocsCommentItem {
+  id: string;
+  threadId: string;
+  author: string;
+  body: string;
+  mentions: { id: string; name: string }[];
+  createdAt: string;
+  editedAt: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+export interface DocsCommentThread {
+  id: string;
+  pageId: string;
+  kind: 'inline' | 'page';
+  status: 'open' | 'resolved';
+  /** Number shown on the highlight; only open, attached inline threads have one. */
+  number: number | null;
+  anchor: DocsAnchor | null;
+  createdBy: string;
+  createdAt: string;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  unread: boolean;
+  comments: DocsCommentItem[];
+  canReply: boolean;
+  canResolve: boolean;
+}
+
+export interface DocsCommentsResult {
+  threads: DocsCommentThread[];
+  counts: { all: number; open: number; resolved: number; orphaned: number; page: number };
+  role: CommentRole;
+  me: string;
+  members: { id: string; name: string; color: string; role: CommentRole }[];
+}
+
+/** The selected text a comment is attached to. */
+export interface CommentAnchorInput {
+  quote: string;
+  prefix: string;
+  suffix: string;
+  section: string | null;
+}
+
+export interface DocsCommentEvent {
+  id: string;
+  pageId: string;
+  pageTitle: string;
+  threadId: string | null;
+  commentId: string | null;
+  kind: 'comment' | 'reply' | 'resolved' | 'reopened';
+  actor: string;
+  mentioned: string[];
+  recipients: string[];
+  snippet: string;
+  createdAt: string;
+}

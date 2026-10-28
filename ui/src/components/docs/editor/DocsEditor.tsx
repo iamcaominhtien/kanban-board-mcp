@@ -27,6 +27,8 @@ import { EditorEnvContext, RefResolver, type EditorEnv, type TicketLite } from '
 import { EditorToc } from './EditorToc';
 import { EditorToolbar } from './EditorToolbar';
 import { buildExtensions } from './extensions';
+import { anchorFromState, commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
+import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
 import { createSuggest } from './extensions/suggest';
 import { MarkdownPane } from './MarkdownPane';
 import { MenuHost } from './menuHost';
@@ -36,6 +38,15 @@ import type { SlashItem } from './slashItems';
 import { TableControls } from './TableControls';
 
 export type EditorMode = 'visual' | 'markdown';
+
+/** Inline comments shown in the editor: highlights, a Comment button on the selection and the shortcut. */
+export interface EditorComments {
+  threads: HighlightThread[];
+  activeId: string | null;
+  onSelect: (threadId: string) => void;
+  /** Called with the current selection when Comment (button or Ctrl+Alt+M) is used. */
+  onPick: (pick: Pick) => void;
+}
 
 export interface DocsEditorHandle {
   /** Push pending edits to onChange and return the current markdown. */
@@ -66,6 +77,7 @@ interface Props {
   /** Fires on the first real keystroke, paste or drop (lets the caller tell edits from load-time normalisation). */
   onUserInput?: () => void;
   readOnly?: boolean;
+  comments?: EditorComments;
 }
 
 const EMIT_MS = 180;
@@ -90,6 +102,7 @@ const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const
  * @param props.onBlur - Called when the editor loses focus.
  * @param props.onUserInput - Called on the first real keystroke, paste or drop (tells edits from load-time normalisation).
  * @param props.readOnly - Disable editing.
+ * @param props.comments - Inline comments: highlights, Comment button and shortcut.
  * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
  */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
@@ -109,6 +122,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     onBlur,
     onUserInput,
     readOnly,
+    comments,
   },
   ref,
 ) {
@@ -134,8 +148,30 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const lastMd = useRef(markdown);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const live = useRef({ onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur, onUserInput });
-  live.current = { onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur, onUserInput };
+  const live = useRef<{
+    onChange: Props['onChange'];
+    tickets: TicketLite[];
+    nodes: DocsTreeNode[];
+    currentPageId: string;
+    ticketPrefix: string;
+    pageTitle: string;
+    toast: ReturnType<typeof useToast>;
+    onBlur: Props['onBlur'];
+    onUserInput: Props['onUserInput'];
+    onCommentSelect?: (id: string) => void;
+  }>({ onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur, onUserInput });
+  live.current = {
+    onChange,
+    tickets,
+    nodes,
+    currentPageId,
+    ticketPrefix,
+    pageTitle,
+    toast,
+    onBlur,
+    onUserInput,
+    onCommentSelect: comments?.onSelect,
+  };
   const editorRef = useRef<Editor | null>(null);
   const pickImage = useCallback(() => fileRef.current?.click(), []);
 
@@ -217,6 +253,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       ...buildExtensions({
         isTicket: (key) => live.current.tickets.some((t) => t.id === key),
         onLink: () => setLinkOpen(true),
+        onCommentSelect: (id) => live.current.onCommentSelect?.(id),
       }),
       slash,
       ref,
@@ -326,6 +363,33 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     () => ({ projectId, currentPageId, resolver, onOpenPage, onOpenTicket }),
     [projectId, currentPageId, resolver, onOpenPage, onOpenTicket],
   );
+
+  // inline comment highlights follow the threads and the active one
+  const commentThreads = comments?.threads;
+  const commentActive = comments?.activeId ?? null;
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(
+      editor.state.tr.setMeta(commentHighlightKey, { threads: commentThreads ?? [], activeId: commentActive }),
+    );
+  }, [editor, commentThreads, commentActive]);
+
+  const startComment = useCallback(() => {
+    const ed = editorRef.current;
+    if (!ed || ed.isDestroyed || !comments) return;
+    const hit = anchorFromState(ed.state);
+    if (!hit) {
+      live.current.toast.error('Select text in one paragraph', 'A comment attaches to text inside a single block.');
+      return;
+    }
+    const a = ed.view.coordsAtPos(hit.from);
+    const b = ed.view.coordsAtPos(hit.to);
+    comments.onPick({
+      anchor: hit.anchor,
+      rect: { left: Math.min(a.left, b.left), right: Math.max(a.right, b.right), top: a.top, bottom: b.bottom },
+    });
+  }, [comments]);
+  useCommentShortcut(startComment, !!comments && mode === 'visual' && !readOnly);
 
   // Ctrl/Cmd+K from anywhere in the editor opens the link field (or selects the word under the caret first)
   const openLink = useCallback(() => {
@@ -439,7 +503,13 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           )}
         </div>
         {editor && mode === 'visual' && !readOnly && (
-          <BubbleToolbar editor={editor} linkOpen={linkOpen} setLinkOpen={setLinkOpen} ticketPrefix={ticketPrefix} />
+          <BubbleToolbar
+            editor={editor}
+            linkOpen={linkOpen}
+            setLinkOpen={setLinkOpen}
+            ticketPrefix={ticketPrefix}
+            onComment={comments ? startComment : undefined}
+          />
         )}
         {slashState && mode === 'visual' && (
           <SlashMenu host={slashHost} state={slashState} ctx={{ pickImage, ticketPrefix, pageTitle }} />

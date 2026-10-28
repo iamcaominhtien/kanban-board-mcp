@@ -595,6 +595,11 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
     if not ids:
         return
     await docs_search.unindex(session, ids)
+    from services import (
+        docs_comments,
+    )  # late import: docs_comments builds on this module
+
+    await docs_comments.delete_for_pages(session, ids)
     for model in (DocsLink, DocsDraft, DocsVersion, DocsAnchorAlias):
         col = model.source_page_id if model is DocsLink else model.page_id  # type: ignore[attr-defined]
         rows = await session.exec(select(model).where(col.in_(ids)))
@@ -792,6 +797,11 @@ async def _commit_version(
     await session.flush()
     await refresh_link_targets(session, page.project_id)
     await docs_search.reindex(session, [page.id])
+    from services import (
+        docs_comments,
+    )  # late import: docs_comments builds on this module
+
+    await docs_comments.rematch_page(session, page, markdown)
     if not commit:
         return {}
     await session.commit()

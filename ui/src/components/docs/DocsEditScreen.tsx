@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { docsErrorDetail, useDiscardDraft, usePublishPage, useSaveDraft } from '../../api/docs';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { useToast } from '../Toast';
 import { ConflictBanner } from './ConflictBanner';
 import { DiscardDialog } from './DiscardDialog';
+import { previewOrphans } from '../../api/docsComments';
+import { getAvatarColors } from '../MemberAvatar';
+import { CommentsPanel } from './comments/CommentsPanel';
+import { OrphanWarning } from './comments/OrphanWarning';
+import { ComposePopover, type Pick } from './comments/SelectionComment';
+import { useCommentsController } from './comments/useCommentsController';
+import './comments/comments.css';
 import { DocsEditor, type DocsEditorHandle, type EditorMode } from './editor/DocsEditor';
 import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorReplace';
 import { Icon } from './Icon';
@@ -76,6 +83,46 @@ export function DocsEditScreen({
   const [savedAt, setSavedAt] = useState<Date | null>(page.draft ? new Date(page.draft.updatedAt) : null);
   const [publishOpen, setPublishOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [orphans, setOrphans] = useState<{ id: string; quote: string }[] | null>(null);
+  const [compose, setCompose] = useState<Pick | null>(null);
+  const cc = useCommentsController(page.id);
+  const commentsData = cc.query.data;
+  const commentTotal = commentsData ? commentsData.counts.all + commentsData.counts.page : 0;
+  const canComment = commentsData?.role !== 'viewer';
+  const highlightThreads = useMemo(
+    () =>
+      (commentsData?.threads ?? []).flatMap((t) =>
+        t.kind === 'inline' && t.status === 'open' && t.number != null && t.anchor?.quote
+          ? [
+              {
+                id: t.id,
+                number: t.number,
+                quote: t.anchor.quote,
+                prefix: t.anchor.prefix,
+                suffix: t.anchor.suffix,
+                section: t.anchor.section,
+              },
+            ]
+          : [],
+      ),
+    [commentsData],
+  );
+  const suggest = useMemo(
+    () => (commentsData?.members ?? []).map((m) => ({ id: m.id, name: m.name, ...getAvatarColors(m.color) })),
+    [commentsData],
+  );
+
+  function onPick(p: Pick) {
+    if (cc.reattachId) {
+      const threadId = cc.reattachId;
+      void cc.actions.reattach.mutateAsync({ threadId, anchor: p.anchor }).then(() => {
+        cc.setReattachId(null);
+        cc.activate(threadId);
+      });
+      return;
+    }
+    setCompose(p);
+  }
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<{
     latestVersion: number;
@@ -246,7 +293,19 @@ export function DocsEditScreen({
 
   const openPublish = () => {
     if (conflict || !online) return;
-    void flush().then(() => setPublishOpen(true));
+    void flush().then(async () => {
+      // comments whose text the edits removed would be orphaned: warn first
+      try {
+        const res = await previewOrphans(page.id, editor.current?.flush() ?? latest.current.markdown);
+        if (res.count > 0) {
+          setOrphans(res.orphaned);
+          return;
+        }
+      } catch {
+        /* the warning is a courtesy: publishing still works without it */
+      }
+      setPublishOpen(true);
+    });
   };
 
   const saveLabel =
@@ -386,6 +445,19 @@ export function DocsEditScreen({
           </div>
           <button
             type="button"
+            className="st-btn st-btn-sm"
+            aria-pressed={cc.open}
+            data-testid="comments-button"
+            onClick={() => cc.setOpen((v) => !v)}
+          >
+            <Icon name="comment" size={13} strokeWidth={1.9} />
+            Comments
+            <span className="dc-btn-count" data-testid="comments-count">
+              {commentTotal}
+            </span>
+          </button>
+          <button
+            type="button"
             className="st-btn st-btn-danger-outline st-btn-sm"
             onClick={() => setDiscardOpen(true)}
             data-testid="discard"
@@ -424,55 +496,83 @@ export function DocsEditScreen({
           </div>
         )}
 
-        <DocsEditor
-          ref={editor}
-          projectId={projectId}
-          markdown={markdown}
-          mode={mode}
-          nodes={nodes}
-          currentPageId={page.id}
-          pageTitle={title}
-          filename={`${page.slug}.md`}
-          onOpenPage={onOpenPage}
-          onOpenTicket={onOpenTicket}
-          onChange={(md) => {
-            if (md === latest.current.markdown) return;
-            setMarkdown(md);
-            // the editor re-serialises the markdown right after loading: that is not an edit
-            if (!userInput.current && Date.now() - mountedAt.current < 2500 && !dirty.current) return;
-            touch();
-          }}
-          onBlur={() => void flush()}
-          onUserInput={() => {
-            userInput.current = true;
-          }}
-          header={
-            <div style={{ paddingBottom: 12, marginBottom: 6, borderBottom: '1px solid #E3E8E5' }}>
-              <input
-                aria-label="Page title"
-                placeholder="Page title"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  touch();
-                }}
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  fontFamily: 'inherit',
-                  fontSize: 32,
-                  fontWeight: 800,
-                  lineHeight: 1.15,
-                  letterSpacing: '-0.01em',
-                  color: '#1E2A22',
-                  padding: 0,
-                }}
-              />
-            </div>
-          }
-        />
+        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <DocsEditor
+              ref={editor}
+              projectId={projectId}
+              markdown={markdown}
+              mode={mode}
+              nodes={nodes}
+              currentPageId={page.id}
+              pageTitle={title}
+              filename={`${page.slug}.md`}
+              onOpenPage={onOpenPage}
+              onOpenTicket={onOpenTicket}
+              onChange={(md) => {
+                if (md === latest.current.markdown) return;
+                setMarkdown(md);
+                // the editor re-serialises the markdown right after loading: that is not an edit
+                if (!userInput.current && Date.now() - mountedAt.current < 2500 && !dirty.current) return;
+                touch();
+              }}
+              comments={
+                canComment
+                  ? { threads: highlightThreads, activeId: cc.activeId, onSelect: cc.activate, onPick }
+                  : undefined
+              }
+              onBlur={() => void flush()}
+              onUserInput={() => {
+                userInput.current = true;
+              }}
+              header={
+                <div style={{ paddingBottom: 12, marginBottom: 6, borderBottom: '1px solid #E3E8E5' }}>
+                  <input
+                    aria-label="Page title"
+                    placeholder="Page title"
+                    value={title}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      touch();
+                    }}
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      outline: 'none',
+                      background: 'transparent',
+                      fontFamily: 'inherit',
+                      fontSize: 32,
+                      fontWeight: 800,
+                      lineHeight: 1.15,
+                      letterSpacing: '-0.01em',
+                      color: '#1E2A22',
+                      padding: 0,
+                    }}
+                  />
+                </div>
+              }
+            />
+          </div>
+          {cc.open && (
+            <CommentsPanel
+              pageId={page.id}
+              projectId={projectId}
+              version={page.version}
+              data={commentsData}
+              loading={cc.query.isLoading}
+              error={cc.query.isError}
+              onRetry={() => void cc.query.refetch()}
+              actions={cc.actions}
+              tab={cc.tab}
+              onTab={cc.setTab}
+              activeId={cc.activeId}
+              onActivate={cc.activate}
+              reattachId={cc.reattachId}
+              onReattach={cc.setReattachId}
+              onClose={() => cc.setOpen(false)}
+            />
+          )}
+        </div>
         <EditorRootBridge editor={editor} onEditorRoot={onEditorRoot} mode={mode} />
       </div>
 
@@ -490,6 +590,35 @@ export function DocsEditScreen({
             toast.info('Review changes', 'Open Page history to compare your draft with the published version.');
           }}
           onPublish={(note, notify) => void doPublish(note, notify)}
+        />
+      )}
+      {orphans && (
+        <OrphanWarning
+          count={orphans.length}
+          quotes={orphans.map((o) => o.quote)}
+          onClose={() => setOrphans(null)}
+          onReview={() => {
+            setOrphans(null);
+            cc.setTab('open');
+            cc.setOpen(true);
+          }}
+          onPublish={() => {
+            setOrphans(null);
+            setPublishOpen(true);
+          }}
+        />
+      )}
+      {compose && (
+        <ComposePopover
+          pick={compose}
+          projectId={projectId}
+          members={suggest}
+          onCancel={() => setCompose(null)}
+          onSubmit={async (text) => {
+            const t = await cc.actions.createThread.mutateAsync({ kind: 'inline', body: text, anchor: compose.anchor });
+            setCompose(null);
+            cc.created(t);
+          }}
         />
       )}
       {discardOpen && (

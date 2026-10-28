@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AxiosError } from 'axios';
 import type { Member } from '../types/ticket';
-import { useAddMember, useRemoveMember } from '../api/members';
+import { useAddMember, useRemoveMember, useSetMemberRole } from '../api/members';
 import styles from './MembersPanel.module.css';
 
 const PRESET_MEMBER_COLORS = [
@@ -42,6 +42,7 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
 
   const addMemberMutation = useAddMember(projectId);
   const removeMemberMutation = useRemoveMember(projectId);
+  const setRole = useSetMemberRole(projectId);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -100,6 +101,28 @@ export function MembersPanel({ projectId, members, onClose }: MembersPanelProps)
                     {memberInitials(m.name)}
                   </div>
                   <span className={styles.memberName}>{m.name}</span>
+                  <select
+                    aria-label={`Docs role of ${m.name}`}
+                    title="Docs comments: viewers read, members comment and resolve, admins can delete any comment"
+                    data-testid={`member-role-${m.name}`}
+                    value={m.role ?? 'member'}
+                    onChange={(e) =>
+                      setRole.mutate({ memberId: m.id, role: e.target.value as 'viewer' | 'member' | 'admin' })
+                    }
+                    style={{
+                      font: 'inherit',
+                      fontSize: 12,
+                      border: '1px solid #dce6df',
+                      borderRadius: 6,
+                      padding: '2px 4px',
+                      background: '#fff',
+                      color: '#3a4a3e',
+                    }}
+                  >
+                    <option value="viewer">Viewer</option>
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                  </select>
                   <button
                     type="button"
                     className={styles.removeBtn}
