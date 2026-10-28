@@ -32,7 +32,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Auto-update (GitHub releases)
   getUpdateInfo: () => ipcRenderer.invoke('update-get'),
+  // { currentVersion, lastCheck: { at, error } | null, info } — for Settings → Updates
+  getUpdateStatus: () => ipcRenderer.invoke('update-status'),
   checkForUpdate: () => ipcRenderer.invoke('update-check'),
+  // Opens the latest GitHub release in the browser, for downloading the installer by hand
+  openReleasesPage: () => ipcRenderer.invoke('update-open-releases'),
   downloadUpdate: () => ipcRenderer.invoke('update-download'),
   installUpdate: (filePath) => ipcRenderer.invoke('update-install', filePath),
   onUpdateAvailable: (callback) => {

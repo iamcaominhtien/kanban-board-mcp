@@ -14,6 +14,14 @@ function readSkipped(): string | null {
   }
 }
 
+function clearSkipped() {
+  try {
+    localStorage.removeItem(SKIP_KEY);
+  } catch {
+    /* storage unavailable — nothing was skipped */
+  }
+}
+
 /** Desktop only: tells the user a newer release exists and downloads / launches its installer. */
 export function UpdateNotice() {
   const api = window.electronAPI;
@@ -28,6 +36,7 @@ export function UpdateNotice() {
     if (!api?.onUpdateAvailable) return undefined;
     void api.getUpdateInfo?.().then((existing) => existing && setInfo(existing));
     const offAvailable = api.onUpdateAvailable((next) => {
+      if (next.manual) clearSkipped();
       setInfo(next);
       setDismissed(false);
     });

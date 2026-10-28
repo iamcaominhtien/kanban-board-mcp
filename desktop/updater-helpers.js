@@ -1,6 +1,7 @@
 const RELEASE_REPO = 'iamcaominhtien/kanban-board-mcp';
 const LATEST_RELEASE_URL = `https://api.github.com/repos/${RELEASE_REPO}/releases/latest`;
 const DOWNLOAD_PREFIX = `https://github.com/${RELEASE_REPO}/releases/download/`;
+const RELEASES_PAGE_URL = `https://github.com/${RELEASE_REPO}/releases/latest`;
 
 /** Parses "v1.2.3" / "1.2.3" into [1, 2, 3]; returns null when it is not a plain x.y.z version. */
 function parseVersion(value) {
@@ -69,6 +70,7 @@ function buildUpdateInfo(release, { currentVersion, platform, arch }) {
 
 module.exports = {
   LATEST_RELEASE_URL,
+  RELEASES_PAGE_URL,
   parseVersion,
   isNewerVersion,
   pickAsset,
