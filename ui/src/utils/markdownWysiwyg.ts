@@ -34,6 +34,56 @@ export function diagramBlockHtml(id: string, label: string, version?: number): s
   );
 }
 
+const BLOCK_STYLE =
+  'margin:10px 0;border:1px solid #E3E8E5;border-radius:12px;background:#fff;overflow:hidden;user-select:none;max-width:100%';
+
+/**
+ * The same block as `diagramBlockHtml`, built with DOM calls so the label is only ever set as text or an attribute value.
+ * @param id - Diagram id.
+ * @param label - Diagram label.
+ */
+export function diagramBlockElement(id: string, label: string): HTMLElement {
+  const name = label || 'Diagram';
+  const el = (tag: string, style?: string) => {
+    const e = document.createElement(tag);
+    if (style) e.setAttribute('style', style);
+    return e;
+  };
+  const block = el('div', BLOCK_STYLE);
+  block.setAttribute('data-diagram', id);
+  block.setAttribute('data-label', name);
+  block.setAttribute('contenteditable', 'false');
+  const stage = el('div', 'display:flex;justify-content:center;padding:12px');
+  const img = el('img', 'max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in') as HTMLImageElement;
+  img.setAttribute('data-diagram-img', '');
+  img.src = `${resolveOrigin()}/diagrams/${encodeURIComponent(id)}/svg`;
+  img.alt = name;
+  stage.appendChild(img);
+  const foot = el(
+    'div',
+    'display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid #EEF2EF;background:#FAFCFA;font-size:13px;color:#5B6B60',
+  );
+  const chip = el(
+    'span',
+    'padding:1px 8px;border-radius:6px;background:#E3F2E7;color:#2E6F40;font-weight:600;font-size:12px',
+  );
+  chip.textContent = 'draw.io';
+  const title = el('b', 'color:#1E2A22');
+  title.setAttribute('data-diagram-name', '');
+  title.textContent = name;
+  const grow = el('span', 'flex:1');
+  const edit = el(
+    'button',
+    'border:1px solid #DCE6DF;border-radius:7px;background:#fff;padding:3px 10px;font:600 12px inherit;cursor:pointer',
+  );
+  edit.setAttribute('type', 'button');
+  edit.setAttribute('data-diagram-edit', '');
+  edit.textContent = 'Edit';
+  foot.append(chip, title, grow, edit);
+  block.append(stage, foot);
+  return block;
+}
+
 /** Allow only http(s), mailto, root-relative and plain relative URLs. */
 export function isSafeUrl(url: string): boolean {
   const trimmed = url.trim();

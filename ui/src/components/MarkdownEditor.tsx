@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { markdownToHtml, htmlToMarkdown, diagramBlockHtml } from '../utils/markdownWysiwyg';
+import { markdownToHtml, htmlToMarkdown, diagramBlockElement } from '../utils/markdownWysiwyg';
 import { useDiagrams } from './diagrams/DiagramsContext';
 import { DiagramIcon } from './diagrams/DiagramIcon';
 import { useDiagramStarter } from './diagrams/useDiagramStarter';
@@ -325,10 +325,7 @@ export function MarkdownEditor({
     const root = wysiwygRef.current;
     const parts = DIAGRAM_LINE.exec(md);
     if (!root || !parts) return;
-    const tpl = document.createElement('div');
-    tpl.innerHTML = diagramBlockHtml(parts[2], parts[1]);
-    const block = tpl.firstElementChild;
-    if (!block) return;
+    const block = diagramBlockElement(parts[2], parts[1]);
     const saved = savedSelectionRangeRef.current;
     let anchor: Node | null = null;
     if (saved && root.contains(saved.commonAncestorContainer)) {
