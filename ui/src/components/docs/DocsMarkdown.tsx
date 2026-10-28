@@ -8,6 +8,7 @@ import 'katex/dist/katex.min.css';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
+import { escapeStrayDollars } from '../../utils/mathDollars';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
 import { highlight } from './docsHighlight';
@@ -160,7 +161,7 @@ export function DocsMarkdown({
   onReplaceSection,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
-  const linked = useMemo(() => linkifyDocs(cleaned), [cleaned]);
+  const linked = useMemo(() => linkifyDocs(escapeStrayDollars(cleaned)), [cleaned]);
   const resolved = useResolveRefs(projectId, linked.refs.length ? linked.refs : NO_REFS);
   const pages = new Map<string, NonNullable<typeof resolved.data>[number]>();
   const tickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
