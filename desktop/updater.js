@@ -1,4 +1,4 @@
-const { app, ipcMain, shell } = require('electron');
+const { app, ipcMain, net, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -13,8 +13,11 @@ const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let latestInfo = null;
 let downloading = false;
 
+// Electron's net.fetch goes through Chromium's network stack, so it honours the system proxy
+// and the OS certificate store. Node's global fetch does neither, which on Windows machines
+// behind a proxy or HTTPS-scanning antivirus made every check fail silently.
 async function checkForUpdate() {
-  const res = await fetch(LATEST_RELEASE_URL, {
+  const res = await net.fetch(LATEST_RELEASE_URL, {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'kanban-board-desktop' },
   });
   if (!res.ok) throw new Error(`GitHub responded ${res.status}`);
@@ -33,7 +36,7 @@ async function downloadInstaller(info, onProgress) {
   fs.mkdirSync(dir, { recursive: true });
   const target = path.join(dir, path.basename(info.assetName));
 
-  const res = await fetch(info.assetUrl, { headers: { 'User-Agent': 'kanban-board-desktop' } });
+  const res = await net.fetch(info.assetUrl, { headers: { 'User-Agent': 'kanban-board-desktop' } });
   if (!res.ok || !res.body) throw new Error(`Download failed (${res.status})`);
   const total = Number(res.headers.get('content-length')) || info.assetSize || 0;
 

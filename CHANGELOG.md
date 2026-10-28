@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- Desktop (Windows): the "new version available" notice never appeared on machines behind a proxy or an antivirus that scans HTTPS. The update check and download now use Electron's network stack, which follows the system proxy and certificate store.
+
 ---
 
 ## [3.5.0] - 2026-10-28
