@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1792727511-31c8",
-  "exported": "2026-10-23",
+  "canvas_version": "1793195406-cc1c",
+  "exported": "2026-10-28",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -402,6 +402,30 @@
       "page": "components",
       "w": 1180,
       "h": 2760
+    },
+    "DocsComments.dc.html": {
+      "bytes": 91862,
+      "sha256": "c5f2b69b986f694128d6fd774512e4033b1607885b9f76dfe06b17e6bb49a1ed",
+      "title": "Docs — comments",
+      "page": "screens",
+      "w": 1480,
+      "h": 5100
+    },
+    "Diagrams.dc.html": {
+      "bytes": 85259,
+      "sha256": "66a3c664e48c8fabea8e72a773fef99ffab5ed28ede1d9ae438b4ebdf9d286bf",
+      "title": "Diagrams — draw.io",
+      "page": "screens",
+      "w": 1480,
+      "h": 4380
+    },
+    "AiSchedules.dc.html": {
+      "bytes": 122027,
+      "sha256": "30ff6c869fc892606e26321afe8c5c2efd684a5a1403ae400f3d535f1a4cefb2",
+      "title": "AI — schedules",
+      "page": "screens",
+      "w": 1480,
+      "h": 6640
     }
   }
 }
