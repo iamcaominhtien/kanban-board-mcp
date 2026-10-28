@@ -374,3 +374,9 @@
 .dk-editor td.dk-method-delete {
   color: #c4432a;
 }
+
+.dk-math-inline { display: inline-block; vertical-align: baseline; border-radius: 4px; cursor: pointer; }
+.dk-math-block { display: block; margin: 12px 0; text-align: center; overflow-x: auto; cursor: pointer; }
+.dk-math[data-selected='true'] { box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.35); }
+.dk-math-input { font: 13px/1.5 var(--font-mono, monospace); min-width: 220px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #2e6f40; border-radius: 6px; resize: vertical; text-align: left; }
+.dk-math-inline .dk-math-input { width: auto; min-width: 160px; resize: none; }
