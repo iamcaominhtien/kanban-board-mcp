@@ -375,7 +375,12 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           >
             <div
               ref={hostRef}
-              style={{ width: 640, maxWidth: 'calc(100% - 48px)', margin: '0 auto', position: 'relative' }}
+              style={{
+                width: 'clamp(640px, 62vw, 1120px)',
+                maxWidth: 'calc(100% - 48px)',
+                margin: '0 auto',
+                position: 'relative',
+              }}
             >
               {header}
               <div style={{ display: mode === 'visual' ? 'block' : 'none' }}>

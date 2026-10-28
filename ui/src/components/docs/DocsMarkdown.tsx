@@ -1,10 +1,14 @@
 import { Children, isValidElement, useMemo, useRef, useState, type ReactNode } from 'react';
 import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import 'katex/dist/katex.min.css';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
+import { escapeStrayDollars } from '../../utils/mathDollars';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
 import { highlight } from './docsHighlight';
@@ -20,7 +24,7 @@ const SCHEMA = {
     img: ['src', 'alt', 'title'],
     mark: ['class', 'className'],
     blockquote: ['dataCallout'],
-    code: [['className', /^language-[\w-]+$/]],
+    code: [['className', /^(language-[\w-]+|math-inline|math-display)$/]],
     h1: ['id'],
     h2: ['id'],
     h3: ['id'],
@@ -157,7 +161,7 @@ export function DocsMarkdown({
   onReplaceSection,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
-  const linked = useMemo(() => linkifyDocs(cleaned), [cleaned]);
+  const linked = useMemo(() => linkifyDocs(escapeStrayDollars(cleaned)), [cleaned]);
   const resolved = useResolveRefs(projectId, linked.refs.length ? linked.refs : NO_REFS);
   const pages = new Map<string, NonNullable<typeof resolved.data>[number]>();
   const tickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
@@ -346,8 +350,12 @@ export function DocsMarkdown({
   return (
     <div className="dk-md">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkDocs]}
-        rehypePlugins={[[rehypeSanitize, SCHEMA]]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkDocs]}
+        // KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
+        rehypePlugins={[
+          [rehypeSanitize, SCHEMA],
+          [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
+        ]}
         urlTransform={(url) =>
           url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) ? url : defaultUrlTransform(url)
         }

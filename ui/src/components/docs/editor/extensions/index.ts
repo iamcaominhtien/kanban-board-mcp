@@ -8,6 +8,7 @@ import { CodeBlock } from './CodeBlock';
 import { DocImage } from './DocImage';
 import { DocRef } from './DocRef';
 import { HeadingAnchors } from './HeadingAnchors';
+import { MathBlock, MathInline } from './Math';
 import { Placeholder } from './Placeholder';
 import { Shortcuts } from './Shortcuts';
 import { TableMethods } from './TableMethods';
@@ -63,6 +64,8 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     DocImage,
     Callout,
     DocRefInput,
+    MathInline,
+    MathBlock,
     TicketRef.configure({ isTicket: opts.isTicket }),
     HeadingAnchors,
     TableMethods,

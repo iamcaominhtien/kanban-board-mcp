@@ -10,6 +10,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.3.0] - 2026-10-28
+
+### Added
+- Docs: **LaTeX formulas** rendered with KaTeX. `$...$` is inline and `$$...$$` is a block, in the page view and in the editor, where a formula can be clicked and edited in place. Formulas are stored as plain `$...$` / `$$...$$` Markdown.
+
+### Changed
+- Docs: the content column now grows with the screen (`clamp(640px, 62vw, 1120px)`) instead of a fixed 640px, in both the page view and the editor.
+
+### Fixed
+- Docs: the "Changes since you last viewed" banner no longer touches the breadcrumb below it.
+- Docs: `$` signs that do not open a formula (for example prices such as "$5 and $6") stay plain text in the page view, matching the editor.
+
+---
+
 ## [3.2.0] - 2026-10-22
 
 ### Added
