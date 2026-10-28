@@ -465,7 +465,7 @@ export function htmlToMarkdown(root: HTMLElement): string {
   // the id is checked against the real id shape, so nothing but dg_xxxxxxxx can come back out of the DOM
   const diagramLink = (el: HTMLElement, id: string) =>
     /^dg_[0-9a-f]{8}$/.test(id)
-      ? `[${(el.getAttribute('data-label') || 'Diagram').replace(/[[\]\n]+/g, ' ')}](diagram:${id})`
+      ? `[${(el.getAttribute('data-label') || 'Diagram').replace(/[<>"'[\]\n]+/g, ' ')}](diagram:${id})`
       : '';
 
   function serializeInline(node: Node): string {
