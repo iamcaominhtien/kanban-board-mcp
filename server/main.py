@@ -23,6 +23,7 @@ from api.logs import router as logs_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
 from api.docs import docs_error_handler, router as docs_router
+from api.diagrams import router as diagrams_router
 from services.docs_text import DocsError
 import database
 from version import version_info
@@ -158,6 +159,7 @@ app.include_router(data_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
 app.include_router(docs_router)
+app.include_router(diagrams_router)
 app.include_router(logs_router)
 app.add_exception_handler(DocsError, docs_error_handler)
 

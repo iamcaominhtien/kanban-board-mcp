@@ -210,6 +210,8 @@ class DocsVersion(SQLModel, table=True):
     author: str = Field(default="user")
     note: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
+    # JSON {diagram id: version} the page used when it was published; restoring the page restores them
+    diagram_versions: str = Field(default="{}")
 
 
 class DocsDraft(SQLModel, table=True):
@@ -321,6 +323,58 @@ class DocsCommentEvent(SQLModel, table=True):
     page_title: str = Field(default="")
     snippet: str = Field(default="")
     created_at: str = Field(default_factory=_now_iso)
+
+
+class Diagram(SQLModel, table=True):
+    """A draw.io diagram referenced from markdown as ``[label](diagram:id)``.
+
+    Deleting only unlinks it: the row is kept (``deleted_at``) so it stays in the Recycle Bin.
+    """
+
+    __tablename__ = "diagram"
+
+    id: str = Field(
+        default_factory=lambda: f"dg_{uuid.uuid4().hex[:8]}", primary_key=True
+    )
+    project_id: str = Field(foreign_key="project.id", index=True)
+    label: str = Field(default="Diagram")
+    summary: str = Field(default="")  # short text summary offered next to the image
+    item_kind: Optional[str] = Field(default=None)  # ticket | comment | doc
+    item_id: Optional[str] = Field(default=None, index=True)
+    version: int = Field(default=1)  # latest saved version
+    created_by: str = Field(default="user")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_by: str = Field(default="user")
+    updated_at: str = Field(default_factory=_now_iso)
+    deleted_at: Optional[str] = Field(default=None)
+    deleted_by: Optional[str] = Field(default=None)
+
+
+class DiagramVersion(SQLModel, table=True):
+    """One saved version of a diagram: the editable ``.drawio`` source and its SVG preview."""
+
+    __tablename__ = "diagram_version"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    diagram_id: str = Field(foreign_key="diagram.id", index=True)
+    version: int
+    source: str = Field(default="")
+    svg: str = Field(default="")
+    author: str = Field(default="user")
+    note: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class DiagramSettings(SQLModel, table=True):
+    """Singleton row: where the draw.io editor runs (admin setting)."""
+
+    __tablename__ = "diagram_settings"
+
+    id: int = Field(default=1, primary_key=True)
+    mode: str = Field(default="self-hosted")  # self-hosted | public
+    url: str = Field(
+        default=""
+    )  # self-hosted editor address, e.g. http://localhost:8080
 
 
 # ---------------------------------------------------------------------------
