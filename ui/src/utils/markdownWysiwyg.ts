@@ -8,7 +8,12 @@ import { resolveOrigin } from '../api/resolveOrigin';
 import { DIAGRAM_LINE } from '../components/diagrams/diagramRefs';
 
 function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -457,8 +462,11 @@ export function markdownToHtml(md: string): string {
  * Traverses an HTMLElement and serializes its content into clean, standard Markdown.
  */
 export function htmlToMarkdown(root: HTMLElement): string {
+  // the id is checked against the real id shape, so nothing but dg_xxxxxxxx can come back out of the DOM
   const diagramLink = (el: HTMLElement, id: string) =>
-    `[${(el.getAttribute('data-label') || 'Diagram').replace(/[[\]\n]+/g, ' ')}](diagram:${id})`;
+    /^dg_[0-9a-f]{8}$/.test(id)
+      ? `[${(el.getAttribute('data-label') || 'Diagram').replace(/[[\]\n]+/g, ' ')}](diagram:${id})`
+      : '';
 
   function serializeInline(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) {

@@ -361,6 +361,7 @@ export function MarkdownEditor({
     const block = target.closest('[data-diagram]') as HTMLElement | null;
     if (!block || !wysiwygRef.current?.contains(block)) return false;
     const id = block.getAttribute('data-diagram') ?? '';
+    if (!/^dg_[0-9a-f]{8}$/.test(id)) return true;
     const label = block.getAttribute('data-label') ?? 'Diagram';
     if (target.closest('[data-diagram-edit]')) {
       if (!readOnly && diagrams && diagramProjectId) {
