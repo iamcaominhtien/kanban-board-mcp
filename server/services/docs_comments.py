@@ -68,7 +68,7 @@ def _need_member(role: str) -> None:
         )
 
 
-_MEMBER_LINK = re.compile(r"@\[([^\]\n]+)\]\(member:([\w-]+)\)")
+_MEMBER_LINK = re.compile(r"@\[([^\]\n]{1,200})\]\(member:([\w-]{1,64})\)")
 
 
 def plain_mentions(body: str) -> str:

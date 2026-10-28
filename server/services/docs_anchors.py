@@ -17,13 +17,14 @@ MAX_QUOTE = 500
 
 _WS = re.compile(r"\s+")
 _FENCE = re.compile(r"^\s*(```|~~~)")
-_IMAGE = re.compile(r"!\[[^\]\n]*\]\([^()\n]*\)")
-_LINK = re.compile(r"\[([^\][\n]+)\]\(([^()\n]*)\)")
-_REF = re.compile(r"\[\[([^\][|#\n]+)(?:#[^\][|\n]*)?(?:\|([^\][\n]+))?\]\]")
+_IMAGE = re.compile(r"!\[[^\]\n]{0,300}\]\([^()\n]{0,500}\)")
+_LINK = re.compile(r"\[([^\][\n]{1,300})\]\(([^()\n]{0,500})\)")
+_REF = re.compile(
+    r"\[\[([^\][|#\n]{1,200})(?:#[^\][|\n]{0,200})?(?:\|([^\][\n]{1,200}))?\]\]"
+)
 _EMPHASIS = re.compile(r"(\*\*|__|~~|\*|`)")
-_UNDERSCORE = re.compile(r"(?<![\w])_([^_\n]+)_(?![\w])")
-_TABLE_RULE = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")
-_HTML = re.compile(r"</?[a-zA-Z][^>\n]*>")
+_UNDERSCORE = re.compile(r"(?<![\w])_([^_\n]{1,300})_(?![\w])")
+_HTML = re.compile(r"</?[a-zA-Z][^>\n]{0,200}>")
 
 
 def normalize(text: str) -> str:
@@ -115,7 +116,7 @@ def blocks_of(markdown: str) -> list[Block]:
             continue
         if raw.lstrip().startswith("|"):
             flush()
-            if _TABLE_RULE.match(raw):
+            if not raw.strip(" \t|:-"):  # a |---|---| separator row
                 continue
             for cell in raw.strip().strip("|").split("|"):
                 text = _inline_plain(cell)
