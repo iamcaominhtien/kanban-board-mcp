@@ -217,7 +217,7 @@ export function DocsPageView({
             position: 'relative',
           }}
         >
-          <div style={{ maxWidth: 840, margin: '0 auto' }}>
+          <div style={{ maxWidth: 'clamp(640px, 62vw, 1120px)', margin: '0 auto' }}>
             {!offline && (
               <div style={{ marginBottom: 16 }}>
                 <SinceViewedBanner page={page} onCompare={onCompare ?? (() => undefined)} />
