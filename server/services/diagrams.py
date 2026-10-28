@@ -15,6 +15,8 @@ import zlib
 from datetime import UTC, datetime
 from typing import Any
 
+from defusedxml import ElementTree as SafeET
+from defusedxml import DefusedXmlException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -79,8 +81,8 @@ def _forbid_dtd(text: str, what: str) -> None:
 def _parse(text: str, what: str) -> ET.Element:
     _forbid_dtd(text, what)
     try:
-        return ET.fromstring(text)
-    except ET.ParseError as e:
+        return SafeET.fromstring(text, forbid_dtd=True)
+    except (ET.ParseError, DefusedXmlException) as e:
         raise DocsError(
             422, "invalid_diagram", f"The {what} is not valid XML ({e})."
         ) from e
@@ -130,7 +132,9 @@ def _graph_models(root: ET.Element) -> list[ET.Element]:
             continue
         try:
             raw = zlib.decompress(base64.b64decode(data), -15)
-            parsed = ET.fromstring(urllib.parse.unquote(raw.decode("utf-8")))
+            parsed = SafeET.fromstring(
+                urllib.parse.unquote(raw.decode("utf-8")), forbid_dtd=True
+            )
         except (ValueError, zlib.error, ET.ParseError):
             continue
         models.append(parsed)
@@ -272,8 +276,12 @@ async def _out(
     role = await role_of(session, d.project_id)
     ver = v or await _version(session, d.id, None, d.version)
     try:
-        empty = is_empty(ET.fromstring(ver.source)) if ver.source else True
-    except ET.ParseError:
+        empty = (
+            is_empty(SafeET.fromstring(ver.source, forbid_dtd=True))
+            if ver.source
+            else True
+        )
+    except (ET.ParseError, DefusedXmlException):
         empty = False
     return {
         "id": d.id,
@@ -378,8 +386,10 @@ async def get_diagram(
     if include_source:
         out["source"] = v.source
     try:
-        out["suggested_summary"] = text_summary(ET.fromstring(v.source))
-    except ET.ParseError:
+        out["suggested_summary"] = text_summary(
+            SafeET.fromstring(v.source, forbid_dtd=True)
+        )
+    except (ET.ParseError, DefusedXmlException):
         out["suggested_summary"] = ""
     return out
 
