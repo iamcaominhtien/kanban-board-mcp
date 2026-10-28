@@ -25,9 +25,12 @@ function escapeHtml(text: string): string {
  */
 export function diagramBlockHtml(id: string, label: string, version?: number): string {
   const name = escapeHtml(label || 'Diagram');
-  const src = `${resolveOrigin()}/diagrams/${id}/svg${version ? `?version=${version}` : ''}`;
+  const safeId = escapeHtml(encodeURIComponent(id));
+  const src = escapeHtml(
+    `${resolveOrigin()}/diagrams/${encodeURIComponent(id)}/svg${version ? `?version=${Number(version)}` : ''}`,
+  );
   return (
-    `<div data-diagram="${id}" data-label="${name}" contenteditable="false" ` +
+    `<div data-diagram="${safeId}" data-label="${name}" contenteditable="false" ` +
     `style="margin:10px 0;border:1px solid #E3E8E5;border-radius:12px;background:#fff;overflow:hidden;user-select:none;max-width:100%">` +
     `<div style="display:flex;justify-content:center;padding:12px"><img data-diagram-img src="${src}" alt="${name}" ` +
     `style="max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in" /></div>` +
