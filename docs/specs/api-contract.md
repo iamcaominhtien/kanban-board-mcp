@@ -103,6 +103,24 @@ Rules:
 - **Notifications / Activity**: each comment, reply, resolve and reopen writes a `CommentEvent` `{kind: comment|reply|resolved|reopened, actor, mentioned[], recipients[], page_title, snippet, created_at}`. `recipients` = people mentioned, plus (replies, resolve, reopen) the thread starter and everyone who replied — never the actor.
 - Thread shape: `{id, page_id, kind, status, number, anchor{quote,prefix,suffix,section,state,pos}|null, created_by, created_at, resolved_by, resolved_at, unread, can_reply, can_resolve, comments[{id, author, body, mentions[{id,name}], created_at, edited_at, can_edit, can_delete}]}`.
 
+### Diagrams (draw.io)
+A diagram is a `.drawio` source plus an SVG preview (the editor exports it on save). Markdown references it as `[label](diagram:dg_xxxxxxxx)`. Limit: 2 MB for the source and 2 MB for the preview (`413 diagram_too_large`). The caller is the `X-Actor` header like Docs comments: viewers read and download, members (and the board owner / agent) add, edit and delete. Errors use the Docs shape `{detail: {code, message, request_id, ...}}`.
+
+| Method | Path | Body | Response | Codes |
+|---|---|---|---|---|
+| GET | /projects/{projectId}/diagrams | query: `deleted?=true` (Recycle Bin) | Diagram[] | 200/404 |
+| POST | /projects/{projectId}/diagrams | `{label, source, svg, summary?, item_kind?: ticket\|comment\|doc, item_id?}` | Diagram | 201/403/404/413/422 |
+| GET | /diagrams/{id} | query: `version?`, `source?=true` | Diagram (+ `source`) | 200/404 |
+| PUT | /diagrams/{id} | `{base_version, source, svg, label?, summary?}` | Diagram | 200/403/404/409 `diagram_conflict` (`latest_version`, `latest_author`, `latest_at`)/413/422 |
+| DELETE | /diagrams/{id} | — | `{id, deleted_at}` (unlinks; kept for Recycle Bin) | 200/403/404 |
+| POST | /diagrams/{id}/restore | — | Diagram | 200/403/404 |
+| GET | /diagrams/{id}/versions | — | `[{version, author, note, created_at, size_bytes}]` | 200/404 |
+| GET | /diagrams/{id}/svg | query: `version?` | `image/svg+xml` (sandboxed headers) | 200/404 |
+| GET | /diagrams/{id}/download | query: `format=drawio\|svg`, `version?` | file attachment | 200/404 |
+| GET · PUT | /diagrams/settings | `{mode: self-hosted\|public, url?}` (PUT: admin only) | `{mode, url, effective_url, ...}` | 200/403/422 |
+- Diagram shape: `{id, project_id, label, summary, suggested_summary, item_kind, item_id, version, shown_version, empty, created_by, created_at, updated_by, updated_at, deleted_at, size_bytes, role, can_edit}`.
+- Docs page versions (`GET /docs/pages/{id}/versions/{n}`) carry `diagram_versions: {id: version}`; restoring a page version restores those diagram versions (as new diagram versions) and links unlinked ones again.
+
 ## TicketRead shape (as received by frontend, after camelCase)
 ```json
 {

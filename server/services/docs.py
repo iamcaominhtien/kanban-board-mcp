@@ -25,7 +25,7 @@ from models import (
     Project,
     Ticket,
 )
-from services import activity, docs_search
+from services import activity, diagrams, docs_search
 from services.docs_templates import TEMPLATES
 from services.docs_text import (  # noqa: F401  (re-exported)
     DocsError,
@@ -785,6 +785,7 @@ async def _commit_version(
             markdown=markdown,
             author=author,
             note=(note or "").strip() or None,
+            diagram_versions=await diagrams.pin_versions(session, markdown),
         )
     )
     if draft is not None:
@@ -897,6 +898,7 @@ async def get_version(session: AsyncSession, page_id: str, n: int) -> dict[str, 
         "author": v.author,
         "note": v.note,
         "created_at": v.created_at,
+        "diagram_versions": diagrams.parse_pins(v.diagram_versions),
     }
 
 
@@ -1022,6 +1024,8 @@ async def restore_version(
     v = await _version(session, page_id, n)
     actor = activity.current_actor()
     draft = await _draft_for(session, page.id, actor)
+    # Diagrams go back to the versions this page version used, before the new version pins them
+    await diagrams.restore_pins(session, diagrams.parse_pins(v.diagram_versions))
     return await _commit_version(
         session, page, v.markdown, v.title, actor, note or f"Restored from v{n}", draft
     )

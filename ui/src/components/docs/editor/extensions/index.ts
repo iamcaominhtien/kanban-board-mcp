@@ -6,6 +6,7 @@ import { TableKit } from '@tiptap/extension-table';
 import { Callout } from './Callout';
 import { CommentHighlights } from './CommentHighlights';
 import { CodeBlock } from './CodeBlock';
+import { Diagram } from './Diagram';
 import { DocImage } from './DocImage';
 import { DocRef } from './DocRef';
 import { HeadingAnchors } from './HeadingAnchors';
@@ -64,6 +65,7 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     TableKit.configure({ table: { resizable: false } }),
     CodeBlock,
     DocImage,
+    Diagram,
     Callout,
     DocRefInput,
     MathInline,

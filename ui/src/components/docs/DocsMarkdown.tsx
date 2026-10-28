@@ -14,6 +14,8 @@ import { FileAttachmentCard } from '../FileAttachmentCard';
 import { highlight } from './docsHighlight';
 import { Icon } from './Icon';
 import { RefChip, type RefChipProps } from './RefChip';
+import { DiagramEmbed } from '../diagrams/DiagramEmbed';
+import { DIAGRAM_SCHEME, diagramIdOf, hasDiagram } from '../diagrams/diagramRefs';
 
 const SCHEMA = {
   ...defaultSchema,
@@ -35,8 +37,8 @@ const SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey'],
-    src: ['http', 'https'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram'],
+    src: ['http', 'https', 'diagram'],
   },
 };
 
@@ -295,13 +297,18 @@ export function DocsMarkdown({
           </li>
         );
       },
+      p: ({ node, children: inner }) => (hasDiagram(node) ? <div>{inner}</div> : <p>{inner}</p>),
       img: ({ src, alt }) => {
+        const diagramId = diagramIdOf(src);
+        if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} />;
         if (!src || src.startsWith('uploading:')) return null;
         return (
           <img src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src} alt={alt ?? ''} loading="lazy" />
         );
       },
       a: ({ href, children: inner, ...props }) => {
+        const diagramId = diagramIdOf(href);
+        if (diagramId) return <DiagramEmbed id={diagramId} label={textOf(inner)} />;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
           return (
@@ -357,7 +364,9 @@ export function DocsMarkdown({
           [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
         ]}
         urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) ? url : defaultUrlTransform(url)
+          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) || url.startsWith(DIAGRAM_SCHEME)
+            ? url
+            : defaultUrlTransform(url)
         }
         components={components}
       >

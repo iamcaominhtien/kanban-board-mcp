@@ -8,6 +8,8 @@ import { FilePreviewModal } from './FilePreviewModal';
 import { useResolveRefs, useRestorePage } from '../api/docs';
 import { useToast } from './Toast';
 import { RefChip } from './docs/RefChip';
+import { DiagramEmbed } from './diagrams/DiagramEmbed';
+import { DIAGRAM_SCHEME, diagramIdOf, hasDiagram } from './diagrams/diagramRefs';
 import { useDocsRefs } from './docs/DocsRefsContext';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../utils/docsMarkdown';
 import type { DocsRefRequest } from '../types/docs';
@@ -32,8 +34,8 @@ const MARKDOWN_SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'member'],
-    src: ['http', 'https'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'member', 'diagram'],
+    src: ['http', 'https', 'diagram'],
   },
 };
 
@@ -174,12 +176,20 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
         remarkPlugins={docs ? [remarkGfm, remarkDocs] : [remarkGfm]}
         rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}
         urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) || url.startsWith('member:')
+          url.startsWith(REF_SCHEME) ||
+          url.startsWith(TICKET_SCHEME) ||
+          url.startsWith('member:') ||
+          url.startsWith(DIAGRAM_SCHEME)
             ? url
             : defaultUrlTransform(url)
         }
         components={{
-          ...(inline ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> } : {}),
+          ...(inline
+            ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> }
+            : {
+                // a diagram is a block: it cannot live inside a <p>
+                p: ({ node, children: inner }) => (hasDiagram(node) ? <div>{inner}</div> : <p>{inner}</p>),
+              }),
           blockquote: ({ node, children: inner, ...props }) => {
             const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
             if (!kind) return <blockquote {...props}>{inner}</blockquote>;
@@ -192,8 +202,14 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
               </div>
             );
           },
-          img: ({ src, alt, ...props }) => <MarkdownImage src={src} alt={alt} {...props} />,
+          img: ({ src, alt, ...props }) => {
+            const diagramId = diagramIdOf(src);
+            if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} small />;
+            return <MarkdownImage src={src} alt={alt} {...props} />;
+          },
           a: ({ href, children, ...props }) => {
+            const diagramId = diagramIdOf(href);
+            if (diagramId) return <DiagramEmbed id={diagramId} label={String(children ?? '')} small />;
             if (href?.startsWith('member:')) {
               return (
                 <span

@@ -1664,6 +1664,9 @@ function TicketModalInner({
                       onUploadFile={uploadAnyFile}
                       onUploadImage={uploadAnyFile}
                       docsProjectId={ticket.projectId}
+                      diagramProjectId={ticket.projectId}
+                      diagramSaveTo={`${ticket.id} description`}
+                      diagramItem={{ kind: 'ticket', id: ticket.id }}
                     />
                   </div>
 

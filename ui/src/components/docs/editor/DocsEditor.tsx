@@ -30,6 +30,9 @@ import { buildExtensions } from './extensions';
 import { anchorFromState, commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
 import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
 import { createSuggest } from './extensions/suggest';
+import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
+import { DIAGRAM_LINE } from '../../diagrams/diagramRefs';
+import { firstDiagramFile } from '../../diagrams/diagramFile';
 import { MarkdownPane } from './MarkdownPane';
 import { MenuHost } from './menuHost';
 import { RefSuggester, type RefPayload } from './RefSuggester';
@@ -175,6 +178,26 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const editorRef = useRef<Editor | null>(null);
   const pickImage = useCallback(() => fileRef.current?.click(), []);
 
+  // draw.io: /diagram starts a drawing, a dropped .drawio/.svg file opens in the editor layer first
+  const insertDiagram = useCallback((md: string) => {
+    const parts = DIAGRAM_LINE.exec(md);
+    if (!parts || !editorRef.current) return;
+    editorRef.current
+      .chain()
+      .focus()
+      .insertContent({ type: 'diagram', attrs: { id: parts[2], label: parts[1] } })
+      .run();
+  }, []);
+  const diagramStarter = useDiagramStarter({
+    projectId,
+    saveTo: `Docs › ${pageTitle || 'Untitled'}`,
+    itemKind: 'doc',
+    itemId: currentPageId ?? undefined,
+    onInsert: insertDiagram,
+  });
+  const starterRef = useRef(diagramStarter);
+  starterRef.current = diagramStarter;
+
   const uploadImage = useCallback(async (file: File, at?: number) => {
     const ed = editorRef.current;
     if (!ed) return;
@@ -200,6 +223,8 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       command: ({ editor, range, payload }) =>
         (payload as SlashItem).run(editor, range, {
           pickImage,
+          newDiagram: () => starterRef.current.startNew(),
+          importDiagram: () => starterRef.current.pickFile(),
           ticketPrefix: live.current.ticketPrefix,
           pageTitle: live.current.pageTitle,
         }),
@@ -297,6 +322,12 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         return true;
       },
       handleDrop: (view, event) => {
+        const diagramFile = firstDiagramFile((event as DragEvent).dataTransfer?.files);
+        if (diagramFile) {
+          event.preventDefault();
+          void starterRef.current.startImport(diagramFile);
+          return true;
+        }
         const file = Array.from((event as DragEvent).dataTransfer?.files ?? []).find((f) =>
           f.type.startsWith('image/'),
         );
@@ -512,7 +543,17 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           />
         )}
         {slashState && mode === 'visual' && (
-          <SlashMenu host={slashHost} state={slashState} ctx={{ pickImage, ticketPrefix, pageTitle }} />
+          <SlashMenu
+            host={slashHost}
+            state={slashState}
+            ctx={{
+              pickImage,
+              newDiagram: diagramStarter.startNew,
+              importDiagram: diagramStarter.pickFile,
+              ticketPrefix,
+              pageTitle,
+            }}
+          />
         )}
         {refState && mode === 'visual' && (
           <RefSuggester
@@ -524,6 +565,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             onClose={() => undefined}
           />
         )}
+        {diagramStarter.fileInput}
         <input
           ref={fileRef}
           type="file"

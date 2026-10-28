@@ -5,9 +5,91 @@
 
 import { keyChipHtml, keyPattern, refChipHtml } from './docRefTokens';
 import { resolveOrigin } from '../api/resolveOrigin';
+import { DIAGRAM_LINE } from '../components/diagrams/diagramRefs';
 
 function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * The editor's stand-in for a diagram line: a non-editable block with the picture, an Edit button and the name.
+ * `htmlToMarkdown` turns it back into `[label](diagram:id)`.
+ * @param id - Diagram id.
+ * @param label - Diagram label.
+ * @param version - Version to show; adds a cache key to the picture address.
+ */
+export function diagramBlockHtml(id: string, label: string, version?: number): string {
+  const name = escapeHtml(label || 'Diagram');
+  const safeId = escapeHtml(encodeURIComponent(id));
+  const src = escapeHtml(
+    `${resolveOrigin()}/diagrams/${encodeURIComponent(id)}/svg${version ? `?version=${Number(version)}` : ''}`,
+  );
+  return (
+    `<div data-diagram="${safeId}" data-label="${name}" contenteditable="false" ` +
+    `style="margin:10px 0;border:1px solid #E3E8E5;border-radius:12px;background:#fff;overflow:hidden;user-select:none;max-width:100%">` +
+    `<div style="display:flex;justify-content:center;padding:12px"><img data-diagram-img src="${src}" alt="${name}" ` +
+    `style="max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in" /></div>` +
+    `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid #EEF2EF;background:#FAFCFA;font-size:13px;color:#5B6B60">` +
+    `<span style="padding:1px 8px;border-radius:6px;background:#E3F2E7;color:#2E6F40;font-weight:600;font-size:12px">draw.io</span>` +
+    `<b data-diagram-name style="color:#1E2A22">${name}</b><span style="flex:1"></span>` +
+    `<button type="button" data-diagram-edit style="border:1px solid #DCE6DF;border-radius:7px;background:#fff;padding:3px 10px;font:600 12px inherit;cursor:pointer">Edit</button>` +
+    `</div></div>`
+  );
+}
+
+const BLOCK_STYLE =
+  'margin:10px 0;border:1px solid #E3E8E5;border-radius:12px;background:#fff;overflow:hidden;user-select:none;max-width:100%';
+
+/**
+ * The same block as `diagramBlockHtml`, built with DOM calls so the label is only ever set as text or an attribute value.
+ * @param id - Diagram id.
+ * @param label - Diagram label.
+ */
+export function diagramBlockElement(id: string, label: string): HTMLElement {
+  const name = label || 'Diagram';
+  const el = (tag: string, style?: string) => {
+    const e = document.createElement(tag);
+    if (style) e.setAttribute('style', style);
+    return e;
+  };
+  const block = el('div', BLOCK_STYLE);
+  block.setAttribute('data-diagram', id);
+  block.setAttribute('data-label', name);
+  block.setAttribute('contenteditable', 'false');
+  const stage = el('div', 'display:flex;justify-content:center;padding:12px');
+  const img = el('img', 'max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in') as HTMLImageElement;
+  img.setAttribute('data-diagram-img', '');
+  img.src = `${resolveOrigin()}/diagrams/${encodeURIComponent(id)}/svg`;
+  img.alt = name;
+  stage.appendChild(img);
+  const foot = el(
+    'div',
+    'display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid #EEF2EF;background:#FAFCFA;font-size:13px;color:#5B6B60',
+  );
+  const chip = el(
+    'span',
+    'padding:1px 8px;border-radius:6px;background:#E3F2E7;color:#2E6F40;font-weight:600;font-size:12px',
+  );
+  chip.textContent = 'draw.io';
+  const title = el('b', 'color:#1E2A22');
+  title.setAttribute('data-diagram-name', '');
+  title.textContent = name;
+  const grow = el('span', 'flex:1');
+  const edit = el(
+    'button',
+    'border:1px solid #DCE6DF;border-radius:7px;background:#fff;padding:3px 10px;font:600 12px inherit;cursor:pointer',
+  );
+  edit.setAttribute('type', 'button');
+  edit.setAttribute('data-diagram-edit', '');
+  edit.textContent = 'Edit';
+  foot.append(chip, title, grow, edit);
+  block.append(stage, foot);
+  return block;
 }
 
 /** Allow only http(s), mailto, root-relative and plain relative URLs. */
@@ -279,6 +361,13 @@ export function markdownToHtml(md: string): string {
     // Blank line
     if (!line.trim()) continue;
 
+    // A diagram on its own line: [label](diagram:dg_…)
+    const diagramLine = DIAGRAM_LINE.exec(line.trim());
+    if (diagramLine) {
+      htmlParts.push(diagramBlockHtml(diagramLine[2], diagramLine[1]));
+      continue;
+    }
+
     // Horizontal rule
     if (HR_RE.test(line)) {
       htmlParts.push('<hr>');
@@ -376,6 +465,12 @@ export function markdownToHtml(md: string): string {
  * Traverses an HTMLElement and serializes its content into clean, standard Markdown.
  */
 export function htmlToMarkdown(root: HTMLElement): string {
+  // the id is checked against the real id shape, so nothing but dg_xxxxxxxx can come back out of the DOM
+  const diagramLink = (el: HTMLElement, id: string) =>
+    /^dg_[0-9a-f]{8}$/.test(id)
+      ? `[${(el.getAttribute('data-label') || 'Diagram').replace(/[<>"'[\]\n]+/g, ' ')}](diagram:${id})`
+      : '';
+
   function serializeInline(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) {
       // eslint-disable-next-line no-irregular-whitespace -- non-breaking space is matched on purpose
@@ -388,6 +483,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
 
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
+    const inlineDiagramId = el.getAttribute('data-diagram');
+    if (inlineDiagramId) return diagramLink(el, inlineDiagramId);
 
     const childrenText = Array.from(el.childNodes).map(serializeInline).join('');
 
@@ -539,6 +636,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
     const textAlign = el.style.textAlign;
+    const diagramId = el.getAttribute('data-diagram');
+    if (diagramId) return `${diagramLink(el, diagramId)}\n\n`;
 
     switch (tag) {
       case 'h1':
