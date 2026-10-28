@@ -3,6 +3,7 @@ import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
 import { McpIntegrations } from './McpIntegrations';
+import { UpdateSettingsSection } from './UpdateSettingsSection';
 import { DocsSettingsRow } from './docs/DocsSettingsRow';
 import { DiagramSettingsSection } from './diagrams/DiagramSettingsSection';
 import { useProjects, useUpdateProject } from '../api/projects';
@@ -639,6 +640,13 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
               {theme === 'default' ? '📺 Switch to B&W' : '🎨 Switch to Color'}
             </button>
           </div>
+
+          {isElectron && window.electronAPI?.getUpdateStatus && (
+            <>
+              <div className={styles.divider} />
+              <UpdateSettingsSection />
+            </>
+          )}
 
           <div className={styles.divider} />
 

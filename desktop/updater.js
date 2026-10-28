@@ -1,30 +1,45 @@
-const { app, ipcMain, shell } = require('electron');
+const { app, ipcMain, net, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { Readable } = require('stream');
 const { pipeline } = require('stream/promises');
-const { LATEST_RELEASE_URL, buildUpdateInfo, isTrustedDownloadUrl } = require('./updater-helpers');
+const { LATEST_RELEASE_URL, RELEASES_PAGE_URL, buildUpdateInfo, isTrustedDownloadUrl } = require('./updater-helpers');
 
 const CHECK_DELAY_MS = 15 * 1000;
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 let latestInfo = null;
+let lastCheck = null; // { at, error } of the most recent check, automatic or manual
 let downloading = false;
 
+// Electron's net.fetch goes through Chromium's network stack, so it honours the system proxy
+// and the OS certificate store. Node's global fetch does neither, which on Windows machines
+// behind a proxy or HTTPS-scanning antivirus made every check fail silently.
 async function checkForUpdate() {
-  const res = await fetch(LATEST_RELEASE_URL, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'kanban-board-desktop' },
-  });
-  if (!res.ok) throw new Error(`GitHub responded ${res.status}`);
-  const release = await res.json();
-  latestInfo = buildUpdateInfo(release, {
-    currentVersion: app.getVersion(),
-    platform: process.platform,
-    arch: process.arch,
-  });
-  return latestInfo;
+  try {
+    const res = await net.fetch(LATEST_RELEASE_URL, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'kanban-board-desktop' },
+      // Revalidate instead of reusing GitHub's 60 s cached answer; a 304 does not count against the rate limit
+      cache: 'no-cache',
+    });
+    if (!res.ok) {
+      const limited = [403, 429].includes(res.status) && res.headers.get('x-ratelimit-remaining') === '0';
+      throw new Error(limited ? 'GitHub rate limit reached, try again later' : `GitHub responded ${res.status}`);
+    }
+    const release = await res.json();
+    latestInfo = buildUpdateInfo(release, {
+      currentVersion: app.getVersion(),
+      platform: process.platform,
+      arch: process.arch,
+    });
+    lastCheck = { at: new Date().toISOString(), error: null };
+    return latestInfo;
+  } catch (err) {
+    lastCheck = { at: new Date().toISOString(), error: err.message };
+    throw err;
+  }
 }
 
 async function downloadInstaller(info, onProgress) {
@@ -33,7 +48,7 @@ async function downloadInstaller(info, onProgress) {
   fs.mkdirSync(dir, { recursive: true });
   const target = path.join(dir, path.basename(info.assetName));
 
-  const res = await fetch(info.assetUrl, { headers: { 'User-Agent': 'kanban-board-desktop' } });
+  const res = await net.fetch(info.assetUrl, { headers: { 'User-Agent': 'kanban-board-desktop' } });
   if (!res.ok || !res.body) throw new Error(`Download failed (${res.status})`);
   const total = Number(res.headers.get('content-length')) || info.assetSize || 0;
 
@@ -84,13 +99,18 @@ function setupUpdater(getWindow) {
   };
 
   ipcMain.handle('update-get', () => latestInfo);
+  ipcMain.handle('update-status', () => ({ currentVersion: app.getVersion(), lastCheck, info: latestInfo }));
   ipcMain.handle('update-check', async () => {
     try {
-      return { info: await checkForUpdate() };
+      const info = await checkForUpdate();
+      // A manual check brings the notice back, even after "Later" or "Skip this version"
+      if (info) notify('update-available', { ...info, manual: true });
+      return { info, lastCheck };
     } catch (err) {
-      return { info: null, error: err.message };
+      return { info: null, lastCheck, error: err.message };
     }
   });
+  ipcMain.handle('update-open-releases', () => shell.openExternal(RELEASES_PAGE_URL));
   ipcMain.handle('update-download', async () => {
     if (!latestInfo) return { error: 'No update available' };
     if (downloading) return { error: 'Already downloading' };

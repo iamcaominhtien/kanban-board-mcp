@@ -4,6 +4,19 @@ interface UpdateInfo {
   releaseUrl: string | null;
   assetName: string;
   assetSize: number;
+  /** Set when the info comes from a check the user started from Settings. */
+  manual?: boolean;
+}
+
+interface UpdateCheckResult {
+  at: string;
+  error: string | null;
+}
+
+interface UpdateStatus {
+  currentVersion: string;
+  lastCheck: UpdateCheckResult | null;
+  info: UpdateInfo | null;
 }
 
 interface Window {
@@ -16,7 +29,9 @@ interface Window {
     onBackendError?: (callback: (message: string) => void) => () => void;
     retryBackend?: () => Promise<number>;
     getUpdateInfo?: () => Promise<UpdateInfo | null>;
-    checkForUpdate?: () => Promise<{ info: UpdateInfo | null; error?: string }>;
+    getUpdateStatus?: () => Promise<UpdateStatus>;
+    checkForUpdate?: () => Promise<{ info: UpdateInfo | null; lastCheck: UpdateCheckResult | null; error?: string }>;
+    openReleasesPage?: () => Promise<void>;
     downloadUpdate?: () => Promise<{ filePath?: string; error?: string }>;
     installUpdate?: (filePath: string) => Promise<{ success: boolean; error?: string }>;
     onUpdateAvailable?: (callback: (info: UpdateInfo) => void) => () => void;
