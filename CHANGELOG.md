@@ -8,6 +8,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+---
+
+## [3.4.0] - 2026-10-28
+
 ### Added
 - Docs: **inline and page comments** (#166). Select text in the page view or the editor and choose Comment (or `Ctrl+Alt+M`): the text is highlighted with a number and the thread lives in the new *Inline comments* panel (All / Open / Resolved tabs). Threads have replies, edit, delete, resolve and reopen; page comments sit at the bottom of the page. `@mentions` (project members only), `[[Page]]` and ticket keys work in comments, and mentions / replies show as toasts and in the panel's Activity list.
 - Docs: comments follow the page, not a version. Anchors are re-matched on every publish: moved or slightly edited text keeps its thread, text that is gone **orphans** the thread (kept with a warning, can be re-attached to a new selection or resolved), and publishing shows a warning when open comments would be orphaned.
