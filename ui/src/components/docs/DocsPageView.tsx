@@ -217,8 +217,12 @@ export function DocsPageView({
             position: 'relative',
           }}
         >
-          <div style={{ maxWidth: 640, margin: '0 auto' }}>
-            {!offline && <SinceViewedBanner page={page} onCompare={onCompare ?? (() => undefined)} />}
+          <div style={{ maxWidth: 840, margin: '0 auto' }}>
+            {!offline && (
+              <div style={{ marginBottom: 16 }}>
+                <SinceViewedBanner page={page} onCompare={onCompare ?? (() => undefined)} />
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
                 <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
