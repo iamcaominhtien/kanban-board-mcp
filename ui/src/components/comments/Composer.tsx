@@ -3,6 +3,9 @@ import { uploadAnyFile } from '../../api/tickets';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { RefSuggester, type SuggestMember } from '../docs/RefSuggester';
 import { Icon } from '../docs/Icon';
+import { DiagramIcon } from '../diagrams/DiagramIcon';
+import { useDiagramStarter } from '../diagrams/useDiagramStarter';
+import { firstDiagramFile } from '../diagrams/diagramFile';
 import { COUNTER_FROM, MAX_COMMENT_CHARS, draftKey, readJson, writeJson, type Person } from './commentUtils';
 
 interface Chip {
@@ -152,6 +155,29 @@ export function Composer({
     });
   }
 
+  /** Put a diagram's line on a line of its own at the caret. */
+  function insertDiagramLine(md: string) {
+    const el = ta.current;
+    if (!el) {
+      setText((t) => `${t}${t && !t.endsWith('\n') ? '\n' : ''}${md}\n`);
+      return;
+    }
+    const { selectionStart: a, selectionEnd: b, value } = el;
+    const lead = a > 0 && value[a - 1] !== '\n' ? '\n' : '';
+    const token = `${lead}${md}\n`;
+    setText(value.slice(0, a) + token + value.slice(b));
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(a + token.length, a + token.length);
+    });
+  }
+  const diagram = useDiagramStarter({
+    projectId,
+    saveTo: `${ticketId} comment`,
+    itemKind: 'comment',
+    onInsert: insertDiagramLine,
+  });
+
   function addFiles(files: FileList | File[]) {
     for (const file of Array.from(files)) {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -297,6 +323,24 @@ export function Composer({
               >
                 [[ ]]
               </button>
+              {diagram.available && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Diagram"
+                    title="Diagram (draw.io)"
+                    data-testid="comment-diagram"
+                    style={{ ...btn, color: '#2E6F40' }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      diagram.startNew();
+                    }}
+                  >
+                    <DiagramIcon name="drawio" size={14} />
+                  </button>
+                  {diagram.fileInput}
+                </>
+              )}
               <button
                 type="button"
                 aria-label="Mention a member"
@@ -351,7 +395,11 @@ export function Composer({
               }
             }}
             onDrop={(e) => {
-              if (e.dataTransfer.files.length) {
+              const dg = diagram.available ? firstDiagramFile(e.dataTransfer.files) : null;
+              if (dg) {
+                e.preventDefault();
+                void diagram.startImport(dg);
+              } else if (e.dataTransfer.files.length) {
                 e.preventDefault();
                 addFiles(e.dataTransfer.files);
               }

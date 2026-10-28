@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { markdownToHtml, htmlToMarkdown } from '../utils/markdownWysiwyg';
+import { markdownToHtml, htmlToMarkdown, diagramBlockHtml } from '../utils/markdownWysiwyg';
+import { useDiagrams } from './diagrams/DiagramsContext';
+import { DiagramIcon } from './diagrams/DiagramIcon';
+import { useDiagramStarter } from './diagrams/useDiagramStarter';
+import { DIAGRAM_LINE } from './diagrams/diagramRefs';
+import { firstDiagramFile } from './diagrams/diagramFile';
+import diagramStyles from './diagrams/Diagrams.module.css';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { RefSuggester } from './docs/RefSuggester';
 import { useDocsRefs } from './docs/DocsRefsContext';
@@ -47,6 +53,12 @@ interface Props {
   actions?: React.ReactNode;
   /** When set, typing `[[` offers pages and sections of this project's docs. */
   docsProjectId?: string;
+  /** When set, the toolbar offers a Diagram action (draw.io) for this project. */
+  diagramProjectId?: string;
+  /** Where diagrams drawn here are saved to, shown in the editor header. */
+  diagramSaveTo?: string;
+  /** The ticket or comment the diagrams belong to. */
+  diagramItem?: { kind: 'ticket' | 'comment'; id?: string };
 }
 
 /**
@@ -84,8 +96,13 @@ export function MarkdownEditor({
   compact = false,
   actions,
   docsProjectId: docsProjectIdProp,
+  diagramProjectId,
+  diagramSaveTo,
+  diagramItem,
 }: Props) {
   const docsRefs = useDocsRefs();
+  const diagrams = useDiagrams();
+  const [diagramMenuOpen, setDiagramMenuOpen] = useState(false);
   const docsProjectId = docsProjectIdProp ?? docsRefs?.projectId;
   setKeyPrefix(docsRefs?.ticketId?.split('-')[0] ?? null);
   const [isEditing, setIsEditing] = useState(startInEditMode);
@@ -299,6 +316,73 @@ export function MarkdownEditor({
     setSelectedImg(null);
     setImgRect(null);
     syncContent();
+  }
+
+  /** Put a saved diagram's block after the block the caret was in (or at the end) and save the text. */
+  function insertDiagramBlock(md: string) {
+    const root = wysiwygRef.current;
+    const parts = DIAGRAM_LINE.exec(md);
+    if (!root || !parts) return;
+    const tpl = document.createElement('div');
+    tpl.innerHTML = diagramBlockHtml(parts[2], parts[1]);
+    const block = tpl.firstElementChild;
+    if (!block) return;
+    const saved = savedSelectionRangeRef.current;
+    let anchor: Node | null = null;
+    if (saved && root.contains(saved.commonAncestorContainer)) {
+      anchor = saved.commonAncestorContainer;
+      while (anchor.parentNode && anchor.parentNode !== root) anchor = anchor.parentNode;
+      if (anchor === root) anchor = null;
+    }
+    root.insertBefore(block, anchor ? anchor.nextSibling : null);
+    if (!block.nextElementSibling) {
+      const p = document.createElement('p');
+      p.innerHTML = '<br>';
+      root.appendChild(p);
+    }
+    savedSelectionRangeRef.current = null;
+    syncContent();
+  }
+
+  const diagramStarter = useDiagramStarter({
+    projectId: diagramProjectId,
+    saveTo: diagramSaveTo,
+    itemKind: diagramItem?.kind,
+    itemId: diagramItem?.id,
+    onInsert: (md) => insertDiagramBlock(md),
+  });
+
+  function rememberSelection() {
+    const sel = window.getSelection();
+    savedSelectionRangeRef.current =
+      sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+  }
+
+  function handleDiagramClick(target: HTMLElement): boolean {
+    const block = target.closest('[data-diagram]') as HTMLElement | null;
+    if (!block || !wysiwygRef.current?.contains(block)) return false;
+    const id = block.getAttribute('data-diagram') ?? '';
+    const label = block.getAttribute('data-label') ?? 'Diagram';
+    if (target.closest('[data-diagram-edit]')) {
+      if (!readOnly && diagrams && diagramProjectId) {
+        diagrams.openEditor({
+          projectId: diagramProjectId,
+          diagramId: id,
+          label,
+          saveTo: diagramSaveTo,
+          onSaved: (d) => {
+            block.setAttribute('data-label', d.label);
+            block.querySelector('[data-diagram-name]')!.textContent = d.label;
+            const img = block.querySelector('img');
+            if (img) img.setAttribute('src', `${resolveOrigin()}/diagrams/${id}/svg?version=${d.version}`);
+            syncContent();
+          },
+        });
+      }
+    } else if (diagrams) {
+      diagrams.openViewer({ id, label, version: 0 });
+    }
+    return true;
   }
 
   function syncContent() {
@@ -685,6 +769,13 @@ export function MarkdownEditor({
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    const diagramFile = diagramStarter.available ? firstDiagramFile(e.dataTransfer.files) : null;
+    if (diagramFile) {
+      e.preventDefault();
+      rememberSelection();
+      void diagramStarter.startImport(diagramFile);
+      return;
+    }
     if ((!onUploadImage && !onUploadFile) || isUploading) return;
     const file = Array.from(e.dataTransfer.files)[0];
     if (file) {
@@ -1106,6 +1197,63 @@ export function MarkdownEditor({
               </>
             )}
 
+            {/* Diagram (draw.io) */}
+            {diagramStarter.available && !readOnly && (
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <button
+                  type="button"
+                  className={styles.toolbarBtn}
+                  aria-label="Diagram"
+                  aria-haspopup="menu"
+                  aria-expanded={diagramMenuOpen}
+                  title="Diagram (draw.io)"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    rememberSelection();
+                    setDiagramMenuOpen((o) => !o);
+                  }}
+                >
+                  <DiagramIcon name="drawio" size={14} />
+                  {!compact && <span style={{ marginLeft: 5, fontSize: 12, fontWeight: 600 }}>Diagram</span>}
+                </button>
+                {diagramMenuOpen && (
+                  <div
+                    className={diagramStyles.menu}
+                    style={{ top: 34, left: 0, right: 'auto', width: 240, zIndex: 20 }}
+                    role="menu"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={diagramStyles.menuItem}
+                      onClick={() => {
+                        setDiagramMenuOpen(false);
+                        diagramStarter.startNew();
+                      }}
+                    >
+                      <DiagramIcon name="plus" /> New draw.io drawing
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={diagramStyles.menuItem}
+                      onClick={() => {
+                        setDiagramMenuOpen(false);
+                        diagramStarter.pickFile();
+                      }}
+                    >
+                      <DiagramIcon name="upload" /> Import .drawio file
+                    </button>
+                    <div className={diagramStyles.stateText} style={{ padding: '4px 8px 2px' }}>
+                      Also drop a file onto the field
+                    </div>
+                  </div>
+                )}
+                {diagramStarter.fileInput}
+              </span>
+            )}
+
             {/* Image upload */}
             {(onUploadImage || onUploadFile) && (
               <>
@@ -1348,6 +1496,11 @@ export function MarkdownEditor({
           onDrop={handleDrop}
           onClick={(e) => {
             const target = e.target as HTMLElement;
+            if (handleDiagramClick(target)) {
+              e.stopPropagation();
+              setSelectedImg(null);
+              return;
+            }
             const chip = target.closest('.docRef') as HTMLElement | null;
             if (chip && wysiwygRef.current?.contains(chip)) {
               e.preventDefault();

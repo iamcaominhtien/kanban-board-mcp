@@ -4,6 +4,7 @@ import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
 import { McpIntegrations } from './McpIntegrations';
 import { DocsSettingsRow } from './docs/DocsSettingsRow';
+import { DiagramSettingsSection } from './diagrams/DiagramSettingsSection';
 import { useProjects, useUpdateProject } from '../api/projects';
 import { sweepWorkspaces, useUpdateWorkspaceSettings, useWorkspaceSettings } from '../api/tickets';
 import { extractError } from '../api/extractError';
@@ -610,6 +611,14 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
             {projects.map((p) => (
               <DocsSettingsRow key={p.id} project={p} />
             ))}
+          </div>
+
+          <div className={styles.divider} />
+
+          {/* draw.io editor host */}
+          <div className={styles.section}>
+            <span className={styles.sectionTitle}>Diagrams (draw.io)</span>
+            <DiagramSettingsSection />
           </div>
 
           <div className={styles.divider} />

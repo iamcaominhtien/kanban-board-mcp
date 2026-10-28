@@ -3,6 +3,8 @@ import type { CalloutKind } from './constants';
 
 export interface SlashCtx {
   pickImage: () => void;
+  newDiagram: () => void;
+  importDiagram: () => void;
   ticketPrefix: string;
   pageTitle: string;
 }
@@ -175,6 +177,29 @@ export const SLASH_ITEMS: SlashItem[] = [
     run: (e, r, ctx) => {
       chain(e, r).run();
       ctx.pickImage();
+    },
+  },
+  {
+    id: 'diagram',
+    group: 'Blocks',
+    label: 'New draw.io drawing',
+    desc: 'Draw a flow or sketch',
+    kbd: '/diagram',
+    tile: { icon: 'i33' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      ctx.newDiagram();
+    },
+  },
+  {
+    id: 'diagram-import',
+    group: 'Blocks',
+    label: 'Import .drawio file',
+    desc: 'Also drop a file onto the page',
+    tile: { icon: 'i26' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      ctx.importDiagram();
     },
   },
   {
