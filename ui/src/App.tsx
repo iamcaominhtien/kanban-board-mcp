@@ -845,6 +845,7 @@ export default function App() {
                       onViewModeChange={setViewMode}
                       docsRequestedPageId={docsRequest}
                       onDocsRequestHandled={() => setDocsRequest(null)}
+                      onOpenSettings={() => setSettingsTarget({ page: 'docs' })}
                       members={members}
                       activeAssignee={activeAssignee}
                       onAssigneeChange={setActiveAssignee}

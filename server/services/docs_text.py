@@ -203,6 +203,42 @@ def sentence_around(raw: str, needle: str, limit: int = 200) -> str:
     return _strip_inline(plain_line[start:end])[:limit]
 
 
+def ref_excerpt(raw: str, needle: str, width: int = 120) -> str:
+    """Cut about ``width`` characters around a reference, keeping the reference itself as ``[[...]]``.
+
+    The UI turns the kept reference into a chip ("...the token rules live in [Data model] and the
+    column schema..."); other Markdown around it is flattened to plain text.
+
+    Args:
+        raw: Markdown line holding the reference.
+        needle: The ``[[...]]`` text to center on.
+        width: Rough length of the excerpt.
+
+    Returns:
+        The excerpt, with an ellipsis on each side that was cut.
+    """
+    line = re.sub(r"^\s*(?:>\s*)*(?:[*+-]|\d+\.)?\s*(?:\[[ xX]\]\s*)?", "", raw.strip())
+    pos = line.find(needle)
+    if pos < 0:
+        return _strip_inline(line)[:width]
+
+    def flat(text: str) -> str:
+        text = _REF.sub(lambda m: m.group(3) or m.group(1), text)
+        text = _LINK.sub(r"\1", text)
+        return re.sub(r"[*_`~]", "", text)
+
+    before, after = flat(line[:pos]).lstrip(), flat(line[pos + len(needle) :]).rstrip()
+    half = max(20, (width - len(needle)) // 2)
+    cut_before, cut_after = len(before) > half, len(after) > half
+    if cut_before:
+        before = before[-half:]
+        before = before[before.find(" ") + 1 :] if " " in before else before
+    if cut_after:
+        after = after[:half]
+        after = after[: after.rfind(" ")] if " " in after else after
+    return f"{'… ' if cut_before else ''}{before}{needle}{after}{' …' if cut_after else ''}"
+
+
 def _map_outside_code(line: str, fn: Any) -> str:
     out, last = [], 0
     for m in _INLINE_CODE.finditer(line):
@@ -272,6 +308,7 @@ def page_ref_contexts(markdown: str) -> list[dict[str, Any]]:
                     "anchor": (m.group(2) or "").strip() or None,
                     "section": section,
                     "context": sentence_around(line, m.group(0)),
+                    "excerpt": ref_excerpt(line, m.group(0)),
                 }
             )
     return out

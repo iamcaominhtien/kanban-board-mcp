@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { client } from '../../api/client';
 import { subscribeSSE } from '../../hooks/sseEvents';
 import { useToast } from '../Toast';
 import type { DocsPublishedEvent } from '../../types/docsFx';
@@ -41,6 +42,16 @@ export function setDocsFollow(projectId: string, on: boolean) {
     /* ignore */
   }
   followListeners.forEach((l) => l());
+  syncDocsFollow(projectId, on);
+}
+
+/**
+ * Tell the server whether this person follows the space, so the publish dialog can count real followers.
+ * @param projectId - Project whose Docs space is followed.
+ * @param on - Whether the person follows it.
+ */
+export function syncDocsFollow(projectId: string, on: boolean) {
+  client.put(`/projects/${projectId}/docs/follow`, { on }).catch(() => undefined);
 }
 
 /** Hook returning `[following, setFollowing]` for a project. */

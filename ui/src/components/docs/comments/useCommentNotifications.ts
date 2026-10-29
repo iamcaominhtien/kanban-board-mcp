@@ -14,7 +14,8 @@ export function currentActor(): string {
 }
 
 /**
- * Show a toast when someone @mentions you or replies in a thread you started or joined.
+ * Show a toast when someone @mentions you or replies in a thread you started or joined, and (admins) when
+ * someone asks for access to Docs.
  * Events that arrived before this browser first looked are not announced.
  * @param options.projectId - Project to watch.
  * @param options.onOpenPage - Called with a page id by the toast's Open action.
@@ -55,6 +56,17 @@ export function useCommentNotifications({
     const fresh = list.filter((e) => e.createdAt > seen!).reverse();
     for (const e of fresh) {
       const who = e.actor === 'user' ? 'Someone' : e.actor;
+      if (e.kind === 'access_request') {
+        toastRef.current.showToast({
+          variant: 'info',
+          title: `${who} asked for access to Docs`,
+          message: e.snippet
+            ? `“${e.snippet}” Add them in Members to let them in.`
+            : 'Add them in Members to let them in.',
+          duration: 10_000,
+        });
+        continue;
+      }
       const mentioned = e.mentioned.some((n) => n.toLowerCase() === me.toLowerCase());
       const title =
         e.kind === 'resolved'
@@ -69,7 +81,7 @@ export function useCommentNotifications({
         title,
         message: e.snippet || undefined,
         duration: 10_000,
-        action: { label: 'Open', onClick: () => openRef.current(e.pageId) },
+        action: { label: 'Open', onClick: () => e.pageId && openRef.current(e.pageId) },
       });
     }
     if (newest && newest > seen) {

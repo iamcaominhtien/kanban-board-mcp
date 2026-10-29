@@ -6,6 +6,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import events as board_events
 from database import get_session
 from models import ProjectCreate, ProjectRead, ProjectUpdate
+from services import activity as svc_activity
+from services import docs_access
 from services.projects import (
     create_project,
     delete_project,
@@ -50,7 +52,13 @@ async def get_one_project(project_id: str, session: Session) -> ProjectRead:
 async def patch_project(
     project_id: str, data: ProjectUpdate, session: Session
 ) -> ProjectRead:
-    """Update a project's name, color or linked repo."""
+    """Update a project's name, color, linked repo or Docs settings (Docs settings: admins only)."""
+    if data.docs_enabled is not None or data.docs_edit_policy is not None:
+        members = await docs_access.members_of(session, project_id)
+        if docs_access.role_in(members, svc_activity.current_actor()) != "admin":
+            raise HTTPException(
+                status_code=403, detail="Only project admins can change Docs settings."
+            )
     try:
         project = await update_project(session, project_id, data)
     except ValueError as exc:

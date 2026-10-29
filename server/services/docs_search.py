@@ -19,7 +19,15 @@ from sqlalchemy.exc import DBAPIError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import DocsDraft, DocsLink, DocsPage, DocsVersion, Project, Ticket
+from models import (
+    DocsDraft,
+    DocsLink,
+    DocsPage,
+    DocsVersion,
+    Member,
+    Project,
+    Ticket,
+)
 from services.docs_text import (
     _FENCE,
     _HEADING,
@@ -479,6 +487,11 @@ async def _search_tickets(
         )
         scored.append((score, t))
     scored.sort(key=lambda s: (-s[0], s[1].id))
+    ids = {t.assignee for _s, t in scored if t.assignee}
+    names: dict[str, str] = {}
+    if ids:
+        rows = await session.exec(select(Member).where(Member.id.in_(ids)))  # type: ignore[attr-defined]
+        names = {m.id: m.name for m in rows.all()}
     out = []
     for _score, t in scored:
         desc_plain = _plain_line(" ".join((t.description or "").split()))
@@ -489,9 +502,30 @@ async def _search_tickets(
                 "ticket_id": t.id,
                 "title": t.title,
                 "status": t.status,
+                "assignee": names.get(t.assignee) if t.assignee else None,
                 "snippet": highlight(_window(source, query.positive), query.positive),
             }
         )
+    return out
+
+
+async def _tickets_of_pages(
+    session: AsyncSession, page_ids: list[str], per_page: int = 4
+) -> dict[str, list[dict[str, str]]]:
+    """The tickets each page references or is linked to, as `{ticket_id, status}` chips."""
+    if not page_ids:
+        return {}
+    rows = await session.exec(
+        select(DocsLink.source_page_id, DocsLink.target_ticket_id, Ticket.status)
+        .join(Ticket, Ticket.id == DocsLink.target_ticket_id)  # type: ignore[arg-type]
+        .where(DocsLink.source_page_id.in_(page_ids))  # type: ignore[attr-defined]
+        .order_by(DocsLink.target_ticket_id)
+    )
+    out: dict[str, list[dict[str, str]]] = {}
+    for page_id, ticket_id, status in rows.all():
+        chips = out.setdefault(page_id, [])
+        if len(chips) < per_page and all(c["ticket_id"] != ticket_id for c in chips):
+            chips.append({"ticket_id": ticket_id, "status": status})
     return out
 
 
@@ -576,11 +610,18 @@ async def search(
     offset = max(0, offset)
     empty = {
         "total": 0,
+        "match_count": 0,
         "took_ms": 0,
         "pages": [],
         "tickets": [],
         "suggestion": None,
-        "facets": {"authors": [], "under": [], "status": [], "has_tickets": 0},
+        "facets": {
+            "authors": [],
+            "under": [],
+            "status": [],
+            "edited": {"any": 0, "day": 0, "week": 0, "month": 0},
+            "has_tickets": 0,
+        },
     }
     if not query.positive:
         return empty
@@ -638,6 +679,11 @@ async def search(
         statuses[p.status] = statuses.get(p.status, 0) + 1
         root = _root_of(p, by_id)
         unders[root.id] = unders.get(root.id, 0) + 1
+    now = datetime.now(UTC)
+    edited_facet = {"any": len(candidates), "day": 0, "week": 0, "month": 0}
+    for key, days in (("day", 1), ("week", 7), ("month", 30)):
+        cutoff = (now - timedelta(days=days)).isoformat()
+        edited_facet[key] = sum(1 for p in candidates if p.updated_at >= cutoff)
     ticket_linked: set[str] = set()
     if candidates:
         rows = await session.exec(
@@ -670,6 +716,27 @@ async def search(
     window = filtered[offset : offset + limit]
     if not contents:
         contents = await _contents(session, window)
+    page_tickets = await _tickets_of_pages(session, [p.id for p in window])
+    # "28 matches in 9 pages": every section that holds a hit, not only the 3 shown per result
+    counted = filtered[:300]
+    all_content = {
+        **contents,
+        **await _contents(session, [p for p in counted if p.id not in contents]),
+    }
+    match_count = sum(
+        max(
+            1,
+            len(
+                build_matches(
+                    all_content.get(p.id, ""),
+                    query.positive,
+                    headings_only=headings_only,
+                    limit=1000,
+                )
+            ),
+        )
+        for p in counted
+    )
     out_pages = []
     for p in window:
         out_pages.append(
@@ -686,6 +753,7 @@ async def search(
                 "version": p.version,
                 "updated_at": p.updated_at,
                 "updated_by": p.updated_by,
+                "tickets": page_tickets.get(p.id, []),
                 "matches": build_matches(
                     contents.get(p.id, ""), query.positive, headings_only=headings_only
                 ),
@@ -702,6 +770,7 @@ async def search(
     ]
     return {
         "total": len(filtered),
+        "match_count": match_count,
         "took_ms": int((time.perf_counter() - started) * 1000),
         "pages": out_pages,
         "tickets": ticket_hits[:5],
@@ -716,6 +785,7 @@ async def search(
                 {"name": n, "count": c}
                 for n, c in sorted(statuses.items(), key=lambda kv: kv[0])
             ],
+            "edited": edited_facet,
             "has_tickets": len(ticket_linked),
         },
     }

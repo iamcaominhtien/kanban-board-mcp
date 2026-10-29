@@ -7,7 +7,8 @@ interface Props {
   selectedId: string | null;
   onExpand: () => void;
   onSearch: () => void;
-  onNewPage: (parentId: string | null) => void;
+  /** Omitted when the reader can't edit the space: no add buttons. */
+  onNewPage?: (parentId: string | null) => void;
   onSelect: (id: string) => void;
 }
 
@@ -17,7 +18,7 @@ interface Props {
  * @param props.selectedId - Currently open page id.
  * @param props.onExpand - Called to expand the full tree.
  * @param props.onSearch - Called to open search.
- * @param props.onNewPage - Called with the parent page id, or `null` for a root page.
+ * @param props.onNewPage - Called with the parent page id, or `null` for a root page; omit to hide the add buttons.
  * @param props.onSelect - Called with the id of the selected page.
  */
 export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onSelect }: Props) {
@@ -93,15 +94,17 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
       <button type="button" className="dk-rail-btn" aria-label="Search pages" title="Search pages" onClick={onSearch}>
         <Icon name="search" size={18} strokeWidth={1.8} />
       </button>
-      <button
-        type="button"
-        className="dk-rail-btn"
-        aria-label="New page"
-        title="New page"
-        onClick={() => onNewPage(null)}
-      >
-        <Icon name="i23" size={18} strokeWidth={1.8} />
-      </button>
+      {onNewPage && (
+        <button
+          type="button"
+          className="dk-rail-btn"
+          aria-label="New page"
+          title="New page"
+          onClick={() => onNewPage(null)}
+        >
+          <Icon name="i23" size={18} strokeWidth={1.8} />
+        </button>
+      )}
       <div style={{ width: 24, height: 1, background: '#DCE6DF', margin: '6px 0', flexShrink: 0 }} />
       {roots.map((n) => {
         const folder = (kids.get(n.id)?.length ?? 0) > 0;
@@ -169,20 +172,24 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
               </div>
             );
           })}
-          <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />
-          <div
-            role="menuitem"
-            tabIndex={0}
-            className="dk-mi"
-            style={{ color: '#2E6F40', fontWeight: 600 }}
-            onClick={() => {
-              setFly(null);
-              onNewPage(flyNode.id);
-            }}
-          >
-            <Icon name="plus" size={14} strokeWidth={2.2} style={{ color: '#2E6F40' }} />
-            <span>Add child page</span>
-          </div>
+          {onNewPage && (
+            <>
+              <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />
+              <div
+                role="menuitem"
+                tabIndex={0}
+                className="dk-mi"
+                style={{ color: '#2E6F40', fontWeight: 600 }}
+                onClick={() => {
+                  setFly(null);
+                  onNewPage(flyNode.id);
+                }}
+              >
+                <Icon name="plus" size={14} strokeWidth={2.2} style={{ color: '#2E6F40' }} />
+                <span>Add child page</span>
+              </div>
+            </>
+          )}
         </div>
       )}
     </aside>

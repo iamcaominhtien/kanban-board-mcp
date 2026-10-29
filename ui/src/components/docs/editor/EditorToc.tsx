@@ -1,6 +1,6 @@
 import type { Editor } from '@tiptap/react';
 import { useEffect, useMemo, useState } from 'react';
-import { headingAnchors } from '../../../utils/docsMarkdown';
+import { cleanEditorMarkdown, headingAnchors } from '../../../utils/docsMarkdown';
 
 /**
  * Built-in "On this page" rail for the editor (the caller can pass its own via the toc slot).
@@ -26,7 +26,9 @@ export function EditorToc({ editor, markdown }: { editor: Editor | null; markdow
 
   const heads = useMemo(() => {
     void tick;
-    return headingAnchors(editor && !editor.isDestroyed ? editor.getMarkdown() : markdown).filter((h) => h.level <= 3);
+    return headingAnchors(editor && !editor.isDestroyed ? cleanEditorMarkdown(editor.getMarkdown()) : markdown).filter(
+      (h) => h.level <= 3,
+    );
   }, [editor, markdown, tick]);
 
   useEffect(() => {

@@ -218,7 +218,7 @@ export function ThreadCard({
               </span>
             }
           </div>
-          <CommentText text={c.body} mentions={c.mentions} />
+          <CommentText text={c.body} mentions={c.mentions} projectId={projectId} />
           {deleting === c.id && renderDelete(c, first)}
         </div>
       </div>

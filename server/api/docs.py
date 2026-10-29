@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import events as board_events
 from database import get_session
 from services import docs as svc
-from services import docs_comments
+from services import docs_access, docs_comments
 from services import docs_import, docs_search
 from services.docs_templates import TEMPLATES
 
@@ -78,6 +78,18 @@ class DraftSave(BaseModel):
     base_version: int | None = None
 
 
+class FollowBody(BaseModel):
+    """Request body to follow or unfollow a Docs space."""
+
+    on: bool
+
+
+class SeenBody(BaseModel):
+    """Request body to record the version a person has viewed."""
+
+    version: int
+
+
 class PublishBody(BaseModel):
     """Request body to publish a draft."""
 
@@ -99,6 +111,8 @@ class ResolveBody(BaseModel):
     """Request body listing references to resolve."""
 
     refs: list[dict[str, Any]]
+    # The references sit in a ticket: it links by page id, so a renamed page's old title still resolves.
+    from_ticket: bool = False
 
 
 class ImportResolveBody(BaseModel):
@@ -230,7 +244,9 @@ async def post_resolve(
     project_id: str, body: ResolveBody, session: Session
 ) -> list[dict[str, Any]]:
     """Resolve `[[references]]` to pages, sections and tickets."""
-    return await svc.resolve_refs(session, project_id, body.refs)
+    return await svc.resolve_refs(
+        session, project_id, body.refs, from_ticket=body.from_ticket
+    )
 
 
 @router.post("/projects/{project_id}/docs/import")
@@ -376,6 +392,32 @@ async def put_draft(page_id: str, body: DraftSave, session: Session) -> dict[str
         title=body.title,
         base_version=body.base_version,
     )
+
+
+@router.get("/projects/{project_id}/docs/followers")
+async def get_followers(project_id: str, session: Session) -> dict[str, Any]:
+    """Return who follows the project's Docs space (not counting you)."""
+    return await svc.followers(session, project_id)
+
+
+@router.put("/projects/{project_id}/docs/follow")
+async def put_follow(
+    project_id: str, body: FollowBody, session: Session
+) -> dict[str, Any]:
+    """Follow or unfollow the project's Docs space as you."""
+    return await svc.set_following(session, project_id, body.on)
+
+
+@router.get("/docs/pages/{page_id}/seen")
+async def get_seen(page_id: str, session: Session) -> dict[str, Any]:
+    """Return the version of a page you last viewed."""
+    return await svc.get_seen(session, page_id)
+
+
+@router.put("/docs/pages/{page_id}/seen")
+async def put_seen(page_id: str, body: SeenBody, session: Session) -> dict[str, Any]:
+    """Record the version of a page you have viewed."""
+    return await svc.mark_seen(session, page_id, body.version)
 
 
 @router.delete("/docs/pages/{page_id}/draft")
@@ -600,3 +642,36 @@ async def get_comment_events(
     return await docs_comments.list_events(
         session, project_id, recipient=recipient, limit=limit
     )
+
+
+@router.get("/projects/{project_id}/docs/access")
+async def get_docs_access(project_id: str, session: Session) -> dict[str, Any]:
+    """What the caller may do in the Docs space: access, role, can_edit, policy, admins."""
+    project = await session.get(svc.Project, project_id)
+    if project is None:
+        raise svc.DocsError(404, "project_not_found", "Project not found")
+    if not project.docs_enabled:
+        raise svc.DocsError(
+            403, "docs_disabled", "Docs are turned off for this project"
+        )
+    return await docs_access.access_of(session, project)
+
+
+class AccessRequestBody(BaseModel):
+    """Request body to ask an admin for access to Docs."""
+
+    note: str = ""
+
+
+@router.post("/projects/{project_id}/docs/access-requests", status_code=201)
+async def post_access_request(
+    project_id: str, body: AccessRequestBody, session: Session
+) -> dict[str, Any]:
+    """Ask the project's admins for access to Docs (notifies them)."""
+    project = await session.get(svc.Project, project_id)
+    if project is None:
+        raise svc.DocsError(404, "project_not_found", "Project not found")
+    result = await docs_access.request_access(session, project, body.note)
+    if result["sent"]:
+        await board_events.publish("invalidate")
+    return result

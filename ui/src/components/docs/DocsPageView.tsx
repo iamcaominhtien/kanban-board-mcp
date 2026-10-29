@@ -16,7 +16,7 @@ import { PageInfoPopover } from './PageInfoPopover';
 import { PageMenu, type PageMenuAction } from './PageMenu';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
-import { SinceViewedBanner } from './SinceViewedBanner';
+import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
 
 export type PageAction = PageMenuAction | 'edit' | 'share';
 
@@ -27,6 +27,8 @@ interface Props {
   narrow: boolean;
   /** Showing a saved copy while offline: editing is off. */
   offline?: { savedAt: string; version?: number | null } | null;
+  /** Why the reader can't edit this space (the edit policy), shown on the disabled Edit button. */
+  readOnly?: string | null;
   onTryAgain?: () => void;
   onAction: (action: PageAction) => void;
   onOpenPage: (pageId: string, anchor?: string | null) => void;
@@ -54,6 +56,7 @@ const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: '
  * @param props.projectName - Space name shown in the header.
  * @param props.narrow - Use the compact layout (no side panel).
  * @param props.offline - Set when showing a saved copy while offline; editing is off.
+ * @param props.readOnly - Set when the space's edit policy doesn't let the reader edit; the text explains why.
  * @param props.onTryAgain - Called to retry loading the live page.
  * @param props.onAction - Called with the chosen page menu action.
  * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
@@ -70,6 +73,7 @@ export function DocsPageView({
   projectName,
   narrow,
   offline,
+  readOnly,
   onTryAgain,
   onAction,
   onOpenPage,
@@ -80,6 +84,7 @@ export function DocsPageView({
   onReplaceSection,
   onBodyRef,
 }: Props) {
+  const since = useSinceViewed(page, !offline);
   const [menu, setMenu] = useState(false);
   const [share, setShare] = useState(false);
   const [info, setInfo] = useState(false);
@@ -258,15 +263,18 @@ export function DocsPageView({
             position: 'relative',
           }}
         >
-          <div style={{ maxWidth: 'clamp(640px, 62vw, 1120px)', margin: '0 auto' }}>
+          <div style={{ maxWidth: 'min(100%, clamp(640px, 62vw, 1120px))', margin: '0 auto' }}>
             {!offline && (
               <div style={{ marginBottom: 16 }}>
-                <SinceViewedBanner page={page} onCompare={onCompare ?? (() => undefined)} />
+                <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
-                <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                <nav
+                  aria-label="Breadcrumb"
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1, overflow: 'hidden' }}
+                >
                   <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
                   <span style={crumb}>{projectName}</span>
                   <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
@@ -289,7 +297,17 @@ export function DocsPageView({
                       <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
                     </span>
                   ))}
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: '#1E2A22',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minWidth: 0,
+                    }}
+                  >
                     {page.title}
                   </span>
                 </nav>
@@ -336,129 +354,14 @@ export function DocsPageView({
                     )}
                   </div>
                 )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <h1
-                    data-testid="page-title"
-                    style={{
-                      margin: 0,
-                      fontSize: 32,
-                      fontWeight: 800,
-                      lineHeight: 1.15,
-                      color: '#1E2A22',
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    {page.title}
-                  </h1>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    {published ? (
-                      <span
-                        className="mc-chip"
-                        style={{ background: '#DCEEE1', color: '#1F5A31' }}
-                        data-testid="status-badge"
-                      >
-                        <span className="mc-dot" style={{ background: '#2E6F40' }} />
-                        Published · v{page.version}
-                      </span>
-                    ) : (
-                      <span
-                        className="mc-chip"
-                        style={{ background: '#FCEFD9', color: '#7A4F08' }}
-                        data-testid="status-badge"
-                      >
-                        <span className="mc-dot" style={{ background: '#B4791E' }} />
-                        Draft
-                      </span>
-                    )}
-                    {showDraft && published && (
-                      <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
-                        <span className="mc-dot" style={{ background: '#2F6FB0' }} />
-                        Unpublished changes
-                      </span>
-                    )}
-                    {offline && (
-                      <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
-                        Offline copy
-                      </span>
-                    )}
-                    <div
-                      data-popover
-                      style={{
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 12.5,
-                        color: '#5B6B60',
-                      }}
-                    >
-                      <span
-                        title={actorName(who)}
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          ...av,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {initials(who)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setInfo((v) => !v)}
-                        aria-expanded={info}
-                        data-testid="page-info"
-                        style={{
-                          border: 'none',
-                          background: 'none',
-                          padding: 0,
-                          font: 'inherit',
-                          color: 'inherit',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
-                      >
-                        {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
-                        <span
-                          onMouseEnter={() => setTimeTip(true)}
-                          onMouseLeave={() => setTimeTip(false)}
-                          title={absoluteTime(whenIso)}
-                          style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
-                        >
-                          {relativeTime(whenIso)}
-                        </span>
-                      </button>
-                      {timeTip && !info && (
-                        <div
-                          className="dk-tt"
-                          role="tooltip"
-                          style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
-                        >
-                          {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
-                        </div>
-                      )}
-                      {info && (
-                        <PageInfoPopover
-                          page={page}
-                          onClose={() => setInfo(false)}
-                          onOpenHistory={() => {
-                            setInfo(false);
-                            onAction('history');
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 2 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
+                >
                   {!offline && (
                     <button
                       type="button"
@@ -490,13 +393,13 @@ export function DocsPageView({
                   </div>
                   <div
                     style={{ position: 'relative' }}
-                    onMouseEnter={() => offline && setEditTip(true)}
+                    onMouseEnter={() => (offline || readOnly) && setEditTip(true)}
                     onMouseLeave={() => setEditTip(false)}
                   >
                     <button
                       type="button"
-                      className={offline ? 'st-btn' : 'st-btn st-btn-primary'}
-                      disabled={!!offline}
+                      className={offline || readOnly ? 'st-btn' : 'st-btn st-btn-primary'}
+                      disabled={!!offline || !!readOnly}
                       onClick={() => onAction('edit')}
                       data-testid="edit-page"
                     >
@@ -509,7 +412,7 @@ export function DocsPageView({
                         role="tooltip"
                         style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
                       >
-                        Reconnect to edit
+                        {offline ? 'Reconnect to edit' : readOnly}
                       </div>
                     )}
                   </div>
@@ -533,6 +436,139 @@ export function DocsPageView({
                           onAction(a);
                         }}
                         onClose={() => setMenu(false)}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h1
+                  data-testid="page-title"
+                  style={{
+                    margin: 0,
+                    fontSize: 32,
+                    fontWeight: 800,
+                    lineHeight: 1.15,
+                    color: '#1E2A22',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {page.title}
+                </h1>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                    marginTop: 10,
+                  }}
+                >
+                  {published ? (
+                    <span
+                      className="mc-chip"
+                      style={{ background: '#DCEEE1', color: '#1F5A31' }}
+                      data-testid="status-badge"
+                    >
+                      <span className="mc-dot" style={{ background: '#2E6F40' }} />
+                      Published · v{page.version}
+                    </span>
+                  ) : (
+                    <span
+                      className="mc-chip"
+                      style={{ background: '#FCEFD9', color: '#7A4F08' }}
+                      data-testid="status-badge"
+                    >
+                      <span className="mc-dot" style={{ background: '#B4791E' }} />
+                      Draft
+                    </span>
+                  )}
+                  {showDraft && published && (
+                    <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
+                      <span className="mc-dot" style={{ background: '#2F6FB0' }} />
+                      Unpublished changes
+                    </span>
+                  )}
+                  {offline && (
+                    <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
+                      Offline copy
+                    </span>
+                  )}
+                  <div
+                    data-popover
+                    style={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 12.5,
+                      color: '#5B6B60',
+                    }}
+                  >
+                    <span
+                      title={actorName(who)}
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        ...av,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {initials(who)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setInfo((v) => !v)}
+                      aria-expanded={info}
+                      data-testid="page-info"
+                      style={{
+                        border: 'none',
+                        background: 'none',
+                        padding: 0,
+                        font: 'inherit',
+                        color: 'inherit',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
+                      <span
+                        onMouseEnter={() => setTimeTip(true)}
+                        onMouseLeave={() => setTimeTip(false)}
+                        title={absoluteTime(whenIso)}
+                        style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
+                      >
+                        {relativeTime(whenIso)}
+                      </span>
+                    </button>
+                    {timeTip && !info && (
+                      <div
+                        className="dk-tt"
+                        role="tooltip"
+                        style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
+                      >
+                        {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
+                      </div>
+                    )}
+                    {info && (
+                      <PageInfoPopover
+                        page={page}
+                        onClose={() => setInfo(false)}
+                        onOpenHistory={() => {
+                          setInfo(false);
+                          onAction('history');
+                        }}
+                        onOpenReferences={() =>
+                          scrollRef.current
+                            ?.querySelector('[data-testid="referenced-by"]')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }
                       />
                     )}
                   </div>
@@ -574,6 +610,7 @@ export function DocsPageView({
                   onCreatePage={onCreatePage}
                   onRestorePage={onRestorePage}
                   onReplaceSection={published ? onReplaceSection : undefined}
+                  changedIn={published && since.behind ? since.changedIn : undefined}
                 >
                   {published ? page.markdown : page.draft!.markdown}
                 </DocsMarkdown>

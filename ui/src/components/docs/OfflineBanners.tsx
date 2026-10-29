@@ -50,11 +50,14 @@ export function BackOnlineBanner({ onDismiss }: { onDismiss: () => void }) {
       <span style={{ color: '#2E6F40', display: 'flex' }}>
         <Icon name="i17" size={16} />
       </span>
-      <div style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: '#1F5A31' }}>
-        Back online. Your changes were saved.
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1F5A31' }}>Back online</div>
+        <div style={{ fontSize: 12.5, color: '#3A4A3E', lineHeight: 1.45 }}>
+          Draft synced. No one else changed this page while you were away.
+        </div>
       </div>
-      <button type="button" className="st-btn st-btn-sm" onClick={onDismiss}>
-        Dismiss
+      <button type="button" className="dk-icobtn" aria-label="Dismiss" onClick={onDismiss}>
+        <Icon name="i08" size={14} strokeWidth={2} />
       </button>
     </div>
   );

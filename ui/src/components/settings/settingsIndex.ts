@@ -22,7 +22,13 @@ export const SETTINGS_PAGES: SettingsPageDef[] = [
     title: 'Repositories',
     summary: 'Git settings for this project.',
   },
-  { id: 'docs', scope: 'project', label: 'Docs', title: 'Docs', summary: 'Turn Docs on or off for this project.' },
+  {
+    id: 'docs',
+    scope: 'project',
+    label: 'Docs',
+    title: 'Docs',
+    summary: 'Turn Docs on or off and choose who can edit pages.',
+  },
   {
     id: 'ai',
     scope: 'project',
@@ -99,6 +105,14 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     name: 'Docs on or off',
     description: 'Turn Docs on or off for the project.',
     keywords: 'pages wiki',
+  },
+  {
+    id: 'docs-edit-policy',
+    page: 'docs',
+    section: 'Docs',
+    name: 'Who can edit pages',
+    description: 'Everyone, members or admins only. Everyone in the project can read published pages.',
+    keywords: 'permission role viewer member admin access',
   },
   {
     id: 'board-ai',

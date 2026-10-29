@@ -1,6 +1,6 @@
 import { Extension, type Editor, type Range } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
-import Suggestion from '@tiptap/suggestion';
+import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
 import type { MenuHost } from '../menuHost';
 
 interface Opts {
@@ -10,6 +10,8 @@ interface Opts {
   allowSpaces?: boolean;
   allowedPrefixes?: string[] | null;
   startOfLine?: boolean;
+  /** replaces the "char then query" match, e.g. a bare ticket key with no trigger character */
+  find?: SuggestionOptions['findSuggestionMatch'];
   /** extra guard on the query text */
   accept?: (query: string) => boolean;
   command: (a: { editor: Editor; range: Range; payload: unknown }) => void;
@@ -29,7 +31,11 @@ export function createSuggest(o: Opts) {
           allowSpaces: o.allowSpaces ?? false,
           allowedPrefixes: o.allowedPrefixes === undefined ? [' '] : o.allowedPrefixes,
           startOfLine: o.startOfLine ?? false,
-          shouldShow: ({ query }) => (o.accept ? o.accept(query) : true),
+          ...(o.find ? { findSuggestionMatch: o.find } : null),
+          // Only typing opens a menu: clicking or moving the caret next to existing "/tickets" text must not. Once open
+          // the menu stays through selection-only transactions (the plugin closes it when the match is gone).
+          shouldShow: ({ query, transaction }) =>
+            (transaction.docChanged || o.host.getSnapshot() !== null) && (o.accept ? o.accept(query) : true),
           allow: ({ state, range }) => {
             const $from = state.doc.resolve(range.from);
             return $from.parent.type.name !== 'codeBlock' && !$from.parent.type.spec.code;

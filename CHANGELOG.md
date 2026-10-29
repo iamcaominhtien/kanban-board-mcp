@@ -13,6 +13,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.10.0] - 2026-10-29
+
+Docs brought in line with the design (pages, editor, page actions, search, references, comments and diagrams).
+
+### Added
+- **Who can edit pages**: a per-project setting in Settings → Docs (Everyone / Members / Admins, members by default; admins only). Creating, editing, publishing, renaming, moving, duplicating, deleting, restoring and importing pages follow it, so viewers can no longer change pages; they see a disabled Edit with the reason.
+- **Request access**: someone outside the project sees "You don't have access to Docs" with an optional note and Request access; the admins get a notification. When Docs is off, non-admins are told to ask an admin; Back to Board and Open project settings work on the Docs error screens.
+- Editor shortcuts: Ctrl/Cmd+S saves the draft, Ctrl/Cmd+Enter opens Publish, Ctrl/Cmd+Shift+M toggles Markdown. The Markdown view sits beside the visual editor and both stay in sync.
+- "Since you last viewed": changed paragraphs get a green bar and "Changed in vN"; the last version you saw is kept per person on the server, and your own publish or restore doesn't trigger it.
+- Publish dialog counts real followers ("N people who follow this space get a notification") and added references; follows are kept on the server.
+- Search: "Narrow the search" chips, "Create page" when nothing matches, match counts, ticket chips on each result, counts on the Edited and Status filters, and the results page now sits inside the Docs space with the page tree. "/" focuses the tree filter (Ctrl/Cmd+K opens the palette); Enter there opens the full results.
+- References: typing a bare ticket key ("KAN-") in the editor suggests tickets; ticket chips show the ticket title; a markdown cheat sheet (reference syntax, anchors, renames) from the suggester and search help; "Open in side panel" on page hover cards; renaming a heading shows which links keep working through the redirect.
+- Delete dialog lists the pages and tickets that link to the page.
+- Diagrams: a "Drop a diagram file here" card while dragging a draw.io file onto the editor.
+- **Comments over several lines**: an inline comment can now cover a selection across paragraphs, list items or a heading, in the page and in the editor.
+- **Richer comments**: paste, drop or attach images and files, draw a diagram, and comments render full Markdown (lists, links, code, images, diagrams, page and ticket chips).
+
+### Fixed
+- Long page titles and headings use the full width: the page actions sit on the breadcrumb row, and a heading's hidden section link no longer squeezes its text.
+- Editing a page no longer saves `&` as `&amp;` (and `<`, `>` as entities) into the page, which also changed heading links.
+- The floating selection toolbar sits above the selection again (it could appear at the top of the window, and its link field off screen), and stays over the page column.
+- Table controls show only for the selected row or column and no longer cover the next paragraph; clicking a cell that contains "/" no longer opens the block menu.
+- Renaming a page keeps `[[Old title]]` references in tickets working; they show the new title.
+- Opening a heading from search scrolls to it; "Filter the tree instead" fills the tree filter; the "Link a doc" picker in tickets is full width and finds sections of linked pages.
+- Move to… with no matches clears the preview and disables Move; restore warns "You have an unpublished draft (N autosaves)".
+- "Referenced by" and Linked docs show heading text instead of slugs and keep the reference as a chip; hover excerpts no longer show table separator lines.
+- A comment that spans a code span or link shows one number badge in the editor.
+- The History drawer pushes the page aside and offers View on each version; Recycle Bin rows name child pages and show actions on hover; the Back online banner can be closed.
+
+---
+
 ## [3.9.1] - 2026-10-29
 
 ### Fixed

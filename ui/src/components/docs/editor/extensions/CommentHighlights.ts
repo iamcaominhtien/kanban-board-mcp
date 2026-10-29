@@ -28,6 +28,7 @@ export interface CommentHighlightOptions {
 }
 
 const CONTEXT = 32;
+const MAX_QUOTE = 2000;
 const norm = (s: string) => s.replace(/\s+/g, ' ');
 
 interface TextBlock {
@@ -101,88 +102,118 @@ const commonPrefix = (a: string, b: string) => {
   return n;
 };
 
+/** The document text: every textblock joined by one space (as the server reads the page). */
+interface DocText {
+  text: string;
+  /** Document range of each character; null for the space between two blocks. */
+  at: ({ from: number; to: number } | null)[];
+  sections: (string | null)[];
+}
+
+function docText(blocks: TextBlock[]): DocText {
+  let text = '';
+  const at: DocText['at'] = [];
+  const sections: DocText['sections'] = [];
+  blocks.forEach((b, i) => {
+    if (i > 0) {
+      text += ' ';
+      at.push(null);
+      sections.push(b.section);
+    }
+    text += b.text;
+    at.push(...b.at);
+    for (let k = 0; k < b.text.length; k++) sections.push(b.section);
+  });
+  return { text, at, sections };
+}
+
 function build(doc: PMNode, threads: HighlightThread[], activeId: string | null, prev: DecorationSet): DecorationSet {
-  const blocks = textBlocks(doc);
+  const page = docText(textBlocks(doc));
   const decos: Decoration[] = [];
   for (const t of threads) {
     const quote = norm(t.quote);
-    let best: { score: number; b: TextBlock; at: number } | null = null;
-    for (const b of blocks) {
-      let at = b.text.indexOf(quote);
-      while (at !== -1) {
-        const end = at + quote.length;
-        let score = commonSuffix(b.text.slice(Math.max(0, at - CONTEXT), at), t.prefix);
-        score += commonPrefix(b.text.slice(end, end + CONTEXT), t.suffix);
-        if (t.section && b.section === t.section) score += 0.5;
-        if (!best || score > best.score) best = { score, b, at };
-        at = b.text.indexOf(quote, at + 1);
-      }
+    let best: { score: number; at: number } | null = null;
+    let at = page.text.indexOf(quote);
+    while (at !== -1) {
+      const end = at + quote.length;
+      let score = commonSuffix(page.text.slice(Math.max(0, at - CONTEXT), at), t.prefix);
+      score += commonPrefix(page.text.slice(end, end + CONTEXT), t.suffix);
+      if (t.section && page.sections[at] === t.section) score += 0.5;
+      if (!best || score > best.score) best = { score, at };
+      at = page.text.indexOf(quote, at + 1);
     }
     if (!best) {
       // text typed inside a highlight no longer equals the stored quote: keep following the old range
-      for (const d of prev.find()) {
-        if ((d.spec as { threadId?: string }).threadId !== t.id) continue;
+      const old = prev.find().filter((d) => (d.spec as { threadId?: string }).threadId === t.id);
+      if (old.length)
         decos.push(
-          Decoration.inline(
-            d.from,
-            d.to,
-            {
-              class: 'dk-cmt-hl' + (t.id === activeId ? ' is-active' : ''),
-              'data-thread': t.id,
-              'data-num': String(t.number),
-            },
-            { threadId: t.id },
-          ),
+          ...highlight(doc, Math.min(...old.map((d) => d.from)), Math.max(...old.map((d) => d.to)), t, activeId),
         );
-      }
       continue;
     }
-    const from = best.b.at[best.at].from;
-    const to = best.b.at[best.at + quote.length - 1].to;
-    decos.push(
-      Decoration.inline(
-        from,
-        to,
-        {
-          class: 'dk-cmt-hl' + (t.id === activeId ? ' is-active' : ''),
-          'data-thread': t.id,
-          'data-num': String(t.number),
-        },
-        { threadId: t.id },
-      ),
-    );
+    const first = page.at[best.at];
+    const last = page.at[best.at + quote.length - 1];
+    if (first && last) decos.push(...highlight(doc, first.from, last.to, t, activeId));
   }
   return DecorationSet.create(doc, decos);
 }
 
 /**
- * Selection of the editor as a comment anchor: a selection inside one text block.
+ * Decorations for one thread's range, one per text node so the number badge shows once, after the
+ * last piece (a range across a code span or a link would otherwise get a badge per piece).
+ */
+function highlight(
+  doc: PMNode,
+  from: number,
+  to: number,
+  t: { id: string; number: number },
+  activeId: string | null,
+): Decoration[] {
+  const pieces: [number, number][] = [];
+  doc.nodesBetween(from, to, (node, pos) => {
+    if (!node.isText) return true;
+    const a = Math.max(from, pos);
+    const b = Math.min(to, pos + node.nodeSize);
+    if (a < b) pieces.push([a, b]);
+    return false;
+  });
+  if (!pieces.length) pieces.push([from, to]);
+  return pieces.map(([a, b], i) =>
+    Decoration.inline(
+      a,
+      b,
+      {
+        class: 'dk-cmt-hl' + (t.id === activeId ? ' is-active' : ''),
+        'data-thread': t.id,
+        ...(i === pieces.length - 1 ? { 'data-num': String(t.number) } : {}),
+      },
+      { threadId: t.id },
+    ),
+  );
+}
+
+/**
+ * Selection of the editor as a comment anchor; it may run over several text blocks.
  * @param state - Editor state.
- * @returns The anchor and the document range, or null when the selection is empty or spans blocks.
+ * @returns The anchor and the document range, or null when the selection is empty, holds no text or is too long.
  */
 export function anchorFromState(state: EditorState): { anchor: CommentAnchorInput; from: number; to: number } | null {
   const { from, to, empty } = state.selection;
   if (empty) return null;
-  const $from = state.doc.resolve(from);
-  const $to = state.doc.resolve(to);
-  if (!$from.parent.isTextblock || !$from.sameParent($to)) return null;
-  const blocks = textBlocks(state.doc);
-  const start = $from.start();
-  const block = blocks.find((b) => b.start === start);
-  if (!block) return null;
-  let s = block.at.findIndex((r) => r.to > from);
-  let e = block.at.findIndex((r) => r.from >= to);
+  const page = docText(textBlocks(state.doc));
+  let s = page.at.findIndex((r) => r !== null && r.to > from);
+  let e = page.at.findIndex((r) => r !== null && r.from >= to);
   if (s === -1) return null;
-  if (e === -1) e = block.text.length;
-  while (s < e && block.text[s] === ' ') s++;
-  while (e > s && block.text[e - 1] === ' ') e--;
-  if (e <= s || e - s > 500) return null;
+  if (e === -1) e = page.text.length;
+  while (s < e && page.text[s] === ' ') s++;
+  while (e > s && page.text[e - 1] === ' ') e--;
+  if (e <= s || e - s > MAX_QUOTE) return null;
   return {
     anchor: {
-      quote: block.text.slice(s, e),
-      prefix: block.text.slice(Math.max(0, s - CONTEXT), s),
-      suffix: block.text.slice(e, e + CONTEXT),
-      section: block.section,
+      quote: page.text.slice(s, e),
+      prefix: page.text.slice(Math.max(0, s - CONTEXT), s),
+      suffix: page.text.slice(e, e + CONTEXT),
+      section: page.sections[s],
     },
     from,
     to,

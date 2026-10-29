@@ -161,7 +161,7 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
     () => (docs ? linkifyDocs(cleanedContent) : { markdown: cleanedContent, refs: NO_REFS }),
     [docs, cleanedContent],
   );
-  const resolved = useResolveRefs(docs?.projectId ?? '', linked.refs);
+  const resolved = useResolveRefs(docs?.projectId ?? '', linked.refs, true);
   const resolvedPages = new Map<string, NonNullable<typeof resolved.data>[number]>();
   const resolvedTickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
   linked.refs.forEach((ref, i) => {

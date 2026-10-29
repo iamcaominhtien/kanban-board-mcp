@@ -16,6 +16,10 @@ export interface RenamePreview {
 export interface DeletePreview {
   pages: { id: string; title: string; role: 'this' | 'child' }[];
   linkingPages: number;
+  /** The pages that link here (most links first, at most 5) and how many links each holds. */
+  linking?: { pageId: string; title: string; parent: string | null; count: number }[];
+  /** Tickets that mention or are linked to these pages. */
+  linkingTickets?: number;
 }
 
 export type RenamedPage = DocsPage & { rewritten?: number };
@@ -26,6 +30,10 @@ export interface BacklinkPageRow {
   in: string | null;
   snippet: string;
   context?: string | null;
+  /** The sentence around the reference, cut to ~120 characters, with the `[[reference]]` kept for a chip. */
+  excerpt?: string | null;
+  /** Section of this page the reference points at (as written), if any. */
+  targetAnchor?: string | null;
   origin?: string;
   anchor?: string | null;
   section?: string | null;
@@ -40,6 +48,8 @@ export interface BacklinkTicketRow {
   /** Which test case, for origin 'test_case' (e.g. TC-3). */
   detail?: string;
   context?: string | null;
+  excerpt?: string | null;
+  targetAnchor?: string | null;
   snippet?: string | null;
   author?: string | null;
 }

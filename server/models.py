@@ -31,6 +31,9 @@ class Project(SQLModel, table=True):
     docs_enabled: bool = Field(
         default=True
     )  # the Docs space can be switched off per project
+    docs_edit_policy: str = Field(
+        default="members"
+    )  # who can edit Docs pages: everyone | members | admins
 
 
 class WorkspaceSettings(SQLModel, table=True):
@@ -228,7 +231,31 @@ class DocsDraft(SQLModel, table=True):
     title: str
     markdown: str = Field(default="")
     base_version: int = Field(default=0)
+    saves: int = Field(default=1)  # autosaves since the draft was started
     updated_at: str = Field(default_factory=_now_iso)
+
+
+class DocsPageSeen(SQLModel, table=True):
+    """The version of a page a person last viewed (drives "since you last viewed")."""
+
+    __tablename__ = "docs_page_seen"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    viewer: str
+    version: int = Field(default=0)
+    seen_at: str = Field(default_factory=_now_iso)
+
+
+class DocsFollow(SQLModel, table=True):
+    """Someone who follows a project's Docs space (gets a notification when a page is published)."""
+
+    __tablename__ = "docs_follow"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    follower: str
+    created_at: str = Field(default_factory=_now_iso)
 
 
 class DocsLink(SQLModel, table=True):
@@ -259,6 +286,16 @@ class DocsAnchorAlias(SQLModel, table=True):
     page_id: str = Field(foreign_key="docs_page.id", index=True)
     old_slug: str
     new_slug: str
+
+
+class DocsTitleAlias(SQLModel, table=True):
+    """A title a page used to have: ``[[Old title]]`` keeps resolving to the page (by id) after a rename."""
+
+    __tablename__ = "docs_title_aliases"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    old_title: str  # lower-cased, trimmed
 
 
 class DocsCommentThread(SQLModel, table=True):
@@ -316,10 +353,12 @@ class DocsCommentEvent(SQLModel, table=True):
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     project_id: str = Field(foreign_key="project.id", index=True)
-    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    page_id: Optional[str] = Field(
+        default=None, foreign_key="docs_page.id", index=True
+    )  # None for an access request
     thread_id: Optional[str] = Field(default=None)
     comment_id: Optional[str] = Field(default=None)
-    kind: str  # comment | reply | resolved | reopened
+    kind: str  # comment | reply | resolved | reopened | access_request
     actor: str = Field(default="user")
     mentioned: str = Field(default="[]")  # JSON list of member names
     recipients: str = Field(default="[]")  # JSON list of names to notify
@@ -1069,6 +1108,7 @@ class ProjectUpdate(SQLModel):
     worktree_template: Optional[str] = None
     worktree_by_default: Optional[bool] = None
     docs_enabled: Optional[bool] = None
+    docs_edit_policy: Optional[Literal["everyone", "members", "admins"]] = None
 
 
 class ProjectRead(SQLModel):
@@ -1083,6 +1123,7 @@ class ProjectRead(SQLModel):
     worktree_template: Optional[str] = None
     worktree_by_default: bool = False
     docs_enabled: bool = True
+    docs_edit_policy: str = "members"
 
 
 class MemberCreate(SQLModel):

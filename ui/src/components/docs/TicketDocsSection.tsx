@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTicketDocs } from '../../api/docs';
+import { useProjects } from '../../api/projects';
 import { useDocsSuggest, useLinkTicketDoc } from '../../api/docsActions';
 import { extractError } from '../../api/extractError';
 import type { DocsSuggestItem, TicketDocOrigin, TicketDocRow } from '../../types/docsActions';
@@ -187,7 +188,9 @@ function LinkPopover({
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const suggest = useDocsSuggest(projectId, q, true);
-  const items = (suggest.data ?? []).filter((i) => !linked.has(i.pageId));
+  const projectName = useProjects().data?.find((p) => p.id === projectId)?.name;
+  // a linked page is hidden, but its sections stay (typing "Auth" still finds them)
+  const items = (suggest.data ?? []).filter((i) => i.kind === 'section' || !linked.has(i.pageId));
 
   useEffect(() => setActive(0), [q]);
   useEffect(() => {
@@ -227,7 +230,7 @@ function LinkPopover({
         top: 'calc(100% + 6px)',
         zIndex: 70,
         width: 420,
-        maxWidth: '100%',
+        maxWidth: 'calc(100vw - 32px)', // not '100%': the parent shrink-wraps the button
         boxSizing: 'border-box',
         border: '1px solid #E3E8E5',
         borderRadius: 12,
@@ -285,7 +288,7 @@ function LinkPopover({
           color: '#5B6B60',
         }}
       >
-        Pages and sections in this space
+        {projectName ? `Pages and sections in ${projectName}` : 'Pages and sections in this space'}
       </div>
       <SuggestRows
         items={items}
