@@ -8,6 +8,8 @@ interface Props {
   disabled?: boolean;
   onLink: () => void;
   onPickImage: () => void;
+  /** Starts a sketch; the button is hidden without it. */
+  onSketch?: () => void;
   ticketPrefix: string;
   /** Board AI "Ask AI" button (A6). */
   onAskAi?: () => void;
@@ -21,10 +23,11 @@ const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
  * @param props.disabled - Disable all buttons.
  * @param props.onLink - Called by the link button.
  * @param props.onPickImage - Called by the image button.
+ * @param props.onSketch - Called by the Sketch button (hidden when missing).
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
  * @param props.onAskAi - Shows the Board AI "Ask AI" button.
  */
-export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPrefix, onAskAi }: Props) {
+export function EditorToolbar({ editor, disabled, onLink, onPickImage, onSketch, ticketPrefix, onAskAi }: Props) {
   const st = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -158,6 +161,11 @@ export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPre
       <Btn label="Image" onClick={onPickImage}>
         <Icon name="i54" size={16} />
       </Btn>
+      {onSketch && (
+        <Btn label="Sketch (/draw)" onClick={onSketch}>
+          <Icon name="sketch" size={16} />
+        </Btn>
+      )}
       <div style={{ flex: 1 }} />
       {onAskAi && (
         <button

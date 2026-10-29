@@ -5,6 +5,8 @@ import { RefSuggester, type SuggestMember } from '../docs/RefSuggester';
 import { Icon } from '../docs/Icon';
 import { DiagramIcon } from '../diagrams/DiagramIcon';
 import { useDiagramStarter } from '../diagrams/useDiagramStarter';
+import { SketchIcon } from '../sketch/SketchIcon';
+import { useSketchStarter } from '../sketch/useSketchStarter';
 import { firstDiagramFile } from '../diagrams/diagramFile';
 import { aiAvailability } from '../ai/aiAvailability';
 import { mentionedAi, type SendOpts } from '../ai/MentionIntent';
@@ -218,6 +220,14 @@ export function Composer({
     onInsert: insertDiagramLine,
   });
 
+  const sketch = useSketchStarter({
+    ownerKind: 'comment',
+    ownerId: ticketId,
+    projectId,
+    ownerLabel: ticketId,
+    onInsert: insertDiagramLine,
+  });
+
   function addFiles(files: FileList | File[]) {
     for (const file of Array.from(files)) {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -369,6 +379,21 @@ export function Composer({
               >
                 [[ ]]
               </button>
+              {sketch.available && (
+                <button
+                  type="button"
+                  aria-label="Sketch"
+                  title="Sketch (draw freehand)"
+                  data-testid="comment-sketch"
+                  style={{ ...btn, color: '#5A49C2' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    void sketch.start();
+                  }}
+                >
+                  <SketchIcon name="sketch" size={14} />
+                </button>
+              )}
               {diagram.available && (
                 <>
                   <button

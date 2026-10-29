@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FileCategoryIcon,
@@ -13,6 +13,8 @@ import {
   isTextPreviewable,
 } from '../utils/fileIcons';
 import { uploadUrl } from '../api/tickets';
+import { SketchOwnerContext, useSketch } from './sketch/SketchContext';
+import { SketchIcon } from './sketch/SketchIcon';
 import styles from './FilePreviewModal.module.css';
 
 interface Props {
@@ -48,6 +50,14 @@ export function FilePreviewModal({
 
   const displayFileName = cleanDisplayFileName(rawName || url);
   const meta = getFileTypeMeta(displayFileName);
+  // "Draw on it": a page that owns the file says where the marked-up copy goes
+  const sketchOwner = useContext(SketchOwnerContext);
+  const sketch = useSketch();
+  const canDraw =
+    !!sketchOwner &&
+    sketch.available &&
+    url.startsWith('/uploads/') &&
+    /\.(png|jpe?g|gif|webp|bmp)$/i.test(displayFileName);
   const isElectron = Boolean(window.electronAPI?.openPath);
 
   // Lock body scroll while modal is open
@@ -167,6 +177,21 @@ export function FilePreviewModal({
     }
   }
 
+  async function handleDrawOnIt() {
+    if (!sketchOwner) return;
+    const stem = displayFileName.replace(/\.[^.]+$/, '');
+    // the picture opens on its own locked layer; saving makes a new copy and the original is never changed
+    const r = await sketch.openSketch({
+      ownerKind: sketchOwner.ownerKind,
+      ownerId: sketchOwner.ownerId,
+      projectId: sketchOwner.projectId,
+      ownerLabel: sketchOwner.ownerLabel,
+      baseImageUrl: url,
+      title: `${stem} (marked up)`,
+    });
+    if (r) sketchOwner.onSaved?.(r);
+  }
+
   function handleCopyContent() {
     if (!textContent) return;
     navigator.clipboard.writeText(textContent).then(() => {
@@ -241,6 +266,19 @@ export function FilePreviewModal({
                   <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
                 Open in App
+              </button>
+            )}
+
+            {canDraw && isImage(displayFileName) && (
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDraw}`}
+                onClick={() => void handleDrawOnIt()}
+                title="Open the picture in the sketch editor. Your marks go on a layer above it; the original is never changed."
+                data-testid="draw-on-it"
+              >
+                <SketchIcon name="sketch" size={14} />
+                Draw on it
               </button>
             )}
 

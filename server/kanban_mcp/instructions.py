@@ -31,6 +31,7 @@ docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) 
 Edit it as a file: docs_read(diagram) writes the .drawio XML to a path, change it with your own file tools, docs_write(diagram_save) \
 stores it (with the `version` you got as base_version). docs_write(diagram_create) makes a new one from a file; put the returned \
 `markdown` line on its own line in the text.
+- Sketches: a freehand drawing made by a person shows in a text as one line `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is when you edit the text (you cannot draw one).
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions

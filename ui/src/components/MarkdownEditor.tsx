@@ -6,6 +6,8 @@ import { DiagramIcon } from './diagrams/DiagramIcon';
 import { useDiagramStarter } from './diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from './diagrams/diagramRefs';
 import { firstDiagramFile } from './diagrams/diagramFile';
+import { SketchIcon } from './sketch/SketchIcon';
+import { useSketchBlocks } from './sketch/useSketchBlocks';
 import diagramStyles from './diagrams/Diagrams.module.css';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { RefSuggester, type SuggestMember } from './docs/RefSuggester';
@@ -218,8 +220,8 @@ export function MarkdownEditor({
 
     function handleClickOutside(e: MouseEvent) {
       if (isFilePickerOpenRef.current) return;
-      // the draw.io editor layer and viewer sit outside this field but belong to it
-      if ((e.target as HTMLElement).closest?.('[data-diagram-layer]')) return;
+      // the draw.io and sketch editor layers and viewers sit outside this field but belong to it
+      if ((e.target as HTMLElement).closest?.('[data-diagram-layer], [data-sketch-layer]')) return;
       if (isLinkPopoverOpen) {
         // If clicking inside link popover, don't close
         const popover = document.querySelector(`.${styles.linkPopover}`);
@@ -354,6 +356,18 @@ export function MarkdownEditor({
     itemKind: diagramItem?.kind,
     itemId: diagramItem?.id,
     onInsert: (md) => insertDiagramBlock(md),
+  });
+
+  // Sketch (paint-style drawing): placed beside Diagram, for the same fields
+  const sketch = useSketchBlocks({
+    root: wysiwygRef,
+    savedRange: savedSelectionRangeRef,
+    sync: syncContent,
+    readOnly,
+    ownerKind: diagramItem?.kind ?? 'ticket',
+    ownerId: diagramItem?.id,
+    projectId: diagramProjectId,
+    ownerLabel: diagramSaveTo,
   });
 
   function rememberSelection() {
@@ -1258,6 +1272,24 @@ export function MarkdownEditor({
               </span>
             )}
 
+            {/* Sketch */}
+            {sketch.starter.available && !!diagramProjectId && !readOnly && (
+              <button
+                type="button"
+                className={styles.toolbarBtn}
+                aria-label="Sketch"
+                title="Sketch (draw freehand)"
+                data-testid="editor-sketch"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  rememberSelection();
+                  void sketch.starter.start();
+                }}
+              >
+                <SketchIcon name="sketch" size={14} />
+              </button>
+            )}
+
             {/* Image upload */}
             {(onUploadImage || onUploadFile) && (
               <>
@@ -1500,7 +1532,7 @@ export function MarkdownEditor({
           onDrop={handleDrop}
           onClick={(e) => {
             const target = e.target as HTMLElement;
-            if (handleDiagramClick(target)) {
+            if (handleDiagramClick(target) || sketch.handleClick(target)) {
               e.stopPropagation();
               setSelectedImg(null);
               return;
