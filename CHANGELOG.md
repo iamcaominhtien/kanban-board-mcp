@@ -8,6 +8,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+---
+
+## [3.9.0] - 2026-10-29
+
 ### Changed
 - **Settings is now a full page** instead of one long modal, following the design in `design/screens/settings-structure.md` and `settings-pages.md`. A list of 9 pages (Project: Repositories, Docs, AI, Board assistant; App: Appearance, Storage & backup, Integrations, Updates on desktop, Diagnostics), a project picker for project settings, search across every setting (jumps to it and highlights it), links such as `?settings=ai`, Esc / Back to board, the last page remembered, and the list collapsing into a drop-down in narrow windows. Same fields and saving as before.
 - Importing data now asks inline ("Replace my data") instead of a browser pop-up.
