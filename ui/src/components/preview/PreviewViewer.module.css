@@ -168,6 +168,10 @@
   opacity: 0.4;
   cursor: default;
 }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .btnDanger {
   background: #c4432a;
   border-color: #c4432a;

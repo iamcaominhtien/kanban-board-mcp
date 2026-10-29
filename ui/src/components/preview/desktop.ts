@@ -1,3 +1,4 @@
+import { resolveOrigin } from '../../api/resolveOrigin';
 import type { PreviewItem } from './types';
 
 /** Whether the app runs inside the desktop shell, which can open files in other apps. */
@@ -10,12 +11,19 @@ export function canShowInFolder(): boolean {
   return Boolean(window.electronAPI?.showItemInFolder);
 }
 
-/** Find where a stored file lives on this computer. The server names it in the `X-File-Path` header. */
+/**
+ * Find where a stored file lives on this computer. The server names it at `GET /upload-info/...`: the desktop page
+ * runs from `file://`, which cannot read custom response headers, and a header cannot carry accented folder names.
+ */
 export async function resolveLocalPath(item: PreviewItem): Promise<string | null> {
   if (item.localPath) return item.localPath;
+  const stored = item.uploadPath?.startsWith('/uploads/') ? item.uploadPath.slice('/uploads/'.length) : null;
+  if (!stored) return null;
   try {
-    const res = await fetch(item.src, { method: 'HEAD' });
-    return res.headers.get('x-file-path');
+    const res = await fetch(`${resolveOrigin()}/upload-info/${stored}`);
+    if (!res.ok) return null;
+    const body = (await res.json()) as { path?: string };
+    return body.path ?? null;
   } catch {
     return null;
   }

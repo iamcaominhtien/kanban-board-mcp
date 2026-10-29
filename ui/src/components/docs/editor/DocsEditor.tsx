@@ -19,7 +19,7 @@ import { uploadDescriptionImage, useTickets } from '../../../api/tickets';
 import type { DocsPage, DocsTreeNode } from '../../../types/docs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../Toast';
-import { imagesIn, usePreview } from '../../preview/PreviewContext';
+import { filesIn, imagesIn, usePreview } from '../../preview/PreviewContext';
 import { Icon } from '../Icon';
 import '../docs.css';
 import './editor.css';
@@ -371,11 +371,14 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           live.current.onUserInput?.();
           return false;
         },
-        // Double-click an image to look at it in the viewer
+        // Double-click an image or a link to an uploaded file to look at it in the viewer
         dblclick: (view, event) => {
           const target = event.target;
-          if (!(target instanceof HTMLImageElement)) return false;
-          const { items, index } = imagesIn(view.dom, target);
+          if (!(target instanceof HTMLElement)) return false;
+          const file =
+            target instanceof HTMLImageElement ? target : target.closest<HTMLElement>('a[href*="/uploads/"]');
+          if (!file) return false;
+          const { items, index } = filesIn(view.dom, file);
           previewRef.current.open(items, index);
           return true;
         },

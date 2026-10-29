@@ -23,9 +23,13 @@ One viewer for every image and file (issue 191, following `design/screens/previe
 - **Readers**: text, logs and code (colour, line numbers, search with Ctrl+F, wrap, copy; only the rows in view are drawn, so a long log opens at once; the first 1 MB with a note for larger files); JSON (formatted, tree, raw); Markdown (rendered like Docs, or source); CSV, TSV and Excel (sheets, search, frozen header, first 500 rows, values only); PDF (page thumbnails, zoom, page jump, search); zip, tar and gz (browse folders, preview a file inside; entry and size caps); Word (simplified reading view) and PowerPoint (slide outline with speaker notes), read in the browser without a converter; audio and video; a card with the file facts and Download for everything else.
 - **HTML** opens as the real page in a locked frame: empty `sandbox` (no scripts, forms, pop-ups or same-origin access), a CSP that blocks every outside request, scripts, embedded content, event handlers and link targets removed first, notices for blocked content and scripts, Desktop / Tablet / Phone width, and a Source view. The server still serves HTML as plain text.
 - **States** that always leave Download as a way out: loading, too large (first part shown), password protected, damaged, missing or no access, a text name with binary data, offline with Retry (files already opened in the session stay available), and a broken file inside a gallery.
-- Docs images are clickable (Enter and Space on a focused image too); in the editor, double-click an image or press Space on a selected one.
+- Docs images are clickable (Enter and Space on a focused image too); in the editor, double-click an image or a link to an uploaded file, or press Space on a selected image.
 - Attachment cards show a real thumbnail for images.
-- Desktop: **Show in folder** next to Open in app; files that can run (`.exe .bat .cmd .ps1 .sh .command .app .msi .jar`) ask first ("Open anyway"). On the web the actions are Download and open and Copy link.
+- Desktop: **Show in folder** next to Open in app; files that can run (`.exe .bat .cmd .ps1 .sh .command .app .msi .jar`) ask first ("Open anyway"). On the web the actions are Download and open and Copy link, and Open in app is shown greyed out with "Only in the desktop app".
+
+### Fixed
+- **Open in app on desktop**: the app found a file's place on disk through the `X-File-Path` header of a `HEAD` request, but the server answered `HEAD` with 405 and the CORS layer hid the header from the desktop page (`file://`), so nothing opened. The app now asks `GET /upload-info/<file>`, which returns the path as JSON.
+- Serving an upload crashed (500) when the uploads folder has non-latin-1 characters, e.g. a Windows user folder such as `C:\Users\Tiến`, because the path went into a response header. The header is now sent only when it can carry the path.
 
 ### Changed
 - Replaces `FilePreviewModal`, the workspace `PreviewPanel` and the markdown renderer's own image modal.

@@ -211,6 +211,45 @@ async def test_html_and_svg_uploads_cannot_run_in_the_app_origin(
         assert "sandbox" in policy
 
 
+async def test_upload_info_names_the_local_path_for_open_in_app(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # A folder with accents, like a Windows user name such as "Tiến": a header cannot carry it, JSON can
+    uploads = tmp_path / "Tiến" / "uploads"
+    uploads.mkdir(parents=True)
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(uploads))
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        up = await client.post(
+            "/uploads/files", files={"file": ("notes.txt", b"hello", "text/plain")}
+        )
+        assert up.status_code == 201
+        url = up.json()["url"]
+
+        # the file itself still downloads (the path header must not break the response)
+        res = await client.get(url, params={"download": "1"})
+        assert res.status_code == 200
+        assert res.content == b"hello"
+
+        # the desktop app asks for the path here; the page's origin (file://) cannot read custom headers
+        info = await client.get(f"/upload-info{url.removeprefix('/uploads')}")
+        assert info.status_code == 200
+        body = info.json()
+        assert Path(body["path"]) == (uploads / Path(url).name).resolve()
+        assert body["name"] == Path(url).name
+        assert body["size"] == 5
+
+        assert (await client.get("/upload-info/missing.txt")).status_code == 404
+        assert (
+            await client.get("/upload-info/..%2F..%2Fetc%2Fpasswd")
+        ).status_code in (
+            400,
+            404,
+        )
+
+
 def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:
     server_dir = Path(__file__).resolve().parents[1]
     env = os.environ.copy()

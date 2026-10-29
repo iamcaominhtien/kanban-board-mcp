@@ -141,3 +141,24 @@ export function imagesIn(container: HTMLElement, clicked: HTMLImageElement): { i
   });
   return { items, index };
 }
+
+/**
+ * Every stored file in an editor (pictures and links to uploaded files) in page order, with the clicked one marked.
+ * @param container - The editor surface.
+ * @param clicked - The picture or link that was opened.
+ */
+export function filesIn(container: HTMLElement, clicked: HTMLElement): { items: PreviewItem[]; index: number } {
+  const items: PreviewItem[] = [];
+  let index = 0;
+  container.querySelectorAll<HTMLElement>('img, a[href*="/uploads/"]').forEach((el) => {
+    const isImg = el instanceof HTMLImageElement;
+    const src = isImg ? el.getAttribute('src') : el.getAttribute('href');
+    if (!src) return;
+    const label = (isImg ? el.getAttribute('alt') : el.textContent)?.trim() || undefined;
+    if (el === clicked || el.contains(clicked)) index = items.length;
+    items.push(
+      itemFromUpload(src, label || src.split('/').pop()?.split('?')[0], undefined, { alt: isImg ? label : undefined }),
+    );
+  });
+  return { items, index };
+}

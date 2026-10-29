@@ -27,6 +27,8 @@ interface Props {
   onClose: () => void;
 }
 
+const WEB_OPEN_HINT = 'Only in the desktop app. In the browser, download the file and open it from your downloads.';
+
 function Icon({ d, size = 16 }: { d: string; size?: number }) {
   return (
     <svg
@@ -343,6 +345,15 @@ export default function PreviewViewer({ items, index, onIndex, onClose }: Props)
               </>
             ) : (
               <>
+                <button
+                  type="button"
+                  className={styles.btn}
+                  disabled
+                  title={WEB_OPEN_HINT}
+                  aria-label={`Open in app. ${WEB_OPEN_HINT}`}
+                >
+                  <Icon d={ICONS.external} size={14} /> <span className={styles.btnLabel}>Open in app</span>
+                </button>
                 <a
                   id="pv-download"
                   className={styles.btn}
@@ -440,8 +451,12 @@ export default function PreviewViewer({ items, index, onIndex, onClose }: Props)
                 <button type="button" className={styles.btn} onClick={copyLink}>
                   {copied ? 'Copied' : 'Copy link'}
                 </button>
-                {desktop && (
+                {desktop ? (
                   <button type="button" className={styles.btn} onClick={openInApp}>
+                    Open in app
+                  </button>
+                ) : (
+                  <button type="button" className={styles.btn} disabled title={WEB_OPEN_HINT}>
                     Open in app
                   </button>
                 )}
