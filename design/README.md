@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1793277091-b441` (56 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards and the two Settings boards (which replace the old Settings modal design) — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1793295530-5588` (64 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool and AI where you work — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -62,6 +62,7 @@ Each doc's header links to its source file and records the canvas version and sh
 - [AI provider configuration](screens/ai-provider-config.md)
 - [AI — schedules](screens/ai-schedules.md)
 - [AI safety & cost](screens/ai-safety-cost.md)
+- [AI where you work — ticket chat, @mentions & editor](screens/ai-where-you-work.md)
 - [App loading](screens/app-loading.md)
 - [Diagrams — draw.io](screens/diagrams-drawio.md)
 - [Docs — page actions & history](screens/docs-actions.md)
@@ -76,12 +77,19 @@ Each doc's header links to its source file and records the canvas version and sh
 - [Main Board](screens/main-board.md)
 - [Members](screens/members-view.md)
 - [Forgot / Reset Password](screens/password-reset.md)
+- [Idea Space — AI help](screens/idea-ai-help.md)
+- [Idea Space — capture & triage](screens/idea-capture-triage.md)
+- [Idea Space — the idea page](screens/idea-page.md)
+- [Idea Space — promote & migration](screens/idea-promote-migration.md)
+- [Idea Space — research log, workspace & activity](screens/idea-research-log-workspace-activity.md)
+- [Idea Space — list, stages & matrix](screens/idea-space-views.md)
 - [Preview — file types & states](screens/preview-types.md)
 - [Preview — open & viewer](screens/preview-viewer.md)
 - [Settings — MCP integrations](screens/settings-mcp.md)
 - [Settings — pages & states](screens/settings-pages.md)
 - [Settings — structure & navigation](screens/settings-structure.md)
 - [Sign Up](screens/sign-up.md)
+- [Sketch — paint-style drawing tool](screens/sketch-tool.md)
 - [Splash - Cards animation (live)](screens/splash-animation.md)
 - [Splash screen](screens/splash.md)
 - [Timeline View](screens/timeline-view.md)
