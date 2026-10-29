@@ -14,6 +14,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - **Board AI chat is one session per chat** for a local Claude Code Board AI, so earlier messages are not sent again.
 - The number between the +/− buttons of the add-member dialog can be typed; Shift+click moves in bigger steps.
 
+Demo: `docs/demo/ai-sessions-demo.pdf` (12 pages, real Claude Code runs): a PM and a Dev on one ticket, the Dev resuming its session, the run limits not stopping a person, the Ask AI chat session and a real compaction trace.
+
 ### Added
 - **Auto-compact**: "Auto-compact at" (default 60% of the context window, 10 to 95) per AI member, also used for the Board AI chat, passed to Claude Code as `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`. A compaction shows as a step on the run.
 - **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 32 pages, also covers sessions, run limits and Auto-compact): the AI team to set up (PM, Dev, Reviewer, General as the Board AI) and how they hand work to each other; every field of the Add AI member dialog with the values for each AI; what to do after creating (Role template on the Permissions tab, CLI rules, what an existing `CLAUDE.md` / `.claude/` in the working folder affects, one AI in several projects); the rest of the setup (Board AI, Board assistant, allowed test commands, limits); and copy-paste prompts (persona, instructions, @mentions, style guide, a weekly PM report schedule) for each AI. Also: how to write prompts and tickets, assigning and reviewing work, schedules, safety and cost, 13 common problems and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
