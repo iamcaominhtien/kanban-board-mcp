@@ -5,6 +5,8 @@ import tempfile
 
 # `main` starts file logging when imported; keep test runs out of the developer's real log folder.
 os.environ.setdefault("KANBAN_LOG_DIR", tempfile.mkdtemp(prefix="kanban-test-logs-"))
+# a diagram save must not start a browser during tests; the export tests switch it back on
+os.environ.setdefault("KANBAN_DIAGRAM_EXPORT", "off")
 
 # The default database of a test run is a fresh file migrated to head, never the developer's kanban.db. Tests swap
 # in their own engine for requests, but services that open a session of their own (AI hooks on ticket changes, the

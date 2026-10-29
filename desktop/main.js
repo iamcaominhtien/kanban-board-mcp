@@ -3,10 +3,12 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
+const { parseExportArgs, runExportCli } = require('./export-svg');
 const { setupUpdater } = require('./updater');
 const {
   StartupProfiler,
   buildBackendLaunchSpec,
+  buildExportCommand,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   parseReadyPort,
@@ -33,6 +35,7 @@ function startBackend() {
       userDataPath: app.getPath('userData'),
       desktopDir: __dirname,
       baseEnv: process.env,
+      exportCommand: buildExportCommand({ isPackaged: app.isPackaged, execPath: process.execPath, desktopDir: __dirname }),
       devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
       configPath: path.join(app.getPath('home'), '.kanban-board', 'config.json'),
     });
@@ -234,6 +237,7 @@ function launchBackend() {
       const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
       const setupFlagExists = fs.existsSync(setupFlag);
       const dbPath = path.join(app.getPath('userData'), 'kanban.db');
+      const exportCommand = buildExportCommand({ isPackaged: app.isPackaged, execPath: process.execPath, desktopDir: __dirname });
       const binaryOptions = {
         isPackaged: app.isPackaged,
         platform: process.platform,
@@ -241,7 +245,7 @@ function launchBackend() {
         desktopDir: __dirname,
       };
       if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists })) {
-        const result = registerMcpServer(getMcpStdioBinaryPath(binaryOptions), dbPath);
+        const result = registerMcpServer(getMcpStdioBinaryPath(binaryOptions), dbPath, { exportCommand });
         if (shouldWriteSetupFlag(result)) {
           try {
             fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
@@ -251,6 +255,7 @@ function launchBackend() {
         // Older versions registered the single-file binary, which is now a folder.
         registerMcpServer(getMcpStdioBinaryPath(binaryOptions), dbPath, {
           migrateFromCommand: getLegacyMcpStdioBinaryPath(binaryOptions),
+          exportCommand,
         });
       }
 
@@ -273,25 +278,33 @@ function launchBackend() {
     });
 }
 
-app.whenReady().then(() => {
-  profiler.mark('app-ready');
-  createWindow();
-  setupUpdater(() => mainWindow);
+// `--export-svg`: a headless run the backend asks for to draw a diagram's picture with the editor itself (no window,
+// no backend of its own). Every other start is the normal app.
+const exportArgs = parseExportArgs(process.argv);
 
-  launchBackend();
+if (exportArgs) {
+  app.whenReady().then(() => runExportCli(require('electron'), exportArgs));
+} else {
+  app.whenReady().then(() => {
+    profiler.mark('app-ready');
+    createWindow();
+    setupUpdater(() => mainWindow);
 
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    const focused = BrowserWindow.getFocusedWindow();
-    if (focused) focused.webContents.toggleDevTools();
+    launchBackend();
+
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+      const focused = BrowserWindow.getFocusedWindow();
+      if (focused) focused.webContents.toggleDevTools();
+    });
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
   });
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
+}
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (!exportArgs && process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {

@@ -9,6 +9,7 @@ Docs pages pin the diagram versions they were published with, so restoring a pag
 import base64
 import json
 import re
+from pathlib import Path
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zlib
@@ -21,7 +22,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Diagram, DiagramSettings, DiagramVersion, Project
-from services import activity
+from services import activity, diagram_export, diagram_model
 from services.docs_text import DocsError
 
 MAX_BYTES = 2 * 1024 * 1024  # per diagram: the .drawio source and the SVG preview each
@@ -293,6 +294,7 @@ async def _out(
         "version": d.version,
         "shown_version": ver.version,
         "empty": empty,
+        "preview_kind": ver.preview_kind,
         "created_by": d.created_by,
         "created_at": d.created_at,
         "updated_by": d.updated_by,
@@ -317,6 +319,7 @@ async def create_diagram(
     summary: str | None = None,
     item_kind: str | None = None,
     item_id: str | None = None,
+    preview_kind: str = "editor",
 ) -> dict[str, Any]:
     """Save a new diagram (version 1).
 
@@ -328,6 +331,7 @@ async def create_diagram(
         summary: Optional short text summary.
         item_kind: ``ticket``, ``comment`` or ``doc`` when it belongs to an item.
         item_id: Id of that item.
+        preview_kind: Who drew the preview: ``editor`` (exact), ``agent`` or ``basic``.
 
     Returns:
         The saved diagram.
@@ -356,7 +360,12 @@ async def create_diagram(
     await session.flush()
     session.add(
         DiagramVersion(
-            diagram_id=d.id, version=1, source=source, svg=clean_svg, author=actor
+            diagram_id=d.id,
+            version=1,
+            source=source,
+            svg=clean_svg,
+            preview_kind=preview_kind,
+            author=actor,
         )
     )
     await session.commit()
@@ -419,6 +428,8 @@ async def update_diagram(
     svg: str,
     label: str | None = None,
     summary: str | None = None,
+    note: str | None = None,
+    preview_kind: str = "editor",
 ) -> dict[str, Any]:
     """Save a new version of a diagram.
 
@@ -429,6 +440,8 @@ async def update_diagram(
         svg: The SVG preview.
         label: New name, if changed.
         summary: New text summary, if changed.
+        note: What changed, kept with the version.
+        preview_kind: Who drew the preview: ``editor`` (exact), ``agent`` or ``basic``.
 
     Returns:
         The saved diagram.
@@ -465,7 +478,9 @@ async def update_diagram(
             version=d.version,
             source=source,
             svg=clean_svg,
+            preview_kind=preview_kind,
             author=actor,
+            note=(note or "").strip()[:200] or None,
         )
     )
     await session.commit()
@@ -584,6 +599,7 @@ async def restore_pins(session: AsyncSession, pins: dict[str, int]) -> None:
                         version=d.version,
                         source=old.source,
                         svg=old.svg,
+                        preview_kind=old.preview_kind,
                         author=actor,
                         note=f"Restored from v{n}",
                     )
@@ -646,3 +662,144 @@ async def set_settings(
     session.add(row)
     await session.commit()
     return await get_settings(session)
+
+
+# --- AI agent access: the .drawio file on disk ---------------------------------------------------
+
+
+def _file_error(message: str) -> DocsError:
+    return DocsError(422, "invalid_path", message)
+
+
+def _read_file(path: str, what: str) -> str:
+    """Text of a local file an agent points at (absolute path, within the size limit)."""
+    p = Path(path)
+    if not p.is_absolute():
+        raise _file_error(f"{what}: give an absolute path (got {path!r}).")
+    try:
+        if not p.is_file():
+            raise _file_error(f"{what}: {path} is not a file.")
+        with p.open("rb") as f:
+            raw = f.read(MAX_BYTES + 1)
+    except OSError as e:
+        raise _file_error(f"{what}: {path} could not be read ({e.strerror}).") from e
+    if len(raw) > MAX_BYTES:
+        _check_size(what, raw.decode("utf-8", "ignore"))
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise _file_error(f"{what}: {path} is not UTF-8 text.") from e
+
+
+async def export_to_file(
+    session: AsyncSession, diagram_id: str, path: str, *, version: int | None = None
+) -> dict[str, Any]:
+    """Write a diagram's ``.drawio`` source to a local path (a folder gets ``<name>.drawio`` inside it).
+
+    Returns:
+        ``{path, id, label, version, markdown}``; send ``version`` back as ``base_version`` when saving.
+    """
+    d = await _diagram(session, diagram_id)
+    v = await _version(session, d.id, version, d.version)
+    target = Path(path)
+    if not target.is_absolute():
+        raise _file_error(f"Give an absolute path (got {path!r}).")
+    if target.is_dir() or path.endswith(("/", "\\")):
+        stem = (
+            re.sub(r"[^\w.-]+", "-", d.label, flags=re.ASCII).strip("-._") or "diagram"
+        )
+        target = target / f"{stem}.drawio"
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(v.source, encoding="utf-8")
+    except OSError as e:
+        raise _file_error(f"{target} could not be written ({e.strerror}).") from e
+    return {
+        "path": str(target),
+        "id": d.id,
+        "label": d.label,
+        "version": d.version,
+        "markdown": f"[{d.label}](diagram:{d.id})",
+    }
+
+
+async def _preview(
+    session: AsyncSession, source: str, svg_path: str | None
+) -> tuple[str, str]:
+    """The SVG to store and who drew it: ``(svg, preview_kind)``.
+
+    The agent's own export wins; then the editor itself in a hidden browser (exact), when the desktop app or a browser
+    is available; otherwise the server draws a plain one.
+    """
+    if svg_path:
+        return _read_file(svg_path, "svg_path"), "agent"
+    settings = await get_settings(session)
+    if diagram_export.enabled(settings["mode"]):
+        exact = await diagram_export.export_svg(source, settings["effective_url"])
+        if exact:
+            return exact, "editor"
+    return diagram_model.render_svg(source), "basic"
+
+
+async def create_from_file(
+    session: AsyncSession,
+    project_id: str,
+    *,
+    label: str,
+    path: str,
+    svg_path: str | None = None,
+    summary: str | None = None,
+) -> dict[str, Any]:
+    """Create a diagram from a local ``.drawio`` file."""
+    source = _read_file(path, "path")
+    validate_source(source)
+    svg, kind = await _preview(session, source, svg_path)
+    out = await create_diagram(
+        session,
+        project_id,
+        label=label,
+        source=source,
+        svg=svg,
+        summary=summary,
+        preview_kind=kind,
+    )
+    out["markdown"] = f"[{out['label']}](diagram:{out['id']})"
+    return out
+
+
+async def save_from_file(
+    session: AsyncSession,
+    diagram_id: str,
+    *,
+    path: str,
+    base_version: int,
+    svg_path: str | None = None,
+    label: str | None = None,
+) -> dict[str, Any]:
+    """Save a local ``.drawio`` file as a new version of a diagram (``base_version`` guards against overwrites)."""
+    d = await _diagram(session, diagram_id)
+    if base_version != d.version:  # answer the conflict before reading the file
+        return await update_diagram(
+            session, diagram_id, base_version=base_version, source="", svg=""
+        )
+    source = _read_file(path, "path")
+    validate_source(source)
+    svg, kind = await _preview(session, source, svg_path)
+    return await update_diagram(
+        session,
+        diagram_id,
+        base_version=base_version,
+        source=source,
+        svg=svg,
+        label=label,
+        note="Saved by an AI agent",
+        preview_kind=kind,
+    )
+
+
+async def list_for_agent(
+    session: AsyncSession, project_id: str
+) -> list[dict[str, Any]]:
+    """A project's diagrams in brief: ``[{id, label, version, updated_by, updated_at, summary}]``."""
+    keys = ("id", "label", "version", "updated_by", "updated_at", "summary")
+    return [{k: d[k] for k in keys} for d in await list_diagrams(session, project_id)]

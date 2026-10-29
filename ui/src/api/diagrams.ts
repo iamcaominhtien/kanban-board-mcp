@@ -14,6 +14,8 @@ export interface Diagram {
   version: number;
   shownVersion: number;
   empty: boolean;
+  /** Who drew the picture: the editor itself (exact), an agent's SVG, or the server's plain drawing. */
+  previewKind: 'editor' | 'agent' | 'basic';
   createdBy: string;
   createdAt: string;
   updatedBy: string;

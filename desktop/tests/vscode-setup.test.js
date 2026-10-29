@@ -244,3 +244,34 @@ test('registerMcpServer migrate mode leaves missing or customised entries alone'
 
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
+
+test('mergeMcpConfig passes the export command on to the MCP server and keeps its other env', () => {
+  const exportCommand = ['/opt/Kanban Board'];
+  const base = { servers: { 'kanban-board': { command: '/bin', env: { KANBAN_DB_PATH: '/db', MINE: '1' } } } };
+
+  const updated = mergeMcpConfig(base, '/bin', '/db', exportCommand);
+  assert.equal(updated.result, 'registered');
+  assert.deepEqual(updated.config.servers['kanban-board'].env, {
+    MINE: '1',
+    KANBAN_DB_PATH: '/db',
+    KANBAN_EXPORT_CMD: '["/opt/Kanban Board"]',
+  });
+  assert.equal(mergeMcpConfig(updated.config, '/bin', '/db', exportCommand).result, 'already-registered');
+  // without an export command nothing changes for an entry that is already right
+  assert.equal(mergeMcpConfig(base, '/bin', '/db').result, 'already-registered');
+});
+
+test('registerMcpServer refreshes the export command of an entry that runs this binary', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'export-env-'));
+  const jsonPath = writeConfig(tempDir, { 'kanban-board': { command: '/new', env: { KANBAN_DB_PATH: '/db' } } });
+  const options = { getConfigPath: () => jsonPath, migrateFromCommand: '/old', exportCommand: ['/app'] };
+
+  assert.equal(registerMcpServer('/new', '/db', options), 'registered');
+  assert.equal(JSON.parse(fs.readFileSync(jsonPath, 'utf8')).servers['kanban-board'].env.KANBAN_EXPORT_CMD, '["/app"]');
+  assert.equal(registerMcpServer('/new', '/db', options), 'not-stale'); // up to date: nothing to do
+
+  // a customised entry that runs something else is still left alone
+  const custom = writeConfig(tempDir, { 'kanban-board': { command: '/mine' } });
+  assert.equal(registerMcpServer('/new', '/db', { ...options, getConfigPath: () => custom }), 'not-stale');
+  fs.rmSync(tempDir, { recursive: true, force: true });
+});

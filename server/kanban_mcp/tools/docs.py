@@ -19,6 +19,8 @@ DocsReadAction = Literal[
     "recycle_bin",
     "check_links",
     "comments",
+    "diagrams",
+    "diagram",
 ]
 
 DOCS_READ_OPS = {
@@ -30,6 +32,8 @@ DOCS_READ_OPS = {
     "recycle_bin": Op(ops.list_docs_recycle_bin, ("project_id",)),
     "check_links": Op(ops.resolve_docs_links, ("project_id", "refs")),
     "comments": Op(ops.list_docs_comments, ("page_id",), ("state",)),
+    "diagrams": Op(ops.list_project_diagrams, ("project_id",)),
+    "diagram": Op(ops.export_diagram, ("diagram_id", "path"), ("version",)),
 }
 
 
@@ -61,7 +65,21 @@ async def docs_read(
     ] = None,
     version: Annotated[
         int | None,
-        Field(description="version: version number from the `versions` action."),
+        Field(
+            description="version: version number from the `versions` action. diagram: an older diagram version."
+        ),
+    ] = None,
+    diagram_id: Annotated[
+        str | None,
+        Field(
+            description="diagram, diagram_save, diagram_delete, diagram_restore: id 'dg_xxxxxxxx' from `(diagram:dg_xxxxxxxx)` in a text."
+        ),
+    ] = None,
+    path: Annotated[
+        str | None,
+        Field(
+            description="diagram: absolute path to write the .drawio file to (a folder gets '<name>.drawio' inside it)."
+        ),
     ] = None,
     compare_to: Annotated[
         int | None,
@@ -88,7 +106,9 @@ async def docs_read(
     - version: page_id, version [, compare_to]. One old version's markdown, or a line diff between two versions.
     - recycle_bin: project_id. Deleted pages still restorable (30 days): [{id, title, page_count, deleted_at, deleted_by, days_left}].
     - check_links: project_id, refs. Whether [[page]] / ticket references resolve: ok, missing, section_missing, in_bin or ambiguous.
-    - comments: page_id [, state]. {threads: [{id, kind: inline|page, status, quote, anchor_state, comments: [{id, author, body}]}], counts}."""
+    - comments: page_id [, state]. {threads: [{id, kind: inline|page, status, quote, anchor_state, comments: [{id, author, body}]}], counts}.
+    - diagrams: project_id. draw.io diagrams: [{id, label, version, updated_by, updated_at, summary}]. A text shows one as `[Name](diagram:dg_xxxxxxxx)`.
+    - diagram: diagram_id, path [, version]. Writes the diagram's .drawio file (XML) to `path`: edit it with your own file tools, then docs_write(diagram_save). Returns {path, version, markdown}."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 
@@ -107,6 +127,10 @@ DocsWriteAction = Literal[
     "delete_comment",
     "resolve",
     "reopen",
+    "diagram_create",
+    "diagram_save",
+    "diagram_delete",
+    "diagram_restore",
 ]
 
 DOCS_WRITE_OPS = {
@@ -132,6 +156,20 @@ DOCS_WRITE_OPS = {
     "delete_comment": Op(ops.delete_docs_comment, ("comment_id",)),
     "resolve": Op(ops.resolve_docs_comment, ("thread_id",)),
     "reopen": Op(ops.reopen_docs_comment, ("thread_id",)),
+    "diagram_create": Op(
+        ops.create_diagram_from_file,
+        ("project_id", "title", "path"),
+        ("svg_path", "summary"),
+        rename={"title": "label"},
+    ),
+    "diagram_save": Op(
+        ops.save_diagram_file,
+        ("diagram_id", "path", "base_version"),
+        ("svg_path", "title"),
+        rename={"title": "label"},
+    ),
+    "diagram_delete": Op(ops.delete_diagram, ("diagram_id",)),
+    "diagram_restore": Op(ops.restore_diagram, ("diagram_id",)),
 }
 
 
@@ -171,7 +209,7 @@ async def docs_write(
     base_version: Annotated[
         int | None,
         Field(
-            description="update: the `version` you read with docs_read(get); a stale value is rejected, so re-read and retry."
+            description="update: the `version` you read with docs_read(get). diagram_save: the `version` from docs_read(diagram). A stale value is rejected, so re-read and retry."
         ),
     ] = None,
     note: Annotated[
@@ -215,8 +253,24 @@ async def docs_write(
     path: Annotated[
         str | None,
         Field(
-            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree)."
+            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). diagram_create, diagram_save: absolute path of a .drawio file."
         ),
+    ] = None,
+    diagram_id: Annotated[
+        str | None,
+        Field(
+            description="diagram_save, diagram_delete, diagram_restore: diagram id 'dg_xxxxxxxx'."
+        ),
+    ] = None,
+    svg_path: Annotated[
+        str | None,
+        Field(
+            description="diagram_create, diagram_save: absolute path of an SVG export of the drawing, used as the preview (default: the server draws a plain one)."
+        ),
+    ] = None,
+    summary: Annotated[
+        str | None,
+        Field(description="diagram_create: short text summary shown with the image."),
     ] = None,
 ) -> dict:
     """Write a project's Docs. `action`:
@@ -232,5 +286,9 @@ async def docs_write(
     - reply: thread_id, body. Reply in a thread.
     - edit_comment [, body] / delete_comment: comment_id. Own comments only; deleting a thread's first comment removes the thread.
     - resolve / reopen: thread_id (inline threads).
+    - diagram_create: project_id, title, path [, svg_path, summary]. A new diagram from a local .drawio file. Returns {id, label, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.
+    - diagram_save: diagram_id, path, base_version [, svg_path, title]. Saves the edited .drawio file as a new version; base_version is the `version` from docs_read(diagram), a stale one is rejected. Returns {id, label, version}.
+    - diagram_delete / diagram_restore: diagram_id. Unlink a diagram (kept, restorable) / bring it back.
+    The preview of a saved diagram is drawn by the server (boxes, arrows, text) unless you pass an SVG export; a person who opens it in the editor sees the full drawing.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     return await dispatch("docs_write", DOCS_WRITE_OPS, action, params_of(locals()))

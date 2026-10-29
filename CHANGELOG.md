@@ -10,6 +10,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.9.0] - 2026-10-29
+
+### Changed
+- **Settings is now a full page** instead of one long modal, following the design in `design/screens/settings-structure.md` and `settings-pages.md`. A list of 9 pages (Project: Repositories, Docs, AI, Board assistant; App: Appearance, Storage & backup, Integrations, Updates on desktop, Diagnostics), a project picker for project settings, search across every setting (jumps to it and highlights it), links such as `?settings=ai`, Esc / Back to board, the last page remembered, and the list collapsing into a drop-down in narrow windows. Same fields and saving as before.
+- Importing data now asks inline ("Replace my data") instead of a browser pop-up.
+
+---
+
+## [3.8.4] - 2026-10-29
+
+### Fixed
+- Desktop: the packaged app starts again. 3.8.3 crashed on launch with `Cannot find module './export-svg'` because `export-svg.js` was missing from the files electron-builder packages. A test now checks that every local module a shipped file requires is shipped too.
+
+---
+
+## [3.8.3] - 2026-10-29
+
+### Added
+- MCP: the AI agent can work with **diagrams** (#167) through the Docs tools, as a file. `docs_read(diagrams)` lists a project's draw.io diagrams; `docs_read(diagram)` writes a diagram's `.drawio` file to a local path; the agent edits it with its own file tools (so every draw.io feature is available); `docs_write(diagram_save)` stores it as a new version (a stale `base_version` is rejected like in Docs) and `docs_write(diagram_create)` makes a new diagram from a file and returns the `[Name](diagram:dg_…)` line to put in a text. `diagram_delete` / `diagram_restore` unlink and bring back. Paths are absolute, as for `import`.
+- **Exact previews for what an agent saves.** Nobody has an editor open when an agent saves a diagram, so the server asks the draw.io editor itself, in a hidden browser, for the SVG: the same picture a person gets when they save, with every shape, icon, container and connector as in draw.io. The desktop app does this with its own executable (`Kanban Board --export-svg …`, the Chromium Electron already ships; nothing to install) and tells the server and the VS Code MCP entry how to reach it (`KANBAN_EXPORT_CMD`). A server running without the desktop app uses a Chrome / Chromium / Edge found on the machine (or `KANBAN_CHROME_PATH`) over DevTools. The hidden page may only load the editor's own origin, and nothing is exported when the editor is the public diagrams.net unless `KANBAN_DIAGRAM_EXPORT=public` (`off` switches it off).
+- When no hidden browser is available the server draws a plain preview (boxes, ellipses, diamonds, cylinders, arrows and text; other shapes as boxes, arrows above containers), the footer says "Simple preview", and the agent is told what it stored (`preview`). An SVG the agent exports itself can be passed with `svg_path`. Opening the diagram in the editor and saving replaces either with the full drawing.
+
+---
+
 ## [3.8.2] - 2026-10-29
 
 ### Fixed

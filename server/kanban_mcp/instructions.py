@@ -27,6 +27,10 @@ _INSTRUCTIONS_TAIL = """\
 docs_write (create, update, move, ...). Send the `version` you read as base_version when updating; a stale one is rejected, \
 so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: \
 docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) answers them.
+- Diagrams: a draw.io drawing shows in any text (ticket description, comment, Docs page) as one line `[Name](diagram:dg_xxxxxxxx)`. \
+Edit it as a file: docs_read(diagram) writes the .drawio XML to a path, change it with your own file tools, docs_write(diagram_save) \
+stores it (with the `version` you got as base_version). docs_write(diagram_create) makes a new one from a file; put the returned \
+`markdown` line on its own line in the text.
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions
