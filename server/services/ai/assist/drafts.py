@@ -42,6 +42,8 @@ FEATURE_OF = {
     "doc_links": "docs",
     "doc_text": "docs",
     "nudge": "health",
+    "editor": "drafting",
+    "editor_doc": "docs",
 }
 TIMEOUT_S = 30.0  # I: "30 s draft timeout"
 SPLIT_DAYS = 7
@@ -259,11 +261,21 @@ async def regenerate(
     d = await _get(session, draft_id)
     if d.status in ("applied",):
         raise AssistError("invalid", "This draft was already applied.")
+    editor_draft = d.kind in ("editor", "editor_doc")
     await svc_settings.guard_request(
-        session, d.project_id, FEATURE_OF[d.kind], person=d.owner
+        session,
+        d.project_id,
+        FEATURE_OF[d.kind],
+        person=d.owner,
+        member_id=d.member_id if editor_draft else None,
+        require_member=editor_draft,
     )
     payload = loads(d.payload, {})
     inp = dict(payload.get("input") or {})
+    if editor_draft:
+        inp.pop(
+            "continue_from", None
+        )  # Try again starts over; Continue is its own action
     if feedback:
         inp["feedback"] = feedback.strip()[:1000]
     if field:
@@ -1071,7 +1083,16 @@ async def _gen_nudge(d: AiDraft, profile, row, project, allow_more):
     return {"changes": [{"op": "comment", "ticket": t.id, "text": text}]}, out, out.text
 
 
+async def _gen_editor(d: AiDraft, profile, row, project, allow_more):
+    """Text help in an editor (the /ai menu, the selection bar); see `editor.py`."""
+    from . import editor
+
+    return await editor.generate(d, profile, row, project, allow_more)
+
+
 GENERATORS = {
+    "editor": _gen_editor,
+    "editor_doc": _gen_editor,
     "ticket": _gen_ticket,
     "description": _gen_description,
     "split": _gen_split,
