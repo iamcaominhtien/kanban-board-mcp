@@ -13,7 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
-## [3.11.0] - 2026-10-29
+## [3.12.0] - 2026-10-29
 
 One viewer for every image and file (issue 191, following `design/screens/preview-viewer.md` and `preview-types.md`).
 
