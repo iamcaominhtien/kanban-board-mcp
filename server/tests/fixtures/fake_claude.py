@@ -38,11 +38,32 @@ record = os.environ.get("FAKE_CLAUDE_RECORD")
 if record:
     with open(record, "a") as fh:
         fh.write(json.dumps(args) + "\n")
+env_record = os.environ.get("FAKE_CLAUDE_ENV_RECORD")
+if env_record:
+    with open(env_record, "a") as fh:
+        fh.write(os.environ.get("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", "") + "\n")
 session = (
     args[args.index("--session-id") + 1]
     if "--session-id" in args
     else args[args.index("--resume") + 1]
 )
+if (
+    mode == "no_conversation" and "--resume" in args
+):  # the CLI cannot find the conversation (other folder)
+    emit(
+        {
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": True,
+            "result": "No conversation found with session ID: " + session,
+        }
+    )
+    sys.exit(1)
+config_dir = os.environ.get("CLAUDE_CONFIG_DIR")
+if config_dir:  # the real CLI keeps each conversation as a file; the runner checks for it before resuming
+    folder = os.path.join(config_dir, "projects", "fake")
+    os.makedirs(folder, exist_ok=True)
+    open(os.path.join(folder, session + ".jsonl"), "a").close()
 emit(
     {
         "type": "system",

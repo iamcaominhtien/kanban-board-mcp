@@ -230,6 +230,11 @@ DEFAULT_CONFIG: dict = {
     "max_turns": 40,
     "run_timeout_min": 30,
     "idle_timeout_min": 10,
+    # What the CLI may do without asking: "allowlist" (only the Allow rules, the default) or "bypass" (every tool
+    # except what the Deny rules and the board's own checks stop; owner-only, typed confirmation)
+    "permission_mode": "allowlist",
+    # Claude Code compacts a long session by itself once it fills this share of its context window
+    "compact_at_pct": 60,
     # API agents (D5–D7)
     "max_steps": 12,
     "max_tokens_per_run": 60000,

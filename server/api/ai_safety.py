@@ -8,6 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlmodel import col, select
 
 import events as board_events
@@ -704,6 +705,7 @@ async def get_run_limit(ticket_id: str, session: Session) -> dict:
                     AiRun.ticket_id == ticket_id,
                     AiRun.mode == "work",
                     AiRun.queued_at >= budget.today_start().isoformat(),
+                    or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
                 )
             )
         ).all()

@@ -32,6 +32,7 @@ log = logging.getLogger(__name__)
 
 FEATURE_OF = {
     "changes": "chat",
+    "ai_members": "chat",
     "ticket": "drafting",
     "description": "drafting",
     "assignee": "drafting",
@@ -208,7 +209,7 @@ async def start(
         created_at=now_iso(),
         expires_at=(
             (datetime.now(UTC) + timedelta(days=SPLIT_DAYS)).isoformat()
-            if kind in ("split", "changes")
+            if kind in ("split", "changes", "ai_members")
             else None
         ),
     )
@@ -1445,6 +1446,20 @@ async def apply(
     """Dispatch Apply / Accept / Create by kind."""
     d = await _get(session, draft_id)
     force = bool(body.get("force"))
+    if d.kind == "ai_members":
+        from . import member_drafts
+
+        result = await member_drafts.apply(
+            session,
+            d,
+            person,
+            selected=body.get("selected"),
+            edited=(body.get("fields") or {}).get("members"),
+        )
+        if not result["created"]:
+            msg = "; ".join(f"{f['name']}: {f['message']}" for f in result["failed"])
+            raise AssistError("invalid", msg or "No member was created.")
+        return await _finish(session, d, person, result)
     if d.kind in ("changes", "nudge", "assignee"):
         return await apply_changes(
             session,
@@ -1571,6 +1586,12 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
                 session, res["ticket_id"]
             ):
                 undone += 1
+        elif d.kind == "ai_members":
+            from . import member_drafts
+
+            n, skipped_members = await member_drafts.undo(session, d, person)
+            undone += n
+            skipped += skipped_members
     d.status = "undone"
     res["undo"] = {"by": person, "at": now_iso(), "undone": undone, "skipped": skipped}
     d.result = json.dumps(res)

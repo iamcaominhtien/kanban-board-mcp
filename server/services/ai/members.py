@@ -69,6 +69,7 @@ GLYPHS = [
     "chip",
 ]
 MAX_PERSONA = 1000
+BYPASS_PHRASE = "bypass permissions"
 
 
 class AiMemberError(ValueError):
@@ -154,7 +155,7 @@ def _validate_limits(data: dict) -> None:
         data.get("max_runs_per_day") is not None
         and not 1 <= data["max_runs_per_day"] <= 500
     ):
-        raise AiMemberError("Max runs per day must be between 1 and 500.")
+        raise AiMemberError("Scheduled runs per day must be between 1 and 500.")
     if len(data.get("persona") or "") > MAX_PERSONA:
         raise AiMemberError(f"Role / persona must be at most {MAX_PERSONA} characters.")
     if data.get("ceiling") is not None and data["ceiling"] not in CEILINGS:
@@ -294,6 +295,8 @@ async def create(
     config = merged_config(
         config_model.prepare_config({}, merged_config(data.get("config") or {}))
     )
+    # Bypass permissions is switched on later, on the Configuration tab, by an owner who types the confirmation
+    config["permission_mode"] = "allowlist"
     problems = [
         e
         for e in config_model.validate_config(config, provider)
@@ -535,6 +538,19 @@ async def update(
         except config_service.ConfigError as exc:
             raise AiMemberError(str(exc)) from exc
         _validate_config(cfg)
+        old_mode = merged_config(loads(profile.config, {}))["permission_mode"]
+        new_mode = cfg["permission_mode"]
+        if new_mode != old_mode:
+            if new_mode == "bypass":
+                if role != "owner":
+                    raise AiPermissionDenied(
+                        "Only the project owner can turn on Bypass permissions."
+                    )
+                if (data.get("confirm_bypass") or "").strip().lower() != BYPASS_PHRASE:
+                    raise AiMemberError(
+                        f"Type “{BYPASS_PHRASE}” to confirm Bypass permissions."
+                    )
+            changes["permission_mode"] = [old_mode, new_mode]
         config_changed = cfg != merged_config(loads(profile.config, {}))
         profile.config = json.dumps(cfg)
         changes["config"] = True
@@ -553,6 +569,18 @@ async def update(
     if config_changed:
         await config_service.bump_version(session, member_id)
     await multiproject.sync(session, member_id)
+    if "permission_mode" in changes:
+        await audit.record(
+            member.project_id,
+            "bypass_permissions_on"
+            if changes["permission_mode"][1] == "bypass"
+            else "bypass_permissions_off",
+            "info",
+            member_id=member_id,
+            member_name=member.name,
+            on_behalf_of=by,
+            detail={"by_role": role},
+        )
     if changes:
         await audit.record(
             member.project_id,
@@ -637,6 +665,10 @@ def _validate_config(cfg: dict) -> None:
         raise AiMemberError("Run timeout: 1 to 240 minutes.")
     if not 1 <= int(cfg.get("idle_timeout_min") or 10) <= 120:
         raise AiMemberError("Idle timeout: 1 to 120 minutes.")
+    if cfg.get("permission_mode", "allowlist") not in ("allowlist", "bypass"):
+        raise AiMemberError("Permission mode: Allow list or Bypass permissions.")
+    if not 10 <= int(cfg.get("compact_at_pct") or 60) <= 95:
+        raise AiMemberError("Auto-compact at: 10 to 95 percent.")
     for flag in cfg.get("extra_flags") or []:
         if any(bad in str(flag) for bad in cli.REJECTED_FLAGS):
             raise AiMemberError(
@@ -1234,6 +1266,7 @@ async def usage(session: AsyncSession, member_id: str) -> dict:
         )
     return {
         "runs_today": len(todays),
+        "scheduled_runs_today": len([r for r in todays if r.trigger == "schedule"]),
         "runs_last_hour": len([r for r in todays if (r.started_at or "") >= hour_ago]),
         "tokens_in_today": sum(r.tokens_in for r in todays),
         "tokens_out_today": sum(r.tokens_out for r in todays),

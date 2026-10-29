@@ -150,7 +150,14 @@ export const assistApi = {
   },
   send: async (
     chatId: string,
-    body: { text: string; draft?: boolean; sendAll?: boolean; docIds?: string[]; filters?: Record<string, unknown> },
+    body: {
+      text: string;
+      draft?: boolean;
+      sendAll?: boolean;
+      docIds?: string[];
+      filters?: Record<string, unknown>;
+      memberForm?: Record<string, unknown>;
+    },
   ) => (await client.post<{ user: ChatMessage; ai: ChatMessage }>(`/ai/assist/chats/${chatId}/messages`, body)).data,
   stop: async (messageId: string) => (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/stop`)).data,
   feedback: async (messageId: string, thumb: 'up' | 'down' | null, reason = '') =>

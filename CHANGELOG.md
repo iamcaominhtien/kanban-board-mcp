@@ -8,8 +8,53 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-10-29
+
+One viewer for every image and file (issue 191, following `design/screens/preview-viewer.md` and `preview-types.md`).
+
 ### Added
-- **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 24 pages): setting up Claude Code and AI members, choosing the Board AI, how to write persona, instructions, tickets and extra instructions (with copy-paste samples), assigning and reviewing work, Board AI prompts, schedules, safety and cost, troubleshooting and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
+- **One viewer** (`ui/src/components/preview/`) that opens any image or file from the description, comments, Docs pages, attachments and the ticket workspace. Anything that shows a file only says "open this" together with the files around it, so next / previous (arrow keys, buttons, swipe) and the thumbnail strip always make sense there. Header with name, type, size, counter and actions, a details panel (I) with facts and "Used in", full screen (F), Download (D), focus kept inside and returned to what opened it, Esc always closes.
+- **Images**: fit, zoom to the pointer (wheel, pinch, + / −), drag to pan, rotate, copy, double-click for Fit / actual size, a map when zoomed in, and a checkerboard / light / dark background for transparent images. SVG is shown as a picture, never as page code.
+- **Readers**: text, logs and code (colour, line numbers, search with Ctrl+F, wrap, copy; only the rows in view are drawn, so a long log opens at once; the first 1 MB with a note for larger files); JSON (formatted, tree, raw); Markdown (rendered like Docs, or source); CSV, TSV and Excel (sheets, search, frozen header, first 500 rows, values only); PDF (page thumbnails, zoom, page jump, search); zip, tar and gz (browse folders, preview a file inside; entry and size caps); Word (simplified reading view) and PowerPoint (slide outline with speaker notes), read in the browser without a converter; audio and video; a card with the file facts and Download for everything else.
+- **HTML** opens as the real page in a locked frame: empty `sandbox` (no scripts, forms, pop-ups or same-origin access), a CSP that blocks every outside request, scripts, embedded content, event handlers and link targets removed first, notices for blocked content and scripts, Desktop / Tablet / Phone width, and a Source view. The server still serves HTML as plain text.
+- **States** that always leave Download as a way out: loading, too large (first part shown), password protected, damaged, missing or no access, a text name with binary data, offline with Retry (files already opened in the session stay available), and a broken file inside a gallery.
+- Docs images are clickable (Enter and Space on a focused image too); in the editor, double-click an image or a link to an uploaded file, or press Space on a selected image.
+- Attachment cards show a real thumbnail for images.
+- Desktop: **Show in folder** next to Open in app; files that can run (`.exe .bat .cmd .ps1 .sh .command .app .msi .jar`) ask first ("Open anyway"). On the web the actions are Download and open and Copy link, and Open in app is shown greyed out with "Only in the desktop app".
+
+### Fixed
+- **Open in app on desktop**: the app found a file's place on disk through the `X-File-Path` header of a `HEAD` request, but the server answered `HEAD` with 405 and the CORS layer hid the header from the desktop page (`file://`), so nothing opened. The app now asks `GET /upload-info/<file>`, which returns the path as JSON.
+- Serving an upload crashed (500) when the uploads folder has non-latin-1 characters, e.g. a Windows user folder such as `C:\Users\Tiến`, because the path went into a response header. The header is now sent only when it can carry the path.
+
+### Changed
+- Replaces `FilePreviewModal`, the workspace `PreviewPanel` and the markdown renderer's own image modal.
+- The server sends `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` with every SVG, so an SVG opened on its own cannot run or load anything.
+
+### Not in this version
+- 7z and rar listing, slide pictures for PowerPoint (needs a converter), and Word fonts, page layout, comments and tracked changes.
+- Editing a file in another app and saving it back, "Open with…", and a dedicated phone layout (the same viewer works full screen with swipe and pinch).
+
+---
+
+## [3.11.0] - 2026-10-29
+
+### Changed
+- **AI keeps one conversation per ticket.** An AI member (Claude Code) resumes its own last session on a ticket instead of starting fresh at every @mention, assignment or re-run; a different AI, or a different ticket, has its own. Each run also gets an "Activity since your last run" block with what the other AI members did on the ticket (who, result, files, status), so a PM asked "what has Dev done?" can answer. If the old session is gone or the CLI cannot resume it, a new one starts with a note on the run. Two runs of the same AI on the same ticket never run at the same time.
+- **Run limits only guard automatic runs.** "Max runs per day" is now **Scheduled runs per day** and counts runs a schedule starts; the board's "runs per day" (default 100, was 60) and "runs per ticket a day" (default 15, was 6) count scheduled and AI-started (@mention chain) runs. A run a person starts (@mention, assignment, Run, reply, question) is never limited by them. Settings still at the old defaults move to the new ones.
+- **Board AI chat is one session per chat** for a local Claude Code Board AI, so earlier messages are not sent again.
+- The number between the +/− buttons of the add-member dialog can be typed; Shift+click moves in bigger steps.
+
+Demo: `docs/demo/ai-sessions-demo.pdf` (14 pages, real Claude Code runs): a PM and a Dev on one ticket, the Dev resuming its session, the run limits not stopping a person, the Ask AI chat session, a real compaction trace and Bypass permissions (the same `touch` refused with it off and run with it on).
+
+Demo: `docs/demo/ai-member-assistant-demo.pdf` (10 pages, real Claude Code runs): the dialog's Ask AI panel and presets, the Board AI asks what it needs, proposes a PM, a Dev and a Reviewer in Vietnamese, revises the whole list on request, and creates them on one click with Undo and an audit trail; plus the stand-in AI when no Board AI is chosen.
+
+### Added
+- **The Board AI can set up AI members for you.** Describe the team you want in Ask AI (Ctrl/Cmd + J, from anywhere) or press **✦ Draft with AI** on Members → AI. The Board AI asks what it needs, then shows a card with the proposed members (name, description, persona in your language, role template, ceiling, limits); edit any field or keep chatting to refine it (each answer returns the whole updated list). Nothing exists until an admin or the owner presses **Create**; members are then created as that person through the same code as the Add AI member dialog, audited as created via Board AI, with Undo. A proposal can never carry a key, Bypass permissions, a ceiling past Review or a folder, and an API-key Board AI cannot create members (keys are not copied). Without a chosen Board AI, Ask AI is answered by a stand-in AI member of the project (not saved as the Board AI).
+- **Ask AI to fill this in, inside the Add AI member dialog.** Step 3 (Identity & limits) has a new panel above the Start from presets (PM, Dev, Reviewer, Blank): describe the member, the Board AI fills the name, description, persona, limits, ceiling, role template and (Claude Code) model, and you keep prompting to refine it. Every message carries the form as it is now, so hand edits survive. It only fills fields; nothing is created until you press Add AI member, and the same checks apply (ceiling clamped to Review, no key, folder or Bypass taken from the AI). Shown when the project has a Board AI or a stand-in AI member.
+- **Ready-made AI members in the Add AI member dialog.** Step 3 has a **Start from** row with **PM**, **Dev** and **Reviewer** (or **Blank**). A role fills in the name, short description, persona (English or Tiếng Việt), parallel runs, scheduled runs per day, status ceiling, the approval switches, the role template (Reviewer uses the Reviewer template) and, for PM and Reviewer, CLI Allow rules without `Edit` and `Write`. Everything stays editable. The roles live in `ui/src/components/ai/memberPresets.json`, which the guideline also reads.
+- **Bypass permissions** for Claude Code AI members: Configuration → Permissions → Permission mode. Allow list only stays the default; Bypass lets a work run use any CLI tool without the Allow list (`--permission-mode bypassPermissions`). Only the project owner can turn it on, by typing `bypass permissions`; turning it on or off is audited and the member shows a red chip. Deny rules, the status ceiling, approvals and Safe mode still apply, ask runs stay read-only and the web stays off. New members always start on Allow list only.
+- **Auto-compact**: "Auto-compact at" (default 60% of the context window, 10 to 95) per AI member, also used for the Board AI chat, passed to Claude Code as `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`. A compaction shows as a step on the run.
+- **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 33 pages, also covers sessions, run limits, Auto-compact and Bypass permissions): the AI team to set up (PM, Dev, Reviewer, General as the Board AI) and how they hand work to each other; every field of the Add AI member dialog with the values for each AI; what to do after creating (Role template on the Permissions tab, CLI rules, what an existing `CLAUDE.md` / `.claude/` in the working folder affects, one AI in several projects); the rest of the setup (Board AI, Board assistant, allowed test commands, limits); and copy-paste prompts (persona, instructions, @mentions, style guide, a weekly PM report schedule) for each AI. Also: how to write prompts and tickets, assigning and reviewing work, schedules, safety and cost, 13 common problems and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
 
 ---
 

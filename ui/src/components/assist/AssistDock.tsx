@@ -237,7 +237,8 @@ export function AssistDock() {
   };
 
   const b = state?.boardAi;
-  const notConfigured = b?.state === 'not_configured';
+  const standby = b?.fallback ?? null;
+  const notConfigured = b?.state === 'not_configured' && !standby;
   const chatFeature = state?.features.find((f) => f.key === 'chat');
   const chatOff = chatFeature ? !chatFeature.on : false;
   const offline = b?.state === 'unavailable';
@@ -264,11 +265,15 @@ export function AssistDock() {
           <div className="as-head-title">Board AI</div>
           <div className="as-head-sub">
             <span
-              className={`as-dot ${b?.state === 'ready' ? '' : b?.state === 'unavailable' ? 'as-dot-red' : 'as-dot-grey'}`}
+              className={`as-dot ${b?.state === 'ready' || standby ? '' : b?.state === 'unavailable' ? 'as-dot-red' : 'as-dot-grey'}`}
             />
             {b?.name ? (
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {b.name} · {b.state === 'ready' ? 'online' : (b.status?.label?.toLowerCase() ?? 'unavailable')}
+              </span>
+            ) : standby ? (
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {standby.name} · stand-in (no Board AI chosen)
               </span>
             ) : (
               'Not configured'
