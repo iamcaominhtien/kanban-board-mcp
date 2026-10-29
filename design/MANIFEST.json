@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793234038-d594",
+  "canvas_version": "1793259570-1d4c",
   "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
@@ -428,20 +428,20 @@
       "h": 6640
     },
     "PreviewViewer.dc.html": {
-      "bytes": 78960,
-      "sha256": "bac21df3b22922ad56eecd3946dde6b1d9d6b7634da3d9f2f97863329f65b850",
+      "bytes": 79228,
+      "sha256": "ef2a2c3afe3d9fab8ba7c252906b810bbb338c89fcfafeaf62f6ce06ee2ad568",
       "title": "Preview — open & viewer",
       "page": "screens",
       "w": 1480,
-      "h": 4940
+      "h": 5010
     },
     "PreviewTypes.dc.html": {
-      "bytes": 122438,
-      "sha256": "62703846e700d21dfd904be8d18ebe9e9d78b42298d9501b4f6fb5b49570b7b3",
+      "bytes": 142226,
+      "sha256": "ad4557db7e29544506ce0dd57f9a596a99b6fe1ebd6a6f93a2effe6a0ca7c709",
       "title": "Preview — file types & states",
       "page": "screens",
       "w": 1480,
-      "h": 7400
+      "h": 8630
     }
   }
 }
