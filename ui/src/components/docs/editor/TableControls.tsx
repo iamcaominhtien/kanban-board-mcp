@@ -1,6 +1,6 @@
 import type { Editor } from '@tiptap/react';
 import { CellSelection } from '@tiptap/pm/tables';
-import { useCallback, useEffect, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Icon } from '../Icon';
 
 interface Geo {
@@ -10,6 +10,8 @@ interface Geo {
   /** selected column / row ranges, when a whole column or row is selected */
   selCols: [number, number] | null;
   selRows: [number, number] | null;
+  /** column / row of the cell that holds the caret (not a cell selection) */
+  caret: { col: number; row: number } | null;
   anySel: boolean;
 }
 
@@ -37,9 +39,12 @@ function cellIndexOf(dom: HTMLElement | null): { col: number; row: number } | nu
 export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: RefObject<HTMLDivElement> }) {
   const [geo, setGeo] = useState<Geo | null>(null);
   const [tip, setTip] = useState<string | null>(null);
+  // The overlay fills the editor column (inset 0), which sits below the page header inside the host; positions
+  // are measured against it, not against the host.
+  const layerRef = useRef<HTMLDivElement>(null);
 
   const compute = useCallback(() => {
-    const host = hostRef.current;
+    const host = layerRef.current;
     if (!host || !editor.isEditable || editor.isDestroyed) return setGeo(null);
     const { selection } = editor.state;
     const { $from } = selection;
@@ -74,12 +79,18 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
         }
       }
     }
+    let caret: Geo['caret'] = null;
+    if (!(selection instanceof CellSelection)) {
+      const node = editor.view.domAtPos(selection.from).node;
+      caret = cellIndexOf(node instanceof HTMLElement ? node : node.parentElement);
+    }
     setGeo({
       table: { left: t.left - h.left, top: t.top - h.top, width: t.width, height: t.height },
       cols,
       rows: rws,
       selCols,
       selRows,
+      caret,
       anySel: selection instanceof CellSelection,
     });
   }, [editor, hostRef]);
@@ -88,8 +99,11 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
     compute();
     editor.on('transaction', compute);
     window.addEventListener('resize', compute);
+    // Chips, images and fonts resolve after the selection changes and move the table; follow the content, not just
+    // the transactions, or the grips and "+" handles drift away from their rows.
     const ro = typeof ResizeObserver !== 'undefined' && hostRef.current ? new ResizeObserver(compute) : null;
     if (ro && hostRef.current) ro.observe(hostRef.current);
+    if (ro) ro.observe(editor.view.dom);
     return () => {
       editor.off('transaction', compute);
       window.removeEventListener('resize', compute);
@@ -97,7 +111,7 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
     };
   }, [editor, compute, hostRef]);
 
-  if (!geo) return null;
+  if (!geo) return <div ref={layerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />;
 
   const tableOf = () => {
     const { $from } = editor.state.selection;
@@ -167,9 +181,14 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
   const c = () => editor.chain().focus();
 
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 8 }} data-testid="table-controls">
+    <div
+      ref={layerRef}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 8 }}
+      data-testid="table-controls"
+    >
       {geo.cols.map((col, i) => {
         const on = !!geo.selCols && i >= geo.selCols[0] && i <= geo.selCols[1];
+        if (!on && geo.caret?.col !== i) return null;
         return (
           <button
             key={`c${i}`}
@@ -190,6 +209,7 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
       })}
       {geo.rows.map((row, i) => {
         const on = !!geo.selRows && i >= geo.selRows[0] && i <= geo.selRows[1];
+        if (!on && geo.caret?.row !== i) return null;
         return (
           <button
             key={`r${i}`}
@@ -245,7 +265,8 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
         style={{
           position: 'absolute',
           pointerEvents: 'auto',
-          left: geo.table.left - 10,
+          // in the left margin, level with the bottom edge, so it never covers the next paragraph
+          left: geo.table.left - 34,
           top: geo.table.top + geo.table.height - 10,
           width: 20,
           height: 20,

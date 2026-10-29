@@ -91,6 +91,8 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
       setUrl(st?.href ?? '');
       setTimeout(() => inputRef.current?.focus(), 0);
     }
+    // The bar changes width and height between the buttons and the URL field; re-anchor it above the selection.
+    editor.view.dispatch(editor.state.tr.setMeta('docsBubble', 'updatePosition'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkOpen]);
 
@@ -137,6 +139,10 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
       editor={editor}
       pluginKey="docsBubble"
       updateDelay={80}
+      // Mounted on <body>: inside the editor's position:relative column, Floating UI measures against that column
+      // while the bar is still position:absolute, and the fixed bar then lands offset by the column's top-left.
+      appendTo={() => document.body}
+      style={{ zIndex: 60 }}
       options={{
         strategy: 'fixed',
         placement: 'top',
@@ -164,6 +170,8 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
           alignItems: 'center',
           gap: 1,
           padding: '4px 6px',
+          minHeight: 36,
+          boxSizing: 'border-box',
           borderRadius: 9,
           background: '#1E2A22',
           boxShadow: '0 10px 24px rgba(30,42,34,0.3)',
