@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793277091-b441",
+  "canvas_version": "1793295530-5588",
   "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
@@ -450,6 +450,70 @@
       "page": "screens_account",
       "w": 1480,
       "h": 4330
+    },
+    "IdeaSpaceViews.dc.html": {
+      "bytes": 113778,
+      "sha256": "ac9aaed74959e5dfbb48bbae16a3be4b24e7ee0983c4a17ddeb7c0942c58a673",
+      "title": "Idea Space — list, stages & matrix",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 4533
+    },
+    "IdeaCapture.dc.html": {
+      "bytes": 71375,
+      "sha256": "a229048f7914b1ffd3bf01e3e754a82690a1a0f80fbe462012074bbb09128095",
+      "title": "Idea Space — capture & triage",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 3227
+    },
+    "IdeaPage.dc.html": {
+      "bytes": 122828,
+      "sha256": "cc36e79baf2fa1eae7f2e8c7047f518b3ae18397f6711c952b5718711d13dee1",
+      "title": "Idea Space — the idea page",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 5714
+    },
+    "IdeaPromote.dc.html": {
+      "bytes": 89101,
+      "sha256": "516bf6ecd4027abf32f79fe717ac3ea237f30d75e3bf687a7eaafbc2f1beeda1",
+      "title": "Idea Space — promote & migration",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 5657
+    },
+    "IdeaWork.dc.html": {
+      "bytes": 94399,
+      "sha256": "3a2cc6a0a16ff1c2b8cf416d829b56ab56c30d56a9b73236565f7a916a8f8be2",
+      "title": "Idea Space — research log, workspace & activity",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 4803
+    },
+    "IdeaAi.dc.html": {
+      "bytes": 78760,
+      "sha256": "410829ab5b84d0e849b329195a3785121d31d7eb70049d17b3030881b84c4b4c",
+      "title": "Idea Space — AI help",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 4919
+    },
+    "Sketch.dc.html": {
+      "bytes": 73045,
+      "sha256": "7e8ed32a94a424cfa9729dcbe7da6eb9585a9303418af4992a5e88f84a76be4f",
+      "title": "Sketch — paint-style drawing tool",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 3531
+    },
+    "AiEverywhere.dc.html": {
+      "bytes": 69747,
+      "sha256": "567d8b0a57df9c42b3bc44dd6035c732162a9143fd0ddf352bc8d64aa006db6e",
+      "title": "AI where you work — ticket chat, @mentions & editor",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 4046
     }
   }
 }
