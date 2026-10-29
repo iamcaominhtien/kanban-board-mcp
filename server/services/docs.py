@@ -19,6 +19,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import (
     DocsAnchorAlias,
     DocsDraft,
+    DocsFollow,
     DocsPageSeen,
     DocsLink,
     DocsPage,
@@ -704,6 +705,63 @@ async def save_draft(
     session.add(draft)
     await session.commit()
     return await page_detail(session, page_id)
+
+
+async def followers(session: AsyncSession, project_id: str) -> dict[str, Any]:
+    """Return who follows a project's Docs space.
+
+    Args:
+        project_id: Project whose space is followed.
+
+    Returns:
+        ``{"following": bool, "count": int, "names": [str]}``; ``count`` and ``names`` leave out the
+        caller, who is not notified of their own publishes (names: at most 3, for the avatars).
+    """
+    await _project(session, project_id)
+    actor = activity.current_actor()
+    rows = (
+        await session.exec(
+            select(DocsFollow)
+            .where(DocsFollow.project_id == project_id)
+            .order_by(DocsFollow.created_at)  # type: ignore[arg-type]
+        )
+    ).all()
+    others = [r.follower for r in rows if r.follower != actor]
+    return {
+        "following": any(r.follower == actor for r in rows),
+        "count": len(others),
+        "names": others[:3],
+    }
+
+
+async def set_following(
+    session: AsyncSession, project_id: str, on: bool
+) -> dict[str, Any]:
+    """Follow or unfollow a project's Docs space as the caller (idempotent).
+
+    Args:
+        project_id: Project whose space is followed.
+        on: True to follow, False to unfollow.
+
+    Returns:
+        The same payload as :func:`followers`.
+    """
+    await _project(session, project_id)
+    actor = activity.current_actor()
+    rows = (
+        await session.exec(
+            select(DocsFollow).where(
+                DocsFollow.project_id == project_id, DocsFollow.follower == actor
+            )
+        )
+    ).all()
+    if on and not rows:
+        session.add(DocsFollow(project_id=project_id, follower=actor))
+    elif not on:
+        for row in rows:
+            await session.delete(row)
+    await session.commit()
+    return await followers(session, project_id)
 
 
 async def get_seen(session: AsyncSession, page_id: str) -> dict[str, Any]:

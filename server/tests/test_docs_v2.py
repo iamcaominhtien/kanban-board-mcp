@@ -539,3 +539,22 @@ async def test_draft_counts_autosaves(c, pid):
     assert first["draft"]["saves"] == 2
     again = (await c.put(url, json={"markdown": "ab"})).json()
     assert again["draft"]["saves"] == 3
+
+
+async def test_followers_are_counted_without_the_caller(c, pid):
+    url = f"/projects/{pid}/docs"
+    ana, bo, cy = ({"x-actor": n} for n in ("Ana", "Bo", "Cy"))
+    assert (await c.get(f"{url}/followers", headers=ana)).json() == {
+        "following": False,
+        "count": 0,
+        "names": [],
+    }
+    await c.put(f"{url}/follow", json={"on": True}, headers=ana)
+    await c.put(f"{url}/follow", json={"on": True}, headers=ana)  # idempotent
+    await c.put(f"{url}/follow", json={"on": True}, headers=bo)
+    mine = (await c.get(f"{url}/followers", headers=ana)).json()
+    assert mine == {"following": True, "count": 1, "names": ["Bo"]}
+    theirs = (await c.get(f"{url}/followers", headers=cy)).json()
+    assert theirs["following"] is False and theirs["count"] == 2
+    off = (await c.put(f"{url}/follow", json={"on": False}, headers=bo)).json()
+    assert off == {"following": False, "count": 1, "names": ["Ana"]}

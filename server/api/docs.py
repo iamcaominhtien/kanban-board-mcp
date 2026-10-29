@@ -78,6 +78,12 @@ class DraftSave(BaseModel):
     base_version: int | None = None
 
 
+class FollowBody(BaseModel):
+    """Request body to follow or unfollow a Docs space."""
+
+    on: bool
+
+
 class SeenBody(BaseModel):
     """Request body to record the version a person has viewed."""
 
@@ -382,6 +388,20 @@ async def put_draft(page_id: str, body: DraftSave, session: Session) -> dict[str
         title=body.title,
         base_version=body.base_version,
     )
+
+
+@router.get("/projects/{project_id}/docs/followers")
+async def get_followers(project_id: str, session: Session) -> dict[str, Any]:
+    """Return who follows the project's Docs space (not counting you)."""
+    return await svc.followers(session, project_id)
+
+
+@router.put("/projects/{project_id}/docs/follow")
+async def put_follow(
+    project_id: str, body: FollowBody, session: Session
+) -> dict[str, Any]:
+    """Follow or unfollow the project's Docs space as you."""
+    return await svc.set_following(session, project_id, body.on)
 
 
 @router.get("/docs/pages/{page_id}/seen")

@@ -244,6 +244,17 @@ class DocsPageSeen(SQLModel, table=True):
     seen_at: str = Field(default_factory=_now_iso)
 
 
+class DocsFollow(SQLModel, table=True):
+    """Someone who follows a project's Docs space (gets a notification when a page is published)."""
+
+    __tablename__ = "docs_follow"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    follower: str
+    created_at: str = Field(default_factory=_now_iso)
+
+
 class DocsLink(SQLModel, table=True):
     """Reference index: one row per [[page]] or ticket key in a published page."""
 

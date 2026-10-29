@@ -1,4 +1,4 @@
-"""docs: per-user last viewed version (docs_page_seen) and docs_draft.saves
+"""docs: per-user last viewed version (docs_page_seen), docs_follow and docs_draft.saves
 
 Revision ID: b5c6d7e8f9a0
 Revises: a4b5c6d7e8f9
@@ -32,6 +32,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_docs_page_seen_page_id", "docs_page_seen", ["page_id"])
+    op.create_table(
+        "docs_follow",
+        sa.Column("id", _S(), nullable=False),
+        sa.Column("project_id", _S(), nullable=False),
+        sa.Column("follower", _S(), nullable=False),
+        sa.Column("created_at", _S(), nullable=False),
+        sa.ForeignKeyConstraint(["project_id"], ["project.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_docs_follow_project_id", "docs_follow", ["project_id"])
     op.add_column(
         "docs_draft",
         sa.Column("saves", sa.Integer(), nullable=False, server_default="1"),
@@ -41,5 +51,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     with op.batch_alter_table("docs_draft") as batch:
         batch.drop_column("saves")
+    op.drop_index("ix_docs_follow_project_id", table_name="docs_follow")
+    op.drop_table("docs_follow")
     op.drop_index("ix_docs_page_seen_page_id", table_name="docs_page_seen")
     op.drop_table("docs_page_seen")
