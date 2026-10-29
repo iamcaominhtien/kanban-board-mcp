@@ -953,6 +953,9 @@ export function Stepper({
   max: number;
   onChange: (v: number) => void;
 }) {
+  const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n)));
+  // Shift + click moves by a tenth of the range (at least 5), so 20 → 50 is a few clicks, or just type the number
+  const jump = (e: { shiftKey: boolean }) => (e.shiftKey ? Math.max(5, Math.round((max - min) / 10)) : 1);
   return (
     <div
       style={{
@@ -966,17 +969,37 @@ export function Stepper({
       <button
         type="button"
         className="ai-icobtn"
-        onClick={() => onChange(Math.max(min, value - 1))}
+        onClick={(e) => onChange(clamp(value - jump(e)))}
         aria-label="Decrease"
+        title="Shift + click: bigger steps"
       >
         −
       </button>
-      <span style={{ minWidth: 34, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{value}</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={Number.isFinite(value) ? String(value) : ''}
+        aria-label="Value"
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, '');
+          onChange(digits === '' ? NaN : Number(digits));
+        }}
+        onBlur={() => onChange(Number.isFinite(value) ? clamp(value) : min)}
+        style={{
+          width: 52,
+          border: 'none',
+          background: 'transparent',
+          textAlign: 'center',
+          fontSize: 13,
+          fontWeight: 700,
+        }}
+      />
       <button
         type="button"
         className="ai-icobtn"
-        onClick={() => onChange(Math.min(max, value + 1))}
+        onClick={(e) => onChange(clamp(value + jump(e)))}
         aria-label="Increase"
+        title="Shift + click: bigger steps"
       >
         +
       </button>
