@@ -1,7 +1,7 @@
 """docs_title_aliases: old page titles keep resolving after a rename
 
-Revision ID: b5c6d7e8f9a0
-Revises: a4b5c6d7e8f9
+Revision ID: c6d7e8f9a0b1
+Revises: b5c6d7e8f9a0
 Create Date: 2026-10-29 01:00:00.000000
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 import sqlmodel
 from alembic import op
 
-revision: str = "b5c6d7e8f9a0"
-down_revision: Union[str, Sequence[str], None] = "a4b5c6d7e8f9"
+revision: str = "c6d7e8f9a0b1"
+down_revision: Union[str, Sequence[str], None] = "b5c6d7e8f9a0"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
