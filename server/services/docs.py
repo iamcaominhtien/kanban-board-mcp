@@ -21,6 +21,7 @@ from models import (
     DocsDraft,
     DocsLink,
     DocsPage,
+    DocsTitleAlias,
     DocsVersion,
     Project,
     Ticket,
@@ -600,7 +601,7 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
     )  # late import: docs_comments builds on this module
 
     await docs_comments.delete_for_pages(session, ids)
-    for model in (DocsLink, DocsDraft, DocsVersion, DocsAnchorAlias):
+    for model in (DocsLink, DocsDraft, DocsVersion, DocsAnchorAlias, DocsTitleAlias):
         col = model.source_page_id if model is DocsLink else model.page_id  # type: ignore[attr-defined]
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
@@ -1050,6 +1051,31 @@ async def _aliases_by_page(
     return out
 
 
+async def _title_aliases(session: AsyncSession, page_ids: list[str]) -> dict[str, str]:
+    """Old (lower-cased) titles of renamed pages mapped to the page id they now belong to."""
+    if not page_ids:
+        return {}
+    rows = await session.exec(
+        select(DocsTitleAlias).where(DocsTitleAlias.page_id.in_(page_ids))  # type: ignore[attr-defined]
+    )
+    return {a.old_title: a.page_id for a in rows.all()}
+
+
+async def _remember_title(
+    session: AsyncSession, page: DocsPage, old_title: str, new_title: str
+) -> None:
+    """Keep ``[[old_title]]`` resolving to the page after a rename (tickets link by page id)."""
+    rows = await session.exec(
+        select(DocsTitleAlias).where(DocsTitleAlias.page_id == page.id)
+    )
+    old, new = old_title.strip().lower(), new_title.strip().lower()
+    have = {a.old_title: a for a in rows.all()}
+    if new in have:  # renamed back: the title is live again
+        await session.delete(have[new])
+    if old != new and old not in have:
+        session.add(DocsTitleAlias(page_id=page.id, old_title=old))
+
+
 def _follow_alias(
     wanted: str, slugs: dict[str, Any], aliases: dict[str, str]
 ) -> str | None:
@@ -1071,6 +1097,7 @@ async def _resolve_page_ref(
     anchor: str | None,
     headings_of: dict[str, list[dict[str, Any]]],
     aliases: dict[str, dict[str, str]] | None = None,
+    old_titles: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     needle = title.strip().lower()
     by_id = {p.id: p for p in pages}
@@ -1093,6 +1120,8 @@ async def _resolve_page_ref(
     status = "ok"
     if not matches and "/" in needle:
         matches = [p for p in pages if path_of(p).lower().endswith(needle)]
+    if not matches and old_titles and needle in old_titles:
+        matches = [p for p in pages if p.id == old_titles[needle]]  # old title of a renamed page
     if not matches:
         gone = next((p for p in deleted if p.title.lower() == needle), None)
         if gone is not None:
@@ -1160,6 +1189,7 @@ async def resolve_refs(
     deleted = await _all_pages(session, project_id, deleted=True)
     headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
+    renamed = await _title_aliases(session, [p.id for p in pages])
     keys = [r["key"] for r in refs if r.get("kind") == "ticket" and r.get("key")]
     tickets: dict[str, Ticket] = {}
     if keys:
@@ -1181,7 +1211,13 @@ async def resolve_refs(
             )
         else:
             res = await _resolve_page_ref(
-                pages, deleted, r.get("title", ""), r.get("anchor"), headings, aliases
+                pages,
+                deleted,
+                r.get("title", ""),
+                r.get("anchor"),
+                headings,
+                aliases,
+                renamed,
             )
             out.append({"kind": "page", **res})
     return out
@@ -1244,6 +1280,7 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
         return
     headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
+    renamed = await _title_aliases(session, [p.id for p in pages])
     rows = await session.exec(
         select(DocsLink).where(
             DocsLink.source_page_id.in_(ids),  # type: ignore[attr-defined]
@@ -1258,6 +1295,7 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
             link.target_anchor,
             headings,
             aliases,
+            renamed,
         )
         new_target = res.get("page_id")
         if new_target != link.target_page_id:
@@ -1326,6 +1364,7 @@ async def _ticket_mentions(
     pages = await _all_pages(session, project_id)
     headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
+    renamed = await _title_aliases(session, [p.id for p in pages])
     out: list[dict[str, Any]] = []
     for t in tickets:
         for origin, detail, body in _ticket_texts(t):
@@ -1333,7 +1372,7 @@ async def _ticket_mentions(
                 continue
             for ref in page_ref_contexts(body):
                 res = await _resolve_page_ref(
-                    pages, [], ref["title"], ref["anchor"], headings, aliases
+                    pages, [], ref["title"], ref["anchor"], headings, aliases, renamed
                 )
                 if res.get("page_id"):
                     out.append(
@@ -1538,10 +1577,11 @@ async def docs_for_ticket(
     ):
         headings = await _headings_by_page(session, pages)
         aliases = await _aliases_by_page(session, [p.id for p in pages])
+        renamed = await _title_aliases(session, [p.id for p in pages])
         for origin, detail, body in _ticket_texts(ticket):
             for ref in page_ref_contexts(body) if "[[" in body else []:
                 res = await _resolve_page_ref(
-                    pages, [], ref["title"], ref["anchor"], headings, aliases
+                    pages, [], ref["title"], ref["anchor"], headings, aliases, renamed
                 )
                 if res.get("page_id"):
                     row(
@@ -1747,6 +1787,7 @@ async def rename_page(
     page.updated_at = _now()
     page.updated_by = actor
     session.add(page)
+    await _remember_title(session, page, old_title, new_title)
     draft = await _draft_for(session, page.id, actor)
     if draft:
         draft.title = page.title

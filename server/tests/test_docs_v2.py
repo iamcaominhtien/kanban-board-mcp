@@ -510,3 +510,32 @@ async def test_errors_carry_a_request_id_header_and_detail(c, pid):
     assert d["latest_version"] == 0  # extras survive
     ok = await c.get(f"/projects/{pid}/docs/tree")
     assert "x-request-id" not in ok.headers
+
+
+# --- renamed pages keep ticket references -------------------------------------
+
+
+async def test_renamed_page_keeps_ticket_references_working(c, pid):
+    """Tickets link by page id: [[Old title]] in a ticket still resolves, showing the new title."""
+    target = await publish(c, await mk(c, pid, "Data model"), "## Fields\nx")
+    t = await _ticket(c, pid, description="Schema in [[Data model]]")
+    before = (await c.get(f"/tickets/{t['id']}/docs")).json()
+    assert [r["page_id"] for r in before] == [target["id"]]
+
+    r = await c.patch(
+        f"/docs/pages/{target['id']}", json={"title": "Schema", "rewrite_links": True}
+    )
+    assert r.status_code == 200
+
+    after = (await c.get(f"/tickets/{t['id']}/docs")).json()
+    assert [(x["page_id"], x["title"]) for x in after] == [(target["id"], "Schema")]
+    bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
+    assert [x["ticket_id"] for x in bl["tickets"]] == [t["id"]]
+    ref = {"refs": [{"kind": "page", "title": "Data model"}]}
+    res = (await c.post(f"/projects/{pid}/docs/resolve", json=ref)).json()
+    assert res[0]["status"] == "ok" and res[0]["title"] == "Schema"
+
+    # a new page that takes the old title wins over the alias
+    other = await publish(c, await mk(c, pid, "Data model"), "y")
+    res = (await c.post(f"/projects/{pid}/docs/resolve", json=ref)).json()
+    assert res[0]["page_id"] == other["id"]
