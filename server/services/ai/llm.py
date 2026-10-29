@@ -24,6 +24,16 @@ Delta = Callable[[str], Awaitable[None] | None]
 
 
 @dataclass
+class SessionUse:
+    """A local Claude Code conversation a call belongs to: `resume` continues it, otherwise it starts with `id`.
+    `compact_at_pct` is the share of the context window at which the CLI compacts it."""
+
+    id: str
+    resume: bool = False
+    compact_at_pct: int | None = None
+
+
+@dataclass
 class Completion:
     """What came back."""
 
@@ -35,10 +45,13 @@ class Completion:
     stop_reason: str | None = None  # end | max_tokens
     model: str | None = None
     elapsed_s: float = 0.0
+    compacted: bool = (
+        False  # the CLI summarized the older part of a long session during this call
+    )
 
 
 class LlmError(Exception):
-    """A call failed. `kind`: auth | rate | model | outage | bad_request | timeout | runner | unsupported."""
+    """A call failed. `kind`: auth | rate | model | outage | bad_request | timeout | runner | session | unsupported."""
 
     def __init__(
         self,
@@ -219,7 +232,11 @@ async def _openai(
 
 
 async def _claude_cli(
-    profile: AiMember, system: str, prompt: str, on_delta: Delta | None
+    profile: AiMember,
+    system: str,
+    prompt: str,
+    on_delta: Delta | None,
+    session: "SessionUse | None" = None,
 ) -> Completion:
     spec = PROVIDERS.get(profile.provider) or {}
     path, _ = cli.find_cli(spec.get("binary") or "claude", profile.cli_path)
@@ -239,7 +256,11 @@ async def _claude_cli(
         "--strict-mcp-config",
         "--mcp-config",
         json.dumps({"mcpServers": {}}),
-        "--no-session-persistence",
+        *(
+            ["--resume" if session.resume else "--session-id", session.id]
+            if session
+            else ["--no-session-persistence"]
+        ),
         "--setting-sources",
         "",
         "--system-prompt",
@@ -252,7 +273,11 @@ async def _claude_cli(
         if profile.working_dir and os.path.isdir(profile.working_dir)
         else tempfile.gettempdir()
     )
-    proc = cli.CliProcess(args, cwd)
+    proc = cli.CliProcess(
+        args,
+        cwd,
+        env=cli.child_env(session.compact_at_pct if session else None),
+    )
     out = Completion(model=model, metered=False)
     await proc.start()
     result: dict | None = None
@@ -273,6 +298,8 @@ async def _claude_cli(
                 elif e.get("type") == "message_delta":
                     sr = (e.get("delta") or {}).get("stop_reason")
                     out.stop_reason = "max_tokens" if sr == "max_tokens" else "end"
+            elif t == "system" and ev.get("subtype") == "compact_boundary":
+                out.compacted = True
             elif t == "result":
                 result = ev
         code = await proc.wait()
@@ -287,6 +314,8 @@ async def _claude_cli(
     if result.get("is_error"):
         msg = str(result.get("result") or "The CLI reported an error.")
         low = msg.lower()
+        if "no conversation found" in low:
+            raise LlmError("session", "The CLI could not resume the chat's session.")
         if "login" in low or "logged in" in low:
             raise LlmError(
                 "auth",
@@ -316,8 +345,10 @@ async def complete(
     timeout: float = 60.0,
     temperature: float = 0.2,
     on_delta: Delta | None = None,
+    session: "SessionUse | None" = None,
 ) -> Completion:
-    """One answer from the member. Raises `LlmError`; `asyncio.CancelledError` stops the call (and the CLI)."""
+    """One answer from the member. Raises `LlmError`; `asyncio.CancelledError` stops the call (and the CLI).
+    A `session` keeps a local Claude Code conversation going (the CLI remembers it); other connections ignore it."""
     started = time.monotonic()
     if profile.connection == "local":
         if profile.provider != "claude-code":
@@ -325,7 +356,7 @@ async def complete(
                 "unsupported",
                 "Only Claude Code can answer as the Board AI among local runners.",
             )
-        coro = _claude_cli(profile, system, prompt, on_delta)
+        coro = _claude_cli(profile, system, prompt, on_delta, session)
     elif profile.connection == "api_key":
         key = secrets.decrypt(profile.key_enc)
         if not key:

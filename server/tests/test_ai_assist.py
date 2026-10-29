@@ -23,6 +23,7 @@ class FakeLLM:
         """Empty queue."""
         self.queue: list = []
         self.prompts: list[str] = []
+        self.sessions: list = []
         self.delay = 0.0
 
     async def __call__(
@@ -35,9 +36,11 @@ class FakeLLM:
         timeout=60,
         temperature=0.2,
         on_delta=None,
+        session=None,
     ):
         """One fake completion, streamed in small pieces."""
         self.prompts.append(prompt)
+        self.sessions.append(session)
         item = self.queue.pop(0) if self.queue else "OK."
         if isinstance(item, Exception):
             raise item
@@ -117,9 +120,30 @@ async def _draft_ready(c, draft_id):
 
 async def test_not_configured_and_feature_off(env, fake):
     c, pid, an, m = await _setup(env, board_ai=False)
+    # no Board AI is chosen, but chat still answers with another AI member of the project (for this request only)
+    s0 = (await c.get(f"/projects/{pid}/ai/assist")).json()["board_ai"]
+    assert s0["state"] == "not_configured" and s0["fallback"]["name"] == "Reviewer"
     chat = (await c.post(f"/projects/{pid}/ai/assist/chats", json={}, headers=H)).json()
     r = await c.post(
         f"/ai/assist/chats/{chat['id']}/messages", json={"text": "hi"}, headers=H
+    )
+    assert r.status_code == 200
+    again = (await c.get(f"/projects/{pid}/ai/assist")).json()["board_ai"]
+    assert again["state"] == "not_configured", (
+        "the fallback is never saved as the Board AI"
+    )
+    # a project with no AI member at all has nobody to answer
+    pid2 = (
+        await c.post(
+            "/projects", json={"name": "Empty", "prefix": "EMP", "color": "#2E6F40"}
+        )
+    ).json()["id"]
+    await c.post(f"/projects/{pid2}/members", json={"name": "An Nguyen"})
+    chat2 = (
+        await c.post(f"/projects/{pid2}/ai/assist/chats", json={}, headers=H)
+    ).json()
+    r = await c.post(
+        f"/ai/assist/chats/{chat2['id']}/messages", json={"text": "hi"}, headers=H
     )
     assert r.status_code == 409 and r.json()["code"] == "not_configured"
     await c.patch(f"/projects/{pid}/ai/settings", json={"board_ai_id": m["id"]})

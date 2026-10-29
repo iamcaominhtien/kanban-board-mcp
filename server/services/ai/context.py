@@ -130,6 +130,48 @@ def ticket_block(
     return "\n".join(lines)
 
 
+def activity_block(
+    runs: list, names: dict[str, str], *, since: str | None, summary_chars: int = 400
+) -> str:
+    """What other AI members did on the ticket since the reader's last run (or recently, when it has none), so an
+    agent such as a PM can answer "what has Dev done?" without reading another agent's session. Facts come from the
+    board; the other agents' own words are fenced as data."""
+    if not runs:
+        return ""
+    head = f' since="{since[:16]}"' if since else ""
+    lines = [f"<activity{head}>"]
+    for r in runs:
+        who = names.get(r.member_id, "an AI member")
+        when = (r.ended_at or r.started_at or r.queued_at or "")[:16]
+        state = {"running": "running now", "queued": "queued"}.get(r.state, r.state)
+        lines.append(f"- Run #{r.number} by {who} ({r.mode}, {state}, {when})")
+        text = (r.summary or "").strip()
+        if text:
+            lines.append(
+                _fence(f"run summary · AI member {who}", redact(text[:summary_chars]))
+            )
+        files = json.loads(r.files or "[]")
+        if files:
+            shown = ", ".join(
+                f"{f.get('path', '')} (+{f.get('added', 0)} -{f.get('removed', 0)})"
+                for f in files[:8]
+            )
+            more = f" and {len(files) - 8} more" if len(files) > 8 else ""
+            lines.append(f"  Files changed: {shown}{more}")
+        moves = json.loads(r.status_changes or "[]")
+        if moves:
+            lines.append(
+                "  Status: "
+                + ", ".join(
+                    f"{STATUS_LABELS.get(m.get('from'), m.get('from'))} → "
+                    f"{STATUS_LABELS.get(m.get('to'), m.get('to'))}"
+                    for m in moves
+                )
+            )
+    lines.append("</activity>")
+    return "\n".join(lines)
+
+
 def rules_block(
     ctx: RunContext, member, settings, *, project_name: str, ticket_status: str
 ) -> str:

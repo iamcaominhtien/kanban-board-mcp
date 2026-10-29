@@ -81,7 +81,7 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
           />
         </label>
         <label className="ai-field">
-          <span className="ai-label">Runs per ticket a day</span>
+          <span className="ai-label">Scheduled and AI-started runs per ticket a day</span>
           <input
             className="ai-input"
             type="number"

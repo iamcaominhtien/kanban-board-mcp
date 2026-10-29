@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Stepper } from '../AddAiMemberModal';
+import { useAiMe } from '../../../api/aiSafety';
 import { configApi } from './configApi';
 import { adapterOf, useCfg } from './configCtx';
-import { CfgCard, Chip, IssueText, NumField, TickRow, hasError } from './parts';
+import { BYPASS_PHRASE, CfgCard, Chip, IssueText, NumField, TickRow, hasError } from './parts';
 import { joinWords, splitWords } from './frontMatter';
 
 const REJECTED = [
@@ -109,6 +110,81 @@ function RuleList({
   );
 }
 
+/** Permission mode (Claude Code): only the Allow rules run, or every tool except what a Deny rule stops. */
+function PermissionModeBlock() {
+  const { member, cfg, setCfg, draft, setDraft, issues } = useCfg();
+  const me = useAiMe(member.projectId);
+  const isOwner = me.data?.role === 'owner';
+  const bypass = cfg.permissionMode === 'bypass';
+  const saved = member.config.permissionMode === 'bypass';
+  const projects = (member.projects ?? []).filter((p) => p.on).length;
+  const locked = !isOwner && !bypass;
+  // the typed phrase is only sent while Bypass is being turned on, so switching back needs no clean-up
+  const pick = (mode: 'allowlist' | 'bypass') => setCfg({ permissionMode: mode });
+  return (
+    <div className="ai-field" data-testid="permission-mode" data-path="permission_mode">
+      <span className="ai-label ai-label-dark">Permission mode</span>
+      <div className="perm-opts" role="radiogroup" aria-label="Permission mode">
+        <label className={`perm-opt ${bypass ? '' : 'is-on'}`}>
+          <input
+            type="radio"
+            name={`perm-mode-${member.id}`}
+            checked={!bypass}
+            onChange={() => pick('allowlist')}
+            data-testid="perm-mode-allowlist"
+          />
+          <span className="perm-opt-text">
+            <span className="perm-opt-title">
+              Allow list only <span className="perm-opt-tag">Recommended</span>
+            </span>
+            <span className="perm-opt-desc">
+              The CLI runs only the tools in Allow; anything else is refused, because a run cannot ask a person.
+            </span>
+          </span>
+        </label>
+        <label className={`perm-opt perm-opt-danger ${bypass ? 'is-on' : ''} ${locked ? 'is-disabled' : ''}`}>
+          <input
+            type="radio"
+            name={`perm-mode-${member.id}`}
+            checked={bypass}
+            disabled={locked}
+            onChange={() => pick('bypass')}
+            data-testid="perm-mode-bypass"
+          />
+          <span className="perm-opt-text">
+            <span className="perm-opt-title">Bypass permissions</span>
+            <span className="perm-opt-desc">
+              The CLI runs any tool without the Allow list. Only for work runs.
+              {locked ? ' Only the project owner can turn it on.' : ''}
+            </span>
+          </span>
+        </label>
+      </div>
+      {bypass && (
+        <div className="perm-warn" data-testid="bypass-warning">
+          <b>Bypass permissions runs shell commands and edits files on this computer without asking.</b> Still in force:
+          the Deny rules, the board’s own ceiling and approvals, and Safe mode (it overrides Bypass). Ask runs stay
+          read-only and the web stays off. Use it in a folder you can restore from git.
+          {projects > 1 ? ` This AI member is in ${projects} projects: the setting applies in all of them.` : ''}
+        </div>
+      )}
+      {bypass && !saved && (
+        <label className="ai-field" style={{ marginTop: 4 }}>
+          <span className="ai-label ai-label-dark">Type “{BYPASS_PHRASE}” to confirm</span>
+          <input
+            className={`ai-input ${hasError(issues, 'permission_mode') ? 'ai-input-error' : ''}`}
+            value={draft.confirmBypass}
+            onChange={(e) => setDraft({ confirmBypass: e.target.value })}
+            placeholder={BYPASS_PHRASE}
+            data-testid="bypass-confirm"
+          />
+        </label>
+      )}
+      <IssueText issues={issues} path="permission_mode" />
+    </div>
+  );
+}
+
 /** Permissions: allow / deny tool rules written to settings.json (Claude Code, B6), or documented notes (Antigravity, C3). */
 export function PermissionsCard() {
   const { member, cfg, setCfg, status, tick } = useCfg();
@@ -151,6 +227,7 @@ export function PermissionsCard() {
         </>
       }
     >
+      {member.connection === 'local' && kind === 'claude-code' && <PermissionModeBlock />}
       <RuleList
         label="Allow"
         path="allow_rules"
@@ -307,8 +384,17 @@ export function ModelCard() {
           issues={issues}
         />
         <NumField
+          label="Auto-compact at"
+          unit="% of context"
+          value={cfg.compactAtPct}
+          onChange={(v) => setCfg({ compactAtPct: v })}
+          path="compact_at_pct"
+          issues={issues}
+          hint="A ticket keeps one conversation with this member. When it fills this share of the model's context, Claude Code summarizes the older part."
+        />
+        <NumField
           id="cfg-budget"
-          label="Max runs per day"
+          label="Scheduled runs per day"
           value={draft.maxRunsPerDay}
           onChange={(v) => setDraft({ maxRunsPerDay: v })}
           path="max_runs_per_day"

@@ -150,8 +150,9 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     id: 'ai-limits',
     page: 'ai',
     section: 'Limits and budgets',
-    name: 'Runs per ticket a day',
-    description: 'How often AI may work on one ticket in a day.',
+    name: 'Scheduled and AI-started runs per ticket a day',
+    description:
+      'A loop guard: how many runs a schedule or another AI may start on one ticket in a day. A person’s runs are not counted.',
     keywords: 'runs limit',
   },
   {

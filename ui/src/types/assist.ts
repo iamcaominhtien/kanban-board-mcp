@@ -33,6 +33,8 @@ export interface AssistState {
     connection: 'local' | 'api_key' | 'inbox' | null;
     metered: boolean;
     status: AiStatus | null;
+    /** No Board AI is chosen: Ask AI still answers with this AI member until one is. */
+    fallback?: { id: string; name: string } | null;
   };
   features: AssistFeature[];
   language: string;
@@ -132,6 +134,7 @@ export interface ChatDetail extends Chat {
 
 export type DraftKind =
   | 'changes'
+  | 'ai_members'
   | 'ticket'
   | 'description'
   | 'split'
@@ -214,8 +217,25 @@ export interface Hunk {
   note: string;
 }
 
+/** One AI member the Board AI proposes (edited in the card before it is created). */
+export interface ProposedMember {
+  name: string;
+  description: string;
+  persona: string;
+  template: 'developer' | 'reviewer' | 'read_only';
+  ceiling: 'none' | 'backlog' | 'todo' | 'in-progress' | 'review';
+  maxParallel: number;
+  maxRunsPerDay: number;
+  readOnlyCli: boolean;
+  model: string;
+  why: string;
+}
+
 export interface DraftPayload {
   input?: Record<string, unknown>;
+  // ai_members
+  members?: ProposedMember[];
+  refusal?: string | null;
   // changes
   changes?: DraftChange[];
   problems?: string[];
@@ -283,7 +303,8 @@ export interface AssistDraft {
     count?: number;
     applied?: { i: number; op: string; ticket: string }[];
     errors?: { i: number; ticket: string; message: string }[];
-    created?: string[];
+    created?: (string | { id: string; name: string })[];
+    failed?: { name: string; message: string }[];
     ticketId?: string;
     undo?: { by: string; at: string; undone: number; skipped: string[] };
     [k: string]: unknown;

@@ -754,6 +754,14 @@ async def test_run_limit_box_and_allow_three_more(env):
     ctx, pid, an, m, tid = await _ctx(env)
     await _people(c, pid)
     await c.patch(f"/projects/{pid}/ai/settings", json={"runs_per_ticket_per_day": 1})
+    # the run the person started is not counted: the limit is a guard for scheduled and AI-started runs
+    box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
+    assert box["used"] == 0 and box["reached"] is False
+    async with env["maker"]() as s:
+        run = (await s.exec(select(AiRun).where(AiRun.ticket_id == tid))).first()
+        run.trigger = "schedule"
+        s.add(run)
+        await s.commit()
     box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
     assert box["used"] == 1 and box["limit"] == 1 and box["reached"] is True
     r = await c.post(

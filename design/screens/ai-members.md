@@ -164,7 +164,7 @@ $ claude   # sign in once, then come back
 - "Role / persona" "196 / 1000"; "You review tickets that reach Review. Check the acceptance criteria one by one, run through the linked test cases, and leave a comment with findings. Be brief and specific."; "System prompt for every run; visible to members."
 - "Projects it can work in": "Kanban Board"; "Mobile App"; "Marketing Site".
 - "Max parallel runs" "−" "2" "+"; "Daily budget" "$ 5.00" "USD ▾"; "Monthly cap" "$ 4.00" error "At least the daily budget".
-- "At the limit it pauses and says why. Local runners get “Max runs per day” instead."
+- "At the limit it pauses and says why. Local runners get “Scheduled runs per day” instead."
 - Buttons "Back", "Cancel", "Next".
 
 ### 4. Permissions & review
@@ -340,7 +340,7 @@ Source: [AiMembers.dc.html](../source/AiMembers.dc.html) › block "Note" (three
 - "Invented: square avatar with a dark sparkle badge for every AI member (people stay round); glyphs are neutral drawings, not vendor logos."
 - "Invented: status labels and their priority (E), “Not metered” for local runners (the provider bills the subscription), “Today” resets 00:00 project time."
 - "Invented: names unique across people and AI per project, case-insensitive; “Tool · Role” naming is a convention only."
-- "Invented limits: persona max 1000 characters, parallel runs default 2, daily budget default $5.00, monthly cap sample $120, cap at least the daily budget, “Max runs per day” (sample 20) for local runners."
+- "Invented limits: persona max 1000 characters, parallel runs default 2, daily budget default $5.00, monthly cap sample $120, cap at least the daily budget, “Scheduled runs per day” (sample 20) for local runners."
 - "Invented: permission chips “Up to Review” / “Up to In Progress”, four approval toggles, delete-approval locked on, extra confirmation for Done."
 - "Invented: removal choices (reassign, leave unassigned, let run finish, cancel run); Done tickets keep the AI as history."
 - "Invented: Board AI may be any reachable AI member; Settings gets an “AI” section after “MCP integrations”."

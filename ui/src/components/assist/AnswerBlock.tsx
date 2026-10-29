@@ -7,6 +7,7 @@ import { hhmm, secondsSince } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
 import { BoardAiAvatar, CostChip, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
+import { DraftAiMembers } from './DraftAiMembers';
 
 const SLOW_AFTER_S = 15;
 
@@ -210,11 +211,15 @@ export function AnswerBlock({
         {msg.state === 'stopped' && <div className="ai-muted">Stopped · the partial answer is kept.</div>}
         {draft && (
           <div style={{ marginTop: 8 }}>
-            <DraftChanges
-              draftId={draft.id}
-              initial={draft}
-              onRefresh={() => void act(() => assistApi.retry(msg.id))}
-            />
+            {draft.kind === 'ai_members' ? (
+              <DraftAiMembers draftId={draft.id} initial={draft} />
+            ) : (
+              <DraftChanges
+                draftId={draft.id}
+                initial={draft}
+                onRefresh={() => void act(() => assistApi.retry(msg.id))}
+              />
+            )}
           </div>
         )}
         {msg.actions.length > 0 && (

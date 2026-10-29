@@ -1,10 +1,12 @@
 """Budget checks shared by the scheduler, the API loop and the member status: the agent's daily budget, monthly cap
-and tokens per day, the board's daily cap, monthly budget, tokens and runs per day, and runs per day for local
-runners. "Today" starts at local midnight and the month on the 1st, local time (design/screens/ai-safety-cost.md, C).
+and tokens per day, the board's daily cap, monthly budget and tokens, and the run counts of automatic runs: the
+board's runs per day (scheduled and AI-to-AI runs) and the runners' scheduled runs per day. A run a person starts
+(a mention, an assignment, a question) is never counted against a run limit. "Today" starts at local midnight and the month on the 1st, local time (design/screens/ai-safety-cost.md, C).
 A person can raise today's cap (an approved "Raise cap"); the raise ends at midnight."""
 
 from datetime import UTC, date, datetime, time, timedelta
 
+from sqlalchemy import or_
 from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -111,13 +113,31 @@ async def tokens_since(
     return int((await session.exec(stmt)).one() or 0)
 
 
+def run_kind(run) -> str:
+    """`schedule` for a run a schedule starts, `ai` for a hop of an AI-to-AI @mention chain, else `person`."""
+    if run.trigger == "schedule":
+        return "schedule"
+    return "ai" if (run.chain or "[]") not in ("[]", "") else "person"
+
+
 async def runs_today(
-    session: AsyncSession, member_id: str | None, *, project_id: str | None = None
+    session: AsyncSession,
+    member_id: str | None,
+    *,
+    project_id: str | None = None,
+    kinds: tuple[str, ...] = ("schedule", "ai"),
 ) -> int:
-    """Runs the agent (or the whole project) started today."""
+    """Automatic runs the agent (or the whole project) started today. `kinds` picks which: `schedule` and `ai`
+    (the default); runs a person starts are not counted."""
     stmt = select(func.count()).where(
         col(AiRun.started_at) >= today_start().isoformat()
     )
+    scheduled = AiRun.trigger == "schedule"
+    chained = AiRun.chain != "[]"
+    if kinds == ("schedule",):
+        stmt = stmt.where(scheduled)
+    else:
+        stmt = stmt.where(or_(scheduled, chained))
     if member_id:
         stmt = stmt.where(AiRun.member_id == member_id)
     if project_id:
@@ -145,28 +165,32 @@ def _hit(label: str, reason: str, scope: str, kind: str) -> dict:
 
 
 async def blocked_detail(
-    session: AsyncSession, profile: AiMember, settings: AiProjectSettings
+    session: AsyncSession,
+    profile: AiMember,
+    settings: AiProjectSettings,
+    run_kind: str | None = None,
 ) -> dict | None:
     """Why a budget or limit stops new runs of this agent: {label, reason, scope: agent | board, kind}, or None.
-    `kind` is daily, monthly, tokens or runs."""
+    `kind` is daily, monthly, tokens or runs. The run limits only stop automatic runs: pass the `run_kind` of the
+    run that wants to start (`schedule`, `ai` or `person`); without it only budgets are checked."""
     today, month = today_start(), month_start()
     board_runs = settings.board_runs_per_day
-    if board_runs:
+    if board_runs and run_kind in ("schedule", "ai"):
         n = await runs_today(session, None, project_id=profile.project_id)
         if n >= board_runs:
             return _hit(
                 "Runs per day used up",
-                f"Board runs per day used up ({n} of {board_runs}); resets at 00:00",
+                f"Board scheduled and AI-started runs per day used up ({n} of {board_runs}); resets at 00:00",
                 "board",
                 "runs",
             )
     if profile.connection == "local":
-        if profile.max_runs_per_day:
-            n = await runs_today(session, profile.id)
+        if profile.max_runs_per_day and run_kind == "schedule":
+            n = await runs_today(session, profile.id, kinds=("schedule",))
             if n >= profile.max_runs_per_day:
                 return _hit(
                     "Runs per day used up",
-                    f"Runs per day used up ({n} of {profile.max_runs_per_day}); resets at 00:00",
+                    f"Scheduled runs per day used up ({n} of {profile.max_runs_per_day}); resets at 00:00",
                     "agent",
                     "runs",
                 )
@@ -234,8 +258,11 @@ async def blocked_detail(
 
 
 async def blocked(
-    session: AsyncSession, profile: AiMember, settings: AiProjectSettings
+    session: AsyncSession,
+    profile: AiMember,
+    settings: AiProjectSettings,
+    run_kind: str | None = None,
 ) -> tuple[str, str] | None:
     """(label, reason) when a budget or limit stops new runs of this agent, else None."""
-    hit = await blocked_detail(session, profile, settings)
+    hit = await blocked_detail(session, profile, settings, run_kind)
     return (hit["label"], hit["reason"]) if hit else None
