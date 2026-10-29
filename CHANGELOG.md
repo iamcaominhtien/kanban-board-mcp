@@ -10,12 +10,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
-## [3.8.2] - 2026-10-29
+## [3.8.3] - 2026-10-29
 
 ### Added
 - MCP: the AI agent can work with **diagrams** (#167) through the Docs tools, as a file. `docs_read(diagrams)` lists a project's draw.io diagrams; `docs_read(diagram)` writes a diagram's `.drawio` file to a local path; the agent edits it with its own file tools (so every draw.io feature is available); `docs_write(diagram_save)` stores it as a new version (a stale `base_version` is rejected like in Docs) and `docs_write(diagram_create)` makes a new diagram from a file and returns the `[Name](diagram:dg_…)` line to put in a text. `diagram_delete` / `diagram_restore` unlink and bring back. Paths are absolute, as for `import`.
 - **Exact previews for what an agent saves.** Nobody has an editor open when an agent saves a diagram, so the server asks the draw.io editor itself, in a hidden browser, for the SVG: the same picture a person gets when they save, with every shape, icon, container and connector as in draw.io. The desktop app does this with its own executable (`Kanban Board --export-svg …`, the Chromium Electron already ships; nothing to install) and tells the server and the VS Code MCP entry how to reach it (`KANBAN_EXPORT_CMD`). A server running without the desktop app uses a Chrome / Chromium / Edge found on the machine (or `KANBAN_CHROME_PATH`) over DevTools. The hidden page may only load the editor's own origin, and nothing is exported when the editor is the public diagrams.net unless `KANBAN_DIAGRAM_EXPORT=public` (`off` switches it off).
 - When no hidden browser is available the server draws a plain preview (boxes, ellipses, diamonds, cylinders, arrows and text; other shapes as boxes, arrows above containers), the footer says "Simple preview", and the agent is told what it stored (`preview`). An SVG the agent exports itself can be passed with `svg_path`. Opening the diagram in the editor and saving replaces either with the full drawing.
+
+---
+
+## [3.8.2] - 2026-10-29
+
+### Fixed
+- Windows: Board AI no longer fails to load (every `/ai/assist` request raised "Invalid format string"), so **Ask AI** is back on the board, and board health insights about due dates work. Dates are formatted without the Linux-only `%-d`.
+- If Board AI cannot load its state, the **Ask AI** entry stays and the dock says what went wrong instead of disappearing; Settings → AI shows the error with Try again instead of loading forever.
+- AI screens that waited for data forever when a request failed (adapter matrix, member activity, permissions, revert previews) now show the error with Try again.
+- Windows: after a crash, a leftover Claude Code process of an interrupted run is recognised (no /proc there) and stopped.
+- AI schedules: a test command that times out is stopped with everything it started, not just its shell.
 
 ---
 

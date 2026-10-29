@@ -229,9 +229,9 @@ def compute(tickets: list[Ticket], members: list[Member], cfg: dict) -> list[dic
     if risky:
         risky.sort(key=lambda x: x[1])
         parts = [
-            f"{t.id} is due {due.strftime('%b %-d')} but blocked"
+            f"{t.id} is due {due:%b} {due.day} but blocked"
             if blocked and due >= today
-            else f"{t.id} was due {due.strftime('%b %-d')}"
+            else f"{t.id} was due {due:%b} {due.day}"
             for t, due, blocked in risky[:3]
         ]
         out.append(

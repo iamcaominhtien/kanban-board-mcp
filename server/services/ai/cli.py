@@ -271,15 +271,33 @@ def suspend_tree(pid: int | None, stop: bool = True) -> bool:
 def looks_like_cli(pid: int, binary: str = "claude") -> bool:
     """Is `pid` still one of our CLI processes? Used before killing a run left over from a crash, so a reused
     pid is never killed by mistake."""
-    try:
-        cmd = (
-            Path(f"/proc/{pid}/cmdline")
-            .read_bytes()
-            .replace(b"\0", b" ")
-            .decode(errors="replace")
-        )
-    except OSError:
-        return False
+    if sys.platform == "win32":
+        # No /proc on Windows: ask for the process's command line (once per leftover run, at startup)
+        try:
+            out = subprocess.run(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine",
+                ],
+                capture_output=True,
+                timeout=15,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        cmd = out.stdout.decode(errors="replace")
+    else:
+        try:
+            cmd = (
+                Path(f"/proc/{pid}/cmdline")
+                .read_bytes()
+                .replace(b"\0", b" ")
+                .decode(errors="replace")
+            )
+        except OSError:
+            return False
     return binary in cmd and "--output-format" in cmd
 
 

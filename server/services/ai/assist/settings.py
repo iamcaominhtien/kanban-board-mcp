@@ -151,7 +151,7 @@ def next_month_label() -> str:
     """'Nov 1': when a monthly cap resets."""
     now = datetime.now().astimezone()
     first = (now.replace(day=1) + timedelta(days=32)).replace(day=1)
-    return first.strftime("%b %-d")
+    return f"{first:%b} {first.day}"  # not strftime with a dash flag: Windows does not know it
 
 
 async def guard_request(

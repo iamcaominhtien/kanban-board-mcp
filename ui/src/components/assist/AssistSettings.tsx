@@ -295,6 +295,15 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
 /** Settings → AI (board-wide): the full home of the Board AI (design/screens/ai-board-assistant.md, H). */
 export function AssistSettings({ projectId, onOpenAudit }: { projectId: string; onOpenAudit?: () => void }) {
   const st = useAssistState(projectId);
+  if (st.isError && !st.data)
+    return (
+      <div className="ai-notice ai-notice-error" data-testid="assist-settings-error">
+        Board AI settings could not load: {extractError(st.error)}.{' '}
+        <button type="button" className="ai-link" onClick={() => void st.refetch()}>
+          Try again
+        </button>
+      </div>
+    );
   if (!st.data) return <div className="as-skel" style={{ height: 120 }} />;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} data-testid="assist-settings">
