@@ -7,13 +7,13 @@ from httpx import ASGITransport
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from kanban_mcp import common, operations as ops
 from database import async_session as real_async_session
 from database import get_session
 from main import app
+from tests.fast_db import fresh_tables
 
 DATABASE_URL_TEST = "sqlite+aiosqlite:///:memory:"
 
@@ -30,16 +30,14 @@ async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest.fixture(autouse=True)
 async def setup_db(monkeypatch):
+    await fresh_tables(test_engine)
     async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
         await conn.execute(text("INSERT INTO idea_counter (id, counter) VALUES (1, 0)"))
     app.dependency_overrides[get_session] = override_get_session
     monkeypatch.setattr(common, "async_session", test_async_session)
     yield
     app.dependency_overrides.pop(get_session, None)
     monkeypatch.setattr(common, "async_session", real_async_session)
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
 
 
 @pytest.fixture

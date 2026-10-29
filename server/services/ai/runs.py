@@ -1252,12 +1252,16 @@ async def _execute_claude(
         session.add(run)
         await session.commit()
         ceiling_ok = _should_start_move(run, profile) and not resume_note
+    if run_id in RT.cancelled:
+        return  # cancelled while starting: never launch the CLI
     if ceiling_ok:
         await move_status(run_id, "in-progress")
 
     proc = cli.CliProcess(args, cwd=cwd)
     RT.procs[run_id] = proc
     pid = await proc.start()
+    if run_id in RT.cancelled:
+        proc.kill()  # the cancel came while the process was starting
     await _append(
         run_id,
         steps=[

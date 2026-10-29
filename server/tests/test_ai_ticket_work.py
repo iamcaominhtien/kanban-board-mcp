@@ -185,8 +185,12 @@ async def test_a_second_ai_waits_for_the_holder_then_takes_the_hold(env, monkeyp
     assert r.json()["ticket"]["assignee"] == holder["id"]  # the holder keeps the ticket
     waiting = next(x for x in await _runs(c, tid) if x["member_id"] == nxt["id"])
     assert waiting["behind_run_id"] == hold["id"] and waiting["state"] == "queued"
-    await asyncio.sleep(2.5)
-    waiting = next(x for x in await _runs(c, tid) if x["member_id"] == nxt["id"])
+
+    async def _reason():
+        run = next(x for x in await _runs(c, tid) if x["member_id"] == nxt["id"])
+        return run if run.get("waiting_reason") else None
+
+    waiting = await _until(_reason)
     assert (
         waiting["waiting_reason"]
         == "Waiting for Claude Code · Backend to release " + tid

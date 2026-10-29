@@ -12,7 +12,7 @@ import pytest
 from httpx import ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel, select
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
@@ -21,15 +21,14 @@ from main import app
 from models import AiApproval, AiAudit, AiRun, Ticket
 from services.ai import api_agent, audit, guard, permissions, runs, secrets
 from services.ai.context import RunContext
+from tests.fast_db import fresh_db_file
 
 FAKE = str(Path(__file__).parent / "fixtures" / "fake_claude.py")
 
 
 @pytest.fixture
 async def env(tmp_path, monkeypatch):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'ai.db'}")
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+    engine = create_async_engine(fresh_db_file(tmp_path / "ai.db"))
     maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     monkeypatch.setattr(database, "async_session", maker)
 

@@ -34,6 +34,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ### Fixed
 - Editing a test case no longer drops focus or loses typed text while the field saves.
+- Cancelling an AI run while it is starting no longer launches its CLI afterwards or keeps Cancel waiting for 10 seconds.
 
 ---
 
