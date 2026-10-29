@@ -16,6 +16,7 @@ import threading
 import time
 from pathlib import Path
 
+from . import paths
 from .secrets import redact
 
 _SEARCH_DIRS = [
@@ -38,10 +39,14 @@ def find_cli(binary: str, explicit: str | None = None) -> tuple[str | None, list
     """
     checked: list[str] = []
     if explicit:
-        p = Path(explicit).expanduser()
-        checked.append(str(p))
-        if p.is_file() and os.access(p, os.X_OK):
-            return str(p), checked
+        try:
+            p = paths.program(explicit)
+        except paths.PathRefused:
+            checked.append(explicit)
+        else:
+            checked.append(p)
+            if os.path.isfile(p) and os.access(p, os.X_OK):
+                return p, checked
     checked.append("PATH")
     found = shutil.which(binary)
     if found:

@@ -27,6 +27,7 @@ from . import (
     config_model,
     config_service,
     multiproject,
+    paths,
     safety,
     secrets,
 )
@@ -185,8 +186,15 @@ def _validate_connection(
         raise AiMemberError(f"Unknown provider '{provider}'.")
     if spec["connection"] == "local":
         folder = (data.get("working_dir") or "").strip()
-        if folder and not Path(os.path.expanduser(folder)).is_dir():
-            raise AiMemberError(f"Working folder not found on this computer: {folder}")
+        if folder:
+            try:
+                real = paths.folder(folder)
+            except paths.PathRefused as exc:
+                raise AiMemberError(str(exc)) from None
+            if not os.path.isdir(real):
+                raise AiMemberError(
+                    f"Working folder not found on this computer: {folder}"
+                )
     if spec["connection"] == "api_key":
         if creating and not (data.get("api_key") or "").strip():
             raise AiMemberError("Enter an API key.")

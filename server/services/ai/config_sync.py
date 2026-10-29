@@ -532,12 +532,11 @@ def _safe_target(root: Path, rel: str) -> Path:
     """The absolute path of `rel` inside `root`; refuses anything that would end up outside (.., symlinks)."""
     if not rel or rel.startswith("/") or "\\" in rel or ".." in Path(rel).parts:
         raise SyncError(rel, f"“{rel}” is not a path inside the working folder.")
-    target = (root / rel).resolve()
-    try:
-        target.relative_to(root)
-    except ValueError:
-        raise SyncError(rel, f"“{rel}” leads outside the working folder.") from None
-    return target
+    base = os.path.realpath(root)
+    target = os.path.realpath(os.path.join(base, rel))
+    if not target.startswith(base.rstrip(os.sep) + os.sep):
+        raise SyncError(rel, f"“{rel}” leads outside the working folder.")
+    return Path(target)
 
 
 def read_text(root: Path | None, rel: str) -> str | None:
@@ -664,7 +663,7 @@ def apply_plans(root: Path, plans: list[FilePlan], files_state: dict) -> dict:
                     write_atomic(target, old)
             except OSError:
                 pass
-        rel = str(target.relative_to(root)) if done else "files"
+        rel = os.path.relpath(target, os.path.realpath(root)) if done else "files"
         raise SyncError(
             rel, f"{exc.strerror or exc} ({errno_name(exc)}): nothing was changed."
         ) from exc

@@ -1,6 +1,8 @@
 """One AI member in several projects (design/screens/ai-members.md step 3, ai-safety-cost.md A1 scope): linked copies
 share settings and one budget, keep their own working folder, and go away when a project is unticked."""
 
+import os
+
 from models import AiMember, AiRun, Member
 from services.ai import budget
 from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
@@ -41,13 +43,15 @@ async def test_projects_add_sync_budget_and_remove(env):
     await c.patch(
         f"/ai/members/{m['id']}", json={"persona": "Be brief.", "max_parallel": 3}
     )
-    await c.patch(f"/ai/members/{copy_id}", json={"working_dir": "/tmp"})
+    other = os.path.join(os.path.dirname(env["repo"]), "other-repo")
+    os.makedirs(other, exist_ok=True)
+    await c.patch(f"/ai/members/{copy_id}", json={"working_dir": other})
     async with maker() as s:
         a, b = await s.get(AiMember, m["id"]), await s.get(AiMember, copy_id)
     assert b.persona == a.persona == "Be brief." and b.max_parallel == 3
     assert (
         a.working_dir == env["repo"]
-        and b.working_dir == "/tmp"
+        and b.working_dir == other
         and b.linked_to == m["id"]
     )
     # Pausing one pauses the agent everywhere

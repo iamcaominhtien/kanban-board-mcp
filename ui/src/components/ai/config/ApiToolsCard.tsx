@@ -103,6 +103,8 @@ function ToolDialog({
     }
   }
   const problems = check?.problems ?? [];
+  // Test calls the saved tool (the server never calls an address sent with the test)
+  const unsaved = !tool.spec || spec !== tool.spec;
   return (
     <Dialog
       title={tool.name ? `Custom tool · ${tool.name}` : 'Add custom tool'}
@@ -245,14 +247,15 @@ function ToolDialog({
             type="button"
             className="ai-btn ai-btn-sm"
             data-testid="test-call"
-            disabled={testing || problems.length > 0}
+            disabled={testing || problems.length > 0 || unsaved}
             onClick={() => void test()}
           >
             {testing ? 'Calling…' : 'Test call'}
           </button>
           <span className="ai-muted">
-            This sends the real request
-            {check?.method && check.method !== 'GET' ? ` (${check.method} has side effects)` : ''}.
+            {unsaved
+              ? 'Save the tool and the configuration to test it: the test calls the saved tool.'
+              : `This sends the real request${check?.method && check.method !== 'GET' ? ` (${check.method} has side effects)` : ''}.`}
           </span>
         </div>
         {testError && <div className="ai-error-text">{testError}</div>}

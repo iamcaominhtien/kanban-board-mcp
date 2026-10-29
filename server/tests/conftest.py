@@ -9,6 +9,17 @@ os.environ.setdefault("KANBAN_LOG_DIR", tempfile.mkdtemp(prefix="kanban-test-log
 # The default database of a test run is a fresh file migrated to head, never the developer's kanban.db. Tests swap
 # in their own engine for requests, but services that open a session of their own (AI hooks on ticket changes, the
 # audit log) still reach the default one, which must have the full schema, as it does in production.
+# Tests keep working folders and fake CLIs in temporary folders and in the repository.
+os.environ.setdefault(
+    "KANBAN_AI_ROOTS",
+    os.pathsep.join(
+        [
+            tempfile.gettempdir(),
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        ]
+    ),
+)
+
 # The path is read once, when `database` is imported; the variable is then dropped again so code that copies it into
 # MCP client entries sees a plain environment.
 _DEFAULT_DB = os.path.join(tempfile.mkdtemp(prefix="kanban-test-db-"), "kanban.db")

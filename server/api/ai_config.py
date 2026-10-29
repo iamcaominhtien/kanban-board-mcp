@@ -13,7 +13,7 @@ from pydantic import BaseModel
 import events as board_events
 from api.ai import Session, _ai, _by
 from models import Project, Ticket
-from services.ai import api_prompt, custom_tools, dry_run, mcp_remote, secrets
+from services.ai import api_prompt, custom_tools, dry_run, mcp_remote, paths, secrets
 from services.ai import config_model as cm
 from services.ai import config_service as svc
 from services.ai import library as lib
@@ -66,18 +66,18 @@ async def post_validate(member_id: str, body: ConfigBody, session: Session) -> d
     cfg = _draft(profile, body.config)
     issues = cm.validate_config(cfg, profile.provider)
     folder = (body.working_dir or "").strip()
-    if (
-        profile.connection == "local"
-        and folder
-        and not os.path.isdir(os.path.expanduser(folder))
-    ):
-        issues.append(
-            {
-                "path": "working_dir",
-                "message": "Folder not found on this computer.",
-                "severity": "error",
-            }
-        )
+    if profile.connection == "local" and folder:
+        try:
+            real = paths.folder(folder)
+            problem = (
+                None if os.path.isdir(real) else "Folder not found on this computer."
+            )
+        except paths.PathRefused as exc:
+            problem = str(exc)
+        if problem:
+            issues.append(
+                {"path": "working_dir", "message": problem, "severity": "error"}
+            )
     return {"issues": issues}
 
 
@@ -480,7 +480,15 @@ async def post_tool_test(member_id: str, body: ToolTestBody, session: Session) -
             )
             if prev:
                 headers.update(cm.header_values([prev]))
-    res = await custom_tools.call(body.spec, headers, args)
+    # The request goes to the URL of the saved tool, never to one sent with the test: members may test the tools an
+    # admin saved, not call any address they type.
+    if saved is None or saved["spec"] != body.spec:
+        _refuse(
+            ValueError(
+                "Test calls the saved tool. Save the tool and the configuration first, then test it."
+            )
+        )
+    res = await custom_tools.call(saved["spec"], headers, args)
     return {k: v for k, v in res.items() if k != "simulated"}
 
 

@@ -322,6 +322,13 @@ async def test_custom_tool_secret_headers_are_masked_kept_and_used(env, monkeypa
         json={"spec": TOOL_TEXT, "args_text": "[1]"},
     )
     assert bad.status_code == 422
+    # a test never calls an address sent with it: only the saved tool
+    other = TOOL_TEXT.replace("crm.example.dev", "evil.example.dev")
+    r = await c.post(
+        f"/ai/members/{m['id']}/tools/test",
+        json={"spec": other, "tool_id": "t1", "args_text": "{}"},
+    )
+    assert r.status_code == 422 and "saved tool" in r.json()["detail"]
     # an invalid tool blocks saving; the member stays unchanged
     broken = json.loads(TOOL_TEXT)
     broken["input_schema"]["properties"]["env"]["type"] = "objet"

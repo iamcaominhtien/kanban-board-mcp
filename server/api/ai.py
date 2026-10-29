@@ -168,22 +168,26 @@ class TestRunBody(BaseModel):
 async def post_test_run(body: TestRunBody) -> dict:
     """Run `claude -p` once with a one-word prompt (step 2a "Run test")."""
     import os
-    from pathlib import Path
 
-    from services.ai import cli
+    from services.ai import cli, paths
 
     path, _ = cli.find_cli(
         PROVIDERS.get(body.provider, {}).get("binary") or "claude", body.cli_path
     )
     if not path:
         return {"ok": False, "error": "The CLI was not found on this computer."}
-    folder = os.path.expanduser(body.working_dir or "")
-    if body.working_dir and not Path(folder).is_dir():
-        return {
-            "ok": False,
-            "error": f"Working folder not found on this computer: {body.working_dir}",
-        }
-    return await cli.test_run(path, body.model, folder or None)
+    folder = None
+    if (body.working_dir or "").strip():
+        try:
+            folder = paths.folder(body.working_dir)
+        except paths.PathRefused as exc:
+            return {"ok": False, "error": str(exc)}
+        if not os.path.isdir(folder):
+            return {
+                "ok": False,
+                "error": f"Working folder not found on this computer: {body.working_dir}",
+            }
+    return await cli.test_run(path, body.model, folder)
 
 
 class TestKeyBody(BaseModel):
