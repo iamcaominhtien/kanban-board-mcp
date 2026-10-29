@@ -397,7 +397,7 @@ p_members = f"""
 {table(
     ["Dùng chung (sửa một bản thì các bản khác theo)", "Riêng từng dự án"],
     [
-        ["Tên, avatar, cách kết nối, model, API key; persona và Configuration; quyền, trần trạng thái, safe mode; giới hạn chạy và <b>ngân sách (tính gộp mọi dự án)</b>", "<b>Working folder</b> (mỗi dự án trỏ repo của nó); danh sách run và ticket; <b>Board AI</b> (chọn riêng ở từng dự án)"],
+        ["Tên, avatar, cách kết nối, model, API key; persona và Configuration; quyền, trần trạng thái, safe mode; giá trị giới hạn (Max runs per day, ngân sách); chi phí API key được <b>cộng gộp mọi dự án</b>, còn bộ đếm số lần chạy trong ngày thì đếm riêng ở từng dự án", "<b>Working folder</b> (mỗi dự án trỏ repo của nó); danh sách run và ticket; <b>Board AI</b> (chọn riêng ở từng dự án)"],
     ],
     "wide",
 )}
