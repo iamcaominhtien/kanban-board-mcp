@@ -19,6 +19,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import (
     DocsAnchorAlias,
     DocsDraft,
+    DocsPageSeen,
     DocsLink,
     DocsPage,
     DocsVersion,
@@ -309,6 +310,7 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "title": draft.title,
                 "markdown": draft.markdown,
                 "base_version": draft.base_version,
+                "saves": draft.saves,
                 "updated_at": draft.updated_at,
                 "author": draft.author,
             }
@@ -600,7 +602,7 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
     )  # late import: docs_comments builds on this module
 
     await docs_comments.delete_for_pages(session, ids)
-    for model in (DocsLink, DocsDraft, DocsVersion, DocsAnchorAlias):
+    for model in (DocsLink, DocsDraft, DocsVersion, DocsAnchorAlias, DocsPageSeen):
         col = model.source_page_id if model is DocsLink else model.page_id  # type: ignore[attr-defined]
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
@@ -693,6 +695,7 @@ async def save_draft(
         )
     else:
         draft.markdown = markdown
+        draft.saves += 1
         if new_title:
             draft.title = new_title
         if base_version is not None:
@@ -701,6 +704,57 @@ async def save_draft(
     session.add(draft)
     await session.commit()
     return await page_detail(session, page_id)
+
+
+async def get_seen(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    """Return the version of a page the caller last viewed.
+
+    Args:
+        page_id: Page that was viewed.
+
+    Returns:
+        ``{"version": int | None}``; None when the caller has never viewed the page.
+    """
+    page = await get_page(session, page_id)
+    row = await _seen_row(session, page.id, activity.current_actor())
+    return {"version": row.version if row else None}
+
+
+async def mark_seen(
+    session: AsyncSession, page_id: str, version: int
+) -> dict[str, Any]:
+    """Record that the caller has viewed a version of a page.
+
+    Args:
+        page_id: Page that was viewed.
+        version: Latest version the caller has seen; clamped to the current version.
+
+    Returns:
+        ``{"version": int}`` as stored.
+    """
+    page = await get_page(session, page_id)
+    actor = activity.current_actor()
+    version = max(0, min(version, page.version))
+    row = await _seen_row(session, page.id, actor)
+    if row is None:
+        row = DocsPageSeen(page_id=page.id, viewer=actor, version=version)
+    else:
+        row.version = version
+        row.seen_at = _now()
+    session.add(row)
+    await session.commit()
+    return {"version": version}
+
+
+async def _seen_row(
+    session: AsyncSession, page_id: str, viewer: str
+) -> DocsPageSeen | None:
+    result = await session.exec(
+        select(DocsPageSeen).where(
+            DocsPageSeen.page_id == page_id, DocsPageSeen.viewer == viewer
+        )
+    )
+    return result.first()
 
 
 async def discard_draft(session: AsyncSession, page_id: str) -> dict[str, Any]:

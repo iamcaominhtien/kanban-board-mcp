@@ -228,7 +228,20 @@ class DocsDraft(SQLModel, table=True):
     title: str
     markdown: str = Field(default="")
     base_version: int = Field(default=0)
+    saves: int = Field(default=1)  # autosaves since the draft was started
     updated_at: str = Field(default_factory=_now_iso)
+
+
+class DocsPageSeen(SQLModel, table=True):
+    """The version of a page a person last viewed (drives "since you last viewed")."""
+
+    __tablename__ = "docs_page_seen"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    viewer: str
+    version: int = Field(default=0)
+    seen_at: str = Field(default_factory=_now_iso)
 
 
 class DocsLink(SQLModel, table=True):

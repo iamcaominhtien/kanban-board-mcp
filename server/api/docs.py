@@ -78,6 +78,12 @@ class DraftSave(BaseModel):
     base_version: int | None = None
 
 
+class SeenBody(BaseModel):
+    """Request body to record the version a person has viewed."""
+
+    version: int
+
+
 class PublishBody(BaseModel):
     """Request body to publish a draft."""
 
@@ -376,6 +382,18 @@ async def put_draft(page_id: str, body: DraftSave, session: Session) -> dict[str
         title=body.title,
         base_version=body.base_version,
     )
+
+
+@router.get("/docs/pages/{page_id}/seen")
+async def get_seen(page_id: str, session: Session) -> dict[str, Any]:
+    """Return the version of a page you last viewed."""
+    return await svc.get_seen(session, page_id)
+
+
+@router.put("/docs/pages/{page_id}/seen")
+async def put_seen(page_id: str, body: SeenBody, session: Session) -> dict[str, Any]:
+    """Record the version of a page you have viewed."""
+    return await svc.mark_seen(session, page_id, body.version)
 
 
 @router.delete("/docs/pages/{page_id}/draft")

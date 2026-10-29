@@ -510,3 +510,32 @@ async def test_errors_carry_a_request_id_header_and_detail(c, pid):
     assert d["latest_version"] == 0  # extras survive
     ok = await c.get(f"/projects/{pid}/docs/tree")
     assert "x-request-id" not in ok.headers
+
+
+# --- last viewed version (per user) and draft autosave count ------------------
+
+
+async def test_seen_version_is_per_actor(c, pid):
+    page = await publish(c, await mk(c, pid, "Seen"), "v1 text")
+    await publish(c, page, "v2 text")
+    url = f"/docs/pages/{page['id']}/seen"
+    ana, bo = {"x-actor": "Ana"}, {"x-actor": "Bo"}
+    assert (await c.get(url, headers=ana)).json() == {"version": None}
+    assert (await c.put(url, json={"version": 1}, headers=ana)).json() == {"version": 1}
+    assert (await c.get(url, headers=ana)).json() == {"version": 1}
+    assert (await c.get(url, headers=bo)).json() == {"version": None}
+    # clamped to the current version, and updated in place
+    assert (await c.put(url, json={"version": 99}, headers=ana)).json() == {
+        "version": 2
+    }
+    assert (await c.get(url, headers=ana)).json() == {"version": 2}
+    assert (await c.get("/docs/pages/nope/seen")).status_code == 404
+
+
+async def test_draft_counts_autosaves(c, pid):
+    page = await mk(c, pid, "Autosaves")  # creating the page starts the draft
+    url = f"/docs/pages/{page['id']}/draft"
+    first = (await c.put(url, json={"markdown": "a"})).json()
+    assert first["draft"]["saves"] == 2
+    again = (await c.put(url, json={"markdown": "ab"})).json()
+    assert again["draft"]["saves"] == 3

@@ -92,6 +92,8 @@ Comments belong to a Docs page (not a version) and follow it through history and
 | PATCH | /docs/comments/{commentId} | `{body}` | Thread | 200/403/404 |
 | DELETE | /docs/comments/{commentId} | — | `{deleted: "comment"\|"thread", thread_id}` | 200/403/404 |
 | GET | /projects/{projectId}/docs/comment-events | query: `recipient?`, `limit?` | CommentEvent[] (Activity, newest first) | 200 |
+| GET | /docs/pages/{pageId}/seen | — | `{version: int \| null}` (the version the caller (`X-Actor`) last viewed; null = never) | 200/404 |
+| PUT | /docs/pages/{pageId}/seen | `{version}` (clamped to the current version) | `{version}` | 200/404/422 |
 | PATCH | /projects/{projectId}/members/{memberId} | `{role: "viewer"\|"member"\|"admin"}` | MemberRead | 200/404/422 |
 
 Rules:
