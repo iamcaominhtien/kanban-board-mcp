@@ -62,6 +62,10 @@
 .dk-cmt-hl.is-active::after {
   background: #8a5a0b;
 }
+/* a thread split across a code span or link shows its number once, after the last piece */
+.dk-cmt-hl:not([data-num])::after {
+  content: none;
+}
 
 /* header button */
 .dc-btn-count {
