@@ -71,6 +71,7 @@ export function useAiMember(id: string | null) {
 
 export interface MemberUsage {
   runsToday: number;
+  scheduledRunsToday: number;
   runsLastHour: number;
   tokensInToday: number;
   tokensOutToday: number;

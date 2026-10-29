@@ -256,6 +256,8 @@ class AiMemberBody(BaseModel):
     template: Optional[str] = None
     ceiling: Optional[str] = None
     confirm_done: Optional[bool] = None
+    # the phrase typed to turn on Bypass permissions
+    confirm_bypass: Optional[str] = None
     permissions: Optional[dict[str, str]] = None
     scope: Optional[str] = None
     config: Optional[dict[str, Any]] = None

@@ -700,12 +700,12 @@ class AiProjectSettings(SQLModel, table=True):
     board_daily_cap: Optional[float] = Field(default=15.0)
     board_monthly_budget: Optional[float] = Field(default=200.0)
     max_chain_depth: int = Field(default=3)
-    runs_per_ticket_per_day: int = Field(default=6)
+    runs_per_ticket_per_day: int = Field(default=15)
     approval_expiry_hours: int = Field(default=24)
     # Safety and cost (design/screens/ai-safety-cost.md, B5, C4, D, E3, F6, G, H1)
     board_tokens_per_day: Optional[int] = Field(default=1_000_000)
     board_max_parallel: int = Field(default=4)
-    board_runs_per_day: Optional[int] = Field(default=60)
+    board_runs_per_day: Optional[int] = Field(default=100)
     board_at_cap: str = Field(default="pause")  # pause | stop | ask
     approval_on_expiry: str = Field(default="skip")  # skip | stop
     # JSON risk -> least role that may decide it (the assigner may always decide low and medium)
@@ -840,6 +840,8 @@ class AiChat(SQLModel, table=True):
     cost: float = Field(default=0.0)
     tokens: int = Field(default=0)
     applied: bool = Field(default=False)
+    # Claude Code conversation of a local Board AI: the whole chat is one session, so it is not resent each time
+    session_id: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
     updated_at: str = Field(default_factory=_now_iso)
 

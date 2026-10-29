@@ -177,6 +177,7 @@ class MessageBody(BaseModel):
     send_all: bool = False
     doc_ids: list[str] = []
     filters: dict[str, Any] = {}
+    member_form: Optional[dict[str, Any]] = None
 
 
 @router.post("/ai/assist/chats/{chat_id}/messages")
@@ -191,6 +192,7 @@ async def post_message(chat_id: str, body: MessageBody, session: Session) -> dic
         send_all=body.send_all,
         doc_ids=body.doc_ids,
         filters=body.filters,
+        member_form=body.member_form,
     )
 
 

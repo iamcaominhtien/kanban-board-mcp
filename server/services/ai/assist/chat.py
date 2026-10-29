@@ -13,10 +13,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
 import events as board_events
-from models import AiChat, AiChatMessage, AiDraft, Member, Project, Ticket
+from models import AiChat, AiChatMessage, AiDraft, AiMember, Member, Project, Ticket
 
-from .. import budget, llm
-from ..providers import cost_of
+from .. import budget, cli, llm
+from . import member_drafts
+from ..providers import cost_of, merged_config
 from ..store import loads, now_iso, parse_iso
 from . import context as ctxb
 from . import drafts as svc_drafts
@@ -250,6 +251,7 @@ async def send(
     send_all: bool = False,
     doc_ids: list[str] | None = None,
     filters: dict | None = None,
+    member_form: dict | None = None,
 ) -> dict:
     """Post the person's message and start the answer (it streams into the AI message)."""
     c = await get_chat(session, chat_id, owner)
@@ -287,6 +289,7 @@ async def send(
                     "send_all": send_all,
                     "doc_ids": doc_ids or [],
                     "filters": filters or {},
+                    "member_form": _form_state(member_form),
                 }
             }
         ),
@@ -306,6 +309,25 @@ async def send(
         _spawn(ai.id)
     await _publish()
     return {"user": _msg(user), "ai": _msg(ai)}
+
+
+_FORM_KEYS = (
+    "name",
+    "description",
+    "persona",
+    "template",
+    "ceiling",
+    "max_parallel",
+    "max_runs_per_day",
+    "model",
+)
+
+
+def _form_state(form: dict | None) -> dict | None:
+    """The Add AI member dialog's fields as the Board AI sees them (None outside the dialog)."""
+    if form is None:
+        return None
+    return {k: form.get(k) for k in _FORM_KEYS if k in form}
 
 
 def _spawn(message_id: str, delay: float = 0.0) -> None:
@@ -370,6 +392,15 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             await _publish()
             return
         profile, member = info["profile"], info["member"]
+        # A local Claude Code Board AI keeps one conversation per chat: the CLI remembers the earlier messages
+        session_use = None
+        if profile.connection == "local" and profile.provider == "claude-code":
+            resume = bool(c.session_id) and cli.session_exists(c.session_id)
+            session_use = llm.SessionUse(
+                c.session_id if resume else str(uuid.uuid4()),
+                resume,
+                merged_config(loads(profile.config, {})).get("compact_at_pct"),
+            )
         row = await svc_settings.get(session)
         project = await session.get(Project, c.project_id)
         scope = c.scope
@@ -421,19 +452,61 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         "all": "Scope: every project the person belongs to.",
         "doc": "Scope: this page and its linked tickets. Answer only from the page and cite the section as Page › # Heading.",
     }[scope]
-    extra = prompts.CHAT_FORMAT
+    form = req.get("member_form")
+    extra = prompts.CHAT_FORMAT + (
+        "\n" + prompts.FORM_FORMAT if form is not None else ""
+    )
     if req.get("draft"):
         extra += "\nThis request is a suggested action: answer in one sentence and put the change in the actions block."
     system = prompts.system(member.name, project.name if project else "", row, extra)
-    prompt = "\n\n".join(
-        [
-            scope_line,
-            f"Members of the project: {people}",
-            "Board context:\n" + built.text,
-            ("Earlier in this chat:\n" + "\n".join(convo)) if convo else "",
-            "The person asks:\n" + ctxb.fence("question", question),
-        ]
+
+    # the proposal that is still open: a request to change it must come back as the whole updated list
+    async with database.async_session() as session:
+        open_draft = (
+            await session.exec(
+                select(AiDraft)
+                .where(
+                    AiDraft.project_id == c.project_id,
+                    AiDraft.owner == c.owner,
+                    AiDraft.kind == "ai_members",
+                    AiDraft.status == "open",
+                )
+                .order_by(col(AiDraft.created_at).desc())
+                .limit(1)
+            )
+        ).first()
+    open_proposal = (
+        "<open-proposal>\n"
+        + json.dumps(
+            loads(open_draft.payload, {}).get("members") or [], ensure_ascii=False
+        )
+        + "\n</open-proposal>"
+        if open_draft and form is None
+        else ""
     )
+    form_block = (
+        "<form>\n" + json.dumps(form, ensure_ascii=False) + "\n</form>"
+        if form is not None
+        else ""
+    )
+
+    def build_prompt(with_history: bool) -> str:
+        return "\n\n".join(
+            [
+                scope_line,
+                f"Members of the project: {people}",
+                open_proposal,
+                form_block,
+                "Board context:\n" + built.text,
+                ("Earlier in this chat:\n" + "\n".join(convo))
+                if convo and with_history
+                else "",
+                "The person asks:\n" + ctxb.fence("question", question),
+            ]
+        )
+
+    # a resumed session already holds the earlier messages
+    prompt = build_prompt(not (session_use and session_use.resume))
     buf: list[str] = []
     last_flush = [0.0]
     loop = asyncio.get_running_loop()
@@ -448,15 +521,40 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 await _publish()
 
     max_tokens = svc_settings.max_tokens_for(row, profile, 1800)
+
+    async def ask() -> llm.Completion:
+        nonlocal session_use, prompt
+        try:
+            return await llm.complete(
+                profile,
+                system=system,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                timeout=TIMEOUT_S,
+                on_delta=on_delta,
+                session=session_use,
+            )
+        except llm.LlmError as exc:
+            if exc.kind != "session" or not session_use or not session_use.resume:
+                raise
+            # the CLI lost the conversation (another folder, or ~/.claude was cleaned): start a new one, with history
+            session_use = llm.SessionUse(
+                str(uuid.uuid4()), False, session_use.compact_at_pct
+            )
+            prompt = build_prompt(True)
+            buf.clear()
+            return await llm.complete(
+                profile,
+                system=system,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                timeout=TIMEOUT_S,
+                on_delta=on_delta,
+                session=session_use,
+            )
+
     try:
-        out = await llm.complete(
-            profile,
-            system=system,
-            prompt=prompt,
-            max_tokens=max_tokens,
-            timeout=TIMEOUT_S,
-            on_delta=on_delta,
-        )
+        out = await ask()
     except asyncio.CancelledError:
         partial = "".join(buf)
         n = llm.estimate_tokens(partial)
@@ -522,12 +620,72 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         await _publish()
         return
 
+    if session_use:
+        async with database.async_session() as session:
+            chat = await session.get(AiChat, c.id)
+            if chat is not None and chat.session_id != session_use.id:
+                chat.session_id = session_use.id
+                session.add(chat)
+                await session.commit()
     text, block = prompts.split_actions(out.text)
     changes, problems = prompts.check_changes(
         block.get("changes") or [], tickets_state, names
     )
     suggestions = prompts.check_suggestions(block.get("suggestions") or [])
     draft_id = None
+    proposed, member_notes, filled = [], [], False
+    if block.get("ai_members"):
+        async with database.async_session() as session:
+            proposed, member_notes = member_drafts.check_ai_members(
+                block["ai_members"],
+                await member_drafts.taken_names(session, c.project_id),
+            )
+    if proposed and form is not None:
+        # the dialog fills itself from this; nothing is drafted or created
+        async with database.async_session() as session:
+            current = await session.get(AiChatMessage, message_id)
+            await _set(
+                message_id,
+                context={
+                    **loads(current.context, {}),
+                    "member_form": proposed[0],
+                    "member_form_notes": member_notes,
+                },
+            )
+        proposed, changes, problems, filled = [], [], problems + member_notes, True
+    if proposed:
+        async with database.async_session() as session:
+            # a newer proposal replaces the open ones of this chat
+            for old in (
+                await session.exec(
+                    select(AiDraft).where(
+                        AiDraft.project_id == c.project_id,
+                        AiDraft.owner == c.owner,
+                        AiDraft.kind == "ai_members",
+                        AiDraft.status == "open",
+                    )
+                )
+            ).all():
+                old.status = "discarded"
+                session.add(old)
+            d = await svc_drafts.start(
+                session,
+                project_id=c.project_id,
+                kind="ai_members",
+                owner=c.owner,
+                payload={
+                    "members": proposed,
+                    "problems": member_notes,
+                    "intro": "Here is what I would create.",
+                    "refusal": member_drafts.refusal(
+                        await session.get(AiMember, member.id)
+                    ),
+                },
+                chat_message_id=message_id,
+                member=member,
+            )
+            draft_id = d.id
+        changes, problems = [], problems + member_notes
     if changes:
         async with database.async_session() as session:
             base = {}
@@ -555,7 +713,16 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     await _set(
         message_id,
         state="done",
-        text=text or ("Here is what I would change." if changes else out.text),
+        text=text
+        or (
+            "I filled in the form; check it and press Create when it looks right."
+            if filled and not changes
+            else "Here is what I would create."
+            if proposed
+            else "Here is what I would change."
+            if changes
+            else out.text
+        ),
         actions=suggestions,
         draft_id=draft_id,
         cost=out.cost,

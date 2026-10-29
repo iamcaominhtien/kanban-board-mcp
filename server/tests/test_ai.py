@@ -38,6 +38,7 @@ async def env(tmp_path, monkeypatch):
 
     app.dependency_overrides[get_session] = override
     monkeypatch.setenv("KANBAN_AI_KEY_FILE", str(tmp_path / "ai.key"))
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude-config"))
     monkeypatch.setattr(runs, "RT", runs._Runtime())
     monkeypatch.setattr(api_agent, "BACKOFF_SCALE", 0.0)
     # the daily digest goes out at 09:00 on the real clock; tests that want it set the hour themselves

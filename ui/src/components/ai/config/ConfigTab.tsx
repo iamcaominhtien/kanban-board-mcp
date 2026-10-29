@@ -21,7 +21,7 @@ import { InstructionsCard } from './InstructionsCard';
 import { LibraryPicker } from './LibraryView';
 import { McpCard } from './McpCard';
 import { ModelCard, PermissionsCard } from './PermissionsModelCards';
-import { CfgCard, Chip, Dialog, ModeChip, SkeletonCard, useDebounced, type MemberDraft } from './parts';
+import { BYPASS_PHRASE, CfgCard, Chip, Dialog, ModeChip, SkeletonCard, useDebounced, type MemberDraft } from './parts';
 import { SkillsCard } from './SkillsCard';
 import { SyncPreview } from './SyncPreview';
 import { countChanges } from './changes';
@@ -333,6 +333,8 @@ function ImportDialog({
   );
 }
 
+const bypassConfirmed = (d: MemberDraft) => d.confirmBypass.trim().toLowerCase() === BYPASS_PHRASE;
+
 /** Local checks of the member-level fields that are not in `config`. */
 function localIssues(d: MemberDraft, member: AiMember): ConfigIssue[] {
   const out: ConfigIssue[] = [];
@@ -341,7 +343,9 @@ function localIssues(d: MemberDraft, member: AiMember): ConfigIssue[] {
     member.connection === 'local' &&
     (!Number.isInteger(d.maxRunsPerDay) || d.maxRunsPerDay < 1 || d.maxRunsPerDay > 500)
   )
-    err('max_runs_per_day', 'Max runs per day: 1 to 500.');
+    err('max_runs_per_day', 'Scheduled runs per day: 1 to 500.');
+  if (d.config.permissionMode === 'bypass' && member.config.permissionMode !== 'bypass' && !bypassConfirmed(d))
+    err('permission_mode', 'Type “bypass permissions” to confirm.');
   if (member.connection === 'api_key') {
     if (!Number.isFinite(d.dailyBudget) || d.dailyBudget < 0) err('daily_budget', 'Daily budget must be 0 or more.');
     if (d.monthlyCap && d.monthlyCap < d.dailyBudget)

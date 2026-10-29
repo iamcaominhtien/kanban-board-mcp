@@ -17,8 +17,13 @@ export interface MemberDraft {
   maxRunsPerDay: number;
   dailyBudget: number;
   monthlyCap: number;
+  /** The phrase typed to turn on Bypass permissions (only sent when it is being turned on). */
+  confirmBypass: string;
   config: AiConfig;
 }
+
+/** What an owner types to turn on Bypass permissions (the server checks the same phrase). */
+export const BYPASS_PHRASE = 'bypass permissions';
 
 export type SetCfg = (patch: Partial<AiConfig>) => void;
 export type SetDraft = (patch: Partial<MemberDraft>) => void;
