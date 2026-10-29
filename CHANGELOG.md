@@ -13,6 +13,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.11.0] - 2026-10-29
+
+Idea Space data model (step 1 of [#203](https://github.com/iamcaominhtien/kanban-board-mcp/issues/203)): the new stages, assumptions as records, ideas without a project, and the one-time conversion of existing ideas. The Idea board looks and works as before; the new screens follow in the next steps.
+
+### Added
+- **Stages** for ideas: Inbox, Exploring, Ready, Building, Parked, Shipped, Archived, with a park-until date, an archive reason, a source (manual, selection, AI, import) and the idea page body (markdown, as for Docs). New ideas start in the Inbox. A Parked idea whose date has come returns to the Inbox, once, the next time ideas are read.
+- **Assumptions as records**: text, impact (low, medium, high), status (untested, testing, validated, disproved), an optional test ticket and evidence (links, files, notes). The current board keeps working: it still sees `untested`, `validated` and `invalidated`, and the API adds `impact`, `state`, `test_ticket_id` and `evidence` to each assumption.
+- **Votes** (one per person per idea) and **ideas that belong to no project** (`project_id` is optional when creating an idea).
+- **Activity entries carry an author.**
+- Promoting an idea makes it Building. An idea that is Building cannot be dropped while its ticket is open.
+
+### Changed
+- **One-time conversion of existing ideas** on first start: draft → Exploring (Inbox if never edited), in review → Exploring, approved → Ready (Building or Shipped when promoted and the ticket is open or Done; Exploring when the ticket was set to Won't do; the link is cleared when the ticket no longer exists), dropped → Archived ("Imported from the old Idea Space"), a revisit date → Parked until that date. Assumptions keep their text and become records with medium impact ("invalidated" is now "disproved"); the problem statement and description become the page body; ICE and energy are kept as notes in Details. Nothing is deleted: the old fields stay in place.
+- Before converting, a copy of the database is saved next to it as `kanban.before-idea-space-<date>.db` (only when there are ideas).
+
 ## [3.10.0] - 2026-10-29
 
 Docs brought in line with the design (pages, editor, page actions, search, references, comments and diagrams).

@@ -5,7 +5,7 @@ from typing import Any, Literal, Optional
 
 from pydantic import field_validator
 from sqlalchemy import Index, text
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +142,20 @@ class Ticket(SQLModel, table=True):
 
 
 IDEA_STATUSES = ("draft", "in_review", "approved", "dropped")
+# The Idea Space stages (design: idea-promote-migration.md, "The whole life of an idea").
+IDEA_STAGES = (
+    "inbox",
+    "exploring",
+    "ready",
+    "building",
+    "parked",
+    "shipped",
+    "archived",
+)
+IDEA_SOURCES = ("manual", "selection", "ai", "import")
+ASSUMPTION_IMPACTS = ("low", "medium", "high")
+ASSUMPTION_STATUSES = ("untested", "testing", "validated", "disproved")
+EVIDENCE_KINDS = ("link", "attachment", "note")
 
 
 class IdeaTicket(SQLModel, table=True):
@@ -150,10 +164,22 @@ class IdeaTicket(SQLModel, table=True):
     __tablename__ = "idea_ticket"
 
     id: str = Field(primary_key=True)
-    project_id: str = Field(foreign_key="project.id", index=True)
+    # None = the idea belongs to no project yet.
+    project_id: Optional[str] = Field(
+        default=None, foreign_key="project.id", index=True
+    )
     title: str
     description: str = Field(default="")
+    # Legacy status the current Idea board still drives; `stage` is the model that replaces it.
     idea_status: str = Field(default="draft")  # draft|in_review|approved|dropped
+    stage: str = Field(default="inbox", index=True)  # see IDEA_STAGES
+    park_until: Optional[str] = Field(default=None)  # ISO date, Parked ideas only
+    archive_reason: Optional[str] = Field(default=None)
+    source: str = Field(default="manual")  # see IDEA_SOURCES
+    body: str = Field(default="")  # the idea page, markdown as for Docs
+    details: str = Field(
+        default=""
+    )  # optional notes (ICE, energy) kept from the old model
     idea_color: str = Field(default="yellow")
     idea_emoji: str = Field(default="💡")
     idea_energy: Optional[str] = Field(default=None)  # seed|concept|hot|big_bet
@@ -166,15 +192,96 @@ class IdeaTicket(SQLModel, table=True):
     last_touched_at: Optional[str] = Field(default=None)
     promoted_to_ticket_id: Optional[str] = Field(default=None)
     promoted_at: Optional[str] = Field(default=None)
-    activity_trail: str = Field(default="[]")  # JSON list of {id, label, at}
+    # JSON list of {id, label, at, author}; entries from before the new model have no author.
+    activity_trail: str = Field(default="[]")
     microthoughts: str = Field(default="[]")  # JSON list of {id, text, at}
-    assumptions: str = Field(default="[]")  # JSON list of {id, text, status}
+    # Superseded by `assumption_records`; kept only so a conversion can be checked against it.
+    assumptions: str = Field(default="[]")
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
     updated_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+
+    assumption_records: list["IdeaAssumption"] = Relationship(
+        back_populates="idea",
+        sa_relationship_kwargs={
+            "lazy": "selectin",
+            "order_by": "IdeaAssumption.position",
+            "cascade": "all, delete-orphan",
+        },
+    )
+    vote_records: list["IdeaVote"] = Relationship(
+        back_populates="idea",
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
+    )
+
+
+class IdeaAssumption(SQLModel, table=True):
+    """One assumption of an idea, with how much it matters and how well it is tested (table)."""
+
+    __tablename__ = "idea_assumption"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    idea_id: str = Field(foreign_key="idea_ticket.id", index=True)
+    position: int = Field(default=0)
+    text: str
+    impact: str = Field(default="medium")  # see ASSUMPTION_IMPACTS
+    status: str = Field(default="untested")  # see ASSUMPTION_STATUSES
+    test_ticket_id: Optional[str] = Field(default=None)  # a ticket that tests it
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    idea: Optional[IdeaTicket] = Relationship(back_populates="assumption_records")
+    evidence: list["IdeaEvidence"] = Relationship(
+        back_populates="assumption",
+        sa_relationship_kwargs={
+            "lazy": "selectin",
+            "order_by": "IdeaEvidence.created_at",
+            "cascade": "all, delete-orphan",
+        },
+    )
+
+
+class IdeaEvidence(SQLModel, table=True):
+    """A link, file or note that supports or disproves an assumption (table)."""
+
+    __tablename__ = "idea_evidence"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    assumption_id: str = Field(foreign_key="idea_assumption.id", index=True)
+    kind: str = Field(default="link")  # see EVIDENCE_KINDS
+    title: str = Field(default="")
+    ref: str = Field(default="")  # URL, attachment id or the note text
+    created_by: Optional[str] = Field(default=None)
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    assumption: Optional[IdeaAssumption] = Relationship(back_populates="evidence")
+
+
+class IdeaVote(SQLModel, table=True):
+    """One person's vote ("I want this") on an idea; a person votes once (table)."""
+
+    __tablename__ = "idea_vote"
+    __table_args__ = (
+        Index("uq_idea_vote_idea_voter", "idea_id", "voter", unique=True),
+    )
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    idea_id: str = Field(foreign_key="idea_ticket.id", index=True)
+    voter: str  # member id or user name
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    idea: Optional[IdeaTicket] = Relationship(back_populates="vote_records")
 
 
 def _now_iso() -> str:
@@ -1335,7 +1442,7 @@ IDEA_COLORS = ("yellow", "orange", "lime", "pink", "blue", "purple", "teal")
 class IdeaTicketCreateBody(SQLModel):
     """Request body to create an idea ticket."""
 
-    project_id: str
+    project_id: Optional[str] = None  # None: the idea belongs to no project yet
     title: str
     description: str = ""
     idea_color: str = "yellow"
@@ -1401,14 +1508,49 @@ class IdeaTicketUpdate(SQLModel):
         return v
 
 
+# What the current Idea board understands of the new assumption statuses.
+_LEGACY_ASSUMPTION_STATUS = {"testing": "untested", "disproved": "invalidated"}
+
+
+def _assumption_view(a: IdeaAssumption) -> dict[str, Any]:
+    """An assumption as the API returns it: the old keys, plus the fields of the new model."""
+    return {
+        "id": a.id,
+        "text": a.text,
+        "status": _LEGACY_ASSUMPTION_STATUS.get(a.status, a.status),
+        "at": a.created_at,
+        "state": a.status,
+        "impact": a.impact,
+        "test_ticket_id": a.test_ticket_id,
+        "evidence": [
+            {
+                "id": e.id,
+                "kind": e.kind,
+                "title": e.title,
+                "ref": e.ref,
+                "created_by": e.created_by,
+                "created_at": e.created_at,
+            }
+            for e in a.evidence
+        ],
+    }
+
+
 class IdeaTicketRead(SQLModel):
     """Idea ticket as returned by the API."""
 
     id: str
-    project_id: str
+    project_id: Optional[str]
     title: str
     description: str
     idea_status: str
+    stage: str
+    park_until: Optional[str]
+    archive_reason: Optional[str]
+    source: str
+    body: str
+    details: str
+    votes: int
     idea_color: str
     idea_emoji: str
     idea_energy: Optional[str]
@@ -1436,6 +1578,13 @@ class IdeaTicketRead(SQLModel):
             title=ticket.title,
             description=ticket.description,
             idea_status=ticket.idea_status,
+            stage=ticket.stage,
+            park_until=ticket.park_until,
+            archive_reason=ticket.archive_reason,
+            source=ticket.source,
+            body=ticket.body,
+            details=ticket.details,
+            votes=len(ticket.vote_records),
             idea_color=ticket.idea_color,
             idea_emoji=ticket.idea_emoji,
             idea_energy=ticket.idea_energy,
@@ -1450,7 +1599,7 @@ class IdeaTicketRead(SQLModel):
             promoted_at=ticket.promoted_at,
             activity_trail=_parse_json_list(ticket.activity_trail),
             microthoughts=_parse_json_list(ticket.microthoughts),
-            assumptions=_parse_json_list(ticket.assumptions),
+            assumptions=[_assumption_view(a) for a in ticket.assumption_records],
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )
