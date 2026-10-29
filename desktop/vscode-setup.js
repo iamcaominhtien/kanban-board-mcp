@@ -46,18 +46,26 @@ function readJsonSafe(
   }
 }
 
-function mergeMcpConfig(config, mcpStdioBinaryPath, dbPath) {
+function mergeMcpConfig(config, mcpStdioBinaryPath, dbPath, exportCommand = null) {
   const nextConfig = { ...config, servers: { ...(config.servers || {}) } };
   const existing = nextConfig.servers['kanban-board'];
+  // lets the MCP server ask this app to draw a diagram's picture with the draw.io editor (see export-svg.js)
+  const exportEnv = exportCommand ? JSON.stringify(exportCommand) : null;
 
-  if (existing?.command === mcpStdioBinaryPath && existing?.env?.KANBAN_DB_PATH === dbPath) {
+  if (
+    existing?.command === mcpStdioBinaryPath &&
+    existing?.env?.KANBAN_DB_PATH === dbPath &&
+    (!exportEnv || existing?.env?.KANBAN_EXPORT_CMD === exportEnv)
+  ) {
     return { result: 'already-registered', config: nextConfig };
   }
 
   nextConfig.servers['kanban-board'] = {
     type: 'stdio',
     command: mcpStdioBinaryPath,
-    ...(dbPath ? { env: { KANBAN_DB_PATH: dbPath } } : {})
+    ...(dbPath
+      ? { env: { ...(exportEnv ? existing?.env : {}), KANBAN_DB_PATH: dbPath, ...(exportEnv ? { KANBAN_EXPORT_CMD: exportEnv } : {}) } }
+      : {})
   };
 
   return { result: 'registered', config: nextConfig };
@@ -108,6 +116,7 @@ function registerMcpServer(
     renameSync = fs.renameSync,
     unlinkSync = fs.unlinkSync,
     migrateFromCommand = null,
+    exportCommand = null,
   } = {}
 ) {
   const mcpConfigPath = getConfigPath();
@@ -123,14 +132,17 @@ function registerMcpServer(
     return 'parse-error';
   }
 
-  if (
-    migrateFromCommand &&
-    config.servers?.['kanban-board']?.command !== migrateFromCommand
-  ) {
+  const registered = config.servers?.['kanban-board'];
+  // an entry that already runs this binary is still refreshed when the export command it passes on has changed
+  const exportStale =
+    !!exportCommand &&
+    registered?.command === mcpStdioBinaryPath &&
+    registered?.env?.KANBAN_EXPORT_CMD !== JSON.stringify(exportCommand);
+  if (migrateFromCommand && registered?.command !== migrateFromCommand && !exportStale) {
     return 'not-stale';
   }
 
-  const mergeResult = mergeMcpConfig(config, mcpStdioBinaryPath, dbPath);
+  const mergeResult = mergeMcpConfig(config, mcpStdioBinaryPath, dbPath, exportCommand);
   if (mergeResult.result === 'already-registered') {
     console.log('[vscode-setup] kanban-board MCP server already registered');
     return 'already-registered';

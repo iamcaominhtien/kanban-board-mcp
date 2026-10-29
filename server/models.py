@@ -360,6 +360,8 @@ class DiagramVersion(SQLModel, table=True):
     version: int
     source: str = Field(default="")
     svg: str = Field(default="")
+    # who drew the preview: editor (draw.io itself, exact) | agent (an SVG the agent supplied) | basic (the server's plain drawing)
+    preview_kind: str = Field(default="editor")
     author: str = Field(default="user")
     note: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)

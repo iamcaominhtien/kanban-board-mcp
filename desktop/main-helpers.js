@@ -54,12 +54,15 @@ function buildBackendLaunchSpec({
   userDataPath,
   desktopDir,
   baseEnv,
+  exportCommand,
   devPythonExists,
   configPath,
 }) {
   const dbPath = path.join(userDataPath, 'kanban.db');
   const uploadsDir = resolveConfiguredUploadsDir(userDataPath, configPath);
   const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir };
+  // lets the server ask this app (headless) to draw a diagram's SVG with the draw.io editor
+  if (exportCommand) env.KANBAN_EXPORT_CMD = JSON.stringify(exportCommand);
   const stdio = ['ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
@@ -95,6 +98,14 @@ function buildBackendLaunchSpec({
     },
     dbPath,
   };
+}
+
+/**
+ * The command the server runs (plus `--export-svg ...`) to draw a diagram with the editor: this app's own executable,
+ * or, in development, Electron pointed at the desktop folder.
+ */
+function buildExportCommand({ isPackaged, execPath, desktopDir }) {
+  return isPackaged ? [execPath] : [execPath, desktopDir];
 }
 
 function parseReadyPort(output) {
@@ -151,6 +162,7 @@ function terminateBackendProcess(processRef) {
 module.exports = {
   StartupProfiler,
   buildBackendLaunchSpec,
+  buildExportCommand,
   getBinaryExtension,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,

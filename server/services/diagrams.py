@@ -22,7 +22,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Diagram, DiagramSettings, DiagramVersion, Project
-from services import activity, diagram_model
+from services import activity, diagram_export, diagram_model
 from services.docs_text import DocsError
 
 MAX_BYTES = 2 * 1024 * 1024  # per diagram: the .drawio source and the SVG preview each
@@ -294,6 +294,7 @@ async def _out(
         "version": d.version,
         "shown_version": ver.version,
         "empty": empty,
+        "preview_kind": ver.preview_kind,
         "created_by": d.created_by,
         "created_at": d.created_at,
         "updated_by": d.updated_by,
@@ -318,6 +319,7 @@ async def create_diagram(
     summary: str | None = None,
     item_kind: str | None = None,
     item_id: str | None = None,
+    preview_kind: str = "editor",
 ) -> dict[str, Any]:
     """Save a new diagram (version 1).
 
@@ -329,6 +331,7 @@ async def create_diagram(
         summary: Optional short text summary.
         item_kind: ``ticket``, ``comment`` or ``doc`` when it belongs to an item.
         item_id: Id of that item.
+        preview_kind: Who drew the preview: ``editor`` (exact), ``agent`` or ``basic``.
 
     Returns:
         The saved diagram.
@@ -357,7 +360,12 @@ async def create_diagram(
     await session.flush()
     session.add(
         DiagramVersion(
-            diagram_id=d.id, version=1, source=source, svg=clean_svg, author=actor
+            diagram_id=d.id,
+            version=1,
+            source=source,
+            svg=clean_svg,
+            preview_kind=preview_kind,
+            author=actor,
         )
     )
     await session.commit()
@@ -421,6 +429,7 @@ async def update_diagram(
     label: str | None = None,
     summary: str | None = None,
     note: str | None = None,
+    preview_kind: str = "editor",
 ) -> dict[str, Any]:
     """Save a new version of a diagram.
 
@@ -432,6 +441,7 @@ async def update_diagram(
         label: New name, if changed.
         summary: New text summary, if changed.
         note: What changed, kept with the version.
+        preview_kind: Who drew the preview: ``editor`` (exact), ``agent`` or ``basic``.
 
     Returns:
         The saved diagram.
@@ -468,6 +478,7 @@ async def update_diagram(
             version=d.version,
             source=source,
             svg=clean_svg,
+            preview_kind=preview_kind,
             author=actor,
             note=(note or "").strip()[:200] or None,
         )
@@ -588,6 +599,7 @@ async def restore_pins(session: AsyncSession, pins: dict[str, int]) -> None:
                         version=d.version,
                         source=old.source,
                         svg=old.svg,
+                        preview_kind=old.preview_kind,
                         author=actor,
                         note=f"Restored from v{n}",
                     )
@@ -711,11 +723,22 @@ async def export_to_file(
     }
 
 
-def _preview(source: str, svg_path: str | None) -> str:
-    """The SVG to store: the agent's own export when it gives one, else a plain one drawn from the source."""
+async def _preview(
+    session: AsyncSession, source: str, svg_path: str | None
+) -> tuple[str, str]:
+    """The SVG to store and who drew it: ``(svg, preview_kind)``.
+
+    The agent's own export wins; then the editor itself in a hidden browser (exact), when the desktop app or a browser
+    is available; otherwise the server draws a plain one.
+    """
     if svg_path:
-        return _read_file(svg_path, "svg_path")
-    return diagram_model.render_svg(source)
+        return _read_file(svg_path, "svg_path"), "agent"
+    settings = await get_settings(session)
+    if diagram_export.enabled(settings["mode"]):
+        exact = await diagram_export.export_svg(source, settings["effective_url"])
+        if exact:
+            return exact, "editor"
+    return diagram_model.render_svg(source), "basic"
 
 
 async def create_from_file(
@@ -730,13 +753,15 @@ async def create_from_file(
     """Create a diagram from a local ``.drawio`` file."""
     source = _read_file(path, "path")
     validate_source(source)
+    svg, kind = await _preview(session, source, svg_path)
     out = await create_diagram(
         session,
         project_id,
         label=label,
         source=source,
-        svg=_preview(source, svg_path),
+        svg=svg,
         summary=summary,
+        preview_kind=kind,
     )
     out["markdown"] = f"[{out['label']}](diagram:{out['id']})"
     return out
@@ -759,14 +784,16 @@ async def save_from_file(
         )
     source = _read_file(path, "path")
     validate_source(source)
+    svg, kind = await _preview(session, source, svg_path)
     return await update_diagram(
         session,
         diagram_id,
         base_version=base_version,
         source=source,
-        svg=_preview(source, svg_path),
+        svg=svg,
         label=label,
         note="Saved by an AI agent",
+        preview_kind=kind,
     )
 
 

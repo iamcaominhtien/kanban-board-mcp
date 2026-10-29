@@ -203,6 +203,16 @@ export function DiagramEmbed({ id, label, version, small, onReplace, saveTo, rea
           <DiagramIcon name="drawio" size={12} /> draw.io
         </span>
         <span className={styles.name}>{d.label}</span>
+        {d.previewKind === 'basic' && !pinned && (
+          <span
+            className={styles.when}
+            style={{ marginLeft: 0 }}
+            title="This picture was drawn by the server (boxes, arrows and text only). Open the diagram in the editor and save to get the full drawing."
+            data-testid="diagram-basic-preview"
+          >
+            Simple preview
+          </span>
+        )}
         <span className={styles.when}>
           {pinned ? `Version ${version}` : `${edited ? 'Edited' : 'Added'} by ${who} · ${relativeTime(d.updatedAt)}`}
         </span>

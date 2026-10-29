@@ -35,6 +35,17 @@ def _error(exc: "svc_diagrams.DocsError") -> ValueError:
     return ValueError(f"{exc.message}{hint}")
 
 
+def _preview_note(out: dict) -> dict:
+    """Tell the agent how good the stored picture is."""
+    kind = out.get("preview_kind")
+    note = {
+        "editor": "exact: drawn by the draw.io editor",
+        "agent": "your SVG",
+        "basic": "plain: boxes, arrows and text only; shapes beyond those show as boxes until someone opens the diagram in the editor and saves",
+    }.get(kind or "")
+    return {"preview": note} if note else {}
+
+
 async def list_project_diagrams(project_id: ProjectId) -> list[dict]:
     """List a project's diagrams: [{id, label, version, updated_by, updated_at, summary}]."""
     async with common.async_session() as session:
@@ -91,7 +102,10 @@ async def create_diagram_from_file(
             )
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
-        return {k: out[k] for k in ("id", "label", "version", "markdown")}
+        return {
+            **{k: out[k] for k in ("id", "label", "version", "markdown")},
+            **_preview_note(out),
+        }
 
 
 @notify_on_success
@@ -120,7 +134,7 @@ async def save_diagram_file(
             )
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
-        return {k: out[k] for k in ("id", "label", "version")}
+        return {**{k: out[k] for k in ("id", "label", "version")}, **_preview_note(out)}
 
 
 @notify_on_success

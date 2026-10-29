@@ -240,6 +240,9 @@ def render_svg(source: str) -> str:
         if box:
             boxes[e.get("id") or ""] = box
     parts: list[str] = []
+    edge_parts: list[
+        str
+    ] = []  # arrows are drawn after the shapes so containers never hide them
     xs, ys, xe, ye = [0.0], [0.0], [200.0], [100.0]
     if boxes:
         xs = [b[0] for b in boxes.values()]
@@ -273,14 +276,14 @@ def render_svg(source: str) -> str:
         ca, cb = (a[0] + a[2] / 2, a[1] + a[3] / 2), (b[0] + b[2] / 2, b[1] + b[3] / 2)
         p, q = edge_point(a, cb), edge_point(b, ca)
         color = style_get(c.get("style") or "", "strokeColor") or "#333333"
-        parts.append(
+        edge_parts.append(
             f'<line x1="{p[0] - ox:.1f}" y1="{p[1] - oy:.1f}" x2="{q[0] - ox:.1f}" y2="{q[1] - oy:.1f}" '
             f'stroke="{_esc(color)}" stroke-width="1.5" marker-end="url(#arrow)"/>'
         )
         label = d.label_of(e)
         if label:
             mx, my = (p[0] + q[0]) / 2 - ox, (p[1] + q[1]) / 2 - oy
-            parts.append(
+            edge_parts.append(
                 f'<text x="{mx:.1f}" y="{my - 4:.1f}" text-anchor="middle" font-size="11" fill="#333333" '
                 f'stroke="#ffffff" stroke-width="3" paint-order="stroke">{_esc(label)}</text>'
             )
@@ -336,5 +339,6 @@ def render_svg(source: str) -> str:
         'font-family="Helvetica, Arial, sans-serif"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" '
         'markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333333"/></marker></defs>'
         + "".join(parts)
+        + "".join(edge_parts)
         + "</svg>"
     )
