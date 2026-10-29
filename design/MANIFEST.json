@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793195406-cc1c",
-  "exported": "2026-10-28",
+  "canvas_version": "1793234038-d594",
+  "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -426,6 +426,22 @@
       "page": "screens",
       "w": 1480,
       "h": 6640
+    },
+    "PreviewViewer.dc.html": {
+      "bytes": 78960,
+      "sha256": "bac21df3b22922ad56eecd3946dde6b1d9d6b7634da3d9f2f97863329f65b850",
+      "title": "Preview — open & viewer",
+      "page": "screens",
+      "w": 1480,
+      "h": 4940
+    },
+    "PreviewTypes.dc.html": {
+      "bytes": 122438,
+      "sha256": "62703846e700d21dfd904be8d18ebe9e9d78b42298d9501b4f6fb5b49570b7b3",
+      "title": "Preview — file types & states",
+      "page": "screens",
+      "w": 1480,
+      "h": 7400
     }
   }
 }
