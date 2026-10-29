@@ -251,7 +251,8 @@ export function AssistDock() {
         : scope === 'doc'
           ? 'Ask about this page…'
           : 'Ask about this project…';
-  const disabled = notConfigured || chatOff || offline || overBudget;
+  const loadFailed = st.isError && !state;
+  const disabled = notConfigured || chatOff || offline || overBudget || loadFailed;
   const f = ctx.filters;
   const filterLabel = f.assignee || f.type || f.priority || f.q ? 'Filtered' : 'No filters';
 
@@ -316,6 +317,11 @@ export function AssistDock() {
           <div
             style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}
           >
+            {loadFailed && (
+              <div className="ai-notice ai-notice-error" data-testid="assist-load-error">
+                Board AI could not load: {extractError(st.error)}. Export the log from Settings and try again.
+              </div>
+            )}
             {scope === 'doc' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <b style={{ fontSize: 14 }}>Ask this page</b>

@@ -10,6 +10,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.8.2] - 2026-10-29
+
+### Fixed
+- Windows: Board AI no longer fails to load (every `/ai/assist` request raised "Invalid format string"), so **Ask AI** is back on the board, and board health insights about due dates work. Dates are formatted without the Linux-only `%-d`.
+- If Board AI cannot load its state, the **Ask AI** entry stays and the dock says what went wrong instead of disappearing; Settings → AI shows the error with Try again instead of loading forever.
+
+---
+
 ## [3.8.1] - 2026-10-29
 
 ### Fixed

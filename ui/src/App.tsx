@@ -71,10 +71,11 @@ function AssistOverlays() {
 function useAskAiNav(projectId: string | null) {
   const ctx = useAssist();
   const st = useAssistState(projectId);
-  if (!ctx || !st.data) return null;
-  const chat = st.data.features.find((f) => f.key === 'chat');
+  // When the state cannot load the entry stays, so the dock can say what went wrong instead of AI just vanishing
+  if (!ctx || (!st.data && !st.isError)) return null;
+  const chat = st.data?.features.find((f) => f.key === 'chat');
   if (chat && !chat.on) return null;
-  return { onClick: ctx.toggle, unseen: st.data.unseenInsights, active: ctx.open };
+  return { onClick: ctx.toggle, unseen: st.data?.unseenInsights ?? 0, active: ctx.open };
 }
 
 /** The sidebar, given the Ask AI entry from the dock's state. */
