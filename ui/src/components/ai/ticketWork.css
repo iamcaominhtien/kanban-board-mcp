@@ -1,0 +1,684 @@
+/* AI work on tickets: mentions, the ask thread, the run view, the review gate, undo (design/components/ai-ticket-work.md).
+   Shares the look of ai.css; everything here is prefixed tw- so it cannot clash with it. */
+
+/* ---- mention pill and hover card (B2) ---- */
+.tw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px 0 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: 1px;
+  line-height: 1;
+  cursor: default;
+  outline: none;
+}
+.tw-pill:focus-visible {
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.25);
+}
+.tw-hover {
+  position: fixed;
+  z-index: 3000;
+  width: 340px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(30, 42, 34, 0.18);
+  padding: 14px;
+}
+.tw-kv {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px 10px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  align-items: baseline;
+}
+
+/* ---- composer: Send ▾, Ask split button, context chips (B3, C1) ---- */
+.tw-ctx {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #dce6df;
+  background: #fff;
+  color: #3a4a3e;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tw-mentioned {
+  font-size: 12.5px;
+  color: #5b6b60;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.tw-split {
+  display: inline-flex;
+  align-items: stretch;
+  height: 34px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tw-split-main,
+.tw-split-caret {
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tw-split-main {
+  padding: 0 14px;
+}
+.tw-split-caret {
+  padding: 0 9px;
+}
+.tw-split-primary {
+  background: #2e6f40;
+  color: #fff;
+}
+.tw-split-primary .tw-split-main,
+.tw-split-primary .tw-split-caret {
+  background: transparent;
+  color: #fff;
+}
+.tw-split-primary .tw-split-caret {
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+.tw-split-ask {
+  background: #fff;
+  border: 1.5px solid #2e6f40;
+  color: #1e2a22;
+}
+.tw-split-ask .tw-split-main,
+.tw-split-ask .tw-split-caret {
+  background: transparent;
+  color: #1e2a22;
+}
+.tw-split-ask .tw-split-caret {
+  border-left: 1.5px solid #2e6f40;
+  color: #2e6f40;
+}
+.tw-split button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tw-menu {
+  position: fixed;
+  z-index: 3000;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(30, 42, 34, 0.18);
+  padding: 6px;
+}
+.tw-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.tw-menu-item:hover,
+.tw-menu-item:focus-visible {
+  background: #f1f8f3;
+  outline: none;
+}
+.tw-menu-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---- the ask thread (C2 to C4) ---- */
+.tw-state {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.tw-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.tw-thread-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: 10px;
+}
+.tw-live {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.tw-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: #2e6f40;
+  vertical-align: text-bottom;
+  animation: tw-blink 1s steps(2) infinite;
+}
+@keyframes tw-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tw-caret {
+    animation: none;
+  }
+}
+.tw-skel {
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef3ef, #f6faf7, #eef3ef);
+  background-size: 400px 100%;
+  animation: ai-shimmer 1.4s linear infinite;
+  margin-top: 10px;
+}
+.tw-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.tw-run-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2e6f40;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.tw-pillbox {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #e3e8e5;
+  background: #f6faf7;
+  color: #5b6b60;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tw-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.tw-icon:hover {
+  background: #f1f4f2;
+}
+.tw-icon-on {
+  color: #2e6f40;
+  background: #e5f2e9;
+}
+.tw-icon-bad {
+  color: #c4432a;
+  background: #fbeeea;
+}
+.tw-sep {
+  width: 1px;
+  height: 16px;
+  background: #dce6df;
+}
+.tw-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.tw-act:hover:not(:disabled) {
+  background: #f1f4f2;
+}
+.tw-act:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tw-card {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(30, 42, 34, 0.08);
+  max-width: 560px;
+}
+.tw-chipbtn {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #dce6df;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.tw-chipbtn-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+.tw-error {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 1px solid #f0c4b8;
+  border-radius: 12px;
+  background: #fbeeea;
+}
+
+.tw-trans {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  max-width: 420px;
+  font-size: 12.5px;
+}
+.tw-tick {
+  color: #3a4a3e;
+}
+.tw-reply-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  color: #5b6b60;
+  background: #f1f8f3;
+  border-bottom: 1px solid #e3e8e5;
+}
+
+/* ---- popovers of the run actions, Undo run's changes (G3) ---- */
+.tw-pop {
+  position: absolute;
+  z-index: 70;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 300px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(30, 42, 34, 0.18);
+  text-align: left;
+}
+.tw-mi-on {
+  background: #f1f8f3;
+}
+.tw-undo {
+  width: 640px;
+  max-width: calc(100vw - 32px);
+}
+.tw-undo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 4px;
+  border-bottom: 1px solid #eef3ef;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tw-undo-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2e6f40;
+}
+
+/* ---- the AI asks back (E1) ---- */
+.tw-question {
+  position: relative;
+  padding: 16px 18px 14px 22px;
+  border: 1px solid #c9d4e0;
+  border-radius: 14px;
+  background: #f4f7fa;
+  overflow: hidden;
+}
+.tw-question::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: repeating-linear-gradient(135deg, #5b6f86 0 3px, #dfe6ee 3px 6px);
+}
+.tw-later {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid #d3dce6;
+  border-radius: 10px;
+  background: repeating-linear-gradient(135deg, #f4f7fa 0 10px, #eef2f6 10px 20px);
+  font-size: 13px;
+}
+.tw-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #c4432a;
+  flex-shrink: 0;
+}
+
+/* ---- review gate (F1, F2) ---- */
+.tw-gate {
+  border: 1px solid #bfdcc7;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+.tw-gate-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: #f1f8f3;
+  border-bottom: 1px solid #d9eadd;
+}
+.tw-gate-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 22px;
+  padding: 14px 16px;
+}
+@media (max-width: 900px) {
+  .tw-gate-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.tw-gate-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+.tw-changes {
+  padding: 12px 16px 14px;
+  border-top: 1px solid #e3e8e5;
+  background: #fff;
+}
+.tw-test {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 13px;
+  font-weight: 700;
+}
+.tw-test-ok {
+  background: #f1f8f3;
+  border-color: #bfdcc7;
+  color: #2e6f40;
+}
+.tw-test-bad {
+  background: #fbeeea;
+  border-color: #f0c4b8;
+  color: #c4432a;
+}
+.tw-claim {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.tw-claim-met {
+  background: #2e6f40;
+  color: #fff;
+}
+.tw-claim-open {
+  border: 1.5px dashed #b4571f;
+  color: #b4571f;
+}
+
+.tw-hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid #f0d9a8;
+  background: #fdf0e6;
+  color: #b4571f;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* ---- mention in a test case note (B4) ---- */
+.tw-tcm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+}
+.tw-seg {
+  display: inline-flex;
+  background: #eef1ee;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.tw-seg button {
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.tw-seg .tw-seg-on {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
+}
+
+/* ---- parent ticket plan (H7) ---- */
+.tw-plan {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 24px 10px;
+  padding: 10px 14px;
+  border: 1px dashed #c9bff0;
+  border-radius: 12px;
+  background: #faf9fe;
+  font-size: 13px;
+}
+.tw-plan-open {
+  display: block;
+}
+.tw-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px dashed #c9bff0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tw-plan-row input {
+  accent-color: #6d5dd3;
+}
+
+/* ---- run view (D2, D3) ---- */
+.tw-runcols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(220px, 1fr);
+  gap: 20px;
+}
+@media (max-width: 860px) {
+  .tw-runcols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.tw-chev {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: 4px;
+  color: #5b6b60;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tw-chev:hover {
+  background: #eef3ef;
+}
+.tw-term {
+  margin: 2px 0 8px 29px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #1e2a22;
+  color: #e7efe9;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
+}
+.tw-cmd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  min-width: 0;
+}
+.tw-exit {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tw-usage {
+  padding: 12px 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fbfcfb;
+}
+.tw-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.tw-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #e9eeea;
+  overflow: hidden;
+  margin-top: 5px;
+}
+.tw-bar > div {
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* ---- board card footers are narrow: let them wrap rather than break words ---- */
+.ai-card-footer {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.ai-card-footer .ai-muted {
+  white-space: nowrap;
+}

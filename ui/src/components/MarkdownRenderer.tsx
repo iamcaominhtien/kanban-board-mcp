@@ -11,6 +11,7 @@ import { RefChip } from './docs/RefChip';
 import { DiagramEmbed } from './diagrams/DiagramEmbed';
 import { DIAGRAM_SCHEME, diagramIdOf, hasDiagram } from './diagrams/diagramRefs';
 import { useDocsRefs } from './docs/DocsRefsContext';
+import { MentionPill } from './ai/MentionPill';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../utils/docsMarkdown';
 import type { DocsRefRequest } from '../types/docs';
 import styles from './MarkdownRenderer.module.css';
@@ -211,28 +212,8 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
             const diagramId = diagramIdOf(href);
             if (diagramId) return <DiagramEmbed id={diagramId} label={String(children ?? '')} small />;
             if (href?.startsWith('member:')) {
-              return (
-                <span
-                  data-testid="mention-chip"
-                  data-member={href.slice(7)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    height: 22,
-                    padding: '0 8px',
-                    borderRadius: 999,
-                    background: '#E8F1FB',
-                    border: '1px solid #B9D3EE',
-                    color: '#2F6FB0',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    verticalAlign: 1,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {children}
-                </span>
-              );
+              // A person is a round blue pill; an AI member a pill in its own colour with a hover card
+              return <MentionPill memberId={href.slice(7)}>{children}</MentionPill>;
             }
             if (docs && href?.startsWith(TICKET_SCHEME)) {
               const key = href.slice(TICKET_SCHEME.length);

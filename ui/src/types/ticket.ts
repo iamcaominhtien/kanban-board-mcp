@@ -21,6 +21,8 @@ export interface Member {
   name: string;
   color: string;
   role?: 'viewer' | 'member' | 'admin';
+  /** 'ai' for an AI member (its profile lives under /ai/members); 'ai_removed' keeps a removed one for history. */
+  kind?: 'human' | 'ai' | 'ai_removed';
   createdAt: string;
 }
 
@@ -35,6 +37,34 @@ export interface Comment {
   mentions?: string[];
   /** Who this comment notified (reporter, assignee, earlier commenters, mentions). */
   notified?: { id: string; name: string }[];
+  /** Set on comments an AI member posted: its run and what the comment is. */
+  ai?: AiCommentMeta;
+  /** A note the board itself posted (e.g. a mention that was not delivered). */
+  boardNote?: boolean;
+  /** The comment this one answers; set under an AI's comment, which then asks that AI again (`asksAgain`). */
+  replyTo?: string;
+  asksAgain?: string;
+  /** The question of this AI run that this comment answers (posted from the board's question card). */
+  answerToRun?: string;
+  /** The AI member this comment was posted to ask (Ask button). */
+  askedAi?: string;
+}
+
+export interface AiCommentMeta {
+  kind: 'answer' | 'summary' | 'failed' | 'ask_failed' | 'move_blocked' | 'comment';
+  /** The comment an `ask_failed` reply is about. */
+  replyTo?: string | null;
+  runId: string;
+  runNumber?: number;
+  memberId: string;
+  durationS?: number;
+  metered?: boolean;
+  costUsd?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  model?: string | null;
+  questionCommentId?: string | null;
+  criteria?: { text: string; met: boolean | null; evidence?: string }[];
 }
 
 export interface AcceptanceCriterion {
@@ -52,6 +82,13 @@ export interface ActivityEntry {
   actor?: string;
   /** Subject of the change, e.g. a test case code or branch name. */
   ref?: string;
+  /** Set when an AI member made the change: the person it acted for and its run. */
+  ai?: boolean;
+  onBehalfOf?: string | null;
+  runId?: string | null;
+  memberId?: string | null;
+  /** A person applied a Board AI draft: the AI that suggested the change. */
+  suggestedBy?: string | null;
 }
 
 export type WorkLogRole = 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
@@ -107,6 +144,10 @@ export interface TestCase {
   updatedAt?: string | null;
   assignee?: string | null;
   testDataFiles?: TestCaseFileData[];
+  /** Acceptance criterion the case tests (coverage). */
+  criterionId?: string | null;
+  /** Board AI that suggested the case, when a person accepted its draft. */
+  suggestedBy?: string | null;
 }
 
 export interface Ticket {

@@ -3,6 +3,7 @@ import { client } from '../api/client';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../api/settings';
 import { McpIntegrations } from './McpIntegrations';
+import { AiSettingsSection } from './ai/AiSettingsSection';
 import { UpdateSettingsSection } from './UpdateSettingsSection';
 import { DocsSettingsRow } from './docs/DocsSettingsRow';
 import { DiagramSettingsSection } from './diagrams/DiagramSettingsSection';
@@ -379,6 +380,10 @@ interface SettingsPanelProps {
   onClose: () => void;
   theme: Theme;
   onToggleTheme: () => void;
+  /** Current project: its Board AI is chosen in the “AI” section. */
+  projectId?: string;
+  /** Opens the AI members page. */
+  onManageAi?: () => void;
 }
 
 /** Format a Date as the local `YYYY-MM-DDTHH:mm` value a datetime-local input expects. */
@@ -393,7 +398,7 @@ function toLocalInputValue(d: Date): string {
  * @param props.theme - Current theme.
  * @param props.onToggleTheme - Called to switch between light and dark.
  */
-export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelProps) {
+export function SettingsPanel({ onClose, theme, onToggleTheme, projectId, onManageAi }: SettingsPanelProps) {
   const { data: settings, isLoading } = useSettings();
   const setDataPath = useSetDataPath();
   const { data: projects = [] } = useProjects();
@@ -631,6 +636,13 @@ export function SettingsPanel({ onClose, theme, onToggleTheme }: SettingsPanelPr
           <McpIntegrations />
 
           <div className={styles.divider} />
+
+          {projectId && (
+            <>
+              <AiSettingsSection projectId={projectId} onManage={onManageAi} />
+              <div className={styles.divider} />
+            </>
+          )}
 
           {/* Theme Section */}
           <div className={styles.section}>

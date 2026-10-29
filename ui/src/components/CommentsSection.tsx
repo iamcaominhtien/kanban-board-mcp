@@ -3,9 +3,30 @@ import type { Comment, Member } from '../types/ticket';
 import { useToast } from './Toast';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { Composer } from './comments/Composer';
+import { AiAvatar, fmtElapsed, useAiBoardState } from './ai/aiUi';
+import { useTicketRuns } from '../api/ai';
+import { ASK_AI_EVENT } from './ai/AiTicketContext';
+import { useAiSuggest } from './ai/useMentionList';
+import type { SendOpts } from './ai/MentionIntent';
+import {
+  AnswerFooter,
+  AnswerTransitions,
+  AskErrorCard,
+  AskPlaceholder,
+  ThreadChip,
+  askRunOf,
+  type ThreadState,
+} from './ai/AiThread';
+import type { AiRun } from '../types/ai';
+
+const AI_KIND: Record<string, string> = {
+  summary: 'AI summary',
+  failed: 'Run failed',
+};
 import { Icon } from './docs/Icon';
 import type { SuggestMember } from './docs/RefSuggester';
 import { getAvatarColors } from './MemberAvatar';
+import { CommentAiFlag } from './ai/AiTicketSafety';
 import {
   UNDO_MS,
   exactTime,
@@ -31,8 +52,10 @@ interface CommentsSectionProps {
   /** A comment to scroll to and tint (from Activity "View comment" or a #comment-id link). */
   focusCommentId?: string | null;
   onFocusHandled?: () => void;
+  /** Acceptance criteria of the ticket (the “Context sent” chips of the Ask button). */
+  criteriaCount?: number;
   /** Resolve with the saved comment id, reject when the server could not be reached. */
-  onAdd: (text: string) => Promise<unknown>;
+  onAdd: (text: string, opts?: SendOpts) => Promise<unknown>;
   onEdit: (id: string, text: string) => Promise<unknown>;
   onDelete: (id: string) => Promise<unknown>;
   onRestore: (id: string) => Promise<unknown>;
@@ -46,6 +69,7 @@ interface Failed {
   id: string;
   text: string;
   at: string;
+  opts?: SendOpts;
 }
 
 const COLLAPSE_CHARS = 1200;
@@ -173,14 +197,21 @@ export function CommentsSection({
   isLoading = false,
   focusCommentId,
   onFocusHandled,
+  criteriaCount = 0,
   onAdd,
   onEdit,
   onDelete,
   onRestore,
 }: CommentsSectionProps) {
   const toast = useToast();
+  const { members: aiMembers } = useAiBoardState();
+  const aiRunsData = useTicketRuns(ticketId).data;
+  const aiRuns: AiRun[] = useMemo(() => aiRunsData ?? [], [aiRunsData]);
   const rootRef = useRef<HTMLDivElement>(null);
   const [composing, setComposing] = useState(false);
+  // A mention put in the box by Ask on a hover card, or the AI comment the next comment replies to
+  const [prefill, setPrefill] = useState<string | undefined>(undefined);
+  const [replyTo, setReplyTo] = useState<string | undefined>(undefined);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [ghosts, setGhosts] = useState<Ghost[]>([]);
@@ -209,12 +240,15 @@ export function CommentsSection({
     c.author === 'user' || (!!currentMember && (c.author === currentMember.name || c.author === currentMember.id));
   const author = currentMember?.name ?? 'user';
 
+  const aiRows = useAiSuggest();
+  const aiAssignee = assigneeId && aiMembers.get(assigneeId)?.kind === 'ai' ? assigneeId : null;
   const suggestMembers = useMemo<SuggestMember[]>(() => {
+    const people = members.filter((m) => (m.kind ?? 'human') === 'human');
     const onTicket = new Map<string, string>();
     if (assigneeId) onTicket.set(assigneeId, 'Assignee');
     if (reporterId && !onTicket.has(reporterId)) onTicket.set(reporterId, 'Reporter');
     for (const c of comments) {
-      const m = members.find((x) => x.id === c.author || x.name.toLowerCase() === c.author.toLowerCase());
+      const m = people.find((x) => x.id === c.author || x.name.toLowerCase() === c.author.toLowerCase());
       if (m && !onTicket.has(m.id)) onTicket.set(m.id, 'Commented');
     }
     const row = (m: Member, group: string, note: string): SuggestMember => ({
@@ -224,15 +258,17 @@ export function CommentsSection({
       note,
       ...getAvatarColors(m.color),
     });
+    // With AI members in the project the list reads People / AI; without, the people keep their own groups
+    const withAi = aiRows.length > 0;
     const first = [...onTicket.entries()].flatMap(([id, note]) => {
-      const m = members.find((x) => x.id === id);
-      return m ? [row(m, 'On this ticket', note)] : [];
+      const m = people.find((x) => x.id === id);
+      return m ? [row(m, withAi ? 'People' : 'On this ticket', note)] : [];
     });
-    const rest = members
+    const rest = people
       .filter((m) => !onTicket.has(m.id))
-      .map((m) => row(m, 'Everyone else', m.id === currentMember?.id ? 'You' : ''));
-    return [...first, ...rest];
-  }, [members, comments, assigneeId, reporterId, currentMember]);
+      .map((m) => row(m, withAi ? 'People' : 'Everyone else', m.id === currentMember?.id ? 'You' : ''));
+    return [...first, ...rest, ...aiRows];
+  }, [members, comments, assigneeId, reporterId, currentMember, aiRows]);
 
   // ---- offline queue -----------------------------------------------------
   useEffect(() => {
@@ -273,24 +309,51 @@ export function CommentsSection({
   }, [online, queue.length]);
 
   // ---- sending -----------------------------------------------------------
-  async function send(text: string, retryId?: string) {
+  async function send(text: string, opts?: SendOpts, retryId?: string) {
     if (!online) {
       saveQueue([...queue, { id: `q-${Date.now()}`, text, author, at: new Date().toISOString() }]);
-      setComposing(false);
+      closeComposer();
       return;
     }
     try {
-      await onAdd(text);
+      await onAdd(text, opts);
       if (retryId) setFailed((f) => f.filter((x) => x.id !== retryId));
-      setComposing(false);
+      closeComposer();
     } catch {
-      setComposing(false);
+      closeComposer();
       setFailed((f) => [
         ...f.filter((x) => x.id !== retryId),
-        { id: retryId ?? `f-${Date.now()}`, text, at: new Date().toISOString() },
+        { id: retryId ?? `f-${Date.now()}`, text, at: new Date().toISOString(), opts },
       ]);
     }
   }
+  function closeComposer() {
+    setComposing(false);
+    setPrefill(undefined);
+    setReplyTo(undefined);
+  }
+  // Ask on an AI's hover card: open the box with its mention in it
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const d = (e as CustomEvent<{ ticketId: string; memberId: string }>).detail;
+      const ai = d && d.ticketId === ticketId ? aiMembers.get(d.memberId) : undefined;
+      if (!ai) return;
+      setReplyTo(undefined);
+      setPrefill(`@[${ai.name}](member:${ai.id}) `);
+      setComposing(true);
+      requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+    };
+    window.addEventListener(ASK_AI_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_AI_EVENT, onAsk);
+  }, [ticketId, aiMembers]);
+  const composerAi = {
+    criteriaCount,
+    commentCount: comments.length,
+    defaultAskId: aiAssignee,
+    prefill,
+    replyTo,
+    replyLabel: replyTo ? comments.find((x) => x.id === replyTo)?.author : undefined,
+  };
 
   // ---- delete with 10 s undo ---------------------------------------------
   async function remove(c: Comment, index: number) {
@@ -359,24 +422,49 @@ export function CommentsSection({
 
   // ---- layout of the thread --------------------------------------------------
   const visible = useMemo(() => {
-    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost })[] = comments.map((c, i) => ({
-      kind: 'c',
-      c,
-      i,
-    }));
+    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost } | { kind: 'p'; run: AiRun })[] =
+      comments.map((c, i) => ({
+        kind: 'c',
+        c,
+        i,
+      }));
     for (const g of [...ghosts].sort((a, b) => a.index - b.index))
       live.splice(Math.min(g.index, live.length), 0, { kind: 'g', g });
+    // an AI that is still answering shows right after the question it was asked (Thinking, then Streaming)
+    for (const r of aiRuns) {
+      if (r.mode !== 'ask' || !['queued', 'starting', 'running'].includes(r.state)) continue;
+      const at = live.findIndex((x) => x.kind === 'c' && x.c.id === r.sourceCommentId);
+      live.splice(at >= 0 ? at + 1 : live.length, 0, { kind: 'p', run: r });
+    }
     if (sortOrder === 'newest') {
       live.reverse();
     }
     return live;
-  }, [comments, ghosts, sortOrder]);
+  }, [comments, ghosts, sortOrder, aiRuns]);
   const collapseMiddle = !expandedMiddle && comments.length > THREAD_COLLAPSE_OVER;
   const hiddenCount = collapseMiddle ? comments.length - 1 - TAIL : 0;
 
   function renderComment(c: Comment, index: number) {
     const p = personFor(c.author, members);
+    const authorMember = members.find((m) => m.id === p.id);
+    const aiAuthor = authorMember ? aiMembers.get(authorMember.id) : undefined;
     const mine = isMine(c);
+    // where this comment stands in an ask thread: the question, the answer, an error, a reply that asks again
+    const asked = askRunOf(c, aiRuns);
+    const threadState: { state: ThreadState; label?: string } | null =
+      c.ai?.kind === 'answer'
+        ? { state: 'answered' }
+        : c.ai?.kind === 'ask_failed'
+          ? { state: 'error' }
+          : c.ai?.kind === 'move_blocked'
+            ? { state: 'blocked' }
+            : c.asksAgain
+              ? { state: 'asks_again' }
+              : c.answerToRun
+                ? { state: 'answer' }
+                : asked
+                  ? { state: 'asked', label: `Asked ${asked.memberName ?? 'AI'}` }
+                  : null;
     if (editingId === c.id) {
       return (
         <div key={c.id} data-comment-id={c.id} style={{ padding: '6px 0' }}>
@@ -412,11 +500,58 @@ export function CommentsSection({
           borderRadius: 10,
         }}
       >
-        <Avatar person={p} />
+        {aiAuthor ? (
+          <AiAvatar
+            provider={aiAuthor.provider}
+            color={aiAuthor.color}
+            glyph={aiAuthor.glyph}
+            size={32}
+            title={aiAuthor.name}
+          />
+        ) : (
+          <Avatar person={p} />
+        )}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>{p.name}</span>
-            <span className="cm-time" style={{ fontSize: 12, color: '#9AA8A0' }}>
+            {(aiAuthor || c.ai) && (
+              <span
+                className="ai-chip"
+                style={{ height: 18, background: '#1E2A22', color: '#fff', alignSelf: 'center' }}
+              >
+                AI
+              </span>
+            )}
+            {c.ai && AI_KIND[c.ai.kind] && (
+              <span
+                className="ai-chip"
+                style={{
+                  height: 18,
+                  background: c.ai.kind === 'failed' ? '#FBEEEA' : '#F1F8F3',
+                  color: c.ai.kind === 'failed' ? '#C4432A' : '#2E6F40',
+                  alignSelf: 'center',
+                }}
+              >
+                {AI_KIND[c.ai.kind]}
+              </span>
+            )}
+            {threadState && (
+              <span style={{ marginLeft: 'auto', alignSelf: 'center' }}>
+                <ThreadChip state={threadState.state} label={threadState.label} />
+              </span>
+            )}
+            {c.boardNote && (
+              <span
+                className="ai-chip"
+                style={{ height: 18, background: '#EEF1EE', color: '#5B6B60', alignSelf: 'center' }}
+              >
+                Board
+              </span>
+            )}
+            <span
+              className="cm-time"
+              style={{ fontSize: 12, color: '#9AA8A0', marginLeft: threadState ? 0 : undefined }}
+            >
               {relative(c.at)}
               <span className="cm-tt">{exactTime(c.at)}</span>
             </span>
@@ -426,9 +561,34 @@ export function CommentsSection({
               </span>
             )}
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
-            <Collapsible text={c.text} />
-          </div>
+          {c.ai?.kind === 'ask_failed' ? (
+            <AskErrorCard
+              comment={c}
+              run={aiRuns.find((r) => r.id === c.ai?.runId)}
+              onDismiss={() => void remove(c, index)}
+            />
+          ) : (
+            <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+              <Collapsible text={c.text} />
+            </div>
+          )}
+          {c.ai?.kind === 'answer' && (
+            <AnswerFooter comment={c} run={aiRuns.find((r) => r.id === c.ai?.runId)} canAct />
+          )}
+          <CommentAiFlag ticketId={ticketId} commentId={c.id} />
+          {c.answerToRun && <AnswerTransitions run={aiRuns.find((r) => r.id === c.answerToRun)} />}
+          {c.ai?.runNumber && c.ai.kind !== 'answer' && c.ai.kind !== 'ask_failed' && (
+            <div
+              className="ai-muted"
+              style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+              data-testid="ai-comment-meta"
+            >
+              <span>Run #{c.ai.runNumber}</span>
+              {c.ai.durationS != null && <span>· {fmtElapsed(c.ai.durationS)}</span>}
+              <span>· {c.ai.metered ? `$${(c.ai.costUsd ?? 0).toFixed(2)}` : 'Not metered'}</span>
+              {c.ai.model && <span className="ai-mono">· {c.ai.model}</span>}
+            </div>
+          )}
           {confirmId === c.id && (
             <div
               data-testid="comment-delete-confirm"
@@ -507,6 +667,22 @@ export function CommentsSection({
               </button>
             </>
           )}
+          {c.ai?.kind === 'answer' && (
+            <button
+              type="button"
+              data-testid="comment-reply"
+              style={barBtn()}
+              title="Replying asks this AI again"
+              onClick={() => {
+                setPrefill(undefined);
+                setReplyTo(c.id);
+                setComposing(true);
+                requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+              }}
+            >
+              ↩ Reply
+            </button>
+          )}
           <button type="button" data-testid="comment-copy-link" style={barBtn()} onClick={() => copyLink(c)}>
             <Icon name="link" size={13} strokeWidth={1.9} />
             Copy link
@@ -548,6 +724,10 @@ export function CommentsSection({
           <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
         </div>,
       );
+      return;
+    }
+    if (it.kind === 'p') {
+      rows.push(<AskPlaceholder key={`ask-${it.run.id}`} run={it.run} />);
       return;
     }
     const { c, i } = it;
@@ -699,12 +879,14 @@ export function CommentsSection({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {composing ? (
                 <Composer
+                  key={`${replyTo ?? ''}:${prefill ?? ''}`}
                   ticketId={ticketId}
                   projectId={projectId}
                   me={me}
                   members={suggestMembers}
-                  onCancel={() => setComposing(false)}
-                  onSubmit={(t) => void send(t)}
+                  onCancel={closeComposer}
+                  onSubmit={(t, o) => void send(t, o)}
+                  {...composerAi}
                 />
               ) : (
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -826,7 +1008,7 @@ export function CommentsSection({
                         type="button"
                         className="st-btn st-btn-primary st-btn-sm"
                         data-testid="comment-retry"
-                        onClick={() => void send(f.text, f.id)}
+                        onClick={() => void send(f.text, f.opts, f.id)}
                       >
                         Retry
                       </button>
@@ -965,7 +1147,7 @@ export function CommentsSection({
                           type="button"
                           className="st-btn st-btn-primary st-btn-sm"
                           data-testid="comment-retry"
-                          onClick={() => void send(f.text, f.id)}
+                          onClick={() => void send(f.text, f.opts, f.id)}
                         >
                           Retry
                         </button>
@@ -998,12 +1180,14 @@ export function CommentsSection({
           {sortOrder === 'oldest' &&
             (composing ? (
               <Composer
+                key={`${replyTo ?? ''}:${prefill ?? ''}`}
                 ticketId={ticketId}
                 projectId={projectId}
                 me={me}
                 members={suggestMembers}
-                onCancel={() => setComposing(false)}
-                onSubmit={(t) => void send(t)}
+                onCancel={closeComposer}
+                onSubmit={(t, o) => void send(t, o)}
+                {...composerAi}
               />
             ) : (
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>

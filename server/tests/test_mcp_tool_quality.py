@@ -50,7 +50,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     assert not core & ideas
     assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(core) == 9 and len(ideas) == 13
+    assert len(core) == 11 and len(ideas) == 13
 
 
 async def test_every_operation_is_reachable_through_a_tool():
@@ -130,6 +130,7 @@ async def test_every_tool_has_annotations_that_match_its_name():
             "ticket_items",
             "ticket_branches",
             "docs_write",
+            "ai_schedules",
         }:
             assert a.destructiveHint is True, name
         else:
@@ -184,10 +185,12 @@ async def test_the_tool_list_stays_compact():
         )
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    assert default < 33_000, (
+    # ai_run (AI member runs) ~700 characters and ai_schedules ~1,600 in 3.8.0, on top of Docs comments (3.7.0)
+    # the diagram actions of docs_read / docs_write (3.8.2) add about 2,000 characters
+    assert default < 35_500, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 41_500, (
+    assert full < 43_800, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

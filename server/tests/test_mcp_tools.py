@@ -3,11 +3,11 @@ import uuid
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from kanban_mcp import common, operations as ops
 from database import async_session as real_async_session
+from tests.fast_db import fresh_tables
 
 DATABASE_URL_TEST = "sqlite+aiosqlite:///:memory:"
 
@@ -19,13 +19,10 @@ test_async_session = sessionmaker(
 
 @pytest.fixture(autouse=True)
 async def setup_db(monkeypatch):
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+    await fresh_tables(test_engine)
     monkeypatch.setattr(common, "async_session", test_async_session)
     yield
     monkeypatch.setattr(common, "async_session", real_async_session)
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
 
 
 # ---------------------------------------------------------------------------

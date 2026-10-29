@@ -1,0 +1,376 @@
+/* Configuration tab of an AI member (design/screens/ai-provider-config.md). Colours follow ai.css. */
+
+.cfg-root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cfg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #f6faf7;
+}
+.cfg-toolbar-meta {
+  font-size: 12px;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cfg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .cfg-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.cfg-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px 0;
+}
+.cfg-card-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.cfg-card-body {
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cfg-sub {
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+.cfg-chip-synced {
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+.cfg-chip-documented {
+  background: #fdf5e6;
+  color: #8a5a12;
+}
+.cfg-chip-none {
+  background: #eef1ee;
+  color: #7a887f;
+}
+.cfg-chip-warn {
+  background: #fdf5e6;
+  color: #8a5a12;
+}
+.cfg-chip-bad {
+  background: #fbeeea;
+  color: #c4432a;
+}
+.cfg-chip-lib {
+  background: #eef2f6;
+  color: #34455a;
+}
+.cfg-chip-plain {
+  background: #eef3ef;
+  color: #5b6b60;
+}
+.cfg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid #eef3ef;
+}
+.cfg-row:first-child {
+  border-top: none;
+}
+.cfg-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.cfg-row-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cfg-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cfg-pills {
+  display: inline-flex;
+  gap: 6px;
+}
+.cfg-pill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+  font-family: inherit;
+}
+.cfg-pill-on {
+  background: #1e2a22;
+  border-color: #1e2a22;
+  color: #fff;
+}
+.cfg-pill:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Code editor with line numbers */
+.cfg-code {
+  position: relative;
+  display: flex;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.cfg-code:focus-within {
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.12);
+}
+.cfg-code-err {
+  border-color: #c4432a;
+}
+.cfg-code-gutter {
+  width: 38px;
+  flex-shrink: 0;
+  background: #f6faf7;
+  border-right: 1px solid #eef3ef;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  line-height: 18px;
+  color: #9aa8a0;
+  text-align: right;
+  padding: 8px 6px 8px 0;
+  user-select: none;
+}
+.cfg-code-gutter div {
+  height: 18px;
+}
+.cfg-code-gutter .cfg-ln-bad {
+  color: #c4432a;
+  font-weight: 700;
+}
+.cfg-code-pane {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.cfg-code-hl {
+  position: absolute;
+  inset: 0;
+  padding: 8px 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cfg-code-hl div {
+  height: 18px;
+}
+.cfg-code-hl .cfg-hl-bad {
+  background: rgba(196, 67, 42, 0.12);
+}
+.cfg-code-hl .cfg-hl-var {
+  background: rgba(46, 111, 64, 0.1);
+}
+.cfg-code textarea {
+  position: relative;
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  line-height: 18px;
+  padding: 8px 10px;
+  color: #1e2a22;
+  white-space: pre;
+  overflow: auto;
+}
+
+/* Diff */
+.cfg-diff {
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  overflow: auto;
+  max-height: 260px;
+  background: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.cfg-diff-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 10px;
+  white-space: pre;
+}
+.cfg-diff-n {
+  width: 28px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #9aa8a0;
+}
+.cfg-diff-t {
+  width: 12px;
+  flex-shrink: 0;
+  color: #9aa8a0;
+}
+.cfg-diff-add {
+  background: #eaf5ed;
+}
+.cfg-diff-add .cfg-diff-t {
+  color: #2e6f40;
+}
+.cfg-diff-del {
+  background: #fbeeea;
+}
+.cfg-diff-del .cfg-diff-t {
+  color: #c4432a;
+}
+.cfg-diff-gap {
+  color: #9aa8a0;
+  text-align: center;
+  background: #f6faf7;
+}
+
+/* Tick row ("I've done this") */
+.cfg-tick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f6faf7;
+  border: 1px solid #eef3ef;
+  font-size: 12px;
+}
+.cfg-tick-done {
+  background: #f1f8f3;
+  border-color: #bfdcc7;
+}
+.cfg-tick-stale {
+  background: #fdf5e6;
+  border-color: #f0d9a8;
+}
+
+/* Skeleton */
+.cfg-skel-card {
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Sticky bar */
+.cfg-bar {
+  position: sticky;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #1e2a22;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 5;
+}
+.cfg-bar .ai-btn {
+  background: transparent;
+  color: #fff;
+  border-color: #4a5a50;
+}
+.cfg-bar .ai-btn-primary {
+  background: #2e6f40;
+  border-color: #2e6f40;
+}
+.cfg-bar .ai-btn-primary:disabled {
+  opacity: 0.5;
+}
+
+/* Matrix */
+.cfg-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.cfg-matrix th,
+.cfg-matrix td {
+  padding: 7px 8px;
+  border-top: 1px solid #eef3ef;
+  text-align: left;
+  vertical-align: top;
+}
+.cfg-matrix th {
+  font-size: 11px;
+  color: #5b6b60;
+  border-top: none;
+}
+.cfg-matrix td small {
+  display: block;
+  color: #9aa8a0;
+  margin-top: 2px;
+}
+
+/* Trace */
+.cfg-trace td,
+.cfg-trace th {
+  font-size: 12px;
+}
+.cfg-trace-blocked td {
+  background: #fbeeea;
+}
+.cfg-trace-sim td {
+  background: #f6faf7;
+}
+
+/* Library */
+.cfg-lib-modal {
+  width: 880px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+.cfg-mono-box {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  background: #f6faf7;
+  border: 1px solid #eef3ef;
+  border-radius: 8px;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.cfg-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.cfg-three {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}

@@ -60,7 +60,8 @@ function buildBackendLaunchSpec({
 }) {
   const dbPath = path.join(userDataPath, 'kanban.db');
   const uploadsDir = resolveConfiguredUploadsDir(userDataPath, configPath);
-  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir };
+  // API keys are encrypted with a key the server keeps in the OS keychain (server/services/ai/secrets.py)
+  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir, KANBAN_SECRET_STORE: 'keychain' };
   // lets the server ask this app (headless) to draw a diagram's SVG with the draw.io editor
   if (exportCommand) env.KANBAN_EXPORT_CMD = JSON.stringify(exportCommand);
   const stdio = ['ignore', 'pipe', 'pipe'];

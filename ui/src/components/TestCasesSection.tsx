@@ -1,8 +1,14 @@
+import type { ReactNode } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import type { TestCase, TestCaseStatus, TestCaseFileData } from '../types';
 import { uploadAttachment, uploadUrl, uploadAnyFile } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { MarkdownEditor } from './MarkdownEditor';
+import { useMembers } from '../api/members';
+import { useDocsRefs } from './docs/DocsRefsContext';
+import { TestCaseMention } from './ai/TestCaseMention';
+import { usePeopleAndAiSuggest } from './ai/useMentionList';
+import type { SuggestMember } from './docs/RefSuggester';
 import styles from './TestCasesSection.module.css';
 
 interface ChildTestCaseSource {
@@ -19,6 +25,12 @@ interface TestCasesSectionProps {
   readOnly?: boolean;
   disabled?: boolean;
   childTestCaseSources?: ChildTestCaseSource[];
+  /** "Suggest cases" next to "Add test case" (Board AI, E). */
+  aiActions?: ReactNode;
+  /** Suggested cases and coverage, shown above the list. */
+  aiPanel?: ReactNode;
+  /** The ticket's acceptance criteria, to number the case's "AC n" chip. */
+  criteria?: { id: string }[];
 }
 
 const STATUS_CYCLE: Record<TestCaseStatus, TestCaseStatus> = {
@@ -62,6 +74,9 @@ function TestCaseRowItem({
   onDelete,
   readOnly,
   disabled,
+  ac,
+  mentionMembers,
+  askTicketId,
 }: {
   tc: TestCase;
   index: number;
@@ -69,6 +84,12 @@ function TestCaseRowItem({
   onDelete: () => void;
   readOnly: boolean;
   disabled?: boolean;
+  /** Number of the acceptance criterion the case tests (coverage). */
+  ac?: number;
+  /** People and AI members offered after @ in the note. */
+  mentionMembers?: SuggestMember[];
+  /** The ticket this case belongs to: set when an AI mention in the note can be asked. */
+  askTicketId?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -155,6 +176,24 @@ function TestCaseRowItem({
 
         {/* Code mono */}
         <span className={styles.codeMono}>{codeDisplay}</span>
+        {ac ? (
+          <span
+            title={
+              tc.suggestedBy ? `Tests AC ${ac} · suggested by ${tc.suggestedBy}` : `Tests acceptance criterion ${ac}`
+            }
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              padding: '1px 6px',
+              borderRadius: 999,
+              background: '#F1EEFB',
+              color: '#6B5BD2',
+              flexShrink: 0,
+            }}
+          >
+            AC {ac}
+          </span>
+        ) : null}
 
         {/* Title */}
         <div className={styles.titleArea}>
@@ -406,9 +445,13 @@ function TestCaseRowItem({
               placeholderText="Additional notes, screenshots, or environment details..."
               readOnly={readOnly || disabled}
               compact={true}
+              mentionMembers={mentionMembers}
               onUploadFile={uploadAnyFile}
               onUploadImage={uploadAnyFile}
             />
+            {askTicketId && !readOnly && (
+              <TestCaseMention ticketId={askTicketId} code={tc.code} notes={tc.notes || tc.note || ''} />
+            )}
           </div>
 
           {/* Footer Info */}
@@ -440,7 +483,13 @@ export function TestCasesSection({
   readOnly = false,
   disabled = false,
   childTestCaseSources = [],
+  aiActions,
+  aiPanel,
+  criteria,
 }: TestCasesSectionProps) {
+  const projectId = useDocsRefs()?.projectId ?? '';
+  const mentionMembers = usePeopleAndAiSuggest(useMembers(projectId).data ?? []);
+  const acIndex: Record<string, number> = Object.fromEntries((criteria ?? []).map((c, i) => [c.id, i + 1]));
   const [statusFilter, setStatusFilter] = useState<'all' | TestCaseStatus>('all');
   const [rollupSource, setRollupSource] = useState<string>('all');
   const [rollupDropdownOpen, setRollupDropdownOpen] = useState(false);
@@ -611,6 +660,7 @@ export function TestCasesSection({
             </span>
           </div>
 
+          {!readOnly && aiActions}
           {!readOnly && (
             <button
               type="button"
@@ -640,6 +690,7 @@ export function TestCasesSection({
           <span className={styles.tcLabel}>
             {testCases.length} test cases · {ticketId}
           </span>
+          {!readOnly && aiActions}
           {!readOnly && (
             <button
               type="button"
@@ -664,6 +715,8 @@ export function TestCasesSection({
           )}
         </div>
       )}
+
+      {aiPanel}
 
       {/* Filter Chips */}
       <div className={styles.filterRow}>
@@ -771,6 +824,9 @@ export function TestCasesSection({
                   onDelete={() => handleDelete(tc.id)}
                   readOnly={readOnly}
                   disabled={disabled}
+                  ac={tc.criterionId ? acIndex[tc.criterionId] : undefined}
+                  mentionMembers={mentionMembers}
+                  askTicketId={ticketId}
                 />
               ))
             )}

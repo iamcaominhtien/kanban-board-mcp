@@ -99,7 +99,9 @@
   gap: 12px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  /* Scrolls sideways when the board is narrow (e.g. with the Board AI dock open) instead of squeezing cards */
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 2px;
 }
 
@@ -114,7 +116,7 @@
 
 .column {
   flex: 1 1 0;
-  min-width: 0;
+  min-width: 200px;
   height: 100%;
   min-height: 0;
   display: flex;

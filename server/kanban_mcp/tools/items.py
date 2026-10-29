@@ -201,4 +201,11 @@ async def ticket_items(
     - test_case: add (title [, status, description, expected_result, notes, proof, assignee]) gets a code 'TC-<n>' | update (item_id [, same fields + title]; typically status and proof after running it) | delete (item_id). With the ticket's 'Done requires: all test cases passed' guard on, it cannot move to 'done' until every test case is 'pass'."""
     given = params_of(locals())
     op = _item_op(item, action)
-    return await route(f"ticket_items(item='{item}', action='{action}')", op, given)
+    from services.ai import guard
+
+    return await guard.guarded(
+        "ticket_items",
+        f"{item}.{action}",
+        given,
+        lambda g: route(f"ticket_items(item='{item}', action='{action}')", op, g),
+    )

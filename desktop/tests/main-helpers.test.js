@@ -60,6 +60,7 @@ test('buildBackendLaunchSpec uses configured data_folder uploads if config exist
   });
 
   assert.equal(spec.options.env.KANBAN_UPLOADS_DIR, path.join('/custom/storage/data', 'uploads'));
+  assert.equal(spec.options.env.KANBAN_SECRET_STORE, 'keychain');
 });
 
 test('buildBackendLaunchSpec prefers project virtualenv in dev mode', () => {

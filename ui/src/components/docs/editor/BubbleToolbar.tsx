@@ -13,6 +13,8 @@ interface Props {
   ticketPrefix: string;
   /** Show a Comment button; called when it is pressed. */
   onComment?: () => void;
+  /** Board AI on the selection: Summarise, Rewrite, Ask AI… (design/screens/ai-board-assistant.md, A6). */
+  onAi?: (action: 'summarise' | 'rewrite' | 'ask', text: string) => void;
 }
 
 const SEP = <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.22)', margin: '0 4px' }} />;
@@ -65,8 +67,9 @@ const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => bool
  * @param props.setLinkOpen - Called to open or close the URL field.
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
  * @param props.onComment - Shows a Comment button that starts an inline comment on the selection.
+ * @param props.onAi - Shows Summarise / Rewrite / Ask AI… for the selection.
  */
-export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onComment }: Props) {
+export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onComment, onAi }: Props) {
   const st = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -296,6 +299,32 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
             <Btn label="Ticket" onClick={() => editor.chain().focus().insertContent(`[[${ticketPrefix}-`).run()}>
               <Icon name="i13" size={15} />
             </Btn>
+            {onAi && (
+              <>
+                {SEP}
+                {(
+                  [
+                    ['summarise', 'Summarise'],
+                    ['rewrite', 'Rewrite'],
+                    ['ask', 'Ask AI…'],
+                  ] as const
+                ).map(([action, label]) => (
+                  <Btn
+                    key={action}
+                    label={label}
+                    wide
+                    onClick={() => {
+                      const { from, to } = editor.state.selection;
+                      onAi(action, editor.state.doc.textBetween(from, to, '\n'));
+                    }}
+                  >
+                    <span style={{ fontSize: 12 }} data-testid={`bubble-ai-${action}`}>
+                      {label}
+                    </span>
+                  </Btn>
+                ))}
+              </>
+            )}
             {onComment && (
               <>
                 {SEP}

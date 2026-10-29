@@ -85,6 +85,10 @@ async def remove_member(session: AsyncSession, project_id: str, member_id: str) 
     member = await session.get(Member, member_id)
     if member is None or member.project_id != project_id:
         return False
+    if member.kind != "human":
+        raise ValueError(
+            "This is an AI member: remove it from the AI members page (it handles its tickets and runs)."
+        )
 
     creator_check = await session.exec(
         select(Ticket)

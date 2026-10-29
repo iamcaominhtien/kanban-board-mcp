@@ -540,7 +540,7 @@ export function DocsTree({
       <div
         aria-hidden="true"
         data-testid="drop-line"
-        style={{ position: 'relative', height: 0, margin: `0 4px 0 ${22 + depth * INDENT}px`, zIndex: 3 }}
+        style={{ position: 'relative', height: 0, margin: `0 4px 0 ${16 + depth * INDENT}px`, zIndex: 3 }}
       >
         <div
           style={{
@@ -614,7 +614,17 @@ export function DocsTree({
         >
           <span
             className="dk-hov"
-            style={{ width: 14, display: 'flex', justifyContent: 'center', color: '#9AA8A0', cursor: 'grab' }}
+            style={{
+              position: 'absolute',
+              left: 1,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 12,
+              display: 'flex',
+              justifyContent: 'center',
+              color: '#9AA8A0',
+              cursor: 'grab',
+            }}
             title="Drag to move"
           >
             <Icon name="grip" size={14} strokeWidth={1.8} />
@@ -951,7 +961,7 @@ export function DocsTree({
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '2px 8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '2px 10px' }}>
             {rows.map(renderRow)}
           </div>
         )}

@@ -30,7 +30,10 @@
 - **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
 - **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
 - **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
-- **MCP server for AI agents**: 9 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **AI members**: add Claude Code (your signed-in CLI) or an API-key model as a member, assign it tickets or @mention it; it works through a real run with live steps, asks back when it needs a decision, stops at Review, and every action goes through permissions, approvals, budgets, a kill switch and an audit log.
+- **Board AI**: an Ask AI dock (Ctrl/Cmd+J) that answers about the board, a ticket or a doc and proposes changes as drafts you apply yourself; Draft with AI for new tickets, Improve description, Split with AI, test cases tied to acceptance criteria, a daily board-health digest, and Docs AI (summaries, sections, links, rewrite a selection).
+- **AI schedules**: let an AI member work on a ticket at a set time, once or on repeat, with "done when" checks (criteria, a test command, summary, branch) and a second AI that reviews the result; a pass moves the ticket to Review, never further. Shown in a Schedules tab (list and week), on the ticket and on its card.
+- **MCP server for AI agents**: 10 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
 - **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
 - **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
 
@@ -89,7 +92,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes **9 tools** for AI agents over MCP (22 with the Idea Space tools enabled). The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/kanban_mcp/` package: `tools/` (the 9 tools), `operations/` (one function per verb, grouped by area), `common.py`, `registry.py`, `instructions.py`.
+The server exposes **11 tools** for AI agents over MCP (24 with the Idea Space tools enabled); `ai_run` only works inside a run the board started for an AI member, and `ai_schedules` refuses calls from inside a run. The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/kanban_mcp/` package: `tools/` (the 9 tools), `operations/` (one function per verb, grouped by area), `common.py`, `registry.py`, `instructions.py`. AI members live in `server/services/ai/` (members, runs and the CLI runner, the API agent loop, the permission guard, approvals, audit).
 
 | Tool | Read / write | What it does |
 |---|---|---|
@@ -102,6 +105,8 @@ The server exposes **9 tools** for AI agents over MCP (22 with the Idea Space to
 | `ticket_items` | write | Lists inside a ticket, chosen with `item`: `comment` (add, update, delete, restore), `work_log` (the Debug Space journal), `criterion` (acceptance criteria), `sub_task` (checklist steps), `test_case` |
 | `ticket_branches` | write | `add`, `update`, `delete`, `checkout`: real git branches when the project has a linked repo |
 | `docs_write` | write | `create`, `update` (a stale `base_version` is rejected; optional `title` renames and rewrites `[[links]]`), `move`, `duplicate`, `delete` (to the Recycle Bin), `restore`, `restore_version`, `import` (a local `.md` file or folder), `diagram_create` / `diagram_save` (a local `.drawio` file; a stale `base_version` is rejected; an optional `svg_path` is used as the preview), `diagram_delete`, `diagram_restore` |
+| `ai_run` | write | Only inside a run the board started for an AI member: `ask` (a question for the person it acts for; the run waits and resumes with the answer), `report` (its summary and criteria claims) |
+| `ai_schedules` | destructive | AI schedules: `list`, `get`, `create`, `update`, `pause`, `resume`, `delete`, `run_now`; settings go in `fields` (AI member, once or repeat, time zone, done-when checks, AI review, limits) |
 
 **Diagram previews.** A diagram an agent saves gets its picture from the draw.io editor itself, in a hidden browser: the desktop app's own executable (`KANBAN_EXPORT_CMD`, set for you), or a Chrome / Chromium / Edge on the machine (`KANBAN_CHROME_PATH` to point at one). It needs the editor address from Settings › Diagrams (the self-hosted draw.io); the public diagrams.net is never used unless `KANBAN_DIAGRAM_EXPORT=public`, and `KANBAN_DIAGRAM_EXPORT=off` switches this off. Without either, the server draws a plain preview and the diagram footer says "Simple preview" until someone opens it in the editor and saves.
 
