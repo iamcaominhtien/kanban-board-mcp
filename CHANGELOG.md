@@ -9,7 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 ## [Unreleased]
 
 ### Added
-- **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 24 pages): setting up Claude Code and AI members, choosing the Board AI, how to write persona, instructions, tickets and extra instructions (with copy-paste samples), assigning and reviewing work, Board AI prompts, schedules, safety and cost, troubleshooting and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
+- **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 32 pages): the AI team to set up (PM, Dev, Reviewer, General as the Board AI) and how they hand work to each other; every field of the Add AI member dialog with the values for each AI; what to do after creating (Role template on the Permissions tab, CLI rules, what an existing `CLAUDE.md` / `.claude/` in the working folder affects, one AI in several projects); the rest of the setup (Board AI, Board assistant, allowed test commands, limits); and copy-paste prompts (persona, instructions, @mentions, style guide, a weekly PM report schedule) for each AI. Also: how to write prompts and tickets, assigning and reviewing work, schedules, safety and cost, 13 common problems and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
 
 ---
 

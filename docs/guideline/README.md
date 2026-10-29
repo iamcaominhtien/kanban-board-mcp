@@ -5,7 +5,7 @@ User guides that ship with the repository. Each guide keeps its source next to t
 
 | Guide | Language | PDF |
 | --- | --- | --- |
-| Using AI in Kanban Board: setup, writing prompts, assigning work, schedules, safety, troubleshooting | Vietnamese | [`ai/huong-dan-dung-ai.pdf`](ai/huong-dan-dung-ai.pdf) |
+| Using AI in Kanban Board: the AI team (PM, Dev, Reviewer, General), creating members step by step, the rest of the setup, copy-paste prompts, assigning work, schedules, safety, troubleshooting | Vietnamese | [`ai/huong-dan-dung-ai.pdf`](ai/huong-dan-dung-ai.pdf) |
 
 ## Updating the AI guideline
 
@@ -16,8 +16,8 @@ Everything is in [`ai/`](ai/):
 - `print_pdf.js`: prints the HTML to PDF with Chromium.
 - `huong-dan-dung-ai.pdf`: the result. Commit it together with the source.
 
-**Change the text.** Edit `ai/build.py`. Prompt samples are constants at the top (`PERSONA_DEV`, `TICKET_GOOD`, `STYLE_GUIDE`, …);
-sections are the `p1` … `p12` blocks lower down. The app's UI is in English, so button and page names stay English in `<b>…</b>`;
+**Change the text.** Edit `ai/build.py`. Prompt samples are constants near the top (`PERSONA_PM`, `PERSONA_DEV`, `INSTR_REVIEWER`, `STYLE_GUIDE`, `TICKET_GOOD`, …);
+sections are the `p1` … `p_prompts` … `p12` blocks lower down, in reading order (1 prepare, 2 the team, 3 create members, 4 the rest of the setup, 5 prompts to copy, 6 to 13 how it works, safety, troubleshooting, checklist). The app's UI is in English, so button and page names stay English in `<b>…</b>`;
 the explanation is Vietnamese. Persona and style-guide samples are length-checked against the app's 1000 character limit.
 
 **Change a screenshot.** Replace `ai/images/<name>.jpg` with a new image of the same name (JPEG, about 1500 px wide, quality
@@ -48,5 +48,10 @@ The guide states some facts that come from the code. When one of these changes, 
 | Models offered (Sonnet, Haiku for Claude Code) and the adapters | `server/services/ai/providers.py` |
 | Where things are in Settings (AI, Board assistant, Diagnostics) and the Board AI switches | `ui/src/components/settings/settingsIndex.ts`, `ui/src/components/assist/AssistSettings.tsx` |
 | Working-folder rule and `KANBAN_AI_ROOTS` | `server/services/ai/paths.py` |
+| What the Add AI member dialog asks (steps, fields, no template choice; the Role template is chosen later on the Permissions tab) | `ui/src/components/ai/AddAiMemberModal.tsx`, `AiPermissionsTab.tsx` |
+| The first AI member of a project becomes its Board AI; "Currently not chosen" | `server/services/ai/members.py` (`board_ai_id`), `ui/src/components/ai/AiSettingsSection.tsx` |
+| What a work run and the Board AI pass to the CLI (what the folder's `CLAUDE.md` and `.claude/` can affect) | `server/services/ai/cli.py` (`build_args`), `server/services/ai/llm.py` |
+| What the board writes into the folder (`CLAUDE.md` block, `.mcp.json`, `.claude/settings.json`) | `server/services/ai/config_sync.py` |
+| One AI member in several projects: what is shared, Scope | `server/services/ai/multiproject.py`, `ui/src/components/ai/ProjectsPicker.tsx` |
 | Schedule editor sections and "Done when" checks | `ui/src/components/schedules/ScheduleEditor.tsx` |
 | Assign dialog choices (Start now, Queue, Assign without running) and mention intents | `ui/src/components/ai/AssigneePicker.tsx`, `MentionIntent.tsx` |
