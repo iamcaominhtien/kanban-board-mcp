@@ -46,7 +46,9 @@ async def _call(name, **args):
 
 
 def test_preview_is_a_valid_svg_with_every_label():
-    svg = dm.render_svg(drawio("Client", "API gateway", "Service &amp;amp; &amp;lt;db&amp;gt;"))
+    svg = dm.render_svg(
+        drawio("Client", "API gateway", "Service &amp;amp; &amp;lt;db&amp;gt;")
+    )
     clean = sanitize_svg(svg)
     for word in ("Client", "gateway", "yes", "&lt;db&gt;"):
         assert word in clean
