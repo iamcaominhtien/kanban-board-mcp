@@ -19,6 +19,7 @@ import { uploadDescriptionImage, useTickets } from '../../../api/tickets';
 import type { DocsPage, DocsTreeNode } from '../../../types/docs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../Toast';
+import { imagesIn, usePreview } from '../../preview/PreviewContext';
 import { Icon } from '../Icon';
 import '../docs.css';
 import './editor.css';
@@ -349,6 +350,10 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     return md;
   }, []);
 
+  const preview = usePreview();
+  const previewRef = useRef(preview);
+  previewRef.current = preview;
+
   const editor = useEditor({
     extensions,
     content: markdown,
@@ -366,6 +371,28 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           live.current.onUserInput?.();
           return false;
         },
+        // Double-click an image to look at it in the viewer
+        dblclick: (view, event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLImageElement)) return false;
+          const { items, index } = imagesIn(view.dom, target);
+          previewRef.current.open(items, index);
+          return true;
+        },
+      },
+      // Space on a selected image opens the viewer too
+      handleKeyDown: (view, event) => {
+        if (event.key !== ' ' || event.ctrlKey || event.metaKey || event.altKey) return false;
+        const sel = view.state.selection as { node?: { type: { name: string } }; from: number };
+        if (sel.node?.type.name !== 'image') return false;
+        const dom = view.nodeDOM(sel.from);
+        const img =
+          dom instanceof HTMLImageElement ? dom : dom instanceof HTMLElement ? dom.querySelector('img') : null;
+        if (!img) return false;
+        event.preventDefault();
+        const { items, index } = imagesIn(view.dom, img);
+        previewRef.current.open(items, index);
+        return true;
       },
       handlePaste: (_view, event) => {
         live.current.onUserInput?.();

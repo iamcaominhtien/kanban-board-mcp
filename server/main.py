@@ -256,6 +256,12 @@ async def serve_upload(
         (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
     )
 
+    if ext == ".svg":
+        # An SVG is a picture, never a page: if it is opened on its own, nothing in it can run or load
+        headers["Content-Security-Policy"] = (
+            "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        )
+
     if not download and (is_image or wants_inline):
         return FileResponse(
             resolved,

@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Opens a local file using the OS default application (e.g. Excel for .xlsx, Word for .docx)
   openPath: (filePath) => ipcRenderer.invoke('open-path', filePath),
+  // Reveals a local file in Finder / Explorer
+  showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
 
   // Opens an external URL in the default web browser
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
