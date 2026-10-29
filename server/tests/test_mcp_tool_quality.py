@@ -186,10 +186,11 @@ async def test_the_tool_list_stays_compact():
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
     # ai_run (AI member runs) ~700 characters and ai_schedules ~1,600 in 3.8.0, on top of Docs comments (3.7.0)
-    assert default < 33_300, (
+    # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters
+    assert default < 35_500, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 41_300, (
+    assert full < 43_800, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

@@ -1430,6 +1430,7 @@ dependencies = [
     { name = "rapidfuzz" },
     { name = "sqlmodel" },
     { name = "uvicorn" },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -1454,6 +1455,7 @@ requires-dist = [
     { name = "rapidfuzz", specifier = ">=3.9.0" },
     { name = "sqlmodel", specifier = ">=0.0.38" },
     { name = "uvicorn", specifier = ">=0.43.0" },
+    { name = "websockets", specifier = ">=13.0" },
 ]
 
 [package.metadata.requires-dev]

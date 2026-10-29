@@ -64,6 +64,14 @@ from .docs import (
     resolve_docs_comment,
     reopen_docs_comment,
 )
+from .diagrams import (
+    list_project_diagrams,
+    export_diagram,
+    create_diagram_from_file,
+    save_diagram_file,
+    delete_diagram,
+    restore_diagram,
+)
 from .ideas import (
     list_idea_tickets,
     create_idea_ticket,
@@ -124,6 +132,12 @@ __all__ = [
     "add_sub_task",
     "toggle_sub_task",
     "delete_sub_task",
+    "list_project_diagrams",
+    "export_diagram",
+    "create_diagram_from_file",
+    "save_diagram_file",
+    "delete_diagram",
+    "restore_diagram",
     "list_docs_pages",
     "get_docs_page",
     "create_docs_page",
