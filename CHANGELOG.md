@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - **Board AI chat is one session per chat** for a local Claude Code Board AI, so earlier messages are not sent again.
 - The number between the +/− buttons of the add-member dialog can be typed; Shift+click moves in bigger steps.
 
-Demo: `docs/demo/ai-sessions-demo.pdf` (12 pages, real Claude Code runs): a PM and a Dev on one ticket, the Dev resuming its session, the run limits not stopping a person, the Ask AI chat session and a real compaction trace.
+Demo: `docs/demo/ai-sessions-demo.pdf` (14 pages, real Claude Code runs): a PM and a Dev on one ticket, the Dev resuming its session, the run limits not stopping a person, the Ask AI chat session, a real compaction trace and Bypass permissions (the same `touch` refused with it off and run with it on).
 
 ### Added
 - **Bypass permissions** for Claude Code AI members: Configuration → Permissions → Permission mode. Allow list only stays the default; Bypass lets a work run use any CLI tool without the Allow list (`--permission-mode bypassPermissions`). Only the project owner can turn it on, by typing `bypass permissions`; turning it on or off is audited and the member shows a red chip. Deny rules, the status ceiling, approvals and Safe mode still apply, ask runs stay read-only and the web stays off. New members always start on Allow list only.
