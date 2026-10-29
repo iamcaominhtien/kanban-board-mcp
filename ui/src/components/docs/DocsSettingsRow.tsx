@@ -77,7 +77,7 @@ export function DocsSettingsRow({ project }: { project: Project }) {
         A page tree per project for requirements, designs and decisions. Turning it off hides the Docs tab for everyone;
         pages are kept and come back when you turn it on again.
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div data-setting="docs-edit-policy" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <span
           id={`docs-policy-${project.id}`}
           style={{

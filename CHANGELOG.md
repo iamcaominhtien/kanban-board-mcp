@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
-## [3.9.0] - 2026-10-29
+## [3.10.0] - 2026-10-29
 
 Docs brought in line with the design (pages, editor, page actions, search, references, comments and diagrams).
 
@@ -38,6 +38,28 @@ Docs brought in line with the design (pages, editor, page actions, search, refer
 - "Referenced by" and Linked docs show heading text instead of slugs and keep the reference as a chip; hover excerpts no longer show table separator lines.
 - A comment that spans a code span or link shows one number badge in the editor.
 - The History drawer pushes the page aside and offers View on each version; Recycle Bin rows name child pages and show actions on hover; the Back online banner can be closed.
+
+---
+
+## [3.9.1] - 2026-10-29
+
+### Fixed
+- Desktop: the packaged app starts again. 3.9.0 crashed on launch with `Cannot find module './export-svg'` again: a merge dropped `export-svg.js` from the files electron-builder packages (the 3.8.4 fix). CI now runs the desktop tests, including the check that every local module a shipped file requires is shipped, so this can't merge unnoticed.
+
+---
+
+## [3.9.0] - 2026-10-29
+
+### Changed
+- **Settings is now a full page** instead of one long modal, following the design in `design/screens/settings-structure.md` and `settings-pages.md`. A list of 9 pages (Project: Repositories, Docs, AI, Board assistant; App: Appearance, Storage & backup, Integrations, Updates on desktop, Diagnostics), a project picker for project settings, search across every setting (jumps to it and highlights it), links such as `?settings=ai`, Esc / Back to board, the last page remembered, and the list collapsing into a drop-down in narrow windows. Same fields and saving as before.
+- Importing data now asks inline ("Replace my data") instead of a browser pop-up.
+
+---
+
+## [3.8.4] - 2026-10-29
+
+### Fixed
+- Desktop: the packaged app starts again. 3.8.3 crashed on launch with `Cannot find module './export-svg'` because `export-svg.js` was missing from the files electron-builder packages. A test now checks that every local module a shipped file requires is shipped too.
 
 ---
 
