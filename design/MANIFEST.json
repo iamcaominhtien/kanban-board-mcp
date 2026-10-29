@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793295530-5588",
+  "canvas_version": "1793314497-f4b9",
   "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
@@ -514,6 +514,14 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 4046
+    },
+    "DesktopMenu.dc.html": {
+      "bytes": 104626,
+      "sha256": "fde1924f3ea6a2a696dda365917a4987020dd810e239318a664b11560605bfb4",
+      "title": "Desktop — menu bar (macOS, Windows)",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 6579
     }
   }
 }

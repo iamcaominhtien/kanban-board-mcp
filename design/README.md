@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1793295530-5588` (64 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool and AI where you work — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1793314497-f4b9` (65 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), the new Idea Space boards, the Sketch tool, AI where you work and the desktop menu bar — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -64,6 +64,7 @@ Each doc's header links to its source file and records the canvas version and sh
 - [AI safety & cost](screens/ai-safety-cost.md)
 - [AI where you work — ticket chat, @mentions & editor](screens/ai-where-you-work.md)
 - [App loading](screens/app-loading.md)
+- [Desktop — menu bar (macOS, Windows)](screens/desktop-menu.md)
 - [Diagrams — draw.io](screens/diagrams-drawio.md)
 - [Docs — page actions & history](screens/docs-actions.md)
 - [Docs — comments](screens/docs-comments.md)
