@@ -13,9 +13,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
 import events as board_events
-from models import AiChat, AiChatMessage, AiDraft, Member, Project, Ticket
+from models import AiChat, AiChatMessage, AiDraft, AiMember, Member, Project, Ticket
 
 from .. import budget, cli, llm
+from . import member_drafts
 from ..providers import cost_of, merged_config
 from ..store import loads, now_iso, parse_iso
 from . import context as ctxb
@@ -435,11 +436,37 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         extra += "\nThis request is a suggested action: answer in one sentence and put the change in the actions block."
     system = prompts.system(member.name, project.name if project else "", row, extra)
 
+    # the proposal that is still open: a request to change it must come back as the whole updated list
+    async with database.async_session() as session:
+        open_draft = (
+            await session.exec(
+                select(AiDraft)
+                .where(
+                    AiDraft.project_id == c.project_id,
+                    AiDraft.owner == c.owner,
+                    AiDraft.kind == "ai_members",
+                    AiDraft.status == "open",
+                )
+                .order_by(col(AiDraft.created_at).desc())
+                .limit(1)
+            )
+        ).first()
+    open_proposal = (
+        "<open-proposal>\n"
+        + json.dumps(
+            loads(open_draft.payload, {}).get("members") or [], ensure_ascii=False
+        )
+        + "\n</open-proposal>"
+        if open_draft
+        else ""
+    )
+
     def build_prompt(with_history: bool) -> str:
         return "\n\n".join(
             [
                 scope_line,
                 f"Members of the project: {people}",
+                open_proposal,
                 "Board context:\n" + built.text,
                 ("Earlier in this chat:\n" + "\n".join(convo))
                 if convo and with_history
@@ -576,6 +603,46 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     )
     suggestions = prompts.check_suggestions(block.get("suggestions") or [])
     draft_id = None
+    proposed, member_notes = [], []
+    if block.get("ai_members"):
+        async with database.async_session() as session:
+            proposed, member_notes = member_drafts.check_ai_members(
+                block["ai_members"],
+                await member_drafts.taken_names(session, c.project_id),
+            )
+    if proposed:
+        async with database.async_session() as session:
+            # a newer proposal replaces the open ones of this chat
+            for old in (
+                await session.exec(
+                    select(AiDraft).where(
+                        AiDraft.project_id == c.project_id,
+                        AiDraft.owner == c.owner,
+                        AiDraft.kind == "ai_members",
+                        AiDraft.status == "open",
+                    )
+                )
+            ).all():
+                old.status = "discarded"
+                session.add(old)
+            d = await svc_drafts.start(
+                session,
+                project_id=c.project_id,
+                kind="ai_members",
+                owner=c.owner,
+                payload={
+                    "members": proposed,
+                    "problems": member_notes,
+                    "intro": "Here is what I would create.",
+                    "refusal": member_drafts.refusal(
+                        await session.get(AiMember, member.id)
+                    ),
+                },
+                chat_message_id=message_id,
+                member=member,
+            )
+            draft_id = d.id
+        changes, problems = [], problems + member_notes
     if changes:
         async with database.async_session() as session:
             base = {}
@@ -603,7 +670,14 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     await _set(
         message_id,
         state="done",
-        text=text or ("Here is what I would change." if changes else out.text),
+        text=text
+        or (
+            "Here is what I would create."
+            if proposed
+            else "Here is what I would change."
+            if changes
+            else out.text
+        ),
         actions=suggestions,
         draft_id=draft_id,
         cost=out.cost,

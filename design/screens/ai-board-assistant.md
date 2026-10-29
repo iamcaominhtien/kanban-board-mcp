@@ -596,6 +596,35 @@ Source: [AiBoardAssistant.dc.html](../source/AiBoardAssistant.dc.html) › block
 
 ---
 
+## J. Create AI members (Board AI proposes, a person approves)
+
+Anywhere the Ask AI dock opens (Ctrl/Cmd + J) the person can describe the AI members they want. A button “✦ Draft with AI”
+on Members → AI opens the dock on a new chat with an opening request. It only shows once the project has an AI member.
+
+- **Who answers.** The project's Board AI. While none is chosen, chat (and only chat) is answered by a stand-in: a Claude
+  Code runner first, then an API-key member; never an inbox-only client and never a paused member. The dock header says
+  “<name> · stand-in (no Board AI chosen)”; the stand-in is not saved as the Board AI. With no AI member at all the
+  existing “Board AI isn't set up” state stays.
+- **Conversation.** The Board AI asks one or two short questions when something that matters is missing (what the
+  project builds, which roles) and leaves the proposal out until it can write one. It writes in the language the person
+  uses. A request to change an open proposal must come back as the whole updated list; the board shows the model the
+  open proposal (`<open-proposal>`) so it can do that, and a newer proposal discards the older open one.
+- **Proposal card (draft kind `ai_members`).** Up to 5 members. Each row: include checkbox, name, role template chip,
+  short description, the model's one-line reason, and “Edit details” (persona with a 1000 character counter, role template,
+  status ceiling up to Review, max parallel runs, scheduled runs per day, “Never edit files”). Footer: “Create N AI
+  members” and Discard. A line explains that the connection is copied from the AI that wrote the proposal.
+- **What a proposal can never carry.** API keys, Bypass permissions, a ceiling past Review (Testing and Done need the
+  owner's confirmation in the Add dialog), a provider, folder or CLI path, raw permission overrides, a config. The board
+  ignores those keys, says so in the card, and checks everything again when the person presses Create.
+- **Approval.** Creating is the person's action: `members.create` runs as the person who pressed Create, and only an
+  admin or the owner may (the same rule as the Add AI member button). Names that clash are renamed (“Reviewer 2”).
+  Members are created from the proposing AI's connection, so an API-key Board AI cannot create members (a key is never
+  copied); the card says to use the dialog. Each created member is audited as “created via Board AI”, and Undo removes
+  the members the draft created.
+- **Defaults per role** (the model is told; the person can edit): PM = Developer template, read-only CLI, ceiling To Do;
+  Dev = Developer, ceiling Review; Reviewer = Reviewer template, read-only CLI plus test commands, ceiling Review;
+  a helper that only answers = Read-only.
+
 ## Note
 
 Source: [AiBoardAssistant.dc.html](../source/AiBoardAssistant.dc.html) › block "Note" (four cards side by side: "Invariant" with "Inconsistencies noticed", "Invented: flows", "Invented: rules and limits", "Backend needs")

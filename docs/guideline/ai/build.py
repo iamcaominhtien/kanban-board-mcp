@@ -320,7 +320,7 @@ p_team = f"""
     "<b>QA / Tester:</b> chỉ thêm khi bạn có nhiều việc kiểm thử thủ công. Board AI đã có Suggest test cases gắn với tiêu chí.",
     "<b>Dev theo mảng:</b> khi repo có nhiều công nghệ, tách Dev Backend và Dev Frontend. Dev nào ở thư mục nào thì trỏ Working folder tới đó.",
     "<b>Lịch chạy (Phần 10):</b> Dev dọn test đỏ ban đêm, PM báo cáo tuần, Reviewer làm “AI review” cho các lần chạy đó.",
-    "<b>Một AI cho nhiều dự án:</b> tạo một lần rồi tick thêm dự án (Phần 3.6). Riêng Board AI phải chọn lại ở từng dự án.",
+    "<b>Một AI cho nhiều dự án:</b> tạo một lần rồi tick thêm dự án (Phần 3.7). Riêng Board AI phải chọn lại ở từng dự án.",
     "<b>Đặt tên ngắn</b> như <code>PM</code>, <code>Dev</code>, <code>Reviewer</code>, <code>General</code> để @mention cho nhanh. Tên không được trùng người hay AI khác trong dự án.",
 ])}
 """
@@ -373,7 +373,16 @@ p_members = f"""
     "Chỉ có cho AI dùng Claude Code. AI mới tạo luôn bắt đầu ở Allow list only.",
     "Nên dùng trong thư mục bạn có thể khôi phục bằng git, và giữ các luật Deny như <code>Bash(rm -rf:*)</code>, <code>Read(./.env)</code>.",
 ])}
-<h2>3.5 Working folder và những gì có sẵn trong đó</h2>
+<h2>3.5 Nhờ Board AI tạo giúp AI member</h2>
+<p>Khi dự án đã có ít nhất một AI (AI đầu tiên tự thành Board AI), bạn có thể <b>mô tả</b> đội bạn cần thay vì điền từng ô. Mở <b>Ask AI</b> (Ctrl/Cmd + J) từ bất cứ đâu, hoặc bấm <b>✦ Draft with AI</b> ở trang Members → AI, rồi viết ví dụ: “repo web bán hàng nhỏ bằng Python, tạo cho mình một PM, một Dev và một Reviewer nghiêm khắc”.</p>
+{ul([
+    "Board AI hỏi lại nếu thiếu thông tin quan trọng (dự án làm gì, cần vai nào), rồi hiện <b>thẻ đề xuất</b>: tên, mô tả, persona, role template, trần trạng thái, giới hạn chạy, luật CLI. Chưa có gì được tạo.",
+    "Mọi ô trong thẻ sửa được (bấm <b>Edit details</b>). Bạn nhắn tiếp (“Reviewer nghiêm hơn, dùng Sonnet”) thì AI gửi lại <b>cả đề xuất</b> đã chỉnh, thay thế bản cũ. Tích bỏ member nào chưa muốn tạo.",
+    "Bấm <b>Create</b> thì board tạo bằng quyền của <b>bạn</b>, qua đúng hàm của nút Add AI member. Chỉ <b>admin hoặc owner</b> bấm được. Việc tạo được ghi audit (“tạo qua Board AI”) và có nút <b>Undo</b>.",
+    "Kết nối (Claude Code, thư mục, model mặc định) được copy từ Board AI đã đề xuất. AI <b>không bao giờ</b> đặt được API key, Bypass permissions, trần trạng thái quá Review hay quyền xoá ticket: server bỏ qua những ô đó dù AI có viết vào. Board AI dùng API key thì không tạo được theo cách này (khoá không được copy); dùng hộp thoại Add AI member.",
+    "Chưa chọn Board AI? Ask AI vẫn trả lời bằng một AI Claude Code của dự án (không bị pause) và ghi “stand-in”; nó không tự lưu thành Board AI.",
+])}
+<h2>3.6 Working folder và những gì có sẵn trong đó</h2>
 <p>Nếu thư mục đã có <code>CLAUDE.md</code>, <code>.claude/</code>… thì AI <b>làm ticket</b> (PM, Dev, Reviewer) sẽ chịu ảnh hưởng. Board chạy CLI với <code>--permission-mode dontAsk</code>, <code>--strict-mcp-config</code> và <code>--append-system-prompt</code>, không tắt việc nạp cấu hình có sẵn.</p>
 {table(
     ["Có sẵn trong thư mục", "Ảnh hưởng đến AI làm ticket"],
@@ -389,7 +398,7 @@ p_members = f"""
 {callout("warn", "Ba điều cần soát trước lần chạy đầu", "1) Luật <b>allow</b> trong <code>.claude/settings.json</code> có thể mở rộng quyền của AI (ví dụ cho <code>git push</code>). 2) <b>Hook</b> chạy thật: hook nhẹ như format thì hữu ích, hook chậm hoặc đòi tương tác có thể làm run bị treo. 3) Đừng để CLAUDE.md chứa luật quy trình như “luôn commit và push” hay “hỏi tôi trước khi làm”: nó xung đột với trần trạng thái và thẻ câu hỏi của board. CLAUDE.md nên giữ quy ước code và lệnh build, test.")}
 <p><b>Board ghi gì vào thư mục?</b> Chỉ khi bạn lưu ở tab Configuration của AI member: đoạn giữa <code>&lt;!-- kanban:begin … --&gt;</code> và <code>&lt;!-- kanban:end --&gt;</code> trong <code>CLAUDE.md</code> (chữ ngoài hai dấu này là của bạn), cùng <code>.mcp.json</code> và các luật, hook board quản lý trong <code>.claude/settings.json</code>. Board hiện bản xem trước, tự gộp 3 chiều khi bạn sửa tay, và sao lưu vào <code>.claude/.kanban/</code>. Nên commit repo trước lần lưu đầu để <code>git diff</code> thấy rõ.</p>
 <p><b>General (Board AI)</b> chạy khác: không công cụ, không MCP, bỏ qua settings của người dùng và dự án. Hãy cho nó một <b>thư mục trống</b> để chắc chắn không có gì trong repo tác động tới nó.</p>
-<h2>3.6 Một AI member cho nhiều dự án</h2>
+<h2>3.7 Một AI member cho nhiều dự án</h2>
 <p>Mặc định AI thuộc dự án nơi bạn tạo nó. Muốn dùng ở dự án khác: mở AI member, tab <b>Permissions</b>, thẻ <b>Scope</b>, tick thêm dự án (hoặc mục <b>Projects it can work in</b> trong phần sửa hồ sơ). Mỗi dự án được tick có một <b>bản sao liên kết</b>.</p>
 {table(
     ["Dùng chung (sửa một bản thì các bản khác theo)", "Riêng từng dự án"],

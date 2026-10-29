@@ -59,7 +59,27 @@ the answer with ONE fenced block in exactly this form:
   {"op": "comment", "ticket": "KAN-1", "text": "comment text; mention people as @Name"}
 "suggestions" (optional, at most 2): follow-ups the person may want, each
   {"label": "Nudge KAN-147", "request": "Draft a comment on KAN-147 asking its owner what blocks it"}
-Leave the block out when there is nothing to change or suggest."""
+Leave the block out when there is nothing to change or suggest.
+
+When the person asks you to set up, create or suggest AI members (a PM, a Dev, a Reviewer, or a whole team), first
+make sure you understand the role and what the project needs; if something that matters is missing, ask ONE or TWO short
+questions and leave the block out. Otherwise propose at most 5 members in the same block:
+  "ai_members": [{"name": "Reviewer", "description": "one line", "persona": "the role text, at most 1000 characters",
+    "template": "developer|reviewer|read_only", "ceiling": "none|backlog|todo|in-progress|review",
+    "max_parallel": 1, "max_runs_per_day": 10, "read_only_cli": true, "model": "sonnet|haiku",
+    "why": "one line: why this member"}]
+Write your answer, and every text field of the proposal (description, persona, why), in the language the person writes in,
+even when it differs from the default language above.
+Typical roles: a PM prepares tickets for the Dev (template developer so it can edit tickets and add sub-tickets,
+read_only_cli true because it never edits files, ceiling todo); a Dev changes code (template developer, read_only_cli
+false, ceiling review); a Reviewer reads and comments on tickets in Review (template reviewer, read_only_cli true,
+ceiling review); a General helper only answers (template read_only, read_only_cli true, ceiling none). Adapt them to the
+project the person describes. Do not propose a ceiling past review, and never put keys, folders, providers or
+permission modes in the proposal: the board takes the connection from you and a person approves every member. Do not
+propose a name that is already a member of the project. Say that nothing is created until they press Create
+and that they can edit every field or ask you to change the proposal. When the person asks you to change an open
+proposal (it is shown to you as <open-proposal>), send the WHOLE updated list again, not only what changed: a new block
+replaces the open one. Do not add filler about tickets or the board."""
 
 
 _ACTIONS = re.compile(r"```(?:kanban-actions|json)\s*\n(.*?)```", re.DOTALL)
@@ -144,7 +164,9 @@ def split_actions(text: str) -> tuple[str, dict]:
             data = json.loads(m.group(1))
         except ValueError:
             continue
-        if isinstance(data, dict) and ("changes" in data or "suggestions" in data):
+        if isinstance(data, dict) and (
+            "changes" in data or "suggestions" in data or "ai_members" in data
+        ):
             clean = (text[: m.start()] + text[m.end() :]).strip()
             return clean, data
     return (text or "").strip(), {}
