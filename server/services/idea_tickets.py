@@ -390,6 +390,9 @@ async def delete_idea_ticket(session: AsyncSession, ticket_id: str) -> bool:
     )  # delete what is stored, not what was cached
     await session.delete(ticket)
     await session.commit()
+    from services import workspace
+
+    await workspace.remove_ticket_workspace(session, ticket_id)
     return True
 
 

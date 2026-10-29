@@ -906,6 +906,7 @@ async def post_promote(
             description=body.description,
             sub_tickets=body.sub_tickets,
             acknowledge_not_ready=body.acknowledge_not_ready,
+            workspace=body.workspace,
             author=_actor(),
         )
     except space.IdeaRuleError as exc:

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Board } from './components/Board';
-import { IdeaBoard } from './components/IdeaBoard';
+import { IdeaSpace } from './components/ideas/IdeaSpace';
+import { IdeaCaptureProvider } from './components/ideas/IdeaCapture';
+import { IdeaLinksProvider } from './components/ideas/ideaLinks';
+import { useIdeaCounts } from './api/ideas';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
@@ -11,6 +14,7 @@ import { useProjects, useCreateProject, useDeleteProject } from './api/projects'
 import { useMembers } from './api/members';
 import {
   useTickets,
+  getTicket,
   useCreateTicket,
   useDeleteTicket,
   useUpdateTicketStatus,
@@ -90,15 +94,24 @@ function SidebarWithAssist(props: Omit<Parameters<typeof ProjectSidebar>[0], 'as
 function BoardProviders({
   ai,
   schedules,
+  ideas,
   children,
 }: {
   ai: AiBoardState;
   schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
+  /** Idea Space: Quick add (Alt+N, "Make idea") and the links from tickets to their idea. */
+  ideas: { projectId: string | null; openIdea: (id: string) => void };
   children: ReactNode;
 }) {
   return (
     <AiBoardContext.Provider value={ai}>
-      <SchedulesProvider {...schedules}>{children}</SchedulesProvider>
+      <SchedulesProvider {...schedules}>
+        <IdeaLinksProvider value={{ openIdea: ideas.openIdea }}>
+          <IdeaCaptureProvider projectId={ideas.projectId} onOpenIdea={ideas.openIdea}>
+            {children}
+          </IdeaCaptureProvider>
+        </IdeaLinksProvider>
+      </SchedulesProvider>
     </AiBoardContext.Provider>
   );
 }
@@ -135,6 +148,9 @@ export default function App() {
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
+  // An idea to open on its page (a link from a ticket or a toast)
+  const [ideaRequest, setIdeaRequest] = useState<string | null>(null);
+  const ideaInbox = useIdeaCounts().data?.totalInbox ?? 0;
   // The card of an AI's ticket was dropped on another column: a dialog asks before its run is cancelled
   const [dragConfirm, setDragConfirm] = useState<{
     run: AiRun;
@@ -220,6 +236,7 @@ export default function App() {
 
   const [filterReopened, setFilterReopened] = useState(false);
   const [filterPending, setFilterPending] = useState(false);
+  const [filterFromIdea, setFilterFromIdea] = useState(false);
   const [hidePending, setHidePending] = useState(false);
 
   const [reopenTargetTicket, setReopenTargetTicket] = useState<Ticket | null>(null);
@@ -250,6 +267,10 @@ export default function App() {
     };
   }, []);
 
+  const fromIdeaCount = useMemo(
+    () => localTickets.filter((t) => t.fromIdeaId && t.status !== 'wont_do').length,
+    [localTickets],
+  );
   const reopenedCount = useMemo(
     () => localTickets.filter((t) => t.status !== 'wont_do' && t.status !== 'done' && (t.reopenCount ?? 0) > 0).length,
     [localTickets],
@@ -285,9 +306,16 @@ export default function App() {
       const matchesReopened =
         !filterReopened || ((t.reopenCount ?? 0) > 0 && t.status !== 'done' && t.status !== 'wont_do');
       const matchesPending = !filterPending || Boolean(t.pending);
+      const matchesFromIdea = !filterFromIdea || Boolean(t.fromIdeaId);
       const matchesHidePending = !hidePending || !t.pending;
       return (
-        matchesType && matchesPriority && matchesAssignee && matchesReopened && matchesPending && matchesHidePending
+        matchesType &&
+        matchesPriority &&
+        matchesAssignee &&
+        matchesReopened &&
+        matchesPending &&
+        matchesFromIdea &&
+        matchesHidePending
       );
     });
 
@@ -402,6 +430,26 @@ export default function App() {
     setViewMode('docs');
     setDocsRequest(pageId);
     closeModal();
+  }
+
+  /** Open an idea's page in the Idea Space. */
+  function openIdea(ideaId: string) {
+    closeModal();
+    setActiveBoard('idea');
+    setIdeaRequest(ideaId);
+  }
+
+  /** Open a ticket from the Idea Space: switch to its project and the board first when needed. */
+  async function openTicketFromIdeas(ticketId: string) {
+    try {
+      const t = await getTicket(ticketId);
+      if (t.projectId !== currentProjectId) setCurrentProjectId(t.projectId);
+    } catch {
+      /* the modal then shows nothing: the ticket is gone */
+    }
+    setActiveBoard('main');
+    setViewMode('board');
+    openTicketModal(ticketId);
   }
 
   function openTicketModal(ticketId: string) {
@@ -654,6 +702,7 @@ export default function App() {
         onOpenTicket: openTicketModal,
         onShowTab: showSchedulesTab,
       }}
+      ideas={{ projectId: currentProjectId || null, openIdea }}
     >
       <AssistProvider
         projectId={currentProjectId}
@@ -685,6 +734,7 @@ export default function App() {
               onOpenRecycleBin={() => setRecycleBinOpen(true)}
               onOpenMembers={() => setMembersPanelOpen(true)}
               memberCounts={{ humans: humanMembers.length, ai: aiMemberCount }}
+              ideaInbox={ideaInbox}
               onOpenSettings={() => openSettings()}
               wontDoCount={wontDoTickets.length}
               activeBoard={activeBoard}
@@ -824,7 +874,13 @@ export default function App() {
                     }}
                   />
                 ) : activeBoard === 'idea' && !boardLoadState ? (
-                  <IdeaBoard projectId={currentProjectId ?? ''} />
+                  <IdeaSpace
+                    projects={apiProjects}
+                    currentProjectId={currentProjectId ?? ''}
+                    requestedIdeaId={ideaRequest}
+                    onRequestHandled={() => setIdeaRequest(null)}
+                    onOpenTicket={(id) => void openTicketFromIdeas(id)}
+                  />
                 ) : (
                   <>
                     <Board
@@ -872,6 +928,9 @@ export default function App() {
                       hidePending={hidePending}
                       onHidePendingChange={setHidePending}
                       reopenedCount={reopenedCount}
+                      fromIdeaCount={fromIdeaCount}
+                      filterFromIdea={filterFromIdea}
+                      onFilterFromIdeaChange={setFilterFromIdea}
                       pendingCount={pendingCount}
                       totalReopens30d={totalReopens30d}
                       waitingOnTicketsCount={waitingOnTicketsCount}

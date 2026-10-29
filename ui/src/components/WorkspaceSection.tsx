@@ -24,9 +24,17 @@ import {
 } from '../utils/workspaceTree';
 import styles from './WorkspaceSection.module.css';
 
+/** An idea keeps its folder under its own key; its retention is "while open, then 30 days", 30 days or forever. */
+export interface IdeaRetentionControl {
+  value: 'open_then_30' | '30_days' | 'forever';
+  onChange: (value: 'open_then_30' | '30_days' | 'forever') => void;
+}
+
 interface WorkspaceSectionProps {
   ticketId: string;
   readOnly?: boolean;
+  /** Set when the folder belongs to an idea: the retention controls then speak about the idea. */
+  ideaRetention?: IdeaRetentionControl;
 }
 
 function Icon({ d, color = 'currentColor', size = 13 }: { d: string | string[]; color?: string; size?: number }) {
@@ -89,7 +97,7 @@ function FileIcon({ entry }: { entry: WorkspaceFile }) {
  * Ticket's workspace folder: browse, upload, preview and delete files.
  * @param props.readOnly - Hide upload, folder creation and delete actions.
  */
-export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectionProps) {
+export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: WorkspaceSectionProps) {
   const { data: ws, isLoading, refetch, isFetching } = useTicketWorkspace(ticketId);
   const setRetention = useSetTicketWorkspaceRetention();
   const initMut = useWorkspaceAction<void>(ticketId, () => initTicketWorkspace(ticketId));
@@ -174,7 +182,14 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
   const days = ws?.retentionDays ?? 0;
 
   let retentionChip: { text: string; forever: boolean };
-  if (!days) retentionChip = { text: 'Kept forever', forever: true };
+  if (ideaRetention) {
+    retentionChip =
+      ideaRetention.value === 'forever'
+        ? { text: 'Kept forever', forever: true }
+        : ideaRetention.value === '30_days'
+          ? { text: 'Auto-delete after 30 days idle', forever: false }
+          : { text: 'Keeps while the idea is open', forever: false };
+  } else if (!days) retentionChip = { text: 'Kept forever', forever: true };
   else if (!ws?.sweepEligible) retentionChip = { text: `Auto-delete ${days}d after Done / Won't do`, forever: false };
   else if (ws?.expiresAt) retentionChip = { text: `Auto-delete ${formatTimeLeft(ws.expiresAt)}`, forever: false };
   else retentionChip = { text: `Auto-delete after ${days} days idle`, forever: false };
@@ -240,7 +255,28 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
         </div>
       )}
 
-      {!readOnly && (
+      {!readOnly && ideaRetention && (
+        <div className={styles.retentionCard}>
+          <div className={styles.retentionText}>
+            <span className={styles.retentionTitle}>Retention Policy</span>
+            <span className={styles.retentionHint}>
+              A plain folder on this computer. It moves to the ticket when the idea is promoted, if you choose so.
+            </span>
+          </div>
+          <select
+            className={styles.retentionSelect}
+            aria-label="Retention policy"
+            value={ideaRetention.value}
+            onChange={(e) => ideaRetention.onChange(e.target.value as IdeaRetentionControl['value'])}
+          >
+            <option value="open_then_30">Keep while the idea is open, then 30 days after it is closed</option>
+            <option value="30_days">Auto-delete after 30 days</option>
+            <option value="forever">Keep forever</option>
+          </select>
+        </div>
+      )}
+
+      {!readOnly && !ideaRetention && (
         <div className={styles.retentionCard}>
           <div className={styles.retentionText}>
             <span className={styles.retentionTitle}>Retention Policy</span>
@@ -272,7 +308,7 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
       {!ws?.exists ? (
         <div className={styles.tableContainer}>
           <div className={styles.emptyState}>
-            <div>This ticket has no workspace folder yet.</div>
+            <div>This {ideaRetention ? 'idea' : 'ticket'} has no workspace folder yet.</div>
             <div className={styles.emptyHint}>
               AI agents can create it themselves through the MCP workspace path, or create it here.
             </div>

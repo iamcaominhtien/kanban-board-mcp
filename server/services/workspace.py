@@ -13,7 +13,7 @@ from typing import Any, Optional
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import Ticket, WorkspaceSettings
+from models import IdeaTicket, Ticket, WorkspaceSettings
 from services import activity as act
 
 
@@ -132,7 +132,26 @@ def _resolve_inside(folder: Path, rel: str) -> Path:
     return Path(target)
 
 
-def _retention_for(ticket: Ticket, settings: WorkspaceSettings) -> Optional[int]:
+IDEA_CLOSED_STAGES = frozenset({"archived", "shipped"})
+IDEA_RETENTION_DAYS = (
+    30  # "30 days after the idea is closed" / "auto-delete after 30 days"
+)
+
+
+def _is_closed(owner: Ticket | IdeaTicket) -> bool:
+    """A closed ticket (Done, Won't do) or idea (Shipped, Archived): its workspace may expire."""
+    if isinstance(owner, IdeaTicket):
+        return (
+            owner.stage in IDEA_CLOSED_STAGES or owner.workspace_retention == "30_days"
+        )
+    return owner.status in CLOSED_STATUSES
+
+
+def _retention_for(
+    ticket: Ticket | IdeaTicket, settings: WorkspaceSettings
+) -> Optional[int]:
+    if isinstance(ticket, IdeaTicket):
+        return None if ticket.workspace_retention == "forever" else IDEA_RETENTION_DAYS
     days = (
         ticket.workspace_retention_days
         if ticket.workspace_retention_days is not None
@@ -195,8 +214,14 @@ def _scan(folder: Path) -> tuple[list[dict[str, Any]], int, float, bool]:
     return entries, total, latest, truncated
 
 
-async def _get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
-    return await session.get(Ticket, ticket_id)
+async def _get_ticket(
+    session: AsyncSession, ticket_id: str
+) -> Ticket | IdeaTicket | None:
+    """The ticket, or the idea, that owns the workspace folder named `ticket_id` (ideas have one too)."""
+    found = await session.get(Ticket, ticket_id)
+    if found is None and ticket_id.startswith("IDEA-"):
+        return await session.get(IdeaTicket, ticket_id)
+    return found
 
 
 async def get_ticket_workspace(
@@ -226,7 +251,7 @@ async def get_ticket_workspace(
             pass
 
     retention_days = _retention_for(ticket, settings)
-    sweep_eligible = ticket.status in CLOSED_STATUSES
+    sweep_eligible = _is_closed(ticket)
     expires_at = None
     if exists and retention_days and last_activity is not None:
         expires_at = datetime.fromtimestamp(
@@ -238,7 +263,11 @@ async def get_ticket_workspace(
         "path": str(folder_path),
         "exists": exists,
         "retention_days": retention_days if retention_days else 0,
-        "retention_override": ticket.workspace_retention_days,
+        "retention_override": (
+            ticket.workspace_retention
+            if isinstance(ticket, IdeaTicket)
+            else ticket.workspace_retention_days
+        ),
         "sweep_eligible": sweep_eligible,
         "expires_at": expires_at,
         "files": files,
@@ -514,9 +543,14 @@ async def sweep_expired(
     result = await session.exec(
         select(Ticket).where(Ticket.status.in_(list(CLOSED_STATUSES)))
     )
+    ideas = await session.exec(select(IdeaTicket))
+    owners: list[Ticket | IdeaTicket] = [
+        *result.all(),
+        *(i for i in ideas.all() if _is_closed(i)),
+    ]
     removed: list[dict[str, Any]] = []
     now = time.time()
-    for ticket in result.all():
+    for ticket in owners:
         days = _retention_for(ticket, settings)
         if not days:
             continue
@@ -559,3 +593,48 @@ async def sweep_loop(session_factory) -> None:
         except Exception:
             logger.exception("Workspace sweep failed")
         await asyncio.sleep(SWEEP_INTERVAL_SECONDS)
+
+
+async def transfer_workspace(
+    session: AsyncSession, from_id: str, to_id: str, mode: str
+) -> str:
+    """Move or copy one workspace folder to another owner (an idea's folder follows it to its ticket).
+
+    Args:
+        from_id: Owner whose folder is moved or copied (e.g. "IDEA-14").
+        to_id: New owner (e.g. "KAN-251").
+        mode: "move" (the folder is renamed, files are not copied twice), "copy" (the source keeps its own) or
+            "leave" (nothing happens).
+
+    Returns:
+        What happened: "moved", "copied", "left" or "none" (the source folder does not exist).
+    """
+    if mode == "leave":
+        return "left"
+    if mode not in ("move", "copy"):
+        raise WorkspaceError("mode must be move, copy or leave")
+    settings = await get_workspace_settings(session)
+    if not settings.enabled:
+        return "none"
+    src = _folder_for(settings.root_path, from_id)
+    dst = _folder_for(settings.root_path, to_id)
+    if not src.is_dir():
+        return "none"
+
+    def _do() -> str:
+        if dst.exists() and any(dst.iterdir()):
+            if mode == "move":
+                shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=True)
+                shutil.rmtree(src)
+                return "moved"
+            shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=True)
+            return "copied"
+        if dst.exists():
+            dst.rmdir()
+        if mode == "move":
+            shutil.move(str(src), str(dst))
+            return "moved"
+        shutil.copytree(src, dst, symlinks=True)
+        return "copied"
+
+    return await asyncio.to_thread(_do)

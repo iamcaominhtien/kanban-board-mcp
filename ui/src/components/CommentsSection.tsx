@@ -770,6 +770,7 @@ export function CommentsSection({
     <div
       ref={rootRef}
       data-testid="comments"
+      data-idea-source={JSON.stringify({ source: 'comment', id: ticketId, label: ticketId })}
       id="comments"
       style={{
         display: 'flex',

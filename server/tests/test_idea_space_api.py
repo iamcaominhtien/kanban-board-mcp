@@ -641,3 +641,66 @@ async def test_the_old_status_endpoint_keeps_working_for_the_current_board(clien
 
     assert r.status_code == 200
     assert got["stage"] == "exploring" and got["idea_status"] == "in_review"
+
+
+# ── the idea's workspace folder ────────────────────────────────────────────
+
+
+async def test_an_idea_has_a_workspace_folder_that_can_follow_its_ticket(
+    client, tmp_path
+):
+    async with client as c:
+        await c.patch("/workspace/settings", json={"root_path": str(tmp_path)})
+        p = await _create_project(c)
+        idea = await _create_idea(c, p["id"], title="With a folder")
+        i = idea["id"]
+        info = (await c.get(f"/tickets/{i}/workspace")).json()
+        await c.post(f"/tickets/{i}/workspace/init")
+        await c.post(
+            f"/tickets/{i}/workspace/files",
+            files={"file": ("notes.md", b"# prior art", "text/markdown")},
+            data={"directory": ""},
+        )
+        listed = (await c.get(f"/tickets/{i}/workspace")).json()
+        moved = (
+            await c.post(
+                f"{API}/{i}/promote",
+                json={"acknowledge_not_ready": True, "workspace": "move"},
+            )
+        ).json()
+        ticket_id = moved["ticket"]["id"]
+        on_ticket = (await c.get(f"/tickets/{ticket_id}/workspace")).json()
+        on_idea = (await c.get(f"/tickets/{i}/workspace")).json()
+
+    assert info["exists"] is False and info["path"].endswith(f"/{i}")
+    assert [f["name"] for f in listed["files"]] == ["notes.md"]
+    assert [f["name"] for f in on_ticket["files"]] == ["notes.md"]
+    assert on_idea["exists"] is False, "the folder was moved, not copied"
+
+
+async def test_a_closed_idea_workspace_expires_after_thirty_days_unless_kept(
+    client, tmp_path
+):
+    import os
+    import time
+
+    async with client as c:
+        await c.patch("/workspace/settings", json={"root_path": str(tmp_path)})
+        p = await _create_project(c)
+        closed = (await _create_idea(c, p["id"], title="Closed"))["id"]
+        open_ = (await _create_idea(c, p["id"], title="Open"))["id"]
+        kept = (await _create_idea(c, p["id"], title="Kept"))["id"]
+        for i in (closed, open_, kept):
+            await c.post(f"/tickets/{i}/workspace/init")
+            (tmp_path / i / "x.txt").write_text("x")
+            old = time.time() - 40 * 86400
+            os.utime(tmp_path / i / "x.txt", (old, old))
+            os.utime(tmp_path / i, (old, old))
+        await _stage(c, closed, "archived", archive_reason="other")
+        await _stage(c, kept, "archived", archive_reason="other")
+        await c.patch(f"{API}/{kept}/page", json={"workspace_retention": "forever"})
+        swept = (await c.post("/workspace/sweep", json={"dry_run": False})).json()
+
+    assert {r["ticket_id"] for r in swept["removed"]} == {closed}
+    assert not (tmp_path / closed).exists()
+    assert (tmp_path / open_).exists() and (tmp_path / kept).exists()

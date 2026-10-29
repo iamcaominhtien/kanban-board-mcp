@@ -13,6 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import IdeaAssumption, IdeaTicket, Project, Ticket, idea_readiness
 from services import idea_space as space
+from services import workspace as workspace_svc
 from services.idea_tickets import DEFAULT_AUTHOR, add_trail
 from services.tickets import create_ticket as svc_create_ticket
 
@@ -53,7 +54,7 @@ def build_description(idea: IdeaTicket) -> str:
             "### Already confirmed\n\n"
             + "\n".join(f"- ✓ {a.text}" for a in groups["validated"])
         )
-    footer = f"From idea {idea.id}"
+    footer = f"From idea `{idea.id}`"
     if demand_note(idea):
         footer += f" · {demand_note(idea)}"
     parts.append(f"_{footer}_")
@@ -143,6 +144,7 @@ async def promote(
     description: str | None = None,
     sub_tickets: list[str] | None = None,
     acknowledge_not_ready: bool = False,
+    workspace: str = "leave",
     author: str | None = DEFAULT_AUTHOR,
 ) -> tuple[IdeaTicket, Ticket, list[Ticket]]:
     """Create the ticket (and, for a split, its sub-tickets) from an idea and make the idea Building.
@@ -157,6 +159,7 @@ async def promote(
         description: Ticket text; defaults to the one built from the idea.
         sub_tickets: Titles of sub-tickets for "Ticket with sub-tickets" (the ticket becomes their parent).
         acknowledge_not_ready: The person ticked "I understand, promote anyway".
+        workspace: What happens to the idea's workspace folder: "move" it to the ticket, "copy" it or "leave" it.
         author: A person; an AI member is never allowed to promote (the MCP tools do not offer it).
 
     Returns:
@@ -269,6 +272,8 @@ async def promote(
     )
     idea = await space._save(session, idea)
     await session.refresh(ticket)
+    if workspace != "leave":
+        await workspace_svc.transfer_workspace(session, idea.id, ticket.id, workspace)
     return idea, ticket, children
 
 

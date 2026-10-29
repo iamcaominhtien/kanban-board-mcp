@@ -659,3 +659,8 @@
   background: #dceee1;
   color: #2e6f40;
 }
+
+.sidebarIconActive {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}

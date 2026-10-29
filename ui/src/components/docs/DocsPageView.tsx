@@ -602,18 +602,20 @@ export function DocsPageView({
                 </div>
               )}
               {(published || page.draft) && (
-                <DocsMarkdown
-                  projectId={projectId}
-                  projectName={projectName}
-                  onOpenPage={onOpenPage}
-                  onOpenTicket={onOpenTicket}
-                  onCreatePage={onCreatePage}
-                  onRestorePage={onRestorePage}
-                  onReplaceSection={published ? onReplaceSection : undefined}
-                  changedIn={published && since.behind ? since.changedIn : undefined}
-                >
-                  {published ? page.markdown : page.draft!.markdown}
-                </DocsMarkdown>
+                <div data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}>
+                  <DocsMarkdown
+                    projectId={projectId}
+                    projectName={projectName}
+                    onOpenPage={onOpenPage}
+                    onOpenTicket={onOpenTicket}
+                    onCreatePage={onCreatePage}
+                    onRestorePage={onRestorePage}
+                    onReplaceSection={published ? onReplaceSection : undefined}
+                    changedIn={published && since.behind ? since.changedIn : undefined}
+                  >
+                    {published ? page.markdown : page.draft!.markdown}
+                  </DocsMarkdown>
+                </div>
               )}
             </div>
             {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}

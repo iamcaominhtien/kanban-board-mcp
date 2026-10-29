@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { StartedAsIdea, TestsAssumption } from './ideas/ideaLinks';
+import { useResolveAssumption } from '../api/ideas';
 import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
 import {
   useUpdateTicket,
@@ -243,6 +245,7 @@ function TicketModalInner({
 
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const resolveAssumption = useResolveAssumption();
   const [description, setDescription] = useState(ticket?.description ?? '');
   const [status, setStatus] = useState<Status>(ticket?.status ?? 'backlog');
   const [priority, setPriority] = useState<Priority>(ticket?.priority ?? 'medium');
@@ -1752,7 +1755,10 @@ function TicketModalInner({
                     </div>
 
                     {/* Description */}
-                    <div className={styles.descSection}>
+                    <div
+                      className={styles.descSection}
+                      data-idea-source={JSON.stringify({ source: 'ticket', id: ticket.id, label: ticket.id })}
+                    >
                       <div className={styles.sectionLabel}>Description</div>
                       <MarkdownEditor
                         value={description}
@@ -1770,6 +1776,32 @@ function TicketModalInner({
                         diagramItem={{ kind: 'ticket', id: ticket.id }}
                       />
                     </div>
+
+                    {/* Idea Space: where this ticket came from, and the assumption it tests */}
+                    {ticket.fromIdeaId && (
+                      <div style={{ marginTop: 14 }}>
+                        <StartedAsIdea
+                          ticketId={ticket.id}
+                          fromIdeaId={ticket.fromIdeaId}
+                          onOpenTicket={(id) => {
+                            const t = allTickets?.find((x) => x.id === id);
+                            if (t) onOpenTicket?.(t);
+                          }}
+                        />
+                      </div>
+                    )}
+                    {ticket.testsAssumptionId && (
+                      <div style={{ marginTop: 14 }}>
+                        <TestsAssumption
+                          ticketId={ticket.id}
+                          testsAssumptionId={ticket.testsAssumptionId}
+                          closed={status === 'done' || status === 'wont_do'}
+                          onAnswer={async (ideaId, assumptionId, outcome) => {
+                            await resolveAssumption.mutateAsync({ id: ideaId, assumptionId, outcome });
+                          }}
+                        />
+                      </div>
+                    )}
 
                     {/* D1 / D4 REOPEN HISTORY Section */}
                     {ticket && (ticket.reopenCount ?? 0) > 0 && (
