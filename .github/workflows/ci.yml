@@ -51,6 +51,8 @@ jobs:
         run: npm run format:check
       - name: Lint (includes the JSDoc rule)
         run: npm run lint -- --max-warnings=40
+      - name: Unit tests (plain Node, no test framework)
+        run: npm test
       - name: Typecheck and build
         run: npm run build
 
