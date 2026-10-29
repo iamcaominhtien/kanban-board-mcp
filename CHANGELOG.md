@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Added
+- **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 24 pages): setting up Claude Code and AI members, choosing the Board AI, how to write persona, instructions, tickets and extra instructions (with copy-paste samples), assigning and reviewing work, Board AI prompts, schedules, safety and cost, troubleshooting and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
+
 ---
 
 ## [3.9.1] - 2026-10-29
