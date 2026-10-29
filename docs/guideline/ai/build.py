@@ -346,7 +346,7 @@ VALUES_ROWS = [
     ["<b>3 · Short description</b>", "Chuẩn bị ticket: làm rõ, tiêu chí, estimate, tách việc", "Làm ticket theo acceptance criteria, chạy test, báo cáo", "Review ticket ở Review theo acceptance criteria", "Trả lời câu hỏi và soạn nháp cho board"],
     ["<b>3 · Role / persona</b>", "Dán persona PM (5.1)", "Dán persona Dev (5.2)", "Dán persona Reviewer (5.3)", "Để trống (Ask AI không dùng persona)"],
     ["<b>3 · Max parallel runs</b>", "1", "1", "1", "2 (mặc định)"],
-    ["<b>3 · Max runs per day</b>", "10", "10", "20", "20 (mặc định)"],
+    ["<b>3 · Scheduled runs per day</b>", "10", "10", "20", "20 (mặc định)"],
     ["<b>4 · May move tickets up to</b>", "To Do", "Review", "Review", "None"],
     ["<b>4 · Ask a person first…</b>", "Bật: Change an assignee, Edit docs, Create tickets (tuần đầu)", "Bật: Change an assignee, Create tickets, Edit docs", "Giữ nguyên", "Giữ nguyên"],
     ["<b>Sau khi tạo · Role template</b>", "Developer (giữ)", "Developer (giữ)", "<b>Reviewer</b>", "<b>Read-only</b>"],
@@ -361,7 +361,7 @@ p_members = f"""
 {ol([
     "<b>Type</b>: chọn loại. Với cả bốn AI: <b>Claude Code</b>.",
     "<b>Connect</b>: app dò CLI, phiên bản và tài khoản đã đăng nhập. Điền <b>Working folder</b> và <b>Model</b> (Sonnet hoặc Haiku), rồi bấm <b>Run test</b> và chờ <b>Connection OK</b>. Không thấy CLI thì hộp thoại hướng dẫn cài đặt; thêm thư mục chứa <code>claude</code> vào PATH, mở lại app, bấm <b>Check again</b> (Phần 12).",
-    "<b>Identity &amp; limits</b>: <b>Name</b> (không trùng), <b>Short description</b>, <b>Role / persona</b> (tối đa 1000 ký tự), <b>Max parallel runs</b> và <b>Max runs per day</b>. Với API key thì là <b>Daily budget</b> và <b>Monthly cap</b>.",
+    "<b>Identity &amp; limits</b>: <b>Name</b> (không trùng), <b>Short description</b>, <b>Role / persona</b> (tối đa 1000 ký tự), <b>Max parallel runs</b> và <b>Scheduled runs per day</b> (chỉ đếm các lần chạy do lịch; @mention và giao việc không bị giới hạn). Với API key thì là <b>Daily budget</b> và <b>Monthly cap</b>.",
     "<b>Permissions &amp; review</b>: <b>May move tickets up to</b> (trần trạng thái: None, Backlog, To Do, In Progress, Review; Testing và Done cần xác nhận thêm) và các công tắc <b>Ask a person first before it can…</b>: Delete a ticket, Change an assignee, Create tickets, Edit docs. Bật công tắc nghĩa là hành động đó phải chờ bạn duyệt.",
 ])}
 <p><b>Lưu ý:</b> hộp thoại này <b>không có ô chọn template quyền</b>. AI mới luôn mang template <b>Developer</b>; template chỉ đổi được sau khi tạo (3.4).</p>
@@ -397,7 +397,7 @@ p_members = f"""
 {table(
     ["Dùng chung (sửa một bản thì các bản khác theo)", "Riêng từng dự án"],
     [
-        ["Tên, avatar, cách kết nối, model, API key; persona và Configuration; quyền, trần trạng thái, safe mode; giá trị giới hạn (Max runs per day, ngân sách); chi phí API key được <b>cộng gộp mọi dự án</b>, còn bộ đếm số lần chạy trong ngày thì đếm riêng ở từng dự án", "<b>Working folder</b> (mỗi dự án trỏ repo của nó); danh sách run và ticket; <b>Board AI</b> (chọn riêng ở từng dự án)"],
+        ["Tên, avatar, cách kết nối, model, API key; persona và Configuration; quyền, trần trạng thái, safe mode; giá trị giới hạn (Scheduled runs per day, ngân sách); chi phí API key được <b>cộng gộp mọi dự án</b>, còn bộ đếm số lần chạy do lịch trong ngày thì đếm riêng ở từng dự án", "<b>Working folder</b> (mỗi dự án trỏ repo của nó); danh sách run và ticket; <b>Board AI</b> (chọn riêng ở từng dự án)"],
     ],
     "wide",
 )}
@@ -442,8 +442,25 @@ p_rest = f"""
 )}
 {callout("warn", "Đừng thêm luật rộng", "Không thêm <code>git push</code>, <code>rm</code> hay <code>Bash(*)</code>. Mỗi lệnh nên chạy riêng; board hướng dẫn AI không nối lệnh bằng <code>&amp;&amp;</code>, <code>;</code>, <code>|</code>.")}
 <h2>4.4 Giới hạn chung của board</h2>
-<p>Cũng ở trang <b>Settings → AI</b>, phần <b>AI members · safety and limits</b>: <b>Safe mode</b> (AI chỉ đọc và comment), <b>Board daily cap</b> và <b>Board monthly budget</b> (đô la, cho AI dùng API key), <b>Max chain depth</b> (AI nhờ AI), <b>Runs per ticket a day</b> và <b>Approvals expire after</b>. Khởi đầu hợp lý: Max chain depth 2–3, Runs per ticket a day 3–6, Approvals expire 24 giờ. Với Claude Code (đăng nhập bằng gói thuê bao) chi phí hiển thị “not metered”, nên giới hạn thực tế là <b>Max runs per day</b> của từng AI.</p>
-<h2>4.5 Kiểm tra cuối</h2>
+<p>Cũng ở trang <b>Settings → AI</b>, phần <b>AI members · safety and limits</b>: <b>Safe mode</b> (AI chỉ đọc và comment), <b>Board daily cap</b> và <b>Board monthly budget</b> (đô la, cho AI dùng API key), <b>Max chain depth</b> (AI nhờ AI), <b>Scheduled and AI-started runs per ticket a day</b> (mặc định 15) và <b>Approvals expire after</b>. Ở <b>Usage → Board limits</b> có thêm <b>Scheduled and AI-started runs per day</b> (mặc định 100) cho cả dự án. Khởi đầu hợp lý: Max chain depth 2–3, giữ nguyên 15 và 100, Approvals expire 24 giờ.</p>
+{callout("note", "Giới hạn số lần chạy chỉ chặn run tự động", "Các giới hạn về số lần chạy dùng để chặn vòng lặp, nên chỉ đếm run do <b>lịch</b> hoặc do <b>AI khác</b> gọi. Run do <b>bạn</b> @mention, giao việc, bấm Run hay trả lời dưới comment của AI thì <b>không bao giờ bị chặn</b> vì giới hạn này. Với Claude Code (gói thuê bao) chi phí hiển thị “not metered”; khi bạn dùng nhiều, giới hạn thực tế là rate limit của gói, app tự xếp hàng và chạy lại khi hết chờ.")}
+{table(
+    ["Việc bạn làm", "Tính là", "Bị giới hạn bởi"],
+    [
+        ["@mention hoặc giao việc, bấm Run, trả lời dưới comment của AI", "1 run", "Không giới hạn số lần"],
+        ["Lịch chạy tới giờ", "1 run", "Scheduled runs per day của AI, runs per day của board, runs per ticket"],
+        ["AI @mention AI khác", "1 run cho AI được gọi", "Max chain depth, cooldown, runs per ticket, runs per day của board"],
+        ["Một câu hỏi ở Ask AI", "Không phải run", "Chỉ tính chi phí (khi dùng API key); Claude Code thì không đo"],
+    ],
+    "wide",
+)}
+<h2>4.5 Auto-compact: khi cuộc hội thoại dài ra</h2>
+<p>Mỗi AI giữ <b>một cuộc hội thoại cho mỗi ticket</b> (xem 8.5), và mỗi cuộc chat Ask AI cũng là một cuộc hội thoại. Khi nó dài, Claude Code tự <b>tóm tắt phần cũ</b> để không tràn bộ nhớ. Mức bắt đầu tóm tắt đặt ở <b>AI member → tab Configuration → Auto-compact at</b> (mặc định <b>60%</b> cửa sổ ngữ cảnh của model, chỉnh từ 10 đến 95). Mỗi AI một mức, kể cả Board AI. Khi việc đó xảy ra, Run panel ghi một dòng “Long session compacted (… → … tokens)”.</p>
+{ul([
+    "Sau khi tóm tắt, AI chỉ nhớ <b>đại ý</b>. Vì vậy điều quan trọng phải nằm trong ticket và comment: board nạp lại chúng ở mỗi lần chạy, không phụ thuộc trí nhớ của AI.",
+    "Một số model có cửa sổ khoảng một triệu token, nên 60% có thể là hàng trăm nghìn token. Muốn chi phí và độ chính xác ổn định hơn thì hạ xuống <b>30–40%</b>. Không nên đặt trên 80%.",
+])}
+<h2>4.6 Kiểm tra cuối</h2>
 {ul([
     "Mỗi AI: <b>Test connection</b> báo OK; trạng thái Idle.",
     "Settings → AI: thẻ BOARD AI hiện tên <b>General</b>, không còn “not chosen”.",
@@ -501,7 +518,7 @@ body_parts.append(section("5", "Prompt để copy", "Persona, instructions và c
 
 # ---- Part 4: the prompt layers
 p4 = f"""
-<h2>4.1 AI đọc những gì trước khi làm?</h2>
+<h2>6.1 AI đọc những gì trước khi làm?</h2>
 <p>Mỗi lần chạy, AI nhận chữ từ <b>năm nguồn</b>. Biết mỗi nguồn dùng cho việc gì là cách nhanh nhất để viết prompt chuẩn.</p>
 {table(
     ["Lớp", "Bạn viết ở đâu", "Áp dụng cho", "Nên viết"],
@@ -515,7 +532,8 @@ p4 = f"""
     "wide",
 )}
 {callout("tip", "Cách chọn chỗ để viết", "Câu đó đúng cho <b>mọi ticket</b> → viết vào Instructions. Chỉ đúng cho <b>ticket này</b> → viết vào mô tả hoặc criteria. Chỉ đúng cho <b>lần chạy này</b> → Extra instruction. Nói về <b>AI là ai</b> → Persona.")}
-<h2>4.2 Tám quy tắc vàng</h2>
+<p>Từ lần chạy thứ hai trên cùng ticket, AI còn nhớ cả cuộc hội thoại trước đó (xem 8.5), nên không cần nhắc lại những gì nó đã đọc.</p>
+<h2>6.2 Tám quy tắc vàng</h2>
 {ol([
     "<b>Một ticket, một kết quả kiểm tra được.</b> Việc lớn thì chia nhỏ (Board AI có nút Split with AI).",
     "<b>Nói “xong” trông như thế nào</b>: viết acceptance criteria, mỗi dòng một điều kiện kiểm tra được. AI báo cáo từng tiêu chí kèm bằng chứng.",
@@ -532,11 +550,11 @@ body_parts.append(section("6", "Prompt: AI đọc những gì", "Prompt chuẩn 
 
 # ---- Part 6: tickets
 p6 = f"""
-<h2>6.1 Ticket là prompt quan trọng nhất</h2>
+<h2>7.1 Ticket là prompt quan trọng nhất</h2>
 <p>AI nhìn thấy: <b>tiêu đề, loại, ưu tiên, trạng thái, estimate, mô tả, acceptance criteria</b>, ticket con (nếu bật) và các comment gần nhất. Vì vậy chất lượng ticket quyết định chất lượng kết quả.</p>
 <div class="bad"><span class="tag">Chưa tốt</span> AI phải đoán lỗi ở đâu, thế nào là xong, kiểm tra ra sao, nên thường hỏi lại nhiều hoặc sửa sai chỗ.{prompt("TICKET · chưa tốt", TICKET_BAD)}</div>
 <div class="good"><span class="tag">Tốt</span> Có bối cảnh, việc cần làm, ngoài phạm vi, lệnh kiểm tra và tiêu chí nghiệm thu.{prompt("TICKET · mẫu tốt (mô tả + acceptance criteria)", TICKET_GOOD)}</div>
-<h2>6.2 Khung mô tả dùng lại được</h2>
+<h2>7.2 Khung mô tả dùng lại được</h2>
 {table(
     ["Mục", "Viết gì", "Ví dụ"],
     [
@@ -548,14 +566,14 @@ p6 = f"""
     ],
 )}
 {callout("tip", "Dùng Board AI để viết ticket tốt hơn", "Gõ ý thô trong <b>New Ticket → Draft with AI</b>, hoặc bấm <b>Improve description</b> trên ticket có sẵn. Board AI trả về bản nháp có tiêu đề, mô tả, tiêu chí và ưu tiên; bạn chấp nhận từng phần (Phần 9). Rồi mới giao cho AI member.")}
-<h2>6.3 Comment cũng là prompt</h2>
+<h2>7.3 Comment cũng là prompt</h2>
 <p>AI đọc 20 comment gần nhất. Comment của thành viên dự án được tin cậy; comment của AI khác chỉ là dữ liệu; người ngoài dự án không được hiển thị cho AI (trừ khi bạn bật cho AI đó đọc nguồn ngoài). Khi AI làm sai hướng, <b>viết một comment rõ ràng</b> rồi Request changes sẽ hiệu quả hơn mở lại từ đầu.</p>
 """
 body_parts.append(section("7", "Viết ticket để AI làm đúng", "Hai ticket cùng một lỗi, kết quả khác hẳn nhau tuỳ cách viết.", p6))
 
 # ---- Part 7: assign and review
 p7 = f"""
-<h2>7.1 Hai cách giao việc</h2>
+<h2>8.1 Hai cách giao việc</h2>
 <p><b>Cách 1: Assignee.</b> Mở ticket, chọn AI trong nhóm <b>AI</b> của ô Assignee. Hộp <b>How to start</b> hiện ra:</p>
 {table(
     ["Lựa chọn", "Làm gì"],
@@ -572,13 +590,13 @@ p7 = f"""
     [[f"<b>{a}</b>", {"Ask": "Trả lời bằng một comment. Không đổi file, trường hay trạng thái.", "Do the work": "Giao việc và bắt đầu run.", "Just notify": "Chỉ báo cho AI, không chạy."}[a], f'<span class="ex">{html.escape(t)}</span>'] for a, t in MENTION_EXAMPLES],
     "wide",
 )}
-<h2>7.2 Theo dõi khi AI đang làm</h2>
+<h2>8.2 Theo dõi khi AI đang làm</h2>
 <p>Ticket có tab <b>Run</b> (biểu tượng tia sáng) hiển thị từng bước theo thời gian thật: đọc file, sửa file, lệnh đã chạy, thay đổi trạng thái, token và chi phí. Có nút <b>Stop</b> bất cứ lúc nào. Trên board, thẻ có chip Running/Queued và cột hiện “1 AI running”.</p>
 {fig("b05-run-panel-live", "Run panel cập nhật trực tiếp: từng bước đọc file, sửa code, chạy lệnh, gọi công cụ của board.")}
-<h2>7.3 Khi AI hỏi lại</h2>
+<h2>8.3 Khi AI hỏi lại</h2>
 <p>AI dừng ở trạng thái <b>Needs input</b> và hiện <b>thẻ câu hỏi</b> với các lựa chọn (có lựa chọn được đề xuất). Trả lời xong, AI tiếp tục đúng phiên cũ. Nếu chưa trả lời, app nhắc sau 15 phút và định kỳ; admin được báo khi quá 6 giờ.</p>
 {fig("c06-question-card", "Thẻ câu hỏi của AI: chọn một phương án hoặc viết câu trả lời riêng.")}
-<h2>7.4 Duyệt kết quả (Review gate)</h2>
+<h2>8.4 Duyệt kết quả (Review gate)</h2>
 <p>Khi xong, AI chuyển ticket sang <b>Review</b> và để lại <b>AI summary</b>: đã làm gì, file nào đổi (+/−), từng acceptance criteria đạt hay chưa kèm bằng chứng. <b>Quyền chuyển sang Done luôn thuộc về người.</b></p>
 {table(
     ["Nút", "Ý nghĩa"],
@@ -591,17 +609,25 @@ p7 = f"""
 )}
 {callout("warn", "Code do AI sửa: hoàn tác bằng git", "Nút Undo của board chỉ hoàn tác dữ liệu trên ticket. Với file code, dùng git: <code>git diff</code> để xem, <code>git restore .</code> hoặc <code>git checkout -- file</code> để bỏ thay đổi. Đây là lý do nên giao việc khi repo đã commit sạch.")}
 {fig("b08-ai-summary-review-gate", "AI summary: việc đã làm, file đổi, đối chiếu từng acceptance criteria. Người duyệt quyết định Approve hoặc Request changes.")}
+<h2>8.5 AI nhớ gì giữa các lần chạy</h2>
+<p>Mỗi AI giữ <b>một cuộc hội thoại cho mỗi ticket</b>. Tag AI lần thứ hai trên cùng ticket, bấm Run lại, Request changes hay để lịch chạy lại thì AI <b>tiếp tục đúng cuộc hội thoại cũ</b>: nó nhớ đã đọc file nào, đã nghĩ gì, đã hứa gì. Hai AI khác nhau có hai cuộc hội thoại riêng, dù cùng một ticket.</p>
+<p>Để PM biết Dev đã làm gì, board nạp vào mỗi lần chạy một khối <b>Activity since your last run</b>: các run của AI khác trên ticket kể từ lần chạy trước của chính AI đó (ai làm, kết quả, file đổi, trạng thái); lần đầu thì lấy vài run gần nhất. Vì vậy bạn tag PM hỏi “mấy bạn Dev làm gì rồi?” là PM trả lời được, dựa trên khối này và các comment, chứ không dựa vào trí nhớ.</p>
+{ul([
+    "Hai lần chạy của cùng một AI trên cùng một ticket <b>không chạy cùng lúc</b>: lần sau chờ lần trước xong.",
+    "Nếu cuộc hội thoại cũ không còn (bạn xoá thư mục <code>~/.claude</code>, hoặc đổi Working folder), AI tự bắt đầu cuộc mới và Run panel ghi chú điều đó. Không mất thông tin quan trọng vì ticket, comment và khối Activity vẫn do board nạp lại.",
+    "Chỉ áp dụng cho AI dùng <b>Claude Code</b>. AI dùng API key mỗi lần chạy là một lần mới. Khi cuộc hội thoại dài, xem 4.5 về Auto-compact.",
+])}
 """
 body_parts.append(section("8", "Giao việc, theo dõi, duyệt", "Từ lúc bấm Start đến lúc bạn Approve.", p7))
 
 # ---- Part 8: Board AI
 p8 = f"""
-<h2>8.1 Hỏi đáp với Ask AI (Ctrl/Cmd + J)</h2>
-<p>Mở dock bên phải và chọn phạm vi: <b>project</b>, <b>ticket</b>, <b>doc</b> hoặc <b>all</b> (nhiều dự án). Hỏi như hỏi đồng nghiệp. Dock hiển thị nguồn, chi phí và có nút thumbs để chấm câu trả lời. Khi AI muốn đổi dữ liệu, nó đưa <b>bản nháp</b> để bạn bấm áp dụng (có Undo).</p>
+<h2>9.1 Hỏi đáp với Ask AI (Ctrl/Cmd + J)</h2>
+<p>Mở dock bên phải và chọn phạm vi: <b>project</b>, <b>ticket</b>, <b>doc</b> hoặc <b>all</b> (nhiều dự án). Hỏi như hỏi đồng nghiệp. Dock hiển thị nguồn, chi phí và có nút thumbs để chấm câu trả lời. Khi AI muốn đổi dữ liệu, nó đưa <b>bản nháp</b> để bạn bấm áp dụng (có Undo). Với Board AI dùng Claude Code, mỗi cuộc chat là <b>một cuộc hội thoại liên tục</b>: các tin nhắn trước không bị gửi lại, và khi dài thì tự tóm tắt theo mức Auto-compact của AI đó (4.5).</p>
 {fig("g04-answer", "Ask AI: câu trả lời kèm thẻ ticket, bảng và nguồn tham chiếu.")}
 <h3>Câu hỏi mẫu</h3>
 {table(["Phạm vi", "Câu hỏi"], [[a, html.escape(b)] for a, b in BOARD_PROMPTS], "wide")}
-<h2>8.2 Các tính năng soạn nháp</h2>
+<h2>9.2 Các tính năng soạn nháp</h2>
 {table(
     ["Tính năng", "Mở ở đâu", "Mẹo viết prompt"],
     [
@@ -620,9 +646,9 @@ body_parts.append(section("9", "Dùng Board AI (Ask AI)", "Hỏi đáp và soạ
 
 # ---- Part 9: schedules
 p9 = f"""
-<h2>9.1 Khi nào dùng lịch chạy</h2>
+<h2>10.1 Khi nào dùng lịch chạy</h2>
 <p>Dùng khi việc <b>lặp lại hoặc dài</b> và có cách kiểm tra bằng máy: dọn test đỏ, cập nhật phụ thuộc, tổng hợp báo cáo. Đừng lên lịch cho việc cần quyết định thiết kế.</p>
-<h2>9.2 Tạo lịch</h2>
+<h2>10.2 Tạo lịch</h2>
 <p>Mở menu <b>Run</b> của ticket → <b>Schedule a run…</b>, hoặc tab <b>Schedules</b> → <b>New schedule</b>. Các mục trong trình soạn:</p>
 {table(
     ["Mục", "Ý nghĩa"],
@@ -640,7 +666,7 @@ p9 = f"""
     "wide",
 )}
 {fig("s04-editor", "Trình soạn lịch: task, thời điểm, AI, điều kiện “Done when”, AI review và các giới hạn. Bên phải là bản tóm tắt và 5 lần chạy kế tiếp.")}
-<h2>9.3 Ba công thức</h2>
+<h2>10.3 Ba công thức</h2>
 {''.join(f'<div class="recipe"><b>{t}</b><p>{d}</p></div>' for t, d in SCHED_RECIPES)}
 {callout("note", "Cần nhớ", "Lịch chạy bằng quyền của AI member, theo trần trạng thái của nó. Đạt tất cả điều kiện thì ticket sang <b>Review</b>, không bao giờ tự sang Done. Ba lần thất bại liên tiếp thì lịch tự tạm dừng. App cần đang mở khi đến giờ (nếu không, “If it cannot run on time” quyết định chuyện gì xảy ra).")}
 """
@@ -661,25 +687,25 @@ real = {
 }
 perm_rows = [[k] + [mode(x) for x in v] for k, v in real.items()]
 p10 = f"""
-<h2>10.1 Quyền theo template</h2>
+<h2>11.1 Quyền theo template</h2>
 <p>Mỗi AI member có một template. Bạn chỉ có thể <b>làm chặt hơn</b> template bằng các ghi đè; muốn nới rộng phải chuyển sang <b>Custom</b> (chỉ owner).</p>
 {table(["Hành động", "Developer", "Reviewer", "Read only", "Custom"], perm_rows, "perm")}
-<h2>10.2 Các lớp bảo vệ</h2>
+<h2>11.2 Các lớp bảo vệ</h2>
 {table(
     ["Lớp", "Tác dụng", "Ở đâu"],
     [
         ["<b>Trần trạng thái</b>", "AI chỉ đưa ticket tới mức tối đa bạn đặt (mặc định Review). Testing và Done cần xác nhận thêm và owner.", "Add / Edit AI member"],
         ["<b>Duyệt</b>", "Hành động mức “Cần duyệt” bị giữ lại; AI <b>chờ</b> quyết định của bạn rồi mới tiếp tục. Có thể “Approve &amp; remember”.", "Inbox / Approvals"],
-        ["<b>Giới hạn</b>", "Run mỗi ngày, run mỗi ticket, daily budget và monthly cap (API key). Báo ở 80% và 100%.", "Profile → Usage; Settings → AI"],
+        ["<b>Giới hạn</b>", "Scheduled runs per day (mỗi AI), runs per ticket và runs per day của board (chỉ chặn run do lịch hoặc AI khác gọi), daily budget và monthly cap (API key). Báo ở 80% và 100%.", "Profile → Usage; Settings → AI"],
         ["<b>Safe mode</b>", "AI chỉ đọc và comment, mọi hành động khác bị chặn. Bật cho cả dự án hoặc từng AI.", "Settings → AI"],
-        ["<b>Giới hạn chung của board</b>", "Board daily cap, Board monthly budget, Max chain depth (AI nhờ AI), Runs per ticket a day, và thời gian hết hạn của yêu cầu duyệt (1 giờ, 4 giờ, 24 giờ, 3 ngày).", "Settings → AI → safety and limits"],
+        ["<b>Giới hạn chung của board</b>", "Board daily cap, Board monthly budget, Max chain depth (AI nhờ AI), Scheduled and AI-started runs per ticket a day, và thời gian hết hạn của yêu cầu duyệt (1 giờ, 4 giờ, 24 giờ, 3 ngày).", "Settings → AI → safety and limits"],
         ["<b>Pause all AI</b> (kill switch)", "Dừng mọi AI ngay (huỷ run hoặc để chạy nốt), giữ hàng đợi. Resume có checklist.", "Nút trên header board"],
         ["<b>Nhật ký (Audit log)</b>", "Mọi hành động ghi “tên AI, thay mặt ai”. Có lọc, xuất file, hoàn tác từng thay đổi hoặc cả run.", "AI members → Audit"],
     ],
     "wide",
 )}
 {fig("d06-approvals-inbox", "Hộp duyệt: hành động AI đang chờ bạn, kèm trước → sau, mức rủi ro và nút Approve hoặc Deny.", "92%")}
-<h2>10.3 Ai làm được gì</h2>
+<h2>11.3 Ai làm được gì</h2>
 <p><b>Viewer</b> chỉ xem. <b>Member</b> giao ticket, tạm dừng, chạy thử, thao tác run. <b>Admin</b> thêm, sửa, xoá AI member và đổi cấu hình. <b>Owner</b> (bạn, với bản desktop) đổi mặc định chung và cho phép thêm lượt chạy. Admin đổi quyền của AI thì phải chờ owner xác nhận.</p>
 """
 body_parts.append(section("11", "An toàn và chi phí", "AI làm việc thật nên cần kiểm soát. Mọi thứ dưới đây đã có sẵn, bạn chỉ cần biết chỗ bật.", p10))

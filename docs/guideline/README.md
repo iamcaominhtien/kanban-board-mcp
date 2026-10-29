@@ -55,3 +55,5 @@ The guide states some facts that come from the code. When one of these changes, 
 | One AI member in several projects: what is shared, Scope | `server/services/ai/multiproject.py`, `ui/src/components/ai/ProjectsPicker.tsx` |
 | Schedule editor sections and "Done when" checks | `ui/src/components/schedules/ScheduleEditor.tsx` |
 | Assign dialog choices (Start now, Queue, Assign without running) and mention intents | `ui/src/components/ai/AssigneePicker.tsx`, `MentionIntent.tsx` |
+| Which runs the run limits count (scheduled and AI-started only), their defaults (15 per ticket, 100 per board) | `server/services/ai/budget.py`, `runs.py` (`create_run`), `server/models.py` |
+| One session per AI and ticket, the "Activity since your last run" block, Auto-compact (default 60%) | `server/services/ai/runs.py` (`_session_for`, `_activity_for`), `context.py`, `cli.py` (`child_env`), `assist/chat.py` |
