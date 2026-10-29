@@ -1121,7 +1121,9 @@ async def _resolve_page_ref(
     if not matches and "/" in needle:
         matches = [p for p in pages if path_of(p).lower().endswith(needle)]
     if not matches and old_titles and needle in old_titles:
-        matches = [p for p in pages if p.id == old_titles[needle]]  # old title of a renamed page
+        matches = [
+            p for p in pages if p.id == old_titles[needle]
+        ]  # old title of a renamed page
     if not matches:
         gone = next((p for p in deleted if p.title.lower() == needle), None)
         if gone is not None:
@@ -1173,13 +1175,19 @@ async def _headings_by_page(
 
 
 async def resolve_refs(
-    session: AsyncSession, project_id: str, refs: list[dict[str, Any]]
+    session: AsyncSession,
+    project_id: str,
+    refs: list[dict[str, Any]],
+    *,
+    from_ticket: bool = False,
 ) -> list[dict[str, Any]]:
     """Resolve `[[page]]` and ticket references to their current state.
 
     Args:
         project_id: Project the references are written in.
         refs: Requests, each `{kind: "page", title, anchor}` or `{kind: "ticket", key}`.
+        from_ticket: The references are written in a ticket, which links by page id:
+            the old title of a renamed page still resolves.
 
     Returns:
         One result per request: status, title, path and, for tickets, their state.
@@ -1189,7 +1197,9 @@ async def resolve_refs(
     deleted = await _all_pages(session, project_id, deleted=True)
     headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
-    renamed = await _title_aliases(session, [p.id for p in pages])
+    renamed = (
+        await _title_aliases(session, [p.id for p in pages]) if from_ticket else None
+    )
     keys = [r["key"] for r in refs if r.get("kind") == "ticket" and r.get("key")]
     tickets: dict[str, Ticket] = {}
     if keys:
@@ -1280,7 +1290,6 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
         return
     headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
-    renamed = await _title_aliases(session, [p.id for p in pages])
     rows = await session.exec(
         select(DocsLink).where(
             DocsLink.source_page_id.in_(ids),  # type: ignore[attr-defined]
@@ -1295,7 +1304,6 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
             link.target_anchor,
             headings,
             aliases,
-            renamed,
         )
         new_target = res.get("page_id")
         if new_target != link.target_page_id:
@@ -1383,6 +1391,8 @@ async def _ticket_mentions(
                             "page_id": res["page_id"],
                             "section": res.get("section"),
                             "context": ref["context"],
+                            "excerpt": ref["excerpt"],
+                            "anchor": ref["anchor"],
                         }
                     )
     return out
@@ -1390,7 +1400,7 @@ async def _ticket_mentions(
 
 async def _page_row_context(
     session: AsyncSession, link: DocsLink, src: DocsPage
-) -> str:
+) -> dict[str, Any]:
     contents = await docs_search._contents(session, [src])
     wanted = (link.target_title or "").lower()
     refs = [
@@ -1400,8 +1410,8 @@ async def _page_row_context(
     ]
     for r in refs:
         if r["section"] == link.source_section:
-            return r["context"]
-    return refs[0]["context"] if refs else link.snippet
+            return r
+    return refs[0] if refs else {"context": link.snippet, "excerpt": link.snippet}
 
 
 async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
@@ -1423,14 +1433,18 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
             continue
         seen.add(key)
         parent = await session.get(DocsPage, src.parent_id) if src.parent_id else None
+        ctx = await _page_row_context(session, link, src)
         pages_out.append(
             {
                 "page_id": src.id,
                 "title": src.title,
-                "in": link.source_section or (parent.title if parent else None),
+                "in": await _section_label(session, src, link.source_section)
+                or (parent.title if parent else None),
                 "snippet": link.snippet,
                 "origin": "page",
-                "context": await _page_row_context(session, link, src),
+                "context": ctx["context"],
+                "excerpt": ctx["excerpt"],
+                "target_anchor": link.target_anchor,
             }
         )
     tickets_out: list[dict[str, Any]] = []
@@ -1448,6 +1462,8 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "origin": m["origin"],
                 "detail": m["detail"],
                 "context": m["context"],
+                "excerpt": m["excerpt"],
+                "target_anchor": m["anchor"],
             }
         )
     manual = await session.exec(
@@ -1469,6 +1485,8 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
                     "origin": "manual",
                     "detail": "",
                     "context": "",
+                    "excerpt": "",
+                    "target_anchor": None,
                 }
             )
     return {"pages": pages_out, "tickets": tickets_out}
@@ -1537,6 +1555,16 @@ async def _ticket_or_404(session: AsyncSession, ticket_id: str) -> Ticket:
     return ticket
 
 
+async def _section_label(
+    session: AsyncSession, page: DocsPage, slug: str | None
+) -> str | None:
+    """The heading text behind a section slug of a page (the slug itself when the heading is gone)."""
+    if not slug:
+        return None
+    headings = (await _headings_by_page(session, [page])).get(page.id, [])
+    return next((h["text"] for h in headings if h["slug"] == slug), slug)
+
+
 async def docs_for_ticket(
     session: AsyncSession, ticket_id: str
 ) -> list[dict[str, Any]]:
@@ -1602,7 +1630,7 @@ async def docs_for_ticket(
         row(
             src,
             "manual" if link.origin == "manual" else "page",
-            link.source_section,
+            await _section_label(session, src, link.source_section),
             link.snippet,
         )
     out.sort(key=lambda r: (_ORIGIN_ORDER[r["origin"]], r["title"].lower()))
@@ -1839,7 +1867,7 @@ async def rename_page(
 
 
 async def delete_preview(session: AsyncSession, page_id: str) -> dict[str, Any]:
-    """Preview the sub-pages and inbound links a delete would affect."""
+    """Preview the sub-pages, inbound links and tickets a delete would affect."""
     page = await get_page(session, page_id)
     subtree = await _descendants(session, page)
     ids = {page.id, *(p.id for p in subtree)}
@@ -1849,12 +1877,40 @@ async def delete_preview(session: AsyncSession, page_id: str) -> dict[str, Any]:
             DocsLink.origin == "page",
         )
     )
-    linking = {sid for sid in rows.all() if sid not in ids}
-    live = 0
-    for sid in linking:
+    link_counts: dict[str, int] = {}
+    for sid in rows.all():
+        if sid not in ids:
+            link_counts[sid] = link_counts.get(sid, 0) + 1
+    linking: list[dict[str, Any]] = []
+    for sid, n in link_counts.items():
         src = await session.get(DocsPage, sid)
         if src is not None and not src.deleted_at:
-            live += 1
+            parent = (
+                await session.get(DocsPage, src.parent_id) if src.parent_id else None
+            )
+            linking.append(
+                {
+                    "page_id": src.id,
+                    "title": src.title,
+                    "parent": parent.title if parent else None,
+                    "count": n,
+                }
+            )
+    linking.sort(key=lambda r: (-r["count"], r["title"].lower()))
+    tickets = {
+        m["ticket"].id
+        for m in await _ticket_mentions(session, page.project_id)
+        if m["page_id"] in ids
+    }
+    manual = await session.exec(
+        select(DocsLink.target_ticket_id).where(
+            DocsLink.source_page_id.in_(list(ids)),  # type: ignore[attr-defined]
+            DocsLink.origin == "manual",
+            DocsLink.target_ticket_id.is_not(None),  # type: ignore[union-attr]
+        )
+    )
+    tickets.update(t for t in manual.all() if t)
+    live = len(linking)
     return {
         "pages": [
             {"id": page.id, "title": page.title, "role": "this"},
@@ -1864,4 +1920,6 @@ async def delete_preview(session: AsyncSession, page_id: str) -> dict[str, Any]:
             ),
         ],
         "linking_pages": live,
+        "linking": linking[:5],
+        "linking_tickets": len(tickets),
     }

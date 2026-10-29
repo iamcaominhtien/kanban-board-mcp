@@ -38,6 +38,7 @@ function TicketRefView({ node, selected }: NodeViewProps) {
         style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }}
       />
       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>{key}</span>
+      {res?.title && <span className="dk-chip-ticket-title">{res.title}</span>}
     </NodeViewWrapper>
   );
 }

@@ -3,6 +3,7 @@ import { useDocsPage } from '../../../api/docs';
 import type { DocsTreeNode } from '../../../types/docs';
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
+import { openRefCheatSheet } from '../RefCheatSheet';
 import { TICKET_DOT, TICKET_STATUS_LABEL } from './constants';
 import type { MenuHost, MenuState } from './menuHost';
 import { Hint, MenuFooter, useMenuPosition } from './SlashMenu';
@@ -37,7 +38,17 @@ export type RefPayload =
 type Row =
   | { id: string; type: 'head'; label: string; sub?: string }
   | { id: string; type: 'page'; node: DocsTreeNode; recent: boolean }
-  | { id: string; type: 'section'; text: string; level: number; sub: string; whole?: boolean; indent: boolean }
+  | {
+      id: string;
+      type: 'section';
+      text: string;
+      level: number;
+      sub: string;
+      whole?: boolean;
+      indent: boolean;
+      /** Page the section belongs to when it is listed under the page matches (not after a `#`). */
+      node?: DocsTreeNode;
+    }
   | { id: string; type: 'ticket'; ticket: TicketLite }
   | { id: string; type: 'create'; title: string }
   | { id: string; type: 'note'; text: string };
@@ -49,6 +60,8 @@ interface Props {
   tickets: TicketLite[];
   currentPageId: string;
   onClose: () => void;
+  /** Opened by a bare ticket key (`KAN-1`, no `[[`): Tab completes the key as text and Enter inserts the chip. */
+  bare?: boolean;
 }
 
 function pathOf(node: DocsTreeNode, byId: Map<string, DocsTreeNode>): string[] {
@@ -81,8 +94,9 @@ function Highlight({ text, q }: { text: string; q: string }) {
  * @param props.tickets - Tickets offered after the `KAN-` trigger.
  * @param props.currentPageId - Page being edited, to offer its own sections.
  * @param props.onClose - Called to dismiss the menu.
+ * @param props.bare - Opened by a bare ticket key with no `[[`.
  */
-export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClose }: Props) {
+export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClose, bare }: Props) {
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const { ref, pos } = useMenuPosition(state.rect, 436);
@@ -108,7 +122,19 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
     if (!q) return currentNode;
     return nodes.find((n) => n.title.toLowerCase() === q) ?? nodes.find((n) => n.title.toLowerCase().startsWith(q));
   }, [mode, pageQuery, nodes, currentNode]);
-  const targetPage = useDocsPage(mode === 'sections' && targetNode ? targetNode.id : null);
+  // typing "[[Req" also lists the sections of the best page match (DocsEditor board H)
+  const topNode = useMemo(() => {
+    if (mode !== 'pages' || !pageQuery) return undefined;
+    const q = pageQuery.toLowerCase();
+    return (
+      nodes.find((n) => n.title.toLowerCase() === q) ??
+      nodes.find((n) => n.title.toLowerCase().startsWith(q)) ??
+      nodes.find((n) => n.title.toLowerCase().includes(q))
+    );
+  }, [mode, pageQuery, nodes]);
+  const targetPage = useDocsPage(
+    mode === 'sections' && targetNode ? targetNode.id : mode === 'pages' && topNode ? topNode.id : null,
+  );
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
@@ -172,12 +198,29 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
       out.push({ id: 'h-o', type: 'head', label: recent.length ? 'Other pages' : 'Pages' });
       rest.forEach((n) => out.push({ id: `p-${n.id}`, type: 'page', node: n, recent: false }));
     }
+    if (topNode) {
+      const hs = (targetPage.data?.headings ?? []).slice(0, 4);
+      if (hs.length) {
+        out.push({ id: 'h-s', type: 'head', label: `Sections in ${topNode.title}` });
+        hs.forEach((h, i) =>
+          out.push({
+            id: `ps-${i}`,
+            type: 'section',
+            text: h.text,
+            level: h.level,
+            sub: `${topNode.title} › ${h.text}`,
+            indent: false,
+            node: topNode,
+          }),
+        );
+      }
+    }
     if (pageQuery && !nodes.some((n) => n.title.toLowerCase() === q)) {
       out.push({ id: 'h-c', type: 'head', label: 'Create' });
       out.push({ id: 'create', type: 'create', title: pageQuery });
     }
     return out;
-  }, [mode, main, tickets, nodes, pageQuery, sectionQuery, targetNode, targetPage.data, targetPage.isLoading]);
+  }, [mode, main, tickets, nodes, pageQuery, sectionQuery, targetNode, topNode, targetPage.data, targetPage.isLoading]);
 
   const selectable = useMemo(() => rows.filter((r) => r.type !== 'head' && r.type !== 'note'), [rows]);
   useEffect(() => setActive(0), [state.query]);
@@ -189,13 +232,13 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
     if (r.type === 'page') return { kind: 'page', page: r.node.title, section: null, label };
     if (r.type === 'ticket') return { kind: 'ticket', key: r.ticket.id };
     if (r.type === 'create') return { kind: 'create', title: r.title, label };
-    if (r.type === 'section' && targetNode)
-      return { kind: 'page', page: targetNode.title, section: r.whole ? null : r.text, label };
+    if (r.type === 'section' && (r.node ?? targetNode))
+      return { kind: 'page', page: (r.node ?? targetNode)!.title, section: r.whole ? null : r.text, label };
     return null;
   };
 
-  const stateRef = useRef({ selectable, act, mode, sel, payloadOf, state });
-  stateRef.current = { selectable, act, mode, sel, payloadOf, state };
+  const stateRef = useRef({ selectable, act, mode, sel, payloadOf, state, bare });
+  stateRef.current = { selectable, act, mode, sel, payloadOf, state, bare };
   useEffect(() => {
     host.keyHandler = (e) => {
       const s = stateRef.current;
@@ -222,7 +265,7 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
           return true;
         }
         if (s.mode === 'tickets' && r.type === 'ticket') {
-          s.state.run({ kind: 'text', text: `[[${r.ticket.id}` } satisfies RefPayload);
+          s.state.run({ kind: 'text', text: s.bare ? r.ticket.id : `[[${r.ticket.id}` } satisfies RefPayload);
           return true;
         }
         const p = s.payloadOf(r);
@@ -376,11 +419,9 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
                       Create page &quot;{r.title}&quot;
                     </span>
                     <span style={{ fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
-                      New draft{' '}
                       {currentNode?.parentId
-                        ? `under ${byId.get(currentNode.parentId)?.title ?? 'its parent'}`
-                        : 'at the top level'}
-                      , then link it
+                        ? `Under ${byId.get(currentNode.parentId)?.title ?? 'its parent'}`
+                        : 'At the top level'}
                     </span>
                   </span>
                 </div>
@@ -462,7 +503,25 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
           {mode === 'tickets' && <Hint k="Tab">complete key</Hint>}
           {mode === 'sections' && <Hint k="|">display text</Hint>}
           {mode === 'pages' && <Hint k="#">section</Hint>}
-          <Hint k="Esc">close</Hint>
+          {mode === 'pages' && <Hint k={`${tickets[0]?.id.split('-')[0] ?? 'KAN'}-`}>ticket</Hint>}
+          <Hint k="Esc">{mode === 'pages' ? 'cancel' : 'close'}</Hint>
+          <button
+            type="button"
+            onClick={openRefCheatSheet}
+            style={{
+              marginLeft: 'auto',
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              fontFamily: 'inherit',
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: '#2E6F40',
+              cursor: 'pointer',
+            }}
+          >
+            Syntax help
+          </button>
         </MenuFooter>
       </div>
       {preview && (

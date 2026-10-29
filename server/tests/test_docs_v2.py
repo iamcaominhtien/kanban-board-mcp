@@ -215,6 +215,15 @@ async def test_delete_preview_lists_subtree_and_linking_pages(c, pid):
     roles = {(p["title"], p["role"]) for p in prev["pages"]}
     assert roles == {("Root", "this"), ("Kid", "child"), ("Inside", "child")}
     assert prev["pages"][0]["role"] == "this" and prev["linking_pages"] == 2
+    # the dialog lists who links here, with link counts and the tickets that mention the pages
+    assert prev["linking"] == [
+        {"page_id": row["page_id"], "title": row["title"], "parent": None, "count": n}
+        for row, n in zip(prev["linking"], (2, 1))
+    ]
+    assert prev["linking_tickets"] == 0
+    t = await _ticket(c, pid, description="see [[Kid]]")
+    again = (await c.get(f"/docs/pages/{root['id']}/delete-preview")).json()
+    assert again["linking_tickets"] == 1 and t["id"]
     leaf = (await c.get(f"/docs/pages/{kid['id']}/delete-preview")).json()
     assert (
         leaf["pages"] == [{"id": kid["id"], "title": "Kid", "role": "this"}]
@@ -302,7 +311,7 @@ async def test_ticket_docs_origins_description_comment_manual_and_page(c, pid):
         and spec_row["path"] == []
         and spec_row["version"] == 1
     )
-    assert rows[3]["section"] == "notes" and "Tracked in" in rows[3]["snippet"]
+    assert rows[3]["section"] == "Notes" and "Tracked in" in rows[3]["snippet"]
     assert set(rows[0]) == {
         "page_id",
         "project_id",
@@ -379,7 +388,7 @@ async def test_backlinks_rows_carry_origin_and_sentence_context(c, pid):
     bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
     row = bl["pages"][0]
     assert row["origin"] == "page" and row["context"] == "We rely on Target for limits."
-    assert row["title"] == "Source" and row["in"] == "plan" and "snippet" in row
+    assert row["title"] == "Source" and row["in"] == "Plan" and "snippet" in row
     assert [(x["ticket_id"], x["origin"]) for x in bl["tickets"]] == [
         (manual["id"], "manual")
     ]
@@ -531,11 +540,41 @@ async def test_renamed_page_keeps_ticket_references_working(c, pid):
     assert [(x["page_id"], x["title"]) for x in after] == [(target["id"], "Schema")]
     bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
     assert [x["ticket_id"] for x in bl["tickets"]] == [t["id"]]
-    ref = {"refs": [{"kind": "page", "title": "Data model"}]}
+    ref = {"refs": [{"kind": "page", "title": "Data model"}], "from_ticket": True}
     res = (await c.post(f"/projects/{pid}/docs/resolve", json=ref)).json()
     assert res[0]["status"] == "ok" and res[0]["title"] == "Schema"
+    # pages do not link by id: a [[Data model]] in a page stays broken until it is rewritten
+    page_ref = {"refs": [{"kind": "page", "title": "Data model"}]}
+    res = (await c.post(f"/projects/{pid}/docs/resolve", json=page_ref)).json()
+    assert res[0]["status"] == "missing"
 
     # a new page that takes the old title wins over the alias
     other = await publish(c, await mk(c, pid, "Data model"), "y")
     res = (await c.post(f"/projects/{pid}/docs/resolve", json=ref)).json()
     assert res[0]["page_id"] == other["id"]
+
+
+async def test_backlink_excerpt_keeps_the_reference_and_cuts_long_lines(c, pid):
+    target = await publish(c, await mk(c, pid, "Data model"), "x")
+    filler = "word " * 40
+    await publish(
+        c,
+        await mk(c, pid, "Src"),
+        f"## Tokens\n{filler}the **token** rules live in [[Data model]] and the column schema {filler}",
+    )
+    bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
+    row = bl["pages"][0]
+    assert row["in"] == "Tokens"  # heading text, not the slug
+    ex = row["excerpt"]
+    assert "[[Data model]]" in ex and "**" not in ex
+    assert ex.startswith("… ") and ex.endswith(" …") and len(ex) < 160
+    assert "[[" not in row["context"]  # the plain sentence stays plain
+
+
+async def test_backlinks_carry_the_target_anchor_for_heading_rename_notes(c, pid):
+    target = await publish(c, await mk(c, pid, "Spec"), "## Auth\nx")
+    await publish(c, await mk(c, pid, "Src"), "See [[Spec#Auth]].")
+    await _ticket(c, pid, description="read [[Spec#Auth]]")
+    bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
+    assert [p["target_anchor"] for p in bl["pages"]] == ["Auth"]
+    assert [t["target_anchor"] for t in bl["tickets"]] == ["Auth"]

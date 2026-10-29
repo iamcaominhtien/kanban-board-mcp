@@ -639,6 +639,14 @@ input:focus-visible {
   font-weight: 500;
   color: #5b6b60;
   font-size: 12.5px;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* in a heading the chip keeps its height and only drops the ticket title */
+:is(h1, h2, h3, h4, h5, h6) .dk-chip-ticket-title {
+  display: none;
 }
 .dk-tree-row.dk-row-dim {
   opacity: 0.45;
@@ -835,5 +843,27 @@ mark.docs-find-mark.docs-find-cur {
 @media (prefers-reduced-motion: reduce) {
   .fx-row {
     transition: none;
+  }
+}
+
+/* a section opened from search or a link: a short highlight so the eye finds it */
+.dk-flash {
+  animation: dk-flash 1.8s ease-out;
+}
+@keyframes dk-flash {
+  0%,
+  60% {
+    background: #fff3c4;
+    box-shadow: 0 0 0 6px #fff3c4;
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dk-flash {
+    animation: none;
+    background: #fff3c4;
   }
 }

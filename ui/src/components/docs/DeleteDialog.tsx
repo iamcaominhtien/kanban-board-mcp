@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { docsErrorDetail, useDeletePage } from '../../api/docs';
 import { useDeletePreview } from '../../api/docsActions';
 import { extractError } from '../../api/extractError';
+import { useProjects } from '../../api/projects';
 import { Icon } from './Icon';
 import { ModalShell, Spacer, plural } from './docsShared';
 
@@ -39,6 +40,10 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
   const count = pages.length;
   const children = count - 1;
   const linking = preview.data?.linkingPages ?? 0;
+  const linkingRows = preview.data?.linking ?? [];
+  const linkingTickets = preview.data?.linkingTickets ?? 0;
+  const morePages = Math.max(0, linking - linkingRows.length);
+  const projectName = useProjects().data?.find((p) => p.id === projectId)?.name ?? 'Docs';
 
   async function confirm() {
     setError(null);
@@ -131,8 +136,37 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
             <b style={{ fontWeight: 700 }}>
               {linking} {linking === 1 ? 'page links' : 'pages link'} here.
             </b>{' '}
-            Their links show “In Recycle Bin” until restored.
+            Their links will show as “In Recycle Bin” until the page is restored.
           </span>
+        </div>
+      )}
+      {(linkingRows.length > 0 || linkingTickets > 0) && (
+        <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }} data-testid="delete-linking">
+          {linkingRows.map((r) => (
+            <div key={r.pageId} style={rowBase}>
+              <span style={{ display: 'flex', color: '#9AA8A0' }}>
+                <Icon name="i00" size={15} strokeWidth={1.8} />
+              </span>
+              <b style={{ fontWeight: 600 }}>{r.title}</b>
+              <span style={{ fontSize: 12, color: '#9AA8A0' }}>{r.parent ?? projectName}</span>
+              <span style={roleTag}>{plural(r.count, 'link')}</span>
+            </div>
+          ))}
+          {(morePages > 0 || linkingTickets > 0) && (
+            <div
+              style={{ padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#5B6B60', background: '#F6FAF7' }}
+            >
+              {morePages > 0 && `+ ${plural(morePages, 'more page')}`}
+              {morePages > 0 && linkingTickets > 0 && ' · '}
+              {linkingTickets > 0 &&
+                `${morePages > 0 ? 'also referenced' : 'Referenced'} by ${plural(linkingTickets, 'ticket')}`}
+            </div>
+          )}
+        </div>
+      )}
+      {(linking > 0 || linkingTickets > 0) && (
+        <div style={{ fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+          Nothing is rewritten. Restoring the page from the Recycle Bin makes every link work again.
         </div>
       )}
       <div style={{ fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>

@@ -39,7 +39,7 @@ export interface DocsSearchFacets {
   authors?: { name: string; count: number }[];
   under?: { pageId: string; title: string; count: number }[];
   edited?: Partial<Record<'any' | 'day' | 'week' | 'month', number>>;
-  status?: Partial<Record<'published' | 'draft', number>>;
+  status?: { name: string; count: number }[];
   [key: string]: unknown;
 }
 

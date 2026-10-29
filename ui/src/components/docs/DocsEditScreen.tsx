@@ -4,6 +4,7 @@ import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { useToast } from '../Toast';
 import { ConflictBanner } from './ConflictBanner';
+import { HeadingRenameNote } from './HeadingRenameNote';
 import { DiscardDialog } from './DiscardDialog';
 import { previewOrphans } from '../../api/docsComments';
 import { getAvatarColors } from '../MemberAvatar';
@@ -496,6 +497,7 @@ export function DocsEditScreen({
         )}
         {!online && <OfflineBanner onRetry={() => void flush().then((ok) => ok && setOnline(true))} />}
         {online && justBack && <BackOnlineBanner onDismiss={clearJustBack} />}
+        <HeadingRenameNote pageId={page.id} published={page.headings} markdown={markdown} />
         {error && !publishOpen && (
           <div role="alert" style={{ padding: '8px 24px', background: '#FBE7E4', color: '#A5321E', fontSize: 12.5 }}>
             {error}

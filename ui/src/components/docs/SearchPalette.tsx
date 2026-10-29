@@ -8,6 +8,7 @@ import { docsErrorDetail, useDocsPage, useDocsTree } from '../../api/docs';
 import { useProjects } from '../../api/projects';
 import { useToast } from '../Toast';
 import {
+  Avatar,
   Kbd,
   Snip,
   StatusDot,
@@ -21,6 +22,7 @@ import {
   tokenize,
 } from './searchShared';
 import type { DocsSearchPage, DocsSearchResponse } from '../../types/docsFx';
+import { openRefCheatSheet } from './RefCheatSheet';
 
 // ─── recents + hotkey (exported helpers) ──────────────────────────────────────
 
@@ -73,21 +75,13 @@ export function rememberDocsPage(projectId: string, pageId: string, title: strin
   );
 }
 
-/** Ctrl/Cmd+K, and `/` outside text fields, open the palette. Mount it only while Docs is shown. */
+/** Ctrl/Cmd+K opens the palette (`/` belongs to the page tree's filter). Mount it only while Docs is shown. */
 export function useDocsSearchHotkey(onOpen: () => void) {
   const ref = useRef(onOpen);
   ref.current = onOpen;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        ref.current();
-        return;
-      }
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const t = e.target as HTMLElement | null;
-        const tag = t?.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
         e.preventDefault();
         ref.current();
       }
@@ -123,7 +117,15 @@ type Row =
   | { kind: 'section'; key: string; page: DocsSearchPage; mi: number }
   | { kind: 'heading'; key: string; page: DocsSearchPage; mi: number }
   | { kind: 'linksec'; key: string; title: string; section: string; slug: string }
-  | { kind: 'ticket'; key: string; id: string; title: string; status: string; snippet?: string }
+  | {
+      kind: 'ticket';
+      key: string;
+      id: string;
+      title: string;
+      status: string;
+      snippet?: string;
+      assignee?: string | null;
+    }
   | { kind: 'mention'; key: string; page: DocsSearchPage }
   | { kind: 'recent-search'; key: string; text: string }
   | { kind: 'recent-page'; key: string; id: string; title: string; label: string };
@@ -138,6 +140,21 @@ const SCOPES: { id: Scope; label: string; icon: string }[] = [
   { id: 'page', label: 'This page', icon: 'i00' },
   { id: 'all', label: 'All projects', icon: 'i21' },
   { id: 'tickets', label: 'Tickets', icon: 'i13' },
+];
+
+/** "28 matches in 9 pages" (singular-aware) for the exclusion and phrase notes. */
+function countLine(r: DocsSearchResponse): string {
+  const m = r.matchCount ?? r.total;
+  return `${m} ${m === 1 ? 'match' : 'matches'} in ${r.total} ${r.total === 1 ? 'page' : 'pages'}`;
+}
+
+/** Syntax starters shown under an empty box ("NARROW THE SEARCH"): what to type, what it does. */
+const NARROW_CHIPS: { text: string; kind: keyof typeof TOKEN_STYLE; label: string; insert: string }[] = [
+  { text: '[[', kind: 'link', label: 'link a page', insert: '[[' },
+  { text: '#', kind: 'hash', label: 'headings', insert: '#' },
+  { text: 'KAN-12', kind: 'ticket', label: 'a ticket', insert: 'KAN-' },
+  { text: '" "', kind: 'phrase', label: 'exact phrase', insert: '""' },
+  { text: '-word', kind: 'exclude', label: 'exclude', insert: '-' },
 ];
 
 const kbdLabel = (t: string) => <span style={{ fontSize: 11.5, color: '#5B6B60' }}>{t}</span>;
@@ -386,6 +403,7 @@ export function SearchPalette({
           title: t.title,
           status: t.status,
           snippet: t.snippet,
+          assignee: t.assignee,
         })),
       });
       return out.filter((s) => s.rows.length);
@@ -963,6 +981,7 @@ export function SearchPalette({
             >
               {highlight(r.title, dTrim)}
             </span>
+            {r.assignee && <Avatar name={r.assignee} />}
           </div>
         );
       case 'mention': {
@@ -1310,7 +1329,9 @@ export function SearchPalette({
           >
             <Icon name="i08" size={13} strokeWidth={2} style={{ color: '#C4432A' }} />
             <span style={{ flex: 1 }}>
-              Hiding {noExcl.data.total - (data?.total ?? 0)} pages that contain “{parsed.excludes.join('”, “')}”
+              Hiding {noExcl.data.total - (data?.total ?? 0)}{' '}
+              {noExcl.data.total - (data?.total ?? 0) === 1 ? 'page' : 'pages'} that contain “
+              {parsed.excludes.join('”, “')}”
             </span>
             <button
               type="button"
@@ -1329,6 +1350,52 @@ export function SearchPalette({
             >
               Show them
             </button>
+          </div>
+        )}
+        {trimmed === '' && !showOffline && (
+          <div style={{ padding: '10px 18px 6px' }}>
+            <div style={{ ...sectionLabelStyle, paddingBottom: 7 }}>Narrow the search</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {NARROW_CHIPS.map((c) => (
+                <button
+                  key={c.text}
+                  type="button"
+                  className="fx-row"
+                  onClick={() => {
+                    setQ(c.insert);
+                    inputRef.current?.focus();
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    padding: '4px 10px 4px 5px',
+                    border: '1px solid #E3E8E5',
+                    borderRadius: 999,
+                    background: '#FFFFFF',
+                    fontFamily: 'inherit',
+                    fontSize: 12,
+                    color: '#5B6B60',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span
+                    style={{
+                      padding: '1px 7px',
+                      borderRadius: 999,
+                      background: TOKEN_STYLE[c.kind].bg,
+                      color: TOKEN_STYLE[c.kind].fg,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {c.text}
+                  </span>
+                  {c.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {sections.map((s) => (
@@ -1380,12 +1447,17 @@ export function SearchPalette({
         )}
         {mode === 'plain' && hasPhrase && noQuotes.data && (
           <div style={{ padding: '12px 18px 4px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
-            Without quotes this search finds {noQuotes.data.total} {noQuotes.data.total === 1 ? 'page' : 'pages'}.
+            Without quotes this search finds {countLine(noQuotes.data)}.
           </div>
         )}
         {mode === 'plain' && hasExclude && noExcl.data && flat.length > 0 && (
           <div style={{ padding: '12px 18px 4px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
-            {data?.total} pages, down from {noExcl.data.total}.
+            {data ? countLine(data) : ''}, down from {countLine(noExcl.data)}.
+          </div>
+        )}
+        {scope === 'tickets' && mode === 'plain' && flat.length > 0 && (
+          <div style={{ padding: '12px 18px 4px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+            Ticket search is the existing board search (title, description, id). Docs results stay in the Pages tab.
           </div>
         )}
         {pending && (
@@ -1420,12 +1492,12 @@ export function SearchPalette({
     ? mode === 'ticket'
       ? null
       : scope === 'tickets'
-        ? `${data.tickets.length} results · ${data.tookMs} ms`
+        ? `${data.tickets.length} ${data.tickets.length === 1 ? 'result' : 'results'} · ${data.tookMs} ms`
         : scope === 'page'
-          ? `${flat.length} matches · ${data.tookMs} ms`
+          ? `${flat.length} ${flat.length === 1 ? 'match' : 'matches'} · ${data.tookMs} ms`
           : hasExclude
             ? `${data.total} shown · ${data.tookMs} ms`
-            : `${showOffline ? flat.length : mode === 'headings' ? flat.length : data.total} results · ${data.tookMs} ms`
+            : `${showOffline || mode === 'headings' ? flat.length : data.total} ${(showOffline || mode === 'headings' ? flat.length : data.total) === 1 ? 'result' : 'results'} · ${data.tookMs} ms`
     : null;
   const footer = (() => {
     const wrap = (left: ReactNode, right?: ReactNode) => (
@@ -1713,6 +1785,24 @@ function SyntaxHelp({ onClose }: { onClose: () => void }) {
       </div>
       {row('by:hoa', 'Last edited by a person')}
       {row('is:draft', 'Drafts only')}
+      <div style={{ paddingTop: 8, borderTop: '1px solid #EEF3EF', marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={openRefCheatSheet}
+          style={{
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: '#2E6F40',
+            cursor: 'pointer',
+          }}
+        >
+          Linking syntax: [[Page#Section]], KAN-12 and anchors →
+        </button>
+      </div>
     </div>
   );
 }

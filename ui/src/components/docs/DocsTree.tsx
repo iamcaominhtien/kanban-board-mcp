@@ -30,6 +30,8 @@ interface Props {
   renderMenu: (node: DocsTreeNode, close: () => void) => ReactNode;
   /** Enter in the filter / "Search page content". */
   onOpenSearch?: (query: string) => void;
+  /** Fill the filter box from outside (the palette's "Filter the tree instead"); a new `n` re-applies it. */
+  filterRequest?: { q: string; n: number } | null;
   /** Slot in the header, next to the collapse button (Follow space). */
   headerExtra?: ReactNode;
 }
@@ -211,6 +213,7 @@ function highlight(text: string, q: string): ReactNode {
  * @param props.onCollapse - Called to collapse the tree.
  * @param props.renderMenu - Renders the row "···" menu content; `close` dismisses the menu.
  * @param props.onOpenSearch - Called with the filter text on Enter or "Search page content".
+ * @param props.filterRequest - Sets the filter text and focuses the box when its `n` changes.
  * @param props.headerExtra - Slot in the header next to the collapse button.
  */
 export function DocsTree({
@@ -228,6 +231,7 @@ export function DocsTree({
   onCollapse,
   renderMenu,
   onOpenSearch,
+  filterRequest,
   headerExtra,
 }: Props) {
   const storageKey = `docsTreeClosed:${projectId}`;
@@ -360,6 +364,12 @@ export function DocsTree({
       return next;
     });
   }
+
+  useEffect(() => {
+    if (!filterRequest) return;
+    setFilter(filterRequest.q);
+    filterRef.current?.focus();
+  }, [filterRequest]);
 
   // "/" focuses the filter when focus is not in a field
   useEffect(() => {

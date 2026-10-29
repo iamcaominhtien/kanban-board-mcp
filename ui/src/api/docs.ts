@@ -38,7 +38,8 @@ export const docsKeys = {
   recycle: (projectId: string) => ['docs', 'recycle', projectId] as const,
   templates: ['docs', 'templates'] as const,
   ticketDocs: (ticketId: string) => ['docs', 'ticket', ticketId] as const,
-  resolve: (projectId: string, refs: DocsRefRequest[]) => ['docs', 'resolve', projectId, refs] as const,
+  resolve: (projectId: string, refs: DocsRefRequest[], fromTicket = false) =>
+    ['docs', 'resolve', projectId, refs, fromTicket] as const,
 };
 
 /** Query a project's page tree. */
@@ -136,11 +137,13 @@ export function useTicketDocs(ticketId: string) {
  * Resolve [[page]] and ticket references from rendered markdown (chips, broken-link state).
  * @param projectId - Project the references belong to.
  * @param refs - References to resolve; disabled while empty.
+ * @param fromTicket - The text sits in a ticket, which links by page id: a renamed page's old title still resolves.
  */
-export function useResolveRefs(projectId: string, refs: DocsRefRequest[]) {
+export function useResolveRefs(projectId: string, refs: DocsRefRequest[], fromTicket = false) {
   return useQuery({
-    queryKey: docsKeys.resolve(projectId, refs),
-    queryFn: async () => (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs })).data,
+    queryKey: docsKeys.resolve(projectId, refs, fromTicket),
+    queryFn: async () =>
+      (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs, fromTicket })).data,
     enabled: !!projectId && refs.length > 0,
   });
 }

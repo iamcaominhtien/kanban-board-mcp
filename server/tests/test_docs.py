@@ -294,7 +294,7 @@ async def test_references_backlinks_and_resolve(c, pid):
     bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
     assert [p["title"] for p in bl["pages"]] == ["API"] and bl["pages"][0][
         "in"
-    ] == "overview"
+    ] == "Overview"
     refs = [
         {"kind": "page", "title": "data model", "anchor": "Fields"},
         {"kind": "page", "title": "Data model", "anchor": "Nope"},
