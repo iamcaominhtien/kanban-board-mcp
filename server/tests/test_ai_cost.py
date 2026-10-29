@@ -246,6 +246,7 @@ async def test_digest_releases_held_notifications_once(env, monkeypatch):
             )
 
     monkeypatch.setattr(safety, "datetime", Noon)
+    monkeypatch.setattr(safety, "DIGEST_HOUR", 9)
     assert await safety.release_digest(pid) == 2
     assert await safety.release_digest(pid) == 0
     items = (await c.get(f"/projects/{pid}/ai/notifications")).json()["items"]

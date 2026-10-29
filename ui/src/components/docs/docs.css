@@ -369,6 +369,42 @@
 .dk-tree-hover .dk-hov {
   opacity: 1;
 }
+.dk-tree-actions {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  padding-left: 6px;
+  border-radius: 6px;
+  background: inherit;
+  box-shadow: -8px 0 6px -2px #eaf0ec;
+}
+.dk-tree-active .dk-tree-actions {
+  box-shadow: -8px 0 6px -2px #dceee1;
+}
+.dk-tree-row:hover .dk-tree-actions,
+.dk-tree-hover .dk-tree-actions,
+.dk-tree-row:focus-within .dk-tree-actions {
+  display: flex;
+}
+.dk-tree-resize {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none;
+}
+.dk-tree-resize:hover,
+.dk-tree-resize:focus-visible,
+.dk-tree-resize-on {
+  background: rgba(46, 111, 64, 0.35);
+  outline: none;
+}
 .dk-tree-active {
   background: #dceee1;
   color: #1e2a22;

@@ -19,7 +19,7 @@ import database
 from database import get_session
 from main import app
 from models import AiApproval, AiAudit, AiRun, Ticket
-from services.ai import api_agent, audit, guard, permissions, runs, secrets
+from services.ai import api_agent, audit, guard, permissions, runs, safety, secrets
 from services.ai.context import RunContext
 from tests.fast_db import fresh_db_file
 
@@ -40,6 +40,8 @@ async def env(tmp_path, monkeypatch):
     monkeypatch.setenv("KANBAN_AI_KEY_FILE", str(tmp_path / "ai.key"))
     monkeypatch.setattr(runs, "RT", runs._Runtime())
     monkeypatch.setattr(api_agent, "BACKOFF_SCALE", 0.0)
+    # the daily digest goes out at 09:00 on the real clock; tests that want it set the hour themselves
+    monkeypatch.setattr(safety, "DIGEST_HOUR", 24)
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "calc.py").write_text("def add(a, b):\n    return a - b\n")

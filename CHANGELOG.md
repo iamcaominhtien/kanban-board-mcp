@@ -38,6 +38,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.7.1] - 2026-10-29
+
+### Added
+- Docs: the page tree can be **resized** by dragging its right edge (arrow keys work too, double-click resets). The width is remembered.
+- Docs: hovering a page title that is cut off in the tree shows the full title in a tooltip right away.
+
+### Changed
+- Docs: the page tree is 280px wide by default (was 248px), and the row buttons (add child page, more) overlay the end of the row on hover instead of reserving space, so more of each title is visible.
+
+---
+
 ## [3.7.0] - 2026-10-29
 
 ### Added
