@@ -1,4 +1,4 @@
-"""Builds the tool list on a FastMCP server: the 9 tools, plus the Idea Space ones when they are switched on."""
+"""Builds the tool list on a FastMCP server: the 11 tools, plus the Idea Space ones when they are switched on."""
 
 import logging
 from collections.abc import Callable

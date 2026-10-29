@@ -97,11 +97,13 @@ The server exposes **9 tools** for AI agents over MCP (22 with the Idea Space to
 | `list_tickets` | read | Compact, paginated summaries (`status`, `priority`, `q`, `limit`/`offset`; `detail=true` for full objects) |
 | `get_ticket` | read | Everything about one ticket plus its 10 most recent activity entries (long texts shortened); `activity_limit=N` (0 = none, negative = the whole history in full), `activity_since=<ISO time>`, or `view='comments'` for just the discussion |
 | `docs_read` | read | Docs page tree: `list`, `get`, `search` (full-text, with snippets), `versions`, `version` (optionally a diff), `recycle_bin`, `check_links` |
+| `diagram_read` | read | draw.io diagrams (`[Name](diagram:dg_xxxxxxxx)` in a text): `list`, `get` (the first page as `nodes` and `edges`; `include_xml` for the raw `.drawio`), `versions`, `recycle_bin` |
 | `manage_project` | write | `create`, `update` (name, color, linked git repo, worktree defaults), `add_member`, `remove_member` |
 | `manage_ticket` | write | `create` (with `parent_id` for a sub-ticket), `update` (fields, status moves, assignee, dates, "Done requires" guards, `clear_fields`), `delete`, `workspace` (the ticket's scratch folder), `block`, `unblock`, `link`, `unlink`, `link_doc`, `unlink_doc` |
 | `ticket_items` | write | Lists inside a ticket, chosen with `item`: `comment` (add, update, delete, restore), `work_log` (the Debug Space journal), `criterion` (acceptance criteria), `sub_task` (checklist steps), `test_case` |
 | `ticket_branches` | write | `add`, `update`, `delete`, `checkout`: real git branches when the project has a linked repo |
 | `docs_write` | write | `create`, `update` (a stale `base_version` is rejected; optional `title` renames and rewrites `[[links]]`), `move`, `duplicate`, `delete` (to the Recycle Bin), `restore`, `restore_version`, `import` (a local `.md` file or folder) |
+| `diagram_write` | write | `create` (from `nodes`/`edges`, laid out for you, or a complete `.drawio` `xml`), `edit` (operations `add_node`, `add_edge`, `update`, `delete`, `layout`; a stale `base_version` is rejected; styles, groups and other pages are kept), `replace` (a whole `.drawio`), `delete` (unlinks), `restore`, `restore_version` |
 
 **Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)
 - `list_idea_tickets`, `get_idea_ticket`, `get_idea_activity_trail`, `create_idea_ticket`, `update_idea_ticket`, `update_idea_status`, `promote_idea_to_ticket`, `delete_idea_ticket`

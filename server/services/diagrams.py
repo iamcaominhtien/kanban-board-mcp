@@ -21,7 +21,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Diagram, DiagramSettings, DiagramVersion, Project
-from services import activity
+from services import activity, diagram_model
 from services.docs_text import DocsError
 
 MAX_BYTES = 2 * 1024 * 1024  # per diagram: the .drawio source and the SVG preview each
@@ -419,6 +419,7 @@ async def update_diagram(
     svg: str,
     label: str | None = None,
     summary: str | None = None,
+    note: str | None = None,
 ) -> dict[str, Any]:
     """Save a new version of a diagram.
 
@@ -429,6 +430,7 @@ async def update_diagram(
         svg: The SVG preview.
         label: New name, if changed.
         summary: New text summary, if changed.
+        note: What changed, kept with the version.
 
     Returns:
         The saved diagram.
@@ -466,6 +468,7 @@ async def update_diagram(
             source=source,
             svg=clean_svg,
             author=actor,
+            note=(note or "").strip()[:200] or None,
         )
     )
     await session.commit()
@@ -646,3 +649,137 @@ async def set_settings(
     session.add(row)
     await session.commit()
     return await get_settings(session)
+
+
+# --- AI agent access: the drawing as nodes and edges ----------------------------------------------
+
+
+async def read_outline(
+    session: AsyncSession,
+    diagram_id: str,
+    *,
+    version: int | None = None,
+    include_xml: bool = False,
+) -> dict[str, Any]:
+    """A diagram as the agent reads it: details plus the first page as ``nodes`` and ``edges``.
+
+    Args:
+        diagram_id: Diagram to read.
+        version: A saved version; the latest by default.
+        include_xml: Also return the raw ``.drawio`` XML.
+    """
+    d = await _diagram(session, diagram_id)
+    v = await _version(session, d.id, version, d.version)
+    out = {
+        "id": d.id,
+        "project_id": d.project_id,
+        "label": d.label,
+        "summary": d.summary,
+        "version": d.version,
+        "shown_version": v.version,
+        "updated_by": d.updated_by,
+        "updated_at": d.updated_at,
+        "markdown": f"[{d.label}](diagram:{d.id})",
+    }
+    out.update(diagram_model.Drawing(v.source).outline())
+    if include_xml:
+        out["xml"] = v.source
+    return out
+
+
+async def agent_create(
+    session: AsyncSession,
+    project_id: str,
+    *,
+    label: str,
+    nodes: list[dict[str, Any]] | None = None,
+    edges: list[dict[str, Any]] | None = None,
+    direction: str = "LR",
+    xml: str | None = None,
+    summary: str | None = None,
+) -> dict[str, Any]:
+    """Create a diagram from nodes and edges (laid out for you) or from complete ``.drawio`` XML."""
+    if (xml is None) == (not nodes):
+        raise DocsError(
+            422,
+            "invalid_diagram_edit",
+            "Give either nodes (and edges) or xml, not both.",
+        )
+    source = (
+        xml
+        if xml is not None
+        else diagram_model.build_source(nodes or [], edges or [], direction)
+    )
+    svg = diagram_model.render_svg(source)
+    out = await create_diagram(
+        session, project_id, label=label, source=source, svg=svg, summary=summary
+    )
+    out["markdown"] = f"[{out['label']}](diagram:{out['id']})"
+    return out
+
+
+async def agent_edit(
+    session: AsyncSession,
+    diagram_id: str,
+    *,
+    base_version: int,
+    ops: list[dict[str, Any]],
+    label: str | None = None,
+    summary: str | None = None,
+) -> dict[str, Any]:
+    """Apply edit operations to the latest version and save the result as a new version."""
+    d = await _diagram(session, diagram_id)
+    if base_version != d.version:
+        return await update_diagram(  # raises the 409 with who saved the newer one
+            session, diagram_id, base_version=base_version, source="", svg=""
+        )
+    v = await _version(session, d.id, None, d.version)
+    source, info = diagram_model.apply_ops(v.source, ops)
+    out = await update_diagram(
+        session,
+        diagram_id,
+        base_version=base_version,
+        source=source,
+        svg=diagram_model.render_svg(source),
+        label=label,
+        summary=summary,
+        note=f"Edited by an AI agent ({len(ops)} operation{'s' if len(ops) != 1 else ''})",
+    )
+    out["added"] = info["added"]
+    return out
+
+
+async def agent_replace(
+    session: AsyncSession,
+    diagram_id: str,
+    *,
+    base_version: int,
+    xml: str,
+    label: str | None = None,
+) -> dict[str, Any]:
+    """Replace a diagram's whole ``.drawio`` source."""
+    return await update_diagram(
+        session,
+        diagram_id,
+        base_version=base_version,
+        source=xml,
+        svg=diagram_model.render_svg(xml),
+        label=label,
+        note="Replaced by an AI agent",
+    )
+
+
+async def restore_version(
+    session: AsyncSession, diagram_id: str, version: int
+) -> dict[str, Any]:
+    """Save an old version's content again as a new version (history is kept)."""
+    d = await _diagram(session, diagram_id)
+    old = await _version(session, d.id, version, d.version)
+    return await update_diagram(
+        session,
+        diagram_id,
+        base_version=d.version,
+        source=old.source,
+        svg=old.svg,
+        note=f"Restored from v{version}",
+    )

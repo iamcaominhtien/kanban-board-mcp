@@ -10,6 +10,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.7.2] - 2026-10-29
+
+### Added
+- MCP: the AI agent can work with **diagrams** (#167): `diagram_read` (`list`, `get`, `versions`, `recycle_bin`) and `diagram_write` (`create`, `edit`, `replace`, `delete`, `restore`, `restore_version`). The agent reads a drawing as `nodes` and `edges`, creates one from nodes and edges (laid out in layers, left to right or top to bottom) and edits it with a few operations (`add_node`, `add_edge`, `update`, `delete`, `layout`) that change only what they name, so styles, groups and other pages are kept. The whole `.drawio` XML can also be read or replaced. A stale `base_version` is rejected like in Docs; each agent save keeps a version note ("Edited by an AI agent"). The server draws the SVG preview of an agent's edit; the draw.io editor draws the fine one the next time a person saves.
+
+### Changed
+- The MCP tool list grew by about 4.5k characters for the two diagram tools (the size guard in the tests is raised accordingly).
+
+---
+
 ## [3.7.1] - 2026-10-29
 
 ### Added
