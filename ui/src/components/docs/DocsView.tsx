@@ -585,6 +585,7 @@ export function DocsView({
       <DocsEditScreen
         key={page.id}
         projectId={projectId}
+        projectName={projectName}
         page={page}
         nodes={nodes}
         onOpenPage={select}

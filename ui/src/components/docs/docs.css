@@ -84,6 +84,11 @@
   color: #1e2a22;
   background: #ffffff;
 }
+.st-input.dk-note:focus {
+  outline: none;
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.18);
+}
 .st-input::placeholder {
   color: #6b7a70;
 }

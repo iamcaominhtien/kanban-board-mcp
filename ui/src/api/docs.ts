@@ -70,6 +70,20 @@ export function useDocsTemplates() {
   });
 }
 
+/** Query who follows a project's Docs space (not counting you). */
+export function useDocsFollowers(projectId: string) {
+  return useQuery({
+    queryKey: ['docs', 'followers', projectId] as const,
+    queryFn: async () =>
+      (
+        await client.get<{ following: boolean; count: number; names: string[] }>(
+          `/projects/${projectId}/docs/followers`,
+        )
+      ).data,
+    enabled: !!projectId,
+  });
+}
+
 /** Query the version of a page you last viewed (`null` = never). */
 export function useDocsSeen(pageId: string | null) {
   return useQuery({
