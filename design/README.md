@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1793195406-cc1c` (53 desktop/web artboards; the 3 newest — Docs comments, Diagrams, AI schedules — are proposals exported at this version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1793259570-1d4c` (55 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules and the two Preview boards — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -76,6 +76,8 @@ Each doc's header links to its source file and records the canvas version and sh
 - [Main Board](screens/main-board.md)
 - [Members](screens/members-view.md)
 - [Forgot / Reset Password](screens/password-reset.md)
+- [Preview — file types & states](screens/preview-types.md)
+- [Preview — open & viewer](screens/preview-viewer.md)
 - [Settings — MCP integrations](screens/settings-mcp.md)
 - [Settings](screens/settings-view.md)
 - [Sign Up](screens/sign-up.md)
