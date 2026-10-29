@@ -1,87 +1,55 @@
-import { Fragment, type ReactNode } from 'react';
-
-const TOKEN =
-  /(@\[[^\]\n]+\]\(member:[\w-]+\)|\*\*[^*\n]+\*\*|`[^`\n]+`|(?<![\w*])_[^_\n]+_(?![\w])|\*[^*\n]+\*|\[\[[^\][\n]+\]\]|\b[A-Z][A-Z0-9]{1,9}-\d+\b)/g;
+import { useMemo } from 'react';
+import { MarkdownRenderer } from '../../MarkdownRenderer';
 
 function escapeRe(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
- * Render a comment: bold, italic, code, `[[Page]]`, ticket keys and @mentions of project members.
+ * Comment text as Markdown for the shared renderer: a plain `@Name` of a mentioned member becomes the picker's
+ * `@[Name](member:id)` so it shows as a mention, and a single line break stays a line break (outside code blocks).
+ */
+function toMarkdown(text: string, mentions: { id: string; name: string }[]): string {
+  let out = text;
+  const byLength = [...mentions].sort((a, b) => b.name.length - a.name.length);
+  if (byLength.length) {
+    const re = new RegExp(`(^|[^\\w[])@(${byLength.map((m) => escapeRe(m.name)).join('|')})(?![\\w\\]])`, 'gi');
+    out = out.replace(re, (_all, lead: string, name: string) => {
+      const m = byLength.find((x) => x.name.toLowerCase() === name.toLowerCase());
+      return m ? `${lead}@[${m.name}](member:${m.id})` : _all;
+    });
+  }
+  let fenced = false;
+  return out
+    .split('\n')
+    .map((line) => {
+      if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+      return fenced || !line.trim() ? line : `${line}  `;
+    })
+    .join('\n');
+}
+
+/**
+ * Render a comment as Markdown: formatting, lists, links, images and attachments, diagrams, `[[Page]]` and
+ * ticket-key chips, and @mentions of project members.
  * @param props.text - Comment text.
  * @param props.mentions - Members mentioned (only these are shown as mentions).
+ * @param props.projectId - Project whose pages and tickets the chips resolve against.
  */
-export function CommentText({ text, mentions }: { text: string; mentions: { id: string; name: string }[] }) {
-  const names = mentions.map((m) => m.name).sort((a, b) => b.length - a.length);
-  const mention = names.length ? new RegExp(`@(${names.map(escapeRe).join('|')})(?!\\w)`, 'gi') : null;
-
-  function plain(s: string, key: string): ReactNode[] {
-    if (!mention) return [s];
-    const out: ReactNode[] = [];
-    let last = 0;
-    for (const m of s.matchAll(mention)) {
-      const at = m.index ?? 0;
-      if (at > last) out.push(s.slice(last, at));
-      out.push(
-        <span key={`${key}-${at}`} className="dc-mention" data-testid="comment-mention">
-          {m[0]}
-        </span>,
-      );
-      last = at + m[0].length;
-    }
-    if (last < s.length) out.push(s.slice(last));
-    return out;
-  }
-
-  const lines = text.split('\n');
+export function CommentText({
+  text,
+  mentions,
+  projectId,
+}: {
+  text: string;
+  mentions: { id: string; name: string }[];
+  projectId: string;
+}) {
+  const md = useMemo(() => toMarkdown(text, mentions), [text, mentions]);
+  const docs = useMemo(() => ({ projectId }), [projectId]);
   return (
     <div className="dc-text" data-testid="comment-text">
-      {lines.map((line, li) => {
-        const parts: ReactNode[] = [];
-        let last = 0;
-        for (const m of line.matchAll(TOKEN)) {
-          const at = m.index ?? 0;
-          if (at > last) parts.push(...plain(line.slice(last, at), `${li}-${last}`));
-          const tok = m[0];
-          const k = `${li}-${at}`;
-          if (tok.startsWith('@[')) {
-            const [, name, id] = /^@\[([^\]]+)\]\(member:([\w-]+)\)$/.exec(tok) ?? [];
-            const known = mentions.some((m) => m.id === id);
-            parts.push(
-              known ? (
-                <span key={k} className="dc-mention" data-testid="comment-mention">
-                  @{name}
-                </span>
-              ) : (
-                `@${name}`
-              ),
-            );
-          } else if (tok.startsWith('**')) parts.push(<strong key={k}>{tok.slice(2, -2)}</strong>);
-          else if (tok.startsWith('`')) parts.push(<code key={k}>{tok.slice(1, -1)}</code>);
-          else if (tok.startsWith('[[')) {
-            parts.push(
-              <span key={k} className="dc-ref" data-testid="comment-page-ref">
-                {tok.slice(2, -2).split('|').pop()}
-              </span>,
-            );
-          } else if (tok.startsWith('_') || tok.startsWith('*')) parts.push(<em key={k}>{tok.slice(1, -1)}</em>);
-          else
-            parts.push(
-              <span key={k} className="dc-ref dc-key" data-testid="comment-ticket-ref">
-                {tok}
-              </span>,
-            );
-          last = at + tok.length;
-        }
-        if (last < line.length) parts.push(...plain(line.slice(last), `${li}-${last}`));
-        return (
-          <Fragment key={li}>
-            {li > 0 && <br />}
-            {parts}
-          </Fragment>
-        );
-      })}
+      <MarkdownRenderer docs={docs}>{md}</MarkdownRenderer>
     </div>
   );
 }

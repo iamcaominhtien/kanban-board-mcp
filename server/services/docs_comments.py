@@ -59,6 +59,23 @@ def plain_mentions(body: str) -> str:
     return _MEMBER_LINK.sub(lambda m: "@" + m.group(1), body)
 
 
+_IMAGE = re.compile(r"!\[([^\]\n]{0,200})\]\(([^()\s]{0,500})\)")
+_LINK = re.compile(r"(?<!!)\[([^\]\n]{1,200})\]\(([^()\s]{0,500})\)")
+
+
+def snippet_of(body: str) -> str:
+    """One-line preview of a comment for notifications: mentions as ``@Name``, images and diagrams as words."""
+    text = plain_mentions(body)
+    text = _IMAGE.sub(
+        lambda m: "[diagram]" if m.group(2).startswith("diagram:") else "[image]", text
+    )
+    text = _LINK.sub(
+        lambda m: "[diagram]" if m.group(2).startswith("diagram:") else m.group(1),
+        text,
+    )
+    return " ".join(text.split())[:SNIPPET]
+
+
 def mentions_in(body: str, members: list[Member]) -> list[Member]:
     """Members @mentioned in a comment body.
 
@@ -349,9 +366,7 @@ async def _record_event(
             r.casefold() for r in recipients
         }:
             recipients.append(p)
-    snippet = plain_mentions(comment.body if comment else (thread.anchor_quote or ""))[
-        :SNIPPET
-    ]
+    snippet = snippet_of(comment.body if comment else (thread.anchor_quote or ""))
     session.add(
         DocsCommentEvent(
             project_id=page.project_id,

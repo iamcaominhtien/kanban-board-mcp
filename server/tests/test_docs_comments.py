@@ -201,7 +201,11 @@ async def test_page_comments_and_validation(c, page):
     for payload in (
         {"kind": "page", "body": "   "},
         {"kind": "inline", "body": "x"},
-        {"kind": "inline", "body": "x", "anchor": {"quote": "a" * 600}},
+        {
+            "kind": "inline",
+            "body": "x",
+            "anchor": {"quote": "a" * (anchors.MAX_QUOTE + 1)},
+        },
         {"kind": "weird", "body": "x"},
     ):
         bad = await c.post(f"/docs/pages/{page['id']}/comments", json=payload)
@@ -507,3 +511,33 @@ async def test_purging_a_page_deletes_its_comments(c, page):
 
         assert (await s.exec(select(DocsCommentThread))).all() == []
         assert (await s.exec(select(DocsComment))).all() == []
+
+
+async def test_selection_over_several_blocks(c, page):
+    quote = "rotation rules live in Auth. Limits Rate limits are not enforced"
+    t = await inline(c, page, quote=quote)
+    assert t["anchor"]["state"] == "attached" and t["anchor"]["pos"] is not None
+    assert t["anchor"]["quote"] == quote
+
+    # an edit elsewhere keeps it attached; removing the text it spans orphans it
+    await publish(c, page["id"], DOC + "\nA new closing line.\n")
+    listed = (await c.get(f"/docs/pages/{page['id']}/comments")).json()["threads"]
+    assert listed[0]["anchor"]["state"] == "attached"
+    await publish(c, page["id"], DOC.replace("## Limits\n\n", ""))
+    listed = (await c.get(f"/docs/pages/{page['id']}/comments")).json()["threads"]
+    assert listed[0]["anchor"]["state"] == "orphaned"
+
+
+def test_find_anchor_across_blocks_takes_the_section_it_starts_in():
+    blocks = anchors.blocks_of("## One\n\nalpha beta\n\n## Two\n\ngamma delta\n")
+    hit = anchors.find_anchor(blocks, "beta Two gamma")
+    assert hit is not None and hit.exact
+    assert hit.section == "one"
+    assert hit.prefix.endswith("alpha ") and hit.suffix == " delta"
+
+
+def test_snippet_names_images_and_diagrams():
+    from services.docs_comments import snippet_of
+
+    body = "Look at this\n\n![shot.png](/uploads/a.png)\n\n[Auth flow](diagram:dg_12345678) and [docs](https://x.y) @[Ann](member:m1)"
+    assert snippet_of(body) == "Look at this [image] [diagram] and docs @Ann"

@@ -40,6 +40,7 @@ import { RefSuggester, type RefPayload } from './RefSuggester';
 import { SlashMenu } from './SlashMenu';
 import type { SlashItem } from './slashItems';
 import { TableControls } from './TableControls';
+import { cleanEditorMarkdown } from '../../../utils/docsMarkdown';
 
 export type EditorMode = 'visual' | 'markdown';
 
@@ -340,7 +341,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const emit = useCallback(() => {
     const ed = editorRef.current;
     if (!ed || ed.isDestroyed) return lastMd.current;
-    const md = ed.getMarkdown();
+    const md = cleanEditorMarkdown(ed.getMarkdown());
     if (md !== lastMd.current) {
       lastMd.current = md;
       live.current.onChange(md);

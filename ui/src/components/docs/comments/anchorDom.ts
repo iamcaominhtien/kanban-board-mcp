@@ -1,10 +1,10 @@
 import type { CommentAnchorInput, DocsCommentThread } from '../../../types/docs';
 
-/** Elements that hold one block of page text; a comment selection stays inside one of them. */
+/** Elements that hold one block of page text; a selection over several of them reads them joined by spaces. */
 export const BLOCK_SEL = 'p,li,h1,h2,h3,h4,h5,h6,td,th,pre,.dk-code';
 const SKIP_SEL = 'button,.dk-anchor,svg,.katex,[data-nocomment],script,style';
 const CONTEXT = 32;
-const MAX_QUOTE = 500;
+const MAX_QUOTE = 2000;
 
 export interface BlockText {
   el: Element;
@@ -102,8 +102,35 @@ export function scoreMatch(
   return s;
 }
 
+/** The page text: every block joined by one space (as the server reads it), with where each character came from. */
+interface PageText {
+  text: string;
+  /** DOM position of each character; null for the space between two blocks. */
+  map: ({ node: Text; offset: number } | null)[];
+  /** Section of the block each character belongs to. */
+  sections: (string | null)[];
+}
+
+function pageText(blocks: BlockText[]): PageText {
+  let text = '';
+  const map: PageText['map'] = [];
+  const sections: PageText['sections'] = [];
+  blocks.forEach((b, i) => {
+    if (i > 0) {
+      text += ' ';
+      map.push(null);
+      sections.push(b.section);
+    }
+    text += b.text;
+    map.push(...b.map);
+    for (let k = 0; k < b.text.length; k++) sections.push(b.section);
+  });
+  return { text, map, sections };
+}
+
 /**
- * Find the DOM range of a comment's quote in the rendered blocks (exact text; the best match by context).
+ * Find the DOM range of a comment's quote in the rendered page (exact text; the best match by context). The quote
+ * may run over several blocks.
  * @param blocks - Output of `collectBlocks`.
  * @param t - Thread whose anchor is looked up.
  * @returns The range, or null when the text is not on the page.
@@ -111,18 +138,17 @@ export function scoreMatch(
 export function rangeForThread(blocks: BlockText[], t: DocsCommentThread): Range | null {
   const a = t.anchor;
   if (!a?.quote) return null;
-  let best: { score: number; block: BlockText; at: number } | null = null;
-  for (const block of blocks) {
-    let at = block.text.indexOf(a.quote);
-    while (at !== -1) {
-      const score = scoreMatch(block.text, at, at + a.quote.length, a, block.section, a.section);
-      if (!best || score > best.score) best = { score, block, at };
-      at = block.text.indexOf(a.quote, at + 1);
-    }
+  const page = pageText(blocks);
+  let best: { score: number; at: number } | null = null;
+  let at = page.text.indexOf(a.quote);
+  while (at !== -1) {
+    const score = scoreMatch(page.text, at, at + a.quote.length, a, page.sections[at], a.section);
+    if (!best || score > best.score) best = { score, at };
+    at = page.text.indexOf(a.quote, at + 1);
   }
   if (!best) return null;
-  const first = best.block.map[best.at];
-  const last = best.block.map[best.at + a.quote.length - 1];
+  const first = page.map[best.at];
+  const last = page.map[best.at + a.quote.length - 1];
   if (!first || !last) return null;
   const r = document.createRange();
   r.setStart(first.node, first.offset);
@@ -131,22 +157,14 @@ export function rangeForThread(blocks: BlockText[], t: DocsCommentThread): Range
 }
 
 /**
- * Turn a selection inside the page body into a comment anchor.
+ * Turn a selection inside the page body into a comment anchor; it may run over several blocks.
  * @param root - Element holding the rendered page body.
  * @param range - Current selection range.
- * @returns The anchor, or null for an empty selection, one that crosses blocks or one that is too long.
+ * @returns The anchor, or null for an empty selection, one outside the page text or one that is too long.
  */
 export function anchorFromRange(root: HTMLElement, range: Range): CommentAnchorInput | null {
   if (range.collapsed || !root.contains(range.commonAncestorContainer)) return null;
-  const elOf = (n: Node) => (n instanceof Element ? n : n.parentElement)?.closest(BLOCK_SEL) ?? null;
-  const startBlock = elOf(range.startContainer);
-  const endBlock = range.endContainer === root ? null : elOf(range.endContainer);
-  // a triple click ends at the start of the next block: treat that as ending in the first one
-  const endsAtBlockStart =
-    range.endOffset === 0 && endBlock && endBlock !== startBlock && range.endContainer instanceof Text;
-  if (!startBlock || (endBlock !== startBlock && !endsAtBlockStart)) return null;
-  const block = collectBlocks(root).find((b) => b.el === startBlock);
-  if (!block) return null;
+  const page = pageText(collectBlocks(root));
   const point = (node: Node, offset: number) => {
     const r = document.createRange();
     r.setStart(node, offset);
@@ -155,17 +173,17 @@ export function anchorFromRange(root: HTMLElement, range: Range): CommentAnchorI
   };
   const sp = point(range.startContainer, range.startOffset);
   const ep = point(range.endContainer, range.endOffset);
-  let s = block.map.findIndex((m) => sp.comparePoint(m.node, m.offset) >= 0);
+  let s = page.map.findIndex((m) => m !== null && sp.comparePoint(m.node, m.offset) >= 0);
   if (s === -1) return null;
-  let e = endsAtBlockStart ? -1 : block.map.findIndex((m) => ep.comparePoint(m.node, m.offset) >= 0);
-  if (e === -1) e = block.text.length;
-  while (s < e && block.text[s] === ' ') s++;
-  while (e > s && block.text[e - 1] === ' ') e--;
+  let e = page.map.findIndex((m) => m !== null && ep.comparePoint(m.node, m.offset) >= 0);
+  if (e === -1) e = page.text.length;
+  while (s < e && page.text[s] === ' ') s++;
+  while (e > s && page.text[e - 1] === ' ') e--;
   if (e <= s || e - s > MAX_QUOTE) return null;
   return {
-    quote: block.text.slice(s, e),
-    prefix: block.text.slice(Math.max(0, s - CONTEXT), s),
-    suffix: block.text.slice(e, e + CONTEXT),
-    section: block.section,
+    quote: page.text.slice(s, e),
+    prefix: page.text.slice(Math.max(0, s - CONTEXT), s),
+    suffix: page.text.slice(e, e + CONTEXT),
+    section: page.sections[s],
   };
 }

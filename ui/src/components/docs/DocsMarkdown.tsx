@@ -249,9 +249,12 @@ export function DocsMarkdown({
                   borderRadius: 5,
                   background: '#F1F8F3',
                   textDecoration: 'none',
+                  maxWidth: 180,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Icon name="link" size={12} strokeWidth={2} />#{slug}
+                <Icon name="link" size={12} strokeWidth={2} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>#{slug}</span>
               </a>
             )}
           </h2>

@@ -5,6 +5,7 @@ import { extractError } from '../../api/extractError';
 import type { AssistDraft } from '../../types/assist';
 import { useAssist } from './AssistContext';
 import { CostChip, DraftTag, featureBlock } from './assistUi';
+import { cleanEditorMarkdown } from '../../utils/docsMarkdown';
 import './assist.css';
 
 export interface DocsAiEditor {
@@ -99,7 +100,7 @@ function DraftBlock({ d, ed, onDone }: { d: AssistDraft; ed: DocsAiEditor; onDon
     const links = (d.payload.links ?? []).filter((l) => !skipped.has(l.n));
     const accept = (ls: typeof links) =>
       run(async () => {
-        let md = ed.getMarkdown();
+        let md = cleanEditorMarkdown(ed.getMarkdown());
         for (const l of ls) md = linkPhrase(md, l.phrase, l.ref);
         ed.setMarkdown(md);
         await used({ links: ls.map((l) => l.n) });
@@ -278,7 +279,11 @@ export function DocsAi({
     setMenuOpen(false);
     setError(null);
     try {
-      await assistApi.startDraft(projectId, { kind, docId: pageId, data: { markdown: ed.getMarkdown(), ...data } });
+      await assistApi.startDraft(projectId, {
+        kind,
+        docId: pageId,
+        data: { markdown: cleanEditorMarkdown(ed.getMarkdown()), ...data },
+      });
       await drafts.refetch();
     } catch (e) {
       setError(assistError(e)?.detail ?? extractError(e));

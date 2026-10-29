@@ -24,9 +24,13 @@ Docs brought in line with the design (pages, editor, page actions, search, refer
 - References: typing a bare ticket key ("KAN-") in the editor suggests tickets; ticket chips show the ticket title; a markdown cheat sheet (reference syntax, anchors, renames) from the suggester and search help; "Open in side panel" on page hover cards; renaming a heading shows which links keep working through the redirect.
 - Delete dialog lists the pages and tickets that link to the page.
 - Diagrams: a "Drop a diagram file here" card while dragging a draw.io file onto the editor.
+- **Comments over several lines**: an inline comment can now cover a selection across paragraphs, list items or a heading, in the page and in the editor.
+- **Richer comments**: paste, drop or attach images and files, draw a diagram, and comments render full Markdown (lists, links, code, images, diagrams, page and ticket chips).
 
 ### Fixed
-- The floating selection toolbar sits above the selection again (it could appear at the top of the window, and its link field off screen).
+- Long page titles and headings use the full width: the page actions sit on the breadcrumb row, and a heading's hidden section link no longer squeezes its text.
+- Editing a page no longer saves `&` as `&amp;` (and `<`, `>` as entities) into the page, which also changed heading links.
+- The floating selection toolbar sits above the selection again (it could appear at the top of the window, and its link field off screen), and stays over the page column.
 - Table controls show only for the selected row or column and no longer cover the next paragraph; clicking a cell that contains "/" no longer opens the block menu.
 - Renaming a page keeps `[[Old title]]` references in tickets working; they show the new title.
 - Opening a heading from search scrolls to it; "Filter the tree instead" fills the tree filter; the "Link a doc" picker in tickets is full width and finds sections of linked pages.

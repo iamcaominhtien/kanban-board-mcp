@@ -60,6 +60,15 @@ const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => bool
   { label: 'Code block', run: (e) => e.chain().focus().toggleCodeBlock().run(), on: (e) => e.isActive('codeBlock') },
 ];
 
+/** The editor's scroll column, once the editor view is mounted. */
+function editorColumn(editor: Editor): Element | null {
+  try {
+    return editor.view.dom.closest('[data-testid="editor-scroll"]');
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Floating selection toolbar (DocsEditor board B): dark bubble; the link button turns it into a URL field.
  * @param props.editor - Tiptap editor the toolbar acts on.
@@ -148,7 +157,9 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
         placement: 'top',
         offset: 10,
         flip: true,
-        shift: { padding: 8 },
+        // keep the bar over the page column: centred on a selection near its left edge it would slide under the
+        // app's sidebar
+        shift: { padding: 8, boundary: editorColumn(editor) ?? 'clippingAncestors' },
         onHide: () => {
           setBlockOpen(false);
         },

@@ -271,7 +271,10 @@ export function DocsPageView({
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
-                <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                <nav
+                  aria-label="Breadcrumb"
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1, overflow: 'hidden' }}
+                >
                   <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
                   <span style={crumb}>{projectName}</span>
                   <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
@@ -294,7 +297,17 @@ export function DocsPageView({
                       <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
                     </span>
                   ))}
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1E2A22', whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: '#1E2A22',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minWidth: 0,
+                    }}
+                  >
                     {page.title}
                   </span>
                 </nav>
@@ -341,134 +354,14 @@ export function DocsPageView({
                     )}
                   </div>
                 )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <h1
-                    data-testid="page-title"
-                    style={{
-                      margin: 0,
-                      fontSize: 32,
-                      fontWeight: 800,
-                      lineHeight: 1.15,
-                      color: '#1E2A22',
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    {page.title}
-                  </h1>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    {published ? (
-                      <span
-                        className="mc-chip"
-                        style={{ background: '#DCEEE1', color: '#1F5A31' }}
-                        data-testid="status-badge"
-                      >
-                        <span className="mc-dot" style={{ background: '#2E6F40' }} />
-                        Published · v{page.version}
-                      </span>
-                    ) : (
-                      <span
-                        className="mc-chip"
-                        style={{ background: '#FCEFD9', color: '#7A4F08' }}
-                        data-testid="status-badge"
-                      >
-                        <span className="mc-dot" style={{ background: '#B4791E' }} />
-                        Draft
-                      </span>
-                    )}
-                    {showDraft && published && (
-                      <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
-                        <span className="mc-dot" style={{ background: '#2F6FB0' }} />
-                        Unpublished changes
-                      </span>
-                    )}
-                    {offline && (
-                      <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
-                        Offline copy
-                      </span>
-                    )}
-                    <div
-                      data-popover
-                      style={{
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 12.5,
-                        color: '#5B6B60',
-                      }}
-                    >
-                      <span
-                        title={actorName(who)}
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          ...av,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {initials(who)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setInfo((v) => !v)}
-                        aria-expanded={info}
-                        data-testid="page-info"
-                        style={{
-                          border: 'none',
-                          background: 'none',
-                          padding: 0,
-                          font: 'inherit',
-                          color: 'inherit',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
-                      >
-                        {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
-                        <span
-                          onMouseEnter={() => setTimeTip(true)}
-                          onMouseLeave={() => setTimeTip(false)}
-                          title={absoluteTime(whenIso)}
-                          style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
-                        >
-                          {relativeTime(whenIso)}
-                        </span>
-                      </button>
-                      {timeTip && !info && (
-                        <div
-                          className="dk-tt"
-                          role="tooltip"
-                          style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
-                        >
-                          {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
-                        </div>
-                      )}
-                      {info && (
-                        <PageInfoPopover
-                          page={page}
-                          onClose={() => setInfo(false)}
-                          onOpenHistory={() => {
-                            setInfo(false);
-                            onAction('history');
-                          }}
-                          onOpenReferences={() =>
-                            scrollRef.current
-                              ?.querySelector('[data-testid="referenced-by"]')
-                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                          }
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 2 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
+                >
                   {!offline && (
                     <button
                       type="button"
@@ -543,6 +436,139 @@ export function DocsPageView({
                           onAction(a);
                         }}
                         onClose={() => setMenu(false)}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h1
+                  data-testid="page-title"
+                  style={{
+                    margin: 0,
+                    fontSize: 32,
+                    fontWeight: 800,
+                    lineHeight: 1.15,
+                    color: '#1E2A22',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {page.title}
+                </h1>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                    marginTop: 10,
+                  }}
+                >
+                  {published ? (
+                    <span
+                      className="mc-chip"
+                      style={{ background: '#DCEEE1', color: '#1F5A31' }}
+                      data-testid="status-badge"
+                    >
+                      <span className="mc-dot" style={{ background: '#2E6F40' }} />
+                      Published · v{page.version}
+                    </span>
+                  ) : (
+                    <span
+                      className="mc-chip"
+                      style={{ background: '#FCEFD9', color: '#7A4F08' }}
+                      data-testid="status-badge"
+                    >
+                      <span className="mc-dot" style={{ background: '#B4791E' }} />
+                      Draft
+                    </span>
+                  )}
+                  {showDraft && published && (
+                    <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
+                      <span className="mc-dot" style={{ background: '#2F6FB0' }} />
+                      Unpublished changes
+                    </span>
+                  )}
+                  {offline && (
+                    <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
+                      Offline copy
+                    </span>
+                  )}
+                  <div
+                    data-popover
+                    style={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 12.5,
+                      color: '#5B6B60',
+                    }}
+                  >
+                    <span
+                      title={actorName(who)}
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        ...av,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {initials(who)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setInfo((v) => !v)}
+                      aria-expanded={info}
+                      data-testid="page-info"
+                      style={{
+                        border: 'none',
+                        background: 'none',
+                        padding: 0,
+                        font: 'inherit',
+                        color: 'inherit',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
+                      <span
+                        onMouseEnter={() => setTimeTip(true)}
+                        onMouseLeave={() => setTimeTip(false)}
+                        title={absoluteTime(whenIso)}
+                        style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
+                      >
+                        {relativeTime(whenIso)}
+                      </span>
+                    </button>
+                    {timeTip && !info && (
+                      <div
+                        className="dk-tt"
+                        role="tooltip"
+                        style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
+                      >
+                        {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
+                      </div>
+                    )}
+                    {info && (
+                      <PageInfoPopover
+                        page={page}
+                        onClose={() => setInfo(false)}
+                        onOpenHistory={() => {
+                          setInfo(false);
+                          onAction('history');
+                        }}
+                        onOpenReferences={() =>
+                          scrollRef.current
+                            ?.querySelector('[data-testid="referenced-by"]')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }
                       />
                     )}
                   </div>
