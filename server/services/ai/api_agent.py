@@ -693,7 +693,8 @@ async def execute(run_id: str, token: str, resume_note: str | None = None) -> No
                 _, p = await get_profile(session, profile.id)
                 p.last_call_at = now_iso()
                 if p.health in ("unknown", "rate_limited"):
-                    p.health, p.health_detail = "ok", None
+                    # the provider answers again: a wait still on record is over
+                    p.health, p.health_detail, p.retry_at = "ok", None, None
                 session.add(p)
                 await session.commit()
             if not reply.tool_calls:
