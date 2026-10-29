@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDocsFollowers } from '../../api/docs';
 import { countPageRefs, lineDiffCounts } from '../../utils/lineDiff';
 import { avatarColors } from './docsUi';
 import { CloseButton, DOCS_SCRIM, useEscape } from './docsShared';
@@ -6,8 +7,34 @@ import { Icon } from './Icon';
 import './docs.css';
 
 const MAX_NOTE = 200;
+const NOTE_PLACEHOLDER = 'What changed? e.g. Added the rate limiting section and linked KAN-12.';
+const NOTE_FONT = {
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  fontSize: 12.5,
+  lineHeight: 1.5,
+  padding: '8px 10px',
+} as const;
+
+/** Ticket keys (KAN-12) in a note are drawn as references, like the chips on the page. */
+function withKeys(text: string, tone: 'text' | 'hint') {
+  return text.split(/(\b[A-Z][A-Z0-9]{1,9}-\d+\b)/).map((part, i) =>
+    i % 2 ? (
+      <span
+        key={i}
+        style={{ background: '#EFE9FB', color: '#5B3FA0', borderRadius: 4, boxShadow: '0 0 0 1px #EFE9FB' }}
+      >
+        {part}
+      </span>
+    ) : (
+      <span key={i} style={tone === 'hint' ? { color: '#9AA8A0' } : undefined}>
+        {part}
+      </span>
+    ),
+  );
+}
 
 interface Props {
+  projectId: string;
   pageTitle: string;
   fromVersion: number;
   baseMarkdown: string;
@@ -21,6 +48,7 @@ interface Props {
 
 /**
  * "Publish changes" dialog (DocsEditor board E): diff summary, version note and Notify members.
+ * @param props.projectId - Project whose followers are notified.
  * @param props.fromVersion - Version the draft is based on.
  * @param props.baseMarkdown - Markdown of that version.
  * @param props.draftMarkdown - Unpublished draft, diffed against the base.
@@ -31,6 +59,7 @@ interface Props {
  * @param props.onPublish - Called with the version note and whether to notify followers.
  */
 export function PublishDialog({
+  projectId,
   pageTitle,
   fromVersion,
   baseMarkdown,
@@ -47,6 +76,9 @@ export function PublishDialog({
   const { added, removed } = lineDiffCounts(baseMarkdown, draftMarkdown);
   const refsAdded = Math.max(0, countPageRefs(draftMarkdown) - countPageRefs(baseMarkdown));
   const next = fromVersion + 1;
+  const followersQ = useDocsFollowers(projectId);
+  const followers = followersQ.data?.count ?? 0;
+  const followerNames = followersQ.data?.names ?? [];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -172,17 +204,47 @@ export function PublishDialog({
                 {note.length} / {MAX_NOTE}
               </span>
             </div>
-            <textarea
-              id="docs-version-note"
-              aria-label="Version note"
-              autoFocus
-              className="st-input"
-              value={note}
-              maxLength={MAX_NOTE}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="What changed? e.g. Added the rate limiting section and linked KAN-12."
-              style={{ minHeight: 72, lineHeight: 1.5, resize: 'vertical' }}
-            />
+            <div style={{ position: 'relative' }}>
+              <div
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  ...NOTE_FONT,
+                  border: '1px solid transparent',
+                  boxSizing: 'border-box',
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'anywhere',
+                  overflow: 'hidden',
+                  pointerEvents: 'none',
+                  color: 'transparent',
+                }}
+              >
+                {note ? (
+                  withKeys(note, 'text')
+                ) : (
+                  <span style={{ color: '#9AA8A0' }}>{withKeys(NOTE_PLACEHOLDER, 'hint')}</span>
+                )}
+              </div>
+              <textarea
+                id="docs-version-note"
+                aria-label="Version note"
+                autoFocus
+                className="st-input dk-note"
+                value={note}
+                maxLength={MAX_NOTE}
+                onChange={(e) => setNote(e.target.value)}
+                style={{
+                  minHeight: 72,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  resize: 'none',
+                  background: 'transparent',
+                  position: 'relative',
+                  ...NOTE_FONT,
+                }}
+              />
+            </div>
             <div className="st-hint">Shown in version history next to v{next}. Optional.</div>
           </div>
           <div
@@ -197,10 +259,14 @@ export function PublishDialog({
           >
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>Notify members</span>
-              <span className="st-hint">Everyone who follows this space gets a notification.</span>
+              <span className="st-hint">
+                {followers === 0
+                  ? 'No one else follows this space yet.'
+                  : `${followers} ${followers === 1 ? 'person who follows' : 'people who follow'} this space ${followers === 1 ? 'gets a notification' : 'get a notification'}.`}
+              </span>
             </div>
             <div style={{ display: 'flex', marginRight: 6 }}>
-              {['Hoa Mai', 'Tuan Vo', 'Linh Pham'].map((n) => (
+              {followerNames.map((n) => (
                 <span
                   key={n}
                   style={{ marginLeft: -6, border: '2px solid #FFFFFF', borderRadius: '50%', display: 'flex' }}

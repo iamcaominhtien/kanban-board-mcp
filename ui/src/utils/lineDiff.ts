@@ -31,7 +31,11 @@ export function lineDiffCounts(before: string, after: string): { added: number; 
   return { added: y.length - common, removed: x.length - common };
 }
 
-/** Number of distinct [[page]] references in a markdown text. */
+/** Number of distinct references in a markdown text: [[page]] links and ticket keys (KAN-12). */
 export function countPageRefs(markdown: string): number {
-  return new Set(markdown.match(/\[\[[^\]\n]+\]\]/g) ?? []).size;
+  const refs = [
+    ...(markdown.match(/\[\[[^\]\n]+\]\]/g) ?? []),
+    ...(markdown.match(/\b[A-Z][A-Z0-9]{1,9}-\d+\b/g) ?? []),
+  ];
+  return new Set(refs.map((r) => r.replace(/^\[\[|\]\]$/g, ''))).size;
 }

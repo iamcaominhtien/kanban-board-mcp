@@ -579,3 +579,58 @@ async def test_backlinks_carry_the_target_anchor_for_heading_rename_notes(c, pid
     bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
     assert [p["target_anchor"] for p in bl["pages"]] == ["Auth"]
     assert [t["target_anchor"] for t in bl["tickets"]] == ["Auth"]
+
+
+# --- last viewed version (per user) and draft autosave count ------------------
+
+
+async def _members(c, pid, *names):
+    for name in names:
+        await c.post(f"/projects/{pid}/members", json={"name": name})
+
+
+async def test_seen_version_is_per_actor(c, pid):
+    await _members(c, pid, "Ana", "Bo")
+    page = await publish(c, await mk(c, pid, "Seen"), "v1 text")
+    await publish(c, page, "v2 text")
+    url = f"/docs/pages/{page['id']}/seen"
+    ana, bo = {"x-actor": "Ana"}, {"x-actor": "Bo"}
+    assert (await c.get(url, headers=ana)).json() == {"version": None}
+    assert (await c.put(url, json={"version": 1}, headers=ana)).json() == {"version": 1}
+    assert (await c.get(url, headers=ana)).json() == {"version": 1}
+    assert (await c.get(url, headers=bo)).json() == {"version": None}
+    # clamped to the current version, and updated in place
+    assert (await c.put(url, json={"version": 99}, headers=ana)).json() == {
+        "version": 2
+    }
+    assert (await c.get(url, headers=ana)).json() == {"version": 2}
+    assert (await c.get("/docs/pages/nope/seen")).status_code == 404
+
+
+async def test_draft_counts_autosaves(c, pid):
+    page = await mk(c, pid, "Autosaves")  # creating the page starts the draft
+    url = f"/docs/pages/{page['id']}/draft"
+    first = (await c.put(url, json={"markdown": "a"})).json()
+    assert first["draft"]["saves"] == 2
+    again = (await c.put(url, json={"markdown": "ab"})).json()
+    assert again["draft"]["saves"] == 3
+
+
+async def test_followers_are_counted_without_the_caller(c, pid):
+    await _members(c, pid, "Ana", "Bo", "Cy")
+    url = f"/projects/{pid}/docs"
+    ana, bo, cy = ({"x-actor": n} for n in ("Ana", "Bo", "Cy"))
+    assert (await c.get(f"{url}/followers", headers=ana)).json() == {
+        "following": False,
+        "count": 0,
+        "names": [],
+    }
+    await c.put(f"{url}/follow", json={"on": True}, headers=ana)
+    await c.put(f"{url}/follow", json={"on": True}, headers=ana)  # idempotent
+    await c.put(f"{url}/follow", json={"on": True}, headers=bo)
+    mine = (await c.get(f"{url}/followers", headers=ana)).json()
+    assert mine == {"following": True, "count": 1, "names": ["Bo"]}
+    theirs = (await c.get(f"{url}/followers", headers=cy)).json()
+    assert theirs["following"] is False and theirs["count"] == 2
+    off = (await c.put(f"{url}/follow", json={"on": False}, headers=bo)).json()
+    assert off == {"following": False, "count": 1, "names": ["Ana"]}

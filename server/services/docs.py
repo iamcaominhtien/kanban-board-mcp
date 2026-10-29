@@ -19,6 +19,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import (
     DocsAnchorAlias,
     DocsDraft,
+    DocsFollow,
+    DocsPageSeen,
     DocsLink,
     DocsPage,
     DocsTitleAlias,
@@ -328,6 +330,7 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "title": draft.title,
                 "markdown": draft.markdown,
                 "base_version": draft.base_version,
+                "saves": draft.saves,
                 "updated_at": draft.updated_at,
                 "author": draft.author,
             }
@@ -586,6 +589,11 @@ async def list_deleted(session: AsyncSession, project_id: str) -> list[dict[str,
             [d for d in pages if d.deleted_root_id == p.id and d.id != p.id]
         )
         parent = await session.get(DocsPage, p.parent_id) if p.parent_id else None
+        children = [
+            d.title
+            for d in pages
+            if d.parent_id == p.id and d.deleted_root_id == p.id and d.id != p.id
+        ]
         out.append(
             {
                 "id": p.id,
@@ -596,6 +604,7 @@ async def list_deleted(session: AsyncSession, project_id: str) -> list[dict[str,
                 "deleted_at": p.deleted_at,
                 "deleted_by": p.deleted_by,
                 "page_count": count,
+                "child_titles": children,
                 "days_left": max(
                     0,
                     RECYCLE_DAYS
@@ -619,7 +628,14 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
     )  # late import: docs_comments builds on this module
 
     await docs_comments.delete_for_pages(session, ids)
-    for model in (DocsLink, DocsDraft, DocsVersion, DocsAnchorAlias, DocsTitleAlias):
+    for model in (
+        DocsLink,
+        DocsDraft,
+        DocsVersion,
+        DocsAnchorAlias,
+        DocsTitleAlias,
+        DocsPageSeen,
+    ):
         col = model.source_page_id if model is DocsLink else model.page_id  # type: ignore[attr-defined]
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
@@ -712,6 +728,7 @@ async def save_draft(
         )
     else:
         draft.markdown = markdown
+        draft.saves += 1
         if new_title:
             draft.title = new_title
         if base_version is not None:
@@ -720,6 +737,114 @@ async def save_draft(
     session.add(draft)
     await session.commit()
     return await page_detail(session, page_id)
+
+
+async def followers(session: AsyncSession, project_id: str) -> dict[str, Any]:
+    """Return who follows a project's Docs space.
+
+    Args:
+        project_id: Project whose space is followed.
+
+    Returns:
+        ``{"following": bool, "count": int, "names": [str]}``; ``count`` and ``names`` leave out the
+        caller, who is not notified of their own publishes (names: at most 3, for the avatars).
+    """
+    await _project(session, project_id)
+    actor = activity.current_actor()
+    rows = (
+        await session.exec(
+            select(DocsFollow)
+            .where(DocsFollow.project_id == project_id)
+            .order_by(DocsFollow.created_at)  # type: ignore[arg-type]
+        )
+    ).all()
+    others = [r.follower for r in rows if r.follower != actor]
+    return {
+        "following": any(r.follower == actor for r in rows),
+        "count": len(others),
+        "names": others[:3],
+    }
+
+
+async def set_following(
+    session: AsyncSession, project_id: str, on: bool
+) -> dict[str, Any]:
+    """Follow or unfollow a project's Docs space as the caller (idempotent).
+
+    Args:
+        project_id: Project whose space is followed.
+        on: True to follow, False to unfollow.
+
+    Returns:
+        The same payload as :func:`followers`.
+    """
+    await _project(session, project_id)
+    actor = activity.current_actor()
+    rows = (
+        await session.exec(
+            select(DocsFollow).where(
+                DocsFollow.project_id == project_id, DocsFollow.follower == actor
+            )
+        )
+    ).all()
+    if on and not rows:
+        session.add(DocsFollow(project_id=project_id, follower=actor))
+    elif not on:
+        for row in rows:
+            await session.delete(row)
+    await session.commit()
+    return await followers(session, project_id)
+
+
+async def get_seen(session: AsyncSession, page_id: str) -> dict[str, Any]:
+    """Return the version of a page the caller last viewed.
+
+    Args:
+        page_id: Page that was viewed.
+
+    Returns:
+        ``{"version": int | None}``; None when the caller has never viewed the page.
+    """
+    page = await get_page(session, page_id)
+    row = await _seen_row(session, page.id, activity.current_actor())
+    return {"version": row.version if row else None}
+
+
+async def mark_seen(
+    session: AsyncSession, page_id: str, version: int
+) -> dict[str, Any]:
+    """Record that the caller has viewed a version of a page.
+
+    Args:
+        page_id: Page that was viewed.
+        version: Latest version the caller has seen; clamped to the current version.
+
+    Returns:
+        ``{"version": int}`` as stored.
+    """
+    page = await get_page(session, page_id)
+    actor = activity.current_actor()
+    version = max(0, min(version, page.version))
+    row = await _seen_row(session, page.id, actor)
+    if row is None:
+        row = DocsPageSeen(page_id=page.id, viewer=actor, version=version)
+    else:
+        row.version = version
+        row.seen_at = _now()
+    session.add(row)
+    await session.commit()
+    return {"version": version}
+
+
+async def _seen_row(
+    session: AsyncSession, page_id: str, viewer: str
+) -> DocsPageSeen | None:
+    result = await session.exec(
+        select(DocsPageSeen).where(
+            DocsPageSeen.page_id == page_id, DocsPageSeen.viewer == viewer
+        )
+    )
+    return result.first()
 
 
 async def discard_draft(session: AsyncSession, page_id: str) -> dict[str, Any]:

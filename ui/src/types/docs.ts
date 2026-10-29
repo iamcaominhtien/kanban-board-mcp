@@ -28,6 +28,8 @@ export interface DocsDraft {
   title: string;
   markdown: string;
   baseVersion: number;
+  /** autosaves since the draft was started */
+  saves: number;
   updatedAt: string;
   author: string;
 }
@@ -110,6 +112,8 @@ export interface DocsDeletedEntry {
   deletedAt: string;
   deletedBy: string;
   pageCount: number;
+  /** titles of the pages directly under it that were deleted with it */
+  childTitles?: string[];
   daysLeft: number;
 }
 

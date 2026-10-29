@@ -50,7 +50,9 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
 
   useEffect(() => {
     titleRef.current?.focus();
-    titleRef.current?.select();
+    // caret after "Copy of …", ready to extend the name (design/screens/docs-actions.md C)
+    const n = titleRef.current?.value.length ?? 0;
+    titleRef.current?.setSelectionRange(n, n);
   }, []);
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);

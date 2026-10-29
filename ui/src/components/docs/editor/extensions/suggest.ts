@@ -32,7 +32,10 @@ export function createSuggest(o: Opts) {
           allowedPrefixes: o.allowedPrefixes === undefined ? [' '] : o.allowedPrefixes,
           startOfLine: o.startOfLine ?? false,
           ...(o.find ? { findSuggestionMatch: o.find } : null),
-          shouldShow: ({ query }) => (o.accept ? o.accept(query) : true),
+          // Only typing opens a menu: clicking or moving the caret next to existing "/tickets" text must not. Once open
+          // the menu stays through selection-only transactions (the plugin closes it when the match is gone).
+          shouldShow: ({ query, transaction }) =>
+            (transaction.docChanged || o.host.getSnapshot() !== null) && (o.accept ? o.accept(query) : true),
           allow: ({ state, range }) => {
             const $from = state.doc.resolve(range.from);
             return $from.parent.type.name !== 'codeBlock' && !$from.parent.type.spec.code;
