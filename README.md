@@ -168,5 +168,6 @@ The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) 
 - [Server README](server/README.md)
 - [UI README](ui/README.md)
 - [Architecture](docs/arch/backend-architecture.md)
+- [AI guideline (Vietnamese, PDF)](docs/guideline/ai/huong-dan-dung-ai.pdf): setup, writing prompts, assigning work, safety ([how to update](docs/guideline/README.md))
 - [Changelog](CHANGELOG.md)
 
