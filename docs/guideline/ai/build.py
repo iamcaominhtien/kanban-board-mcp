@@ -7,6 +7,7 @@ The version on the cover and in the footer comes from server/version.py. See ../
 """
 import base64
 import html
+import json
 import re
 import subprocess
 import tempfile
@@ -79,28 +80,16 @@ def ul(items: list[str]) -> str:
 
 # ---------------------------------------------------------------------------------------------- content
 
-PERSONA_PM = """Bạn là PM (quản lý dự án) của dự án này. Việc của bạn là làm cho ticket sẵn sàng để Dev làm. Bạn không viết hay sửa code.
-Với ticket mới hoặc ở Backlog:
-1) Đọc ticket và code liên quan để hiểu bối cảnh.
-2) Mô tả mơ hồ thì hỏi người tạo 2 đến 3 câu cụ thể.
-3) Viết lại mô tả theo khung: Bối cảnh, Việc cần làm, Ngoài phạm vi, Cách kiểm tra.
-4) Thêm acceptance criteria kiểm tra được, mỗi dòng một điều kiện.
-5) Đề xuất priority và estimate, mỗi cái kèm một dòng lý do.
-6) Ticket quá lớn thì tách thành ticket con, mỗi ticket Dev làm xong trong một lần chạy.
-Chỉ đưa ticket sang To Do khi đã đủ tiêu chí. Không tự giao việc: ghi trong comment nên giao cho ai.
-Trả lời bằng tiếng Việt, ngắn gọn."""
-
-PERSONA_DEV = """Bạn là Dev của dự án này. Làm đúng phạm vi ticket, thay đổi nhỏ và có chủ đích.
-Quy trình: đọc ticket và các file liên quan, viết hoặc sửa test trước nếu được, sửa code, chạy test, rồi đối chiếu từng acceptance criteria.
-Ticket thiếu acceptance criteria hoặc có hai cách hiểu: hỏi lại trước khi làm, đừng đoán.
-Chỉ sửa trong phạm vi ticket nhắc tới. Không đổi tên hay xoá API đang dùng, không thêm thư viện mới nếu ticket không yêu cầu.
-Kết thúc bằng một comment ngắn bằng tiếng Việt: đã đổi gì, ở file nào, kết quả test, điều còn nghi ngờ."""
-
-PERSONA_REVIEWER = """Bạn là Reviewer. Bạn chỉ đọc và nhận xét, không sửa code.
-Với ticket ở Review: kiểm tra từng acceptance criteria một và nêu bằng chứng (file, dòng, kết quả test).
-Tìm lỗi logic, trường hợp biên bị bỏ sót, test còn thiếu, chỗ làm hỏng hành vi cũ.
-Trả lời bằng tiếng Việt, theo mẫu: mỗi tiêu chí một dòng "đạt", "chưa đạt" hoặc "chưa rõ" kèm lý do, rồi tối đa 3 việc cần sửa quan trọng nhất.
-Không bàn về style nếu nó không gây lỗi. Nếu đủ tốt để Approve thì nói rõ "Có thể Approve" ở dòng đầu."""
+# PM, Dev and Reviewer come from the file the Add AI member dialog uses (its "Start from" roles), so they never drift
+_PRESETS = {
+    p["id"]: p
+    for p in json.loads(
+        (Path(__file__).parents[3] / "ui/src/components/ai/memberPresets.json").read_text(encoding="utf-8")
+    )
+}
+PERSONA_PM = _PRESETS["pm"]["persona"]["vi"]
+PERSONA_DEV = _PRESETS["dev"]["persona"]["vi"]
+PERSONA_REVIEWER = _PRESETS["reviewer"]["persona"]["vi"]
 
 PERSONA_GENERAL = """Bạn là General, trợ lý đa năng của dự án. Bạn xử lý việc nhỏ và việc không phải code: viết hoặc sửa tài liệu, tổng hợp thông tin, trả lời câu hỏi về dự án, việc vặt (chore).
 Chỉ đọc code, không sửa code. Việc cần sửa logic hoặc thêm tính năng thì nói rõ nên giao cho Dev.
@@ -344,16 +333,17 @@ VALUES_ROWS = [
     ["<b>2 · Working folder</b>", "Thư mục repo", "Thư mục repo", "Thư mục repo", "Một thư mục <b>trống</b> riêng, ví dụ <code>C:\\Users\\ten\\board-ai</code>"],
     ["<b>3 · Name</b>", "<code>PM</code>", "<code>Dev</code>", "<code>Reviewer</code>", "<code>General</code>"],
     ["<b>3 · Short description</b>", "Chuẩn bị ticket: làm rõ, tiêu chí, estimate, tách việc", "Làm ticket theo acceptance criteria, chạy test, báo cáo", "Review ticket ở Review theo acceptance criteria", "Trả lời câu hỏi và soạn nháp cho board"],
-    ["<b>3 · Role / persona</b>", "Dán persona PM (5.1)", "Dán persona Dev (5.2)", "Dán persona Reviewer (5.3)", "Để trống (Ask AI không dùng persona)"],
+    ["<b>3 · Role / persona</b>", "Có sẵn khi chọn Start from PM (cũng ở 5.1)", "Có sẵn khi chọn Start from Dev (5.2)", "Có sẵn khi chọn Start from Reviewer (5.3)", "Để trống (Ask AI không dùng persona)"],
     ["<b>3 · Max parallel runs</b>", "1", "1", "1", "2 (mặc định)"],
     ["<b>3 · Scheduled runs per day</b>", "10", "10", "20", "20 (mặc định)"],
     ["<b>4 · May move tickets up to</b>", "To Do", "Review", "Review", "None"],
     ["<b>4 · Ask a person first…</b>", "Bật: Change an assignee, Edit docs, Create tickets (tuần đầu)", "Bật: Change an assignee, Create tickets, Edit docs", "Giữ nguyên", "Giữ nguyên"],
-    ["<b>Sau khi tạo · Role template</b>", "Developer (giữ)", "Developer (giữ)", "<b>Reviewer</b>", "<b>Read-only</b>"],
-    ["<b>Sau khi tạo · luật CLI</b>", "Bỏ <code>Edit</code>, <code>Write</code> (3.4)", "Thêm lệnh test của bạn (4.3)", "Giữ mặc định", "—"],
+    ["<b>Role template</b>", "Developer (Start from đã đặt)", "Developer (Start from đã đặt)", "<b>Reviewer</b> (Start from đã đặt)", "<b>Read-only</b>: đặt sau khi tạo (3.4)"],
+    ["<b>Luật CLI (Allow)</b>", "Start from đã bỏ <code>Edit</code>, <code>Write</code>", "Thêm lệnh test của bạn sau khi tạo (4.3)", "Start from đã bỏ <code>Edit</code>, <code>Write</code>, giữ lệnh test", "—"],
 ]
 p_members = f"""
 <p>Cả bốn AI dùng chung một hộp thoại bốn bước. Phần này chỉ từng ô trong hộp thoại, bảng 3.3 cho giá trị điền của từng AI. <b>Tạo General trước</b>: AI đầu tiên của dự án (không tính loại “Other MCP client”) tự trở thành Board AI.</p>
+{callout("tip", "Cách nhanh: Start from", "Ở bước 3 của hộp thoại có hàng <b>Start from</b> với ba vai làm sẵn: <b>PM</b>, <b>Dev</b>, <b>Reviewer</b> (và <b>Blank</b> nếu bạn muốn tự điền). Bấm một vai là tên, mô tả, persona, giới hạn chạy, trần trạng thái, các công tắc duyệt, Role template và luật CLI của vai đó được điền sẵn; tất cả đều sửa được trước khi bấm Add. Có nút chọn ngôn ngữ của persona (English hoặc Tiếng Việt). General (Board AI) không có trong danh sách: tạo bằng Blank theo bảng 3.3.")}
 <h2>3.1 Mở hộp thoại</h2>
 <p>Bấm <b>Members</b> ở sidebar, chọn tab <b>AI</b>, rồi <b>Add AI member</b>. Hoặc vào <b>Settings → AI → Manage AI members</b>.</p>
 {fig("a03-ai-empty-state", "Trang AI members khi chưa có AI. Ba lối bắt đầu nhanh: Claude Code, Antigravity, hoặc API key.", "80%")}
@@ -366,16 +356,16 @@ p_members = f"""
 ])}
 <p><b>Lưu ý:</b> hộp thoại này <b>không có ô chọn template quyền</b>. AI mới luôn mang template <b>Developer</b>; template chỉ đổi được sau khi tạo (3.4).</p>
 {fig("a05-add-step2-connect", "Bước Connect: app thấy Claude Code CLI, phiên bản và tài khoản. Bấm Run test để chạy thử một lệnh thật.", "80%")}
-{fig("a06-add-step3-identity", "Bước Identity &amp; limits: tên không được trùng người hay AI khác; persona tối đa 1000 ký tự; giới hạn chạy.", "80%")}
+{fig("a06-add-step3-identity", "Bước Identity &amp; limits: hàng Start from (PM, Dev, Reviewer, Blank) điền sẵn cả form, ở đây là Reviewer; tên không được trùng người hay AI khác; persona tối đa 1000 ký tự; giới hạn chạy.", "80%")}
 {fig("a07-add-step4-permissions", "Bước Permissions &amp; review: trần trạng thái và các hành động phải chờ bạn duyệt.", "80%")}
 <div class="pagebreak"></div>
 <h2>3.3 Giá trị điền cho từng AI</h2>
 {table(["Ô", "PM", "Dev", "Reviewer", "General"], VALUES_ROWS, "wide values")}
 <p>Các prompt cần dán (persona, instructions) có đủ ở Phần 5.</p>
 <h2>3.4 Sau khi tạo: Role template và luật cho CLI</h2>
-<p>Mở AI member, chọn tab <b>Permissions</b>. Thẻ <b>Role template</b> có bốn lựa chọn <b>Developer</b>, <b>Reviewer</b>, <b>Read-only</b>, <b>Custom</b> (Custom cần owner). Đặt Reviewer = <b>Reviewer</b> và General = <b>Read-only</b>. Bảng <b>What it may do</b> bên dưới cho thấy từng hành động đang ở mức Allowed, Needs approval hay Blocked, và đến từ đâu.</p>
+<p>Mở AI member, chọn tab <b>Permissions</b>. Thẻ <b>Role template</b> có bốn lựa chọn <b>Developer</b>, <b>Reviewer</b>, <b>Read-only</b>, <b>Custom</b> (Custom cần owner). Đặt Reviewer = <b>Reviewer</b> (đã tự đặt nếu bạn tạo bằng Start from Reviewer) và General = <b>Read-only</b>. Bảng <b>What it may do</b> bên dưới cho thấy từng hành động đang ở mức Allowed, Needs approval hay Blocked, và đến từ đâu.</p>
 {fig("u03-role-template", "Tab Permissions: Status ceiling, Role template (Developer, Reviewer, Read-only, Custom), bảng What it may do và thẻ Scope (chọn dự án).")}
-<p><b>PM chỉ đọc code.</b> Template quyền chỉ điều khiển hành động trên ticket; việc AI sửa file do <b>luật của CLI</b> quyết định. Với PM: AI member → tab <b>Configuration → Permissions</b>, bỏ luật <code>Edit</code> và <code>Write</code>, giữ <code>Read</code>, <code>Glob</code>, <code>Grep</code> và các lệnh git đọc. Tuỳ chọn thêm: trong bảng What it may do, đặt <b>Create branches = Blocked</b>.</p>
+<p><b>PM và Reviewer chỉ đọc code.</b> Template quyền chỉ điều khiển hành động trên ticket; việc AI sửa file do <b>luật của CLI</b> quyết định. Khi tạo bằng Start from PM hoặc Reviewer, luật <code>Edit</code> và <code>Write</code> đã được bỏ sẵn. Nếu bạn tạo bằng Blank, làm thủ công như sau. Với PM: AI member → tab <b>Configuration → Permissions</b>, bỏ luật <code>Edit</code> và <code>Write</code>, giữ <code>Read</code>, <code>Glob</code>, <code>Grep</code> và các lệnh git đọc. Tuỳ chọn thêm: trong bảng What it may do, đặt <b>Create branches = Blocked</b>.</p>
 <p><b>Permission mode (Bypass permissions).</b> Cũng ở thẻ Permissions của tab Configuration có <b>Permission mode</b>. Mặc định là <b>Allow list only</b>: CLI chỉ chạy những công cụ nằm trong Allow, việc nào khác bị từ chối (ví dụ <code>touch</code> bị chặn vì Dev đang chạy ở chế độ don’t-ask). Chọn <b>Bypass permissions</b> thì CLI chạy <b>mọi công cụ</b> mà không cần Allow list. Chỉ <b>owner</b> bật được, phải gõ cụm <code>bypass permissions</code> để xác nhận, và việc bật/tắt được ghi vào audit log. Hồ sơ AI hiện chip đỏ <b>Bypass permissions</b>.</p>
 {ul([
     "Vẫn còn hiệu lực: các luật <b>Deny</b>, trần trạng thái và duyệt của board, và <b>Safe mode</b> (Safe mode thắng Bypass).",
