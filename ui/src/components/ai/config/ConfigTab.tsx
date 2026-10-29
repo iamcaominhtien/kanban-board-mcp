@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { extractError } from '../../../api/extractError';
 import type { AiConfig, AiMember } from '../../../types/ai';
 import { useToast } from '../../Toast';
-import { ProviderChip, ago } from '../aiUi';
+import { LoadError, ProviderChip, ago } from '../aiUi';
 import { HooksCard, SubagentsCard } from './AgentsHooksCards';
 import { ApiToolsCard } from './ApiToolsCard';
 import { ContextCard, DryRunCard, LimitsCard, OutputCard } from './ApiLimitsCards';
@@ -39,6 +39,7 @@ function MatrixPanel({ provider }: { provider: AiMember['provider'] }) {
   const q = useCapabilityMatrix();
   const current =
     provider === 'claude-code' || provider === 'antigravity' || provider === 'mcp-client' ? provider : 'api';
+  if (q.isError && !q.data) return <LoadError what="the adapters" error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <div className="ai-skel" style={{ height: 80 }} />;
   return (
     <div className="ai-card" style={{ padding: 12, overflowX: 'auto' }} data-testid="capability-matrix">

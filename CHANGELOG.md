@@ -15,6 +15,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 ### Fixed
 - Windows: Board AI no longer fails to load (every `/ai/assist` request raised "Invalid format string"), so **Ask AI** is back on the board, and board health insights about due dates work. Dates are formatted without the Linux-only `%-d`.
 - If Board AI cannot load its state, the **Ask AI** entry stays and the dock says what went wrong instead of disappearing; Settings → AI shows the error with Try again instead of loading forever.
+- AI screens that waited for data forever when a request failed (adapter matrix, member activity, permissions, revert previews) now show the error with Try again.
+- Windows: after a crash, a leftover Claude Code process of an interrupted run is recognised (no /proc there) and stopped.
+- AI schedules: a test command that times out is stopped with everything it started, not just its shell.
 
 ---
 

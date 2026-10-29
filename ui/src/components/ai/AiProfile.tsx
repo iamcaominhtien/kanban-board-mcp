@@ -30,6 +30,7 @@ import {
   secondsSince,
   useNow,
   whenWords,
+  LoadError,
 } from './aiUi';
 
 type Tab = 'overview' | 'configuration' | 'permissions' | 'usage' | 'activity';
@@ -833,6 +834,8 @@ function Activity({
   onOpenTicket: (id: string) => void;
 }) {
   const audit = useAiAudit(projectId, { memberId: member.id });
+  if (audit.isError && !audit.data)
+    return <LoadError what="the activity" error={audit.error} onRetry={() => void audit.refetch()} />;
   if (!audit.data) return <span className="ai-spin" />;
   return <AuditTable entries={audit.data.entries} onOpenTicket={onOpenTicket} />;
 }

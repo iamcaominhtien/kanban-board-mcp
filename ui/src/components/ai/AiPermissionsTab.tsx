@@ -5,7 +5,7 @@ import { safetyApi } from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
 import type { AiMember, PermissionMode } from '../../types/ai';
 import { useToast } from '../Toast';
-import { Toggle, STATUS_NAMES, useAiBoardState } from './aiUi';
+import { LoadError, Toggle, STATUS_NAMES, useAiBoardState } from './aiUi';
 import { MODE_LABEL, Pill, SafetyCard, dateTime } from './aiSafetyUi';
 import { ProjectsPicker } from './ProjectsPicker';
 
@@ -147,6 +147,8 @@ export function Permissions({ member }: { member: AiMember }) {
     }
   }
 
+  if (perms.isError && !perms.data)
+    return <LoadError what="the permissions" error={perms.error} onRetry={() => void perms.refetch()} />;
   if (!perms.data) return <span className="ai-spin" />;
   const data = perms.data;
   const isOwner = data.me.role === 'owner';
