@@ -1,14 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { assistApi } from '../../api/assist';
 import { extractError } from '../../api/extractError';
-import type { AssistState, ChatDetail, ChatMessage } from '../../types/assist';
+import type { AssistDraft, AssistState, ChatDetail, ChatMessage } from '../../types/assist';
 import { MarkdownRenderer } from '../MarkdownRenderer';
-import { hhmm, secondsSince } from '../ai/aiUi';
+import { AiAvatar, hhmm, secondsSince, useAiBoardState } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
 import { BoardAiAvatar, CostChip, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
 
 const SLOW_AFTER_S = 15;
+
+/** What a chat about one thing (a ticket, an idea) adds to an answer: sharing it, its run, its own draft kinds. */
+export interface AnswerPanel {
+  /** "Post as comment": resolves when the comment exists. Only offered when given. */
+  onPostComment?: (msg: ChatMessage) => Promise<void>;
+  /** Open the run a "Do the work" message started. */
+  onOpenRun?: (runId: string) => void;
+  /** "See usage" on the daily cap tile. */
+  onOpenUsage?: () => void;
+  /** A draft of a kind the panel's scope owns; return null to use the board's own draft card. */
+  renderDraft?: (draft: AssistDraft) => ReactNode | null;
+}
 
 function Steps({ steps, live }: { steps: ChatMessage['steps']; live: boolean }) {
   return (
@@ -38,13 +50,19 @@ export function AnswerBlock({
   chat,
   state,
   onSend,
+  panel,
 }: {
   msg: ChatMessage;
   chat: ChatDetail;
   state: AssistState | undefined;
   onSend: (text: string, opts?: { draft?: boolean }) => void;
+  /** Set by the chat panel of a ticket or an idea (design/screens/ai-where-you-work.md, B). */
+  panel?: AnswerPanel;
 }) {
   const ctx = useAssist();
+  const { members } = useAiBoardState();
+  const answerer = msg.memberId ? members.get(msg.memberId) : undefined;
+  const [posting, setPosting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSources, setShowSources] = useState(false);
@@ -73,6 +91,7 @@ export function AnswerBlock({
   };
   const stop = () => act(() => assistApi.stop(msg.id));
   const retry = (sendAll = false) => act(() => assistApi.retry(msg.id, sendAll));
+  const goOn = () => act(() => assistApi.retry(msg.id, false, true));
   const elapsed = secondsSince(msg.createdAt) ?? 0;
   const ctxInfo = msg.context;
 
@@ -183,6 +202,23 @@ export function AnswerBlock({
         </div>
       </div>
     );
+  } else if (msg.state === 'over_budget' && msg.error.daily) {
+    body = (
+      <div className="as-tile as-tile-warn" data-testid="answer-over-budget">
+        <div className="as-tile-title">AI is paused until tomorrow</div>
+        <div className="ai-hint">
+          The daily cap was reached. Ask-only answers and drafts stop; reading the thread still works.
+        </div>
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm"
+          style={{ alignSelf: 'flex-start' }}
+          onClick={panel?.onOpenUsage ?? ctx?.onOpenSettings}
+        >
+          See usage
+        </button>
+      </div>
+    );
   } else if (msg.state === 'over_budget') {
     const cap = (msg.error.cap as number | undefined) ?? state?.monthlyCap ?? 0;
     const spent = (msg.error.spent as number | undefined) ?? state?.usedMonth ?? 0;
@@ -208,13 +244,89 @@ export function AnswerBlock({
           <MarkdownRenderer docs={{ projectId, onOpenTicket: ctx?.onOpenTicket }}>{msg.text}</MarkdownRenderer>
         )}
         {msg.state === 'stopped' && <div className="ai-muted">Stopped · the partial answer is kept.</div>}
+        {ctxInfo.cutShort && (
+          <div className="as-tile as-tile-warn" style={{ marginTop: 8 }} data-testid="answer-cut-short">
+            <div className="as-tile-title">The reply is partial</div>
+            <div className="ai-hint">The AI hit its length limit. What it wrote is kept.</div>
+            <button
+              type="button"
+              className="ai-btn ai-btn-primary ai-btn-sm"
+              style={{ alignSelf: 'flex-start' }}
+              disabled={busy}
+              onClick={() => void goOn()}
+            >
+              Continue
+            </button>
+          </div>
+        )}
+        {ctxInfo.run && (
+          <div className="as-tile" style={{ marginTop: 8 }} data-testid="answer-run">
+            <div className="as-tile-title">Run #{ctxInfo.run.number} started</div>
+            <div className="ai-hint">
+              {ctxInfo.run.memberName} works within its limits, stops at Review and asks you before risky steps.
+            </div>
+            {panel?.onOpenRun && (
+              <button
+                type="button"
+                className="ai-btn ai-btn-sm"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={() => panel.onOpenRun?.(ctxInfo.run!.id)}
+              >
+                Open run
+              </button>
+            )}
+          </div>
+        )}
         {draft && (
           <div style={{ marginTop: 8 }}>
-            <DraftChanges
-              draftId={draft.id}
-              initial={draft}
-              onRefresh={() => void act(() => assistApi.retry(msg.id))}
-            />
+            {panel?.renderDraft?.(draft) ?? (
+              <DraftChanges
+                draftId={draft.id}
+                initial={draft}
+                onRefresh={() => void act(() => assistApi.retry(msg.id))}
+              />
+            )}
+          </div>
+        )}
+        {panel && !ctxInfo.run && msg.text && (
+          <div className="sc-share" data-testid="answer-share">
+            {panel.onPostComment &&
+              (ctxInfo.posted ? (
+                <span className="ai-muted" data-testid="answer-posted">
+                  ✓ Posted as a comment
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="as-action"
+                  disabled={posting}
+                  data-testid="answer-post-comment"
+                  onClick={async () => {
+                    setPosting(true);
+                    setError(null);
+                    try {
+                      await panel.onPostComment?.(msg);
+                    } catch (e) {
+                      setError(extractError(e));
+                    } finally {
+                      setPosting(false);
+                    }
+                  }}
+                >
+                  💬 Post as comment
+                </button>
+              ))}
+            <button
+              type="button"
+              className="as-action"
+              data-testid="answer-copy"
+              onClick={() => {
+                void navigator.clipboard?.writeText(msg.text);
+                setCopied(true);
+              }}
+            >
+              ⧉ {copied ? 'Copied' : 'Copy'}
+            </button>
           </div>
         )}
         {msg.actions.length > 0 && (
@@ -305,17 +417,19 @@ export function AnswerBlock({
             </div>
           </div>
         )}
-        <div className="as-meta">
-          <button
-            type="button"
-            className="as-ctx-chip"
-            style={{ cursor: 'pointer', maxWidth: 'none' }}
-            onClick={() => setShowSources((v) => !v)}
-          >
-            <span>🔗 {ctxInfo.label ?? 'Based on the board'}</span> ▾
-          </button>
-          <span className="ai-muted">answered {hhmm(msg.finishedAt ?? msg.createdAt)}</span>
-        </div>
+        {!ctxInfo.run && (
+          <div className="as-meta">
+            <button
+              type="button"
+              className="as-ctx-chip"
+              style={{ cursor: 'pointer', maxWidth: 'none' }}
+              onClick={() => setShowSources((v) => !v)}
+            >
+              <span>🔗 {ctxInfo.label ?? 'Based on the board'}</span> ▾
+            </button>
+            <span className="ai-muted">answered {hhmm(msg.finishedAt ?? msg.createdAt)}</span>
+          </div>
+        )}
         {showSources && (
           <div
             className="as-tile"
@@ -344,47 +458,53 @@ export function AnswerBlock({
             </div>
           </div>
         )}
-        <div className="as-meta" style={{ marginTop: 6 }}>
-          <div className="as-icons">
-            <button
-              type="button"
-              title="Copy"
-              aria-label="Copy answer"
-              onClick={() => void navigator.clipboard?.writeText(msg.text)}
-            >
-              ⧉
-            </button>
-            <button type="button" title="Regenerate" aria-label="Regenerate" onClick={() => void retry()}>
-              ↻
-            </button>
-            <button
-              type="button"
-              title="Helpful"
-              aria-label="Helpful"
-              className={thumb === 'up' ? 'as-on' : ''}
-              onClick={() => setThumb(thumb === 'up' ? null : 'up')}
-            >
-              👍
-            </button>
-            <button
-              type="button"
-              title="Not helpful"
-              aria-label="Not helpful"
-              className={thumb === 'down' ? 'as-on' : ''}
-              onClick={() => setThumb(thumb === 'down' ? null : 'down')}
-            >
-              👎
-            </button>
+        {!ctxInfo.run && (
+          <div className="as-meta" style={{ marginTop: 6 }}>
+            <div className="as-icons">
+              <button
+                type="button"
+                title="Copy"
+                aria-label="Copy answer"
+                onClick={() => void navigator.clipboard?.writeText(msg.text)}
+              >
+                ⧉
+              </button>
+              <button type="button" title="Regenerate" aria-label="Regenerate" onClick={() => void retry()}>
+                ↻
+              </button>
+              <button
+                type="button"
+                title="Helpful"
+                aria-label="Helpful"
+                className={thumb === 'up' ? 'as-on' : ''}
+                onClick={() => setThumb(thumb === 'up' ? null : 'up')}
+              >
+                👍{panel ? ' Helpful' : ''}
+              </button>
+              <button
+                type="button"
+                title="Not helpful"
+                aria-label="Not helpful"
+                className={thumb === 'down' ? 'as-on' : ''}
+                onClick={() => setThumb(thumb === 'down' ? null : 'down')}
+              >
+                👎
+              </button>
+            </div>
+            <span style={{ flex: 1 }} />
+            <CostChip cost={msg.cost} tokens={msg.tokensIn + msg.tokensOut} metered={msg.metered} />
           </div>
-          <span style={{ flex: 1 }} />
-          <CostChip cost={msg.cost} tokens={msg.tokensIn + msg.tokensOut} metered={msg.metered} />
-        </div>
+        )}
       </div>
     );
   }
   return (
     <div className="as-ai">
-      <BoardAiAvatar provider={state?.boardAi.provider} size={26} />
+      {answerer ? (
+        <AiAvatar provider={answerer.provider} color={answerer.color} glyph={answerer.glyph} size={26} />
+      ) : (
+        <BoardAiAvatar provider={state?.boardAi.provider} size={26} />
+      )}
       <div className="as-ai-body">
         {body}
         {error && <div className="ai-error-text">{error}</div>}

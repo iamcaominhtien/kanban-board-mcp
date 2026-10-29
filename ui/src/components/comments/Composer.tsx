@@ -7,9 +7,10 @@ import { DiagramIcon } from '../diagrams/DiagramIcon';
 import { useDiagramStarter } from '../diagrams/useDiagramStarter';
 import { firstDiagramFile } from '../diagrams/diagramFile';
 import { aiAvailability } from '../ai/aiAvailability';
-import { mentionedAi, type SendOpts } from '../ai/MentionIntent';
+import { mentionedAi, type MentionIntent, type SendOpts } from '../ai/MentionIntent';
+import { MentionPlan } from '../ai/MentionPlan';
 import { useAiBoardState } from '../ai/aiUi';
-import { AskSplit, SendSplit } from '../ai/ComposerAi';
+import { AskSplit } from '../ai/ComposerAi';
 import { COUNTER_FROM, MAX_COMMENT_CHARS, draftKey, readJson, writeJson, type Person } from './commentUtils';
 
 interface Chip {
@@ -119,6 +120,11 @@ export function Composer({
   const [text, setText] = useState(() => (editing ? initial : (prefill ?? readJson<string>(draftKey(ticketId), ''))));
   const { members: aiMap } = useAiBoardState();
   const mentioned = useMemo(() => mentionedAi(text, aiMap), [text, aiMap]);
+  // What a mention of an AI means: Ask only is the default, so a question never starts a run by accident
+  const [intent, setIntent] = useState<MentionIntent>('ask');
+  useEffect(() => {
+    if (mentioned.length === 0) setIntent('ask');
+  }, [mentioned.length]);
   // AI members that can answer a question now (the Ask split button), the ticket's assignee first
   const askable = useMemo(
     () =>
@@ -238,7 +244,10 @@ export function Composer({
       .map((c) => c.markdown)
       .join('\n\n');
     setMenu(null);
-    const opts = replyTo || how ? { ...how, replyTo } : undefined;
+    // a comment that mentions an AI always says what the mention means (no dialog at send time)
+    const chosen: SendOpts | undefined =
+      !editing && mentioned.length > 0 && !how?.askMemberId ? { intent, ...how } : how;
+    const opts = replyTo || chosen ? { ...chosen, replyTo } : undefined;
     onSubmit([text.trim(), extra].filter(Boolean).join('\n\n'), opts);
     if (!editing) writeJson(draftKey(ticketId), null);
   }
@@ -552,7 +561,12 @@ export function Composer({
           </div>
         )}
 
-        {!editing && text.trim() && (mentioned.length > 0 || asking) && (
+        {!editing && tab === 'write' && mentioned.length > 0 && (
+          <div style={{ paddingTop: 10, borderTop: '1px solid #EEF3EF' }}>
+            <MentionPlan ticketId={ticketId} members={mentioned} mode={intent} onMode={setIntent} />
+          </div>
+        )}
+        {!editing && text.trim() && mentioned.length === 0 && asking && (
           <div
             data-testid="comment-context-chips"
             style={{
@@ -651,25 +665,15 @@ export function Composer({
             <button type="button" className="st-btn" data-testid="comment-cancel" onClick={cancel}>
               Cancel
             </button>
-            {!editing && mentioned.length > 0 ? (
-              <SendSplit
-                open={menu === 'send'}
-                disabled={!canSend}
-                onToggle={() => setMenu(menu === 'send' ? null : 'send')}
-                onSend={() => send()}
-                onPick={(intent) => send({ intent })}
-              />
-            ) : (
-              <button
-                type="button"
-                className="st-btn st-btn-primary"
-                data-testid="comment-send"
-                disabled={!canSend}
-                onClick={() => send()}
-              >
-                {editing ? 'Save' : 'Comment'}
-              </button>
-            )}
+            <button
+              type="button"
+              className="st-btn st-btn-primary"
+              data-testid="comment-send"
+              disabled={!canSend}
+              onClick={() => send()}
+            >
+              {editing ? 'Save' : 'Comment'}
+            </button>
           </span>
         </div>
         {!editing && saved && (

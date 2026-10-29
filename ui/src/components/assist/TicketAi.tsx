@@ -4,7 +4,7 @@ import { assistApi, assistError, useAssistState, useCoverage, useDraft, useTicke
 import { extractError } from '../../api/extractError';
 import type { AssistDraft, DraftKind, Hunk } from '../../types/assist';
 import type { Ticket } from '../../types';
-import { SparkleIcon, secondsSince } from '../ai/aiUi';
+import { SparkleIcon, secondsSince, useAiBoardState } from '../ai/aiUi';
 import { shortcutLabel, useAssist } from './AssistContext';
 import { AppliedAs, BoardAiAvatar, CostChip, DraftTag, currentPerson, featureBlock } from './assistUi';
 import './assist.css';
@@ -1021,9 +1021,28 @@ export function SuggestCasesPanel({ ticket, onClose }: { ticket: Ticket; onClose
 // A4 Ticket header "AI" menu
 // ---------------------------------------------------------------------------
 
-/** The ticket header "AI" menu: Improve description, Split with AI, Suggest test cases, Ask about this ticket (A4). */
-export function TicketAiMenu({ ticket, onOpenTestCases }: { ticket: Ticket; onOpenTestCases: () => void }) {
+/**
+ * The ticket header "AI" button: it opens the chat docked in the ticket page (design/screens/ai-where-you-work.md, B);
+ * the arrow beside it keeps the menu of one-click helpers: Improve description, Split with AI, Suggest test cases (A4).
+ * Hidden when AI is turned off for the project or no AI member exists.
+ * @param props.ticket - The open ticket.
+ * @param props.onOpenTestCases - Opens the test cases tab for "Suggest test cases".
+ * @param props.chatOpen - Whether the chat panel is open (the button shows pressed).
+ * @param props.onToggleChat - Opens or closes the chat panel.
+ */
+export function TicketAiMenu({
+  ticket,
+  onOpenTestCases,
+  chatOpen = false,
+  onToggleChat,
+}: {
+  ticket: Ticket;
+  onOpenTestCases: () => void;
+  chatOpen?: boolean;
+  onToggleChat?: (open?: boolean) => void;
+}) {
   const ctx = useAssist();
+  const { members: aiMembers, settings: aiSettings } = useAiBoardState();
   const st = useAssistState(ticket.projectId);
   const [open, setOpen] = useState(false);
   const [improve, setImprove] = useState<string | null>(null);
@@ -1065,28 +1084,54 @@ export function TicketAiMenu({ ticket, onOpenTestCases }: { ticket: Ticket; onOp
       { label: 'Suggest test cases', block: cases?.reason, run: async () => onOpenTestCases() },
       {
         label: 'Ask about this ticket',
-        block: chat?.reason,
+        block: onToggleChat ? undefined : chat?.reason,
         hint: shortcutLabel(),
-        run: async () => ctx?.ask({ scope: 'ticket', ticketId: ticket.id }),
+        run: async () => (onToggleChat ? onToggleChat(true) : ctx?.ask({ scope: 'ticket', ticketId: ticket.id })),
       },
     ],
-    [drafting, splitting, cases, chat, isChild, sd, ticket.id, onOpenTestCases, ctx],
+    [drafting, splitting, cases, chat, isChild, sd, ticket.id, onOpenTestCases, ctx, onToggleChat],
   );
-  if (!st.data || st.data.boardAi.state === 'not_configured') {
-    return null;
-  }
+  // AI helpers appear when AI is on for the project and an AI member exists (design E)
+  if (aiSettings?.aiEnabled === false) return null;
+  if (!onToggleChat && (!st.data || st.data.boardAi.state === 'not_configured')) return null;
+  if (onToggleChat && aiMembers.size === 0 && (!st.data || st.data.boardAi.state === 'not_configured')) return null;
   return (
-    <div ref={ref} style={{ position: 'relative' }} className="ai-root">
+    <div ref={ref} style={{ position: 'relative', display: 'inline-flex', gap: 2 }} className="ai-root">
+      {onToggleChat && (
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm"
+          style={{
+            height: 34,
+            borderColor: chatOpen ? '#6B4FE0' : undefined,
+            color: chatOpen ? '#4B2FBF' : undefined,
+            background: chatOpen ? '#F3F0FD' : undefined,
+          }}
+          aria-pressed={chatOpen}
+          title={`AI chat about ${ticket.id} (${shortcutLabel()})`}
+          onClick={() => onToggleChat()}
+          data-testid="ticket-ai-chat"
+        >
+          <SparkleIcon size={12} /> AI
+        </button>
+      )}
       <button
         type="button"
         className="ai-btn ai-btn-sm"
-        style={{ height: 34, borderColor: open ? '#2E6F40' : undefined }}
+        style={{ height: 34, borderColor: open ? '#2E6F40' : undefined, padding: onToggleChat ? '0 7px' : undefined }}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={onToggleChat ? 'More AI helpers' : 'AI'}
         data-testid="ticket-ai-menu"
       >
-        <SparkleIcon size={12} /> AI
+        {onToggleChat ? (
+          '▾'
+        ) : (
+          <>
+            <SparkleIcon size={12} /> AI
+          </>
+        )}
       </button>
       {open && (
         <div className="as-menu" style={{ top: 40, left: 0 }} role="menu">

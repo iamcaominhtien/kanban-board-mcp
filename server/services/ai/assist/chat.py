@@ -477,10 +477,7 @@ async def _send_work(session: AsyncSession, c: AiChat, owner: str, text: str) ->
         role="ai",
         state="done",
         member_id=member.id,
-        text=(
-            f"Started run #{run.number} with {member.name} on {ticket.id}. It works through the same limits as an"
-            " assignment, stops at Review, and asks you before risky steps."
-        ),
+        text=f"Started run #{run.number} with {member.name} on {ticket.id}.",
         context=json.dumps(
             {
                 "request": {"mode": "work"},

@@ -47,3 +47,31 @@ export function aiAvailability(m: AiMember): AiAvailability {
 
 /** Colour of the status dot of a tone. */
 export const TONE_COLOR: Record<AiAvailability['tone'], string> = { ok: '#2E6F40', warn: '#B4791E', off: '#9AA8A0' };
+
+/** What an AI member can do, in the words of the @ list: "can edit code", "reads and comments". */
+export function aiCan(m: AiMember): string {
+  const writer = m.template === 'developer' || m.template === 'custom';
+  if (writer && m.connection === 'local') return 'can edit code';
+  if (writer) return 'reads, comments and edits tickets';
+  return 'reads and comments';
+}
+
+/** The sub line of an AI row in the @ list: "Local runner · online · can edit code"; a member that cannot be used says why. */
+export function aiPickerLine(m: AiMember): { line: string; chip?: string } {
+  const av = aiAvailability(m);
+  const how = m.connection === 'local' ? 'Local runner' : m.connection === 'api_key' ? 'API' : 'Inbox only';
+  if (!av.usable) {
+    const chip = m.status.code === 'paused' || m.status.code === 'paused_all' ? 'Paused' : av.label;
+    return {
+      line: m.status.code === 'paused' && m.status.detail ? m.status.detail : `${av.label} ${av.note}`.trim(),
+      chip,
+    };
+  }
+  const word =
+    m.status.code === 'running'
+      ? `running ${m.status.ticketId ?? ''}`.trim()
+      : m.status.code === 'idle' || m.status.code === 'online'
+        ? 'online'
+        : av.label.toLowerCase();
+  return { line: `${how} · ${word} · ${aiCan(m)}` };
+}

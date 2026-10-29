@@ -1,6 +1,6 @@
 import type { AiProvider, AiStatus } from './ai';
 
-export type AssistScope = 'ticket' | 'project' | 'all' | 'doc';
+export type AssistScope = 'ticket' | 'project' | 'all' | 'doc' | 'idea';
 export type FeatureKey = 'chat' | 'drafting' | 'split' | 'test_cases' | 'health' | 'docs';
 
 export interface AssistFeature {
@@ -71,6 +71,12 @@ export interface ContextSummary {
   privateSkipped: { id: string; title: string }[];
   tokens: number;
   scope?: AssistScope;
+  /** "Do the work": the run the message started. */
+  run?: { id: string; number: number; memberId: string; memberName: string };
+  /** The answer hit its length limit; Continue goes on from where it stopped. */
+  cutShort?: boolean;
+  /** Set once the answer was posted as a comment. */
+  posted?: { commentId: string; at: string; by: string };
 }
 
 export type MessageState =
@@ -115,6 +121,10 @@ export interface Chat {
   owner: string;
   title: string;
   scope: AssistScope;
+  /** The thing a scoped chat is about (ticket id, page id, idea id…). */
+  scopeId?: string | null;
+  /** The AI member that answers; null means the Board AI. */
+  memberId?: string | null;
   ticketId: string | null;
   docId: string | null;
   includeDocs: string[];
@@ -141,14 +151,22 @@ export type DraftKind =
   | 'doc_links'
   | 'doc_text'
   | 'nudge'
-  | 'assignee';
+  | 'assignee'
+  | 'editor'
+  | 'editor_doc';
 
 export interface DraftChange {
-  op: 'status' | 'priority' | 'assignee' | 'due_date' | 'estimate' | 'title' | 'comment';
+  /** The board's own kinds, or a kind that another scope adds (an idea's, for example). */
+  op:
+    'status' | 'priority' | 'assignee' | 'due_date' | 'estimate' | 'title' | 'comment' | 'add_criteria' | (string & {});
   ticket: string;
   from?: unknown;
   to?: unknown;
   text?: string;
+  /** add_criteria: the criteria to add. */
+  items?: string[];
+  /** Set when the change belongs to a scope's own kind (e.g. "idea"). */
+  scope?: string;
   fromName?: string | null;
   toName?: string | null;
 }
@@ -346,4 +364,112 @@ export interface InsightChip {
   why: string;
   insightId: string;
   kind: Insight['kind'];
+}
+
+// ---------------------------------------------------------------------------
+// Chat about one thing (design/screens/ai-where-you-work.md, B)
+// ---------------------------------------------------------------------------
+
+/** What a chat is about. `kind` is a registered scope; the ticket page uses "ticket", the idea page "idea". */
+export interface ChatScope {
+  kind: 'ticket' | 'doc' | 'idea' | (string & {});
+  id: string;
+}
+
+/** One chip of the "Reading" line: what the AI reads for this thing. */
+export interface ReadingChip {
+  kind: string;
+  label: string;
+  count?: number;
+  /** Left out (a private Doc): shown struck through. */
+  skipped?: boolean;
+}
+
+/** A button of the empty chat: one click sends `request`. */
+export interface StartingPoint {
+  label: string;
+  request: string;
+  /** The answer is a draft to apply (criteria, an idea note…), not just text. */
+  draft?: boolean;
+}
+
+export interface ChatScopeInfo {
+  kind: string;
+  id: string;
+  projectId: string;
+  title: string;
+  reading: ReadingChip[];
+  startingPoints: StartingPoint[];
+  placeholder: string;
+  /** "Do the work" can start a run from here (tickets). */
+  work: boolean;
+  /** Extra draft kinds this scope understands. */
+  draftKinds: string[];
+}
+
+export interface CostEstimate {
+  metered: boolean;
+  usd: number | null;
+  tokensIn: number;
+  tokensOut: number;
+}
+
+export type AvailabilityCode =
+  | 'ok'
+  | 'ai_off'
+  | 'viewer'
+  | 'not_configured'
+  | 'unavailable'
+  | 'over_budget'
+  | 'feature_off'
+  | 'not_shared'
+  | 'forbidden';
+
+/** Whether the person may ask now, and if not why (the states of design E). */
+export interface Availability {
+  code: AvailabilityCode;
+  message?: string;
+  /** over_budget: the daily cap (not the monthly one) was reached. */
+  daily?: boolean;
+  member?: string;
+  resets?: string;
+  status?: AiStatus | null;
+}
+
+export interface ScopeMember {
+  id: string;
+  name: string;
+  boardAi: boolean;
+  provider: AiProvider;
+  connection: 'local' | 'api_key' | 'inbox';
+  metered: boolean;
+  ready: boolean;
+  statusCode: string | null;
+  /** "Local runner · online". */
+  status: string;
+}
+
+export interface ScopeState {
+  scope: ChatScopeInfo;
+  availability: Availability;
+  members: ScopeMember[];
+  memberId: string | null;
+  estimate: CostEstimate | null;
+  work: { allowed: boolean; estimate: CostEstimate | null };
+  chatId: string | null;
+}
+
+/** What @mentioning an AI member in a comment would do (design C, step 2). */
+export interface MentionEstimate {
+  memberId: string;
+  memberName: string;
+  mode: 'ask' | 'work';
+  available: boolean;
+  reason: string | null;
+  status: string | null;
+  metered: boolean;
+  estimate: CostEstimate;
+  reads: string[];
+  canEditCode: boolean;
+  stopsAt: string;
 }

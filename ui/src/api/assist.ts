@@ -8,10 +8,13 @@ import type {
   ChatDetail,
   ChatMessage,
   Chat,
+  ChatScope,
   CoverageRow,
   DraftKind,
   HealthPanel,
   InsightChip,
+  MentionEstimate,
+  ScopeState,
   SimilarTicket,
 } from '../types/assist';
 
@@ -26,6 +29,9 @@ export const assistKeys = {
   chips: (projectId: string) => ['assist', 'chips', projectId] as const,
   coverage: (ticketId: string) => ['assist', 'coverage', ticketId] as const,
   docDrafts: (projectId: string, docId: string) => ['assist', 'doc-drafts', projectId, docId] as const,
+  scope: (kind: string, id: string) => ['assist', 'scope', kind, id] as const,
+  mention: (ticketId: string, memberId: string, mode: string) =>
+    ['assist', 'mention', ticketId, memberId, mode] as const,
 };
 
 const ACTIVE_MSG = ['queued', 'thinking', 'streaming', 'rate_limited'];
@@ -119,6 +125,39 @@ export function useCoverage(ticketId: string | undefined) {
   });
 }
 
+/**
+ * The chat panel's state for one thing (a ticket, a page, an idea): what it reads, who answers, whether the person
+ * may ask, and the cost of an answer or a run.
+ */
+export function useScopeState(scope: ChatScope | null, enabled = true) {
+  return useQuery({
+    queryKey: assistKeys.scope(scope?.kind ?? '', scope?.id ?? ''),
+    queryFn: async () => (await client.get<ScopeState>(`/ai/scopes/${scope!.kind}/${scope!.id}`)).data,
+    enabled: !!scope && enabled,
+    refetchInterval: 20000,
+  });
+}
+
+/** What mentioning an AI member would do and cost, before the comment is sent. */
+export function useMentionEstimate(
+  ticketId: string,
+  memberId: string | null | undefined,
+  mode: 'ask' | 'work',
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: assistKeys.mention(ticketId, memberId ?? '', mode),
+    queryFn: async () =>
+      (
+        await client.get<MentionEstimate>(`/tickets/${ticketId}/ai/estimate`, {
+          params: { member_id: memberId, mode },
+        })
+      ).data,
+    enabled: !!ticketId && !!memberId && enabled,
+    staleTime: 15000,
+  });
+}
+
 /** Drafts made for a doc (dashed blocks in the editor). */
 export function useDocDrafts(projectId: string, docId: string | null | undefined) {
   return useQuery({
@@ -148,15 +187,34 @@ export const assistApi = {
   deleteChat: async (id: string) => {
     await client.delete(`/ai/assist/chats/${id}`);
   },
+  /** The person's saved chat about one thing (created on first use), or a fresh one. Private to the asker. */
+  scopeChat: async (scope: ChatScope, fresh = false) =>
+    (await client.post<ChatDetail>(`/ai/scopes/${scope.kind}/${scope.id}/chat`, { fresh })).data,
   send: async (
     chatId: string,
-    body: { text: string; draft?: boolean; sendAll?: boolean; docIds?: string[]; filters?: Record<string, unknown> },
+    body: {
+      text: string;
+      draft?: boolean;
+      sendAll?: boolean;
+      docIds?: string[];
+      filters?: Record<string, unknown>;
+      /** "ask" only answers (the default); "work" starts a run on the chat's ticket. */
+      mode?: 'ask' | 'work';
+      memberId?: string | null;
+    },
   ) => (await client.post<{ user: ChatMessage; ai: ChatMessage }>(`/ai/assist/chats/${chatId}/messages`, body)).data,
+  /** Share a ticket chat answer with the team as a comment (the AI badge, who asked). */
+  postAsComment: async (messageId: string, text?: string) =>
+    (
+      await client.post<{ commentId: string; ticketId: string }>(`/ai/assist/messages/${messageId}/post-comment`, {
+        text,
+      })
+    ).data,
   stop: async (messageId: string) => (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/stop`)).data,
   feedback: async (messageId: string, thumb: 'up' | 'down' | null, reason = '') =>
     (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/feedback`, { thumb, reason })).data,
-  retry: async (messageId: string, sendAll = false) =>
-    (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/retry`, { sendAll })).data,
+  retry: async (messageId: string, sendAll = false, goOn = false) =>
+    (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/retry`, { sendAll, continue: goOn })).data,
   startDraft: async (
     projectId: string,
     body: { kind: DraftKind; ticketId?: string; docId?: string; data?: Record<string, unknown> },
