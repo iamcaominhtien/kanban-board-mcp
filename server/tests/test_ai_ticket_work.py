@@ -250,7 +250,9 @@ async def test_pause_stops_the_run_and_resume_continues_it(env, monkeypatch):
     assert r.status_code == 200 and r.json()["paused"] is True
     os_pid = (await _run(env, run["id"])).pid
     await _until(lambda: _state_is(os_pid, "T"))  # stopped
-    before = len((await _runs(c, tid))[0]["steps"])
+    before = await _settled_steps(
+        c, tid
+    )  # a line the CLI wrote just before it stopped may still arrive
     await asyncio.sleep(0.6)  # three steps of the fake CLI would have come by now
     paused = (await _runs(c, tid))[0]
     assert len(paused["steps"]) == before and paused["state"] == "running"
@@ -267,6 +269,18 @@ async def test_pause_stops_the_run_and_resume_continues_it(env, monkeypatch):
     assert r.status_code == 200 and r.json()["state"] == "cancelled"
     assert r.json()["paused"] is False
     await _until(lambda: _state_is(os_pid, None))
+
+
+async def _settled_steps(c, tid) -> int:
+    """The step count once it has stopped changing (output already in the pipe is still being read)."""
+    seen = -1
+    for _ in range(40):
+        now = len((await _runs(c, tid))[0]["steps"])
+        if now == seen:
+            return now
+        seen = now
+        await asyncio.sleep(0.25)
+    return seen
 
 
 async def _steps_over(c, tid, n):

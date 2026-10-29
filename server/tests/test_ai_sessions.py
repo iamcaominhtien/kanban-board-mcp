@@ -192,24 +192,26 @@ async def test_the_ticket_run_limit_only_guards_scheduled_and_ai_started_runs(en
     tid = await _ticket(c, pid)
     await c.patch(f"/projects/{pid}/ai/settings", json={"runs_per_ticket_per_day": 1})
     async with env["maker"]() as s:
-        for _ in range(3):  # a person can start as many as they like
-            r = await runs.create_run(
-                s, ticket_id=tid, member_id=a["id"], mode="work", trigger="assign"
+        # earlier runs are written as finished rows: the scheduler must not pick anything up while the test counts
+        for trigger, chain in (
+            ("assign", "[]"),
+            ("assign", "[]"),
+            ("assign", "[]"),
+            ("mention", json.dumps([a["id"]])),
+        ):
+            s.add(
+                AiRun(
+                    project_id=pid,
+                    ticket_id=tid,
+                    member_id=a["id"] if chain == "[]" else b["id"],
+                    mode="work",
+                    trigger=trigger,
+                    chain=chain,
+                    state="finished",
+                )
             )
-            r.state = "finished"
-            s.add(r)
-            await s.commit()
-        auto = await runs.create_run(
-            s,
-            ticket_id=tid,
-            member_id=b["id"],
-            mode="work",
-            trigger="mention",
-            chain=[a["id"]],
-        )
-        auto.state = "finished"
-        s.add(auto)
         await s.commit()
+        # three person runs are no problem; the one AI-started run used the limit of 1
         with pytest.raises(runs.RunError, match="scheduled or AI-started"):
             await runs.create_run(
                 s,
@@ -219,7 +221,7 @@ async def test_the_ticket_run_limit_only_guards_scheduled_and_ai_started_runs(en
                 trigger="mention",
                 chain=[a["id"]],
             )
-        # but the same person can still start another run
+        # but a person can still start another run
         await runs.create_run(
             s, ticket_id=tid, member_id=b["id"], mode="work", trigger="assign"
         )
