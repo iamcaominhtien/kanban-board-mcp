@@ -10,6 +10,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.8.1] - 2026-10-29
+
+### Fixed
+- Docs: the page tree rows line up with the search box (same side margins) and the left and right padding is more even; the drag handle no longer takes its own column.
+
+---
+
 ## [3.8.0] - 2026-10-29
 
 ### Added
