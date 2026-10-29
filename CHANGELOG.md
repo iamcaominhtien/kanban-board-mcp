@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-10-29
+
 ### Changed
 - **AI keeps one conversation per ticket.** An AI member (Claude Code) resumes its own last session on a ticket instead of starting fresh at every @mention, assignment or re-run; a different AI, or a different ticket, has its own. Each run also gets an "Activity since your last run" block with what the other AI members did on the ticket (who, result, files, status), so a PM asked "what has Dev done?" can answer. If the old session is gone or the CLI cannot resume it, a new one starts with a note on the run. Two runs of the same AI on the same ticket never run at the same time.
 - **Run limits only guard automatic runs.** "Max runs per day" is now **Scheduled runs per day** and counts runs a schedule starts; the board's "runs per day" (default 100, was 60) and "runs per ticket a day" (default 15, was 6) count scheduled and AI-started (@mention chain) runs. A run a person starts (@mention, assignment, Run, reply, question) is never limited by them. Settings still at the old defaults move to the new ones.

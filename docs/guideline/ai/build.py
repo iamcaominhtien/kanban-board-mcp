@@ -380,6 +380,7 @@ p_members = f"""
     "Mọi ô trong thẻ sửa được (bấm <b>Edit details</b>). Bạn nhắn tiếp (“Reviewer nghiêm hơn, dùng Sonnet”) thì AI gửi lại <b>cả đề xuất</b> đã chỉnh, thay thế bản cũ. Tích bỏ member nào chưa muốn tạo.",
     "Bấm <b>Create</b> thì board tạo bằng quyền của <b>bạn</b>, qua đúng hàm của nút Add AI member. Chỉ <b>admin hoặc owner</b> bấm được. Việc tạo được ghi audit (“tạo qua Board AI”) và có nút <b>Undo</b>.",
     "Kết nối (Claude Code, thư mục, model mặc định) được copy từ Board AI đã đề xuất. AI <b>không bao giờ</b> đặt được API key, Bypass permissions, trần trạng thái quá Review hay quyền xoá ticket: server bỏ qua những ô đó dù AI có viết vào. Board AI dùng API key thì không tạo được theo cách này (khoá không được copy); dùng hộp thoại Add AI member.",
+    "Đang ở hộp thoại <b>Add AI member</b> (bước 3)? Có ô <b>✦ Ask AI to fill this in</b> phía trên hàng Start from: mô tả member, AI điền sẵn form, nhắn tiếp để chỉnh (AI thấy cả chỗ bạn đã sửa tay). Nó chỉ điền ô, không tạo gì: bạn vẫn bấm <b>Add AI member</b>.",
     "Chưa chọn Board AI? Ask AI vẫn trả lời bằng một AI Claude Code của dự án (không bị pause) và ghi “stand-in”; nó không tự lưu thành Board AI.",
 ])}
 <h2>3.6 Working folder và những gì có sẵn trong đó</h2>
