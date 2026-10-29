@@ -11,7 +11,14 @@ PageId = Annotated[
 ]
 
 DocsReadAction = Literal[
-    "list", "get", "search", "versions", "version", "recycle_bin", "check_links"
+    "list",
+    "get",
+    "search",
+    "versions",
+    "version",
+    "recycle_bin",
+    "check_links",
+    "comments",
 ]
 
 DOCS_READ_OPS = {
@@ -22,6 +29,7 @@ DOCS_READ_OPS = {
     "version": Op(ops.get_docs_version, ("page_id", "version"), ("compare_to",)),
     "recycle_bin": Op(ops.list_docs_recycle_bin, ("project_id",)),
     "check_links": Op(ops.resolve_docs_links, ("project_id", "refs")),
+    "comments": Op(ops.list_docs_comments, ("page_id",), ("state",)),
 }
 
 
@@ -61,6 +69,10 @@ async def docs_read(
             description="version: another version number; returns a line diff `version` -> `compare_to` instead."
         ),
     ] = None,
+    state: Annotated[
+        Literal["all", "open", "resolved"] | None,
+        Field(description="comments: inline threads to list (default all)."),
+    ] = None,
     refs: Annotated[
         list[str] | None,
         Field(
@@ -75,7 +87,8 @@ async def docs_read(
     - versions: page_id. Published versions, newest first: [{version, author, note, created_at, words}].
     - version: page_id, version [, compare_to]. One old version's markdown, or a line diff between two versions.
     - recycle_bin: project_id. Deleted pages still restorable (30 days): [{id, title, page_count, deleted_at, deleted_by, days_left}].
-    - check_links: project_id, refs. Whether [[page]] / ticket references resolve: ok, missing, section_missing, in_bin or ambiguous."""
+    - check_links: project_id, refs. Whether [[page]] / ticket references resolve: ok, missing, section_missing, in_bin or ambiguous.
+    - comments: page_id [, state]. {threads: [{id, kind: inline|page, status, quote, anchor_state, comments: [{id, author, body}]}], counts}."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 
@@ -88,6 +101,12 @@ DocsWriteAction = Literal[
     "restore",
     "restore_version",
     "import",
+    "comment",
+    "reply",
+    "edit_comment",
+    "delete_comment",
+    "resolve",
+    "reopen",
 ]
 
 DOCS_WRITE_OPS = {
@@ -107,6 +126,12 @@ DOCS_WRITE_OPS = {
     "restore": Op(ops.restore_docs_page, ("page_id",)),
     "restore_version": Op(ops.restore_docs_version, ("page_id", "version")),
     "import": Op(ops.import_docs, ("project_id", "path"), ("parent_id",)),
+    "comment": Op(ops.add_docs_comment, ("page_id", "body"), ("quote",)),
+    "reply": Op(ops.reply_docs_comment, ("thread_id", "body")),
+    "edit_comment": Op(ops.edit_docs_comment, ("comment_id", "body")),
+    "delete_comment": Op(ops.delete_docs_comment, ("comment_id",)),
+    "resolve": Op(ops.resolve_docs_comment, ("thread_id",)),
+    "reopen": Op(ops.reopen_docs_comment, ("thread_id",)),
 }
 
 
@@ -167,6 +192,26 @@ async def docs_write(
             description="restore_version: version number to publish again (from docs_read(versions))."
         ),
     ] = None,
+    body: Annotated[
+        str | None,
+        Field(
+            description="comment, reply, edit_comment: comment text (Markdown; @Name mentions a member)."
+        ),
+    ] = None,
+    quote: Annotated[
+        str | None,
+        Field(
+            description="comment: exact page text to attach to (within one block); omit to comment on the page."
+        ),
+    ] = None,
+    thread_id: Annotated[
+        str | None,
+        Field(description="reply, resolve, reopen: thread id."),
+    ] = None,
+    comment_id: Annotated[
+        str | None,
+        Field(description="edit_comment, delete_comment: comment id."),
+    ] = None,
     path: Annotated[
         str | None,
         Field(
@@ -183,5 +228,9 @@ async def docs_write(
     - restore: page_id. Brings a deleted page (with the sub-pages deleted with it) back.
     - restore_version: page_id, version. Publishes an old version again as a new one (history is kept). Returns {id, title, version}.
     - import: project_id, path [, parent_id]. Local Markdown files become new draft pages, folders a tree. Returns {created, failed}.
+    - comment: page_id, body [, quote]. A comment on selected text (quote) or on the whole page. Returns the thread.
+    - reply: thread_id, body. Reply in a thread.
+    - edit_comment [, body] / delete_comment: comment_id. Own comments only; deleting a thread's first comment removes the thread.
+    - resolve / reopen: thread_id (inline threads).
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     return await dispatch("docs_write", DOCS_WRITE_OPS, action, params_of(locals()))

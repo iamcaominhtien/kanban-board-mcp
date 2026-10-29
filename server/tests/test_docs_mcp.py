@@ -84,3 +84,62 @@ async def test_search_resolve_import_and_ticket_links(c, pid, tmp_path):
     await ops.unlink_ticket_doc(key, page["id"])
     docs = (await c.get(f"/tickets/{key}/docs")).json()
     assert not any(d["origin"] == "manual" for d in docs)
+
+
+async def test_agent_comments_on_a_page_through_the_docs_tools(c, pid):
+    from kanban_mcp.tools.docs import docs_read, docs_write
+
+    page = await ops.create_docs_page(
+        pid, "Runbook", "## Steps\n\nRestart the **worker** before deploying.\n"
+    )
+    pg = page["id"]
+
+    inline = await docs_write(
+        "comment", page_id=pg, body="Which worker?", quote="Restart the worker"
+    )
+    assert inline["kind"] == "inline" and inline["number"] == 1
+    assert inline["comments"][0]["author"] == "agent"
+    whole = await docs_write("comment", page_id=pg, body="Needs an owner")
+    assert whole["kind"] == "page"
+
+    # a quote that is not in the page is refused with a hint
+    with pytest.raises(ValueError, match="not in the published page"):
+        await docs_write("comment", page_id=pg, body="x", quote="nothing like this")
+
+    # a person replies through the REST API; the agent sees it and answers
+    r = await c.post(
+        f"/docs/comments/threads/{inline['id']}/replies",
+        json={"body": "The queue worker."},
+        headers={"x-actor": "user"},
+    )
+    assert r.status_code == 201
+    listed = await docs_read("comments", page_id=pg)
+    assert listed["counts"]["page"] == 1 and listed["counts"]["open"] == 1
+    thread = next(t for t in listed["threads"] if t["id"] == inline["id"])
+    assert [x["author"] for x in thread["comments"]] == ["agent", "user"]
+    assert "can_edit" not in thread["comments"][0]
+
+    reply = await docs_write("reply", thread_id=inline["id"], body="Thanks")
+    assert len(reply["comments"]) == 3
+    own = reply["comments"][2]["id"]
+    edited = await docs_write("edit_comment", comment_id=own, body="Thanks!")
+    assert edited["comments"][2]["body"] == "Thanks!"
+    # the agent cannot edit a person's comment
+    with pytest.raises(Exception, match="own comments"):
+        await docs_write(
+            "edit_comment", comment_id=thread["comments"][1]["id"], body="no"
+        )
+
+    resolved = await docs_write("resolve", thread_id=inline["id"])
+    assert resolved["status"] == "resolved" and resolved["resolved_by"] == "agent"
+    assert (await docs_read("comments", page_id=pg, state="open"))["counts"][
+        "open"
+    ] == 0
+    reopened = await docs_write("reopen", thread_id=inline["id"])
+    assert reopened["status"] == "open"
+
+    deleted = await docs_write("delete_comment", comment_id=own)
+    assert deleted["deleted"] == "comment"
+    # the pages' events say who to notify
+    ev = (await c.get(f"/projects/{pid}/docs/comment-events?recipient=user")).json()
+    assert ev and all(e["actor"] == "agent" for e in ev[:1])
