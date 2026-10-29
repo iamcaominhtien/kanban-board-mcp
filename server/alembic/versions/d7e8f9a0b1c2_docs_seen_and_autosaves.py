@@ -1,0 +1,57 @@
+"""docs: per-user last viewed version (docs_page_seen), docs_follow and docs_draft.saves
+
+Revision ID: d7e8f9a0b1c2
+Revises: c6d7e8f9a0b1
+Create Date: 2026-10-29 01:00:00.000000
+
+"""
+
+from typing import Sequence, Union
+
+import sqlalchemy as sa
+import sqlmodel
+from alembic import op
+
+revision: str = "d7e8f9a0b1c2"
+down_revision: Union[str, Sequence[str], None] = "c6d7e8f9a0b1"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+_S = sqlmodel.sql.sqltypes.AutoString
+
+
+def upgrade() -> None:
+    op.create_table(
+        "docs_page_seen",
+        sa.Column("id", _S(), nullable=False),
+        sa.Column("page_id", _S(), nullable=False),
+        sa.Column("viewer", _S(), nullable=False),
+        sa.Column("version", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("seen_at", _S(), nullable=False),
+        sa.ForeignKeyConstraint(["page_id"], ["docs_page.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_docs_page_seen_page_id", "docs_page_seen", ["page_id"])
+    op.create_table(
+        "docs_follow",
+        sa.Column("id", _S(), nullable=False),
+        sa.Column("project_id", _S(), nullable=False),
+        sa.Column("follower", _S(), nullable=False),
+        sa.Column("created_at", _S(), nullable=False),
+        sa.ForeignKeyConstraint(["project_id"], ["project.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_docs_follow_project_id", "docs_follow", ["project_id"])
+    op.add_column(
+        "docs_draft",
+        sa.Column("saves", sa.Integer(), nullable=False, server_default="1"),
+    )
+
+
+def downgrade() -> None:
+    with op.batch_alter_table("docs_draft") as batch:
+        batch.drop_column("saves")
+    op.drop_index("ix_docs_follow_project_id", table_name="docs_follow")
+    op.drop_table("docs_follow")
+    op.drop_index("ix_docs_page_seen_page_id", table_name="docs_page_seen")
+    op.drop_table("docs_page_seen")

@@ -20,14 +20,14 @@ from models import (
     DocsPage,
     Member,
 )
-from services import activity
+from services import activity, docs_access
 from services import docs_anchors as anchors
 from services.docs import _latest_version, get_page
 from services.docs_text import DocsError
 
 MAX_BODY = 4000
 SNIPPET = 140
-ROLES = ("viewer", "member", "admin")
+ROLES = docs_access.ROLES
 STATES = ("all", "open", "resolved")
 
 
@@ -38,25 +38,8 @@ def _now() -> str:
 # --- people and permissions -------------------------------------------------
 
 
-async def _members(session: AsyncSession, project_id: str) -> list[Member]:
-    rows = await session.exec(select(Member).where(Member.project_id == project_id))
-    return list(rows.all())
-
-
-def role_in(members: list[Member], actor: str) -> str:
-    """Return the Docs role of an actor.
-
-    The board's own user (``user``) is an admin and the AI agent (``agent``) a member. Anyone else is
-    looked up by name among the project's members; a name that is not a member can only read.
-    """
-    if actor == activity.HUMAN_ACTOR:
-        return "admin"
-    if actor == activity.AGENT_ACTOR:
-        return "member"
-    for m in members:
-        if m.name.casefold() == actor.casefold():
-            return m.role if m.role in ROLES else "member"
-    return "viewer"
+_members = docs_access.members_of
+role_in = docs_access.role_in
 
 
 def _need_member(role: str) -> None:
@@ -74,6 +57,23 @@ _MEMBER_LINK = re.compile(r"@\[([^\]\n]{1,200})\]\(member:([\w-]{1,64})\)")
 def plain_mentions(body: str) -> str:
     """Show ``@[Name](member:id)`` mentions (what the mention picker inserts) as ``@Name``."""
     return _MEMBER_LINK.sub(lambda m: "@" + m.group(1), body)
+
+
+_IMAGE = re.compile(r"!\[([^\]\n]{0,200})\]\(([^()\s]{0,500})\)")
+_LINK = re.compile(r"(?<!!)\[([^\]\n]{1,200})\]\(([^()\s]{0,500})\)")
+
+
+def snippet_of(body: str) -> str:
+    """One-line preview of a comment for notifications: mentions as ``@Name``, images and diagrams as words."""
+    text = plain_mentions(body)
+    text = _IMAGE.sub(
+        lambda m: "[diagram]" if m.group(2).startswith("diagram:") else "[image]", text
+    )
+    text = _LINK.sub(
+        lambda m: "[diagram]" if m.group(2).startswith("diagram:") else m.group(1),
+        text,
+    )
+    return " ".join(text.split())[:SNIPPET]
 
 
 def mentions_in(body: str, members: list[Member]) -> list[Member]:
@@ -366,9 +366,7 @@ async def _record_event(
             r.casefold() for r in recipients
         }:
             recipients.append(p)
-    snippet = plain_mentions(comment.body if comment else (thread.anchor_quote or ""))[
-        :SNIPPET
-    ]
+    snippet = snippet_of(comment.body if comment else (thread.anchor_quote or ""))
     session.add(
         DocsCommentEvent(
             project_id=page.project_id,

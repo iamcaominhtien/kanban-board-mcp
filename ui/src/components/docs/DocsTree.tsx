@@ -13,6 +13,8 @@ interface Props {
   loadingId?: string | null;
   onSelect: (id: string) => void;
   onNewPage: (parentId: string | null) => void;
+  /** The reader can't edit this space: no add buttons. */
+  readOnly?: boolean;
   /** Rename inline: the tree asks the lead to decide between a plain rename and the rewrite-links dialog. */
   onRequestRename: (node: DocsTreeNode, title: string) => void;
   /** Controlled inline rename (F2 or the row menu). */
@@ -30,6 +32,8 @@ interface Props {
   renderMenu: (node: DocsTreeNode, close: () => void) => ReactNode;
   /** Enter in the filter / "Search page content". */
   onOpenSearch?: (query: string) => void;
+  /** Fill the filter box from outside (the palette's "Filter the tree instead"); a new `n` re-applies it. */
+  filterRequest?: { q: string; n: number } | null;
   /** Slot in the header, next to the collapse button (Follow space). */
   headerExtra?: ReactNode;
 }
@@ -204,6 +208,7 @@ function highlight(text: string, q: string): ReactNode {
  * @param props.loadingId - Page whose content is loading (row spinner).
  * @param props.onSelect - Called with the id of the clicked page.
  * @param props.onNewPage - Called with the parent page id, or `null` for a root page.
+ * @param props.readOnly - Hides the add-page buttons when the reader can't edit the space.
  * @param props.onRequestRename - Called with the node and typed title; the lead decides between a plain rename and the rewrite-links dialog.
  * @param props.renamingId - Page being renamed inline (controlled), or `null`.
  * @param props.onRenamingChange - Called to start or stop inline rename.
@@ -211,6 +216,7 @@ function highlight(text: string, q: string): ReactNode {
  * @param props.onCollapse - Called to collapse the tree.
  * @param props.renderMenu - Renders the row "···" menu content; `close` dismisses the menu.
  * @param props.onOpenSearch - Called with the filter text on Enter or "Search page content".
+ * @param props.filterRequest - Sets the filter text and focuses the box when its `n` changes.
  * @param props.headerExtra - Slot in the header next to the collapse button.
  */
 export function DocsTree({
@@ -221,6 +227,7 @@ export function DocsTree({
   loadingId,
   onSelect,
   onNewPage,
+  readOnly,
   onRequestRename,
   renamingId,
   onRenamingChange,
@@ -228,6 +235,7 @@ export function DocsTree({
   onCollapse,
   renderMenu,
   onOpenSearch,
+  filterRequest,
   headerExtra,
 }: Props) {
   const storageKey = `docsTreeClosed:${projectId}`;
@@ -360,6 +368,12 @@ export function DocsTree({
       return next;
     });
   }
+
+  useEffect(() => {
+    if (!filterRequest) return;
+    setFilter(filterRequest.q);
+    filterRef.current?.focus();
+  }, [filterRequest]);
 
   // "/" focuses the filter when focus is not in a field
   useEffect(() => {
@@ -702,19 +716,21 @@ export function DocsTree({
           )}
           {!renaming && (
             <span className="dk-tree-actions">
-              <button
-                type="button"
-                title="Add child page"
-                aria-label={`Add child page under ${n.title}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNewPage(n.id);
-                }}
-                className="dk-icobtn"
-                style={{ width: 22, height: 22, borderRadius: 5 }}
-              >
-                <Icon name="plus" size={14} strokeWidth={2} />
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  title="Add child page"
+                  aria-label={`Add child page under ${n.title}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNewPage(n.id);
+                  }}
+                  className="dk-icobtn"
+                  style={{ width: 22, height: 22, borderRadius: 5 }}
+                >
+                  <Icon name="plus" size={14} strokeWidth={2} />
+                </button>
+              )}
               <button
                 type="button"
                 title="More"
@@ -966,32 +982,34 @@ export function DocsTree({
           </div>
         )}
       </div>
-      <div style={{ padding: '8px 10px 14px' }}>
-        <button
-          type="button"
-          onClick={() => onNewPage(null)}
-          data-testid="tree-new-page"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            width: '100%',
-            padding: '7px 10px',
-            borderRadius: 8,
-            border: '1px dashed #C7D2CB',
-            background: 'none',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: '#2E6F40',
-            textAlign: 'left',
-          }}
-        >
-          <Icon name="plus" size={12} strokeWidth={2.6} />
-          New page
-        </button>
-      </div>
+      {!readOnly && (
+        <div style={{ padding: '8px 10px 14px' }}>
+          <button
+            type="button"
+            onClick={() => onNewPage(null)}
+            data-testid="tree-new-page"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              width: '100%',
+              padding: '7px 10px',
+              borderRadius: 8,
+              border: '1px dashed #C7D2CB',
+              background: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: '#2E6F40',
+              textAlign: 'left',
+            }}
+          >
+            <Icon name="plus" size={12} strokeWidth={2.6} />
+            New page
+          </button>
+        </div>
+      )}
 
       {menu && byId.get(menu.id) && (
         <div

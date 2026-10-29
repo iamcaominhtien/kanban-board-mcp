@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { docsErrorDetail, useDiscardDraft, usePublishPage, useSaveDraft } from '../../api/docs';
+import { docsErrorDetail, useDiscardDraft, useMarkDocsSeen, usePublishPage, useSaveDraft } from '../../api/docs';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { useToast } from '../Toast';
 import { ConflictBanner } from './ConflictBanner';
+import { HeadingRenameNote } from './HeadingRenameNote';
 import { DiscardDialog } from './DiscardDialog';
 import { previewOrphans } from '../../api/docsComments';
 import { getAvatarColors } from '../MemberAvatar';
@@ -17,7 +18,7 @@ import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorRep
 import { Icon } from './Icon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
 import { PublishDialog } from './PublishDialog';
-import { markDocsSeen } from './SinceViewedBanner';
+import { lineDiffCounts } from '../../utils/lineDiff';
 import { markOwnPublish } from './useDocsNotifications';
 import './docs.css';
 import { DocsAi, startSelectionDraft } from '../assist/DocsAi';
@@ -26,6 +27,8 @@ import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
   projectId: string;
+  /** Space root shown first in the breadcrumb. */
+  projectName?: string;
   page: DocsPage;
   nodes: DocsTreeNode[];
   onExit: (page?: DocsPage) => void;
@@ -44,6 +47,7 @@ const offlineKey = (pageId: string) => `docsOfflineDraft:${pageId}`;
 /**
  * Full-screen page editor with Publish, Discard and conflict handling.
  * @param props.projectId - Project the page belongs to.
+ * @param props.projectName - Space root shown first in the breadcrumb.
  * @param props.page - Page being edited.
  * @param props.nodes - Page tree, used for `[[` suggestions.
  * @param props.onExit - Called when leaving the editor; receives the updated page after Publish, nothing after Discard.
@@ -54,6 +58,7 @@ const offlineKey = (pageId: string) => `docsOfflineDraft:${pageId}`;
  */
 export function DocsEditScreen({
   projectId,
+  projectName,
   page,
   nodes,
   onExit,
@@ -68,6 +73,7 @@ export function DocsEditScreen({
   const [aiMenu, setAiMenu] = useState(false);
   const saveDraft = useSaveDraft(projectId);
   const publish = usePublishPage(projectId);
+  const markSeen = useMarkDocsSeen();
   const discard = useDiscardDraft(projectId);
   const { online, setOnline, justBack, clearJustBack } = useOnline();
 
@@ -265,7 +271,7 @@ export function DocsEditScreen({
       }
       setPublishOpen(false);
       setConflict(null);
-      markDocsSeen(page.id, updated.version);
+      markSeen(page.id, updated.version);
       toast.success(`Published v${updated.version}`, updated.title);
       onExit(updated);
     } catch (err) {
@@ -297,6 +303,14 @@ export function DocsEditScreen({
     }
   }
 
+  // lines this edit changed against the version it started from (the conflict banner quotes it)
+  const ownLines = conflict
+    ? (() => {
+        const d = lineDiffCounts(baseMarkdown, markdown);
+        return d.added + d.removed;
+      })()
+    : undefined;
+
   const openPublish = () => {
     if (conflict || !online) return;
     void flush().then(async () => {
@@ -314,14 +328,58 @@ export function DocsEditScreen({
     });
   };
 
+  // From the first keystroke until the autosave lands the draft is not up to date: "Saving…" (design/docs-editor A).
+  // A keystroke that changed nothing never reaches touch(): settle the label again.
+  useEffect(() => {
+    if (saveState !== 'dirty') return;
+    const t = setTimeout(() => {
+      if (!dirty.current) setSaveState('saved');
+    }, AUTOSAVE_MS + 1500);
+    return () => clearTimeout(t);
+  }, [saveState]);
+
+  // Cmd/Ctrl+S saves the draft now, Cmd/Ctrl+Enter opens Publish, Cmd/Ctrl+Shift+M flips Visual/Markdown.
+  // Captured before the editor sees the key (Mod-Enter would otherwise leave a code block or add a break).
+  const keys = useRef({ openPublish, flush, mode, blocked: false });
+  keys.current = {
+    openPublish,
+    flush,
+    mode,
+    blocked: publishOpen || discardOpen || Boolean(orphans) || Boolean(compose),
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.isComposing) return;
+      const k = e.key.toLowerCase();
+      const act =
+        k === 's' && !e.shiftKey
+          ? 'save'
+          : k === 'enter' && !e.shiftKey
+            ? 'publish'
+            : k === 'm' && e.shiftKey
+              ? 'mode'
+              : null;
+      if (!act) return;
+      e.preventDefault();
+      if (keys.current.blocked) return;
+      e.stopPropagation();
+      if (act === 'save') void keys.current.flush();
+      else if (act === 'publish') keys.current.openPublish();
+      else {
+        editor.current?.flush();
+        setMode(keys.current.mode === 'visual' ? 'markdown' : 'visual');
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, []);
+
   const saveLabel =
-    saveState === 'saving'
+    saveState === 'saving' || saveState === 'dirty'
       ? 'Saving…'
       : saveState === 'error'
         ? 'Not saved — will retry'
-        : saveState === 'dirty'
-          ? 'Unsaved changes'
-          : 'Saved';
+        : 'Saved';
 
   return (
     <div
@@ -344,6 +402,12 @@ export function DocsEditScreen({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+            {projectName && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{projectName}</span>
+                <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
+              </span>
+            )}
             {page.path.map((p) => (
               <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
                 <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{p.title}</span>
@@ -402,7 +466,7 @@ export function DocsEditScreen({
                 color: saveState === 'error' ? '#C4432A' : saveState === 'saved' ? '#2E6F40' : '#5B6B60',
               }}
             >
-              {saveState === 'saving' ? (
+              {saveState === 'saving' || saveState === 'dirty' ? (
                 <span className="mc-spin" />
               ) : saveState === 'saved' ? (
                 <Icon name="i17" size={14} />
@@ -489,6 +553,7 @@ export function DocsEditScreen({
             latestVersion={conflict.latestVersion}
             latestAuthor={conflict.latestAuthor}
             latestAt={conflict.latestAt}
+            ownLines={ownLines}
             busy={publish.isPending}
             onKeepMine={() => void doPublish('', false, conflict.latestVersion)}
             onReload={() => void doDiscard()}
@@ -496,6 +561,7 @@ export function DocsEditScreen({
         )}
         {!online && <OfflineBanner onRetry={() => void flush().then((ok) => ok && setOnline(true))} />}
         {online && justBack && <BackOnlineBanner onDismiss={clearJustBack} />}
+        <HeadingRenameNote pageId={page.id} published={page.headings} markdown={markdown} />
         {error && !publishOpen && (
           <div role="alert" style={{ padding: '8px 24px', background: '#FBE7E4', color: '#A5321E', fontSize: 12.5 }}>
             {error}
@@ -530,6 +596,8 @@ export function DocsEditScreen({
               onBlur={() => void flush()}
               onUserInput={() => {
                 userInput.current = true;
+                // the editor reports changes after a short debounce: flag the draft as behind right away
+                setSaveState((s) => (s === 'saved' ? 'dirty' : s));
               }}
               ai={{
                 onAsk: () => setAiMenu((v) => !v),
@@ -620,6 +688,7 @@ export function DocsEditScreen({
 
       {publishOpen && (
         <PublishDialog
+          projectId={projectId}
           pageTitle={title || page.title}
           fromVersion={baseVersion}
           baseMarkdown={baseMarkdown}

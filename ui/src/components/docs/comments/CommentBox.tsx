@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useProject } from '../../../api/projects';
+import { uploadAnyFile } from '../../../api/tickets';
+import { extractError } from '../../../api/extractError';
+import { DiagramIcon } from '../../diagrams/DiagramIcon';
+import { firstDiagramFile } from '../../diagrams/diagramFile';
+import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { RefSuggester, type SuggestMember } from '../RefSuggester';
 import { Icon } from '../Icon';
 
@@ -23,7 +28,8 @@ interface Props {
 const MAX = 4000;
 
 /**
- * The comment box: markdown shortcuts, @mention / [[Page]] / ticket-key suggestions, Enter to post, Esc to cancel.
+ * The comment box: markdown shortcuts, @mention / [[Page]] / ticket-key suggestions, images and files (paste, drop
+ * or Attach), draw.io diagrams, Enter to post, Esc to cancel.
  * @param props.projectId - Project whose members, pages and tickets are suggested.
  * @param props.members - Members offered after `@`.
  * @param props.initial - Starting text (editing).
@@ -52,6 +58,9 @@ export function CommentBox({
   const [failed, setFailed] = useState(false);
   const [focused, setFocused] = useState(!compact);
   const ta = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploads, setUploads] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const project = useProject(projectId);
 
   useEffect(() => {
@@ -85,7 +94,33 @@ export function CommentBox({
     });
   }
 
-  const canSend = !!text.trim() && text.length <= MAX && !busy;
+  /** Put a block (image, file link, diagram) on its own line at the caret. */
+  function insertBlock(md: string) {
+    const el = ta.current;
+    const value = el?.value ?? text;
+    const a = el?.selectionStart ?? value.length;
+    const b = el?.selectionEnd ?? value.length;
+    const lead = a > 0 && value[a - 1] !== '\n' ? '\n' : '';
+    const token = `${lead}${md}\n`;
+    setText(value.slice(0, a) + token + value.slice(b));
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(a + token.length, a + token.length);
+    });
+  }
+  function addFiles(files: FileList | File[]) {
+    setUploadError(null);
+    for (const file of Array.from(files)) {
+      setUploads((n) => n + 1);
+      uploadAnyFile(file)
+        .then((res) => insertBlock(res.markdown))
+        .catch((err) => setUploadError(`${file.name}: ${extractError(err)}`))
+        .finally(() => setUploads((n) => n - 1));
+    }
+  }
+  const diagram = useDiagramStarter({ projectId, saveTo: 'Docs comment', itemKind: 'comment', onInsert: insertBlock });
+
+  const canSend = !!text.trim() && text.length <= MAX && !busy && uploads === 0;
   async function send() {
     if (!canSend) return;
     setBusy(true);
@@ -133,6 +168,28 @@ export function CommentBox({
         placeholder={placeholder}
         aria-label={placeholder}
         onChange={(e) => setText(e.target.value)}
+        onPaste={(e) => {
+          const files = Array.from(e.clipboardData.files);
+          if (files.length) {
+            e.preventDefault();
+            addFiles(files);
+          }
+        }}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+        }}
+        onDrop={(e) => {
+          const dg = diagram.available ? firstDiagramFile(e.dataTransfer.files) : null;
+          if (dg) {
+            e.preventDefault();
+            e.stopPropagation();
+            void diagram.startImport(dg);
+          } else if (e.dataTransfer.files.length) {
+            e.preventDefault();
+            e.stopPropagation();
+            addFiles(e.dataTransfer.files);
+          }
+        }}
         onBlur={() => {
           if (compact && !text.trim()) setFocused(false);
         }}
@@ -148,6 +205,21 @@ export function CommentBox({
           }
         }}
       />
+      {(uploads > 0 || uploadError) && (
+        <div
+          className={uploadError ? 'dc-failed' : 'dc-uploading'}
+          role={uploadError ? 'alert' : 'status'}
+          data-testid="comment-upload"
+        >
+          {uploadError ? (
+            <>
+              <Icon name="i14" size={14} strokeWidth={1.9} /> Upload failed. {uploadError}
+            </>
+          ) : (
+            `Uploading ${uploads} ${uploads === 1 ? 'file' : 'files'}…`
+          )}
+        </div>
+      )}
       {failed && (
         <div className="dc-failed" role="alert" data-testid="comment-failed">
           <Icon name="i14" size={14} strokeWidth={1.9} /> Not posted. Your text is kept.
@@ -170,6 +242,45 @@ export function CommentBox({
             {t.node}
           </button>
         ))}
+        <button
+          type="button"
+          className="dc-tool"
+          aria-label="Attach an image or file"
+          title="Attach an image or file (or paste one)"
+          data-testid="comment-attach"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => fileRef.current?.click()}
+        >
+          <Icon name="i54" size={14} strokeWidth={1.8} />
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            if (e.target.files) addFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        {diagram.available && (
+          <>
+            <button
+              type="button"
+              className="dc-tool"
+              aria-label="Diagram"
+              title="Diagram (draw.io)"
+              data-testid="comment-diagram"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                diagram.startNew();
+              }}
+            >
+              <DiagramIcon name="drawio" size={14} />
+            </button>
+            {diagram.fileInput}
+          </>
+        )}
         <span style={{ flex: 1 }} />
         {text.length > MAX - 300 && (
           <span className="dc-count" style={{ color: text.length > MAX ? '#C4432A' : undefined }}>

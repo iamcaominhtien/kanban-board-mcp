@@ -103,6 +103,7 @@ export function BinRow({
   footer,
   first,
   last,
+  pinned,
 }: {
   kind: 'page' | 'ticket';
   title: string;
@@ -114,6 +115,8 @@ export function BinRow({
   footer?: ReactNode;
   first?: boolean;
   last?: boolean;
+  /** Keep the actions visible (a confirmation or a request is in progress). */
+  pinned?: boolean;
 }) {
   const isPage = kind === 'page';
   return (
@@ -128,6 +131,7 @@ export function BinRow({
         borderBottom: last ? undefined : '1px solid #EEF3EF',
       }}
       data-first={first ? '1' : undefined}
+      data-pinned={pinned ? '1' : undefined}
     >
       <div
         style={{
@@ -170,9 +174,21 @@ export function BinRow({
         ))}
         {footer}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingTop: 2 }}>{actions}</div>
+      <div
+        className="bin-actions"
+        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingTop: 2 }}
+      >
+        {actions}
+      </div>
     </div>
   );
+}
+
+/** "API, Data model" / "API, Data model, +2 more": the pages deleted with a parent. */
+function listTitles(titles: string[], total: number): string {
+  const shown = titles.slice(0, 3);
+  const hidden = total - shown.length;
+  return hidden > 0 ? `${shown.join(', ')}, +${hidden} more` : shown.join(', ');
 }
 
 /**
@@ -259,11 +275,15 @@ export function PageBinRow({
       title={entry.title}
       first={first}
       last={last}
+      pinned={confirming || busy}
       meta={
         <>
           <Icon name="i00" size={12} strokeWidth={1.8} />
-          {entry.parentTitle ?? 'Top level'}
-          {extra > 0 && ` · with ${plural(extra, 'child page')}`}
+          <span style={{ minWidth: 0 }}>
+            {entry.parentTitle ?? 'Top level'}
+            {extra > 0 &&
+              ` · with ${plural(extra, 'child page')}${entry.childTitles?.length ? ` (${listTitles(entry.childTitles, extra)})` : ''}`}
+          </span>
         </>
       }
       lines={[

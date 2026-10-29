@@ -833,14 +833,14 @@ export function SearchResults({
               <Check
                 on={status.published}
                 onChange={() => setStatus((s) => ({ ...s, published: !s.published }))}
-                count={f?.status?.published}
+                count={f?.status?.find((s) => s.name === 'published')?.count}
               >
                 Published
               </Check>
               <Check
                 on={status.draft}
                 onChange={() => setStatus((s) => ({ ...s, draft: !s.draft }))}
-                count={f?.status?.draft}
+                count={f?.status?.find((s) => s.name === 'draft')?.count}
               >
                 Draft
               </Check>

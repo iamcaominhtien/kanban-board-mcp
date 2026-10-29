@@ -40,10 +40,7 @@ function Sentence({ text }: { text: string }) {
         {!label && section && (
           <>
             <span style={{ color: '#68BA7F', fontWeight: 500 }}>›</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-              <Icon name="i04" size={11} strokeWidth={2.2} />
-              {section.trim()}
-            </span>
+            {section.trim()}
           </>
         )}
       </span>,
@@ -268,7 +265,7 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
                       </button>
                     </div>
                     <div style={ctxBox}>
-                      <Sentence text={p.context ?? p.snippet} />
+                      <Sentence text={p.excerpt ?? p.context ?? p.snippet} />
                     </div>
                   </div>
                 );
@@ -279,7 +276,7 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={groupLabel}>Tickets · {tickets.length}</div>
               {tickets.map((t) => {
-                const text = t.context ?? t.snippet ?? '';
+                const text = t.excerpt ?? t.context ?? t.snippet ?? '';
                 const words: Record<string, string> = {
                   description: 'description',
                   comment: 'comment',

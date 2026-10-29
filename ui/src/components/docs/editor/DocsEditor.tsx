@@ -33,12 +33,14 @@ import { createSuggest } from './extensions/suggest';
 import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from '../../diagrams/diagramRefs';
 import { firstDiagramFile } from '../../diagrams/diagramFile';
+import { DiagramDropZone, isDiagramDrag } from '../../diagrams/DiagramDropZone';
 import { MarkdownPane } from './MarkdownPane';
 import { MenuHost } from './menuHost';
 import { RefSuggester, type RefPayload } from './RefSuggester';
 import { SlashMenu } from './SlashMenu';
 import type { SlashItem } from './slashItems';
 import { TableControls } from './TableControls';
+import { cleanEditorMarkdown } from '../../../utils/docsMarkdown';
 
 export type EditorMode = 'visual' | 'markdown';
 
@@ -89,6 +91,16 @@ const EMIT_MS = 180;
 // stable props: a new object on every render makes the drag handle re-register its ProseMirror plugin,
 // which tears down the "/" and "[[" suggestion views while they are open
 const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
+
+/** Caption above each pane in the side-by-side Markdown view. */
+const PANE_LABEL: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'baseline',
+  gap: 8,
+  height: 32,
+  fontSize: 12,
+  color: '#5B6B60',
+};
 
 /**
  * Tiptap WYSIWYG editor that reads and writes Markdown.
@@ -148,6 +160,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const slashHost = useMemo(() => new MenuHost(), []);
   const refHost = useMemo(() => new MenuHost(), []);
+  const keyHost = useMemo(() => new MenuHost(), []);
   const resolver = useMemo(() => new RefResolver(projectId), [projectId]);
   const hostRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -201,6 +214,8 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   });
   const starterRef = useRef(diagramStarter);
   starterRef.current = diagramStarter;
+  const [diagramDrag, setDiagramDrag] = useState(false);
+  const dragDepth = useRef(0);
 
   const uploadImage = useCallback(async (file: File, at?: number) => {
     const ed = editorRef.current;
@@ -278,6 +293,39 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         }
       },
     });
+    // a bare ticket key ("KAN-" or "KAN-1") offers the project's tickets, with no [[ needed
+    const bareKey = createSuggest({
+      name: 'ticketKeyMenu',
+      char: '',
+      host: keyHost,
+      accept: (q) => live.current.tickets.some((t) => t.id.toLowerCase().startsWith(q.toLowerCase())),
+      find: ({ $position }) => {
+        const text = $position.nodeBefore?.isText ? ($position.nodeBefore.text ?? '') : '';
+        const m = /(?:^|\s)([A-Za-z][A-Za-z0-9]{1,5}-\d*)$/.exec(text);
+        if (!m) return null;
+        const before = text.slice(0, m.index);
+        if (before.lastIndexOf('[[') > before.lastIndexOf(']]')) return null; // inside a [[ reference
+        return { range: { from: $position.pos - m[1].length, to: $position.pos }, query: m[1], text: m[1] };
+      },
+      command: ({ editor, range, payload }) => {
+        const p = payload as RefPayload;
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(
+            range,
+            p.kind === 'ticket'
+              ? [
+                  { type: 'ticketRef', attrs: { key: p.key } },
+                  { type: 'text', text: ' ' },
+                ]
+              : p.kind === 'text'
+                ? p.text
+                : '',
+          )
+          .run();
+      },
+    });
     return [
       ...buildExtensions({
         isTicket: (key) => live.current.tickets.some((t) => t.id === key),
@@ -286,13 +334,14 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       }),
       slash,
       ref,
+      bareKey,
     ];
-  }, [slashHost, refHost, pickImage, projectId, qc, resolver]);
+  }, [slashHost, refHost, keyHost, pickImage, projectId, qc, resolver]);
 
   const emit = useCallback(() => {
     const ed = editorRef.current;
     if (!ed || ed.isDestroyed) return lastMd.current;
-    const md = ed.getMarkdown();
+    const md = cleanEditorMarkdown(ed.getMarkdown());
     if (md !== lastMd.current) {
       lastMd.current = md;
       live.current.onChange(md);
@@ -382,7 +431,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     () => ({
       flush: () => {
         if (timer.current) clearTimeout(timer.current);
-        return mode === 'visual' ? emit() : lastMd.current;
+        // beside the Markdown pane the visual pane can still hold edits that were not pushed yet
+        const visualFocused = mode === 'markdown' && !!editorRef.current?.isFocused;
+        return mode === 'visual' || visualFocused ? emit() : lastMd.current;
       },
       focus: () => editorRef.current?.commands.focus(),
       getRoot: () => (editorRef.current?.view.dom as HTMLElement | undefined) ?? null,
@@ -393,6 +444,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const slashState = useSyncExternalStore(slashHost.subscribe, slashHost.getSnapshot);
   const refState = useSyncExternalStore(refHost.subscribe, refHost.getSnapshot);
+  const keyState = useSyncExternalStore(keyHost.subscribe, keyHost.getSnapshot);
 
   const env = useMemo<EditorEnv>(
     () => ({ projectId, currentPageId, resolver, onOpenPage, onOpenTicket }),
@@ -424,7 +476,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       rect: { left: Math.min(a.left, b.left), right: Math.max(a.right, b.right), top: a.top, bottom: b.bottom },
     });
   }, [comments]);
-  useCommentShortcut(startComment, !!comments && mode === 'visual' && !readOnly);
+  useCommentShortcut(startComment, !!comments && !readOnly);
 
   // Ctrl/Cmd+K from anywhere in the editor opens the link field (or selects the word under the caret first)
   const openLink = useCallback(() => {
@@ -451,7 +503,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   return (
     <EditorEnvContext.Provider value={env}>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }} className="dk-editor-root">
-        {mode === 'visual' && (
+        {
           <EditorToolbar
             editor={editor}
             disabled={readOnly}
@@ -460,10 +512,25 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             ticketPrefix={ticketPrefix}
             onAskAi={ai?.onAsk}
           />
-        )}
+        }
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div
             data-testid="editor-scroll"
+            onDragEnter={(e) => {
+              if (!readOnly && mode === 'visual' && isDiagramDrag(e.dataTransfer)) {
+                dragDepth.current += 1;
+                setDiagramDrag(true);
+              }
+            }}
+            onDragLeave={() => {
+              if (!diagramDrag) return;
+              dragDepth.current = Math.max(0, dragDepth.current - 1);
+              if (dragDepth.current === 0) setDiagramDrag(false);
+            }}
+            onDrop={() => {
+              dragDepth.current = 0;
+              setDiagramDrag(false);
+            }}
             style={{
               flex: 1,
               minWidth: 0,
@@ -476,52 +543,77 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             <div
               ref={hostRef}
               style={{
-                width: 'clamp(640px, 62vw, 1120px)',
-                maxWidth: 'calc(100% - 48px)',
+                width: mode === 'markdown' ? '100%' : 'clamp(640px, 62vw, 1120px)',
+                maxWidth: mode === 'markdown' ? 'calc(100% - 48px)' : 'calc(100% - 48px)',
                 margin: '0 auto',
                 position: 'relative',
               }}
             >
               {header}
-              <div style={{ display: mode === 'visual' ? 'block' : 'none' }}>
-                <div className="dk-md dk-editor">
-                  <EditorContent editor={editor} />
-                  {editor && mode === 'visual' && !readOnly && (
-                    <>
-                      <DragHandle editor={editor} computePositionConfig={DRAG_POSITION} onNodeChange={onDragNode}>
-                        <div className="dk-handle">
-                          <button
-                            type="button"
-                            title="Add block"
-                            aria-label="Add block"
-                            onClick={() => {
-                              const n = dragNode.current;
-                              if (!n) return;
-                              editor
-                                .chain()
-                                .focus()
-                                .insertContentAt(n.pos + n.size, {
-                                  type: 'paragraph',
-                                  content: [{ type: 'text', text: '/' }],
-                                })
-                                .run();
-                            }}
-                          >
-                            <Icon name="i01" size={15} strokeWidth={2} />
-                          </button>
-                          <button type="button" className="dk-grip" title="Drag to move" aria-label="Drag to move">
-                            <Icon name="i03" size={15} strokeWidth={1.8} />
-                          </button>
-                        </div>
-                      </DragHandle>
-                      <TableControls editor={editor} hostRef={hostRef} />
-                    </>
-                  )}
-                </div>
-              </div>
-              {mode === 'markdown' && (
-                <MarkdownPane value={markdown} filename={filename} onChange={onChange} readOnly={readOnly} />
+              {diagramDrag && (
+                <DiagramDropZone
+                  onFile={(f) => void starterRef.current.startImport(f)}
+                  onChoose={() => starterRef.current.pickFile()}
+                  onDone={() => {
+                    dragDepth.current = 0;
+                    setDiagramDrag(false);
+                  }}
+                />
               )}
+              <div
+                data-testid="editor-panes"
+                style={mode === 'markdown' ? { display: 'flex', gap: 16, alignItems: 'flex-start' } : undefined}
+              >
+                <div style={mode === 'markdown' ? { flex: 1, minWidth: 0 } : undefined}>
+                  {mode === 'markdown' && (
+                    <div style={PANE_LABEL}>
+                      <b style={{ color: '#1E2A22' }}>Visual</b> Rich text, what readers see
+                    </div>
+                  )}
+                  <div className="dk-md dk-editor">
+                    <EditorContent editor={editor} />
+                    {editor && !readOnly && (
+                      <>
+                        <DragHandle editor={editor} computePositionConfig={DRAG_POSITION} onNodeChange={onDragNode}>
+                          <div className="dk-handle">
+                            <button
+                              type="button"
+                              title="Add block"
+                              aria-label="Add block"
+                              onClick={() => {
+                                const n = dragNode.current;
+                                if (!n) return;
+                                editor
+                                  .chain()
+                                  .focus()
+                                  .insertContentAt(n.pos + n.size, {
+                                    type: 'paragraph',
+                                    content: [{ type: 'text', text: '/' }],
+                                  })
+                                  .run();
+                              }}
+                            >
+                              <Icon name="i01" size={15} strokeWidth={2} />
+                            </button>
+                            <button type="button" className="dk-grip" title="Drag to move" aria-label="Drag to move">
+                              <Icon name="i03" size={15} strokeWidth={1.8} />
+                            </button>
+                          </div>
+                        </DragHandle>
+                        <TableControls editor={editor} hostRef={hostRef} />
+                      </>
+                    )}
+                  </div>
+                </div>
+                {mode === 'markdown' && (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={PANE_LABEL}>
+                      <b style={{ color: '#1E2A22' }}>Markdown</b> Source. Editing either pane updates the other
+                    </div>
+                    <MarkdownPane value={markdown} filename={filename} onChange={onChange} readOnly={readOnly} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           {toc === null ? null : (
@@ -538,7 +630,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             </div>
           )}
         </div>
-        {editor && mode === 'visual' && !readOnly && (
+        {editor && !readOnly && (
           <BubbleToolbar
             editor={editor}
             linkOpen={linkOpen}
@@ -548,7 +640,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             onAi={ai?.onSelection}
           />
         )}
-        {slashState && mode === 'visual' && (
+        {slashState && (
           <SlashMenu
             host={slashHost}
             state={slashState}
@@ -561,10 +653,21 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             }}
           />
         )}
-        {refState && mode === 'visual' && (
+        {refState && (
           <RefSuggester
             host={refHost}
             state={refState}
+            nodes={nodes}
+            tickets={tickets}
+            currentPageId={currentPageId}
+            onClose={() => undefined}
+          />
+        )}
+        {keyState && mode === 'visual' && !refState && (
+          <RefSuggester
+            bare
+            host={keyHost}
+            state={keyState}
             nodes={nodes}
             tickets={tickets}
             currentPageId={currentPageId}

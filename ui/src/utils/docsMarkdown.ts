@@ -161,3 +161,33 @@ export function remarkDocs() {
     walk(tree);
   };
 }
+
+/**
+ * Undo the HTML escaping the editor's Markdown serializer applies to text: `&` comes out as `&amp;` (and `<`, `>`
+ * as `&lt;`, `&gt;`), which would end up in the stored page and change heading slugs. Code spans and fenced code
+ * are left as they are, and a `<` that would start a tag stays escaped.
+ * @param md - Markdown from `editor.getMarkdown()`.
+ */
+export function cleanEditorMarkdown(md: string): string {
+  const unescape = (s: string) =>
+    s
+      .replace(/&lt;(?![A-Za-z/!?])/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&');
+  const out: string[] = [];
+  let fenced = false;
+  for (const line of md.split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      fenced = !fenced;
+      out.push(line);
+    } else if (fenced) out.push(line);
+    else
+      out.push(
+        line
+          .split(/(`[^`]*`)/)
+          .map((part, i) => (i % 2 ? part : unescape(part)))
+          .join(''),
+      );
+  }
+  return out.join('\n');
+}

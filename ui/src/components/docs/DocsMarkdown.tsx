@@ -1,3 +1,4 @@
+import type { Element } from 'hast';
 import { Children, isValidElement, useMemo, useRef, useState, type ReactNode } from 'react';
 import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -12,6 +13,7 @@ import { escapeStrayDollars } from '../../utils/mathDollars';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
 import { highlight } from './docsHighlight';
+import { useDocsPeek } from './DocsRefsContext';
 import { Icon } from './Icon';
 import { RefChip, type RefChipProps } from './RefChip';
 import { DiagramEmbed } from '../diagrams/DiagramEmbed';
@@ -70,6 +72,8 @@ export interface DocsMarkdownProps {
   onCreatePage?: (title: string) => void;
   onRestorePage?: (pageId: string) => void;
   onReplaceSection?: RefChipProps['onReplaceSection'];
+  /** Source line text -> version that added it: marks those blocks "Changed in vN" (since last viewed). */
+  changedIn?: Map<string, number>;
 }
 
 function textOf(node: ReactNode): string {
@@ -151,6 +155,7 @@ function Checkbox({ checked }: { checked: boolean }) {
  * @param props.onCreatePage - Called with a title when a missing page reference is created.
  * @param props.onRestorePage - Called with a page id when a deleted referenced page is restored.
  * @param props.onReplaceSection - Called when a stale section reference is replaced.
+ * @param props.changedIn - Marks blocks whose source lines were added by a later version ("Changed in vN").
  */
 export function DocsMarkdown({
   children,
@@ -161,6 +166,7 @@ export function DocsMarkdown({
   onCreatePage,
   onRestorePage,
   onReplaceSection,
+  changedIn,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
   const linked = useMemo(() => linkifyDocs(escapeStrayDollars(cleaned)), [cleaned]);
@@ -176,7 +182,9 @@ export function DocsMarkdown({
 
   // The component map must keep one identity across renders: a new function per render makes React remount
   // every chip (and close its hover card) whenever anything above re-renders.
+  const peek = useDocsPeek();
   const live = useRef({
+    peek,
     projectId,
     projectName,
     onOpenPage,
@@ -186,8 +194,11 @@ export function DocsMarkdown({
     onReplaceSection,
     pages,
     tickets,
+    changedIn,
+    lines: cleaned.split('\n'),
   });
   live.current = {
+    peek,
     projectId,
     projectName,
     onOpenPage,
@@ -197,13 +208,25 @@ export function DocsMarkdown({
     onReplaceSection,
     pages,
     tickets,
+    changedIn,
+    lines: cleaned.split('\n'),
+  };
+  // Props that flag a block as changed since the viewer last looked, from its source lines (hast position).
+  const changedProps = (node: Element | undefined): { className?: string; 'data-changed-in'?: string } => {
+    const { changedIn: map, lines } = live.current;
+    const start = node?.position?.start.line;
+    const end = node?.position?.end.line;
+    if (!map?.size || !start || !end) return {};
+    let version = 0;
+    for (let n = start; n <= end; n += 1) version = Math.max(version, map.get((lines[n - 1] ?? '').trim()) ?? 0);
+    return version ? { className: 'dk-changed', 'data-changed-in': `Changed in v${version}` } : {};
   };
   const components = useMemo<Components>(
     () => ({
-      h2: ({ node: _n, children: inner, id }) => {
+      h2: ({ node, children: inner, id }) => {
         const slug = (id ?? '').replace(/^docs-/, '');
         return (
-          <h2 id={id}>
+          <h2 id={id} {...changedProps(node)}>
             {inner}
             {slug && (
               <a
@@ -226,15 +249,22 @@ export function DocsMarkdown({
                   borderRadius: 5,
                   background: '#F1F8F3',
                   textDecoration: 'none',
+                  maxWidth: 180,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Icon name="link" size={12} strokeWidth={2} />#{slug}
+                <Icon name="link" size={12} strokeWidth={2} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>#{slug}</span>
               </a>
             )}
           </h2>
         );
       },
-      h3: ({ node: _n, children: inner, id }) => <h3 id={id}>{inner}</h3>,
+      h3: ({ node, children: inner, id }) => (
+        <h3 id={id} {...changedProps(node)}>
+          {inner}
+        </h3>
+      ),
       blockquote: ({ node, children: inner, ...props }) => {
         const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
         const pal = kind ? CALLOUTS[kind] : null;
@@ -277,12 +307,17 @@ export function DocsMarkdown({
         <ul className={className?.includes('contains-task-list') ? 'dk-tasks' : undefined}>{inner}</ul>
       ),
       li: ({ node, children: inner, className }) => {
-        if (!className?.includes('task-list-item')) return <li>{inner}</li>;
+        // a loose list item holds <p>s that carry the mark themselves
+        const own = node?.children.some((c) => c.type === 'element' && c.tagName === 'p') ? {} : changedProps(node);
+        if (!className?.includes('task-list-item')) return <li {...own}>{inner}</li>;
         const input = node?.children.find((c) => c.type === 'element' && c.tagName === 'input');
         const checked = !!(input && 'properties' in input && (input.properties as { checked?: boolean }).checked);
         const rest = Children.toArray(inner).filter((c) => !(isValidElement(c) && c.type === 'input'));
         return (
-          <li className="dk-task">
+          <li
+            className={own.className ? `dk-task ${own.className}` : 'dk-task'}
+            data-changed-in={own['data-changed-in']}
+          >
             <Checkbox checked={checked} />
             <span
               style={
@@ -296,7 +331,8 @@ export function DocsMarkdown({
           </li>
         );
       },
-      p: ({ node, children: inner }) => (hasDiagram(node) ? <div>{inner}</div> : <p>{inner}</p>),
+      p: ({ node, children: inner }) =>
+        hasDiagram(node) ? <div>{inner}</div> : <p {...changedProps(node)}>{inner}</p>,
       img: ({ src, alt }) => {
         const diagramId = diagramIdOf(src);
         if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} />;
@@ -335,6 +371,7 @@ export function DocsMarkdown({
               projectId={live.current.projectId}
               projectName={live.current.projectName}
               onOpenPage={live.current.onOpenPage}
+              onPeek={live.current.peek ?? undefined}
               onCreatePage={live.current.onCreatePage}
               onRestorePage={live.current.onRestorePage}
               onReplaceSection={live.current.onReplaceSection}

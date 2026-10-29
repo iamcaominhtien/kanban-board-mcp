@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { docsErrorDetail } from '../../api/docs';
 import { useSimilarPages } from '../../api/docsPage';
 import { Icon } from './Icon';
+import { Avatar } from './docsShared';
 
 const sage = '#5B6B60';
 
@@ -550,8 +551,17 @@ export function DeletedPage({
  * E6: Docs switched off for the project.
  * @param props.onOpenSettings - Called by "Open project settings"; the button is hidden when omitted.
  * @param props.onBack - Called by the back button; hidden when omitted.
+ * @param props.isAdmin - False for people who can't turn Docs on: they see "Ask an admin to turn Docs on" instead.
  */
-export function DocsDisabled({ onOpenSettings, onBack }: { onOpenSettings?: () => void; onBack?: () => void }) {
+export function DocsDisabled({
+  onOpenSettings,
+  onBack,
+  isAdmin = true,
+}: {
+  onOpenSettings?: () => void;
+  onBack?: () => void;
+  isAdmin?: boolean;
+}) {
   return (
     <StateShell
       testid="docs-disabled"
@@ -560,10 +570,124 @@ export function DocsDisabled({ onOpenSettings, onBack }: { onOpenSettings?: () =
     >
       <div style={body}>Pages are kept but hidden. An admin can turn Docs back on in the project settings.</div>
       <div style={btnRow}>
-        {onOpenSettings && (
-          <button type="button" className="st-btn st-btn-primary" onClick={onOpenSettings}>
-            <Icon name="i30" size={14} strokeWidth={1.9} />
-            Open project settings
+        {!isAdmin ? (
+          <span style={{ ...body, fontWeight: 600 }}>Ask an admin to turn Docs on</span>
+        ) : (
+          onOpenSettings && (
+            <button type="button" className="st-btn st-btn-primary" onClick={onOpenSettings}>
+              <Icon name="i30" size={14} strokeWidth={1.9} />
+              Open project settings
+            </button>
+          )
+        )}
+        {onBack && (
+          <button type="button" className="st-btn" onClick={onBack}>
+            <Icon name="i57" size={14} strokeWidth={1.9} />
+            Back to Board
+          </button>
+        )}
+      </div>
+    </StateShell>
+  );
+}
+
+/**
+ * E4: someone who is not part of the project opens Docs; they can ask the admins for access.
+ * @param props.projectName - Project the space belongs to.
+ * @param props.admins - Admin names; the first one is shown as the person who gets the request.
+ * @param props.onRequest - Sends the request with the optional note; resolves to whether it was sent.
+ * @param props.onBack - Called by "Back to Board"; hidden when omitted.
+ */
+export function NoAccess({
+  projectName,
+  admins,
+  onRequest,
+  onBack,
+}: {
+  projectName: string;
+  admins: string[];
+  onRequest: (note: string) => Promise<boolean>;
+  onBack?: () => void;
+}) {
+  const [note, setNote] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'asked' | 'error'>('idle');
+  const admin = admins[0];
+  async function send() {
+    setState('sending');
+    try {
+      setState((await onRequest(note.trim())) ? 'sent' : 'asked');
+    } catch {
+      setState('error');
+    }
+  }
+  return (
+    <StateShell
+      testid="docs-no-access"
+      icon={<Icon name="lock" size={22} strokeWidth={1.8} />}
+      title="You don't have access to Docs"
+    >
+      <div style={body}>
+        Docs in {projectName} is limited to project members. Ask an admin to add you, or send a request now.
+      </div>
+      {state === 'sent' || state === 'asked' ? (
+        <div role="status" style={{ ...body, color: '#2E6F40', fontWeight: 600 }}>
+          {state === 'sent'
+            ? `Request sent. ${admin ? `${admin} gets` : 'The project admins get'} a notification.`
+            : `You already asked. ${admin ?? 'The project admins'} will get back to you.`}
+        </div>
+      ) : (
+        <>
+          <label
+            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', marginTop: 6 }}
+          >
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: sage,
+              }}
+            >
+              Note to admins (optional)
+            </span>
+            <input
+              className="st-input"
+              value={note}
+              maxLength={300}
+              placeholder="I need to read the API docs"
+              onChange={(e) => setNote(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && state !== 'sending' && void send()}
+              style={{ width: '100%', boxSizing: 'border-box' }}
+            />
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: sage }}>
+            {admin ? (
+              <>
+                <Avatar name={admin} size={20} />
+                Admin: <b style={{ color: '#1E2A22' }}>{admin}</b> gets the request
+              </>
+            ) : (
+              'The board owner gets the request'
+            )}
+          </div>
+          {state === 'error' && (
+            <div role="alert" style={{ ...body, color: '#C4432A' }}>
+              Couldn't send the request. Try again.
+            </div>
+          )}
+        </>
+      )}
+      <div style={btnRow}>
+        {state !== 'sent' && state !== 'asked' && (
+          <button
+            type="button"
+            className="st-btn st-btn-primary"
+            disabled={state === 'sending'}
+            onClick={() => void send()}
+          >
+            <Icon name="i65" size={14} strokeWidth={1.9} />
+            {state === 'sending' ? 'Sending…' : 'Request access'}
           </button>
         )}
         {onBack && (

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ComponentProps } from 'react';
 import { useDocsTree } from '../../api/docs';
 import { DocsView } from './DocsView';
 import { getActiveReplaceAdapter } from './editorReplace';
 import { FindInPage, useDocsFindHotkey } from './FindInPage';
 import { ImportDialog } from './ImportDialog';
+import { RefCheatSheetHost } from './RefCheatSheet';
 import { SearchPalette, rememberDocsPage, useDocsSearchHotkey } from './SearchPalette';
-import { SearchResults } from './SearchResults';
 import { useCommentNotifications } from './comments/useCommentNotifications';
 import { useDocsNotifications } from './useDocsNotifications';
 import './docs.css';
@@ -41,16 +41,17 @@ export function DocsSpace({
 }: Props) {
   const tree = useDocsTree(projectId);
   const nodes = tree.data ?? [];
-  const [request, setRequest] = useState<string | null>(null);
+  const [request, setRequest] = useState<{ id: string; anchor?: string } | null>(null);
+  const [intent, setIntent] = useState<ComponentProps<typeof DocsView>['intent']>(null);
   const [palette, setPalette] = useState<{ q?: string } | null>(null);
   const [results, setResults] = useState<string | null>(null);
   const [importing, setImporting] = useState<{ files?: File[] } | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [root, setRoot] = useState<HTMLElement | null>(null);
 
-  const open = useCallback((id: string) => {
+  const open = useCallback((id: string, anchor?: string) => {
     setResults(null);
-    setRequest(id);
+    setRequest({ id, anchor });
   }, []);
   useDocsNotifications({ projectId, onOpenPage: open });
   useCommentNotifications({ projectId, onOpenPage: open });
@@ -73,7 +74,8 @@ export function DocsSpace({
       <DocsView
         projectId={projectId}
         projectName={projectName}
-        requestedPageId={request ?? requestedPageId}
+        requestedPageId={request?.id ?? requestedPageId}
+        requestedAnchor={request?.anchor}
         onRequestHandled={() => {
           setRequest(null);
           onRequestHandled?.();
@@ -83,24 +85,14 @@ export function DocsSpace({
         onDropFiles={(files) => setImporting({ files })}
         onOpenSettings={onOpenSettings}
         onBack={onBack}
-        onSearch={(q) => setPalette({ q })}
+        onSearch={(q) => (q ? setResults(q) : setPalette({}))}
         onBodyRef={setRoot}
+        resultsQuery={results}
+        onCloseResults={() => setResults(null)}
+        intent={intent}
+        onIntentHandled={() => setIntent(null)}
       />
-      {results !== null && (
-        <div
-          className="docs-root"
-          style={{ position: 'absolute', inset: 0, background: '#FFFFFF', zIndex: 40, display: 'flex' }}
-        >
-          <SearchResults
-            projectId={projectId}
-            projectName={projectName}
-            initialQuery={results}
-            onOpenPage={(id) => open(id)}
-            onOpenTicket={onOpenTicket}
-            onBack={() => setResults(null)}
-          />
-        </div>
-      )}
+      <RefCheatSheetHost />
       {findOpen && (
         <FindInPage
           root={root}
@@ -116,9 +108,9 @@ export function DocsSpace({
           pageId={current ?? undefined}
           initialQuery={palette.q}
           onClose={() => setPalette(null)}
-          onOpenPage={(id) => {
+          onOpenPage={(id, anchor) => {
             setPalette(null);
-            open(id);
+            open(id, anchor);
           }}
           onOpenTicket={(id) => {
             setPalette(null);
@@ -127,6 +119,14 @@ export function DocsSpace({
           onOpenResults={(q) => {
             setPalette(null);
             setResults(q);
+          }}
+          onCreatePage={(title) => {
+            setPalette(null);
+            setIntent({ kind: 'create-page', title });
+          }}
+          onFilterTree={(q) => {
+            setPalette(null);
+            setIntent({ kind: 'filter-tree', q });
           }}
         />
       )}

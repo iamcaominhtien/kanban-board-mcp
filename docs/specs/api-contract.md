@@ -45,13 +45,25 @@ Note: auto-appended by server on changes to title, status, priority, type, estim
 | GET | /projects | — | ProjectRead[] | 200 |
 | POST | /projects | `{name, prefix, color}` | ProjectRead | 201 |
 | GET | /projects/{id} | — | ProjectRead | 200/404 |
-| PATCH | /projects/{id} | `{name?, color?}` | ProjectRead | 200/404 |
+| PATCH | /projects/{id} | `{name?, color?, docs_enabled?, docs_edit_policy?: "everyone"\|"members"\|"admins"}` | ProjectRead | 200/403/404/422 |
 | DELETE | /projects/{id} | — | — | 204/404/400 |
 
 ProjectRead shape (after camelCase):
 ```json
-{ "id": "uuid", "name": "string", "prefix": "IAM", "color": "#hex", "ticketCounter": 0 }
+{ "id": "uuid", "name": "string", "prefix": "IAM", "color": "#hex", "ticketCounter": 0, "docsEnabled": true, "docsEditPolicy": "members" }
 ```
+
+Only project admins (the board owner `user`, or a member with role `admin`) may change `docs_enabled` and `docs_edit_policy` (403 otherwise).
+
+### Docs access
+The caller is the `X-Actor` header (see Docs comments). Anyone who is part of the project (the board owner, the agent or a member of any role) reads published pages. Who edits pages (create, save draft, publish, rename, move, duplicate, delete, restore, purge, import) follows the project's `docs_edit_policy`: `everyone` (viewers too), `members` (default: members and admins) or `admins`. A refused write answers `403 read_only`; a name that is not part of the project gets `403 docs_no_access` on every Docs read and write; a disabled space answers `403 docs_disabled` (with the caller's `role`) before either.
+
+| Method | Path | Body | Response | Status |
+|---|---|---|---|---|
+| GET | /projects/{projectId}/docs/access | — | `{access, role, can_edit, policy, me, admins[]}` | 200/403/404 |
+| POST | /projects/{projectId}/docs/access-requests | `{note?}` | `{sent, admins[]}` | 201/404 |
+
+An access request writes a CommentEvent `{kind: "access_request", page_id: null, actor, recipients: ["user", ...admins], snippet: note}`; asking again within ten minutes, or asking while already in the project, sends nothing (`sent: false`).
 
 ### Tickets
 | Method | Path | Body | Response | Status |
@@ -92,12 +104,16 @@ Comments belong to a Docs page (not a version) and follow it through history and
 | PATCH | /docs/comments/{commentId} | `{body}` | Thread | 200/403/404 |
 | DELETE | /docs/comments/{commentId} | — | `{deleted: "comment"\|"thread", thread_id}` | 200/403/404 |
 | GET | /projects/{projectId}/docs/comment-events | query: `recipient?`, `limit?` | CommentEvent[] (Activity, newest first) | 200 |
+| GET | /projects/{projectId}/docs/followers | — | `{following, count, names}` (followers of the space other than the caller; `names` at most 3) | 200/403/404 |
+| PUT | /projects/{projectId}/docs/follow | `{on: bool}` (idempotent, as the caller) | same as followers | 200/403/404 |
+| GET | /docs/pages/{pageId}/seen | — | `{version: int \| null}` (the version the caller (`X-Actor`) last viewed; null = never) | 200/404 |
+| PUT | /docs/pages/{pageId}/seen | `{version}` (clamped to the current version) | `{version}` | 200/404/422 |
 | PATCH | /projects/{projectId}/members/{memberId} | `{role: "viewer"\|"member"\|"admin"}` | MemberRead | 200/404/422 |
 
 Rules:
 - **Permissions**: viewer reads; member comments, replies, resolves and reopens; the author edits and deletes their own comments; an admin deletes any. Errors use `{detail: {code, message}}`: `read_only` (viewer writes), `not_author`.
 - Deleting the first comment of a thread deletes the whole thread; deleting a reply removes only that reply. Page comments cannot be resolved.
-- **Anchors**: `{quote, prefix, suffix, section}` are plain text of one block (paragraph, list item, table cell, code block); the page Markdown is never changed. On every publish/restore the anchors are re-matched against the new text: an exact hit (best by prefix/suffix/section) or a close fuzzy hit keeps the thread attached and refreshes its quote and position; no hit sets `anchor.state = "orphaned"` (and `number = null`). An orphaned thread whose exact text returns is attached again.
+- **Anchors**: `{quote, prefix, suffix, section}` are plain text of the page (paragraphs, list items, table cells, code blocks); a selection over several blocks reads them joined by single spaces, and `section` is where it starts. At most 2000 characters (`422 selection_too_long`). The page Markdown is never changed. On every publish/restore the anchors are re-matched against the new text: an exact hit (best by prefix/suffix/section) or a close fuzzy hit keeps the thread attached and refreshes its quote and position; no hit sets `anchor.state = "orphaned"` (and `number = null`). An orphaned thread whose exact text returns is attached again.
 - **Numbers**: `number` is set only on open, attached inline threads, in page order.
 - **Mentions**: `@Name` or the picker's `@[Name](member:id)`; only project members are recognised (`comment.mentions`).
 - **Notifications / Activity**: each comment, reply, resolve and reopen writes a `CommentEvent` `{kind: comment|reply|resolved|reopened, actor, mentioned[], recipients[], page_title, snippet, created_at}`. `recipients` = people mentioned, plus (replies, resolve, reopen) the thread starter and everyone who replied — never the actor.
@@ -119,6 +135,12 @@ A diagram is a `.drawio` source plus an SVG preview (the editor exports it on sa
 | GET | /diagrams/{id}/download | query: `format=drawio\|svg`, `version?` | file attachment | 200/404 |
 | GET · PUT | /diagrams/settings | `{mode: self-hosted\|public, url?}` (PUT: admin only) | `{mode, url, effective_url, ...}` | 200/403/422 |
 - Diagram shape: `{id, project_id, label, summary, suggested_summary, item_kind, item_id, version, shown_version, empty, created_by, created_at, updated_by, updated_at, deleted_at, size_bytes, role, can_edit}`.
+- Docs references and search (see also the Docs v2 tests):
+  - `POST /projects/{id}/docs/resolve` takes `{refs, from_ticket?}`. With `from_ticket: true` the old title of a renamed page still resolves to the page (tickets link by page id and show the new title); page links in pages stay literal.
+  - `GET /docs/pages/{id}/backlinks` rows carry `context` (plain sentence), `excerpt` (about 120 characters around the reference, the `[[reference]]` kept for a chip), `in` (heading text of the source section) and `target_anchor` (the section of this page the reference points at, as written).
+  - `GET /docs/pages/{id}/delete-preview` also returns `linking: [{page_id, title, parent, count}]` (at most 5, most links first) and `linking_tickets`.
+  - `GET /tickets/{id}/docs` rows carry the heading text, not the slug, in `section`.
+  - `GET /projects/{id}/docs/search` returns `match_count` (matching sections over all result pages), `tickets` on every page result (`[{ticket_id, status}]`), `assignee` (member name) on ticket hits and `facets.edited` (`{any, day, week, month}`) beside `facets.status` (`[{name, count}]`).
 - Docs page versions (`GET /docs/pages/{id}/versions/{n}`) carry `diagram_versions: {id: version}`; restoring a page version restores those diagram versions (as new diagram versions) and links unlinked ones again.
 
 ### AI members and AI work on tickets

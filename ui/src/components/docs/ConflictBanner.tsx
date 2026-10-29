@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDocsDiff } from '../../api/docs';
 import { actorName } from '../../utils/relativeTime';
-import { Avatar, fmtTimeOnly, PlusMinus } from './docsShared';
+import { Avatar, fmtTimeOnly, plural, PlusMinus } from './docsShared';
 import { DiffView } from './DiffView';
 import { Icon } from './Icon';
 import './docs.css';
@@ -12,6 +12,8 @@ interface Props {
   latestVersion: number;
   latestAuthor?: string | null;
   latestAt?: string | null;
+  /** Lines you changed since `baseVersion`; shown once their changes are open. */
+  ownLines?: number;
   busy?: boolean;
   onKeepMine: () => void;
   onReload: () => void;
@@ -24,6 +26,7 @@ interface Props {
  * @param props.latestVersion - Newer version found on the server.
  * @param props.latestAuthor - Author of the newer version.
  * @param props.latestAt - ISO time of the newer version.
+ * @param props.ownLines - Lines changed by the local edit, mentioned while their changes are shown.
  * @param props.busy - Disable the actions while a save or reload runs.
  * @param props.onKeepMine - Called to overwrite the newer version with the local edit.
  * @param props.onReload - Called to discard the local edit and load the newer version.
@@ -34,6 +37,7 @@ export function ConflictBanner({
   latestVersion,
   latestAuthor,
   latestAt,
+  ownLines,
   busy,
   onKeepMine,
   onReload,
@@ -60,8 +64,17 @@ export function ConflictBanner({
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>Someone else edited this page</div>
           <div style={{ fontSize: 12.5, color: '#3A4A3E', lineHeight: 1.45 }}>
-            {who} published v{latestVersion}
-            {latestAt ? ` at ${fmtTimeOnly(latestAt)}` : ''}. You started from v{baseVersion}, so Publish is paused.
+            {open ? (
+              <>
+                Showing what changed in v{latestVersion}.
+                {ownLines != null && ` Your own edits since v${baseVersion}: ${plural(ownLines, 'line')}.`}
+              </>
+            ) : (
+              <>
+                {who} published v{latestVersion}
+                {latestAt ? ` at ${fmtTimeOnly(latestAt)}` : ''}. You started from v{baseVersion}, so Publish is paused.
+              </>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>

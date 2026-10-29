@@ -1,10 +1,13 @@
+import { useEffect } from 'react';
 import './docs.css';
 import { Icon } from './Icon';
-import { useDocsFollow } from './useDocsNotifications';
+import { getDocsFollow, syncDocsFollow, useDocsFollow } from './useDocsNotifications';
 
 /** Bell button for the tree header (Follow space). Persists per project in localStorage (`docsFollow:<projectId>`). */
 export function DocsFollowToggle({ projectId }: { projectId: string }) {
   const [on, setOn] = useDocsFollow(projectId);
+  // the preference lives in this browser; mirror it to the server once so followers can be counted
+  useEffect(() => syncDocsFollow(projectId, getDocsFollow(projectId)), [projectId]);
   return (
     <button
       type="button"

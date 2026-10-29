@@ -11,10 +11,14 @@ import {
 import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
+import { useDocsAccess, useRequestDocsAccess } from '../../api/docsAccess';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
+import { slugify as slugifyHeading } from '../../utils/docsMarkdown';
 import { useToast } from '../Toast';
 import { DeleteDialog } from './DeleteDialog';
+import { DocPeekPanel, type PeekTarget } from './DocPeekPanel';
+import { DocsPeekProvider } from './DocsRefsContext';
 import { DocsEditScreen } from './DocsEditScreen';
 import { DocsFollowToggle } from './DocsFollowToggle';
 import { DocsHero } from './DocsHero';
@@ -24,6 +28,7 @@ import {
   DeletedPage,
   DocsDisabled,
   LoadError,
+  NoAccess,
   NotFound,
   PageSkeleton,
   SlowLoadNote,
@@ -38,6 +43,7 @@ import { MoveToDialog } from './MoveToDialog';
 import { NewPageDialog } from './NewPageDialog';
 import { PageMenu, usePageShortcuts, type PageMenuAction } from './PageMenu';
 import { RenameDialog } from './RenameDialog';
+import { SearchResults } from './SearchResults';
 import { useDocsOffline } from './useDocsOffline';
 import './docs.css';
 
@@ -45,6 +51,8 @@ interface Props {
   projectId: string;
   projectName: string;
   requestedPageId?: string | null;
+  /** Heading slug to scroll to once `requestedPageId` has rendered (search results, links to a section). */
+  requestedAnchor?: string | null;
   onRequestHandled?: () => void;
   onOpenTicket: (ticketId: string) => void;
   /** "Import Markdown" (hero) and the import strip. */
@@ -58,6 +66,12 @@ interface Props {
   onSearch?: (query?: string) => void;
   /** Called with the element holding the rendered page body (find-in-page). */
   onBodyRef?: (el: HTMLElement | null) => void;
+  /** Full search results shown in place of the page (the tree stays on the left); `null` shows the page. */
+  resultsQuery?: string | null;
+  onCloseResults?: () => void;
+  /** One-shot request from the search palette: create a page with this title, or filter the tree. */
+  intent?: { kind: 'create-page'; title: string } | { kind: 'filter-tree'; q: string } | null;
+  onIntentHandled?: () => void;
 }
 
 const NARROW_PX = 1200;
@@ -69,6 +83,22 @@ function download(name: string, text: string) {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Scroll a heading into view once its page has rendered (waits up to ~3 s for it) and flash it. */
+function scrollToSection(slug: string) {
+  let tries = 0;
+  const tick = () => {
+    const el = document.getElementById(`docs-${slug}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.add('dk-flash');
+      setTimeout(() => el.classList.remove('dk-flash'), 1800);
+    } else if (++tries < 30) {
+      setTimeout(tick, 100);
+    }
+  };
+  setTimeout(tick, 150);
 }
 
 /** 0 = fine, 1 = slow (8 s), 2 = give up (20 s). */
@@ -156,6 +186,7 @@ function cachedToPage(
 /**
  * Docs space: tree, page view, editor, search, history and dialogs.
  * @param props.requestedPageId - Page to open once, e.g. from a linked doc or `?docs=` link.
+ * @param props.requestedAnchor - Heading slug to scroll to once the requested page has rendered.
  * @param props.onRequestHandled - Called after `requestedPageId` has been opened.
  * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
  * @param props.onImport - Called by "Import Markdown" (hero and import strip).
@@ -164,11 +195,16 @@ function cachedToPage(
  * @param props.onBack - Called to leave the Docs view.
  * @param props.onSearch - Called to open search, with the query when the tree filter asks for it.
  * @param props.onBodyRef - Receives the element holding the rendered page body (for find-in-page).
+ * @param props.resultsQuery - Query of the full search results shown in place of the page, or `null`.
+ * @param props.onCloseResults - Called to leave the full results.
+ * @param props.intent - One-shot request from the search palette (create a page / filter the tree).
+ * @param props.onIntentHandled - Called once `intent` has been acted on.
  */
 export function DocsView({
   projectId,
   projectName,
   requestedPageId,
+  requestedAnchor,
   onRequestHandled,
   onOpenTicket,
   onImport,
@@ -177,6 +213,10 @@ export function DocsView({
   onBack,
   onSearch,
   onBodyRef,
+  resultsQuery = null,
+  onCloseResults,
+  intent,
+  onIntentHandled,
 }: Props) {
   const toast = useToast();
   const offlineApi = useDocsOffline(projectId);
@@ -221,9 +261,10 @@ export function DocsView({
     if (requestedPageId) {
       setSelectedId(requestedPageId);
       setEditing(false);
+      if (requestedAnchor) scrollToSection(requestedAnchor);
       onRequestHandled?.();
     }
-  }, [requestedPageId, onRequestHandled]);
+  }, [requestedPageId, requestedAnchor, onRequestHandled]);
 
   // open the first top-level page when nothing is selected yet
   useEffect(() => {
@@ -241,6 +282,14 @@ export function DocsView({
   const pageError = pageQuery.error ? docsErrorDetail(pageQuery.error) : null;
   const treeError = tree.error ? docsErrorDetail(tree.error) : null;
   const networkDown = (pageQuery.isError && !pageError) || (tree.isError && !treeError);
+  const access = useDocsAccess(projectId);
+  const requestAccess = useRequestDocsAccess(projectId);
+  const readOnly =
+    access.data && access.data.access && !access.data.canEdit
+      ? access.data.policy === 'admins'
+        ? 'Only project admins can edit pages in this space'
+        : 'Only project members can edit pages in this space'
+      : null;
   const cachedPage = selectedId && !livePage ? offlineApi.getCachedPage(selectedId) : null;
   const offlineCopy = !livePage && networkDown && cachedPage ? cachedToPage(cachedPage, projectId, nodes) : null;
   const page = livePage ?? offlineCopy;
@@ -248,11 +297,22 @@ export function DocsView({
     if (pageQuery.isError || tree.isError) setFailedAt(new Date());
   }, [pageQuery.isError, pageQuery.errorUpdatedAt, tree.isError, tree.errorUpdatedAt]);
 
-  const select = useCallback((id: string) => {
-    setSelectedId(id);
-    setEditing(false);
-    setRailOpen(false);
-  }, []);
+  const select = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      setEditing(false);
+      setRailOpen(false);
+      onCloseResults?.();
+    },
+    [onCloseResults],
+  );
+  const [peekTarget, setPeekTarget] = useState<PeekTarget | null>(null);
+  const peek = useCallback(
+    (pageId: string, anchor?: string | null, hint?: PeekTarget['hint']) =>
+      setPeekTarget({ pageId, anchor: anchor ?? null, hint }),
+    [],
+  );
+  const [filterRequest, setFilterRequest] = useState<{ q: string; n: number } | null>(null);
 
   const showRail = narrow || treeCollapsed || editing;
   function setCollapsed(v: boolean) {
@@ -263,6 +323,24 @@ export function DocsView({
     if (narrow) setRailOpen(true);
     else setCollapsed(false);
   }
+
+  // palette hand-offs: "Create page “…”" and "Filter the tree instead"
+  useEffect(() => {
+    if (!intent) return;
+    if (intent.kind === 'create-page') {
+      setNewPage({ parentId: null, title: intent.title });
+    } else {
+      onCloseResults?.();
+      if (narrow) setRailOpen(true);
+      else {
+        setTreeCollapsed(false);
+        localStorage.setItem('docsTreeCollapsed', '0');
+      }
+      setFilterRequest((r) => ({ q: intent.q, n: (r?.n ?? 0) + 1 }));
+    }
+    onIntentHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent]);
 
   async function copy(text: string, message: string) {
     try {
@@ -365,9 +443,9 @@ export function DocsView({
     }
   }
 
-  // dropping .md files or folders anywhere on the Docs page
+  // dropping .md files or folders anywhere on the Docs page (the editor takes dropped files itself)
   useEffect(() => {
-    if (!onDropFiles) return;
+    if (!onDropFiles || editing) return;
     const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files');
     let depth = 0;
     const enter = (e: DragEvent) => {
@@ -402,7 +480,7 @@ export function DocsView({
       window.removeEventListener('dragleave', leave);
       window.removeEventListener('drop', drop);
     };
-  }, [onDropFiles]);
+  }, [onDropFiles, editing]);
 
   const firstPage = () => nodes.filter((n) => !n.parentId).sort((a, b) => a.position - b.position)[0];
   const goOverview = () => {
@@ -430,6 +508,9 @@ export function DocsView({
   };
 
   const docsDisabled = treeError?.code === 'docs_disabled' || pageError?.code === 'docs_disabled';
+  const noAccess =
+    access.data?.access === false || treeError?.code === 'docs_no_access' || pageError?.code === 'docs_no_access';
+  const disabledRole = treeError?.role ?? pageError?.role;
 
   const treeEl = (
     <DocsTree
@@ -440,6 +521,7 @@ export function DocsView({
       loadingId={pageQuery.isLoading ? selectedId : null}
       onSelect={select}
       onNewPage={(parentId) => setNewPage({ parentId })}
+      readOnly={!!readOnly}
       onRequestRename={(n, t) => void requestRename(n, t)}
       renamingId={renamingId}
       onRenamingChange={setRenamingId}
@@ -460,6 +542,7 @@ export function DocsView({
         />
       )}
       onOpenSearch={(q) => onSearch?.(q)}
+      filterRequest={filterRequest}
       headerExtra={<DocsFollowToggle projectId={projectId} />}
     />
   );
@@ -468,7 +551,23 @@ export function DocsView({
   let leftOverride: React.ReactNode = null;
   if (docsDisabled) {
     leftOverride = <></>;
-    content = <DocsDisabled onOpenSettings={onOpenSettings} onBack={onBack} />;
+    content = (
+      <DocsDisabled
+        onOpenSettings={onOpenSettings}
+        onBack={onBack}
+        isAdmin={!disabledRole || disabledRole === 'admin'}
+      />
+    );
+  } else if (noAccess) {
+    leftOverride = <></>;
+    content = (
+      <NoAccess
+        projectName={projectName}
+        admins={access.data?.admins ?? []}
+        onRequest={async (note) => (await requestAccess.mutateAsync(note)).sent}
+        onBack={onBack}
+      />
+    );
   } else if (treeLoading) {
     leftOverride = <TreeSkeleton />;
     content =
@@ -585,6 +684,7 @@ export function DocsView({
       <DocsEditScreen
         key={page.id}
         projectId={projectId}
+        projectName={projectName}
         page={page}
         nodes={nodes}
         onOpenPage={select}
@@ -603,8 +703,10 @@ export function DocsView({
         page={page}
         projectId={projectId}
         projectName={projectName}
-        narrow={narrow}
+        // the history drawer takes 420px of the row: use the compact page layout while it is open
+        narrow={narrow || history !== null}
         offline={offlineCopy ? { savedAt: cachedPage!.savedAt, version: cachedPage!.version } : null}
+        readOnly={readOnly}
         onTryAgain={() => {
           void pageQuery.refetch();
           void tree.refetch();
@@ -612,8 +714,7 @@ export function DocsView({
         onAction={(a) => void runAction(a, page)}
         onOpenPage={(id, anchor) => {
           select(id);
-          if (anchor)
-            setTimeout(() => document.getElementById(`docs-${anchor}`)?.scrollIntoView({ behavior: 'smooth' }), 300);
+          if (anchor) scrollToSection(anchor);
         }}
         onOpenTicket={onOpenTicket}
         onCompare={(from, to) => setHistory({ compare: { from, to } })}
@@ -621,6 +722,23 @@ export function DocsView({
         onRestorePage={(id) => restore.mutate(id, { onSuccess: () => toast.success('Page restored') })}
         onReplaceSection={(f, t) => void replaceSection(f, t)}
         onBodyRef={onBodyRef}
+      />
+    );
+  }
+
+  if (resultsQuery !== null && !docsDisabled && !treeLoading) {
+    content = (
+      <SearchResults
+        key={resultsQuery}
+        projectId={projectId}
+        projectName={projectName}
+        initialQuery={resultsQuery}
+        onOpenPage={(id, anchor) => {
+          select(id);
+          if (anchor) scrollToSection(anchor);
+        }}
+        onOpenTicket={onOpenTicket}
+        onBack={() => onCloseResults?.()}
       />
     );
   }
@@ -636,7 +754,7 @@ export function DocsView({
           selectedId={selectedId}
           onExpand={showTree}
           onSearch={() => onSearch?.()}
-          onNewPage={(p) => setNewPage({ parentId: p })}
+          onNewPage={readOnly ? undefined : (p) => setNewPage({ parentId: p })}
           onSelect={select}
         />
         {narrow && railOpen && (
@@ -660,134 +778,154 @@ export function DocsView({
     ));
 
   return (
-    <div
-      className="docs-root"
-      data-testid="docs-view"
-      style={{
-        flex: 1,
-        minHeight: 0,
-        display: 'flex',
-        position: 'relative',
-        overflow: 'hidden',
-        background: '#FFFFFF',
-      }}
-    >
-      {left}
-      {content}
+    <DocsPeekProvider value={peek}>
+      <div
+        className="docs-root"
+        data-testid="docs-view"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          position: 'relative',
+          overflow: 'hidden',
+          background: '#FFFFFF',
+        }}
+      >
+        {left}
+        {content}
 
-      {dragFiles != null && (
-        <div
-          role="presentation"
-          style={{
-            position: 'absolute',
-            inset: 12,
-            zIndex: 150,
-            borderRadius: 12,
-            border: '2px dashed #2E6F40',
-            background: 'rgba(241,248,243,0.94)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            pointerEvents: 'none',
-          }}
-        >
+        {dragFiles != null && (
           <div
+            role="presentation"
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: '#DCEEE1',
-              color: '#2E6F40',
+              position: 'absolute',
+              inset: 12,
+              zIndex: 150,
+              borderRadius: 12,
+              border: '2px dashed #2E6F40',
+              background: 'rgba(241,248,243,0.94)',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: 8,
+              pointerEvents: 'none',
             }}
           >
-            <Icon name="i26" size={22} strokeWidth={1.8} />
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: '#DCEEE1',
+                color: '#2E6F40',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="i26" size={22} strokeWidth={1.8} />
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
+              Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}
+            </div>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
-            Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}
-          </div>
-        </div>
-      )}
+        )}
 
-      {newPage && (
-        <NewPageDialog
-          projectId={projectId}
-          nodes={nodes}
-          initialParentId={newPage.parentId}
-          initialTemplate={newPage.template}
-          initialTitle={newPage.title}
-          onClose={() => setNewPage(null)}
-          onCreated={(p) => {
-            setNewPage(null);
-            setSelectedId(p.id);
-            setEditing(true);
-            toast.success('Page created', 'It is a draft until you publish it.');
-          }}
-        />
-      )}
-      {moveFor && (
-        <MoveToDialog
-          projectId={projectId}
-          page={moveFor}
-          nodes={nodes}
-          onClose={() => setMoveFor(null)}
-          onMoved={() => setMoveFor(null)}
-        />
-      )}
-      {dupFor && (
-        <DuplicateDialog
-          projectId={projectId}
-          page={dupFor}
-          nodes={nodes}
-          onClose={() => setDupFor(null)}
-          onDuplicated={(p) => {
-            setDupFor(null);
-            select(p.id);
-          }}
-        />
-      )}
-      {history && page && (
-        <HistoryDrawer
-          projectId={projectId}
-          page={page}
-          initialCompare={history.compare}
-          onClose={() => setHistory(null)}
-        />
-      )}
-      {deleteFor && (
-        <DeleteDialog
-          projectId={projectId}
-          page={deleteFor}
-          onClose={() => setDeleteFor(null)}
-          onDeleted={(count) => {
-            const { id, title } = deleteFor;
-            setDeleteFor(null);
-            toast.success(
-              `Moved “${title}” to the Recycle Bin`,
-              count > 1 ? `${count} pages, kept for 30 days` : 'Kept for 30 days',
-            );
-            if (selectedId === id) {
-              localStorage.removeItem(`docsPage:${projectId}`);
-              setSelectedId(null);
-              setEditing(false);
-            }
-          }}
-        />
-      )}
-      {renameFor && (
-        <RenameDialog
-          projectId={projectId}
-          page={renameFor.node}
-          newTitle={renameFor.newTitle}
-          onClose={() => setRenameFor(null)}
-          onRenamed={() => setRenameFor(null)}
-        />
-      )}
-    </div>
+        {newPage && (
+          <NewPageDialog
+            projectId={projectId}
+            nodes={nodes}
+            initialParentId={newPage.parentId}
+            initialTemplate={newPage.template}
+            initialTitle={newPage.title}
+            onClose={() => setNewPage(null)}
+            onCreated={(p) => {
+              setNewPage(null);
+              setSelectedId(p.id);
+              setEditing(true);
+              toast.success('Page created', 'It is a draft until you publish it.');
+            }}
+          />
+        )}
+        {moveFor && (
+          <MoveToDialog
+            projectId={projectId}
+            page={moveFor}
+            nodes={nodes}
+            onClose={() => setMoveFor(null)}
+            onMoved={() => setMoveFor(null)}
+          />
+        )}
+        {dupFor && (
+          <DuplicateDialog
+            projectId={projectId}
+            page={dupFor}
+            nodes={nodes}
+            onClose={() => setDupFor(null)}
+            onDuplicated={(p) => {
+              setDupFor(null);
+              select(p.id);
+            }}
+          />
+        )}
+        {history && page && (
+          <HistoryDrawer
+            projectId={projectId}
+            page={page}
+            initialCompare={history.compare}
+            onClose={() => setHistory(null)}
+            onReopen={() => setHistory({})}
+          />
+        )}
+        {deleteFor && (
+          <DeleteDialog
+            projectId={projectId}
+            page={deleteFor}
+            onClose={() => setDeleteFor(null)}
+            onDeleted={(count) => {
+              const { id, title } = deleteFor;
+              setDeleteFor(null);
+              toast.success(
+                `Moved “${title}” to the Recycle Bin`,
+                count > 1 ? `${count} pages, kept for 30 days` : 'Kept for 30 days',
+              );
+              if (selectedId === id) {
+                localStorage.removeItem(`docsPage:${projectId}`);
+                setSelectedId(null);
+                setEditing(false);
+              }
+            }}
+          />
+        )}
+        {renameFor && (
+          <RenameDialog
+            projectId={projectId}
+            page={renameFor.node}
+            newTitle={renameFor.newTitle}
+            onClose={() => setRenameFor(null)}
+            onRenamed={() => setRenameFor(null)}
+          />
+        )}
+        {peekTarget && (
+          <DocPeekPanel
+            target={peekTarget}
+            projectId={projectId}
+            onSwitch={setPeekTarget}
+            onClose={() => setPeekTarget(null)}
+            onOpenInDocs={(id, anchor) => {
+              setPeekTarget(null);
+              select(id);
+              if (anchor) scrollToSection(slugifyHeading(anchor));
+            }}
+            onOpenTicket={(id) => {
+              setPeekTarget(null);
+              onOpenTicket(id);
+            }}
+          />
+        )}
+      </div>
+    </DocsPeekProvider>
   );
 }
 

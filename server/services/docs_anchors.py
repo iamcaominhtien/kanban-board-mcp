@@ -1,7 +1,8 @@
 """Comment anchors: turn page Markdown into plain text blocks and re-find a quoted selection in them.
 
 An anchor is the selected text (``quote``) plus up to ``CONTEXT`` characters of ``prefix`` / ``suffix``
-from the same block and the id of the section it sits in. The page Markdown is never changed.
+and the id of the section it starts in. A selection may run over several blocks: the page text is then
+read as the blocks joined by single spaces. The page Markdown is never changed.
 """
 
 import re
@@ -13,7 +14,7 @@ from services.docs_text import heading_anchors, strip_block_prefix
 CONTEXT = 32
 MIN_FUZZY_RATIO = 0.7
 MIN_FUZZY_QUOTE = 4
-MAX_QUOTE = 500
+MAX_QUOTE = 2000
 
 _WS = re.compile(r"\s+")
 _FENCE = re.compile(r"^\s*(```|~~~)")
@@ -38,7 +39,7 @@ class Block:
 
     text: str
     section: str | None
-    start: int  # offset of the block in the page text, blocks joined by a newline
+    start: int  # offset of the block in the page text, blocks joined by one separator
 
 
 @dataclass
@@ -180,6 +181,45 @@ def _found(block: Block, at: int, end: int, exact: bool) -> Match:
     )
 
 
+def _find_across(
+    blocks: list[Block], quote: str, prefix: str, suffix: str, section: str | None
+) -> Match | None:
+    """Exact match of a selection that runs over several blocks, in the blocks joined by spaces."""
+    if len(blocks) < 2:
+        return None
+    text = " ".join(b.text for b in blocks)
+    best: tuple[float, int] | None = None
+    at = text.find(quote)
+    while at != -1:
+        owner = _block_at(blocks, at)
+        whole = Block(text=text, section=owner.section, start=0)
+        s = _score(whole, at, at + len(quote), prefix, suffix, section)
+        if best is None or s > best[0]:
+            best = (s, at)
+        at = text.find(quote, at + 1)
+    if best is None:
+        return None
+    at = best[1]
+    before, after = context_of(text, at, at + len(quote))
+    return Match(
+        pos=at,
+        quote=quote,
+        prefix=before,
+        suffix=after,
+        section=_block_at(blocks, at).section,
+        exact=True,
+    )
+
+
+def _block_at(blocks: list[Block], pos: int) -> Block:
+    owner = blocks[0]
+    for b in blocks:
+        if b.start > pos:
+            break
+        owner = b
+    return owner
+
+
 def find_anchor(
     blocks: list[Block],
     quote: str,
@@ -217,6 +257,9 @@ def find_anchor(
     if best:
         _, block, at = best
         return _found(block, at, at + len(quote), True)
+    across = _find_across(blocks, quote, prefix, suffix, section)
+    if across:
+        return across
     if len(quote) < MIN_FUZZY_QUOTE:
         return None
     fuzzy: tuple[float, Block, int, int] | None = None

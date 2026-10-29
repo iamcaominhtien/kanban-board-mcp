@@ -1,19 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useDocsDiff, useDocsVersions } from '../../api/docs';
+import { useDocsDiff, useDocsSeen, useDocsStepDiffs, useDocsVersions, useMarkDocsSeen } from '../../api/docs';
 import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 import { Avatar, agoText, displayName, fmtDateTime, plural } from './docsShared';
 
-interface SinceViewedBannerProps {
-  page: DocsPage;
-  onCompare: (from: number, to: number) => void;
-}
+/** The last viewed version used to live in the browser; read it once so nobody loses their place. */
+const legacyKey = (pageId: string) => `docsSeen:${pageId}`;
 
-const key = (pageId: string) => `docsSeen:${pageId}`;
-
-function readSeen(pageId: string): number | null {
+function readLegacySeen(pageId: string): number | null {
   try {
-    const raw = localStorage.getItem(key(pageId));
+    const raw = localStorage.getItem(legacyKey(pageId));
     const n = raw == null ? NaN : Number(raw);
     return Number.isFinite(n) ? n : null;
   } catch {
@@ -21,45 +17,49 @@ function readSeen(pageId: string): number | null {
   }
 }
 
-/**
- * Record that the viewer has seen `version` of the page (also call this after your own publish).
- * @param pageId - Page that was viewed.
- * @param version - Latest version the viewer has seen.
- */
-export function markDocsSeen(pageId: string, version: number): void {
+function clearLegacySeen(pageId: string): void {
   try {
-    localStorage.setItem(key(pageId), String(version));
+    localStorage.removeItem(legacyKey(pageId));
   } catch {
     /* storage unavailable */
   }
 }
 
-function listNames(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+/** Lines that say nothing on their own, so they never mark a paragraph as changed. */
+const TRIVIAL_LINE = /^[\s|:\-`>#*]*$/;
+
+export interface SinceViewed {
+  /** version this person last viewed; null until it is known */
+  seen: number | null;
+  /** the page was published since then */
+  behind: boolean;
+  /** published versions after `seen`, newest first */
+  edits: ReturnType<typeof useDocsVersions>['data'];
+  /** source line text -> latest version that added it, for marking changed paragraphs */
+  changedIn: Map<string, number>;
+  markSeen: () => void;
 }
 
 /**
- * "Changes since you last viewed": collapsed by default, expands to the edits behind it.
- * @param props.page - Page to compare against the last viewed version.
- * @param props.onCompare - Called with two version numbers to open their diff.
+ * Per-user "since you last viewed" state for a page: the last viewed version lives on the server, the first visit
+ * records the version being shown, and `changedIn` says which lines were added by which later version.
+ * @param page - Page being viewed.
+ * @param enabled - False to skip recording and loading anything (e.g. while offline).
  */
-export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
-  const [seen, setSeen] = useState<number | null>(() => readSeen(page.id));
-  const [open, setOpen] = useState(false);
-  const versionsQ = useDocsVersions(page.id);
+export function useSinceViewed(page: DocsPage, enabled = true): SinceViewed {
+  const seenQ = useDocsSeen(enabled ? page.id : null);
+  const mark = useMarkDocsSeen();
+  const versionsQ = useDocsVersions(enabled ? page.id : null);
+  const serverSeen = seenQ.data;
+  const loaded = seenQ.isSuccess || seenQ.isError;
+  const seen = serverSeen ?? (loaded ? readLegacySeen(page.id) : null);
 
-  // First visit: nothing to compare against yet, so remember the version being shown.
+  // First visit: adopt the old browser-only value, else remember the version being shown.
   useEffect(() => {
-    const s = readSeen(page.id);
-    if (s == null && page.version > 0) {
-      markDocsSeen(page.id, page.version);
-      setSeen(page.version);
-    } else {
-      setSeen(s);
-    }
-    setOpen(false);
-  }, [page.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!enabled || !loaded || serverSeen != null || page.version <= 0) return;
+    mark(page.id, readLegacySeen(page.id) ?? page.version);
+    clearLegacySeen(page.id);
+  }, [enabled, loaded, serverSeen, page.id, page.version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const behind = seen != null && seen < page.version;
   const edits = useMemo(
@@ -69,6 +69,57 @@ export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
         .sort((a, b) => b.version - a.version),
     [versionsQ.data, seen, page.version],
   );
+  const steps = useDocsStepDiffs(
+    behind ? page.id : null,
+    edits.slice(0, 12).map((e) => e.version),
+  );
+  const stepKey = steps.map((q) => q.dataUpdatedAt).join(',');
+  const changedIn = useMemo(() => {
+    const out = new Map<string, number>();
+    // oldest first, so a line edited again is attributed to the later version
+    [...steps].reverse().forEach((q) => {
+      for (const row of q.data?.rows ?? []) {
+        const text = row.text.trim();
+        if (row.type === 'add' && !TRIVIAL_LINE.test(text)) out.set(text, q.data!.to);
+      }
+    });
+    return out;
+  }, [stepKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return {
+    seen,
+    behind,
+    edits: edits.length ? edits : undefined,
+    changedIn,
+    markSeen: () => mark(page.id, page.version),
+  };
+}
+
+function listNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+interface SinceViewedBannerProps {
+  page: DocsPage;
+  since: SinceViewed;
+  onCompare: (from: number, to: number) => void;
+}
+
+/**
+ * "Changes since you last viewed": collapsed by default, expands to the edits behind it.
+ * @param props.page - Page to compare against the last viewed version.
+ * @param props.since - State from `useSinceViewed` for this page.
+ * @param props.onCompare - Called with two version numbers to open their diff.
+ */
+export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerProps) {
+  const { seen, behind, markSeen } = since;
+  const edits = since.edits ?? [];
+  const [open, setOpen] = useState(false);
+  const versionsQ = useDocsVersions(page.id);
+
+  useEffect(() => setOpen(false), [page.id]);
+
   const diffQ = useDocsDiff(behind ? page.id : null, behind ? seen : null, behind ? page.version : null);
   const sectionNames = (diffQ.data?.sections ?? []).map((s) => s.heading.replace(/^#+\s*/, '').trim() || 'Top of page');
   const seenVersion = (versionsQ.data ?? []).find((v) => v.version === seen);
@@ -77,11 +128,6 @@ export function SinceViewedBanner({ page, onCompare }: SinceViewedBannerProps) {
 
   const authors = Array.from(new Set(edits.map((e) => displayName(e.author))));
   const count = edits.length || page.version - seen;
-
-  function markSeen() {
-    markDocsSeen(page.id, page.version);
-    setSeen(page.version);
-  }
 
   return (
     <div

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import camelcaseKeys from 'camelcase-keys';
 import { client } from './client';
 import type {
@@ -32,13 +32,15 @@ export function docsErrorDetail(err: unknown): (DocsErrorDetail & { status?: num
 export const docsKeys = {
   tree: (projectId: string) => ['docs', 'tree', projectId] as const,
   page: (pageId: string) => ['docs', 'page', pageId] as const,
+  seen: (pageId: string) => ['docs', 'seen', pageId] as const,
   versions: (pageId: string) => ['docs', 'versions', pageId] as const,
   diff: (pageId: string, a: number, b: number) => ['docs', 'diff', pageId, a, b] as const,
   backlinks: (pageId: string) => ['docs', 'backlinks', pageId] as const,
   recycle: (projectId: string) => ['docs', 'recycle', projectId] as const,
   templates: ['docs', 'templates'] as const,
   ticketDocs: (ticketId: string) => ['docs', 'ticket', ticketId] as const,
-  resolve: (projectId: string, refs: DocsRefRequest[]) => ['docs', 'resolve', projectId, refs] as const,
+  resolve: (projectId: string, refs: DocsRefRequest[], fromTicket = false) =>
+    ['docs', 'resolve', projectId, refs, fromTicket] as const,
 };
 
 /** Query a project's page tree. */
@@ -66,6 +68,54 @@ export function useDocsTemplates() {
     queryKey: docsKeys.templates,
     queryFn: async () => (await client.get<DocsTemplate[]>('/docs/templates')).data,
     staleTime: Infinity,
+  });
+}
+
+/** Query who follows a project's Docs space (not counting you). */
+export function useDocsFollowers(projectId: string) {
+  return useQuery({
+    queryKey: ['docs', 'followers', projectId] as const,
+    queryFn: async () =>
+      (
+        await client.get<{ following: boolean; count: number; names: string[] }>(
+          `/projects/${projectId}/docs/followers`,
+        )
+      ).data,
+    enabled: !!projectId,
+  });
+}
+
+/** Query the version of a page you last viewed (`null` = never). */
+export function useDocsSeen(pageId: string | null) {
+  return useQuery({
+    queryKey: docsKeys.seen(pageId ?? ''),
+    queryFn: async () => (await client.get<{ version: number | null }>(`/docs/pages/${pageId}/seen`)).data.version,
+    enabled: !!pageId,
+    staleTime: Infinity,
+  });
+}
+
+/** Returns a function that records the latest version of a page you have seen (also after your own publish). */
+export function useMarkDocsSeen() {
+  const qc = useQueryClient();
+  return (pageId: string, version: number) => {
+    qc.setQueryData(docsKeys.seen(pageId), version);
+    client.put(`/docs/pages/${pageId}/seen`, { version }).catch(() => undefined);
+  };
+}
+
+/**
+ * Query the diff of each given version against the one before it, in the same order.
+ * @param pageId - Page the versions belong to.
+ * @param versions - Version numbers (1 and up) to diff against their predecessor.
+ */
+export function useDocsStepDiffs(pageId: string | null, versions: number[]) {
+  return useQueries({
+    queries: versions.map((v) => ({
+      queryKey: docsKeys.diff(pageId ?? '', v - 1, v),
+      queryFn: async () => (await client.get<DocsDiff>(`/docs/pages/${pageId}/versions/${v - 1}/diff/${v}`)).data,
+      enabled: !!pageId && v > 1,
+    })),
   });
 }
 
@@ -136,11 +186,13 @@ export function useTicketDocs(ticketId: string) {
  * Resolve [[page]] and ticket references from rendered markdown (chips, broken-link state).
  * @param projectId - Project the references belong to.
  * @param refs - References to resolve; disabled while empty.
+ * @param fromTicket - The text sits in a ticket, which links by page id: a renamed page's old title still resolves.
  */
-export function useResolveRefs(projectId: string, refs: DocsRefRequest[]) {
+export function useResolveRefs(projectId: string, refs: DocsRefRequest[], fromTicket = false) {
   return useQuery({
-    queryKey: docsKeys.resolve(projectId, refs),
-    queryFn: async () => (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs })).data,
+    queryKey: docsKeys.resolve(projectId, refs, fromTicket),
+    queryFn: async () =>
+      (await client.post<DocsRefResult[]>(`/projects/${projectId}/docs/resolve`, { refs, fromTicket })).data,
     enabled: !!projectId && refs.length > 0,
   });
 }

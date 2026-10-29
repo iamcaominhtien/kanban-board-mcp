@@ -64,10 +64,7 @@ function DocRefView({ node, selected }: NodeViewProps) {
           {a.section && (
             <>
               <span style={{ color: '#68BA7F', fontWeight: 500 }}>&#8250;</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                <Icon name="i04" size={11} strokeWidth={2.2} />
-                {a.section}
-              </span>
+              {a.section}
             </>
           )}
         </>

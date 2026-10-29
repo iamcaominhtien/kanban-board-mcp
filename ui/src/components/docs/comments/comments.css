@@ -62,6 +62,10 @@
 .dk-cmt-hl.is-active::after {
   background: #8a5a0b;
 }
+/* a thread split across a code span or link shows its number once, after the last piece */
+.dk-cmt-hl:not([data-num])::after {
+  content: none;
+}
 
 /* header button */
 .dc-btn-count {
@@ -361,6 +365,21 @@
   font-size: 13.5px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+.dc-text p {
+  margin: 0 0 6px;
+}
+.dc-text p:last-child {
+  margin-bottom: 0;
+}
+.dc-text img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.dc-uploading {
+  font-size: 12.5px;
+  color: #5b6b60;
+  padding: 6px 10px;
 }
 .dc-text code {
   font-family: var(--font-mono, monospace);
