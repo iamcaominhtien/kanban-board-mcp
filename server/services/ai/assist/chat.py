@@ -251,6 +251,7 @@ async def send(
     send_all: bool = False,
     doc_ids: list[str] | None = None,
     filters: dict | None = None,
+    member_form: dict | None = None,
 ) -> dict:
     """Post the person's message and start the answer (it streams into the AI message)."""
     c = await get_chat(session, chat_id, owner)
@@ -288,6 +289,7 @@ async def send(
                     "send_all": send_all,
                     "doc_ids": doc_ids or [],
                     "filters": filters or {},
+                    "member_form": _form_state(member_form),
                 }
             }
         ),
@@ -307,6 +309,25 @@ async def send(
         _spawn(ai.id)
     await _publish()
     return {"user": _msg(user), "ai": _msg(ai)}
+
+
+_FORM_KEYS = (
+    "name",
+    "description",
+    "persona",
+    "template",
+    "ceiling",
+    "max_parallel",
+    "max_runs_per_day",
+    "model",
+)
+
+
+def _form_state(form: dict | None) -> dict | None:
+    """The Add AI member dialog's fields as the Board AI sees them (None outside the dialog)."""
+    if form is None:
+        return None
+    return {k: form.get(k) for k in _FORM_KEYS if k in form}
 
 
 def _spawn(message_id: str, delay: float = 0.0) -> None:
@@ -431,7 +452,10 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         "all": "Scope: every project the person belongs to.",
         "doc": "Scope: this page and its linked tickets. Answer only from the page and cite the section as Page › # Heading.",
     }[scope]
-    extra = prompts.CHAT_FORMAT
+    form = req.get("member_form")
+    extra = prompts.CHAT_FORMAT + (
+        "\n" + prompts.FORM_FORMAT if form is not None else ""
+    )
     if req.get("draft"):
         extra += "\nThis request is a suggested action: answer in one sentence and put the change in the actions block."
     system = prompts.system(member.name, project.name if project else "", row, extra)
@@ -457,7 +481,12 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             loads(open_draft.payload, {}).get("members") or [], ensure_ascii=False
         )
         + "\n</open-proposal>"
-        if open_draft
+        if open_draft and form is None
+        else ""
+    )
+    form_block = (
+        "<form>\n" + json.dumps(form, ensure_ascii=False) + "\n</form>"
+        if form is not None
         else ""
     )
 
@@ -467,6 +496,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 scope_line,
                 f"Members of the project: {people}",
                 open_proposal,
+                form_block,
                 "Board context:\n" + built.text,
                 ("Earlier in this chat:\n" + "\n".join(convo))
                 if convo and with_history
@@ -603,13 +633,26 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     )
     suggestions = prompts.check_suggestions(block.get("suggestions") or [])
     draft_id = None
-    proposed, member_notes = [], []
+    proposed, member_notes, filled = [], [], False
     if block.get("ai_members"):
         async with database.async_session() as session:
             proposed, member_notes = member_drafts.check_ai_members(
                 block["ai_members"],
                 await member_drafts.taken_names(session, c.project_id),
             )
+    if proposed and form is not None:
+        # the dialog fills itself from this; nothing is drafted or created
+        async with database.async_session() as session:
+            current = await session.get(AiChatMessage, message_id)
+            await _set(
+                message_id,
+                context={
+                    **loads(current.context, {}),
+                    "member_form": proposed[0],
+                    "member_form_notes": member_notes,
+                },
+            )
+        proposed, changes, problems, filled = [], [], problems + member_notes, True
     if proposed:
         async with database.async_session() as session:
             # a newer proposal replaces the open ones of this chat
@@ -672,7 +715,9 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         state="done",
         text=text
         or (
-            "Here is what I would create."
+            "I filled in the form; check it and press Create when it looks right."
+            if filled and not changes
+            else "Here is what I would create."
             if proposed
             else "Here is what I would change."
             if changes

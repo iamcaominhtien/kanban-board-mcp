@@ -209,3 +209,48 @@ def test_the_read_only_cli_lists_match_the_dialog_presets():
     by = {p["id"]: p for p in PRESETS}
     assert by["pm"]["cliAllow"] == member_drafts.READ_ONLY_ALLOW
     assert by["reviewer"]["cliAllow"] == member_drafts.REVIEW_ALLOW
+
+
+async def test_the_add_dialog_asks_for_one_member_and_creates_nothing(env, fake):
+    """In the dialog the answer carries one checked member for the form to fill; no draft and no member are made."""
+    c, pid, an, m = await _setup(env)
+    before = await _names(c, pid)
+    form = {"name": "", "persona": "", "template": "developer", "ceiling": "review"}
+    fake.queue.append(
+        _block(
+            [
+                {
+                    "name": "Tester",
+                    "persona": "You test.",
+                    "template": "reviewer",
+                    "ceiling": "done",
+                    "api_key": "sk-ant\x2dapi03-zzzzzzzzzzzz3f9a",
+                    "working_dir": "/etc",
+                },
+                {"name": "Second"},
+            ],
+            text="Here is a tester.",
+        )
+    )
+    chat = (await c.post(f"/projects/{pid}/ai/assist/chats", json={}, headers=H)).json()
+    msg = await _answer(c, chat["id"], "a tester", member_form=form)
+    assert msg["state"] == "done" and msg["draft_id"] is None
+    got = msg["context"]["member_form"]
+    assert got["name"] == "Tester" and got["template"] == "reviewer"
+    assert got["ceiling"] == "review", "past Review is clamped here too"
+    assert "api_key" not in got and "working_dir" not in got
+    assert "<form>" in fake.prompts[-1] and "<open-proposal>" not in fake.prompts[-1]
+    assert await _names(c, pid) == before
+
+    # the next message sends the form as the person has edited it since
+    fake.queue.append(_block([{"name": "Tester", "persona": "You test hard."}]))
+    form2 = {**form, "name": "Tester", "persona": "mine"}
+    again = await _answer(c, chat["id"], "stricter", member_form=form2)
+    assert '"persona": "mine"' in fake.prompts[-1]
+    assert again["context"]["member_form"]["persona"] == "You test hard."
+
+
+async def test_a_plain_chat_has_no_member_form(env, fake):
+    c, pid, an, m = await _setup(env)
+    chat, msg = await _propose(c, pid, fake, members=[{"name": "Solo"}])
+    assert "member_form" not in msg["context"] and msg["draft"]["kind"] == "ai_members"

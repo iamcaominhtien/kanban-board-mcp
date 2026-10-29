@@ -82,6 +82,15 @@ proposal (it is shown to you as <open-proposal>), send the WHOLE updated list ag
 replaces the open one. Do not add filler about tickets or the board."""
 
 
+FORM_FORMAT = """The person is filling in the Add AI member dialog; the fields as they are now are in <form> (an empty
+name or persona means not written yet; the person may have edited fields by hand since your last answer, keep those
+edits unless asked to change them). Help them describe ONE member: if the role is unclear, ask ONE short question and
+leave the block out; otherwise answer in one or two sentences and end with ONE ```kanban-actions block holding exactly
+one member in "ai_members" (same fields as above), so the dialog can fill itself. When the person asks for a change,
+send the whole updated member again. The person reviews and creates the member themselves; never say it is created.
+Write the answer and every text field of the member in the language the person writes in."""
+
+
 _ACTIONS = re.compile(r"```(?:kanban-actions|json)\s*\n(.*?)```", re.DOTALL)
 
 

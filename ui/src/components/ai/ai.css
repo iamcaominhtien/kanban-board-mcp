@@ -873,3 +873,30 @@
   display: inline-flex;
   flex: none;
 }
+
+/* Add AI member: "Ask AI to fill this in" */
+.ai-fill {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed #b9d3c1;
+  border-radius: 10px;
+  background: #f6faf7;
+}
+.ai-fill-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ai-fill-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-fill-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

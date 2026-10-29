@@ -6,6 +6,7 @@ import { extractError } from '../../api/extractError';
 import type { AiMember, AiProvider, DetectResult } from '../../types/ai';
 import { AiAvatar, AvatarPicker, DEFAULT_LOOK, PROVIDERS, STATUS_NAMES } from './aiUi';
 import presetData from './memberPresets.json';
+import { AiFillPanel, type AiFilled } from './AiFillPanel';
 
 interface MemberPreset {
   id: string;
@@ -21,6 +22,8 @@ interface MemberPreset {
   description: Record<'en' | 'vi', string>;
   persona: Record<'en' | 'vi', string>;
 }
+/** What a member that never edits files may run (the same list as the PM and Reviewer presets). */
+const READ_ONLY_ALLOW = ['Read', 'Glob', 'Grep', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)'];
 /** Ready-made AI members from the guideline (PM, Dev, Reviewer). The same file feeds the guideline PDF. */
 const PRESETS = presetData as MemberPreset[];
 
@@ -116,6 +119,9 @@ export function AddAiMemberModal({
   const [description, setDescription] = useState('');
   const [persona, setPersona] = useState('');
   const [presetId, setPresetId] = useState<string | null>(null);
+  // What "Ask AI to fill this in" chose, when no preset is on: a role template and the CLI allow list
+  const [aiTemplate, setAiTemplate] = useState<'reviewer' | 'read_only' | null>(null);
+  const [aiCliAllow, setAiCliAllow] = useState<string[] | null>(null);
   const [presetLang, setPresetLang] = useState<'en' | 'vi'>(() =>
     typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('vi') ? 'vi' : 'en',
   );
@@ -143,12 +149,15 @@ export function AddAiMemberModal({
   const create = useAiMutation((body: Record<string, unknown>) => aiApi.create(projectId, body));
   const preset = PRESETS.find((p) => p.id === presetId) ?? null;
   // A preset on another role template (Reviewer) lets the template decide; the approval switches do not apply
-  const fixedTemplate = preset && preset.template !== 'developer' ? preset.template : null;
+  const fixedTemplate = preset && preset.template !== 'developer' ? preset.template : aiTemplate;
+  const roleName = preset?.name ?? (aiTemplate === 'reviewer' ? 'Reviewer' : 'Read-only');
 
   /** Fill the form from a preset (or clear it for "Blank"); every field stays editable afterwards. */
   function applyPreset(id: string | null) {
     const p = PRESETS.find((x) => x.id === id) ?? null;
     setPresetId(p ? p.id : null);
+    setAiTemplate(null);
+    setAiCliAllow(null);
     setDescription(p ? p.description[presetLang] : '');
     setPersona(p ? p.persona[presetLang] : '');
     if (!p) return;
@@ -158,6 +167,22 @@ export function AddAiMemberModal({
     setCeiling(p.ceiling);
     setConfirmDone(false);
     setApprovals({ ...p.approvals });
+  }
+
+  /** Fill the form from the member the AI proposed; the person still reviews it and presses Create. */
+  function fillFromAi(m: AiFilled) {
+    setPresetId(null);
+    setName(m.name);
+    setDescription(m.description);
+    setPersona(m.persona);
+    setMaxParallel(m.maxParallel);
+    if (local) setRunsPerDay(m.maxRunsPerDay);
+    setCeiling(m.ceiling);
+    setConfirmDone(false);
+    setAiTemplate(m.template === 'developer' ? null : m.template);
+    setAiCliAllow(provider === 'claude-code' && m.readOnlyCli ? READ_ONLY_ALLOW : null);
+    const wanted = m.model.toLowerCase();
+    if (spec.models.includes(wanted)) setModel(wanted);
   }
 
   /** Switch the language of the preset text, unless it was edited by hand. */
@@ -314,7 +339,10 @@ export function AddAiMemberModal({
         confirmDone: beyondReview(ceiling) ? confirmDone : undefined,
         template,
         permissions: overrides,
-        config: preset?.cliAllow && provider === 'claude-code' ? { allowRules: preset.cliAllow } : undefined,
+        config:
+          (aiCliAllow ?? preset?.cliAllow) && provider === 'claude-code'
+            ? { allowRules: aiCliAllow ?? preset?.cliAllow }
+            : undefined,
       });
       setSavedKeyPrefix(apiKey ? keyPrefix(key) : '');
       setKey('');
@@ -642,6 +670,22 @@ export function AddAiMemberModal({
           {step === 3 && (
             <>
               {provider !== 'mcp-client' && (
+                <AiFillPanel
+                  projectId={projectId}
+                  form={{
+                    name,
+                    description,
+                    persona,
+                    template: fixedTemplate ?? 'developer',
+                    ceiling,
+                    maxParallel,
+                    maxRunsPerDay: runsPerDay,
+                    model,
+                  }}
+                  onFill={fillFromAi}
+                />
+              )}
+              {provider !== 'mcp-client' && (
                 <div className="ai-field" data-testid="ai-presets">
                   <span className="ai-label ai-label-dark">Start from</span>
                   <div className="ai-preset-row">
@@ -825,7 +869,7 @@ export function AddAiMemberModal({
               {fixedTemplate ? (
                 <div className="ai-notice ai-notice-info" data-testid="ai-fixed-template">
                   <span>
-                    The <b>{preset?.name}</b> role template decides what it may do on tickets: it reads, comments and
+                    The <b>{roleName}</b> role template decides what it may do on tickets: it reads, comments and
                     changes status up to the ceiling; edits and new tickets wait for approval; it cannot change
                     assignees or edit docs. You can change the template later on the Permissions tab.
                   </span>
@@ -892,7 +936,7 @@ export function AddAiMemberModal({
                   <dt>Permissions</dt>
                   <dd>
                     Up to {STATUS_NAMES[ceiling]} ·{' '}
-                    {fixedTemplate ? `${preset?.name} role template` : `${approvalsOn} approvals`}
+                    {fixedTemplate ? `${roleName} role template` : `${approvalsOn} approvals`}
                   </dd>
                 </dl>
               </div>

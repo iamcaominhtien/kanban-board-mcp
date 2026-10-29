@@ -666,3 +666,7 @@ Source: [AiBoardAssistant.dc.html](../source/AiBoardAssistant.dc.html) › block
 - "TODO(backend): embeddings and similarity search for duplicates; insights scheduler, delivery and snooze or dismiss state."
 - "TODO(backend): usage metering per feature, monthly and per-request caps, audit log for the “AI safety & cost” board (still to come)."
 - "TODO(backend): per-feature settings, style guide, chat history, role permissions."
+
+### J.5 Inside the Add AI member dialog
+
+Step 3 of the dialog has **✦ Ask AI to fill this in** above the Start from presets (PM, Dev, Reviewer, Blank). The person describes the member; the Board AI (or the stand-in AI member) answers with one member that fills the form, and further prompts refine it. Each message sends the form as it is now (`member_form` on the chat message), so hand edits are kept. The server returns the checked member in the message context (`member_form`); no draft and no member is created, and the person presses Add AI member as before. The same checks as J.1 apply: ceiling clamped to Review, keys, folders, providers and Bypass ignored. The panel is hidden behind a hint when the project has no Board AI and no stand-in.
