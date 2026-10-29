@@ -676,14 +676,15 @@ export function AddAiMemberModal({
                 ) : (
                   local && (
                     <div className="ai-field" style={{ width: 150 }}>
-                      <span className="ai-label ai-label-dark">Max runs per day</span>
+                      <span className="ai-label ai-label-dark">Scheduled runs per day</span>
                       <Stepper value={runsPerDay} min={1} max={500} onChange={setRunsPerDay} />
                     </div>
                   )
                 )}
               </div>
               <span className="ai-hint">
-                At the limit it pauses and says why. Local runners get “Max runs per day” instead.
+                At the limit it pauses and says why. Local runners get “Scheduled runs per day” instead. It only counts
+                runs a schedule starts.
                 {apiKey ? ' Costs are estimated in US dollars from the built-in price table.' : ''}
               </span>
             </>

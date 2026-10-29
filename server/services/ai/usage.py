@@ -398,7 +398,10 @@ async def limits(session: AsyncSession, project_id: str) -> dict:
             "at_cap": cfg.get("at_cap", "pause"),
             "per_run_minutes": cfg.get("run_timeout_min", 30) if not metered else None,
             "cap_per_run": p.cap_per_run if metered else None,
-            "runs": _cell(await budget.runs_today(session, p.id), p.max_runs_per_day)
+            "runs": _cell(
+                await budget.runs_today(session, p.id, kinds=("schedule",)),
+                p.max_runs_per_day,
+            )
             if not metered
             else None,
         }

@@ -15,8 +15,8 @@ import database
 import events as board_events
 from models import AiChat, AiChatMessage, AiDraft, Member, Project, Ticket
 
-from .. import budget, llm
-from ..providers import cost_of
+from .. import budget, cli, llm
+from ..providers import cost_of, merged_config
 from ..store import loads, now_iso, parse_iso
 from . import context as ctxb
 from . import drafts as svc_drafts
@@ -370,6 +370,15 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             await _publish()
             return
         profile, member = info["profile"], info["member"]
+        # A local Claude Code Board AI keeps one conversation per chat: the CLI remembers the earlier messages
+        session_use = None
+        if profile.connection == "local" and profile.provider == "claude-code":
+            resume = bool(c.session_id) and cli.session_exists(c.session_id)
+            session_use = llm.SessionUse(
+                c.session_id if resume else str(uuid.uuid4()),
+                resume,
+                merged_config(loads(profile.config, {})).get("compact_at_pct"),
+            )
         row = await svc_settings.get(session)
         project = await session.get(Project, c.project_id)
         scope = c.scope
@@ -425,15 +434,22 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     if req.get("draft"):
         extra += "\nThis request is a suggested action: answer in one sentence and put the change in the actions block."
     system = prompts.system(member.name, project.name if project else "", row, extra)
-    prompt = "\n\n".join(
-        [
-            scope_line,
-            f"Members of the project: {people}",
-            "Board context:\n" + built.text,
-            ("Earlier in this chat:\n" + "\n".join(convo)) if convo else "",
-            "The person asks:\n" + ctxb.fence("question", question),
-        ]
-    )
+
+    def build_prompt(with_history: bool) -> str:
+        return "\n\n".join(
+            [
+                scope_line,
+                f"Members of the project: {people}",
+                "Board context:\n" + built.text,
+                ("Earlier in this chat:\n" + "\n".join(convo))
+                if convo and with_history
+                else "",
+                "The person asks:\n" + ctxb.fence("question", question),
+            ]
+        )
+
+    # a resumed session already holds the earlier messages
+    prompt = build_prompt(not (session_use and session_use.resume))
     buf: list[str] = []
     last_flush = [0.0]
     loop = asyncio.get_running_loop()
@@ -448,15 +464,40 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 await _publish()
 
     max_tokens = svc_settings.max_tokens_for(row, profile, 1800)
+
+    async def ask() -> llm.Completion:
+        nonlocal session_use, prompt
+        try:
+            return await llm.complete(
+                profile,
+                system=system,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                timeout=TIMEOUT_S,
+                on_delta=on_delta,
+                session=session_use,
+            )
+        except llm.LlmError as exc:
+            if exc.kind != "session" or not session_use or not session_use.resume:
+                raise
+            # the CLI lost the conversation (another folder, or ~/.claude was cleaned): start a new one, with history
+            session_use = llm.SessionUse(
+                str(uuid.uuid4()), False, session_use.compact_at_pct
+            )
+            prompt = build_prompt(True)
+            buf.clear()
+            return await llm.complete(
+                profile,
+                system=system,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                timeout=TIMEOUT_S,
+                on_delta=on_delta,
+                session=session_use,
+            )
+
     try:
-        out = await llm.complete(
-            profile,
-            system=system,
-            prompt=prompt,
-            max_tokens=max_tokens,
-            timeout=TIMEOUT_S,
-            on_delta=on_delta,
-        )
+        out = await ask()
     except asyncio.CancelledError:
         partial = "".join(buf)
         n = llm.estimate_tokens(partial)
@@ -522,6 +563,13 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         await _publish()
         return
 
+    if session_use:
+        async with database.async_session() as session:
+            chat = await session.get(AiChat, c.id)
+            if chat is not None and chat.session_id != session_use.id:
+                chat.session_id = session_use.id
+                session.add(chat)
+                await session.commit()
     text, block = prompts.split_actions(out.text)
     changes, problems = prompts.check_changes(
         block.get("changes") or [], tickets_state, names

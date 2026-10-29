@@ -8,6 +8,7 @@ from sqlmodel import select
 
 from models import AiGrant, AiMember, AiRun, AiUsage
 from services.ai import api_agent, budget, runs, safety
+from services.ai.store import get_settings
 from tests.test_ai import (  # noqa: F401
     FakeChat,
     _api_member,
@@ -133,14 +134,36 @@ async def test_board_runs_per_day_and_parallel_limits(env, monkeypatch):
     await c.post(f"/tickets/{t2}/ai/run", json={"member_id": b["id"]})
     waiting = await _blocked_reason(c, pid, t2)
     assert "free slot on the board" in waiting["waiting_reason"]
-    # runs per day on the board
+    # the board's runs per day stops scheduled and AI-started runs; a person's run goes on
     await c.patch(
         f"/projects/{pid}/ai/settings",
         json={"board_max_parallel": 4, "board_runs_per_day": 1},
     )
     await runs.cancel((await c.get(f"/tickets/{t1}/ai/runs")).json()[0]["id"], by="t")
-    waiting = await _blocked_reason(c, pid, t2)
-    assert "Board runs per day used up" in waiting["waiting_reason"]
+    await runs.tick()
+    lim = (await c.get(f"/projects/{pid}/ai/usage")).json()["limits"]["board"]
+    assert lim["runs"]["used"] == 0, "a run a person started is not counted"
+    async with env["maker"]() as s:
+        auto = await runs.create_run(
+            s,
+            ticket_id=t1,
+            member_id=a["id"],
+            mode="ask",
+            trigger="mention",
+            chain=[b["id"]],
+        )
+        auto.started_at = datetime.now(UTC).isoformat()
+        auto.state = "finished"
+        s.add(auto)
+        await s.commit()
+        profile = await s.get(AiMember, b["id"])
+        settings = await get_settings(s, pid)
+        assert await budget.blocked_detail(s, profile, settings, "person") is None
+        for kind in ("ai", "schedule"):
+            hit = await budget.blocked_detail(s, profile, settings, kind)
+            assert (
+                hit and "per day used up" in hit["reason"] and hit["scope"] == "board"
+            )
     lim = (await c.get(f"/projects/{pid}/ai/usage")).json()["limits"]["board"]
     assert lim["runs"]["cap"] == 1 and lim["runs"]["full"] is True
     bad = await c.patch(
@@ -348,7 +371,8 @@ async def test_limits_table_has_a_row_for_the_board_and_each_agent(env):
     assert lim["board"]["name"] == "All AI in this board"
     assert lim["board"]["daily"]["cap"] == 15 and lim["board"]["parallel"]["cap"] == 4
     assert (
-        lim["board"]["tokens"]["cap"] == 1_000_000 and lim["board"]["runs"]["cap"] == 60
+        lim["board"]["tokens"]["cap"] == 1_000_000
+        and lim["board"]["runs"]["cap"] == 100
     )
     a = next(x for x in lim["agents"] if x["member_id"] == api["id"])
     assert a["metered"] and a["tokens"]["cap"] == 200000 and a["cap_per_run"] == 0.3

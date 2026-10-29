@@ -114,6 +114,7 @@ export interface AiConfig {
   maxTurns: number;
   runTimeoutMin: number;
   idleTimeoutMin: number;
+  compactAtPct: number;
   maxSteps: number;
   maxTokensPerRun: number;
   temperature: number;
@@ -216,6 +217,7 @@ export interface AiMember {
   assigned: { id: string; title: string; status: string }[];
   usage: {
     runsToday: number;
+    scheduledRunsToday: number;
     runsLastHour: number;
     tokensInToday: number;
     tokensOutToday: number;

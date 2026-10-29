@@ -154,7 +154,7 @@ def _validate_limits(data: dict) -> None:
         data.get("max_runs_per_day") is not None
         and not 1 <= data["max_runs_per_day"] <= 500
     ):
-        raise AiMemberError("Max runs per day must be between 1 and 500.")
+        raise AiMemberError("Scheduled runs per day must be between 1 and 500.")
     if len(data.get("persona") or "") > MAX_PERSONA:
         raise AiMemberError(f"Role / persona must be at most {MAX_PERSONA} characters.")
     if data.get("ceiling") is not None and data["ceiling"] not in CEILINGS:
@@ -637,6 +637,8 @@ def _validate_config(cfg: dict) -> None:
         raise AiMemberError("Run timeout: 1 to 240 minutes.")
     if not 1 <= int(cfg.get("idle_timeout_min") or 10) <= 120:
         raise AiMemberError("Idle timeout: 1 to 120 minutes.")
+    if not 10 <= int(cfg.get("compact_at_pct") or 60) <= 95:
+        raise AiMemberError("Auto-compact at: 10 to 95 percent.")
     for flag in cfg.get("extra_flags") or []:
         if any(bad in str(flag) for bad in cli.REJECTED_FLAGS):
             raise AiMemberError(
@@ -1234,6 +1236,7 @@ async def usage(session: AsyncSession, member_id: str) -> dict:
         )
     return {
         "runs_today": len(todays),
+        "scheduled_runs_today": len([r for r in todays if r.trigger == "schedule"]),
         "runs_last_hour": len([r for r in todays if (r.started_at or "") >= hour_ago]),
         "tokens_in_today": sum(r.tokens_in for r in todays),
         "tokens_out_today": sum(r.tokens_out for r in todays),

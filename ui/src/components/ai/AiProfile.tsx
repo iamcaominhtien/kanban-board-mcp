@@ -367,9 +367,9 @@ function Overview({
               </dd>
               {member.connection === 'local' ? (
                 <>
-                  <dt>Runs today</dt>
+                  <dt>Scheduled runs today</dt>
                   <dd>
-                    {member.usage.runsToday} of {member.maxRunsPerDay ?? '∞'}
+                    {member.usage.scheduledRunsToday} of {member.maxRunsPerDay ?? '∞'}
                   </dd>
                   <dt>Cost</dt>
                   <dd>Not metered (subscription)</dd>

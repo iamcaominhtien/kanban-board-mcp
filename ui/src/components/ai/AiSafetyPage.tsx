@@ -626,8 +626,10 @@ function LoopsCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ flex: 1 }}>
-            <b style={{ fontSize: 13 }}>Runs per ticket in 24 h</b>
-            <div className="ai-muted">Re-runs after “Request changes” count too</div>
+            <b style={{ fontSize: 13 }}>Scheduled and AI-started runs per ticket in 24 h</b>
+            <div className="ai-muted">
+              A loop guard. Runs a person starts (a mention, an assignment) are never counted
+            </div>
           </span>
           <Stepper
             label="runs"

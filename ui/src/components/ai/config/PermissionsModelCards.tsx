@@ -307,8 +307,17 @@ export function ModelCard() {
           issues={issues}
         />
         <NumField
+          label="Auto-compact at"
+          unit="% of context"
+          value={cfg.compactAtPct}
+          onChange={(v) => setCfg({ compactAtPct: v })}
+          path="compact_at_pct"
+          issues={issues}
+          hint="A ticket keeps one conversation with this member. When it fills this share of the model's context, Claude Code summarizes the older part."
+        />
+        <NumField
           id="cfg-budget"
-          label="Max runs per day"
+          label="Scheduled runs per day"
           value={draft.maxRunsPerDay}
           onChange={(v) => setDraft({ maxRunsPerDay: v })}
           path="max_runs_per_day"

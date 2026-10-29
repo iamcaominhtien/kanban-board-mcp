@@ -511,7 +511,7 @@ async def availability(
             "runner_missing": f"{member.name}: runner offline",
             "model_retired": f"{member.name}: model retired",
         }[profile.health]
-    over = await budget.blocked(session, profile, settings)
+    over = await budget.blocked(session, profile, settings, "schedule")
     if over:
         return False, f"{member.name} is over its budget ({over[1]})"
     return True, None

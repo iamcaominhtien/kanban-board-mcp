@@ -341,7 +341,7 @@ function localIssues(d: MemberDraft, member: AiMember): ConfigIssue[] {
     member.connection === 'local' &&
     (!Number.isInteger(d.maxRunsPerDay) || d.maxRunsPerDay < 1 || d.maxRunsPerDay > 500)
   )
-    err('max_runs_per_day', 'Max runs per day: 1 to 500.');
+    err('max_runs_per_day', 'Scheduled runs per day: 1 to 500.');
   if (member.connection === 'api_key') {
     if (!Number.isFinite(d.dailyBudget) || d.dailyBudget < 0) err('daily_budget', 'Daily budget must be 0 or more.');
     if (d.monthlyCap && d.monthlyCap < d.dailyBudget)

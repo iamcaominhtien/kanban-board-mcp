@@ -686,6 +686,7 @@ def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
     rng("max_turns", "Max turns per run", 1, 200)
     rng("run_timeout_min", "Run timeout", 1, 240)
     rng("idle_timeout_min", "Idle timeout", 1, 120)
+    rng("compact_at_pct", "Auto-compact at", 10, 95)
     rng("max_tokens_per_run", "Max tokens per run", 1000, 2_000_000)
     rng("retries", "Retries", 0, 10)
     rng("retry_base_s", "Backoff start", 0, 60, float)

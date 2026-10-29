@@ -73,16 +73,31 @@ def _popen_kwargs() -> dict:
     return {"start_new_session": True}
 
 
-def child_env() -> dict:
+def child_env(compact_at_pct: int | None = None) -> dict:
     """Environment for the CLI: the person's own, minus variables that would make it think it runs inside a
-    Claude Code session (when the board itself was started from one)."""
+    Claude Code session (when the board itself was started from one). `compact_at_pct` is the share of the context
+    window at which the CLI compacts a long session by itself."""
     env = dict(os.environ)
     for key in list(env):
         if key in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID"):
             env.pop(key, None)
     # A board tool call may wait for a person's approval (guard.APPROVAL_WAIT_S); keep the CLI from giving up first
     env.setdefault("MCP_TOOL_TIMEOUT", str(15 * 60 * 1000))
+    if compact_at_pct:
+        env["CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"] = str(int(compact_at_pct))
     return env
+
+
+def session_exists(session_id: str) -> bool:
+    """Whether the CLI still has this conversation on disk (it is gone when the person cleaned ~/.claude)."""
+    root = (
+        Path(os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude").expanduser()
+        / "projects"
+    )
+    try:
+        return any(root.glob(f"*/{session_id}.jsonl"))
+    except OSError:
+        return False
 
 
 async def run_capture(
@@ -455,6 +470,16 @@ def parse_stream_line(line: str, cwd: str) -> dict:
         out["ready"] = True
         out["session_id"] = ev.get("session_id")
         out["model"] = ev.get("model")
+    elif kind == "system" and ev.get("subtype") == "compact_boundary":
+        meta = ev.get("compact_metadata") or {}
+        before, after = meta.get("pre_tokens"), meta.get("post_tokens")
+        if isinstance(before, int) and isinstance(after, int):
+            out["steps"].append(
+                {
+                    "kind": "compact",
+                    "text": f"Long session compacted ({before:,} → {after:,} tokens)",
+                }
+            )
     elif kind == "assistant":
         for block in (ev.get("message") or {}).get("content") or []:
             if block.get("type") == "tool_use" and block.get("name") == "ToolSearch":

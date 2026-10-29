@@ -230,6 +230,8 @@ DEFAULT_CONFIG: dict = {
     "max_turns": 40,
     "run_timeout_min": 30,
     "idle_timeout_min": 10,
+    # Claude Code compacts a long session by itself once it fills this share of its context window
+    "compact_at_pct": 60,
     # API agents (D5–D7)
     "max_steps": 12,
     "max_tokens_per_run": 60000,
