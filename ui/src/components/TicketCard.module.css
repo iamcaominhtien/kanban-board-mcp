@@ -2,27 +2,31 @@
   width: 100%;
   box-sizing: border-box;
   border-radius: 8px;
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   cursor: pointer;
   position: relative;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
   user-select: none;
   min-height: 140px;
+  container-type: inline-size;
 }
 
 .card:hover {
-  border-color: #B9CBBF;
+  border-color: #b9cbbf;
   box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
 }
 
 .cardParent {
-  background: #F1F8F3 !important;
-  border-color: #D7E8DC !important;
+  background: #f1f8f3 !important;
+  border-color: #d7e8dc !important;
 }
 
 .subtaskProgressBar {
@@ -35,19 +39,19 @@
   flex-grow: 1;
   height: 4px;
   border-radius: 2px;
-  background: #DCE6DF;
+  background: #dce6df;
   overflow: hidden;
 }
 
 .subtaskFill {
   height: 100%;
-  background: #2E6F40;
+  background: #2e6f40;
 }
 
 .subtaskText {
   font-size: 10px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   white-space: nowrap;
 }
 
@@ -56,17 +60,104 @@
 }
 
 .cardDragging {
-  border-color: #DCE6DF !important;
+  border-color: #dce6df !important;
   box-shadow: 0 12px 24px rgba(30, 42, 34, 0.18) !important;
   transform: rotate(1deg);
 }
 
 .cardBlocked {
-  border: 1.5px dashed #D9A79A !important;
+  border: 1.5px dashed #d9a79a !important;
 }
 
 .cardBlocked .cardContent {
   opacity: 0.72;
+}
+
+/* Reopened Card matching TicketReopen.dc.html C1 */
+.cardReopened {
+  border-color: #f0c77a !important;
+}
+
+/* Pending Card matching TicketPending.dc.html C1 */
+.cardPending {
+  background: #fbfcfd !important;
+  border: 1px solid #d6dde6 !important;
+  padding-left: 19px !important;
+}
+
+.cardPending .cardTitle {
+  color: #5b6b60 !important;
+}
+
+.pendingRail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: repeating-linear-gradient(135deg, #6b7f96 0 3px, #d3dae3 3px 6px);
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+
+/* Reopened badge matching TicketReopen.dc.html C1/C2 */
+.reopenedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 999px;
+  background: #fff1d6;
+  border: 1px solid #f0c77a;
+  color: #8a4b00;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.reopenedCount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a4b00;
+  background: rgba(199, 119, 0, 0.16);
+  padding: 0 4px;
+  border-radius: 999px;
+  margin-left: 1px;
+}
+
+/* Pending Chip matching TicketPending.dc.html C1/C2 */
+.pendingChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 999px;
+  background: #e8edf3;
+  border: 1px solid #b8c4d2;
+  color: #34455a;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* Waiting on reason strip matching TicketPending.dc.html C1 */
+.pendingStrip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #e8edf3;
+  border: 1px solid #b8c4d2;
+  font-size: 11.5px;
+  color: #34455a;
+  font-weight: 500;
+  min-width: 0;
+  margin-top: 2px;
+  cursor: pointer;
 }
 
 .blockedBadge {
@@ -76,8 +167,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #FFFFFF;
-  border: 1.5px solid #C4432A;
+  background: #ffffff;
+  border: 1.5px solid #c4432a;
   box-shadow: 0 1px 3px rgba(30, 42, 34, 0.16);
   display: flex;
   align-items: center;
@@ -86,12 +177,12 @@
 }
 
 .cardDone .cardTitle {
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .cardDone .cardId {
   text-decoration: line-through;
-  text-decoration-color: #C7D2CB;
+  text-decoration-color: #c7d2cb;
 }
 
 .cardContent {
@@ -106,30 +197,50 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
+  position: relative;
 }
 
 .typeContainer {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+/* Narrow cards (< ~220px of content): badges collapse to icon + xN (TicketReopen C2) */
+@container (max-width: 250px) {
+  .badgeLabel {
+    display: none;
+  }
 }
 
 .typeLabel {
+  /* on a narrow card (indented sub-ticket) the label gives way rather than run into the ticket id */
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 500;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .headerRight {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-right: 28px;
 }
 
 .cardId {
+  white-space: nowrap;
+  flex-shrink: 0;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .dragHandle {
@@ -138,13 +249,170 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.15s;
-  color: #B7C4BC;
+  color: #b7c4bc;
+}
+
+/* Card ... menu button matching TicketPending.dc.html A1 */
+.menuButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #f1f8f3;
+  border: 1px solid #d7e8dc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  cursor: pointer;
+  color: #5b6b60;
+  transition: all 0.15s ease;
+}
+
+.menuButton:hover {
+  background: #e3f2e7;
+  color: #1e2a22;
+}
+
+/* Context menu dropdown matching TicketPending.dc.html A1 and TicketReopen.dc.html A2 */
+.menuDropdown {
+  position: absolute;
+  right: 0;
+  top: 28px;
+  width: 224px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #3a4a3e;
+  font-weight: 400;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  transition: background 0.1s ease;
+}
+
+.menuItem:hover {
+  background: #f6faf7;
+}
+
+.menuItemReopen {
+  background: #fffaf0 !important;
+  color: #8a4b00 !important;
+  font-weight: 600 !important;
+}
+
+.menuItemPending {
+  background: #f4f6f9 !important;
+  color: #34455a !important;
+  font-weight: 600 !important;
+}
+
+.menuItemResume {
+  background: #f1f8f3 !important;
+  color: #2e6f40 !important;
+  font-weight: 600 !important;
+}
+
+.menuShortcut {
+  font-family: 'JetBrains Mono', monospace;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 1px solid #d4ddd7;
+  border-bottom-width: 2px;
+  background: #f6faf7;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6b60;
+  margin-left: auto;
+}
+
+.menuDivider {
+  height: 1px;
+  background: #eef3ef;
+  margin: 4px 6px;
+}
+
+/* Card Blocker Done auto-prompt strip matching TicketPending.dc.html E1 */
+.blockerDonePrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #f1f8f3;
+  border: 1px solid #a2d8b3;
+  margin-top: 2px;
+}
+
+.blockerDoneText strong {
+  white-space: nowrap;
+}
+
+.blockerDoneText {
+  font-size: 11px;
+  color: #2e6f40;
+  line-height: 1.35;
+}
+
+.blockerDoneButtons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.blockerDoneBtnResume {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #2e6f40;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.blockerDoneBtnKeep {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #d4ddd7;
+  color: #5b6b60;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .cardTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -164,7 +432,7 @@
 .tagOverflow {
   font-size: 11px;
   font-weight: 600;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .parentChip {
@@ -173,11 +441,11 @@
   gap: 4px;
   padding: 2px 7px;
   border-radius: 4px;
-  background: #F6FAF7;
-  border: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
   font-size: 10px;
   font-weight: 600;
-  color: #5B6B60;
+  color: #5b6b60;
   width: fit-content;
 }
 
@@ -195,17 +463,17 @@
 
 .estimate {
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .subtasksProgress {
   font-size: 11px;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .subtasksDone {
   font-size: 11px;
-  color: #2E6F40;
+  color: #2e6f40;
   font-weight: 600;
 }
 
@@ -215,7 +483,7 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 500;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .dueDateOverdue {
@@ -224,5 +492,31 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #C4432A;
+  color: #c4432a;
+}
+
+/* E3: blocker removed (Won't Do / deleted) */
+.blockerGonePrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: #fffaf0;
+  border: 1px solid #f0c77a;
+}
+
+.blockerGonePrompt .blockerDoneText {
+  color: #5c3200;
+}
+
+.blockerGoneBtn {
+  padding: 2px 9px;
+  border-radius: 5px;
+  border: 1px solid #f0c77a;
+  background: #fff;
+  color: #8a4b00;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }

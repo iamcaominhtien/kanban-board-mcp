@@ -34,7 +34,10 @@ def test_database_resolves_env_path_and_creates_parent_directory(
     assert db_path.parent.is_dir()
     assert database.DATABASE_URL == f"sqlite+aiosqlite:///{db_path.resolve()}"
 
-def test_data_folder_from_settings_wins_over_env_path(monkeypatch, tmp_path: Path) -> None:
+
+def test_data_folder_from_settings_wins_over_env_path(
+    monkeypatch, tmp_path: Path
+) -> None:
     # The desktop app always passes KANBAN_DB_PATH (its default location). Someone who moved
     # their data folder in Settings must still get that data after an upgrade.
     chosen = tmp_path / "my-data"
@@ -44,3 +47,21 @@ def test_data_folder_from_settings_wins_over_env_path(monkeypatch, tmp_path: Pat
     database = _reload_database_module()
 
     assert database._DB_PATH == chosen / "kanban.db"
+
+
+def test_uploads_uses_data_folder_when_configured(monkeypatch, tmp_path: Path) -> None:
+    chosen = tmp_path / "my-data"
+    monkeypatch.delenv("KANBAN_UPLOADS_DIR", raising=False)
+    monkeypatch.setattr("config.get_data_folder", lambda: chosen)
+    import uploads
+
+    assert uploads.get_uploads_dir() == chosen / "uploads"
+
+
+def test_uploads_uses_env_when_set(monkeypatch, tmp_path: Path) -> None:
+    custom = tmp_path / "custom-uploads"
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(custom))
+    monkeypatch.setattr("config.get_data_folder", lambda: tmp_path / "other")
+    import uploads
+
+    assert uploads.get_uploads_dir() == custom

@@ -2,38 +2,82 @@ import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import type { IdeaAssumption, IdeaAssumptionStatus, IdeaColor, IdeaEnergy, IdeaMicrothought, IdeaStatus, IdeaTicket } from '../types';
+import type {
+  IdeaAssumption,
+  IdeaAssumptionStatus,
+  IdeaColor,
+  IdeaEnergy,
+  IdeaMicrothought,
+  IdeaStatus,
+  IdeaTicket,
+} from '../types';
 import styles from './IdeaTicketModal.module.css';
 
 const EMOJIS = [
-  '💡','🚀','⚡','🎯','🔥','✨','🌟','💎','🎨','🛠️',
-  '📦','🔧','🐛','🎉','🌈','🔮','💬','📈','🏆','🎪',
-  '🌍','🔑','🎵','🎸','🎭','🌺','🍀','⭐','🦄','🐉',
-  '🌙','☀️','❄️','🌊','🌋','🎠','🎡','🏔️','🗺️','🧩',
+  '💡',
+  '🚀',
+  '⚡',
+  '🎯',
+  '🔥',
+  '✨',
+  '🌟',
+  '💎',
+  '🎨',
+  '🛠️',
+  '📦',
+  '🔧',
+  '🐛',
+  '🎉',
+  '🌈',
+  '🔮',
+  '💬',
+  '📈',
+  '🏆',
+  '🎪',
+  '🌍',
+  '🔑',
+  '🎵',
+  '🎸',
+  '🎭',
+  '🌺',
+  '🍀',
+  '⭐',
+  '🦄',
+  '🐉',
+  '🌙',
+  '☀️',
+  '❄️',
+  '🌊',
+  '🌋',
+  '🎠',
+  '🎡',
+  '🏔️',
+  '🗺️',
+  '🧩',
 ];
 
 const COLOR_OPTIONS: { value: IdeaColor; hex: string; label: string }[] = [
   { value: 'yellow', hex: '#F5C518', label: 'Yellow' },
   { value: 'orange', hex: '#E8441A', label: 'Orange' },
-  { value: 'lime',   hex: '#AACC2E', label: 'Lime' },
-  { value: 'pink',   hex: '#F472B6', label: 'Pink' },
-  { value: 'blue',   hex: '#5BB8F5', label: 'Blue' },
+  { value: 'lime', hex: '#AACC2E', label: 'Lime' },
+  { value: 'pink', hex: '#F472B6', label: 'Pink' },
+  { value: 'blue', hex: '#5BB8F5', label: 'Blue' },
   { value: 'purple', hex: '#8B5CF6', label: 'Purple' },
-  { value: 'teal',   hex: '#14B8A6', label: 'Teal' },
+  { value: 'teal', hex: '#14B8A6', label: 'Teal' },
 ];
 
 const ENERGY_OPTIONS: { value: IdeaEnergy; emoji: string; label: string }[] = [
-  { value: 'seed',    emoji: '🌱', label: 'Seed' },
+  { value: 'seed', emoji: '🌱', label: 'Seed' },
   { value: 'concept', emoji: '💡', label: 'Concept' },
-  { value: 'hot',     emoji: '🔥', label: 'Hot' },
+  { value: 'hot', emoji: '🔥', label: 'Hot' },
   { value: 'big_bet', emoji: '🚀', label: 'Big Bet' },
 ];
 
 const STATUS_META: Record<IdeaStatus, { label: string; bg: string; color: string }> = {
-  draft:     { label: '💭 Drafting',   bg: '#F5C518', color: '#3D0C11' },
-  in_review: { label: '👀 In Review',  bg: '#5BB8F5', color: '#3D0C11' },
-  approved:  { label: '✅ Promoted',   bg: '#AACC2E', color: '#3D0C11' },
-  dropped:   { label: '🗑️ Dropped',   bg: '#9CA3AF', color: '#fff' },
+  draft: { label: '💭 Drafting', bg: '#F5C518', color: '#3D0C11' },
+  in_review: { label: '👀 In Review', bg: '#5BB8F5', color: '#3D0C11' },
+  approved: { label: '✅ Promoted', bg: '#AACC2E', color: '#3D0C11' },
+  dropped: { label: '🗑️ Dropped', bg: '#9CA3AF', color: '#fff' },
 };
 
 const ASSUMPTION_STATUS_ORDER: IdeaAssumptionStatus[] = ['untested', 'validated', 'invalidated'];
@@ -45,7 +89,10 @@ const ASSUMPTION_DOT_CLASS: Record<IdeaAssumptionStatus, string> = {
 };
 
 function normalizeTags(input: string): string[] {
-  return input.split(',').map((tag) => tag.trim()).filter(Boolean);
+  return input
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }
 
 function clampIceScore(value: number): number {
@@ -75,10 +122,37 @@ interface IdeaTicketModalProps {
   onDeleteMicrothought?: (ticketId: string, microthoughtId: string) => Promise<IdeaTicket>;
   onAddAssumption?: (ticketId: string, text: string) => Promise<IdeaTicket>;
   onDeleteAssumption?: (ticketId: string, assumptionId: string) => Promise<IdeaTicket>;
-  onUpdateAssumptionStatus?: (ticketId: string, assumptionId: string, status: IdeaAssumptionStatus) => Promise<IdeaTicket>;
+  onUpdateAssumptionStatus?: (
+    ticketId: string,
+    assumptionId: string,
+    status: IdeaAssumptionStatus,
+  ) => Promise<IdeaTicket>;
 }
 
-export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChange, onAddMicrothought, onDeleteMicrothought, onAddAssumption, onDeleteAssumption, onUpdateAssumptionStatus }: IdeaTicketModalProps) {
+/**
+ * Detail modal for an idea ticket.
+ * @param props.onClose - Called to dismiss the modal.
+ * @param props.onSave - Called with the edited idea ticket when saved.
+ * @param props.onDrop - Called with the idea id when the idea is dropped (abandoned).
+ * @param props.onStatusChange - Called with the idea id and the new idea status.
+ * @param props.onAddMicrothought - Adds a microthought (ticket id, text) and resolves to the updated idea.
+ * @param props.onDeleteMicrothought - Deletes a microthought (ticket id, microthought id) and resolves to the updated idea.
+ * @param props.onAddAssumption - Adds an assumption (ticket id, text) and resolves to the updated idea.
+ * @param props.onDeleteAssumption - Deletes an assumption (ticket id, assumption id) and resolves to the updated idea.
+ * @param props.onUpdateAssumptionStatus - Sets an assumption status (ticket id, assumption id, status) and resolves to the updated idea.
+ */
+export function IdeaTicketModal({
+  ticket,
+  onClose,
+  onSave,
+  onDrop,
+  onStatusChange,
+  onAddMicrothought,
+  onDeleteMicrothought,
+  onAddAssumption,
+  onDeleteAssumption,
+  onUpdateAssumptionStatus,
+}: IdeaTicketModalProps) {
   const isDraft = ticket.ideaStatus === 'draft';
   const isInReview = ticket.ideaStatus === 'in_review';
   const isEditable = isDraft || isInReview;
@@ -126,7 +200,9 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
   const visibleActivity = (showAllActivity ? activityTrail : activityTrail.slice(-3)).slice().reverse();
   const iceScore = ((iceImpact / iceEffort) * iceConfidence).toFixed(1);
 
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     function handleFsChange() {
@@ -144,13 +220,23 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
     }
   }
 
-  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
-  useEffect(() => { if (visible) closeBtnRef.current?.focus(); }, [visible]);
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+  useEffect(() => {
+    if (visible) closeBtnRef.current?.focus();
+  }, [visible]);
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (showEmojiPicker) { setShowEmojiPicker(false); return; }
-        if (document.fullscreenElement) { document.exitFullscreen(); return; }
+        if (showEmojiPicker) {
+          setShowEmojiPicker(false);
+          return;
+        }
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+          return;
+        }
         onCloseRef.current();
       }
     }
@@ -166,7 +252,9 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       try {
         const updated = await onAddMicrothought(ticket.id, text);
         setMicrothoughts(updated.microthoughts ?? []);
-      } catch { /* error handled by parent */ }
+      } catch {
+        /* error handled by parent */
+      }
     } else {
       setMicrothoughts((prev) => [...prev, { id: `m-${crypto.randomUUID()}`, text, at: new Date().toISOString() }]);
     }
@@ -180,14 +268,16 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       try {
         const updated = await onAddAssumption(ticket.id, text);
         setAssumptions(updated.assumptions ?? []);
-      } catch { /* error handled by parent */ }
+      } catch {
+        /* error handled by parent */
+      }
     } else {
       setAssumptions((prev) => [...prev, { id: `as-${crypto.randomUUID()}`, text, status: 'untested' }]);
     }
   }
 
   async function cycleAssumptionStatus(id: string) {
-    const item = assumptions.find(a => a.id === id);
+    const item = assumptions.find((a) => a.id === id);
     if (!item) return;
     const currentIndex = ASSUMPTION_STATUS_ORDER.indexOf(item.status);
     const newStatus = ASSUMPTION_STATUS_ORDER[(currentIndex + 1) % ASSUMPTION_STATUS_ORDER.length];
@@ -195,12 +285,16 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       try {
         const updated = await onUpdateAssumptionStatus(ticket.id, id, newStatus);
         setAssumptions(updated.assumptions ?? []);
-      } catch { /* error handled by parent */ }
+      } catch {
+        /* error handled by parent */
+      }
     } else {
-      setAssumptions((prev) => prev.map((a) => {
-        if (a.id !== id) return a;
-        return { ...a, status: newStatus };
-      }));
+      setAssumptions((prev) =>
+        prev.map((a) => {
+          if (a.id !== id) return a;
+          return { ...a, status: newStatus };
+        }),
+      );
     }
   }
 
@@ -220,7 +314,9 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
       ideaColor: color,
       ideaEnergy: energy ?? undefined,
       problemStatement: problemStatement.trim() || undefined,
-      iceImpact, iceEffort, iceConfidence,
+      iceImpact,
+      iceEffort,
+      iceConfidence,
       assumptions,
       microthoughts,
       revisitDate: revisitDate || undefined,
@@ -229,17 +325,22 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
     onClose();
   }
 
-  const accentHex = COLOR_OPTIONS.find(c => c.value === color)?.hex ?? '#F5C518';
+  const accentHex = COLOR_OPTIONS.find((c) => c.value === color)?.hex ?? '#F5C518';
   const statusMeta = STATUS_META[ticket.ideaStatus] ?? STATUS_META['draft'];
 
   return (
     <div
       className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       role="dialog"
       aria-modal="true"
     >
-      <div ref={panelRef} className={`${styles.panel} ${visible ? styles.panelVisible : ''} ${fullscreen ? styles.panelFullscreen : ''}`}>
+      <div
+        ref={panelRef}
+        className={`${styles.panel} ${visible ? styles.panelVisible : ''} ${fullscreen ? styles.panelFullscreen : ''}`}
+      >
         {/* Floating close button */}
         <button
           type="button"
@@ -250,28 +351,40 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
         >
           {fullscreen ? '⤡' : '⤢'}
         </button>
-        <button ref={closeBtnRef} type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
+        <button ref={closeBtnRef} type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
+          ✕
+        </button>
 
         {/* Scrollable body */}
         <div className={styles.scrollBody}>
           {/* Cover */}
-          <div className={styles.cover} style={{ background: `linear-gradient(135deg, ${accentHex}80, ${accentHex}25)` }}>
+          <div
+            className={styles.cover}
+            style={{ background: `linear-gradient(135deg, ${accentHex}80, ${accentHex}25)` }}
+          >
             <div className={styles.coverEmojiWrap}>
               <button
                 type="button"
                 className={styles.coverEmoji}
-                onClick={() => isEditable && setShowEmojiPicker(v => !v)}
+                onClick={() => isEditable && setShowEmojiPicker((v) => !v)}
                 style={{ cursor: isEditable ? 'pointer' : 'default' }}
               >
                 {emoji}
               </button>
               {showEmojiPicker && isEditable && (
                 <div className={styles.emojiPicker}>
-                  {EMOJIS.map(e => (
-                    <button key={e} type="button"
+                  {EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
                       className={`${styles.emojiOption} ${e === emoji ? styles.emojiOptionActive : ''}`}
-                      onClick={() => { setEmoji(e); setShowEmojiPicker(false); }}
-                    >{e}</button>
+                      onClick={() => {
+                        setEmoji(e);
+                        setShowEmojiPicker(false);
+                      }}
+                    >
+                      {e}
+                    </button>
                   ))}
                 </div>
               )}
@@ -313,24 +426,30 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
 
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <div className={styles.descHeader}>
-                  <span className={styles.sectionLabel} style={{ margin: 0 }}>Description</span>
+                  <span className={styles.sectionLabel} style={{ margin: 0 }}>
+                    Description
+                  </span>
                   {isEditable && (
                     <div className={styles.descTabs}>
                       <button
                         type="button"
                         className={`${styles.descTab} ${!previewMode ? styles.descTabActive : ''}`}
                         onClick={() => setPreviewMode(false)}
-                      >Write</button>
+                      >
+                        Write
+                      </button>
                       <button
                         type="button"
                         className={`${styles.descTab} ${previewMode ? styles.descTabActive : ''}`}
                         onClick={() => setPreviewMode(true)}
-                      >Preview</button>
+                      >
+                        Preview
+                      </button>
                     </div>
                   )}
                 </div>
                 <div className={styles.descField} style={{ flex: 1 }}>
-                  {(!isEditable || previewMode) ? (
+                  {!isEditable || previewMode ? (
                     <div className={styles.markdownBody}>
                       {description ? (
                         <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
@@ -355,22 +474,29 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               <div>
                 <span className={styles.sectionLabel}>Microthoughts</span>
                 <div className={styles.microthoughtsList}>
-                  {microthoughts.map(m => (
+                  {microthoughts.map((m) => (
                     <div key={m.id} className={styles.microthoughtItem}>
                       <span className={styles.microthoughtText}>{m.text}</span>
                       <span className={styles.microthoughtTime}>{formatRelativeTime(m.at)}</span>
                       {isEditable && (
-                        <button type="button" className={styles.microthoughtDelete}
+                        <button
+                          type="button"
+                          className={styles.microthoughtDelete}
                           onClick={async () => {
                             if (onDeleteMicrothought) {
                               try {
                                 const updated = await onDeleteMicrothought(ticket.id, m.id);
                                 setMicrothoughts(updated.microthoughts ?? []);
-                              } catch { /* error handled by parent */ }
+                              } catch {
+                                /* error handled by parent */
+                              }
                             } else {
-                              setMicrothoughts(prev => prev.filter(x => x.id !== m.id));
+                              setMicrothoughts((prev) => prev.filter((x) => x.id !== m.id));
                             }
-                          }}>×</button>
+                          }}
+                        >
+                          ×
+                        </button>
                       )}
                     </div>
                   ))}
@@ -386,7 +512,9 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                           if (e.key === 'Enter') addMicrothought();
                         }}
                       />
-                      <button type="button" className={styles.microthoughtAddBtn} onClick={addMicrothought}>+</button>
+                      <button type="button" className={styles.microthoughtAddBtn} onClick={addMicrothought}>
+                        +
+                      </button>
                     </div>
                   )}
                 </div>
@@ -398,12 +526,12 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               <div>
                 <span className={styles.sectionLabel}>Energy Level</span>
                 <div className={styles.energyRow}>
-                  {ENERGY_OPTIONS.map(opt => (
+                  {ENERGY_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
                       type="button"
                       className={`${styles.energyBtn} ${energy === opt.value ? styles.energyBtnActive : ''}`}
-                      onClick={() => setEnergy(energy === opt.value ? null : opt.value as IdeaEnergy)}
+                      onClick={() => setEnergy(energy === opt.value ? null : (opt.value as IdeaEnergy))}
                       disabled={!isEditable}
                     >
                       {opt.emoji} {opt.label}
@@ -415,7 +543,7 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               <div>
                 <span className={styles.sectionLabel}>Card Color</span>
                 <div className={styles.colorRow}>
-                  {COLOR_OPTIONS.map(c => (
+                  {COLOR_OPTIONS.map((c) => (
                     <button
                       key={c.value}
                       type="button"
@@ -432,14 +560,18 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
 
               <div>
                 <div className={styles.tagsSectionHeader}>
-                  <span className={styles.sectionLabel} style={{ margin: 0 }}>Tags</span>
+                  <span className={styles.sectionLabel} style={{ margin: 0 }}>
+                    Tags
+                  </span>
                   {isEditable && !editingTags && (
                     <button
                       type="button"
                       className={styles.tagsEditBtn}
                       onClick={() => setEditingTags(true)}
                       title="Edit tags"
-                    >✏️</button>
+                    >
+                      ✏️
+                    </button>
                   )}
                 </div>
                 {editingTags ? (
@@ -451,12 +583,16 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                     placeholder="design, ui, feature (comma-separated)"
                     autoFocus
                     onBlur={() => setEditingTags(false)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingTags(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setEditingTags(false);
+                    }}
                   />
                 ) : (
                   <div className={styles.tagRow}>
                     {parsedTags.map((t) => (
-                      <span key={t} className={styles.tagPill}>{t}</span>
+                      <span key={t} className={styles.tagPill}>
+                        {t}
+                      </span>
                     ))}
                     {!parsedTags.length && (
                       <span style={{ fontSize: '0.8rem', color: 'rgba(61,12,17,0.35)' }}>No tags</span>
@@ -476,23 +612,46 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                   <div className={styles.iceRow}>
                     <div className={styles.iceField}>
                       <span className={styles.iceLabel}>Impact</span>
-                      <input type="number" min={1} max={5} className={styles.iceInput} value={iceImpact}
-                        onChange={(e) => setClampedIce(setIceImpact, e.target.value)} disabled={!isEditable} />
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        className={styles.iceInput}
+                        value={iceImpact}
+                        onChange={(e) => setClampedIce(setIceImpact, e.target.value)}
+                        disabled={!isEditable}
+                      />
                     </div>
                     <span className={styles.iceDivider}>÷</span>
                     <div className={styles.iceField}>
                       <span className={styles.iceLabel}>Effort</span>
-                      <input type="number" min={1} max={5} className={styles.iceInput} value={iceEffort}
-                        onChange={(e) => setClampedIce(setIceEffort, e.target.value)} disabled={!isEditable} />
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        className={styles.iceInput}
+                        value={iceEffort}
+                        onChange={(e) => setClampedIce(setIceEffort, e.target.value)}
+                        disabled={!isEditable}
+                      />
                     </div>
                     <span className={styles.iceDivider}>×</span>
                     <div className={styles.iceField}>
                       <span className={styles.iceLabel}>Conf.</span>
-                      <input type="number" min={1} max={5} className={styles.iceInput} value={iceConfidence}
-                        onChange={(e) => setClampedIce(setIceConfidence, e.target.value)} disabled={!isEditable} />
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        className={styles.iceInput}
+                        value={iceConfidence}
+                        onChange={(e) => setClampedIce(setIceConfidence, e.target.value)}
+                        disabled={!isEditable}
+                      />
                     </div>
                   </div>
-                  <p className={styles.iceFormula}>= ({iceImpact} ÷ {iceEffort}) × {iceConfidence}</p>
+                  <p className={styles.iceFormula}>
+                    = ({iceImpact} ÷ {iceEffort}) × {iceConfidence}
+                  </p>
                 </div>
               </div>
 
@@ -501,8 +660,13 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                 <span className={styles.sectionLabel}>Revisit By</span>
                 <div className={styles.revisitWrap}>
                   <div className={styles.revisitRow}>
-                    <input type="date" className={styles.revisitInput} value={revisitDate}
-                      onChange={(e) => setRevisitDate(e.target.value)} disabled={!isEditable} />
+                    <input
+                      type="date"
+                      className={styles.revisitInput}
+                      value={revisitDate}
+                      onChange={(e) => setRevisitDate(e.target.value)}
+                      disabled={!isEditable}
+                    />
                   </div>
                   {ticket.lastTouchedAt && (
                     <span className={styles.lastTouched}>Last touched {formatRelativeTime(ticket.lastTouchedAt)}</span>
@@ -520,8 +684,11 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               <div>
                 <span className={styles.sectionLabel}>Assumptions</span>
                 <div className={styles.assumptionsList}>
-                  {assumptions.map(a => (
-                    <div key={a.id} className={`${styles.assumptionItem} ${a.status === 'invalidated' ? styles.invalidated : ''}`}>
+                  {assumptions.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`${styles.assumptionItem} ${a.status === 'invalidated' ? styles.invalidated : ''}`}
+                    >
                       <button
                         type="button"
                         className={`${styles.assumptionDot} ${ASSUMPTION_DOT_CLASS[a.status]}`}
@@ -533,17 +700,24 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                       />
                       <span className={styles.assumptionText}>{a.text}</span>
                       {isEditable && (
-                        <button type="button" className={styles.assumptionDelete}
+                        <button
+                          type="button"
+                          className={styles.assumptionDelete}
                           onClick={async () => {
                             if (onDeleteAssumption) {
                               try {
                                 const updated = await onDeleteAssumption(ticket.id, a.id);
                                 setAssumptions(updated.assumptions ?? []);
-                              } catch { /* error handled by parent */ }
+                              } catch {
+                                /* error handled by parent */
+                              }
                             } else {
-                              setAssumptions(prev => prev.filter(x => x.id !== a.id));
+                              setAssumptions((prev) => prev.filter((x) => x.id !== a.id));
                             }
-                          }}>×</button>
+                          }}
+                        >
+                          ×
+                        </button>
                       )}
                     </div>
                   ))}
@@ -559,14 +733,19 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                           if (e.key === 'Enter') addAssumption();
                         }}
                       />
-                      <button type="button" className={styles.assumptionAddBtn} onClick={addAssumption}>+</button>
+                      <button type="button" className={styles.assumptionAddBtn} onClick={addAssumption}>
+                        +
+                      </button>
                     </div>
                   )}
                 </div>
                 <div className={styles.assumptionLegend}>
-                  {(['untested', 'validated', 'invalidated'] as IdeaAssumptionStatus[]).map(s => (
+                  {(['untested', 'validated', 'invalidated'] as IdeaAssumptionStatus[]).map((s) => (
                     <div key={s} className={styles.assumptionLegendItem}>
-                      <div className={styles.assumptionLegendDot} style={{ background: s === 'untested' ? '#F5C518' : s === 'validated' ? '#AACC2E' : '#F472B6' }} />
+                      <div
+                        className={styles.assumptionLegendDot}
+                        style={{ background: s === 'untested' ? '#F5C518' : s === 'validated' ? '#AACC2E' : '#F472B6' }}
+                      />
                       {s}
                     </div>
                   ))}
@@ -595,17 +774,21 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                   </div>
                   <div className={styles.activityList}>
                     {visibleActivity.map((entry, i) => (
-                        <div key={entry.id} className={styles.activityItem}>
-                          <div className={`${styles.activityDot} ${i === 0 ? styles.activityDotLatest : ''}`} />
-                          <div className={styles.activityContent}>
-                            <span className={styles.activityLabel}>{entry.label}</span>
-                            <span className={styles.activityTime}>{formatRelativeTime(entry.at)}</span>
-                          </div>
+                      <div key={entry.id} className={styles.activityItem}>
+                        <div className={`${styles.activityDot} ${i === 0 ? styles.activityDotLatest : ''}`} />
+                        <div className={styles.activityContent}>
+                          <span className={styles.activityLabel}>{entry.label}</span>
+                          <span className={styles.activityTime}>{formatRelativeTime(entry.at)}</span>
                         </div>
-                      ))}
+                      </div>
+                    ))}
                   </div>
                   {activityTrail.length > 3 && (
-                    <button type="button" className={styles.activityToggle} onClick={() => setShowAllActivity(v => !v)}>
+                    <button
+                      type="button"
+                      className={styles.activityToggle}
+                      onClick={() => setShowAllActivity((v) => !v)}
+                    >
                       {showAllActivity ? '↑ Show less' : `↓ View all ${activityTrail.length} events`}
                     </button>
                   )}
@@ -620,7 +803,14 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
               {ticket.createdAt ? `Created ${new Date(ticket.createdAt).toLocaleDateString()}` : ''}
             </span>
             {isEditable && (
-              <button type="button" className={styles.dropBtn} onClick={() => { onDrop(ticket.id); onClose(); }}>
+              <button
+                type="button"
+                className={styles.dropBtn}
+                onClick={() => {
+                  onDrop(ticket.id);
+                  onClose();
+                }}
+              >
                 Drop Idea
               </button>
             )}
@@ -629,12 +819,17 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
           <div className={styles.footerActions}>
             {isEditable ? (
               <>
-                <button type="button" className={styles.saveBtn} onClick={handleSave}>Save</button>
+                <button type="button" className={styles.saveBtn} onClick={handleSave}>
+                  Save
+                </button>
                 {isDraft && (
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => { onStatusChange(ticket.id, 'in_review'); onClose(); }}
+                    onClick={() => {
+                      onStatusChange(ticket.id, 'in_review');
+                      onClose();
+                    }}
                     disabled={!problemStatement.trim()}
                     title={!problemStatement.trim() ? 'Fill in the Problem Statement first' : undefined}
                     style={!problemStatement.trim() ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
@@ -643,13 +838,22 @@ export function IdeaTicketModal({ ticket, onClose, onSave, onDrop, onStatusChang
                   </button>
                 )}
                 {isInReview && (
-                  <button type="button" className={styles.approveBtn} onClick={() => { onStatusChange(ticket.id, 'approved'); onClose(); }}>
+                  <button
+                    type="button"
+                    className={styles.approveBtn}
+                    onClick={() => {
+                      onStatusChange(ticket.id, 'approved');
+                      onClose();
+                    }}
+                  >
                     🚀 Approve & Promote
                   </button>
                 )}
               </>
             ) : (
-              <button type="button" className={styles.saveBtn} style={{ flex: 1 }} onClick={onClose}>Close</button>
+              <button type="button" className={styles.saveBtn} style={{ flex: 1 }} onClick={onClose}>
+                Close
+              </button>
             )}
           </div>
         </div>

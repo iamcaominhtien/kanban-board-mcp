@@ -11,7 +11,9 @@
   white-space: nowrap;
   line-height: 1.4;
   border: none;
-  transition: opacity 0.15s, background-color 0.15s;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
 }
 
 .tagPillMedium {

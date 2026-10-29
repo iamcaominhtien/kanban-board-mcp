@@ -42,6 +42,7 @@ async def get_idea_tickets(
     idea_status: str | None = None,
     q: str | None = None,
 ) -> list[IdeaTicketRead]:
+    """List a project's idea tickets, filtered by status or text."""
     tickets = await list_idea_tickets(
         session,
         project_id=project_id,
@@ -56,6 +57,7 @@ async def post_idea_ticket(
     body: IdeaTicketCreateBody,
     session: Session,
 ) -> IdeaTicketRead:
+    """Create an idea ticket."""
     try:
         ticket = await create_idea_ticket(
             session,
@@ -76,6 +78,7 @@ async def post_idea_ticket(
 
 @router.get("/api/idea-tickets/{ticket_id}", response_model=IdeaTicketRead)
 async def get_one_idea_ticket(ticket_id: str, session: Session) -> IdeaTicketRead:
+    """Get an idea ticket by id."""
     ticket = await get_idea_ticket(session, ticket_id)
     if ticket is None:
         _404()
@@ -86,6 +89,7 @@ async def get_one_idea_ticket(ticket_id: str, session: Session) -> IdeaTicketRea
 async def patch_idea_ticket(
     ticket_id: str, data: IdeaTicketUpdate, session: Session
 ) -> IdeaTicketRead:
+    """Update an idea ticket."""
     update_fields = data.model_dump(exclude_unset=True)
     try:
         ticket = await update_idea_ticket(session, ticket_id, **update_fields)
@@ -99,6 +103,7 @@ async def patch_idea_ticket(
 
 @router.delete("/api/idea-tickets/{ticket_id}", status_code=204)
 async def del_idea_ticket(ticket_id: str, session: Session) -> None:
+    """Delete an idea ticket."""
     found = await delete_idea_ticket(session, ticket_id)
     if not found:
         _404()
@@ -106,10 +111,14 @@ async def del_idea_ticket(ticket_id: str, session: Session) -> None:
 
 
 class AssumptionBody(BaseModel):
+    """Request body to add an assumption."""
+
     text: str = Field(..., max_length=500)
 
 
 class AssumptionStatusBody(BaseModel):
+    """Request body to change an assumption's status."""
+
     status: Literal["untested", "validated", "invalidated"]
 
 
@@ -117,6 +126,7 @@ class AssumptionStatusBody(BaseModel):
 async def post_assumption(
     ticket_id: str, body: AssumptionBody, session: Session
 ) -> IdeaTicketRead:
+    """Add an assumption to an idea."""
     try:
         ticket = await add_assumption(session, ticket_id, body.text)
     except ValueError as exc:
@@ -132,6 +142,7 @@ async def post_assumption(
 async def patch_assumption_status(
     ticket_id: str, assumption_id: str, body: AssumptionStatusBody, session: Session
 ) -> IdeaTicketRead:
+    """Set an assumption's status."""
     try:
         ticket = await update_assumption_status(
             session, ticket_id, assumption_id, body.status
@@ -143,6 +154,8 @@ async def patch_assumption_status(
 
 
 class MicrothoughtBody(BaseModel):
+    """Request body to add a microthought."""
+
     text: str = Field(..., max_length=500)
 
 
@@ -152,6 +165,7 @@ class MicrothoughtBody(BaseModel):
 async def post_microthought(
     ticket_id: str, body: MicrothoughtBody, session: Session
 ) -> IdeaTicketRead:
+    """Add a microthought to an idea."""
     try:
         ticket = await add_microthought(session, ticket_id, body.text)
     except ValueError as exc:
@@ -167,6 +181,7 @@ async def post_microthought(
 async def del_assumption(
     ticket_id: str, assumption_id: str, session: Session
 ) -> IdeaTicketRead:
+    """Delete an assumption."""
     try:
         ticket = await delete_assumption(session, ticket_id, assumption_id)
     except ValueError as exc:
@@ -182,6 +197,7 @@ async def del_assumption(
 async def del_microthought(
     ticket_id: str, microthought_id: str, session: Session
 ) -> IdeaTicketRead:
+    """Delete a microthought."""
     try:
         ticket = await delete_microthought(session, ticket_id, microthought_id)
     except ValueError as exc:
@@ -191,11 +207,15 @@ async def del_microthought(
 
 
 class IdeaStatusUpdateBody(BaseModel):
+    """Request body to change an idea's status."""
+
     new_status: str
     reason: str | None = Field(default=None, max_length=500)
 
 
 class IdeaPromoteBody(BaseModel):
+    """Request body to promote an idea to a ticket."""
+
     project_id: str
     title: str | None = None
     type: Literal["bug", "feature", "task", "chore"] = "feature"
@@ -206,6 +226,7 @@ class IdeaPromoteBody(BaseModel):
 async def patch_idea_status(
     ticket_id: str, body: IdeaStatusUpdateBody, session: Session
 ) -> IdeaTicketRead:
+    """Move an idea to a new status."""
     try:
         ticket = await update_idea_status(
             session, ticket_id, new_status=body.new_status, reason=body.reason
@@ -220,6 +241,7 @@ async def patch_idea_status(
 async def promote_idea(
     ticket_id: str, body: IdeaPromoteBody, session: Session
 ) -> TicketRead:
+    """Promote an approved idea to a regular ticket."""
     try:
         new_ticket = await promote_idea_to_ticket(
             session,

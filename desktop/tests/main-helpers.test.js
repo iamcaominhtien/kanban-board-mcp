@@ -1,8 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 
 const {
   buildBackendLaunchSpec,
+  getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   parseReadyPort,
   shouldRunVscodeSetup,
@@ -21,14 +23,44 @@ test('buildBackendLaunchSpec uses packaged binary and user data db path', () => 
     devPythonExists: false,
   });
 
-  assert.equal(spec.command, 'C:/Kanban/resources/kanban-server.exe');
+  assert.equal(spec.command, 'C:/Kanban/resources/kanban-server/kanban-server.exe');
   assert.deepEqual(spec.args, []);
   assert.equal(spec.options.env.EXISTING, '1');
   assert.equal(
     spec.options.env.KANBAN_DB_PATH,
     'C:/Users/test/AppData/Roaming/Kanban Board/kanban.db'
   );
+  assert.equal(
+    spec.options.env.KANBAN_UPLOADS_DIR,
+    'C:/Users/test/AppData/Roaming/Kanban Board/uploads'
+  );
   assert.deepEqual(spec.options.stdio, ['ignore', 'pipe', 'pipe']);
+});
+
+test('buildBackendLaunchSpec uses configured data_folder uploads if config exists', (t) => {
+  const fs = require('fs');
+  const os = require('os');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-test-'));
+  const configPath = path.join(tmpDir, 'config.json');
+  fs.writeFileSync(configPath, JSON.stringify({ data_folder: '/custom/storage/data' }));
+
+  t.after(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const spec = buildBackendLaunchSpec({
+    isPackaged: true,
+    platform: 'darwin',
+    resourcesPath: '/Applications/Kanban.app/Contents/Resources',
+    userDataPath: '/Users/test/Library/Application Support/Kanban Board',
+    desktopDir: '/repo/desktop',
+    baseEnv: {},
+    devPythonExists: false,
+    configPath,
+  });
+
+  assert.equal(spec.options.env.KANBAN_UPLOADS_DIR, path.join('/custom/storage/data', 'uploads'));
+  assert.equal(spec.options.env.KANBAN_SECRET_STORE, 'keychain');
 });
 
 test('buildBackendLaunchSpec prefers project virtualenv in dev mode', () => {
@@ -71,6 +103,17 @@ test('parseReadyPort extracts a ready signal from aggregated stdout', () => {
   assert.equal(parseReadyPort('booting only\n'), null);
 });
 
+test('getLegacyMcpStdioBinaryPath points at the pre-onedir single file', () => {
+  assert.equal(
+    getLegacyMcpStdioBinaryPath({ platform: 'darwin', resourcesPath: '/R' }),
+    '/R/kanban-mcp-stdio'
+  );
+  assert.equal(
+    getLegacyMcpStdioBinaryPath({ platform: 'win32', resourcesPath: 'C:/R' }),
+    'C:/R/kanban-mcp-stdio.exe'
+  );
+});
+
 test('getMcpStdioBinaryPath resolves packaged and dev locations', () => {
   assert.equal(
     getMcpStdioBinaryPath({
@@ -78,8 +121,33 @@ test('getMcpStdioBinaryPath resolves packaged and dev locations', () => {
       platform: 'darwin',
       resourcesPath: '/Applications/Kanban.app/Contents/Resources',
       desktopDir: '/repo/desktop',
+      existsSync: () => false,
     }),
     '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio'
+  );
+
+  assert.equal(
+    getMcpStdioBinaryPath({
+      isPackaged: true,
+      platform: 'win32',
+      resourcesPath: 'C:/App/resources',
+      desktopDir: 'C:/repo/desktop',
+      existsSync: (p) => p.endsWith('kanban-mcp-stdio/kanban-mcp-stdio.exe'),
+    }),
+    'C:/App/resources/kanban-mcp-stdio/kanban-mcp-stdio.exe'
+  );
+
+  assert.equal(
+    getMcpStdioBinaryPath({
+      isPackaged: true,
+      platform: 'darwin',
+      resourcesPath: '/Applications/Kanban.app/Contents/Resources',
+      desktopDir: '/repo/desktop',
+      existsSync: (p) =>
+        p ===
+        '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio/kanban-mcp-stdio',
+    }),
+    '/Applications/Kanban.app/Contents/Resources/kanban-mcp-stdio/kanban-mcp-stdio'
   );
 
   assert.equal(

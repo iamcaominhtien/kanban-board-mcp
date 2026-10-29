@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { markdownToHtml, htmlToMarkdown } from '../utils/markdownWysiwyg';
+import { markdownToHtml, htmlToMarkdown, diagramBlockElement } from '../utils/markdownWysiwyg';
+import { useDiagrams } from './diagrams/DiagramsContext';
+import { DiagramIcon } from './diagrams/DiagramIcon';
+import { useDiagramStarter } from './diagrams/useDiagramStarter';
+import { DIAGRAM_LINE } from './diagrams/diagramRefs';
+import { firstDiagramFile } from './diagrams/diagramFile';
+import diagramStyles from './diagrams/Diagrams.module.css';
 import { resolveOrigin } from '../api/resolveOrigin';
+import { RefSuggester, type SuggestMember } from './docs/RefSuggester';
+import { useDocsRefs } from './docs/DocsRefsContext';
+import { expandRefChip, setKeyPrefix, snapRefTokens, tokenAtCaret } from '../utils/docRefTokens';
 import styles from './MarkdownEditor.module.css';
 
 const SUPPORTED_UPLOAD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -20,9 +29,9 @@ function uploadErrorMessage(err: unknown): string {
   const e = err as { response?: { status?: number; data?: { detail?: unknown } } };
   const status = e?.response?.status;
   const detail = e?.response?.data?.detail;
-  if (status === 413) return 'Image is too large to upload.';
+  if (status === 413) return 'File exceeds allowed limit (maximum 100MB).';
   if (typeof detail === 'string' && detail) return `Upload failed: ${detail}`;
-  return 'Image upload failed. Please try again.';
+  return 'Failed to upload file. Please try again.';
 }
 
 interface Props {
@@ -32,6 +41,7 @@ interface Props {
   onSubmit?: () => void;
   onCancel?: () => void;
   onUploadImage?: (file: File) => Promise<{ markdown: string }>;
+  onUploadFile?: (file: File) => Promise<{ markdown: string; url?: string; name?: string }>;
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
   startInEditMode?: boolean;
@@ -41,8 +51,35 @@ interface Props {
   viewClassName?: string;
   compact?: boolean;
   actions?: React.ReactNode;
+  /** When set, typing `[[` offers pages and sections of this project's docs. */
+  docsProjectId?: string;
+  /** People and AI members offered after `@` (a ticket description, a test case note). */
+  mentionMembers?: SuggestMember[];
+  /** When set, the toolbar offers a Diagram action (draw.io) for this project. */
+  diagramProjectId?: string;
+  /** Where diagrams drawn here are saved to, shown in the editor header. */
+  diagramSaveTo?: string;
+  /** The ticket or comment the diagrams belong to. */
+  diagramItem?: { kind: 'ticket' | 'comment'; id?: string };
 }
 
+/**
+ * WYSIWYG Markdown editor for ticket fields, with `[[` references.
+ * @param props.value - Current Markdown.
+ * @param props.onChange - Called with the Markdown on every edit.
+ * @param props.onBlur - Called with the Markdown when the editor loses focus.
+ * @param props.onSubmit - Called when the submit shortcut is used.
+ * @param props.onCancel - Called when editing is cancelled (Escape).
+ * @param props.onUploadImage - Uploads a pasted or dropped image and resolves to the Markdown to insert.
+ * @param props.onUploadFile - Uploads a non-image file and resolves to the Markdown to insert, plus optional url and name.
+ * @param props.onUploadComplete - Called with the Markdown after an upload has been inserted.
+ * @param props.readOnly - Show rendered Markdown only, no editing.
+ * @param props.startInEditMode - Open directly in edit mode.
+ * @param props.disableClickOutside - Do not leave edit mode on an outside click.
+ * @param props.compact - Use the compact layout.
+ * @param props.actions - Extra controls rendered next to the editor.
+ * @param props.docsProjectId - When set, typing `[[` offers pages and sections of this project's docs.
+ */
 export function MarkdownEditor({
   value,
   onChange,
@@ -50,6 +87,7 @@ export function MarkdownEditor({
   onSubmit,
   onCancel,
   onUploadImage,
+  onUploadFile,
   onUploadComplete,
   readOnly = false,
   startInEditMode = false,
@@ -59,9 +97,20 @@ export function MarkdownEditor({
   viewClassName,
   compact = false,
   actions,
+  docsProjectId: docsProjectIdProp,
+  mentionMembers,
+  diagramProjectId,
+  diagramSaveTo,
+  diagramItem,
 }: Props) {
+  const docsRefs = useDocsRefs();
+  const diagrams = useDiagrams();
+  const [diagramMenuOpen, setDiagramMenuOpen] = useState(false);
+  const docsProjectId = docsProjectIdProp ?? docsRefs?.projectId;
+  setKeyPrefix(docsRefs?.ticketId?.split('-')[0] ?? null);
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
 
   // Link Popover state
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
@@ -78,6 +127,7 @@ export function MarkdownEditor({
   const wysiwygRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const allFileInputRef = useRef<HTMLInputElement>(null);
   const linkBtnRef = useRef<HTMLButtonElement>(null);
   const isFilePickerOpenRef = useRef(false);
   const latestValueRef = useRef(value);
@@ -93,12 +143,25 @@ export function MarkdownEditor({
   // Populate or update contentEditable when entering edit mode or when value changes externally
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
+      // while the person types, a value coming back from an earlier save is older than what is on screen
+      if (document.activeElement === wysiwygRef.current) return;
       const currentMd = htmlToMarkdown(wysiwygRef.current);
       if (value !== currentMd) {
         wysiwygRef.current.innerHTML = markdownToHtml(value);
       }
     }
   }, [value, isEditing]);
+
+  // a [[token]] the caret has left snaps back to a pill
+  useEffect(() => {
+    if (!isEditing) return;
+    const onSel = () => {
+      const root = wysiwygRef.current;
+      if (root && root.contains(window.getSelection()?.anchorNode ?? null)) snapRefTokens(root);
+    };
+    document.addEventListener('selectionchange', onSel);
+    return () => document.removeEventListener('selectionchange', onSel);
+  }, [isEditing]);
 
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
@@ -109,18 +172,64 @@ export function MarkdownEditor({
     }
   }, [isEditing]);
 
+  // Image Resize state
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+  const [imgRect, setImgRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [, setIsResizingImg] = useState(false);
+
+  const updateSelectedImgRect = () => {
+    if (!selectedImg || !containerRef.current) {
+      setImgRect(null);
+      return;
+    }
+    const containerBox = containerRef.current.getBoundingClientRect();
+    const imgBox = selectedImg.getBoundingClientRect();
+    setImgRect({
+      top: imgBox.top - containerBox.top,
+      left: imgBox.left - containerBox.left,
+      width: imgBox.width,
+      height: imgBox.height,
+    });
+  };
+
+  useEffect(() => {
+    if (!selectedImg) {
+      setImgRect(null);
+      return;
+    }
+    updateSelectedImgRect();
+
+    const wysiwyg = wysiwygRef.current;
+    function handleScrollOrResize() {
+      updateSelectedImgRect();
+    }
+
+    wysiwyg?.addEventListener('scroll', handleScrollOrResize);
+    window.addEventListener('resize', handleScrollOrResize);
+    return () => {
+      wysiwyg?.removeEventListener('scroll', handleScrollOrResize);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [selectedImg]);
+
   // Click outside listener to exit edit mode and save
   useEffect(() => {
     if (!isEditing || disableClickOutside) return;
 
     function handleClickOutside(e: MouseEvent) {
       if (isFilePickerOpenRef.current) return;
+      // the draw.io editor layer and viewer sit outside this field but belong to it
+      if ((e.target as HTMLElement).closest?.('[data-diagram-layer]')) return;
       if (isLinkPopoverOpen) {
         // If clicking inside link popover, don't close
         const popover = document.querySelector(`.${styles.linkPopover}`);
         if (popover && popover.contains(e.target as Node)) return;
       }
+      const resizer = document.querySelector(`.${styles.imageResizerOverlay}`);
+      if (resizer && resizer.contains(e.target as Node)) return;
+
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setSelectedImg(null);
         finishEditing();
       }
     }
@@ -130,6 +239,156 @@ export function MarkdownEditor({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isEditing, isLinkPopoverOpen, disableClickOutside]);
+
+  function handleResizeStart(e: React.MouseEvent, handle: 'se' | 'sw' | 'ne' | 'nw' | 'e' | 'w') {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!selectedImg || !wysiwygRef.current) return;
+
+    const startX = e.clientX;
+    const startWidth = selectedImg.getBoundingClientRect().width;
+    const maxContainerWidth = wysiwygRef.current.clientWidth - 44;
+
+    setIsResizingImg(true);
+
+    function onMouseMove(moveEvent: MouseEvent) {
+      moveEvent.preventDefault();
+      const deltaX = moveEvent.clientX - startX;
+      let nextWidth = startWidth;
+
+      if (handle === 'se' || handle === 'ne' || handle === 'e') {
+        nextWidth = startWidth + deltaX;
+      } else if (handle === 'sw' || handle === 'nw' || handle === 'w') {
+        nextWidth = startWidth - deltaX;
+      }
+
+      nextWidth = Math.max(80, Math.min(maxContainerWidth, Math.round(nextWidth)));
+
+      if (selectedImg) {
+        selectedImg.style.width = `${nextWidth}px`;
+        selectedImg.style.maxWidth = '100%';
+        selectedImg.style.height = 'auto';
+        selectedImg.setAttribute('width', String(nextWidth));
+      }
+
+      updateSelectedImgRect();
+    }
+
+    function onMouseUp() {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setIsResizingImg(false);
+      syncContent();
+    }
+
+    document.body.style.cursor =
+      handle === 'e' || handle === 'w'
+        ? 'ew-resize'
+        : handle === 'se' || handle === 'nw'
+          ? 'nwse-resize'
+          : 'nesw-resize';
+    document.body.style.userSelect = 'none';
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function handleSetSizePercent(percent: number) {
+    if (!selectedImg || !wysiwygRef.current) return;
+    const maxContainerWidth = wysiwygRef.current.clientWidth - 44;
+    const nextWidth = Math.round(maxContainerWidth * (percent / 100));
+    selectedImg.style.width = `${nextWidth}px`;
+    selectedImg.style.maxWidth = '100%';
+    selectedImg.style.height = 'auto';
+    selectedImg.setAttribute('width', String(nextWidth));
+    updateSelectedImgRect();
+    syncContent();
+  }
+
+  function handleResetImageSize() {
+    if (!selectedImg) return;
+    selectedImg.style.width = '';
+    selectedImg.style.maxWidth = '100%';
+    selectedImg.style.height = 'auto';
+    selectedImg.removeAttribute('width');
+    updateSelectedImgRect();
+    syncContent();
+  }
+
+  function handleDeleteSelectedImage() {
+    if (!selectedImg) return;
+    selectedImg.remove();
+    setSelectedImg(null);
+    setImgRect(null);
+    syncContent();
+  }
+
+  /** Put a saved diagram's block after the block the caret was in (or at the end) and save the text. */
+  function insertDiagramBlock(md: string) {
+    const root = wysiwygRef.current;
+    const parts = DIAGRAM_LINE.exec(md);
+    if (!root || !parts) return;
+    const block = diagramBlockElement(parts[2], parts[1]);
+    const saved = savedSelectionRangeRef.current;
+    let anchor: Node | null = null;
+    if (saved && root.contains(saved.commonAncestorContainer)) {
+      anchor = saved.commonAncestorContainer;
+      while (anchor.parentNode && anchor.parentNode !== root) anchor = anchor.parentNode;
+      if (anchor === root) anchor = null;
+    }
+    root.insertBefore(block, anchor ? anchor.nextSibling : null);
+    if (!block.nextElementSibling) {
+      const p = document.createElement('p');
+      p.innerHTML = '<br>';
+      root.appendChild(p);
+    }
+    savedSelectionRangeRef.current = null;
+    syncContent();
+  }
+
+  const diagramStarter = useDiagramStarter({
+    projectId: diagramProjectId,
+    saveTo: diagramSaveTo,
+    itemKind: diagramItem?.kind,
+    itemId: diagramItem?.id,
+    onInsert: (md) => insertDiagramBlock(md),
+  });
+
+  function rememberSelection() {
+    const sel = window.getSelection();
+    savedSelectionRangeRef.current =
+      sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+  }
+
+  function handleDiagramClick(target: HTMLElement): boolean {
+    const block = target.closest('[data-diagram]') as HTMLElement | null;
+    if (!block || !wysiwygRef.current?.contains(block)) return false;
+    const id = block.getAttribute('data-diagram') ?? '';
+    if (!/^dg_[0-9a-f]{8}$/.test(id)) return true;
+    const label = block.getAttribute('data-label') ?? 'Diagram';
+    if (target.closest('[data-diagram-edit]')) {
+      if (!readOnly && diagrams && diagramProjectId) {
+        diagrams.openEditor({
+          projectId: diagramProjectId,
+          diagramId: id,
+          label,
+          saveTo: diagramSaveTo,
+          onSaved: (d) => {
+            block.setAttribute('data-label', d.label);
+            block.querySelector('[data-diagram-name]')!.textContent = d.label;
+            const img = block.querySelector('img');
+            if (img) img.setAttribute('src', `${resolveOrigin()}/diagrams/${id}/svg?version=${d.version}`);
+            syncContent();
+          },
+        });
+      }
+    } else if (diagrams) {
+      diagrams.openViewer({ id, label, version: 0 });
+    }
+    return true;
+  }
 
   function syncContent() {
     if (!wysiwygRef.current) return;
@@ -365,9 +624,8 @@ export function MarkdownEditor({
   function applyLink() {
     const raw = linkUrl.trim();
     const url = raw && !/^[a-z][a-z0-9+.-]*:/i.test(raw) ? `https://${raw}` : raw;
-    const safeUrl = url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:')
-      ? normalizeUrl(url)
-      : null;
+    const safeUrl =
+      url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:') ? normalizeUrl(url) : null;
     if (!safeUrl) {
       setIsLinkPopoverOpen(false);
       return;
@@ -404,39 +662,58 @@ export function MarkdownEditor({
     setIsLinkPopoverOpen(false);
   }
 
-  async function handleUploadImageFile(file: File) {
-    if (!onUploadImage || isUploading) return;
+  async function handleUploadAnyFile(file: File) {
+    const uploadFn = onUploadFile || onUploadImage;
+    if (!uploadFn || isUploading) return;
     setUploadError(null);
-    if (!SUPPORTED_UPLOAD_IMAGE_TYPES.includes(file.type.toLowerCase())) {
-      setUploadError('Only PNG, JPEG, GIF or WebP images can be inserted.');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
+    setUploadingFileName(file.name);
     setIsUploading(true);
-    try {
-      const res = await onUploadImage(file);
-      const match = res.markdown.match(/!\[(.*?)\]\((.*?)\)/);
-      if (match) {
-        const [, alt, src] = match;
-        wysiwygRef.current?.focus();
 
+    try {
+      const res = await uploadFn(file);
+      wysiwygRef.current?.focus();
+
+      // Check if result is an image markdown ![alt](src)
+      const imgMatch = res.markdown?.match(/!\[(.*?)\]\((.*?)\)/);
+      // Check if result is a link markdown [label](href)
+      const linkMatch = res.markdown?.match(/\[(.*?)\]\((.*?)\)/);
+
+      let insertNode: HTMLElement | null = null;
+
+      if (imgMatch) {
+        const [, alt, src] = imgMatch;
         const img = document.createElement('img');
         const resolvedSrc = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
-        const safeSrc = resolvedSrc.startsWith('https://') || resolvedSrc.startsWith('http://') || resolvedSrc.startsWith('/')
-          ? normalizeUrl(resolvedSrc)
-          : null;
+        const safeSrc =
+          resolvedSrc.startsWith('https://') || resolvedSrc.startsWith('http://') || resolvedSrc.startsWith('/')
+            ? normalizeUrl(resolvedSrc)
+            : null;
         if (!safeSrc) return;
         img.src = safeSrc;
         img.alt = alt;
+        insertNode = img;
+      } else if (linkMatch) {
+        const [, label, href] = linkMatch;
+        const a = document.createElement('a');
+        a.href = href;
+        a.textContent = label || file.name;
+        insertNode = a;
+      } else if ('url' in res && (res as { url: string }).url) {
+        const a = document.createElement('a');
+        a.href = (res as { url: string }).url;
+        a.textContent = (res as { name?: string }).name || file.name;
+        insertNode = a;
+      }
 
+      if (insertNode) {
         const sel = window.getSelection();
         const savedRange = savedSelectionRangeRef.current;
         if (savedRange && wysiwygRef.current?.contains(savedRange.commonAncestorContainer)) {
           savedRange.deleteContents();
-          savedRange.insertNode(img);
+          savedRange.insertNode(insertNode);
 
           const newRange = document.createRange();
-          newRange.setStartAfter(img);
+          newRange.setStartAfter(insertNode);
           newRange.collapse(true);
           sel?.removeAllRanges();
           sel?.addRange(newRange);
@@ -446,20 +723,24 @@ export function MarkdownEditor({
             targetP = document.createElement('p');
             wysiwygRef.current?.appendChild(targetP);
           }
-          targetP.appendChild(img);
+          targetP.appendChild(insertNode);
         }
 
         syncContent();
       }
       onUploadComplete?.(latestValueRef.current);
     } catch (err) {
-      console.error('Failed to upload image:', err);
+      console.error('Failed to upload file:', err);
       setUploadError(uploadErrorMessage(err));
     } finally {
       setIsUploading(false);
+      setUploadingFileName(null);
       savedSelectionRangeRef.current = null;
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+      if (allFileInputRef.current) {
+        allFileInputRef.current.value = '';
       }
     }
   }
@@ -467,13 +748,19 @@ export function MarkdownEditor({
   async function handleFilePickerChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    await handleUploadImageFile(file);
+    await handleUploadAnyFile(file);
+  }
+
+  async function handleAllFilePickerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleUploadAnyFile(file);
   }
 
   function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
-    if (!onUploadImage || isUploading) return;
+    if ((!onUploadImage && !onUploadFile) || isUploading) return;
     const file = Array.from(e.clipboardData.items)
-      .find((item) => item.kind === 'file' && SUPPORTED_UPLOAD_IMAGE_TYPES.includes(item.type.toLowerCase()))
+      .find((item) => item.kind === 'file')
       ?.getAsFile();
 
     if (file) {
@@ -482,27 +769,45 @@ export function MarkdownEditor({
       if (sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode)) {
         savedSelectionRangeRef.current = sel.getRangeAt(0).cloneRange();
       }
-      void handleUploadImageFile(file);
+      void handleUploadAnyFile(file);
     }
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    if (!onUploadImage || isUploading) return;
-    const file = Array.from(e.dataTransfer.files).find((f) =>
-      SUPPORTED_UPLOAD_IMAGE_TYPES.includes(f.type.toLowerCase())
-    );
+    const diagramFile = diagramStarter.available ? firstDiagramFile(e.dataTransfer.files) : null;
+    if (diagramFile) {
+      e.preventDefault();
+      rememberSelection();
+      void diagramStarter.startImport(diagramFile);
+      return;
+    }
+    if ((!onUploadImage && !onUploadFile) || isUploading) return;
+    const file = Array.from(e.dataTransfer.files)[0];
     if (file) {
       e.preventDefault();
       const sel = window.getSelection();
       if (sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode)) {
         savedSelectionRangeRef.current = sel.getRangeAt(0).cloneRange();
       }
-      void handleUploadImageFile(file);
+      void handleUploadAnyFile(file);
     }
   }
 
-
   function handleKeyDown(e: React.KeyboardEvent) {
+    if (selectedImg) {
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        handleDeleteSelectedImage();
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedImg(null);
+        setImgRect(null);
+        return;
+      }
+    }
+
     const isMod = e.metaKey || e.ctrlKey;
     if (isMod && e.key === 'Enter') {
       e.preventDefault();
@@ -550,7 +855,11 @@ export function MarkdownEditor({
     return (
       <div
         className={`${styles.viewArea} ${compact ? styles.viewAreaCompact : ''} ${readOnly ? styles.viewAreaReadOnly : ''} ${viewClassName || ''}`}
-        onClick={startEditing}
+        onClick={(e) => {
+          // a click on a doc / ticket pill opens it; it must not switch the field to edit mode
+          if ((e.target as HTMLElement).closest('.dk-chip')) return;
+          startEditing();
+        }}
         role="button"
         tabIndex={readOnly ? -1 : 0}
         aria-label={editAriaLabel}
@@ -592,7 +901,16 @@ export function MarkdownEditor({
                 handleUndo();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M3 7v6h6" />
                 <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
               </svg>
@@ -609,7 +927,16 @@ export function MarkdownEditor({
                 handleRedo();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 7v6h-6" />
                 <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
               </svg>
@@ -656,7 +983,16 @@ export function MarkdownEditor({
                 handleHighlight();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 11L15 5L19 9L13 15" />
                 <path d="M9 11L13 15L7 19H3V15L9 11Z" />
               </svg>
@@ -689,7 +1025,15 @@ export function MarkdownEditor({
                 executeFormat('insertUnorderedList');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <circle cx="4.5" cy="6" r="1" />
                 <circle cx="4.5" cy="12" r="1" />
                 <circle cx="4.5" cy="18" r="1" />
@@ -710,7 +1054,16 @@ export function MarkdownEditor({
                 executeFormat('formatBlock', '<blockquote>');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M7 15C9 15 10 13.5 10 11.5C10 9.5 8.5 8 6.5 8C4.5 8 3 9.5 3 11.5C3 14.5 5 17 8 18" />
                 <path d="M17 15C19 15 20 13.5 20 11.5C20 9.5 18.5 8 16.5 8C14.5 8 13 9.5 13 11.5C13 14.5 15 17 18 18" />
               </svg>
@@ -727,11 +1080,44 @@ export function MarkdownEditor({
                 handleCode();
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M8 6L2 12L8 18" />
                 <path d="M16 6L22 12L16 18" />
               </svg>
             </button>
+
+            {/* [[ ]]: link a doc, section or ticket */}
+            {docsProjectId && (
+              <button
+                type="button"
+                className={styles.toolbarBtn}
+                aria-label="Insert doc reference"
+                title="Link a doc or ticket ([[)"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  width: 'auto',
+                  padding: '0 6px',
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  wysiwygRef.current?.focus();
+                  document.execCommand('insertText', false, '[[');
+                }}
+              >
+                [[ ]]
+              </button>
+            )}
 
             {/* Link (with popover) */}
             <button
@@ -749,20 +1135,29 @@ export function MarkdownEditor({
                 }
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9" />
                 <path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1" />
               </svg>
             </button>
 
-            {/* Image upload */}
-            {onUploadImage && (
+            {/* Attach Any File */}
+            {(onUploadFile || onUploadImage) && (
               <>
                 <button
                   type="button"
                   className={styles.toolbarBtn}
-                  aria-label="Image"
-                  title="Upload Image"
+                  aria-label="Attach File"
+                  title="Đính kèm tệp tin (Excel, Word, PowerPoint, PDF, JSON, TXT, Zip...)"
                   disabled={isUploading}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -779,12 +1174,129 @@ export function MarkdownEditor({
                       () => {
                         isFilePickerOpenRef.current = false;
                       },
-                      { once: true }
+                      { once: true },
+                    );
+                    allFileInputRef.current?.click();
+                  }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                  </svg>
+                </button>
+                <input
+                  ref={allFileInputRef}
+                  type="file"
+                  accept="*/*"
+                  className={styles.fileInput}
+                  onChange={handleAllFilePickerChange}
+                />
+              </>
+            )}
+
+            {/* Diagram (draw.io) */}
+            {diagramStarter.available && !readOnly && (
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <button
+                  type="button"
+                  className={styles.toolbarBtn}
+                  aria-label="Diagram"
+                  aria-haspopup="menu"
+                  aria-expanded={diagramMenuOpen}
+                  title="Diagram (draw.io)"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    rememberSelection();
+                    setDiagramMenuOpen((o) => !o);
+                  }}
+                >
+                  <DiagramIcon name="drawio" size={14} />
+                </button>
+                {diagramMenuOpen && (
+                  <div
+                    className={diagramStyles.menu}
+                    style={{ top: 34, left: 0, right: 'auto', width: 240, zIndex: 20 }}
+                    role="menu"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={diagramStyles.menuItem}
+                      onClick={() => {
+                        setDiagramMenuOpen(false);
+                        diagramStarter.startNew();
+                      }}
+                    >
+                      <DiagramIcon name="plus" /> New draw.io drawing
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={diagramStyles.menuItem}
+                      onClick={() => {
+                        setDiagramMenuOpen(false);
+                        diagramStarter.pickFile();
+                      }}
+                    >
+                      <DiagramIcon name="upload" /> Import .drawio file
+                    </button>
+                    <div className={diagramStyles.stateText} style={{ padding: '4px 8px 2px' }}>
+                      Also drop a file onto the field
+                    </div>
+                  </div>
+                )}
+                {diagramStarter.fileInput}
+              </span>
+            )}
+
+            {/* Image upload */}
+            {(onUploadImage || onUploadFile) && (
+              <>
+                <button
+                  type="button"
+                  className={styles.toolbarBtn}
+                  aria-label="Image"
+                  title="Chèn ảnh"
+                  disabled={isUploading}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0 && wysiwygRef.current?.contains(sel.anchorNode)) {
+                      savedSelectionRangeRef.current = sel.getRangeAt(0).cloneRange();
+                    } else {
+                      savedSelectionRangeRef.current = null;
+                    }
+                    if (isFilePickerOpenRef.current) return;
+                    isFilePickerOpenRef.current = true;
+                    window.addEventListener(
+                      'focus',
+                      () => {
+                        isFilePickerOpenRef.current = false;
+                      },
+                      { once: true },
                     );
                     fileInputRef.current?.click();
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <rect x="3" y="4" width="18" height="16" rx="2" />
                     <circle cx="8.5" cy="9.5" r="1.5" />
                     <path d="M21 15L16 10L5 21" />
@@ -813,7 +1325,15 @@ export function MarkdownEditor({
                 executeFormat('justifyLeft');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M3 6H21" />
                 <path d="M3 12H15" />
                 <path d="M3 18H18" />
@@ -831,7 +1351,15 @@ export function MarkdownEditor({
                 executeFormat('justifyCenter');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M3 6H21" />
                 <path d="M6 12H18" />
                 <path d="M4.5 18H19.5" />
@@ -849,7 +1377,15 @@ export function MarkdownEditor({
                 executeFormat('justifyRight');
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M3 6H21" />
                 <path d="M9 12H21" />
                 <path d="M6 18H21" />
@@ -865,7 +1401,17 @@ export function MarkdownEditor({
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div className={styles.popoverUrlRow}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9AA8A0"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
                   <path d="M10 13.5C10.8 14.6 12.4 14.7 13.5 13.8L17 11C18.3 9.9 18.5 8 17.4 6.7C16.3 5.4 14.4 5.2 13.1 6.3L11.3 7.9" />
                   <path d="M14 10.5C13.2 9.4 11.6 9.3 10.5 10.2L7 13C5.7 14.1 5.5 16 6.6 17.3C7.7 18.6 9.6 18.8 10.9 17.7L12.7 16.1" />
                 </svg>
@@ -908,7 +1454,12 @@ export function MarkdownEditor({
           )}
         </div>
 
-        {isUploading && <div className={styles.uploadStatus}>Uploading image...</div>}
+        {isUploading && (
+          <div className={styles.uploadStatus}>
+            <span className={styles.uploadSpinner} />
+            Uploading {uploadingFileName ? `"${uploadingFileName}"` : 'file'}...
+          </div>
+        )}
         {uploadError && (
           <div className={styles.uploadError} role="alert">
             {uploadError}
@@ -923,25 +1474,187 @@ export function MarkdownEditor({
           className={`${styles.wysiwygArea} ${compact ? styles.wysiwygAreaCompact : ''}`}
           data-placeholder={placeholderText}
           onInput={() => {
+            if (wysiwygRef.current && snapRefTokens(wysiwygRef.current)) updateToolbarState();
             syncContent();
             updateToolbarState();
           }}
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => {
+            const root = wysiwygRef.current;
+            if (root && (e.key === 'Escape' || e.key === 'ArrowRight') && tokenAtCaret(root)) {
+              // leaving a raw [[token]] with Esc or → snaps it back to a pill
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+              const t = tokenAtCaret(root);
+              if (t && e.key === 'ArrowRight' && window.getSelection()?.anchorOffset !== t.end) return;
+              snapRefTokens(root, false);
+              syncContent();
+              return;
+            }
+            handleKeyDown(e);
+          }}
           onPaste={handlePaste}
           onDrop={handleDrop}
           onClick={(e) => {
-            if ((e.target as HTMLElement).tagName === 'INPUT') syncContent();
+            const target = e.target as HTMLElement;
+            if (handleDiagramClick(target)) {
+              e.stopPropagation();
+              setSelectedImg(null);
+              return;
+            }
+            const chip = target.closest('.docRef') as HTMLElement | null;
+            if (chip && wysiwygRef.current?.contains(chip)) {
+              e.preventDefault();
+              expandRefChip(chip);
+              return;
+            }
+            if (target.tagName === 'INPUT') syncContent();
+            if (target.tagName === 'IMG') {
+              e.stopPropagation();
+              setSelectedImg(target as HTMLImageElement);
+            } else {
+              setSelectedImg(null);
+            }
           }}
           onBlur={() => {
+            if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false);
             if (dirtyRef.current) syncContent();
           }}
         />
+        {docsProjectId && !readOnly && (
+          <RefSuggester
+            targetRef={wysiwygRef}
+            projectId={docsProjectId}
+            keyPrefix={docsRefs?.ticketId?.split('-')[0]}
+            members={mentionMembers}
+            onChanged={() => {
+              if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false);
+              syncContent();
+            }}
+          />
+        )}
+
+        {selectedImg && imgRect && (
+          <div
+            className={styles.imageResizerOverlay}
+            style={{
+              top: `${imgRect.top}px`,
+              left: `${imgRect.left}px`,
+              width: `${imgRect.width}px`,
+              height: `${imgRect.height}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Border */}
+            <div className={styles.resizerBorder} />
+
+            {/* Presets and actions floating bar */}
+            <div className={styles.resizerToolbar}>
+              <span className={styles.resizerDimBadge}>{Math.round(imgRect.width)}px</span>
+              <div className={styles.resizerDivider} />
+              <button
+                type="button"
+                className={styles.resizerBtn}
+                onClick={() => handleSetSizePercent(25)}
+                title="Set to 25% width"
+              >
+                25%
+              </button>
+              <button
+                type="button"
+                className={styles.resizerBtn}
+                onClick={() => handleSetSizePercent(50)}
+                title="Set to 50% width"
+              >
+                50%
+              </button>
+              <button
+                type="button"
+                className={styles.resizerBtn}
+                onClick={() => handleSetSizePercent(75)}
+                title="Set to 75% width"
+              >
+                75%
+              </button>
+              <button
+                type="button"
+                className={styles.resizerBtn}
+                onClick={() => handleSetSizePercent(100)}
+                title="Set to 100% width"
+              >
+                100%
+              </button>
+              <div className={styles.resizerDivider} />
+              <button
+                type="button"
+                className={styles.resizerBtn}
+                onClick={handleResetImageSize}
+                title="Reset to natural size"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className={`${styles.resizerBtn} ${styles.resizerDeleteBtn}`}
+                onClick={handleDeleteSelectedImage}
+                title="Remove image"
+                aria-label="Remove image"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Resize Handles */}
+            <div
+              className={`${styles.resizeHandle} ${styles.handleNW}`}
+              onMouseDown={(e) => handleResizeStart(e, 'nw')}
+              title="Drag to resize"
+            />
+            <div
+              className={`${styles.resizeHandle} ${styles.handleNE}`}
+              onMouseDown={(e) => handleResizeStart(e, 'ne')}
+              title="Drag to resize"
+            />
+            <div
+              className={`${styles.resizeHandle} ${styles.handleSE}`}
+              onMouseDown={(e) => handleResizeStart(e, 'se')}
+              title="Drag to resize"
+            />
+            <div
+              className={`${styles.resizeHandle} ${styles.handleSW}`}
+              onMouseDown={(e) => handleResizeStart(e, 'sw')}
+              title="Drag to resize"
+            />
+            <div
+              className={`${styles.resizeHandle} ${styles.handleW}`}
+              onMouseDown={(e) => handleResizeStart(e, 'w')}
+              title="Drag to resize"
+            />
+            <div
+              className={`${styles.resizeHandle} ${styles.handleE}`}
+              onMouseDown={(e) => handleResizeStart(e, 'e')}
+              title="Drag to resize"
+            />
+          </div>
+        )}
 
         {actions && <div className={styles.editorActions}>{actions}</div>}
       </div>
-
     </div>
   );
 }

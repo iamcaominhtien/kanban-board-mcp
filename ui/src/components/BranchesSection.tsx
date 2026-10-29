@@ -13,10 +13,7 @@ interface BranchesSectionProps {
   readOnly?: boolean;
 }
 
-const STATUS_CONFIG: Record<
-  BranchStatus,
-  { label: string; dot: string; color: string; bg: string }
-> = {
+const STATUS_CONFIG: Record<BranchStatus, { label: string; dot: string; color: string; bg: string }> = {
   baseline: {
     label: 'Baseline',
     dot: '#2E6F40',
@@ -54,6 +51,11 @@ function formatDate(iso?: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/**
+ * Ticket's branches with create, rename, checkout and delete.
+ * @param props.ticketId - Ticket whose branches are managed.
+ * @param props.readOnly - Hide create, rename, checkout and delete actions.
+ */
 export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionProps) {
   const [activeTab, setActiveTab] = useState<'graph' | 'list'>('graph');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -99,7 +101,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         onError: (err) => {
           toast.error("Couldn't update branch", extractError(err));
         },
-      }
+      },
     );
   }
 
@@ -158,7 +160,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
           onError: (err) => {
             toast.error("Couldn't delete branch", extractError(err));
           },
-        }
+        },
       );
     }
   }
@@ -168,18 +170,21 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
   }
 
   // Ensure default main/baseline is present in list if empty
-  const allBranches: TicketBranch[] = branches.length > 0 ? branches : [
-    {
-      id: 'baseline-main',
-      name: 'main',
-      status: 'baseline',
-      branchFrom: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      aheadCount: 0,
-      behindCount: 0,
-    },
-  ];
+  const allBranches: TicketBranch[] =
+    branches.length > 0
+      ? branches
+      : [
+          {
+            id: 'baseline-main',
+            name: 'main',
+            status: 'baseline',
+            branchFrom: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            aheadCount: 0,
+            behindCount: 0,
+          },
+        ];
 
   return (
     <div className={styles.container}>
@@ -203,13 +208,18 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         </div>
 
         {!readOnly && (
-          <button
-            type="button"
-            className={styles.brAddBtn}
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-              <path d="M12 5V19" /><path d="M5 12H19" />
+          <button type="button" className={styles.brAddBtn} onClick={() => setIsCreateModalOpen(true)}>
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            >
+              <path d="M12 5V19" />
+              <path d="M5 12H19" />
             </svg>
             Create branch
           </button>
@@ -239,7 +249,9 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                 <span className={styles.branchName} title={br.name}>
                   {br.name}
                   {br.isCurrent && (
-                    <span className={styles.worktreeBadge} style={{ marginLeft: 6 }}>HEAD</span>
+                    <span className={styles.worktreeBadge} style={{ marginLeft: 6 }}>
+                      HEAD
+                    </span>
                   )}
                 </span>
 
@@ -322,7 +334,16 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                       onClick={() => handleDeleteClick(br)}
                       title="Delete branch"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                       </svg>
@@ -342,8 +363,17 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
           onClick={() => setIsCreateModalOpen(true)}
           style={{ alignSelf: 'flex-start' }}
         >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M12 5V19" /><path d="M5 12H19" />
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M12 5V19" />
+            <path d="M5 12H19" />
           </svg>
           Create branch
         </button>
@@ -351,22 +381,14 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
 
       {/* Confirmation Dialog for branch actions with worktree */}
       {confirmDialog && (
-        <div
-          className={styles.dialogBackdrop}
-          onClick={() => setConfirmDialog(null)}
-        >
-          <div
-            className={styles.dialogCard}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
+        <div className={styles.dialogBackdrop} onClick={() => setConfirmDialog(null)}>
+          <div className={styles.dialogCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
             <h4 className={styles.dialogTitle}>
               {confirmDialog.action === 'delete'
                 ? 'Delete branch'
                 : confirmDialog.action === 'merge'
-                ? 'Merge branch'
-                : 'Archive branch'}
+                  ? 'Merge branch'
+                  : 'Archive branch'}
             </h4>
             <p className={styles.dialogPrompt}>
               {confirmDialog.action === 'delete' ? (
@@ -376,7 +398,9 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
               ) : confirmDialog.action === 'merge' ? (
                 <>
                   Mark branch <strong>{confirmDialog.branch.name}</strong> as merged?
-                  {hasRepo && confirmDialog.branch.inRepo !== false && ' Git must already contain all its commits in the origin branch.'}
+                  {hasRepo &&
+                    confirmDialog.branch.inRepo !== false &&
+                    ' Git must already contain all its commits in the origin branch.'}
                 </>
               ) : (
                 <>
@@ -394,60 +418,53 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                   onChange={(e) => setRemoveWorktreeChecked(e.target.checked)}
                 />
                 <div className={styles.dialogCheckboxContent}>
-                  <span className={styles.dialogCheckboxTitle}>
-                    Clean up worktree directory
-                  </span>
-                  <code className={styles.dialogWorktreePath}>
-                    {confirmDialog.branch.worktreePath}
-                  </code>
+                  <span className={styles.dialogCheckboxTitle}>Clean up worktree directory</span>
+                  <code className={styles.dialogWorktreePath}>{confirmDialog.branch.worktreePath}</code>
                 </div>
               </label>
             )}
 
-            {confirmDialog.action === 'delete' && hasRepo && confirmDialog.branch.inRepo !== false && confirmDialog.branch.status !== 'baseline' && (
-              <>
-                <label className={styles.dialogCheckboxLabel}>
-                  <input
-                    type="checkbox"
-                    className={styles.dialogCheckbox}
-                    checked={deleteGitBranchChecked}
-                    onChange={(e) => setDeleteGitBranchChecked(e.target.checked)}
-                  />
-                  <div className={styles.dialogCheckboxContent}>
-                    <span className={styles.dialogCheckboxTitle}>Also delete the git branch</span>
-                    <code className={styles.dialogWorktreePath}>{confirmDialog.branch.name}</code>
-                  </div>
-                </label>
-                {deleteGitBranchChecked && (
+            {confirmDialog.action === 'delete' &&
+              hasRepo &&
+              confirmDialog.branch.inRepo !== false &&
+              confirmDialog.branch.status !== 'baseline' && (
+                <>
                   <label className={styles.dialogCheckboxLabel}>
                     <input
                       type="checkbox"
                       className={styles.dialogCheckbox}
-                      checked={forceDeleteChecked}
-                      onChange={(e) => setForceDeleteChecked(e.target.checked)}
+                      checked={deleteGitBranchChecked}
+                      onChange={(e) => setDeleteGitBranchChecked(e.target.checked)}
                     />
                     <div className={styles.dialogCheckboxContent}>
-                      <span className={styles.dialogCheckboxTitle}>Force delete (discard unmerged commits)</span>
-                      <span className={styles.dialogWorktreePath}>
-                        Without this, git refuses to delete a branch that is not fully merged.
-                      </span>
+                      <span className={styles.dialogCheckboxTitle}>Also delete the git branch</span>
+                      <code className={styles.dialogWorktreePath}>{confirmDialog.branch.name}</code>
                     </div>
                   </label>
-                )}
-              </>
-            )}
+                  {deleteGitBranchChecked && (
+                    <label className={styles.dialogCheckboxLabel}>
+                      <input
+                        type="checkbox"
+                        className={styles.dialogCheckbox}
+                        checked={forceDeleteChecked}
+                        onChange={(e) => setForceDeleteChecked(e.target.checked)}
+                      />
+                      <div className={styles.dialogCheckboxContent}>
+                        <span className={styles.dialogCheckboxTitle}>Force delete (discard unmerged commits)</span>
+                        <span className={styles.dialogWorktreePath}>
+                          Without this, git refuses to delete a branch that is not fully merged.
+                        </span>
+                      </div>
+                    </label>
+                  )}
+                </>
+              )}
 
             <div className={styles.dialogActions}>
               <button
                 type="button"
-                className={
-                  confirmDialog.action === 'delete'
-                    ? styles.dialogBtnDanger
-                    : styles.dialogBtnPrimary
-                }
-                disabled={
-                  deleteBranchMutation.isPending || updateBranchMutation.isPending
-                }
+                className={confirmDialog.action === 'delete' ? styles.dialogBtnDanger : styles.dialogBtnPrimary}
+                disabled={deleteBranchMutation.isPending || updateBranchMutation.isPending}
                 onClick={async () => {
                   try {
                     if (confirmDialog.action === 'delete') {
@@ -464,8 +481,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                           : `Deleted branch ${confirmDialog.branch.name}`,
                       );
                     } else {
-                      const nextStatus =
-                        confirmDialog.action === 'merge' ? 'merged' : 'archived';
+                      const nextStatus = confirmDialog.action === 'merge' ? 'merged' : 'archived';
                       await updateBranchMutation.mutateAsync({
                         ticketId,
                         branchId: confirmDialog.branch.id,
@@ -479,10 +495,8 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                     setConfirmDialog(null);
                   } catch (err) {
                     toast.error(
-                      confirmDialog.action === 'delete'
-                        ? "Couldn't delete branch"
-                        : "Couldn't update branch",
-                      extractError(err)
+                      confirmDialog.action === 'delete' ? "Couldn't delete branch" : "Couldn't update branch",
+                      extractError(err),
                     );
                   }
                 }}
@@ -490,14 +504,10 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                 {deleteBranchMutation.isPending || updateBranchMutation.isPending
                   ? 'Processing...'
                   : confirmDialog.action === 'delete'
-                  ? 'Delete branch'
-                  : 'Confirm'}
+                    ? 'Delete branch'
+                    : 'Confirm'}
               </button>
-              <button
-                type="button"
-                className={styles.dialogBtnCancel}
-                onClick={() => setConfirmDialog(null)}
-              >
+              <button type="button" className={styles.dialogBtnCancel} onClick={() => setConfirmDialog(null)}>
                 Cancel
               </button>
             </div>
@@ -507,12 +517,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
 
       {renameTarget && (
         <div className={styles.dialogBackdrop} onClick={() => setRenameTarget(null)}>
-          <div
-            className={styles.dialogCard}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
+          <div className={styles.dialogCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
             <h4 className={styles.dialogTitle}>Rename branch</h4>
             <form
               onSubmit={(e) => {
@@ -523,7 +528,13 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
               <input
                 type="text"
                 className={styles.dialogInput}
-                style={{ width: '100%', boxSizing: 'border-box', margin: '8px 0 12px', padding: '6px 10px', fontFamily: 'monospace' }}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  margin: '8px 0 12px',
+                  padding: '6px 10px',
+                  fontFamily: 'monospace',
+                }}
                 value={renameDraft}
                 onChange={(e) => setRenameDraft(e.target.value)}
                 autoFocus

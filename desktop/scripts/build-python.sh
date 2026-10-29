@@ -24,7 +24,7 @@ else
 fi
 
 # Install pyinstaller in the venv if not present
-"$VENV_PYTHON" -c "import PyInstaller" 2>/dev/null || "$VENV_PYTHON" -m pip install pyinstaller --quiet
+"$VENV_PYTHON" -c "import PyInstaller" 2>/dev/null || (command -v uv >/dev/null && uv pip install pyinstaller --directory "$SERVER_DIR") || "$VENV_PYTHON" -m pip install pyinstaller --quiet
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -47,5 +47,5 @@ echo "--- Building kanban-mcp-stdio binary ---"
 echo ""
 echo "=== Build complete ==="
 echo "Binaries in: $OUTPUT_DIR"
-ls -lh "$OUTPUT_DIR/kanban-server" "$OUTPUT_DIR/kanban-mcp-stdio" 2>/dev/null || \
-ls -lh "$OUTPUT_DIR/kanban-server.exe" "$OUTPUT_DIR/kanban-mcp-stdio.exe" 2>/dev/null
+ls -lhd "$OUTPUT_DIR/kanban-server"* 2>/dev/null || true
+ls -lhd "$OUTPUT_DIR/kanban-mcp-stdio"* 2>/dev/null || true

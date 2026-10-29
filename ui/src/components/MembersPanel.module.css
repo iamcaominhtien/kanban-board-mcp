@@ -14,9 +14,9 @@
   width: 460px;
   max-width: 100%;
   border-radius: 12px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   box-shadow: 0 24px 64px rgba(30, 42, 34, 0.28);
-  background: #FFFFFF;
+  background: #ffffff;
   overflow: hidden;
   box-sizing: border-box;
   display: flex;
@@ -28,7 +28,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px;
-  border-bottom: 1px solid #E3E8E5;
+  border-bottom: 1px solid #e3e8e5;
   box-sizing: border-box;
 }
 
@@ -36,7 +36,7 @@
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 700;
-  color: #1E2A22;
+  color: #1e2a22;
   margin: 0;
   display: flex;
   align-items: center;
@@ -47,8 +47,8 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #5B6B60;
-  background: #F6FAF7;
+  color: #5b6b60;
+  background: #f6faf7;
   padding: 2px 7px;
   border-radius: 999px;
 }
@@ -63,13 +63,15 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
-  transition: background 0.12s ease, color 0.12s ease;
+  color: #9aa8a0;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .closeBtn:hover {
-  background: #EEF3EF;
-  color: #1E2A22;
+  background: #eef3ef;
+  color: #1e2a22;
 }
 
 .content {
@@ -97,7 +99,7 @@
   border-radius: 50%;
   font-size: 12.5px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,7 +110,7 @@
   flex-grow: 1;
   font-size: 13.5px;
   font-weight: 600;
-  color: #1E2A22;
+  color: #1e2a22;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -124,32 +126,34 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   flex-shrink: 0;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .removeBtn:hover {
-  background: #FBEAEA;
-  color: #C4432A;
+  background: #fbeaea;
+  color: #c4432a;
 }
 
 .rowDivider {
   height: 1px;
-  background: #EEF3EF;
+  background: #eef3ef;
 }
 
 .emptyState {
   padding: 28px 0;
   text-align: center;
   font-size: 12.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-weight: 500;
 }
 
 .sectionDivider {
   height: 1px;
-  background: #E3E8E5;
+  background: #e3e8e5;
   margin: 14px 0 16px;
 }
 
@@ -164,7 +168,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .input {
@@ -172,16 +176,16 @@
   box-sizing: border-box;
   padding: 8px 10px;
   border-radius: 7px;
-  border: 1px solid #C7D2CB;
+  border: 1px solid #c7d2cb;
   font-family: var(--font-body);
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
   outline: none;
   transition: border-color 0.15s ease;
 }
 
 .input:focus {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
 }
 
 .swatchesAndBtn {
@@ -213,15 +217,15 @@
 }
 
 .swatchActive {
-  border-color: #1E2A22;
+  border-color: #1e2a22;
 }
 
 .addBtn {
   padding: 8px 16px;
   border-radius: 8px;
   border: none;
-  background: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  color: #ffffff;
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 12.5px;
@@ -238,6 +242,6 @@
 .errorText {
   font-size: 11.5px;
   font-weight: 600;
-  color: #C4432A;
+  color: #c4432a;
   margin-top: 6px;
 }

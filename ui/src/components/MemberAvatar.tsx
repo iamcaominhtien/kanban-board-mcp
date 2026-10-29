@@ -1,4 +1,5 @@
 import type { Member } from '../types/ticket';
+import { AiAvatar, useAiBoardState } from './ai/aiUi';
 
 function initials(name: string): string {
   return name
@@ -9,6 +10,7 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
+/** Return background and text colors for a member color. */
 export function getAvatarColors(color: string): { bg: string; color: string } {
   const normalized = color.toUpperCase();
   const pairs: Record<string, { bg: string; color: string }> = {
@@ -33,7 +35,26 @@ interface MemberAvatarProps {
   title?: string;
 }
 
+/**
+ * Round avatar with the member's initials (a square sparkle-badged one for an AI member).
+ * @param props.size - Diameter in px.
+ * @param props.title - Tooltip text; defaults to the member name.
+ */
 export function MemberAvatar({ member, size = 20, title }: MemberAvatarProps) {
+  const ai = useAiBoardState().members.get(member.id);
+  if (member.kind === 'ai' || member.kind === 'ai_removed') {
+    // AI members are rounded squares with a sparkle badge; people stay round
+    return (
+      <AiAvatar
+        provider={ai?.provider ?? 'custom'}
+        color={ai?.color ?? member.color}
+        glyph={ai?.glyph}
+        size={size}
+        title={title ?? member.name}
+        dim={member.kind === 'ai_removed'}
+      />
+    );
+  }
   const { bg, color } = getAvatarColors(member.color);
   return (
     <span

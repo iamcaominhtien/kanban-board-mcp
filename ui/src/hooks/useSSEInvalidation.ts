@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { resolveOrigin } from '../api/resolveOrigin';
 
+/** Subscribe to server events and invalidate React Query caches, reconnecting on failure. */
 export function useSSEInvalidation() {
   const queryClient = useQueryClient();
 

@@ -24,6 +24,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Opens a native folder picker; returns the selected path or null
   selectFolder: () => ipcRenderer.invoke('select-folder'),
 
+  // Opens a local file using the OS default application (e.g. Excel for .xlsx, Word for .docx)
+  openPath: (filePath) => ipcRenderer.invoke('open-path', filePath),
+
+  // Opens an external URL in the default web browser
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+
+  // Auto-update (GitHub releases)
+  getUpdateInfo: () => ipcRenderer.invoke('update-get'),
+  // { currentVersion, lastCheck: { at, error } | null, info } — for Settings → Updates
+  getUpdateStatus: () => ipcRenderer.invoke('update-status'),
+  checkForUpdate: () => ipcRenderer.invoke('update-check'),
+  // Opens the latest GitHub release in the browser, for downloading the installer by hand
+  openReleasesPage: () => ipcRenderer.invoke('update-open-releases'),
+  downloadUpdate: () => ipcRenderer.invoke('update-download'),
+  installUpdate: (filePath) => ipcRenderer.invoke('update-install', filePath),
+  onUpdateAvailable: (callback) => {
+    const handler = (_event, info) => callback(info);
+    ipcRenderer.on('update-available', handler);
+    return () => ipcRenderer.removeListener('update-available', handler);
+  },
+  onUpdateProgress: (callback) => {
+    const handler = (_event, fraction) => callback(fraction);
+    ipcRenderer.on('update-progress', handler);
+    return () => ipcRenderer.removeListener('update-progress', handler);
+  },
+
   // Platform info
   platform: process.platform,
 });

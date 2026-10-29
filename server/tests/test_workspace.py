@@ -8,19 +8,21 @@ import pytest
 from httpx import ASGITransport
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-import mcp_tools
+from kanban_mcp import common, operations as ops
 from database import get_session
 from main import app
+from tests.fast_db import fresh_tables
 
 test_engine = create_async_engine(
     "sqlite+aiosqlite:///:memory:",
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
-test_async_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+test_async_session = async_sessionmaker(
+    test_engine, class_=AsyncSession, expire_on_commit=False
+)
 
 
 async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -30,14 +32,11 @@ async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest.fixture(autouse=True)
 async def setup_db(monkeypatch):
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+    await fresh_tables(test_engine)
     app.dependency_overrides[get_session] = override_get_session
-    monkeypatch.setattr(mcp_tools, "async_session", test_async_session)
+    monkeypatch.setattr(common, "async_session", test_async_session)
     yield
     app.dependency_overrides.pop(get_session, None)
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
 
 
 @pytest.fixture
@@ -48,7 +47,11 @@ def client():
 async def _setup(c: httpx.AsyncClient, root, **settings) -> dict:
     r = await c.patch("/workspace/settings", json={"root_path": str(root), **settings})
     assert r.status_code == 200, r.text
-    p = (await c.post("/projects", json={"name": "W", "prefix": "WS", "color": "#123456"})).json()
+    p = (
+        await c.post(
+            "/projects", json={"name": "W", "prefix": "WS", "color": "#123456"}
+        )
+    ).json()
     return (await c.post(f"/projects/{p['id']}/tickets", json={"title": "t"})).json()
 
 
@@ -76,7 +79,9 @@ async def test_upload_create_folder_preview_download_delete(client, tmp_path):
     async with client as c:
         t = await _setup(c, tmp_path)
         tid = t["id"]
-        r = await c.post(f"/tickets/{tid}/workspace/folders", json={"path": "notes/deep"})
+        r = await c.post(
+            f"/tickets/{tid}/workspace/folders", json={"path": "notes/deep"}
+        )
         assert r.status_code == 200 and (tmp_path / tid / "notes" / "deep").is_dir()
 
         r = await c.post(
@@ -86,7 +91,11 @@ async def test_upload_create_folder_preview_download_delete(client, tmp_path):
         )
         assert r.status_code == 200 and r.json()["name"] == "notes/a.txt"
 
-        prev = (await c.get(f"/tickets/{tid}/workspace/file", params={"path": "notes/a.txt"})).json()
+        prev = (
+            await c.get(
+                f"/tickets/{tid}/workspace/file", params={"path": "notes/a.txt"}
+            )
+        ).json()
         assert prev["text"] == "line1\nline2" and prev["binary"] is False
 
         await c.post(
@@ -101,11 +110,14 @@ async def test_upload_create_folder_preview_download_delete(client, tmp_path):
             f"/tickets/{tid}/workspace/files",
             files={"file": ("b.bin", b"\x00\x01\x02")},
         )
-        binprev = (await c.get(f"/tickets/{tid}/workspace/file", params={"path": "b.bin"})).json()
+        binprev = (
+            await c.get(f"/tickets/{tid}/workspace/file", params={"path": "b.bin"})
+        ).json()
         assert binprev["binary"] is True
 
         dl = await c.get(
-            f"/tickets/{tid}/workspace/file", params={"path": "notes/a.txt", "download": "true"}
+            f"/tickets/{tid}/workspace/file",
+            params={"path": "notes/a.txt", "download": "true"},
         )
         assert "attachment" in dl.headers["content-disposition"]
 
@@ -131,7 +143,9 @@ async def test_path_traversal_and_symlink_escape_rejected(client, tmp_path):
             r = await c.delete(f"/tickets/{tid}/workspace/entry", params={"path": path})
             assert r.status_code == 400, path
         # an absolute path is read as relative to the workspace folder, never the host
-        r = await c.get(f"/tickets/{tid}/workspace/file", params={"path": "/etc/passwd"})
+        r = await c.get(
+            f"/tickets/{tid}/workspace/file", params={"path": "/etc/passwd"}
+        )
         assert r.status_code == 404
         r = await c.post(f"/tickets/{tid}/workspace/folders", json={"path": "../evil"})
         assert r.status_code == 400 and not (root / "evil").exists()
@@ -154,7 +168,8 @@ async def test_upload_size_limit(client, tmp_path, monkeypatch):
     async with client as c:
         t = await _setup(c, tmp_path)
         r = await c.post(
-            f"/tickets/{t['id']}/workspace/files", files={"file": ("big.txt", b"x" * 11)}
+            f"/tickets/{t['id']}/workspace/files",
+            files={"file": ("big.txt", b"x" * 11)},
         )
         assert r.status_code == 400
 
@@ -175,7 +190,9 @@ async def test_root_path_validation(client, tmp_path):
         for bad in ("", "   ", "/", "~"):
             r = await c.patch("/workspace/settings", json={"root_path": bad})
             assert r.status_code == 400, bad
-        r = await c.patch("/workspace/settings", json={"root_path": str(tmp_path / "ok")})
+        r = await c.patch(
+            "/workspace/settings", json={"root_path": str(tmp_path / "ok")}
+        )
         assert r.status_code == 200
 
 
@@ -187,9 +204,13 @@ async def test_retention_semantics(client, tmp_path):
         await c.patch(f"/tickets/{tid}/workspace/retention", json={"retention_days": 0})
         ws = (await c.get(f"/tickets/{tid}/workspace")).json()
         assert ws["retention_days"] == 0 and ws["retention_override"] == 0
-        r = await c.patch(f"/tickets/{tid}/workspace/retention", json={"retention_days": -3})
+        r = await c.patch(
+            f"/tickets/{tid}/workspace/retention", json={"retention_days": -3}
+        )
         assert r.status_code == 400
-        await c.patch(f"/tickets/{tid}/workspace/retention", json={"retention_days": None})
+        await c.patch(
+            f"/tickets/{tid}/workspace/retention", json={"retention_days": None}
+        )
         assert (await c.get(f"/tickets/{tid}/workspace")).json()["retention_days"] == 30
 
 
@@ -201,14 +222,20 @@ def _age(path, days):
 
 async def test_sweep_only_deletes_closed_expired_non_forever(client, tmp_path):
     async with client as c:
-        p = (await c.post("/projects", json={"name": "S", "prefix": "SW", "color": "#123456"})).json()
+        p = (
+            await c.post(
+                "/projects", json={"name": "S", "prefix": "SW", "color": "#123456"}
+            )
+        ).json()
         await c.patch(
             "/workspace/settings",
             json={"root_path": str(tmp_path), "default_retention_days": 7},
         )
         ids = {}
         for key in ("old_done", "old_open", "fresh_done", "forever_done", "old_wontdo"):
-            t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": key})).json()
+            t = (
+                await c.post(f"/projects/{p['id']}/tickets", json={"title": key})
+            ).json()
             ids[key] = t["id"]
             await c.post(f"/tickets/{t['id']}/workspace/init")
             (tmp_path / t["id"] / "f.txt").write_text(key)
@@ -216,18 +243,30 @@ async def test_sweep_only_deletes_closed_expired_non_forever(client, tmp_path):
             _age(tmp_path / ids[key], 30)
         for key in ("old_done", "fresh_done", "forever_done"):
             await c.patch(f"/tickets/{ids[key]}", json={"status": "done"})
-        await c.patch(f"/tickets/{ids['old_wontdo']}", json={"status": "wont_do", "wont_do_reason": "x"})
-        await c.patch(f"/tickets/{ids['forever_done']}/workspace/retention", json={"retention_days": 0})
+        await c.patch(
+            f"/tickets/{ids['old_wontdo']}",
+            json={"status": "wont_do", "wont_do_reason": "x"},
+        )
+        await c.patch(
+            f"/tickets/{ids['forever_done']}/workspace/retention",
+            json={"retention_days": 0},
+        )
         # ticket in the root that is not a ticket folder must never be touched
         (tmp_path / "keepme").mkdir()
         _age(tmp_path / "keepme", 90)
 
         dry = (await c.post("/workspace/sweep", json={"dry_run": True})).json()
-        assert {r["ticket_id"] for r in dry["removed"]} == {ids["old_done"], ids["old_wontdo"]}
+        assert {r["ticket_id"] for r in dry["removed"]} == {
+            ids["old_done"],
+            ids["old_wontdo"],
+        }
         assert (tmp_path / ids["old_done"]).exists()  # dry run deletes nothing
 
         real = (await c.post("/workspace/sweep", json={})).json()
-        assert {r["ticket_id"] for r in real["removed"]} == {ids["old_done"], ids["old_wontdo"]}
+        assert {r["ticket_id"] for r in real["removed"]} == {
+            ids["old_done"],
+            ids["old_wontdo"],
+        }
         assert not (tmp_path / ids["old_done"]).exists()
         assert not (tmp_path / ids["old_wontdo"]).exists()
         for keep in ("old_open", "fresh_done", "forever_done"):
@@ -246,17 +285,19 @@ async def test_expiry_reported_and_activity_resets_clock(client, tmp_path):
 
 
 async def test_mcp_tool_returns_path_and_creates_folder(tmp_path):
-    async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         t = await _setup(c, tmp_path)
-    info = await mcp_tools.get_ticket_workspace_path(t["id"])
+    info = await ops.get_ticket_workspace_path(t["id"])
     assert info == {"enabled": True, "path": str(tmp_path / t["id"]), "exists": True}
     assert (tmp_path / t["id"]).is_dir()
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.get_ticket_workspace_path("NOPE-1")
-    full = await mcp_tools.get_ticket(t["id"])
+        await ops.get_ticket_workspace_path("NOPE-1")
+    full = await ops.get_ticket(t["id"])
     assert full["workspace_path"] == str(tmp_path / t["id"])
     with pytest.raises(ValueError, match="not found"):
-        await mcp_tools.get_ticket_workspace_path("../etc")
+        await ops.get_ticket_workspace_path("../etc")
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="uses a fake xdg-open")

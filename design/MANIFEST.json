@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1791083427-1a86",
-  "exported": "2026-10-04",
+  "canvas_version": "1793277091-b441",
+  "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -35,11 +35,51 @@
       "w": 680,
       "h": 620
     },
+    "AiBoardAssistant.dc.html": {
+      "bytes": 274378,
+      "sha256": "5ca27b0a187cbe7e4ee41f6d4746dfe3d7e416bcb3e897415e2d3cbb7cb33114",
+      "title": "Board AI — assistant & suggestions",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7960
+    },
+    "AiMembers.dc.html": {
+      "bytes": 219755,
+      "sha256": "d3513e3f2747d8445b9576b773cff2cdcddfbf2f61bb33ec8e4e7facd3935402",
+      "title": "AI members — list & register",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7980
+    },
+    "AiProviderConfig.dc.html": {
+      "bytes": 238168,
+      "sha256": "01dd233efcacc5d16c7494f6504ba9673eceeedbcc0025b8a6f8926f6cf8259b",
+      "title": "AI provider configuration",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7975
+    },
+    "AiSafetyCost.dc.html": {
+      "bytes": 336509,
+      "sha256": "fdbaa589d309b09f3f9d52d2c944eacb66c597e314a5896a94c4d9701198cebd",
+      "title": "AI safety & cost",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7910
+    },
+    "AiTicketWork.dc.html": {
+      "bytes": 280284,
+      "sha256": "7d369b668acab1a840d34c3bfb7bc5801e1ba7852504da05a9de0704a9cf0330",
+      "title": "AI work on tickets",
+      "page": "components",
+      "w": 1380,
+      "h": 7970
+    },
     "AppLoading.dc.html": {
       "bytes": 94480,
       "sha256": "b233f3fd6e06e513aa04e14015d7af2169a5a0c347a87e0a9d0bb0e687539132",
       "title": "App loading (web)",
-      "page": "screens",
+      "page": "screens_startup",
       "w": 1560,
       "h": 3026
     },
@@ -83,6 +123,54 @@
       "w": 900,
       "h": 2820
     },
+    "DocsActions.dc.html": {
+      "bytes": 242702,
+      "sha256": "e5f6258efa0be3fa9fb954af2f9faec02d31fcdd95e67056368c23473dfebce9",
+      "title": "Docs — page actions & history",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 7913
+    },
+    "DocsEditor.dc.html": {
+      "bytes": 154235,
+      "sha256": "832567c0b564d2a619acca0ccd1e0221f1e0a5e3e4561bb6aba520e220672552",
+      "title": "Docs — editor",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 6851
+    },
+    "DocsEmpty.dc.html": {
+      "bytes": 280983,
+      "sha256": "1d3461d86cebeddea3e376ade36368bf697e02cc19c4e98a884ab818633ec13a",
+      "title": "Docs — empty, loading & errors",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 6820
+    },
+    "DocsPage.dc.html": {
+      "bytes": 217805,
+      "sha256": "588ff4efe352e5a99015213d5c7141606fa0c56247f07571ecfa3d11988ce72f",
+      "title": "Docs — page view",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 3947
+    },
+    "DocsRefs.dc.html": {
+      "bytes": 134692,
+      "sha256": "4e397a89b0f0ef14efcf7646cf61e5e00a1b9eec6e284c4bdf2c3a6c01857d5f",
+      "title": "Docs — references",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 6123
+    },
+    "DocsSearch.dc.html": {
+      "bytes": 304967,
+      "sha256": "031580304a2f367424c12e297400977de81c1c7b3d80a208ec04cbf6c7098508",
+      "title": "Docs — search",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 7118
+    },
     "DragDrop.dc.html": {
       "bytes": 12022,
       "sha256": "73bd0e40ed345173bf2fffcfe800294bd46e975ade63571057cb4c6460c98392",
@@ -103,7 +191,7 @@
       "bytes": 28132,
       "sha256": "279f9b89e4a461aec15a0afdf8664711f94b2ccd9cff91960ec8b39417c4b7a7",
       "title": "List View",
-      "page": "screens",
+      "page": "screens_board",
       "w": 1220,
       "h": 2260
     },
@@ -119,7 +207,7 @@
       "bytes": 42068,
       "sha256": "6d6153a58d884bb9e14e56716674d1871e3fce2e20f6de14b0b2b0fc4f5f759a",
       "title": "Login",
-      "page": "screens",
+      "page": "screens_account",
       "w": 1440,
       "h": 3000
     },
@@ -135,7 +223,7 @@
       "bytes": 59681,
       "sha256": "c9cfebf2497dd15ff4d691c68f3fc1fdc9737424dc41902e89cf493acc1c73ec",
       "title": "Main Board",
-      "page": "screens",
+      "page": "screens_board",
       "w": 1880,
       "h": 3800
     },
@@ -143,7 +231,7 @@
       "bytes": 13462,
       "sha256": "d1e672e5aa19f54ef5291bacf04604368ae2f57fdd11fcdec1ec08013470c034",
       "title": "Members",
-      "page": "screens",
+      "page": "screens_account",
       "w": 1220,
       "h": 1660
     },
@@ -159,7 +247,7 @@
       "bytes": 24170,
       "sha256": "3a2473e7fa4957839a9be1483a55dcdc7b15ea054687f0cecacda36cc864a0b4",
       "title": "Forgot / Reset Password",
-      "page": "screens",
+      "page": "screens_account",
       "w": 1440,
       "h": 2160
     },
@@ -171,19 +259,19 @@
       "w": 1080,
       "h": 1220
     },
-    "SettingsView.dc.html": {
-      "bytes": 14361,
-      "sha256": "25e88488360baf42b79bdcfc2497857105124ad6a5da03f36e78ed9b496f89e4",
-      "title": "Settings",
-      "page": "screens",
-      "w": 1220,
-      "h": 2020
+    "SettingsMcp.dc.html": {
+      "bytes": 107403,
+      "sha256": "65617a16f2555b732ac0c2d4678839cd844ff9d40524b4acaa71b8dd7de6deb5",
+      "title": "Settings — MCP integrations",
+      "page": "screens_account",
+      "w": 1362,
+      "h": 6477
     },
     "SignUp.dc.html": {
       "bytes": 47719,
       "sha256": "7dcf4cf7b3504eadbe5f63422a6461096c32c9d62a3827fa188fe90ae132dc61",
       "title": "Sign Up",
-      "page": "screens",
+      "page": "screens_account",
       "w": 1440,
       "h": 3700
     },
@@ -191,7 +279,7 @@
       "bytes": 34402,
       "sha256": "c3d02b283ff835b11f52557b82d476fe89c39185b9d6d5efd7bd1d5774d61904",
       "title": "Splash (web)",
-      "page": "screens",
+      "page": "screens_startup",
       "w": 1560,
       "h": 3800
     },
@@ -199,7 +287,7 @@
       "bytes": 16061,
       "sha256": "987a577ef4a1d6d86555975b51c9bbd18f196dc932f961f093535c6920fc4474",
       "title": "Splash — Cards animation (live)",
-      "page": "screens",
+      "page": "screens_startup",
       "w": 1560,
       "h": 1280
     },
@@ -235,6 +323,14 @@
       "w": 2232,
       "h": 488
     },
+    "TicketComments.dc.html": {
+      "bytes": 178967,
+      "sha256": "e05ef4814877095b9db08d3a86981587aa627fd362f228fefc3efcec668e8e3b",
+      "title": "Comments",
+      "page": "components",
+      "w": 1180,
+      "h": 7877
+    },
     "TicketDetail.dc.html": {
       "bytes": 27978,
       "sha256": "b5c85d28007021ded54b71b651812b54fd6c1ae9a48e8821790c79aad1dce328",
@@ -251,11 +347,35 @@
       "w": 1150,
       "h": 2140
     },
+    "TicketDocRefs.dc.html": {
+      "bytes": 256160,
+      "sha256": "8d071abfc35e326e3cf478cdb26080beb013fbe42a63b8ce14e85210c0f4026e",
+      "title": "Doc references in tickets",
+      "page": "components",
+      "w": 1480,
+      "h": 7972
+    },
+    "TicketPending.dc.html": {
+      "bytes": 231739,
+      "sha256": "cb86f6a4af91b624b11ca30357241e5b873372bc120421904317cbde0760b863",
+      "title": "Pending ticket",
+      "page": "components",
+      "w": 1280,
+      "h": 7993
+    },
+    "TicketReopen.dc.html": {
+      "bytes": 215955,
+      "sha256": "5c5d6d5119493e22c4fbb223c279b1c4d1c998ee0b9d63f4c1a6772b23766aac",
+      "title": "Reopen ticket",
+      "page": "components",
+      "w": 1280,
+      "h": 7860
+    },
     "TimelineView.dc.html": {
       "bytes": 26316,
       "sha256": "fa00865ec4ed6ed1a9e8968b9c7d45d53e12501477b96306913f6a5e287ec943",
       "title": "Timeline View",
-      "page": "screens",
+      "page": "screens_board",
       "w": 1220,
       "h": 2740
     },
@@ -274,6 +394,62 @@
       "page": "components",
       "w": 1180,
       "h": 2760
+    },
+    "DocsComments.dc.html": {
+      "bytes": 91862,
+      "sha256": "c5f2b69b986f694128d6fd774512e4033b1607885b9f76dfe06b17e6bb49a1ed",
+      "title": "Docs — comments",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 5100
+    },
+    "Diagrams.dc.html": {
+      "bytes": 85259,
+      "sha256": "66a3c664e48c8fabea8e72a773fef99ffab5ed28ede1d9ae438b4ebdf9d286bf",
+      "title": "Diagrams — draw.io",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 4380
+    },
+    "AiSchedules.dc.html": {
+      "bytes": 122027,
+      "sha256": "30ff6c869fc892606e26321afe8c5c2efd684a5a1403ae400f3d535f1a4cefb2",
+      "title": "AI — schedules",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 6640
+    },
+    "PreviewViewer.dc.html": {
+      "bytes": 79228,
+      "sha256": "ef2a2c3afe3d9fab8ba7c252906b810bbb338c89fcfafeaf62f6ce06ee2ad568",
+      "title": "Preview — open & viewer",
+      "page": "screens_startup",
+      "w": 1480,
+      "h": 5010
+    },
+    "PreviewTypes.dc.html": {
+      "bytes": 142226,
+      "sha256": "ad4557db7e29544506ce0dd57f9a596a99b6fe1ebd6a6f93a2effe6a0ca7c709",
+      "title": "Preview — file types & states",
+      "page": "screens_startup",
+      "w": 1480,
+      "h": 8630
+    },
+    "SettingsNav.dc.html": {
+      "bytes": 60207,
+      "sha256": "c9e13b688590060debe423521f04370231e26fa69dede263c76994af418356e1",
+      "title": "Settings — structure & navigation",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 3420
+    },
+    "SettingsPages.dc.html": {
+      "bytes": 54741,
+      "sha256": "6396cd03daef727acd0c385c297e16a3caf55a2e228e54656af349b6c4ba6911",
+      "title": "Settings — pages & states",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 4330
     }
   }
 }

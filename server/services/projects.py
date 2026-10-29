@@ -10,15 +10,28 @@ from services.members import create_member as _create_member
 
 
 async def list_projects(session: AsyncSession) -> list[Project]:
+    """Return all projects."""
     result = await session.exec(select(Project))
     return list(result.all())
 
 
 async def get_project(session: AsyncSession, project_id: str) -> Project | None:
+    """Return a project by id, or None."""
     return await session.get(Project, project_id)
 
 
 async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
+    """Create a project.
+
+    Args:
+        data: Name, prefix and color; the prefix must be uppercase, at most 6 characters.
+
+    Returns:
+        The created project.
+
+    Raises:
+        ValueError: If the prefix is invalid or already used.
+    """
     prefix = data.prefix.strip()
     if not prefix.isupper() or len(prefix) > 6:
         raise ValueError("prefix must be uppercase and at most 6 characters")
@@ -45,6 +58,15 @@ async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
 async def update_project(
     session: AsyncSession, project_id: str, data: ProjectUpdate
 ) -> Project | None:
+    """Apply a partial update.
+
+    Args:
+        project_id: Project to update.
+        data: Fields to change; an empty `repo_path` unlinks the repository.
+
+    Returns:
+        The updated project, or None if it does not exist.
+    """
     project = await session.get(Project, project_id)
     if project is None:
         return None
@@ -55,7 +77,11 @@ async def update_project(
         # Empty string unlinks the repository; anything else must be a real git repo.
         update_data["repo_path"] = normalize_repo_path(raw_path) if raw_path else None
     if "worktree_template" in update_data:
-        raw_tmpl = update_data["worktree_template"].strip() if update_data["worktree_template"] else ""
+        raw_tmpl = (
+            update_data["worktree_template"].strip()
+            if update_data["worktree_template"]
+            else ""
+        )
         update_data["worktree_template"] = raw_tmpl if raw_tmpl else None
     for field, value in update_data.items():
         setattr(project, field, value)
@@ -67,6 +93,17 @@ async def update_project(
 
 
 async def delete_project(session: AsyncSession, project_id: str) -> bool:
+    """Delete a project.
+
+    Args:
+        project_id: Project to delete.
+
+    Returns:
+        True if deleted, False if it does not exist.
+
+    Raises:
+        ValueError: If the project still has tickets.
+    """
     project = await session.get(Project, project_id)
     if project is None:
         return False

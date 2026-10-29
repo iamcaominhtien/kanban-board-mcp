@@ -3,25 +3,35 @@ import styles from './Toast.module.css';
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastItem {
   id: string;
   variant: ToastVariant;
   title: string;
   message?: string;
   duration?: number;
+  /** Optional button on the toast (e.g. Undo). */
+  action?: ToastAction;
+  /** Optional second button (e.g. Review and Deny). */
+  secondaryAction?: ToastAction;
 }
 
 interface ToastContextValue {
   showToast: (props: Omit<ToastItem, 'id'>) => string;
   removeToast: (id: string) => void;
-  success: (title: string, message?: string, duration?: number) => string;
-  error: (title: string, message?: string, duration?: number) => string;
-  warning: (title: string, message?: string, duration?: number) => string;
-  info: (title: string, message?: string, duration?: number) => string;
+  success: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
+  error: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
+  warning: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
+  info: (title: string, message?: string, duration?: number, action?: ToastAction) => string;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+/** Context provider that renders toasts. */
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -30,9 +40,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    ({ variant, title, message, duration = 4000 }: Omit<ToastItem, 'id'>) => {
+    ({ variant, title, message, duration, action, secondaryAction }: Omit<ToastItem, 'id'>) => {
+      // a toast with an action button stays a little longer so it can be used
+      if (duration === undefined) duration = action ? 8000 : 4000;
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      setToasts((prev) => [...prev, { id, variant, title, message, duration }]);
+      setToasts((prev) => [...prev, { id, variant, title, message, duration, action, secondaryAction }]);
 
       if (duration > 0) {
         setTimeout(() => {
@@ -41,31 +53,31 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return id;
     },
-    [removeToast]
+    [removeToast],
   );
 
   const success = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'success', title, message, duration }),
-    [showToast]
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'success', title, message, duration, action }),
+    [showToast],
   );
 
   const error = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'error', title, message, duration }),
-    [showToast]
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'error', title, message, duration, action }),
+    [showToast],
   );
 
   const warning = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'warning', title, message, duration }),
-    [showToast]
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'warning', title, message, duration, action }),
+    [showToast],
   );
 
   const info = useCallback(
-    (title: string, message?: string, duration?: number) =>
-      showToast({ variant: 'info', title, message, duration }),
-    [showToast]
+    (title: string, message?: string, duration?: number, action?: ToastAction) =>
+      showToast({ variant: 'info', title, message, duration, action }),
+    [showToast],
   );
 
   const getVariantIcon = (variant: ToastVariant) => {
@@ -100,13 +112,35 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       <div className={styles.toastContainer} aria-live="polite">
         {toasts.map((toast) => (
           <div key={toast.id} className={styles.toast} role="alert">
-            <div className={`${styles.icon} ${getIconClass(toast.variant)}`}>
-              {getVariantIcon(toast.variant)}
-            </div>
+            <div className={`${styles.icon} ${getIconClass(toast.variant)}`}>{getVariantIcon(toast.variant)}</div>
             <div className={styles.content}>
               <div className={styles.title}>{toast.title}</div>
               {toast.message && <div className={styles.message}>{toast.message}</div>}
             </div>
+            {toast.action && (
+              <button
+                type="button"
+                className={styles.actionButton}
+                onClick={() => {
+                  toast.action?.onClick();
+                  removeToast(toast.id);
+                }}
+              >
+                {toast.action.label}
+              </button>
+            )}
+            {toast.secondaryAction && (
+              <button
+                type="button"
+                className={styles.actionButton}
+                onClick={() => {
+                  toast.secondaryAction?.onClick();
+                  removeToast(toast.id);
+                }}
+              >
+                {toast.secondaryAction.label}
+              </button>
+            )}
             <button
               type="button"
               className={styles.closeButton}
@@ -122,6 +156,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
+/**
+ * Access the toast API; must be used inside `ToastProvider`.
+ * @throws Error when used outside `ToastProvider`.
+ */
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) {
@@ -136,11 +174,8 @@ export interface InlineBannerProps {
   className?: string;
 }
 
-export const InlineBanner: React.FC<InlineBannerProps> = ({
-  message,
-  icon = '✓',
-  className,
-}) => {
+/** Inline confirmation banner. */
+export const InlineBanner: React.FC<InlineBannerProps> = ({ message, icon = '✓', className }) => {
   return (
     <div className={`${styles.inlineBanner} ${className ?? ''}`}>
       <span className={styles.bannerIcon}>{icon}</span>

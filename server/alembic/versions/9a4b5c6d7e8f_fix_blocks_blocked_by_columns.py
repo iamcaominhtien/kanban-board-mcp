@@ -5,6 +5,7 @@ Revises: 8f3a9c2d1e4b
 Create Date: 2026-04-11
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -23,9 +24,15 @@ def upgrade() -> None:
 
     with op.batch_alter_table("ticket") as batch_op:
         if "blocks" not in existing:
-            batch_op.add_column(sa.Column("blocks", sa.String(), nullable=False, server_default="[]"))
+            batch_op.add_column(
+                sa.Column("blocks", sa.String(), nullable=False, server_default="[]")
+            )
         if "blocked_by" not in existing:
-            batch_op.add_column(sa.Column("blocked_by", sa.String(), nullable=False, server_default="[]"))
+            batch_op.add_column(
+                sa.Column(
+                    "blocked_by", sa.String(), nullable=False, server_default="[]"
+                )
+            )
 
 
 def downgrade() -> None:

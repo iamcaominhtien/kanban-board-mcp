@@ -4,6 +4,7 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
   size?: number;
 }
 
+/** Due-date icon. */
 export function DueDateIcon({ size = 14, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -28,6 +29,7 @@ export function DueDateIcon({ size = 14, className, style, ...props }: IconProps
   );
 }
 
+/** Overdue icon. */
 export function OverdueIcon({ size = 14, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -52,6 +54,7 @@ export function OverdueIcon({ size = 14, className, style, ...props }: IconProps
   );
 }
 
+/** Blocked icon. */
 export function BlockedIcon({ size = 14, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -70,6 +73,7 @@ export function BlockedIcon({ size = 14, className, style, ...props }: IconProps
   );
 }
 
+/** Drag-handle grip icon. */
 export function DragHandleIcon({
   size = 14,
   fill = '#9AA8A0',

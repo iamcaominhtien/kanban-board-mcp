@@ -1,4 +1,22 @@
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+function resolveConfiguredUploadsDir(userDataPath, configPath = null) {
+  if (configPath) {
+    try {
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config && config.data_folder) {
+          return path.join(config.data_folder, 'uploads');
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return path.join(userDataPath, 'uploads');
+}
 
 /**
  * StartupProfiler — records timestamps for key startup stages.
@@ -36,14 +54,21 @@ function buildBackendLaunchSpec({
   userDataPath,
   desktopDir,
   baseEnv,
+  exportCommand,
   devPythonExists,
+  configPath,
 }) {
   const dbPath = path.join(userDataPath, 'kanban.db');
-  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath };
+  const uploadsDir = resolveConfiguredUploadsDir(userDataPath, configPath);
+  // API keys are encrypted with a key the server keeps in the OS keychain (server/services/ai/secrets.py)
+  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir, KANBAN_SECRET_STORE: 'keychain' };
+  // lets the server ask this app (headless) to draw a diagram's SVG with the draw.io editor
+  if (exportCommand) env.KANBAN_EXPORT_CMD = JSON.stringify(exportCommand);
   const stdio = ['ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
-    const binaryPath = path.join(resourcesPath, `kanban-server${getBinaryExtension(platform)}`);
+    // onedir layout: Resources/kanban-server/kanban-server[.exe] (no per-launch temp extraction)
+    const binaryPath = path.join(resourcesPath, 'kanban-server', `kanban-server${getBinaryExtension(platform)}`);
     return {
       command: binaryPath,
       args: [],
@@ -76,6 +101,14 @@ function buildBackendLaunchSpec({
   };
 }
 
+/**
+ * The command the server runs (plus `--export-svg ...`) to draw a diagram with the editor: this app's own executable,
+ * or, in development, Electron pointed at the desktop folder.
+ */
+function buildExportCommand({ isPackaged, execPath, desktopDir }) {
+  return isPackaged ? [execPath] : [execPath, desktopDir];
+}
+
 function parseReadyPort(output) {
   // Split on newlines so we match individual log lines, not the full accumulated buffer.
   for (const line of output.split('\n')) {
@@ -85,10 +118,26 @@ function parseReadyPort(output) {
   return null;
 }
 
-function getMcpStdioBinaryPath({ isPackaged, platform, resourcesPath, desktopDir }) {
+// Pre-onedir installs shipped a single `kanban-mcp-stdio` file in Resources; that
+// path is now a directory, so configs written by older versions must be migrated.
+function getLegacyMcpStdioBinaryPath({ platform, resourcesPath }) {
+  return path.join(resourcesPath, `kanban-mcp-stdio${getBinaryExtension(platform)}`);
+}
+
+function getMcpStdioBinaryPath({
+  isPackaged,
+  platform,
+  resourcesPath,
+  desktopDir,
+  existsSync = fs.existsSync,
+}) {
   const ext = getBinaryExtension(platform);
   if (isPackaged) {
-    return path.join(resourcesPath, `kanban-mcp-stdio${ext}`);
+    const onedirBinary = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-mcp-stdio${ext}`);
+    if (existsSync(onedirBinary)) {
+      return onedirBinary;
+    }
+    return getLegacyMcpStdioBinaryPath({ platform, resourcesPath });
   }
 
   return path.join(desktopDir, '..', 'server', 'mcp_stdio.py');
@@ -114,9 +163,12 @@ function terminateBackendProcess(processRef) {
 module.exports = {
   StartupProfiler,
   buildBackendLaunchSpec,
+  buildExportCommand,
   getBinaryExtension,
+  getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   parseReadyPort,
+  resolveConfiguredUploadsDir,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
   terminateBackendProcess,

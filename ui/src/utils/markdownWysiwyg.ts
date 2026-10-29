@@ -3,20 +3,100 @@
  * Strictly mirrors the styling and formatting from DescriptionMarkdown.dc.html.
  */
 
+import { keyChipHtml, keyPattern, refChipHtml } from './docRefTokens';
 import { resolveOrigin } from '../api/resolveOrigin';
+import { DIAGRAM_LINE } from '../components/diagrams/diagramRefs';
 
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * The editor's stand-in for a diagram line: a non-editable block with the picture, an Edit button and the name.
+ * `htmlToMarkdown` turns it back into `[label](diagram:id)`.
+ * @param id - Diagram id.
+ * @param label - Diagram label.
+ * @param version - Version to show; adds a cache key to the picture address.
+ */
+export function diagramBlockHtml(id: string, label: string, version?: number): string {
+  const name = escapeHtml(label || 'Diagram');
+  const safeId = escapeHtml(encodeURIComponent(id));
+  const src = escapeHtml(
+    `${resolveOrigin()}/diagrams/${encodeURIComponent(id)}/svg${version ? `?version=${Number(version)}` : ''}`,
+  );
+  return (
+    `<div data-diagram="${safeId}" data-label="${name}" contenteditable="false" ` +
+    `style="margin:10px 0;border:1px solid #E3E8E5;border-radius:12px;background:#fff;overflow:hidden;user-select:none;max-width:100%">` +
+    `<div style="display:flex;justify-content:center;padding:12px"><img data-diagram-img src="${src}" alt="${name}" ` +
+    `style="max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in" /></div>` +
+    `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid #EEF2EF;background:#FAFCFA;font-size:13px;color:#5B6B60">` +
+    `<span style="padding:1px 8px;border-radius:6px;background:#E3F2E7;color:#2E6F40;font-weight:600;font-size:12px">draw.io</span>` +
+    `<b data-diagram-name style="color:#1E2A22">${name}</b><span style="flex:1"></span>` +
+    `<button type="button" data-diagram-edit style="border:1px solid #DCE6DF;border-radius:7px;background:#fff;padding:3px 10px;font:600 12px inherit;cursor:pointer">Edit</button>` +
+    `</div></div>`
+  );
+}
+
+const BLOCK_STYLE =
+  'margin:10px 0;border:1px solid #E3E8E5;border-radius:12px;background:#fff;overflow:hidden;user-select:none;max-width:100%';
+
+/**
+ * The same block as `diagramBlockHtml`, built with DOM calls so the label is only ever set as text or an attribute value.
+ * @param id - Diagram id.
+ * @param label - Diagram label.
+ */
+export function diagramBlockElement(id: string, label: string): HTMLElement {
+  const name = label || 'Diagram';
+  const el = (tag: string, style?: string) => {
+    const e = document.createElement(tag);
+    if (style) e.setAttribute('style', style);
+    return e;
+  };
+  const block = el('div', BLOCK_STYLE);
+  block.setAttribute('data-diagram', id);
+  block.setAttribute('data-label', name);
+  block.setAttribute('contenteditable', 'false');
+  const stage = el('div', 'display:flex;justify-content:center;padding:12px');
+  const img = el('img', 'max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in') as HTMLImageElement;
+  img.setAttribute('data-diagram-img', '');
+  img.src = `${resolveOrigin()}/diagrams/${encodeURIComponent(id)}/svg`;
+  img.alt = name;
+  stage.appendChild(img);
+  const foot = el(
+    'div',
+    'display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid #EEF2EF;background:#FAFCFA;font-size:13px;color:#5B6B60',
+  );
+  const chip = el(
+    'span',
+    'padding:1px 8px;border-radius:6px;background:#E3F2E7;color:#2E6F40;font-weight:600;font-size:12px',
+  );
+  chip.textContent = 'draw.io';
+  const title = el('b', 'color:#1E2A22');
+  title.setAttribute('data-diagram-name', '');
+  title.textContent = name;
+  const grow = el('span', 'flex:1');
+  const edit = el(
+    'button',
+    'border:1px solid #DCE6DF;border-radius:7px;background:#fff;padding:3px 10px;font:600 12px inherit;cursor:pointer',
+  );
+  edit.setAttribute('type', 'button');
+  edit.setAttribute('data-diagram-edit', '');
+  edit.textContent = 'Edit';
+  foot.append(chip, title, grow, edit);
+  block.append(stage, foot);
+  return block;
 }
 
 /** Allow only http(s), mailto, root-relative and plain relative URLs. */
 export function isSafeUrl(url: string): boolean {
   const trimmed = url.trim();
   if (/^(https?:|mailto:)/i.test(trimmed)) return true;
+  // eslint-disable-next-line no-control-regex -- strip control characters before checking the scheme
   return !/^[a-z][a-z0-9+.-]*:/i.test(trimmed.replace(/[\u0000-\u0020]/g, ''));
 }
 
@@ -24,15 +104,68 @@ function formatInlineMarkdown(text: string): string {
   // Strip any old uploading:... placeholder
   text = text.replace(/!\[Uploading [^\]]*\]\(uploading:[^)]+\)/g, '');
 
+  // Normalize /api/uploads/ to /uploads/
+  text = text.replace(/\/api\/uploads\//g, '/uploads/');
+
+  // Convert Pandoc/Kramdown/Obsidian style image attributes: ![alt](url){width=...} -> ![alt|width](url)
+  text = text.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)\{(?:width=)?(\d+(?:%|px)?)[^}]*\}/gi,
+    (_match, alt, url, width) => `![${alt ? `${alt}|${width}` : width}](${url})`,
+  );
+
   // Escape raw HTML first so user text can never inject markup
   text = escapeHtml(text);
 
-  // Images: ![alt](url)
-  let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
+  // Docs references [[Page#Section|label]] become non-editable chips (swapped back in at the end)
+  const refChips: string[] = [];
+  text = text.replace(/\[\[([^\]|#]+?)(?:#([^\]|]+?))?(?:\|([^\]]+?))?\]\]/g, (m) => {
+    refChips.push(refChipHtml(m.slice(2, -2)));
+    return `\u0000${refChips.length - 1}\u0000`;
+  });
+  // Ticket keys (KAN-12) outside inline code become pills too
+  const keyRe = keyPattern();
+  if (keyRe) {
+    text = text
+      .split(/(```[\s\S]*?```|`[^`\n]*`)/)
+      .map((seg, i) =>
+        i % 2 === 1
+          ? seg
+          : seg.replace(keyRe, (key) => {
+              refChips.push(keyChipHtml(key));
+              return `\u0000${refChips.length - 1}\u0000`;
+            }),
+      )
+      .join('');
+  }
+
+  // Images: ![alt](url) or ![alt|width](url)
+  let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, rawAlt, url) => {
     if (url.startsWith('uploading:')) return '';
     if (!isSafeUrl(url)) return '';
     const src = url.startsWith('/uploads/') ? `${resolveOrigin()}${url}` : url;
-    return `<img src="${src}" alt="${alt}" />`;
+
+    let alt = rawAlt;
+    let widthAttr = '';
+    let widthStyle = '';
+
+    const sizeMatch = rawAlt.match(/^(.*?)\s*\|\s*(?:width=)?(\d+(?:%|px)?)(?:x(\d+(?:%|px)?))?$/i);
+    const numOnlyMatch = !sizeMatch ? rawAlt.match(/^(\d+(?:%|px)?)$/) : null;
+
+    if (sizeMatch) {
+      alt = sizeMatch[1].trim();
+      const w = sizeMatch[2];
+      const parsedW = /^\d+$/.test(w) ? `${w}px` : w;
+      widthAttr = `width="${w.replace(/px$/, '')}"`;
+      widthStyle = `style="width: ${parsedW}; max-width: 100%; height: auto;"`;
+    } else if (numOnlyMatch) {
+      alt = '';
+      const w = numOnlyMatch[1];
+      const parsedW = /^\d+$/.test(w) ? `${w}px` : w;
+      widthAttr = `width="${w.replace(/px$/, '')}"`;
+      widthStyle = `style="width: ${parsedW}; max-width: 100%; height: auto;"`;
+    }
+
+    return `<img src="${src}" alt="${alt}" ${widthAttr} ${widthStyle} />`;
   });
 
   // Links: [text](url)
@@ -56,9 +189,20 @@ function formatInlineMarkdown(text: string): string {
   // Mark / Highlight: <mark>text</mark> or ==text==
   out = out.replace(/==([^=]+)==/g, '<mark>$1</mark>');
 
-  return out;
+  // eslint-disable-next-line no-control-regex -- NUL is the placeholder delimiter
+  return out.replace(/\u0000(\d+)\u0000/g, (_m, i) => refChips[Number(i)]);
 }
 
+const CALLOUT_RE = /^\[!(NOTE|INFO|TIP|WARNING|DANGER|IMPORTANT|CAUTION)\]\s*(.*)$/i;
+
+/** Callout kinds the editor offers; GitHub's IMPORTANT/CAUTION alerts map onto them. */
+function calloutKind(raw: string): 'info' | 'warning' | 'danger' | 'tip' {
+  const k = raw.toLowerCase();
+  if (k === 'warning' || k === 'caution') return 'warning';
+  if (k === 'danger') return 'danger';
+  if (k === 'tip') return 'tip';
+  return 'info';
+}
 
 interface ListItem {
   indent: number;
@@ -145,7 +289,7 @@ function renderListLevel(items: ListItem[], state: { i: number }, indent: number
   return `${out}</${tag}>`;
 }
 
-
+/** Convert Markdown to HTML for the contentEditable editor. */
 export function markdownToHtml(md: string): string {
   if (!md || !md.trim()) return '<p><br></p>';
 
@@ -176,7 +320,12 @@ export function markdownToHtml(md: string): string {
       } else {
         inCodeBlock = true;
         codeBlockContent = [];
-        codeLang = line.trimStart().slice(3).trim().split(/\s+/)[0].replace(/[^\w+#.-]/g, '');
+        codeLang = line
+          .trimStart()
+          .slice(3)
+          .trim()
+          .split(/\s+/)[0]
+          .replace(/[^\w+#.-]/g, '');
       }
       continue;
     }
@@ -212,6 +361,13 @@ export function markdownToHtml(md: string): string {
     // Blank line
     if (!line.trim()) continue;
 
+    // A diagram on its own line: [label](diagram:dg_…)
+    const diagramLine = DIAGRAM_LINE.exec(line.trim());
+    if (diagramLine) {
+      htmlParts.push(diagramBlockHtml(diagramLine[2], diagramLine[1]));
+      continue;
+    }
+
     // Horizontal rule
     if (HR_RE.test(line)) {
       htmlParts.push('<hr>');
@@ -245,6 +401,17 @@ export function markdownToHtml(md: string): string {
         }
       }
       if (cur.length) paras.push(cur.join('<br>'));
+      const callout = quoteLines[0].match(CALLOUT_RE);
+      if (callout) {
+        const kind = calloutKind(callout[1]);
+        // the marker is the first line of the first paragraph; keep any text that follows it
+        const first = paras[0]?.replace(/^[^<]*?\[!\w+\]\s*(<br>)?/i, '') ?? '';
+        const bodyParas = [...(first ? [first] : []), ...paras.slice(1)];
+        htmlParts.push(
+          `<blockquote data-callout="${kind}">${(bodyParas.length ? bodyParas : ['']).map((p) => `<p>${p || '<br>'}</p>`).join('')}</blockquote>`,
+        );
+        continue;
+      }
       htmlParts.push(`<blockquote>${paras.map((p) => `<p>${p}</p>`).join('')}</blockquote>`);
       continue;
     }
@@ -298,8 +465,15 @@ export function markdownToHtml(md: string): string {
  * Traverses an HTMLElement and serializes its content into clean, standard Markdown.
  */
 export function htmlToMarkdown(root: HTMLElement): string {
+  // the id is checked against the real id shape, so nothing but dg_xxxxxxxx can come back out of the DOM
+  const diagramLink = (el: HTMLElement, id: string) =>
+    /^dg_[0-9a-f]{8}$/.test(id)
+      ? `[${(el.getAttribute('data-label') || 'Diagram').replace(/[<>"'[\]\n]+/g, ' ')}](diagram:${id})`
+      : '';
+
   function serializeInline(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) {
+      // eslint-disable-next-line no-irregular-whitespace -- non-breaking space is matched on purpose
       return (node.nodeValue || '').replace(/ /g, ' ');
     }
 
@@ -309,6 +483,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
 
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
+    const inlineDiagramId = el.getAttribute('data-diagram');
+    if (inlineDiagramId) return diagramLink(el, inlineDiagramId);
 
     const childrenText = Array.from(el.childNodes).map(serializeInline).join('');
 
@@ -345,10 +521,24 @@ export function htmlToMarkdown(root: HTMLElement): string {
           // ignore
         }
         const alt = el.getAttribute('alt') || '';
+
+        // Extract width if resized
+        let width = el.getAttribute('width') || '';
+        if (!width && el.style.width) {
+          const match = el.style.width.match(/^(\d+(?:px|%)?)/);
+          if (match) width = match[1].replace(/px$/, '');
+        }
+
+        if (width && width !== 'auto') {
+          return `![${alt ? `${alt}|${width}` : width}](${src})`;
+        }
         return `![${alt}](${src})`;
       }
       case 'br':
         return '\n';
+      case 'span':
+        if (el.hasAttribute('data-key')) return el.getAttribute('data-key') ?? '';
+        return el.hasAttribute('data-ref') ? `[[${el.getAttribute('data-ref')}]]` : childrenText;
       case 'input':
         return '';
       default:
@@ -434,6 +624,7 @@ export function htmlToMarkdown(root: HTMLElement): string {
 
   function serializeBlock(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) {
+      // eslint-disable-next-line no-irregular-whitespace -- non-breaking space is matched on purpose
       const text = (node.nodeValue || '').replace(/ /g, ' ').trim();
       return text ? `${text}\n\n` : '';
     }
@@ -445,6 +636,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
     const textAlign = el.style.textAlign;
+    const diagramId = el.getAttribute('data-diagram');
+    if (diagramId) return `${diagramLink(el, diagramId)}\n\n`;
 
     switch (tag) {
       case 'h1':
@@ -467,10 +660,27 @@ export function htmlToMarkdown(root: HTMLElement): string {
         return `${inline}\n\n`;
       }
       case 'blockquote': {
+        const calloutType = el.getAttribute('data-callout');
+        if (calloutType) {
+          const body = (
+            hasBlockChild(el) ? serializeMixed(el) : Array.from(el.childNodes).map(serializeInline).join('')
+          )
+            .trim()
+            .replace(/\n\n+/g, '\n');
+          return (
+            [`> [!${calloutType.toUpperCase()}]`, ...body.split('\n').map((l) => (l ? `> ${l}` : '>'))].join('\n') +
+            '\n\n'
+          );
+        }
         const inner = hasBlockChild(el)
           ? serializeMixed(el).trim().replace(/\n\n+/g, '\n\n')
           : Array.from(el.childNodes).map(serializeInline).join('').trim();
-        return inner.split('\n').map((l) => (l ? `> ${l}` : '>')).join('\n') + '\n\n';
+        return (
+          inner
+            .split('\n')
+            .map((l) => (l ? `> ${l}` : '>'))
+            .join('\n') + '\n\n'
+        );
       }
       case 'pre': {
         const codeEl = el.querySelector('code');

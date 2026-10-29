@@ -21,6 +21,9 @@ export default defineConfig({
       '/settings': 'http://127.0.0.1:8000',
       '/data': 'http://127.0.0.1:8000',
       '/workspace': 'http://localhost:8000',
+      '/diagrams': 'http://localhost:8000',
+      '/docs/': 'http://localhost:8000',
+      '/ai': 'http://localhost:8000',
     },
   },
 })

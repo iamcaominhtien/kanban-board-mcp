@@ -24,8 +24,15 @@ def upgrade() -> None:
         "workspace_settings",
         sa.Column("id", sa.Integer(), nullable=False, primary_key=True),
         sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("root_path", sqlmodel.sql.sqltypes.AutoString(), nullable=False, server_default="~/kanban-workspace"),
-        sa.Column("default_retention_days", sa.Integer(), nullable=True, server_default="14"),
+        sa.Column(
+            "root_path",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=False,
+            server_default="~/kanban-workspace",
+        ),
+        sa.Column(
+            "default_retention_days", sa.Integer(), nullable=True, server_default="14"
+        ),
     )
 
     # Add workspace_retention_days to ticket

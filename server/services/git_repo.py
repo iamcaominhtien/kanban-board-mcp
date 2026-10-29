@@ -17,6 +17,8 @@ class GitRepoError(ValueError):
 
 @dataclass(frozen=True)
 class BranchInfo:
+    """Branch name, head commit and ahead/behind counts."""
+
     name: str
     commit_hash: str
     ahead_count: int
@@ -31,6 +33,17 @@ def normalize_repo_path(path: str) -> str:
 
 
 def open_repo(path: str) -> Repo:
+    """Open a git repository.
+
+    Args:
+        path: Filesystem path of the repository.
+
+    Returns:
+        The opened repository.
+
+    Raises:
+        GitRepoError: If `path` is not a git repository.
+    """
     try:
         return Repo(path)
     except (InvalidGitRepositoryError, NoSuchPathError) as exc:
@@ -49,6 +62,15 @@ def _resolve_ref(repo: Repo, name: str) -> str:
 
 
 def validate_branch_name(repo: Repo, name: str) -> None:
+    """Check a branch name with git's own rules.
+
+    Args:
+        repo: Repository to validate against.
+        name: Proposed branch name.
+
+    Raises:
+        GitRepoError: If the name is not a valid branch name.
+    """
     try:
         repo.git.check_ref_format("--branch", name)
     except GitCommandError as exc:
@@ -56,11 +78,29 @@ def validate_branch_name(repo: Repo, name: str) -> None:
 
 
 def branch_exists(repo: Repo, name: str) -> bool:
+    """Return True if a local branch with this name exists.
+
+    Args:
+        repo: Repository to search.
+        name: Branch name.
+    """
     return any(head.name == name for head in repo.heads)
 
 
 def create_branch(repo: Repo, name: str, base: str) -> BranchInfo:
-    """Create local branch ``name`` at ``base`` (no checkout, working tree untouched)."""
+    """Create a local branch at a base, without checking it out or touching the working tree.
+
+    Args:
+        repo: Repository to change.
+        name: New branch name.
+        base: Branch or revision to start from.
+
+    Returns:
+        Info about the new branch.
+
+    Raises:
+        GitRepoError: If the branch already exists or git fails.
+    """
     validate_branch_name(repo, name)
     if branch_exists(repo, name):
         raise GitRepoError(f"Branch '{name}' already exists")
@@ -68,20 +108,33 @@ def create_branch(repo: Repo, name: str, base: str) -> BranchInfo:
     try:
         repo.git.branch(name, base_ref)
     except GitCommandError as exc:
-        raise GitRepoError(f"Could not create branch '{name}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not create branch '{name}': {exc.stderr.strip()}"
+        ) from exc
     return branch_info(repo, name, base)
 
 
 def branch_info(repo: Repo, name: str, base: str) -> BranchInfo:
-    """Tip commit plus ahead/behind counts of ``name`` relative to ``base``."""
+    """Return a branch's tip commit and its ahead/behind counts relative to a base.
+
+    Args:
+        repo: Repository to read.
+        name: Branch to describe.
+        base: Branch to compare against.
+    """
     branch_ref = _resolve_ref(repo, name)
     base_ref = _resolve_ref(repo, base)
     commit = repo.git.rev_parse(branch_ref)
-    behind, ahead = repo.git.rev_list("--left-right", "--count", f"{base_ref}...{branch_ref}").split()
-    return BranchInfo(name=name, commit_hash=commit, ahead_count=int(ahead), behind_count=int(behind))
+    behind, ahead = repo.git.rev_list(
+        "--left-right", "--count", f"{base_ref}...{branch_ref}"
+    ).split()
+    return BranchInfo(
+        name=name, commit_hash=commit, ahead_count=int(ahead), behind_count=int(behind)
+    )
 
 
 def list_local_branches(repo: Repo) -> list[str]:
+    """Return local branch names, sorted."""
     return sorted(head.name for head in repo.heads)
 
 
@@ -92,7 +145,18 @@ def resolve_worktree_path(
     ticket_id: str,
     branch_name: str,
 ) -> str:
-    """Resolve a worktree path template with tokens {project}, {ticket}, {ticket_id}, {branch}, {repo}."""
+    """Fill in a worktree path template.
+
+    Args:
+        template: Path with `{project}`, `{ticket}`, `{ticket_id}`, `{branch}` and `{repo}` tokens.
+        repo_path: Repository path, used for `{repo}` and for relative templates.
+        project_prefix: Project prefix for `{project}`.
+        ticket_id: Ticket id for `{ticket}` / `{ticket_id}`.
+        branch_name: Branch name for `{branch}`.
+
+    Returns:
+        The resolved absolute path.
+    """
     sanitized_branch = branch_name.replace("/", "-")
     resolved = (
         template.replace("{project}", project_prefix)
@@ -108,7 +172,19 @@ def resolve_worktree_path(
 
 
 def add_worktree(repo: Repo, path: str, branch: str) -> str:
-    """Create a git worktree at ``path`` for branch ``branch``."""
+    """Create a git worktree for a branch.
+
+    Args:
+        repo: Repository to change.
+        path: Where to create the worktree.
+        branch: Existing branch to check out in it.
+
+    Returns:
+        The resolved worktree path.
+
+    Raises:
+        GitRepoError: If the path exists or git fails.
+    """
     resolved = os.path.realpath(os.path.expanduser(path.strip()))
     if os.path.exists(resolved):
         raise GitRepoError(f"Target worktree path already exists: {resolved}")
@@ -149,7 +225,16 @@ def remove_worktree(repo: Repo, path: str, force: bool = False) -> None:
 
 
 def delete_branch(repo: Repo, name: str, force: bool = False) -> None:
-    """Delete local branch ``name``. Without ``force`` git refuses unmerged branches."""
+    """Delete a local branch.
+
+    Args:
+        repo: Repository to change.
+        name: Branch to delete.
+        force: Delete even if it is unmerged; otherwise git refuses.
+
+    Raises:
+        GitRepoError: If git refuses or fails.
+    """
     if not branch_exists(repo, name):
         return  # already gone, nothing to delete
     try:
@@ -183,7 +268,16 @@ def list_worktrees(repo: Repo) -> list[dict]:
 
 
 def is_merged(repo: Repo, name: str, base: str) -> bool:
-    """True if every commit of ``name`` is already reachable from ``base``."""
+    """Return True if every commit of a branch is already reachable from a base.
+
+    Args:
+        repo: Repository to read.
+        name: Branch to check.
+        base: Branch it should be merged into.
+
+    Raises:
+        GitRepoError: If the comparison fails.
+    """
     branch_ref = _resolve_ref(repo, name)
     base_ref = _resolve_ref(repo, base)
     try:
@@ -192,17 +286,31 @@ def is_merged(repo: Repo, name: str, base: str) -> bool:
     except GitCommandError as exc:
         if exc.status == 1:
             return False
-        raise GitRepoError(f"Could not compare '{name}' with '{base}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not compare '{name}' with '{base}': {exc.stderr.strip()}"
+        ) from exc
 
 
 def rename_branch(repo: Repo, old: str, new: str) -> None:
+    """Rename a local branch.
+
+    Args:
+        repo: Repository to change.
+        old: Current branch name.
+        new: New branch name.
+
+    Raises:
+        GitRepoError: If the new name is invalid or taken, or git fails.
+    """
     validate_branch_name(repo, new)
     if branch_exists(repo, new):
         raise GitRepoError(f"Branch '{new}' already exists")
     try:
         repo.git.branch("-m", old, new)
     except GitCommandError as exc:
-        raise GitRepoError(f"Could not rename branch '{old}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not rename branch '{old}': {exc.stderr.strip()}"
+        ) from exc
 
 
 def current_branch(repo: Repo) -> str | None:
@@ -214,7 +322,15 @@ def current_branch(repo: Repo) -> str | None:
 
 
 def checkout_branch(repo: Repo, name: str) -> None:
-    """Check out local branch ``name`` in the main working tree, never losing local changes."""
+    """Check out a local branch in the main working tree without losing local changes.
+
+    Args:
+        repo: Repository to change.
+        name: Branch to check out.
+
+    Raises:
+        GitRepoError: If the branch does not exist, the tree has uncommitted changes, or git fails.
+    """
     if not branch_exists(repo, name):
         raise GitRepoError(f"Branch '{name}' does not exist in the repository")
     if current_branch(repo) == name:
@@ -226,7 +342,9 @@ def checkout_branch(repo: Repo, name: str) -> None:
     try:
         repo.git.checkout(name)
     except GitCommandError as exc:
-        raise GitRepoError(f"Could not check out '{name}': {exc.stderr.strip()}") from exc
+        raise GitRepoError(
+            f"Could not check out '{name}': {exc.stderr.strip()}"
+        ) from exc
 
 
 def _parse_refs(decoration: str) -> list[dict]:
@@ -235,11 +353,11 @@ def _parse_refs(decoration: str) -> list[dict]:
     for raw in filter(None, (part.strip() for part in decoration.split(","))):
         if raw.startswith("HEAD -> "):
             refs.append({"name": "HEAD", "type": "head"})
-            refs.append({"name": raw[len("HEAD -> "):], "type": "branch"})
+            refs.append({"name": raw[len("HEAD -> ") :], "type": "branch"})
         elif raw == "HEAD":
             refs.append({"name": "HEAD", "type": "head"})
         elif raw.startswith("tag: "):
-            refs.append({"name": raw[len("tag: "):], "type": "tag"})
+            refs.append({"name": raw[len("tag: ") :], "type": "tag"})
         elif "/" in raw and raw.split("/", 1)[0] == "origin":
             refs.append({"name": raw, "type": "remote"})
         else:
@@ -250,7 +368,9 @@ def _parse_refs(decoration: str) -> list[dict]:
 HARD_LIMIT = 300
 
 
-def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int = 80) -> dict:
+def commit_graph(
+    repo: Repo, bases: list[str], branches: list[str], limit: int = 80
+) -> dict:
     """Commit graph over ``bases`` (mainline) and the ticket's ``branches``.
 
     Returns commits newest-first (topological order) with a ``lane`` per commit:
@@ -266,7 +386,14 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
     fmt = "%H%x1f%P%x1f%an%x1f%aI%x1f%s%x1f%D%x1e"
     # Always reach back to where the ticket's branches forked off, even if that is
     # further than ``limit`` commits ago (bounded by HARD_LIMIT).
-    raw = repo.git.log("--topo-order", f"-n{HARD_LIMIT + 1}", f"--format={fmt}", "--decorate=short", *refs, "--")
+    raw = repo.git.log(
+        "--topo-order",
+        f"-n{HARD_LIMIT + 1}",
+        f"--format={fmt}",
+        "--decorate=short",
+        *refs,
+        "--",
+    )
     all_records = [r.strip("\n") for r in raw.split("\x1e") if r.strip()]
     positions = {rec.split("\x1f", 1)[0]: i for i, rec in enumerate(all_records)}
     window = limit
@@ -296,7 +423,11 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
             }
         )
 
-    mainline = set(repo.git.rev_list("--first-parent", f"-n{window + 1}", base_refs[0], "--").split())
+    mainline = set(
+        repo.git.rev_list(
+            "--first-parent", f"-n{window + 1}", base_refs[0], "--"
+        ).split()
+    )
 
     # Which commits belong to which ticket branch (commits not yet in the base)
     exclusive: dict[str, set[str]] = {}
@@ -317,7 +448,9 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
         else:
             lane = next((i for i, e in enumerate(cols) if i > 0 and e == h), None)
             if lane is None:
-                lane = next((i for i, e in enumerate(cols) if i > 0 and e is None), None)
+                lane = next(
+                    (i for i, e in enumerate(cols) if i > 0 and e is None), None
+                )
                 if lane is None:
                     cols.append(None)
                     lane = len(cols) - 1
@@ -334,7 +467,9 @@ def commit_graph(repo: Repo, bases: list[str], branches: list[str], limit: int =
             elif p in mainline and lane == 0:
                 continue  # mainline-to-mainline needs no column
             else:
-                free = next((i for i, e in enumerate(cols) if i > 0 and e is None), None)
+                free = next(
+                    (i for i, e in enumerate(cols) if i > 0 and e is None), None
+                )
                 if free is None:
                     cols.append(p)
                 else:
@@ -374,8 +509,12 @@ def commit_detail(repo: Repo, rev: str, max_files: int = MAX_DETAIL_FILES) -> di
     message = message.strip("\n")
     subject, _, body = message.partition("\n")
 
-    name_status = repo.git.show("--first-parent", "-M", "--name-status", "-z", "--format=", full, "--")
-    numstat = repo.git.show("--first-parent", "-M", "--numstat", "-z", "--format=", full, "--")
+    name_status = repo.git.show(
+        "--first-parent", "-M", "--name-status", "-z", "--format=", full, "--"
+    )
+    numstat = repo.git.show(
+        "--first-parent", "-M", "--numstat", "-z", "--format=", full, "--"
+    )
 
     files: list[dict] = []
     tokens = [t for t in name_status.split("\0")]
@@ -384,7 +523,9 @@ def commit_detail(repo: Repo, rev: str, max_files: int = MAX_DETAIL_FILES) -> di
         status = tokens[i]
         kind = status[0]
         if kind in "RC":
-            files.append({"status": kind, "old_path": tokens[i + 1], "path": tokens[i + 2]})
+            files.append(
+                {"status": kind, "old_path": tokens[i + 1], "path": tokens[i + 2]}
+            )
             i += 3
         else:
             files.append({"status": kind, "old_path": None, "path": tokens[i + 1]})

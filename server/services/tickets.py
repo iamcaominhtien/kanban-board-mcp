@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import uuid
 from datetime import date, datetime, timezone
 
@@ -49,6 +50,43 @@ MAX_TAG_LEN = 50
 MAX_ESTIMATE = 100_000
 MAX_COMMENT = 50_000
 MAX_AC_TEXT = 1_000
+MAX_SUB_TASK_TEXT = 500
+
+
+_MENTION = re.compile(r"@\[([^\][\n]{1,100})\]\(member:([\w.-]{1,64})\)")
+
+
+def _doc_ref_keys(text_: str | None) -> list[str]:
+    """Ordered, unique ``Page`` / ``Page#Section`` keys of the [[references]] in a text."""
+    from services.docs_text import page_ref_contexts
+
+    seen: dict[str, None] = {}
+    for ref in page_ref_contexts(text_ or ""):
+        seen.setdefault(
+            ref["title"] + (f"#{ref['anchor']}" if ref["anchor"] else ""), None
+        )
+    return list(seen)
+
+
+def _doc_ref_entries(old: str | None, new: str | None, source: str) -> list[dict]:
+    """doc_ref_removed / doc_ref_added activity entries for a text edit."""
+    before, after = _doc_ref_keys(old), _doc_ref_keys(new)
+    out = [
+        act.entry("doc_ref_removed", key, None, ref=source)
+        for key in before
+        if key not in after
+    ]
+    out += [
+        act.entry("doc_ref_added", None, key, ref=source)
+        for key in after
+        if key not in before
+    ]
+    return out
+
+
+def mention_ids(text_: str) -> list[str]:
+    """Member ids written as ``@[Name](member:id)`` in a comment."""
+    return list(dict.fromkeys(m.group(2) for m in _MENTION.finditer(text_ or "")))
 
 
 def _clean_title(value: str | None) -> str:
@@ -174,8 +212,30 @@ async def list_tickets(
     priority: str | None = None,
     q: str | None = None,
     include_wont_do: bool = False,
+    pending: bool | None = None,
+    reopened: bool | None = None,
 ) -> list[Ticket]:
+    """List a project's tickets with optional status, priority and text filters.
+
+    Args:
+        project_id: Project to list.
+        status: Only tickets in this status.
+        priority: Only tickets with this priority.
+        q: Case-insensitive text matched against title and description.
+        include_wont_do: Also return "Won't do" tickets (hidden by default).
+        pending: True for only pending tickets, False to leave them out.
+        reopened: True for only tickets that still carry the Reopened badge
+            (reopened and not Done / Won't Do again), False to leave them out.
+
+    Returns:
+        Matching tickets.
+    """
     stmt = select(Ticket).where(Ticket.project_id == project_id)
+    if pending is not None:
+        stmt = stmt.where(Ticket.pending == pending)  # noqa: E712
+    if reopened is not None:
+        carries = (Ticket.reopen_count > 0) & Ticket.status.notin_(["done", "wont_do"])  # type: ignore[attr-defined]
+        stmt = stmt.where(carries if reopened else ~carries)
     if status is not None:
         stmt = stmt.where(Ticket.status == status)
     elif not include_wont_do:
@@ -195,6 +255,7 @@ async def list_tickets(
 
 
 async def get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
+    """Return a ticket by id, or None."""
     return await session.get(Ticket, ticket_id)
 
 
@@ -214,6 +275,29 @@ async def create_ticket(
     created_by: str | None = None,
     assignee: str | None = None,
 ) -> Ticket:
+    """Validate and create a ticket with the next project number.
+
+    Args:
+        project_id: Owning project.
+        title: Ticket title (trimmed, length-checked).
+        type: Ticket type, e.g. "task", "bug".
+        priority: Priority level.
+        status: Initial board status.
+        description: Markdown description.
+        parent_id: Parent ticket id for a sub-ticket.
+        estimate: Estimate in the project's unit.
+        due_date: ISO due date.
+        start_date: ISO start date.
+        tags: Tag names.
+        created_by: Actor recorded as creator.
+        assignee: Member id; must belong to the project.
+
+    Returns:
+        The created ticket.
+
+    Raises:
+        ValueError: If a field is invalid or the assignee is not a project member.
+    """
     title = _clean_title(title)
     tags = _clean_tags(tags)
     estimate = _clean_estimate(estimate)
@@ -289,9 +373,48 @@ _AUDITABLE = (
 )
 
 
+async def _prompt_pending_dependents(
+    session: AsyncSession, blocker: Ticket, cause: str, now_iso: str
+) -> None:
+    """Log a system prompt on every ticket that is pending on `blocker` (never clears the flag)."""
+    rows = await session.exec(
+        select(Ticket).where(
+            Ticket.pending == True,  # noqa: E712
+            Ticket.pending_ticket_id == blocker.id,
+        )
+    )
+    for dependent in rows.all():
+        activity = _loads(dependent.activity_log)
+        activity.append(
+            {
+                "field": "pending_prompt",
+                "actor": "system",
+                "cause": cause,
+                "blocker_id": blocker.id,
+                "at": now_iso,
+            }
+        )
+        dependent.activity_log = _dumps(activity)
+        session.add(dependent)
+
+
 async def update_ticket(
     session: AsyncSession, ticket_id: str, data: TicketUpdate
 ) -> Ticket | None:
+    """Apply a partial update and log the changes; return None if missing.
+
+    Args:
+        ticket_id: Ticket to update.
+        data: Fields to change; unset fields are left alone.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+
+    Raises:
+        ValueError: If "wont_do" lacks a reason or is set on a child ticket, if Done
+            is blocked by open acceptance criteria or test cases, or if the assignee
+            is not a project member.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -356,21 +479,49 @@ async def update_ticket(
     # Per-ticket git repo override; empty/null falls back to the project's repo
     if "repo_path" in update_data:
         raw_repo = (update_data["repo_path"] or "").strip()
-        update_data["repo_path"] = git_repo.normalize_repo_path(raw_repo) if raw_repo else None
+        update_data["repo_path"] = (
+            git_repo.normalize_repo_path(raw_repo) if raw_repo else None
+        )
 
     # Clear wont_do_reason when transitioning away from wont_do
     if "status" in update_data and update_data["status"] != "wont_do":
         update_data.setdefault("wont_do_reason", None)
 
+    # Clear pending flag when transitioning to done or wont_do
+    if update_data.get("status") in ("done", "wont_do") and getattr(
+        ticket, "pending", False
+    ):
+        update_data["pending"] = False
+        update_data["pending_reason_type"] = None
+        update_data["pending_ticket_id"] = None
+        update_data["pending_member_id"] = None
+        update_data["pending_party"] = None
+        update_data["pending_note"] = None
+        update_data["pending_since"] = None
+        update_data["pending_by"] = None
+
     activity = _loads(ticket.activity_log)
+    previous_status = ticket.status
 
     for field, new_val in update_data.items():
         if field == "tags":
-            old_tags = _loads(ticket.tags) if isinstance(ticket.tags, str) else (ticket.tags or [])
-            new_tags = new_val if isinstance(new_val, list) else (_loads(new_val) if new_val else [])
+            old_tags = (
+                _loads(ticket.tags)
+                if isinstance(ticket.tags, str)
+                else (ticket.tags or [])
+            )
+            new_tags = (
+                new_val
+                if isinstance(new_val, list)
+                else (_loads(new_val) if new_val else [])
+            )
             if old_tags != new_tags:
                 activity.append(
-                    act.entry("tags", old_tags if old_tags else None, new_tags if new_tags else None)
+                    act.entry(
+                        "tags",
+                        old_tags if old_tags else None,
+                        new_tags if new_tags else None,
+                    )
                 )
             setattr(ticket, field, _dumps(new_tags))
         elif field in _AUDITABLE:
@@ -382,14 +533,47 @@ async def update_ticket(
             if old_val != new_val and not clearing_reason:
                 if field == "description":
                     activity.append(act.entry(field, old_val, new_val))
+                    activity.extend(_doc_ref_entries(old_val, new_val, field))
                 else:
-                    activity.append(act.entry(field, act.clip(old_val), act.clip(new_val)))
+                    activity.append(
+                        act.entry(field, act.clip(old_val), act.clip(new_val))
+                    )
             setattr(ticket, field, new_val)
         else:
             setattr(ticket, field, new_val)
 
     ticket.activity_log = _dumps(activity)
     ticket.updated_at = datetime.now(UTC).isoformat()
+
+    if update_data.get("status") in ("done", "wont_do"):
+        # "Mark done anyway" also clears the flags of the ticket's pending sub-tasks
+        kids = await session.exec(
+            select(Ticket).where(
+                Ticket.parent_id == ticket.id,
+                Ticket.pending == True,  # noqa: E712
+            )
+        )
+        for kid in kids.all():
+            kid.pending = False
+            kid.pending_reason_type = None
+            kid.pending_ticket_id = None
+            kid.pending_member_id = None
+            kid.pending_party = None
+            kid.pending_note = None
+            kid.pending_since = None
+            kid.pending_by = None
+            session.add(kid)
+
+    if (
+        update_data.get("status") in ("done", "wont_do")
+        and previous_status != update_data["status"]
+    ):
+        await _prompt_pending_dependents(
+            session,
+            ticket,
+            "blocker_done" if update_data["status"] == "done" else "blocker_removed",
+            ticket.updated_at,
+        )
 
     session.add(ticket)
     await session.commit()
@@ -398,6 +582,7 @@ async def update_ticket(
 
 
 async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
+    """Delete a ticket; return False if it does not exist."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
@@ -410,14 +595,21 @@ async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
         child.updated_at = now
         session.add(child)
     others = await session.exec(
-        select(Ticket).where(Ticket.project_id == ticket.project_id, Ticket.id != ticket_id)
+        select(Ticket).where(
+            Ticket.project_id == ticket.project_id, Ticket.id != ticket_id
+        )
     )
+    await _prompt_pending_dependents(session, ticket, "blocker_removed", now)
     for other in others.all():
         blocks = _loads(other.blocks)
         blocked_by = _loads(other.blocked_by)
         links = _loads(other.links)
         new_links = [lk for lk in links if lk.get("target_id") != ticket_id]
-        if ticket_id in blocks or ticket_id in blocked_by or len(new_links) != len(links):
+        if (
+            ticket_id in blocks
+            or ticket_id in blocked_by
+            or len(new_links) != len(links)
+        ):
             other.blocks = _dumps([b for b in blocks if b != ticket_id])
             other.blocked_by = _dumps([b for b in blocked_by if b != ticket_id])
             other.links = _dumps(new_links)
@@ -434,23 +626,83 @@ async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
+async def _comment_recipients(
+    session: AsyncSession,
+    ticket: Ticket,
+    comments: list,
+    author: str,
+    mentions: list[str],
+) -> list[dict]:
+    """Who a new comment notifies: reporter, assignee, earlier commenters and anyone @mentioned (not the author)."""
+    result = await session.exec(
+        select(Member).where(Member.project_id == ticket.project_id)
+    )
+    members = list(result.all())
+
+    def find(ref: str | None) -> Member | None:
+        if not ref:
+            return None
+        low = ref.lower()
+        return next((m for m in members if m.id == ref or m.name.lower() == low), None)
+
+    author_member = find(author)
+    ids: dict[str, str] = {}
+    for ref in [
+        ticket.created_by,
+        ticket.assignee,
+        *[c.get("author") for c in comments if not c.get("deleted_at")],
+        *mentions,
+    ]:
+        m = find(ref)
+        if m is not None:
+            ids.setdefault(m.id, m.name)
+    if author_member is not None:
+        ids.pop(author_member.id, None)
+    return [{"id": i, "name": n} for i, n in ids.items()]
+
+
 async def add_comment(
-    session: AsyncSession, ticket_id: str, text: str, author: str = "user"
+    session: AsyncSession,
+    ticket_id: str,
+    text: str,
+    author: str = "user",
+    meta: dict | None = None,
 ) -> Ticket | None:
+    """Add a comment, record its mentions and notify the people involved.
+
+    Args:
+        ticket_id: Ticket to comment on.
+        text: Markdown text; `@[Name](member:id)` mentions are recorded.
+        author: Actor name stored with the comment.
+        meta: Extra keys stored on the comment, e.g. ``{"ai": {...}}`` for an AI member's reply.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     text = _clean_text(text, "Comment", MAX_COMMENT)
     comments = _loads(ticket.comments)
+    comment_id = str(uuid.uuid4())
+    mentions = mention_ids(text)
+    notified = await _comment_recipients(session, ticket, comments, author, mentions)
     comments.append(
         {
-            "id": str(uuid.uuid4()),
+            "id": comment_id,
             "text": text,
             "author": author,
             "at": datetime.now(UTC).isoformat(),
+            "edited_at": None,
+            "deleted_at": None,
+            "mentions": mentions,
+            "notified": notified,
+            **(meta or {}),
         }
     )
-    act.record(ticket, "comment", None, text, actor=act.author_actor(author))
+    act.record(
+        ticket, "comment", None, text, ref=comment_id, actor=act.author_actor(author)
+    )
     ticket.comments = _dumps(comments)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -462,14 +714,56 @@ async def add_comment(
 async def delete_comment(
     session: AsyncSession, ticket_id: str, comment_id: str
 ) -> Ticket | None:
+    """Soft-delete a comment: it is hidden everywhere but keeps its data, so Undo can restore it.
+
+    Args:
+        ticket_id: Ticket holding the comment.
+        comment_id: Comment to hide.
+
+    Returns:
+        The updated ticket, or None if the ticket or comment does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     comments = _loads(ticket.comments)
-    removed = next((c for c in comments if c.get("id") == comment_id), None)
-    if removed is not None:
-        act.record(ticket, "comment", removed.get("text"), None)
-    ticket.comments = _dumps([c for c in comments if c.get("id") != comment_id])
+    now = datetime.now(UTC).isoformat()
+    for c in comments:
+        if c.get("id") == comment_id and not c.get("deleted_at"):
+            c["deleted_at"] = now
+            break
+    ticket.comments = _dumps(comments)
+    ticket.updated_at = now
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def restore_comment(
+    session: AsyncSession, ticket_id: str, comment_id: str
+) -> Ticket | None:
+    """Undo a comment deletion.
+
+    Args:
+        ticket_id: Ticket holding the comment.
+        comment_id: Comment to restore.
+
+    Returns:
+        The updated ticket, or None if the ticket or comment does not exist.
+    """
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    comments = _loads(ticket.comments)
+    found = False
+    for c in comments:
+        if c.get("id") == comment_id and c.get("deleted_at"):
+            c["deleted_at"] = None
+            found = True
+    if not found:
+        return None
+    ticket.comments = _dumps(comments)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
     await session.commit()
@@ -480,6 +774,16 @@ async def delete_comment(
 async def update_comment(
     session: AsyncSession, ticket_id: str, comment_id: str, text: str
 ) -> Ticket | None:
+    """Edit a comment's text and mark it edited.
+
+    Args:
+        ticket_id: Ticket holding the comment.
+        comment_id: Comment to edit.
+        text: New Markdown text.
+
+    Returns:
+        The updated ticket, or None if the ticket or comment does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -487,10 +791,11 @@ async def update_comment(
     comments = _loads(ticket.comments)
     found = False
     for c in comments:
-        if c.get("id") == comment_id:
+        if c.get("id") == comment_id and not c.get("deleted_at"):
             if c.get("text") != text:
-                act.record(ticket, "comment", c.get("text"), text)
-            c["text"] = text
+                c["text"] = text
+                c["edited_at"] = datetime.now(UTC).isoformat()
+                c["mentions"] = mention_ids(text)
             found = True
             break
     if not found:
@@ -511,6 +816,15 @@ async def update_comment(
 async def add_acceptance_criterion(
     session: AsyncSession, ticket_id: str, text: str
 ) -> Ticket | None:
+    """Append a acceptance criterion.
+
+    Args:
+        ticket_id: Ticket to add to.
+        text: Text of the new item.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -529,6 +843,15 @@ async def add_acceptance_criterion(
 async def toggle_acceptance_criterion(
     session: AsyncSession, ticket_id: str, criterion_id: str
 ) -> Ticket | None:
+    """Flip an acceptance criterion's done state.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        criterion_id: Item to toggle.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -555,6 +878,15 @@ async def toggle_acceptance_criterion(
 async def delete_acceptance_criterion(
     session: AsyncSession, ticket_id: str, criterion_id: str
 ) -> Ticket | None:
+    """Remove an acceptance criterion.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        criterion_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -563,6 +895,100 @@ async def delete_acceptance_criterion(
     if removed is not None:
         act.record(ticket, "acceptance_criterion", removed.get("text"), None)
     ticket.acceptance_criteria = _dumps([a for a in acs if a.get("id") != criterion_id])
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+# ---------------------------------------------------------------------------
+# Sub-entity: sub-tasks (lightweight checklist items, not tickets)
+# ---------------------------------------------------------------------------
+
+
+async def add_sub_task(
+    session: AsyncSession, ticket_id: str, text: str
+) -> Ticket | None:
+    """Append a sub-task.
+
+    Args:
+        ticket_id: Ticket to add to.
+        text: Text of the new item.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    text = _clean_text(text, "Sub-task", MAX_SUB_TASK_TEXT)
+    items = _loads(ticket.sub_tasks)
+    items.append({"id": str(uuid.uuid4()), "text": text, "done": False})
+    act.record(ticket, "sub_task", None, text)
+    ticket.sub_tasks = _dumps(items)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def toggle_sub_task(
+    session: AsyncSession, ticket_id: str, sub_task_id: str
+) -> Ticket | None:
+    """Flip a sub-task's done state.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        sub_task_id: Item to toggle.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    items = _loads(ticket.sub_tasks)
+    for item in items:
+        if item.get("id") == sub_task_id:
+            item["done"] = not item.get("done", False)
+            act.record(
+                ticket,
+                "sub_task",
+                "open" if item["done"] else "done",
+                "done" if item["done"] else "open",
+                ref=item.get("text"),
+            )
+            break
+    ticket.sub_tasks = _dumps(items)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def delete_sub_task(
+    session: AsyncSession, ticket_id: str, sub_task_id: str
+) -> Ticket | None:
+    """Remove a sub-task.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        sub_task_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    items = _loads(ticket.sub_tasks)
+    removed = next((i for i in items if i.get("id") == sub_task_id), None)
+    if removed is not None:
+        act.record(ticket, "sub_task", removed.get("text"), None)
+    ticket.sub_tasks = _dumps([i for i in items if i.get("id") != sub_task_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
     await session.commit()
@@ -588,8 +1014,14 @@ def _clean_attachments(attachments: list | None) -> list[dict]:
         url = str(raw.get("url") or "")
         name = str(raw.get("name") or "").strip()
         if not url.startswith("/uploads/") or ".." in url or not name:
-            raise ValueError("Attachments need a name and a /uploads/ url (upload the file first)")
-        item = {"id": str(raw.get("id") or uuid.uuid4()), "name": name[:200], "url": url}
+            raise ValueError(
+                "Attachments need a name and a /uploads/ url (upload the file first)"
+            )
+        item = {
+            "id": str(raw.get("id") or uuid.uuid4()),
+            "name": name[:200],
+            "url": url,
+        }
         if isinstance(raw.get("size"), int):
             item["size"] = raw["size"]
         if raw.get("type"):
@@ -651,6 +1083,22 @@ async def add_work_log(
     linked_branch: str | None = None,
     linked_test_case: str | None = None,
 ) -> Ticket | None:
+    """Append a work-log (debug note) entry.
+
+    Args:
+        ticket_id: Ticket to add to.
+        author: Name of the author.
+        role: Author role: PM, Developer, BA, Tester, Designer or Other.
+        note: Markdown note.
+        kind: Entry kind, e.g. "investigation".
+        pinned: Pin the entry to the top.
+        attachments: Files, each `{name, url}` with a `/uploads/` url.
+        linked_branch: Branch id the note relates to.
+        linked_test_case: Test-case id the note relates to.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -700,12 +1148,31 @@ async def update_work_log(
     author: str | None = None,
     role: str | None = None,
 ) -> Ticket | None:
+    """Edit a work-log entry; only the fields you pass are changed.
+
+    Args:
+        ticket_id: Ticket holding the entry.
+        log_id: Entry to edit.
+        note: New note.
+        kind: New kind.
+        pinned: New pinned state.
+        attachments: Replacement attachment list.
+        linked_branch: Branch id the note relates to.
+        linked_test_case: Test-case id the note relates to.
+        author: New author name.
+        role: New author role.
+
+    Returns:
+        The updated ticket, or None if the ticket or entry does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     _validate_work_log_fields(author=author, role=role, note=note, kind=kind)
     if linked_branch is not None or linked_test_case is not None:
-        resolved_branch, resolved_tc = _resolve_work_log_links(ticket, linked_branch, linked_test_case)
+        resolved_branch, resolved_tc = _resolve_work_log_links(
+            ticket, linked_branch, linked_test_case
+        )
     if attachments is not None:
         attachments = _clean_attachments(attachments)
     if note is not None:
@@ -750,13 +1217,24 @@ async def update_work_log(
 async def delete_work_log(
     session: AsyncSession, ticket_id: str, log_id: str
 ) -> Ticket | None:
+    """Remove a work-log entry.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        log_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     logs = _loads(ticket.work_log)
     removed = next((lg for lg in logs if lg.get("id") == log_id), None)
     if removed is not None:
-        act.record(ticket, "work_log", removed.get("note"), None, ref=removed.get("role"))
+        act.record(
+            ticket, "work_log", removed.get("note"), None, ref=removed.get("role")
+        )
     ticket.work_log = _dumps([lg for lg in logs if lg.get("id") != log_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -782,11 +1260,36 @@ async def add_test_case(
     notes: str | None = None,
     assignee: str | None = None,
     test_data_files: list | None = None,
+    criterion_id: str | None = None,
+    suggested_by: str | None = None,
 ) -> Ticket | None:
+    """Append a test case with the next `TC-n` code.
+
+    Args:
+        ticket_id: Ticket to add to.
+        title: Short title.
+        status: Initial status, e.g. "pending".
+        proof: Evidence for the result (text or link).
+        note: Short note on the result.
+        description: What is being tested.
+        expected_result: Expected outcome.
+        notes: Free-form extra notes.
+        assignee: Member id who runs it.
+        test_data_files: Attached data files.
+        criterion_id: Acceptance criterion the case tests (for coverage).
+        suggested_by: Board AI that suggested the case, when a person accepted its draft.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     title = _clean_text(title, "Test case title", MAX_TITLE)
+    if criterion_id and not any(
+        a.get("id") == criterion_id for a in _loads(ticket.acceptance_criteria)
+    ):
+        raise ValueError("Unknown acceptance criterion")
     tcs = _loads(ticket.test_cases)
     # Determine human-readable TC code (TC-1, TC-2, ...)
     max_num = 0
@@ -817,6 +1320,8 @@ async def add_test_case(
         "updated_at": now_iso,
         "assignee": assignee,
         "test_data_files": test_data_files or [],
+        "criterion_id": criterion_id,
+        "suggested_by": suggested_by,
     }
     tcs.append(new_tc)
     act.record(ticket, "test_case", None, title, ref=tc_code)
@@ -841,7 +1346,26 @@ async def update_test_case(
     notes: str | None = None,
     assignee: str | None = None,
     test_data_files: list | None = None,
+    criterion_id: str | None = None,
 ) -> Ticket | None:
+    """Update a test case; only the fields you pass are changed.
+
+    Args:
+        ticket_id: Ticket holding the test case.
+        tc_id: Test case to update.
+        status: New status.
+        proof: New evidence.
+        note: New short note.
+        title: New title.
+        description: New description.
+        expected_result: New expected outcome.
+        notes: New extra notes.
+        assignee: New assignee member id.
+        test_data_files: Replacement data files.
+
+    Returns:
+        The updated ticket, or None if the ticket or test case does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -855,7 +1379,9 @@ async def update_test_case(
             if status is not None and status != old_status:
                 act.record(ticket, "test_case_status", old_status, status, ref=label)
             if title is not None and title != tc.get("title"):
-                act.record(ticket, "test_case", tc.get("title"), title, ref=tc.get("code"))
+                act.record(
+                    ticket, "test_case", tc.get("title"), title, ref=tc.get("code")
+                )
             if status is not None:
                 tc["status"] = status
                 if status == "running" and old_status != "running":
@@ -876,6 +1402,8 @@ async def update_test_case(
                 tc["assignee"] = assignee
             if test_data_files is not None:
                 tc["test_data_files"] = test_data_files
+            if criterion_id is not None:
+                tc["criterion_id"] = criterion_id or None
             tc["updated_at"] = datetime.now(UTC).isoformat()
             break
     ticket.test_cases = _dumps(tcs)
@@ -889,13 +1417,24 @@ async def update_test_case(
 async def delete_test_case(
     session: AsyncSession, ticket_id: str, tc_id: str
 ) -> Ticket | None:
+    """Remove a test case.
+
+    Args:
+        ticket_id: Ticket holding the item.
+        tc_id: Item to remove.
+
+    Returns:
+        The updated ticket, or None if the ticket or item does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     tcs = _loads(ticket.test_cases)
     removed = next((t for t in tcs if t.get("id") == tc_id), None)
     if removed is not None:
-        act.record(ticket, "test_case", removed.get("title"), None, ref=removed.get("code"))
+        act.record(
+            ticket, "test_case", removed.get("title"), None, ref=removed.get("code")
+        )
     ticket.test_cases = _dumps([t for t in tcs if t.get("id") != tc_id])
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -907,6 +1446,15 @@ async def delete_test_case(
 async def get_project_activities(
     session: AsyncSession, project_id: str, limit: int = 200
 ) -> list[ActivityEventRead]:
+    """Return the project's most recent activity across tickets, newest first.
+
+    Args:
+        project_id: Project to read.
+        limit: Maximum number of entries.
+
+    Returns:
+        Activity entries with their ticket id and title.
+    """
     tickets = await list_tickets(session, project_id, include_wont_do=True)
     events: list[ActivityEventRead] = []
     for ticket in tickets:
@@ -932,6 +1480,8 @@ async def get_project_activities(
                 )
             )
         for comment in _loads(ticket.comments):
+            if comment.get("deleted_at"):
+                continue
             events.append(
                 ActivityEventRead(
                     ticketId=ticket.id,
@@ -972,7 +1522,19 @@ async def _blocks_transitively(
 async def link_block(
     session: AsyncSession, blocker_id: str, blocked_id: str
 ) -> tuple[Ticket, Ticket] | None:
-    """Make blocker_id block blocked_id. Updates both tickets."""
+    """Make `blocker_id` block `blocked_id` and update both tickets.
+
+    Args:
+        blocker_id: Ticket that blocks.
+        blocked_id: Ticket that is blocked.
+
+    Returns:
+        `(blocker, blocked)`, or None if either ticket does not exist.
+
+    Raises:
+        ValueError: If a ticket would block itself, the tickets are in different
+            projects, or the link would create a cycle.
+    """
     if blocker_id == blocked_id:
         raise ValueError("A ticket cannot block itself")
     blocker = await session.get(Ticket, blocker_id)
@@ -1011,7 +1573,15 @@ async def link_block(
 async def unlink_block(
     session: AsyncSession, blocker_id: str, blocked_id: str
 ) -> tuple[Ticket, Ticket] | None:
-    """Remove block relationship between the two tickets."""
+    """Remove the blocks relation between two tickets.
+
+    Args:
+        blocker_id: Ticket that blocks.
+        blocked_id: Ticket that is blocked.
+
+    Returns:
+        `(blocker, blocked)`, or None if either ticket does not exist.
+    """
     blocker = await session.get(Ticket, blocker_id)
     blocked = await session.get(Ticket, blocked_id)
     if blocker is None or blocked is None:
@@ -1071,6 +1641,20 @@ async def add_ticket_link(
     target_id: str,
     relation_type: str,
 ) -> dict:
+    """Link two tickets in the same project and add the inverse link on the target.
+
+    Args:
+        ticket_id: Source ticket.
+        target_id: Ticket to link to.
+        relation_type: One of `relates_to`, `causes`, `caused_by`, `duplicates`, `duplicated_by`.
+
+    Returns:
+        The link created, or the existing one if it is a duplicate.
+
+    Raises:
+        ValueError: If the tickets are the same, either is missing, they are in
+            different projects, or the relation type is invalid.
+    """
     if ticket_id == target_id:
         raise ValueError("A ticket cannot link to itself")
     if relation_type not in VALID_RELATION_TYPES:
@@ -1133,6 +1717,15 @@ async def remove_ticket_link(
     ticket_id: str,
     link_id: str,
 ) -> bool:
+    """Remove a link from both tickets.
+
+    Args:
+        ticket_id: Ticket holding the link.
+        link_id: Link to remove.
+
+    Returns:
+        True if removed, False if the ticket or link was not found.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
@@ -1178,9 +1771,8 @@ async def remove_ticket_link(
 VALID_BRANCH_STATUSES = {"baseline", "open", "merged", "stale", "archived"}
 
 
-async def list_branches(
-    session: AsyncSession, ticket_id: str
-) -> list[dict] | None:
+async def list_branches(session: AsyncSession, ticket_id: str) -> list[dict] | None:
+    """Return a ticket's branches, or None if the ticket is missing."""
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1206,10 +1798,14 @@ def _sync_branches_with_git(repo_path: str, branches: list[dict]) -> list[dict]:
     synced = []
     for br in branches:
         br = dict(br)
-        br.update(is_current=br.get("name") == current, isCurrent=br.get("name") == current)
+        br.update(
+            is_current=br.get("name") == current, isCurrent=br.get("name") == current
+        )
         if br.get("status") != "baseline":
             try:
-                info = git_repo.branch_info(repo, br["name"], br.get("branch_from") or "main")
+                info = git_repo.branch_info(
+                    repo, br["name"], br.get("branch_from") or "main"
+                )
             except (git_repo.GitRepoError, GitCommandError):
                 # Branch not in this repo (e.g. repo was changed): keep stored values
                 br.update(in_repo=False, inRepo=False)
@@ -1243,6 +1839,27 @@ async def add_branch(
     create_worktree: bool = False,
     worktree_path: str | None = None,
 ) -> Ticket | None:
+    """Record a branch on a ticket, creating it (and optionally a worktree) in the linked repo.
+
+    Args:
+        ticket_id: Ticket to add to.
+        name: Branch name.
+        branch_from: Branch to start from.
+        status: Branch status, one of the valid branch statuses.
+        pr_url: Pull request link.
+        commit_hash: Head commit.
+        linked_ticket_id: Another ticket this branch also serves.
+        ahead_count: Commits ahead of `branch_from`.
+        behind_count: Commits behind `branch_from`.
+        create_worktree: Also create a git worktree.
+        worktree_path: Worktree location; defaults to the configured template.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+
+    Raises:
+        ValueError: If the status is invalid or a worktree is requested without a linked repo.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1261,7 +1878,9 @@ async def add_branch(
     if repo_path:
         # Real git repo linked: create the branch there and use its true state.
         def _create() -> git_repo.BranchInfo:
-            return git_repo.create_branch(git_repo.open_repo(repo_path), name, branch_from)
+            return git_repo.create_branch(
+                git_repo.open_repo(repo_path), name, branch_from
+            )
 
         info = await asyncio.to_thread(_create)
         commit_hash = info.commit_hash
@@ -1285,7 +1904,9 @@ async def add_branch(
             )
 
             def _make_wt() -> str:
-                return git_repo.add_worktree(git_repo.open_repo(repo_path), target_wt, name)
+                return git_repo.add_worktree(
+                    git_repo.open_repo(repo_path), target_wt, name
+                )
 
             try:
                 resolved_worktree_path = await asyncio.to_thread(_make_wt)
@@ -1335,7 +1956,11 @@ async def add_branch(
 
 
 def _git_guard_update(
-    repo_path: str, br: dict, new_name: str | None, new_status: str | None, base: str | None
+    repo_path: str,
+    br: dict,
+    new_name: str | None,
+    new_status: str | None,
+    base: str | None,
 ) -> None:
     """Apply/verify the git side of a branch update before the board record changes."""
     repo = git_repo.open_repo(repo_path)
@@ -1367,6 +1992,28 @@ async def update_branch(
     remove_worktree: bool = False,
     worktree_path: str | None = None,
 ) -> Ticket | None:
+    """Update a branch; only the fields you pass are changed.
+
+    Args:
+        ticket_id: Ticket holding the branch.
+        branch_id: Branch to update.
+        name: New name (renamed in the repo too when linked).
+        status: New status.
+        branch_from: New base branch.
+        pr_url: New pull request link.
+        commit_hash: New head commit.
+        linked_ticket_id: Another ticket this branch also serves.
+        ahead_count: Commits ahead of the base.
+        behind_count: Commits behind the base.
+        remove_worktree: Remove the branch's git worktree.
+        worktree_path: New worktree location.
+
+    Returns:
+        The updated ticket, or None if the ticket or branch does not exist.
+
+    Raises:
+        ValueError: If the status is invalid.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1381,7 +2028,11 @@ async def update_branch(
     for br in branches:
         if br.get("id") == branch_id:
             found = True
-            old_name, old_status, had_worktree = br.get("name"), br.get("status"), br.get("worktree_path")
+            old_name, old_status, had_worktree = (
+                br.get("name"),
+                br.get("status"),
+                br.get("worktree_path"),
+            )
             if repo_for_git and br.get("status") != "baseline":
                 await asyncio.to_thread(
                     _git_guard_update,
@@ -1419,7 +2070,10 @@ async def update_branch(
                     wt = br["worktree_path"]
                     # Errors propagate: the board must not claim the worktree is gone
                     await asyncio.to_thread(
-                        git_repo.remove_worktree, git_repo.open_repo(repo_path), wt, True
+                        git_repo.remove_worktree,
+                        git_repo.open_repo(repo_path),
+                        wt,
+                        True,
                     )
                 br["worktree_path"] = None
                 br["worktreePath"] = None
@@ -1431,9 +2085,13 @@ async def update_branch(
             if name is not None and name != old_name:
                 act.record(ticket, "branch", old_name, name)
             if status is not None and status != old_status:
-                act.record(ticket, "branch_status", old_status, status, ref=br.get("name"))
+                act.record(
+                    ticket, "branch_status", old_status, status, ref=br.get("name")
+                )
             if had_worktree and not br.get("worktree_path"):
-                act.record(ticket, "branch_worktree", had_worktree, None, ref=br.get("name"))
+                act.record(
+                    ticket, "branch_worktree", had_worktree, None, ref=br.get("name")
+                )
             break
     if not found:
         return None
@@ -1453,6 +2111,18 @@ async def delete_branch(
     delete_git_branch: bool = False,
     force: bool = False,
 ) -> Ticket | None:
+    """Remove a branch record, optionally with its worktree and git branch.
+
+    Args:
+        ticket_id: Ticket holding the branch.
+        branch_id: Branch to remove.
+        remove_worktree: Also remove its git worktree.
+        delete_git_branch: Also delete the branch in the repo.
+        force: Force deletion of an unmerged branch.
+
+    Returns:
+        The updated ticket, or None if the ticket or branch does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1480,8 +2150,21 @@ async def delete_branch(
     return ticket
 
 
-async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str) -> Ticket | None:
-    """Check out a ticket branch in the linked repository's main working tree."""
+async def checkout_branch(
+    session: AsyncSession, ticket_id: str, branch_id: str
+) -> Ticket | None:
+    """Check out a ticket branch in the linked repository's main working tree.
+
+    Args:
+        ticket_id: Ticket holding the branch.
+        branch_id: Branch to check out.
+
+    Returns:
+        The updated ticket, or None if the ticket or branch does not exist.
+
+    Raises:
+        ValueError: If no repository is linked.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1491,7 +2174,9 @@ async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str)
         return None
     repo_path = await _project_repo_path(session, ticket)
     if not repo_path:
-        raise ValueError("Link a git repository to this project or ticket before checking out branches")
+        raise ValueError(
+            "Link a git repository to this project or ticket before checking out branches"
+        )
     await asyncio.to_thread(
         lambda: git_repo.checkout_branch(git_repo.open_repo(repo_path), target["name"])
     )
@@ -1502,8 +2187,18 @@ async def checkout_branch(session: AsyncSession, ticket_id: str, branch_id: str)
     return ticket
 
 
-async def get_branch_graph(session: AsyncSession, ticket_id: str, limit: int = 80) -> dict | None:
-    """Real commit graph for the ticket's branches; ``linked`` is False without a repo."""
+async def get_branch_graph(
+    session: AsyncSession, ticket_id: str, limit: int = 80
+) -> dict | None:
+    """Return the commit graph for the ticket's branches; `linked` is False without a repo.
+
+    Args:
+        ticket_id: Ticket whose branches to draw.
+        limit: Maximum number of commits.
+
+    Returns:
+        Graph data, or None if the ticket does not exist.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1541,7 +2236,21 @@ async def get_branch_graph(session: AsyncSession, ticket_id: str, limit: int = 8
     return await asyncio.to_thread(_build)
 
 
-async def get_commit_detail(session: AsyncSession, ticket_id: str, rev: str) -> dict | None:
+async def get_commit_detail(
+    session: AsyncSession, ticket_id: str, rev: str
+) -> dict | None:
+    """Return details of a commit in the ticket's linked repo.
+
+    Args:
+        ticket_id: Ticket whose repo to read.
+        rev: Commit hash or revision.
+
+    Returns:
+        Commit details, or None if the ticket does not exist.
+
+    Raises:
+        ValueError: If no repository is linked.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
@@ -1551,3 +2260,372 @@ async def get_commit_detail(session: AsyncSession, ticket_id: str, rev: str) -> 
     return await asyncio.to_thread(
         lambda: git_repo.commit_detail(git_repo.open_repo(repo_path), rev)
     )
+
+
+MAX_REASON_LEN = 240
+
+
+def _completed_at(ticket: Ticket) -> str | None:
+    """When the ticket last moved into its current closed status (from the activity log)."""
+    for e in reversed(_loads(ticket.activity_log)):
+        if (
+            isinstance(e, dict)
+            and e.get("field") == "status"
+            and e.get("to") == ticket.status
+        ):
+            return e.get("at")
+    return None
+
+
+def _clean_reason(value: str | None, label: str) -> str | None:
+    """Strip `value`; empty becomes None; refuse text longer than MAX_REASON_LEN."""
+    text = value.strip() if value and value.strip() else None
+    if text is not None and len(text) > MAX_REASON_LEN:
+        raise ValueError(f"{label} must be at most {MAX_REASON_LEN} characters")
+    return text
+
+
+async def reopen_ticket(
+    session: AsyncSession,
+    ticket_id: str,
+    reason: str | None = None,
+    reset_ac: bool = False,
+    reset_tests: bool = False,
+    unassign: bool = False,
+    reopen_parent: bool = False,
+    actor: str | None = None,
+) -> Ticket | None:
+    """Reopen a ticket that was Done or Won't Do, moving it to To Do."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+
+    if ticket.status not in ("done", "wont_do"):
+        raise ValueError("Only tickets in Done or Won't Do can be reopened")
+
+    clean_reason = _clean_reason(reason, "reason")
+    now_iso = datetime.now(UTC).isoformat()
+    prev_status = ticket.status
+    prev_completed_at = _completed_at(ticket)
+
+    ticket.status = "todo"
+    ticket.wont_do_reason = None
+
+    side_effects = []
+    ac_reset_count = 0
+    tests_reset_count = 0
+    if unassign:
+        ticket.assignee = None
+        side_effects.append("unassigned")
+
+    if reset_ac:
+        acs = _loads(ticket.acceptance_criteria)
+        if acs:
+            for ac in acs:
+                if isinstance(ac, dict):
+                    ac_reset_count += 1 if ac.get("done") else 0
+                    ac["done"] = False
+            ticket.acceptance_criteria = _dumps(acs)
+            side_effects.append("ac_reset")
+
+    if reset_tests:
+        tcs = _loads(ticket.test_cases)
+        if tcs:
+            for tc in tcs:
+                if isinstance(tc, dict):
+                    tests_reset_count += 1 if tc.get("status") != "pending" else 0
+                    tc["status"] = "pending"
+            ticket.test_cases = _dumps(tcs)
+            side_effects.append("tests_reset")
+
+    ticket.reopen_count = (getattr(ticket, "reopen_count", 0) or 0) + 1
+    ticket.last_reopened_at = now_iso
+    ticket.last_reopened_by = actor
+    ticket.last_reopen_reason = clean_reason
+
+    # History list (newest first)
+    history = _loads(getattr(ticket, "reopen_history", "[]"))
+    history_entry = {
+        "id": str(uuid.uuid4()),
+        "reopen_count": ticket.reopen_count,
+        "actor": actor,
+        "reason": ticket.last_reopen_reason,
+        "from_status": prev_status,
+        "previous_completed_at": prev_completed_at,
+        "at": now_iso,
+        "side_effects": side_effects,
+    }
+    history.insert(0, history_entry)
+    ticket.reopen_history = _dumps(history)
+
+    # Activity log entry
+    activity = _loads(ticket.activity_log)
+    activity.append(
+        {
+            "field": "reopen",
+            "from": prev_status,
+            "to": "todo",
+            "actor": actor or "user",
+            "reason": ticket.last_reopen_reason,
+            "reopen_count": ticket.reopen_count,
+            "previous_completed_at": prev_completed_at,
+            "side_effects": side_effects,
+            "ac_reset_count": ac_reset_count,
+            "tests_reset_count": tests_reset_count,
+            "kept_assignee": None if unassign else ticket.assignee,
+            "at": now_iso,
+        }
+    )
+    ticket.activity_log = _dumps(activity)
+    ticket.updated_at = now_iso
+
+    session.add(ticket)
+
+    # Reopen parent if requested
+    if reopen_parent and ticket.parent_id:
+        parent = await session.get(Ticket, ticket.parent_id)
+        if parent is not None and parent.status in ("done", "wont_do"):
+            parent_prev = parent.status
+            parent_completed_at = _completed_at(parent)
+            parent.status = "todo"
+            parent.wont_do_reason = None
+            parent.reopen_count = (getattr(parent, "reopen_count", 0) or 0) + 1
+            parent.last_reopened_at = now_iso
+            parent.last_reopened_by = actor
+            parent.last_reopen_reason = f"Reopened by child {ticket.id}"
+            parent_hist = _loads(getattr(parent, "reopen_history", "[]"))
+            parent_hist.insert(
+                0,
+                {
+                    "id": str(uuid.uuid4()),
+                    "reopen_count": parent.reopen_count,
+                    "actor": actor,
+                    "reason": parent.last_reopen_reason,
+                    "from_status": parent_prev,
+                    "previous_completed_at": parent_completed_at,
+                    "at": now_iso,
+                    "side_effects": ["child_reopened"],
+                },
+            )
+            parent.reopen_history = _dumps(parent_hist)
+            parent_act = _loads(parent.activity_log)
+            parent_act.append(
+                {
+                    "field": "reopen",
+                    "from": parent_prev,
+                    "to": "todo",
+                    "actor": actor or "user",
+                    "reason": parent.last_reopen_reason,
+                    "reopen_count": parent.reopen_count,
+                    "at": now_iso,
+                }
+            )
+            parent.activity_log = _dumps(parent_act)
+            parent.updated_at = now_iso
+            session.add(parent)
+
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def set_pending(
+    session: AsyncSession,
+    ticket_id: str,
+    reason_type: str,
+    ticket_target_id: str | None = None,
+    member_id: str | None = None,
+    party: str | None = None,
+    note: str | None = None,
+    add_blocked_by: bool = False,
+    actor: str | None = None,
+) -> Ticket | None:
+    """Flag a ticket as Pending."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+
+    if ticket.status in ("done", "wont_do"):
+        raise ValueError("Done or Won't Do tickets cannot be marked as pending")
+
+    if reason_type not in ("ticket", "person", "party"):
+        raise ValueError(f"Invalid reason_type '{reason_type}'")
+
+    clean_note = _clean_reason(note, "note")
+    clean_party = _clean_reason(party, "party")
+    target: Ticket | None = None
+    if reason_type == "ticket":
+        if not ticket_target_id:
+            raise ValueError("ticket_id is required when reason_type is 'ticket'")
+        if ticket_target_id == ticket.id:
+            raise ValueError("A ticket cannot be pending on itself")
+        target = await session.get(Ticket, ticket_target_id)
+        if target is None:
+            raise ValueError(f"Ticket '{ticket_target_id}' not found")
+        if add_blocked_by and target.project_id != ticket.project_id:
+            raise ValueError("Blocked by relations need tickets of the same project")
+    elif reason_type == "person":
+        if not member_id:
+            raise ValueError("member_id is required when reason_type is 'person'")
+        if await session.get(Member, member_id) is None:
+            raise ValueError(f"Member '{member_id}' not found")
+    elif not clean_party:
+        raise ValueError("party is required when reason_type is 'party'")
+
+    now_iso = datetime.now(UTC).isoformat()
+    was_pending = bool(getattr(ticket, "pending", False))
+    if not was_pending:
+        ticket.pending_since = now_iso
+
+    ticket.pending = True
+    ticket.pending_reason_type = reason_type
+    ticket.pending_ticket_id = ticket_target_id if reason_type == "ticket" else None
+    ticket.pending_member_id = member_id if reason_type == "person" else None
+    ticket.pending_party = clean_party if reason_type == "party" else None
+    ticket.pending_note = clean_note
+    ticket.pending_by = actor
+
+    # If waiting on a ticket and add_blocked_by is true:
+    if target is not None and add_blocked_by:
+        blocked_by = _loads(ticket.blocked_by)
+        if ticket_target_id not in blocked_by:
+            blocked_by.append(ticket_target_id)
+            ticket.blocked_by = _dumps(blocked_by)
+        blocks = _loads(target.blocks)
+        if ticket.id not in blocks:
+            blocks.append(ticket.id)
+            target.blocks = _dumps(blocks)
+            session.add(target)
+
+    # Activity log
+    activity = _loads(ticket.activity_log)
+    activity.append(
+        {
+            "field": "pending_set",
+            "changed": was_pending,
+            "added_blocked_by": bool(target is not None and add_blocked_by),
+            "actor": actor or "user",
+            "reason_type": reason_type,
+            "target_id": ticket_target_id,
+            "member_id": member_id,
+            "party": ticket.pending_party,
+            "note": ticket.pending_note,
+            "at": now_iso,
+        }
+    )
+    ticket.activity_log = _dumps(activity)
+    ticket.updated_at = now_iso
+
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def clear_pending(
+    session: AsyncSession,
+    ticket_id: str,
+    reason: str | None = None,
+    add_comment: bool = False,
+    actor: str | None = None,
+) -> Ticket | None:
+    """Clear the Pending flag on a ticket (Resume)."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+
+    if not getattr(ticket, "pending", False):
+        return ticket
+
+    now_iso = datetime.now(UTC).isoformat()
+    clean_reason = _clean_reason(reason, "reason")
+
+    # If add_comment is set:
+    if add_comment and clean_reason:
+        comments = _loads(ticket.comments)
+        comment_entry = {
+            "id": str(uuid.uuid4()),
+            "text": f"Resumed from Pending: {clean_reason}",
+            "author": actor or "user",
+            "at": now_iso,
+        }
+        comments.append(comment_entry)
+        ticket.comments = _dumps(comments)
+
+    waited_on = {
+        "reason_type": ticket.pending_reason_type,
+        "target_id": ticket.pending_ticket_id,
+        "member_id": ticket.pending_member_id,
+        "party": ticket.pending_party,
+    }
+    duration_days = 0
+    if ticket.pending_since:
+        try:
+            since = datetime.fromisoformat(ticket.pending_since)
+            duration_days = max((datetime.now(UTC) - since).days, 0)
+        except ValueError:
+            pass
+
+    ticket.pending = False
+    ticket.pending_reason_type = None
+    ticket.pending_ticket_id = None
+    ticket.pending_member_id = None
+    ticket.pending_party = None
+    ticket.pending_note = None
+    ticket.pending_since = None
+    ticket.pending_by = None
+
+    activity = _loads(ticket.activity_log)
+    activity.append(
+        {
+            "field": "pending_cleared",
+            "actor": actor or "user",
+            "reason": clean_reason,
+            "duration_days": duration_days,
+            "was_waiting_on": waited_on,
+            "at": now_iso,
+        }
+    )
+    ticket.activity_log = _dumps(activity)
+    ticket.updated_at = now_iso
+
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket
+
+
+async def undo_reopen(session: AsyncSession, ticket_id: str) -> Ticket | None:
+    """Revert the latest reopen: back to the status it came from, count and history rolled back."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    history = _loads(getattr(ticket, "reopen_history", "[]"))
+    if not history or ticket.status != "todo":
+        raise ValueError("There is no reopen to undo")
+
+    latest = history.pop(0)
+    ticket.status = latest.get("from_status") or "done"
+    ticket.reopen_count = max((ticket.reopen_count or 1) - 1, 0)
+    previous = history[0] if history else None
+    ticket.last_reopened_at = previous.get("at") if previous else None
+    ticket.last_reopened_by = previous.get("actor") if previous else None
+    ticket.last_reopen_reason = previous.get("reason") if previous else None
+    ticket.reopen_history = _dumps(history)
+
+    activity = _loads(ticket.activity_log)
+    for i in range(len(activity) - 1, -1, -1):
+        if (
+            isinstance(activity[i], dict)
+            and activity[i].get("field") == "reopen"
+            and activity[i].get("at") == latest.get("at")
+        ):
+            del activity[i]
+            break
+    ticket.activity_log = _dumps(activity)
+    ticket.updated_at = datetime.now(UTC).isoformat()
+
+    session.add(ticket)
+    await session.commit()
+    await session.refresh(ticket)
+    return ticket

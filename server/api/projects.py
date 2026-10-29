@@ -21,12 +21,14 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 
 @router.get("", response_model=list[ProjectRead])
 async def get_projects(session: Session) -> list[ProjectRead]:
+    """List all projects."""
     projects = await list_projects(session)
     return [ProjectRead.model_validate(p) for p in projects]
 
 
 @router.post("", response_model=ProjectRead, status_code=201)
 async def post_project(data: ProjectCreate, session: Session) -> ProjectRead:
+    """Create a project."""
     try:
         project = await create_project(session, data)
     except ValueError as exc:
@@ -37,6 +39,7 @@ async def post_project(data: ProjectCreate, session: Session) -> ProjectRead:
 
 @router.get("/{project_id}", response_model=ProjectRead)
 async def get_one_project(project_id: str, session: Session) -> ProjectRead:
+    """Get a project by id."""
     project = await get_project(session, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -47,6 +50,7 @@ async def get_one_project(project_id: str, session: Session) -> ProjectRead:
 async def patch_project(
     project_id: str, data: ProjectUpdate, session: Session
 ) -> ProjectRead:
+    """Update a project's name, color or linked repo."""
     try:
         project = await update_project(session, project_id, data)
     except ValueError as exc:
@@ -59,6 +63,7 @@ async def patch_project(
 
 @router.delete("/{project_id}", status_code=204)
 async def del_project(project_id: str, session: Session) -> None:
+    """Delete an empty project."""
     try:
         found = await delete_project(session, project_id)
     except ValueError as exc:

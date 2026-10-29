@@ -1,8 +1,14 @@
+import type { ReactNode } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import type { TestCase, TestCaseStatus, TestCaseFileData } from '../types';
-import { uploadAttachment, uploadUrl, uploadDescriptionImage } from '../api/tickets';
+import { uploadAttachment, uploadUrl, uploadAnyFile } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { MarkdownEditor } from './MarkdownEditor';
+import { useMembers } from '../api/members';
+import { useDocsRefs } from './docs/DocsRefsContext';
+import { TestCaseMention } from './ai/TestCaseMention';
+import { usePeopleAndAiSuggest } from './ai/useMentionList';
+import type { SuggestMember } from './docs/RefSuggester';
 import styles from './TestCasesSection.module.css';
 
 interface ChildTestCaseSource {
@@ -19,6 +25,12 @@ interface TestCasesSectionProps {
   readOnly?: boolean;
   disabled?: boolean;
   childTestCaseSources?: ChildTestCaseSource[];
+  /** "Suggest cases" next to "Add test case" (Board AI, E). */
+  aiActions?: ReactNode;
+  /** Suggested cases and coverage, shown above the list. */
+  aiPanel?: ReactNode;
+  /** The ticket's acceptance criteria, to number the case's "AC n" chip. */
+  criteria?: { id: string }[];
 }
 
 const STATUS_CYCLE: Record<TestCaseStatus, TestCaseStatus> = {
@@ -62,6 +74,9 @@ function TestCaseRowItem({
   onDelete,
   readOnly,
   disabled,
+  ac,
+  mentionMembers,
+  askTicketId,
 }: {
   tc: TestCase;
   index: number;
@@ -69,6 +84,12 @@ function TestCaseRowItem({
   onDelete: () => void;
   readOnly: boolean;
   disabled?: boolean;
+  /** Number of the acceptance criterion the case tests (coverage). */
+  ac?: number;
+  /** People and AI members offered after @ in the note. */
+  mentionMembers?: SuggestMember[];
+  /** The ticket this case belongs to: set when an AI mention in the note can be asked. */
+  askTicketId?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -134,7 +155,13 @@ function TestCaseRowItem({
           {tc.status === 'pass' && (
             <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.6" />
-              <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M4.3 7.2L6.1 9L9.8 5"
+                stroke="#2E6F40"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           )}
           {tc.status === 'fail' && (
@@ -143,16 +170,30 @@ function TestCaseRowItem({
               <path d="M5 5L9 9M9 5L5 9" stroke="#C4432A" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
           )}
-          {tc.status === 'running' && (
-            <span className={`${styles.tcStatusDot} ${styles.tcStatusDotRunning}`} />
-          )}
-          {tc.status === 'pending' && (
-            <span className={`${styles.tcStatusDot} ${styles.tcStatusDotPending}`} />
-          )}
+          {tc.status === 'running' && <span className={`${styles.tcStatusDot} ${styles.tcStatusDotRunning}`} />}
+          {tc.status === 'pending' && <span className={`${styles.tcStatusDot} ${styles.tcStatusDotPending}`} />}
         </button>
 
         {/* Code mono */}
         <span className={styles.codeMono}>{codeDisplay}</span>
+        {ac ? (
+          <span
+            title={
+              tc.suggestedBy ? `Tests AC ${ac} · suggested by ${tc.suggestedBy}` : `Tests acceptance criterion ${ac}`
+            }
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              padding: '1px 6px',
+              borderRadius: 999,
+              background: '#F1EEFB',
+              color: '#6B5BD2',
+              flexShrink: 0,
+            }}
+          >
+            AC {ac}
+          </span>
+        ) : null}
 
         {/* Title */}
         <div className={styles.titleArea}>
@@ -209,7 +250,16 @@ function TestCaseRowItem({
           aria-label={expanded ? 'Collapse details' : 'Expand details'}
           title={expanded ? 'Collapse details' : 'Expand details'}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             {expanded ? <path d="M18 15L12 9L6 15" /> : <path d="M6 9L12 15L18 9" />}
           </svg>
         </button>
@@ -224,8 +274,19 @@ function TestCaseRowItem({
             aria-label="Delete test case"
             title="Delete test case"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6H21" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 6H21" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
             </svg>
           </button>
         )}
@@ -243,10 +304,8 @@ function TestCaseRowItem({
               placeholderText="What does this test case cover?"
               readOnly={readOnly || disabled}
               compact={true}
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
           </div>
 
@@ -259,10 +318,8 @@ function TestCaseRowItem({
               placeholderText="What is the expected behavior or pass bar?"
               readOnly={readOnly || disabled}
               compact={true}
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
           </div>
 
@@ -271,36 +328,55 @@ function TestCaseRowItem({
             <span className={styles.fieldLabel}>Test data</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {(tc.testDataFiles ?? []).map((rawFile, i) => {
-                const file: TestCaseFileData = typeof rawFile === 'string'
-                  ? {
-                      id: `legacy-${i}`,
-                      name: (rawFile as string).split('/').pop() || (rawFile as string),
-                      url: rawFile as string,
-                      size: undefined,
-                    }
-                  : rawFile;
+                const file: TestCaseFileData =
+                  typeof rawFile === 'string'
+                    ? {
+                        id: `legacy-${i}`,
+                        name: (rawFile as string).split('/').pop() || (rawFile as string),
+                        url: rawFile as string,
+                        size: undefined,
+                      }
+                    : rawFile;
                 const href = file?.url ? uploadUrl(file.url, file.name) : '';
                 const chip = (
                   <>
                     <div className={styles.fileIcon} style={{ background: '#F1F8F3' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E6F40" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#2E6F40"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z" />
                         <path d="M14 3V8H19" />
                       </svg>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file?.name || 'file'}</span>
-                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>{file?.size ? formatFileSize(file.size) : 'file'}</span>
+                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>
+                        {file?.size ? formatFileSize(file.size) : 'file'}
+                      </span>
                     </div>
                   </>
                 );
                 return (
                   <div key={file?.id || i} className={styles.fileChip}>
                     {href ? (
-                      <a href={href} download={file?.name} title={`Download ${file?.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+                      <a
+                        href={href}
+                        download={file?.name}
+                        title={`Download ${file?.name}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+                      >
                         {chip}
                       </a>
-                    ) : chip}
+                    ) : (
+                      chip
+                    )}
                     {!readOnly && (
                       <button
                         type="button"
@@ -328,8 +404,17 @@ function TestCaseRowItem({
                     onClick={() => fileInputRef.current?.click()}
                     disabled={fileBusy}
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                      <path d="M12 5V19" /><path d="M5 12H19" />
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                    >
+                      <path d="M12 5V19" />
+                      <path d="M5 12H19" />
                     </svg>
                     {fileBusy ? 'Uploading…' : 'Attach file'}
                   </button>
@@ -344,7 +429,11 @@ function TestCaseRowItem({
                 </>
               )}
             </div>
-            {fileError && <span style={{ fontSize: 11.5, color: '#A93226' }} role="alert">{fileError}</span>}
+            {fileError && (
+              <span style={{ fontSize: 11.5, color: '#A93226' }} role="alert">
+                {fileError}
+              </span>
+            )}
           </div>
 
           {/* Notes */}
@@ -356,11 +445,13 @@ function TestCaseRowItem({
               placeholderText="Additional notes, screenshots, or environment details..."
               readOnly={readOnly || disabled}
               compact={true}
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              mentionMembers={mentionMembers}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
+            {askTicketId && !readOnly && (
+              <TestCaseMention ticketId={askTicketId} code={tc.code} notes={tc.notes || tc.note || ''} />
+            )}
           </div>
 
           {/* Footer Info */}
@@ -375,6 +466,15 @@ function TestCaseRowItem({
   );
 }
 
+/**
+ * Ticket's test cases with status and proof.
+ * @param props.testCases - Test cases of the ticket.
+ * @param props.onChange - Called with the full updated list after an edit.
+ * @param props.onAdd - Called with title and optional description to add a test case; when omitted the list is edited locally via `onChange`.
+ * @param props.readOnly - Hide add, edit and delete controls.
+ * @param props.disabled - Disable the controls, e.g. while a save is running.
+ * @param props.childTestCaseSources - Test cases of child tickets shown as read-only groups.
+ */
 export function TestCasesSection({
   ticketId = 'KAN',
   testCases,
@@ -383,7 +483,13 @@ export function TestCasesSection({
   readOnly = false,
   disabled = false,
   childTestCaseSources = [],
+  aiActions,
+  aiPanel,
+  criteria,
 }: TestCasesSectionProps) {
+  const projectId = useDocsRefs()?.projectId ?? '';
+  const mentionMembers = usePeopleAndAiSuggest(useMembers(projectId).data ?? []);
+  const acIndex: Record<string, number> = Object.fromEntries((criteria ?? []).map((c, i) => [c.id, i + 1]));
   const [statusFilter, setStatusFilter] = useState<'all' | TestCaseStatus>('all');
   const [rollupSource, setRollupSource] = useState<string>('all');
   const [rollupDropdownOpen, setRollupDropdownOpen] = useState(false);
@@ -415,19 +521,16 @@ export function TestCasesSection({
   const hasChildren = childTestCaseSources.length > 0;
 
   // Counts across all test cases
-  const allTestCases = [
-    ...testCases,
-    ...childTestCaseSources.flatMap((c) => c.testCases),
-  ];
+  const allTestCases = [...testCases, ...childTestCaseSources.flatMap((c) => c.testCases)];
 
   // Active source list according to rollup selection
   const sourceTestCases = !hasChildren
     ? testCases
     : rollupSource === 'all'
-    ? allTestCases
-    : rollupSource === 'parent'
-    ? testCases
-    : childTestCaseSources.find((c) => c.ticketId === rollupSource)?.testCases ?? [];
+      ? allTestCases
+      : rollupSource === 'parent'
+        ? testCases
+        : (childTestCaseSources.find((c) => c.ticketId === rollupSource)?.testCases ?? []);
 
   const passCount = sourceTestCases.filter((tc) => tc.status === 'pass').length;
   const failCount = sourceTestCases.filter((tc) => tc.status === 'fail').length;
@@ -438,8 +541,8 @@ export function TestCasesSection({
     rollupSource === 'all'
       ? `All (${allTestCases.length})`
       : rollupSource === 'parent'
-      ? `Parent only (${testCases.length})`
-      : `Child: ${rollupSource} (${childTestCaseSources.find((c) => c.ticketId === rollupSource)?.testCases.length ?? 0})`;
+        ? `Parent only (${testCases.length})`
+        : `Child: ${rollupSource} (${childTestCaseSources.find((c) => c.ticketId === rollupSource)?.testCases.length ?? 0})`;
 
   function filterList(list: TestCase[]) {
     if (statusFilter === 'all') return list;
@@ -499,7 +602,16 @@ export function TestCasesSection({
                 aria-expanded={rollupDropdownOpen}
               >
                 {currentRollupLabel}
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="9"
+                  height="9"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9AA8A0"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M6 9L12 15L18 9" />
                 </svg>
               </button>
@@ -548,6 +660,7 @@ export function TestCasesSection({
             </span>
           </div>
 
+          {!readOnly && aiActions}
           {!readOnly && (
             <button
               type="button"
@@ -556,8 +669,17 @@ export function TestCasesSection({
               onClick={() => setShowAddForm(true)}
               disabled={disabled || showAddForm}
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                <path d="M12 5V19" /><path d="M5 12H19" />
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              >
+                <path d="M12 5V19" />
+                <path d="M5 12H19" />
               </svg>
               Add test case
             </button>
@@ -568,6 +690,7 @@ export function TestCasesSection({
           <span className={styles.tcLabel}>
             {testCases.length} test cases · {ticketId}
           </span>
+          {!readOnly && aiActions}
           {!readOnly && (
             <button
               type="button"
@@ -575,14 +698,25 @@ export function TestCasesSection({
               onClick={() => setShowAddForm(true)}
               disabled={disabled || showAddForm}
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                <path d="M12 5V19" /><path d="M5 12H19" />
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              >
+                <path d="M12 5V19" />
+                <path d="M5 12H19" />
               </svg>
               Add test case
             </button>
           )}
         </div>
       )}
+
+      {aiPanel}
 
       {/* Filter Chips */}
       <div className={styles.filterRow}>
@@ -646,18 +780,12 @@ export function TestCasesSection({
               onChange={setAddDescription}
               compact={true}
               placeholderText="Description (optional, markdown supported)…"
-              onUploadImage={async (f: File) => {
-                const res = await uploadDescriptionImage(f);
-                return { markdown: `![${f.name}](${res.url})` };
-              }}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
             />
           </div>
           <div className={styles.inlineAddActions}>
-            <button
-              type="submit"
-              className={styles.btnSubmit}
-              disabled={isSubmitting || !addTitle.trim()}
-            >
+            <button type="submit" className={styles.btnSubmit} disabled={isSubmitting || !addTitle.trim()}>
               {isSubmitting ? 'Adding…' : 'Add'}
             </button>
             <button
@@ -696,6 +824,9 @@ export function TestCasesSection({
                   onDelete={() => handleDelete(tc.id)}
                   readOnly={readOnly}
                   disabled={disabled}
+                  ac={tc.criterionId ? acIndex[tc.criterionId] : undefined}
+                  mentionMembers={mentionMembers}
+                  askTicketId={ticketId}
                 />
               ))
             )}

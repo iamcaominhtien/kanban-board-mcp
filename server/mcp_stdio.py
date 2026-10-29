@@ -10,13 +10,14 @@ Requires the database to have been migrated first:
 
 import asyncio
 
+import app_logging
 from mcp.server.fastmcp import FastMCP
 
-import mcp_tools as _mcp_tools
+import kanban_mcp
 from database import init_db
 
-mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS)
-_mcp_tools.register(mcp)
+mcp = FastMCP("kanban-mcp", instructions=kanban_mcp.MCP_INSTRUCTIONS)
+kanban_mcp.register(mcp)
 
 
 async def _startup() -> None:
@@ -24,5 +25,6 @@ async def _startup() -> None:
 
 
 if __name__ == "__main__":
+    app_logging.setup_logging(stdio=True)
     asyncio.run(_startup())
     mcp.run(transport="stdio")

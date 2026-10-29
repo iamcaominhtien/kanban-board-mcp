@@ -4,6 +4,7 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
   size?: number;
 }
 
+/** Icon for the Workspace tab. */
 export function WorkspaceTabIcon({ size = 18, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -25,6 +26,7 @@ export function WorkspaceTabIcon({ size = 18, className, style, ...props }: Icon
   );
 }
 
+/** Icon for a workspace waiting to be auto-deleted. */
 export function AutoDeletePendingIcon({ size = 16, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -47,6 +49,7 @@ export function AutoDeletePendingIcon({ size = 16, className, style, ...props }:
   );
 }
 
+/** Icon for a workspace kept forever. */
 export function KeptForeverIcon({ size = 16, className, style, ...props }: IconProps) {
   return (
     <svg

@@ -36,6 +36,7 @@ def get_data_folder() -> Path | None:
 
 
 def set_data_folder(path: Path) -> None:
+    """Persist the data folder path in the config file."""
     data = _load()
     data["data_folder"] = str(path)
     _save(data)

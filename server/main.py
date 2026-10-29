@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,27 +10,59 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from mcp.server.fastmcp import FastMCP
 
+import app_logging
 import events as board_events
 
-import mcp_tools as _mcp_tools
+import kanban_mcp
 from api.projects import router as projects_router
 from api.tickets import router as tickets_router
 from api.members import router as members_router
 from api.settings import router as settings_router
 from api.data import router as data_router
+from api.logs import router as logs_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
+from api.docs import docs_error_handler, router as docs_router
+from api.diagrams import router as diagrams_router
+from api.ai import router as ai_router
+from api.ai_safety import router as ai_safety_router
+from api.ai_config import router as ai_config_router
+from api.assist import assist_error_handler
+from api.assist import router as assist_router
+from api import ai_roles
+from api.schedules import router as schedules_router
+from api.schedules import schedule_error_handler
+from services.ai.assist import chat as assist_chat
+from services.ai.assist import health as assist_health
+from services.ai.assist.settings import AssistError
+from services.ai import schedules as ai_schedules
+from services.ai.schedules import ScheduleError
+from services.ai import runs as ai_runs
+from services.docs_text import DocsError
 import database
 from version import version_info
 from database import init_db
 from services import activity as svc_activity
 from services import workspace as svc_workspace
-from uploads import MIME_BY_EXTENSION, resolve_upload_path
+from uploads import (
+    MIME_BY_EXTENSION,
+    SUPPORTED_IMAGE_EXTENSIONS,
+    VIEWABLE_INLINE_EXTENSIONS,
+    resolve_upload_path,
+)
 
 
-mcp = FastMCP("kanban-mcp", instructions=_mcp_tools.MCP_INSTRUCTIONS, stateless_http=True, streamable_http_path="/")
+app_logging.setup_logging()
+logger = logging.getLogger("kanban.http")
 
-_mcp_tools.register(mcp)
+mcp = FastMCP(
+    "kanban-mcp",
+    instructions=kanban_mcp.MCP_INSTRUCTIONS,
+    stateless_http=True,
+    streamable_http_path="/",
+)
+
+kanban_mcp.register(mcp)
 
 
 @asynccontextmanager
@@ -38,14 +72,24 @@ async def lifespan(app: FastAPI):
     # propagate a mounted sub-app's lifespan from the parent's `Mount` - so it
     # must be started explicitly here, or every /mcp request raises
     # "RuntimeError: Task group is not initialized. Make sure to use run()."
+    """Run the MCP session manager, DB init and background sweeper for the app's lifetime."""
     async with mcp.session_manager.run():
         await init_db()
+        logger.info("Server started (version %s)", version_info().get("version"))
         sweeper = asyncio.create_task(
             svc_workspace.sweep_loop(lambda: database.async_session())
         )
+        await ai_runs.start_scheduler()
+        await assist_chat.recover()
+        assist_health.start_scheduler()
+        ai_schedules.start_scheduler()
         try:
             yield
         finally:
+            # No CLI process outlives the board: cancel the AI runs and kill their process trees
+            await assist_health.stop_scheduler()
+            await ai_schedules.stop_scheduler()
+            await ai_runs.stop_scheduler()
             sweeper.cancel()
             try:
                 await sweeper
@@ -61,19 +105,38 @@ app.add_middleware(
         "*"
     ],  # Wildcard is safe: the server binds to 127.0.0.1 (loopback only), so it is not reachable from external networks.
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    expose_headers=["x-request-id"],
     allow_headers=[
         "Content-Type",
         "Authorization",
         "Accept",
         "X-Requested-With",
         "Last-Event-ID",
+        "X-Request-Id",
     ],
 )
 
+
+# AI endpoints check the person's project role first (api/ai_roles.py)
+app.middleware("http")(ai_roles.enforce)
+
+
 @app.middleware("http")
 async def record_activity_actor(request: Request, call_next):
-    """REST calls are attributed to the person using the board, or to X-Actor if sent."""
+    """Attribute REST calls to the board user, or to `X-Actor` when the header is sent.
+
+    Args:
+        request: Incoming request.
+        call_next: Next handler in the middleware chain.
+
+    Returns:
+        The downstream response.
+    """
+    server = request.scope.get("server")
+    if server and server[0] in ("127.0.0.1", "localhost", "::1"):
+        # A local runner's CLI reaches the board's MCP server on the same socket
+        ai_runs.set_board_url(f"http://127.0.0.1:{server[1]}")
     header = (request.headers.get("x-actor") or "").strip()[:80]
     token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
     try:
@@ -82,19 +145,65 @@ async def record_activity_actor(request: Request, call_next):
         svc_activity.reset_actor(token)
 
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log failed requests (4xx at WARNING, 5xx and raised errors at ERROR) with timing.
+
+    Args:
+        request: Incoming request.
+        call_next: Next handler in the middleware chain.
+
+    Returns:
+        The downstream response.
+    """
+    started = time.monotonic()
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "%s %s raised after %dms",
+            request.method,
+            request.url.path,
+            (time.monotonic() - started) * 1000,
+        )
+        raise
+    if response.status_code >= 400:
+        logger.log(
+            logging.ERROR if response.status_code >= 500 else logging.WARNING,
+            "%s %s -> %d (%dms)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            (time.monotonic() - started) * 1000,
+        )
+    return response
+
+
 app.mount("/mcp", mcp.streamable_http_app())
 
 app.include_router(projects_router)
+app.include_router(assist_router)
+app.add_exception_handler(AssistError, assist_error_handler)
+app.include_router(schedules_router)
+app.add_exception_handler(ScheduleError, schedule_error_handler)
 app.include_router(tickets_router)
 app.include_router(members_router)
 app.include_router(settings_router)
 app.include_router(data_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
+app.include_router(docs_router)
+app.include_router(diagrams_router)
+app.include_router(logs_router)
+app.include_router(ai_router)
+app.include_router(ai_safety_router)
+app.include_router(ai_config_router)
+app.add_exception_handler(DocsError, docs_error_handler)
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Report liveness."""
     return {"status": "ok"}
 
 
@@ -105,30 +214,68 @@ async def version() -> dict[str, str]:
 
 
 @app.get("/uploads/{file_path:path}")
-async def serve_upload(file_path: str, name: str | None = None):
+async def serve_upload(
+    file_path: str,
+    name: str | None = None,
+    download: bool = False,
+    inline: bool = False,
+    view: bool = False,
+):
+    """Serve an uploaded file inline (images, viewable types) or as a download.
+
+    Args:
+        file_path: Path inside the uploads folder.
+        name: File name to suggest for a download.
+        download: Force a download.
+        inline: Show viewable types in the browser.
+        view: Alias of `inline`.
+
+    Raises:
+        HTTPException: 400 for an invalid path; 404 if the file does not exist.
+    """
     resolved = resolve_upload_path(file_path)
     if resolved is None:
         raise HTTPException(status_code=400, detail="Invalid path")
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="File not found")
-    headers = {"X-Content-Type-Options": "nosniff"}
-    if resolved.suffix.lower() in MIME_BY_EXTENSION:
-        return FileResponse(resolved, headers=headers)
-    # Anything that is not a known image is only ever offered as a download, so an
-    # uploaded .html/.svg can never run script in the app's origin.
-    # ?name= lets the page offer the original file name; the stored name carries a random suffix
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "X-File-Path": str(resolved.resolve()),
+        "Access-Control-Expose-Headers": "X-File-Path, Content-Disposition",
+    }
+    ext = resolved.suffix.lower()
+    media_type = MIME_BY_EXTENSION.get(ext, "application/octet-stream")
+
     download_name = Path((name or "").replace("\\", "/")).name
-    download_name = "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
+    download_name = (
+        "".join(ch for ch in download_name if ch.isprintable())[:200] or resolved.name
+    )
+
+    is_image = ext in SUPPORTED_IMAGE_EXTENSIONS
+    wants_inline = (
+        (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
+    )
+
+    if not download and (is_image or wants_inline):
+        return FileResponse(
+            resolved,
+            media_type=media_type,
+            headers=headers,
+        )
+
     return FileResponse(
         resolved,
         media_type="application/octet-stream",
         filename=download_name,
         headers=headers,
+        content_disposition_type="attachment",
     )
 
 
 @app.get("/events")
 async def sse_events() -> StreamingResponse:
+    """Stream board events to the client as Server-Sent Events."""
+
     async def generator():
         q = board_events.subscribe()
         try:
@@ -181,6 +328,11 @@ def _get_ui_dist() -> Path | None:
 
 @app.get("/")
 async def serve_root():
+    """Serve the built UI's index page.
+
+    Raises:
+        HTTPException: 404 if the UI is not built.
+    """
     dist = _get_ui_dist()
     if dist:
         index = dist / "index.html"
@@ -191,6 +343,14 @@ async def serve_root():
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
+    """Serve a built UI asset, falling back to the SPA index for client routes.
+
+    Args:
+        full_path: Requested path.
+
+    Raises:
+        HTTPException: 400 for an invalid path; 404 if the UI is not built or the path is reserved.
+    """
     dist = _get_ui_dist()
     if not dist:
         raise HTTPException(status_code=404, detail="UI not built")
@@ -243,7 +403,10 @@ if __name__ == "__main__":
     _startup_mark("uvicorn-imported")
 
     class SignalServer(uvicorn.Server):
+        """Uvicorn server that prints a READY line once it is listening."""
+
         async def startup(self, sockets=None):
+            """Start up, then tell the parent process the port is ready."""
             await super().startup(sockets)
             _startup_mark("uvicorn-startup-done")
             print(f"READY port={self.config.port}", flush=True)

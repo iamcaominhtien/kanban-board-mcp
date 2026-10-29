@@ -11,12 +11,14 @@ _subscribers: set[asyncio.Queue] = set()
 
 
 def subscribe() -> asyncio.Queue:
+    """Register a new SSE subscriber and return its queue."""
     q: asyncio.Queue = asyncio.Queue(maxsize=100)
     _subscribers.add(q)
     return q
 
 
 def unsubscribe(q: asyncio.Queue) -> None:
+    """Remove a subscriber's queue."""
     _subscribers.discard(q)
 
 

@@ -1,17 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import type { RelationType, Status, Ticket } from '../types';
-import { TicketTypeIcon } from './icons';
+import { StatusMenu } from './StatusMenu';
 import styles from './RelationsSection.module.css';
-
-const STATUS_CONFIG: Record<Status, { label: string; dot: string }> = {
-  backlog: { label: 'Backlog', dot: '#C7D2CB' },
-  todo: { label: 'To Do', dot: '#9AA8A0' },
-  'in-progress': { label: 'In Progress', dot: '#2F6FB0' },
-  review: { label: 'Review', dot: '#6D5DD3' },
-  testing: { label: 'Testing', dot: '#B4571F' },
-  done: { label: 'Done', dot: '#2E6F40' },
-  wont_do: { label: "Won't Do", dot: '#C4432A' },
-};
 
 type RelationTypeKey = 'blocks' | 'blockedBy' | RelationType;
 
@@ -25,6 +15,21 @@ const RELATION_TYPE_LABELS: Record<RelationTypeKey, string> = {
   duplicated_by: 'Duplicated by',
 };
 
+/** Wraps the part of `text` matching `query` in a <mark>, for the link search results. */
+function highlightMatch(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return text;
+  const at = text.toLowerCase().indexOf(q.toLowerCase());
+  if (at < 0) return text;
+  return (
+    <>
+      {text.slice(0, at)}
+      <mark className={styles.mark}>{text.slice(at, at + q.length)}</mark>
+      {text.slice(at + q.length)}
+    </>
+  );
+}
+
 interface RelationsSectionProps {
   ticket: Ticket;
   allTickets: Ticket[];
@@ -33,6 +38,9 @@ interface RelationsSectionProps {
   onAddLink?: (ticketId: string, targetId: string, relationType: RelationType) => void;
   onRemoveLink?: (ticketId: string, linkId: string) => void;
   onOpenTicket?: (ticket: Ticket) => void;
+  onChangeStatus?: (ticketId: string, status: Status) => void;
+  /** One click, no dialog: mark the ticket pending on this blocker (TicketPending A4). */
+  onMarkPending?: (blockerId: string) => void;
 }
 
 interface RelationRow {
@@ -42,6 +50,17 @@ interface RelationRow {
   linkId?: string;
 }
 
+/**
+ * Ticket's blocks, blocked-by and linked relations.
+ * @param props.ticket - Ticket whose relations are shown.
+ * @param props.allTickets - All project tickets, offered as link targets.
+ * @param props.onLinkBlock - Called with blocker id and blocked id to create a block.
+ * @param props.onUnlinkBlock - Called with blocker id and blocked id to remove a block.
+ * @param props.onAddLink - Called with ticket id, target id and relation type to add a link.
+ * @param props.onRemoveLink - Called with ticket id and link id to remove a link.
+ * @param props.onOpenTicket - Called with a related ticket when it is opened.
+ * @param props.onChangeStatus - Called with a related ticket id and new status from its status menu.
+ */
 export function RelationsSection({
   ticket,
   allTickets,
@@ -50,6 +69,8 @@ export function RelationsSection({
   onAddLink,
   onRemoveLink,
   onOpenTicket,
+  onChangeStatus,
+  onMarkPending,
 }: RelationsSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedType, setSelectedType] = useState<RelationTypeKey>('blocks');
@@ -121,12 +142,11 @@ export function RelationsSection({
       if (excludeIds.has(t.id)) return false;
       if (t.parentId !== null) return false;
       if (!searchLower) return true;
-      return (
-        t.id.toLowerCase().includes(searchLower) ||
-        t.title.toLowerCase().includes(searchLower)
-      );
+      return t.id.toLowerCase().includes(searchLower) || t.title.toLowerCase().includes(searchLower);
     });
   }, [allTickets, excludeIds, search]);
+
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
 
   function handleRemove(rel: RelationRow) {
     if (rel.type === 'blocks') {
@@ -154,62 +174,141 @@ export function RelationsSection({
     <div className={styles.section}>
       <div className={styles.label}>RELATIONS</div>
 
+      {relations.length === 0 && !showAddForm && <span className={styles.empty}>No links</span>}
+
       {relations.length > 0 && (
         <div className={styles.groups}>
           {Array.from(grouped.entries()).map(([relType, rows]) => (
             <div key={relType} className={styles.group}>
-              <div className={styles.groupLabel}>
-                {RELATION_TYPE_LABELS[relType] ?? relType}
-              </div>
+              <div className={styles.groupLabel}>{RELATION_TYPE_LABELS[relType] ?? relType}</div>
               <div className={styles.cardContainer}>
-                {rows.map((row) => {
-                  const statusInfo =
-                    STATUS_CONFIG[row.ticket.status] ?? STATUS_CONFIG.backlog;
-                  return (
-                    <div key={`${row.type}-${row.targetId}`} className={styles.row}>
-                      <span className={styles.ticketId}>{row.targetId}</span>
-                      <span
-                        className={styles.ticketTitle}
-                        onClick={() => onOpenTicket?.(row.ticket)}
+                {rows.map((row) => (
+                  <div key={`${row.type}-${row.targetId}`} className={styles.row}>
+                    <span className={styles.ticketId}>{row.targetId}</span>
+                    <span
+                      className={`${styles.ticketTitle} ${
+                        row.ticket.status === 'wont_do' ? styles.ticketTitleMuted : ''
+                      }`}
+                      onClick={() => onOpenTicket?.(row.ticket)}
+                    >
+                      {row.ticket.title}
+                    </span>
+                    {ticket.pending &&
+                      ticket.pendingReasonType === 'ticket' &&
+                      ticket.pendingTicketId === row.targetId && (
+                        <span
+                          style={{
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            background: '#e8edf3',
+                            border: '1px solid #b8c4d2',
+                            color: '#34455a',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Pending reason
+                        </span>
+                      )}
+                    <StatusMenu
+                      compact
+                      value={row.ticket.status}
+                      disabled={!onChangeStatus}
+                      allowWontDo={false}
+                      onChange={(next) => onChangeStatus?.(row.ticket.id, next)}
+                    />
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => handleRemove(row)}
+                      title="Remove relation"
+                      aria-label="Remove relation"
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
                       >
-                        {row.ticket.title}
+                        <path d="M6 6L18 18" />
+                        <path d="M18 6L6 18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {relType === 'blockedBy' &&
+                onMarkPending &&
+                !ticket.pending &&
+                ticket.status !== 'done' &&
+                ticket.status !== 'wont_do' &&
+                rows
+                  .filter(
+                    (r) =>
+                      r.ticket.status !== 'done' &&
+                      r.ticket.status !== 'wont_do' &&
+                      !dismissedSuggestions.has(r.targetId),
+                  )
+                  .slice(0, 1)
+                  .map((r) => (
+                    <div
+                      key={`suggest-${r.targetId}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                        marginTop: 6,
+                        padding: '7px 10px',
+                        borderRadius: 8,
+                        background: '#F4F6F9',
+                        border: '1px solid #B8C4D2',
+                        fontSize: 12,
+                        color: '#34455A',
+                      }}
+                    >
+                      <span style={{ flex: 1, minWidth: 160 }}>
+                        <b style={{ fontFamily: "'JetBrains Mono', monospace" }}>{r.targetId}</b> is not done yet. Mark
+                        this ticket as pending?
                       </span>
-                      <div className={styles.statusBadge}>
-                        {row.ticket.status === 'done' ? (
-                          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                            <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
-                            <path
-                              d="M4.3 7.2L6.1 9L9.8 5"
-                              stroke="#2E6F40"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        ) : (
-                          <span
-                            className={styles.statusDot}
-                            style={{ backgroundColor: statusInfo.dot }}
-                          />
-                        )}
-                        <span className={styles.statusText}>{statusInfo.label}</span>
-                      </div>
                       <button
                         type="button"
-                        className={styles.removeBtn}
-                        onClick={() => handleRemove(row)}
-                        title="Remove relation"
-                        aria-label="Remove relation"
+                        onClick={() => onMarkPending(r.targetId)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: '#5B6F86',
+                          color: '#fff',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <path d="M6 6L18 18" />
-                          <path d="M18 6L6 18" />
-                        </svg>
+                        Mark pending
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDismissedSuggestions((prev) => new Set(prev).add(r.targetId))}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          border: '1px solid #B8C4D2',
+                          background: '#fff',
+                          color: '#34455A',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Not now
                       </button>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
             </div>
           ))}
         </div>
@@ -226,10 +325,10 @@ export function RelationsSection({
               <option value="blocks">Blocks</option>
               <option value="blockedBy">Blocked by</option>
               <option value="relates_to">Relates to</option>
-              <option value="duplicates">Duplicates</option>
-              <option value="duplicated_by">Duplicated by</option>
               <option value="causes">Causes</option>
               <option value="caused_by">Caused by</option>
+              <option value="duplicates">Duplicates</option>
+              <option value="duplicated_by">Duplicated by</option>
             </select>
 
             <input
@@ -249,7 +348,15 @@ export function RelationsSection({
               onClick={() => setShowAddForm(false)}
               aria-label="Cancel"
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <path d="M6 6L18 18" />
                 <path d="M18 6L6 18" />
               </svg>
@@ -258,9 +365,7 @@ export function RelationsSection({
 
           <div className={styles.resultsList}>
             {eligible.length === 0 ? (
-              <div style={{ padding: '8px 10px', fontSize: 12, color: '#9AA8A0', fontStyle: 'italic' }}>
-                No matching tickets
-              </div>
+              <div className={styles.noResults}>No matching tickets</div>
             ) : (
               eligible.slice(0, 6).map((item) => (
                 <button
@@ -269,21 +374,27 @@ export function RelationsSection({
                   className={styles.resultItem}
                   onClick={() => handleSelectTarget(item.id)}
                 >
-                  <TicketTypeIcon type={item.type} size={14} />
-                  <span className={styles.resultTitle}>{item.title}</span>
-                  <span className={styles.resultId}>{item.id}</span>
+                  <span className={styles.resultId}>#{item.id}</span>
+                  <span className={styles.resultTitle}>{highlightMatch(item.title, search)}</span>
                 </button>
               ))
             )}
           </div>
+          <div className={styles.helperText}>
+            Search excludes the ticket itself and anything already linked to it (any relation type).
+          </div>
         </div>
       ) : (
-        <button
-          type="button"
-          className={styles.addDashedBtn}
-          onClick={() => setShowAddForm(true)}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <button type="button" className={styles.addDashedBtn} onClick={() => setShowAddForm(true)}>
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
             <path d="M12 5V19" />
             <path d="M5 12H19" />
           </svg>

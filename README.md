@@ -24,12 +24,16 @@
 
 - **Board, List and Timeline** views with drag and drop, filters (type, priority, assignee), search, and **Review / Testing** statuses.
 - **Rich ticket detail**: WYSIWYG Markdown description (tables, task lists, code, pasted or uploaded images), acceptance criteria, sub-tickets, comments, blocks and links, estimates, dates, assignees and "Done requires" guards.
+- **Docs space** per project: a page tree with a WYSIWYG editor stored as Markdown, drafts, versions with diff and restore, `[[page#section]]` and ticket-key references with backlinks, and a Recycle Bin.
 - **Test cases** with pass / fail / running state per ticket and child ticket.
 - **Real git branches**: link a ticket to a branch, see its commit graph against `main`, check it out, and use git worktrees.
 - **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
 - **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
 - **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
-- **MCP server for AI agents**: 34 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **AI members**: add Claude Code (your signed-in CLI) or an API-key model as a member, assign it tickets or @mention it; it works through a real run with live steps, asks back when it needs a decision, stops at Review, and every action goes through permissions, approvals, budgets, a kill switch and an audit log.
+- **Board AI**: an Ask AI dock (Ctrl/Cmd+J) that answers about the board, a ticket or a doc and proposes changes as drafts you apply yourself; Draft with AI for new tickets, Improve description, Split with AI, test cases tied to acceptance criteria, a daily board-health digest, and Docs AI (summaries, sections, links, rewrite a selection).
+- **AI schedules**: let an AI member work on a ticket at a set time, once or on repeat, with "done when" checks (criteria, a test command, summary, branch) and a second AI that reviews the result; a pass moves the ticket to Review, never further. Shown in a Schedules tab (list and week), on the ticket and on its card.
+- **MCP server for AI agents**: 10 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
 - **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
 - **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
 
@@ -88,37 +92,39 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes 34 tools for AI agents over MCP (47 with the Idea Space tools enabled). The full list is in `server/mcp_tools.py`:
+The server exposes **11 tools** for AI agents over MCP (24 with the Idea Space tools enabled); `ai_run` only works inside a run the board started for an AI member, and `ai_schedules` refuses calls from inside a run. The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/kanban_mcp/` package: `tools/` (the 9 tools), `operations/` (one function per verb, grouped by area), `common.py`, `registry.py`, `instructions.py`. AI members live in `server/services/ai/` (members, runs and the CLI runner, the API agent loop, the permission guard, approvals, audit).
 
-**Projects & Members**
-- `list_projects`, `create_project`, `update_project` (name, color, linked git repo, worktree defaults)
-- `list_members`, `add_member`, `remove_member`
+| Tool | Read / write | What it does |
+|---|---|---|
+| `get_projects` | read | All projects, or one project with its members (`project_id`) |
+| `list_tickets` | read | Compact, paginated summaries (`status`, `priority`, `q`, `limit`/`offset`; `detail=true` for full objects) |
+| `get_ticket` | read | Everything about one ticket plus its 10 most recent activity entries (long texts shortened); `activity_limit=N` (0 = none, negative = the whole history in full), `activity_since=<ISO time>`, or `view='comments'` for just the discussion |
+| `docs_read` | read | Docs page tree: `list`, `get`, `search` (full-text, with snippets), `versions`, `version` (optionally a diff), `recycle_bin`, `check_links`, `comments`, `diagrams` (draw.io drawings in a project), `diagram` (writes a diagram's `.drawio` file to a local path to edit) |
+| `manage_project` | write | `create`, `update` (name, color, linked git repo, worktree defaults), `add_member`, `remove_member` |
+| `manage_ticket` | write | `create` (with `parent_id` for a sub-ticket), `update` (fields, status moves, assignee, dates, "Done requires" guards, `clear_fields`), `delete`, `workspace` (the ticket's scratch folder), `block`, `unblock`, `link`, `unlink`, `link_doc`, `unlink_doc` |
+| `ticket_items` | write | Lists inside a ticket, chosen with `item`: `comment` (add, update, delete, restore), `work_log` (the Debug Space journal), `criterion` (acceptance criteria), `sub_task` (checklist steps), `test_case` |
+| `ticket_branches` | write | `add`, `update`, `delete`, `checkout`: real git branches when the project has a linked repo |
+| `docs_write` | write | `create`, `update` (a stale `base_version` is rejected; optional `title` renames and rewrites `[[links]]`), `move`, `duplicate`, `delete` (to the Recycle Bin), `restore`, `restore_version`, `import` (a local `.md` file or folder), `diagram_create` / `diagram_save` (a local `.drawio` file; a stale `base_version` is rejected; an optional `svg_path` is used as the preview), `diagram_delete`, `diagram_restore` |
+| `ai_run` | write | Only inside a run the board started for an AI member: `ask` (a question for the person it acts for; the run waits and resumes with the answer), `report` (its summary and criteria claims) |
+| `ai_schedules` | destructive | AI schedules: `list`, `get`, `create`, `update`, `pause`, `resume`, `delete`, `run_now`; settings go in `fields` (AI member, once or repeat, time zone, done-when checks, AI review, limits) |
 
-**Tickets**
-- `list_tickets` — compact, paginated summaries (`status`, `priority`, `q`, `limit`/`offset`; `detail=true` for full objects)
-- `get_ticket` — everything about one ticket plus its 10 most recent activity entries (long texts shortened); `activity_limit=N` for a different number (0 = none, negative = the whole history in full), `activity_since=<ISO time>` for what changed since then
-- `create_ticket`, `create_child_ticket`, `update_ticket` (incl. assignee, dates, repo path, "Done requires" guards, `clear_fields`), `update_ticket_status`, `delete_ticket`
-- `block_ticket`, `unblock_ticket`, `link_tickets`, `unlink_tickets`
-- `get_ticket_workspace_path` — the ticket's scratch folder (read/write it with your own file tools)
-
-**Working on a ticket**
-- `add_comment`, `update_comment`, `delete_comment`
-- `add_work_log`, `update_work_log`, `delete_work_log` — the Debug Space journal
-- `add_test_case`, `update_test_case`, `delete_test_case`
-- `add_acceptance_criterion`, `toggle_acceptance_criterion`, `delete_acceptance_criterion`
-- `add_branch`, `update_branch`, `delete_branch`, `checkout_branch` — real git branches when the project has a linked repo
+**Diagram previews.** A diagram an agent saves gets its picture from the draw.io editor itself, in a hidden browser: the desktop app's own executable (`KANBAN_EXPORT_CMD`, set for you), or a Chrome / Chromium / Edge on the machine (`KANBAN_CHROME_PATH` to point at one). It needs the editor address from Settings › Diagrams (the self-hosted draw.io); the public diagrams.net is never used unless `KANBAN_DIAGRAM_EXPORT=public`, and `KANBAN_DIAGRAM_EXPORT=off` switches this off. Without either, the server draws a plain preview and the diagram footer says "Simple preview" until someone opens it in the editor and saves.
 
 **Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)
 - `list_idea_tickets`, `get_idea_ticket`, `get_idea_activity_trail`, `create_idea_ticket`, `update_idea_ticket`, `update_idea_status`, `promote_idea_to_ticket`, `delete_idea_ticket`
 - `add_assumption`, `update_assumption_status`, `delete_assumption`, `add_microthought`, `delete_microthought`
 
 **Conventions agents can rely on**
-- The server sends usage instructions on connect (IDs, statuses, flow), and every tool carries read-only / destructive / idempotent annotations.
+- The server sends usage instructions on connect (IDs, statuses, flow), and every tool carries read-only / destructive annotations (a write tool that has a `delete` action is marked destructive as a whole).
 - Failures are real tool errors (`isError`) whose message says how to fix the call (and lists the valid ids); nothing fails silently.
 - Tools that change a ticket return it without its activity log (large); sub-items can be addressed by id, test-case code (`TC-2`) or branch name.
-- Omitted optional arguments mean "unchanged"; use `clear_fields` to empty a field. Changes are attributed to the AI agent in the Activity tab.
+- Omitted optional arguments mean "unchanged"; use `clear_fields` (on `manage_ticket` `update`) to empty a field. Changes are attributed to the AI agent in the Activity tab.
 
 ## Connecting AI Agents
+
+### Easiest — Settings → MCP integrations
+
+Open **Settings** in the app and use **MCP integrations** to install the server into **Claude Code** (runs `claude mcp add` in the User, Project or Local scope) or **Antigravity** (merges a `kanban` entry into `~/.gemini/config/mcp_config.json` or `.agents/mcp_config.json`). Each row also offers Copy command / Copy JSON, Test connection and Remove, and only ever touches the `kanban` entry. The manual options below do the same thing by hand.
 
 ### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 

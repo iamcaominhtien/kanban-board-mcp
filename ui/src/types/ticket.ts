@@ -9,11 +9,20 @@ export interface TicketLink {
   relationType: RelationType;
 }
 
+export interface SubTask {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export interface Member {
   id: string;
   projectId: string;
   name: string;
   color: string;
+  role?: 'viewer' | 'member' | 'admin';
+  /** 'ai' for an AI member (its profile lives under /ai/members); 'ai_removed' keeps a removed one for history. */
+  kind?: 'human' | 'ai' | 'ai_removed';
   createdAt: string;
 }
 
@@ -22,6 +31,40 @@ export interface Comment {
   text: string;
   author: string;
   at: string; // ISO datetime
+  /** Set when the text was changed after posting. */
+  editedAt?: string | null;
+  /** Member ids written as @[Name](member:id). */
+  mentions?: string[];
+  /** Who this comment notified (reporter, assignee, earlier commenters, mentions). */
+  notified?: { id: string; name: string }[];
+  /** Set on comments an AI member posted: its run and what the comment is. */
+  ai?: AiCommentMeta;
+  /** A note the board itself posted (e.g. a mention that was not delivered). */
+  boardNote?: boolean;
+  /** The comment this one answers; set under an AI's comment, which then asks that AI again (`asksAgain`). */
+  replyTo?: string;
+  asksAgain?: string;
+  /** The question of this AI run that this comment answers (posted from the board's question card). */
+  answerToRun?: string;
+  /** The AI member this comment was posted to ask (Ask button). */
+  askedAi?: string;
+}
+
+export interface AiCommentMeta {
+  kind: 'answer' | 'summary' | 'failed' | 'ask_failed' | 'move_blocked' | 'comment';
+  /** The comment an `ask_failed` reply is about. */
+  replyTo?: string | null;
+  runId: string;
+  runNumber?: number;
+  memberId: string;
+  durationS?: number;
+  metered?: boolean;
+  costUsd?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  model?: string | null;
+  questionCommentId?: string | null;
+  criteria?: { text: string; met: boolean | null; evidence?: string }[];
 }
 
 export interface AcceptanceCriterion {
@@ -39,6 +82,13 @@ export interface ActivityEntry {
   actor?: string;
   /** Subject of the change, e.g. a test case code or branch name. */
   ref?: string;
+  /** Set when an AI member made the change: the person it acted for and its run. */
+  ai?: boolean;
+  onBehalfOf?: string | null;
+  runId?: string | null;
+  memberId?: string | null;
+  /** A person applied a Board AI draft: the AI that suggested the change. */
+  suggestedBy?: string | null;
 }
 
 export type WorkLogRole = 'PM' | 'Developer' | 'BA' | 'Tester' | 'Designer' | 'Other';
@@ -88,12 +138,16 @@ export interface TestCase {
   expectedResult?: string | null;
   notes?: string | null;
   proof?: string | null; // legacy
-  note?: string | null;  // legacy
+  note?: string | null; // legacy
   startedAt?: string | null;
   createdAt?: string;
   updatedAt?: string | null;
   assignee?: string | null;
   testDataFiles?: TestCaseFileData[];
+  /** Acceptance criterion the case tests (coverage). */
+  criterionId?: string | null;
+  /** Board AI that suggested the case, when a person accepted its draft. */
+  suggestedBy?: string | null;
 }
 
 export interface Ticket {
@@ -111,6 +165,7 @@ export interface Ticket {
   parentId: string | null;
   comments: Comment[];
   acceptanceCriteria: AcceptanceCriterion[];
+  subTasks: SubTask[];
   activityLog: ActivityEntry[];
   workLog: WorkLogEntry[];
   testCases: TestCase[];
@@ -121,13 +176,43 @@ export interface Ticket {
   blockedBy: string[];
   blockDoneIfAcsIncomplete: boolean;
   blockDoneIfTcsIncomplete: boolean;
-  links: TicketLink[];  // extended relationship links
+  links: TicketLink[]; // extended relationship links
   branches?: TicketBranch[];
   workspaceRetentionDays?: number | null;
   repoPath?: string | null;
+  // Reopen fields
+  reopenCount?: number;
+  lastReopenedAt?: string | null;
+  lastReopenedBy?: string | null;
+  lastReopenReason?: string | null;
+  reopenHistory?: ReopenHistoryEntry[];
+  // Pending fields
+  pending?: boolean;
+  pendingReasonType?: 'ticket' | 'person' | 'party' | null;
+  pendingTicketId?: string | null;
+  pendingMemberId?: string | null;
+  pendingParty?: string | null;
+  pendingNote?: string | null;
+  pendingSince?: string | null;
+  pendingBy?: string | null;
+  completedAt?: string | null;
+  completedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ReopenHistoryEntry {
+  id: string;
+  reopenCount: number;
+  actor?: string | null;
+  reason?: string | null;
+  fromStatus: Status;
+  previousCompletedAt?: string | null;
+  at: string;
+  sideEffects?: string[];
+}
+
+export type PendingReasonType = 'ticket' | 'person' | 'party';
 
 export interface WorkspaceSettings {
   id: number;
@@ -203,6 +288,8 @@ export interface Project {
   repoPath?: string | null;
   worktreeTemplate?: string | null;
   worktreeByDefault?: boolean;
+  /** Docs on/off per project (server default true). */
+  docsEnabled?: boolean;
 }
 
 export interface Column {
@@ -220,14 +307,14 @@ export type IdeaEnergy = 'seed' | 'concept' | 'hot' | 'big_bet';
 
 export interface IdeaActivityEntry {
   id: string;
-  label: string;       // e.g. "Status changed to In Review", "Description updated"
-  at: string;          // ISO datetime
+  label: string; // e.g. "Status changed to In Review", "Description updated"
+  at: string; // ISO datetime
 }
 
 export interface IdeaMicrothought {
   id: string;
   text: string;
-  at: string;          // ISO datetime
+  at: string; // ISO datetime
 }
 
 export type IdeaAssumptionStatus = 'untested' | 'validated' | 'invalidated';
@@ -257,16 +344,16 @@ export interface IdeaTicket {
   microthoughts?: IdeaMicrothought[];
 
   // Feature 3 — ICE Score
-  iceImpact?: number;       // 1-5
-  iceEffort?: number;       // 1-5
-  iceConfidence?: number;   // 1-5
+  iceImpact?: number; // 1-5
+  iceEffort?: number; // 1-5
+  iceConfidence?: number; // 1-5
 
   // Feature 4 — Assumption Tracker
   assumptions?: IdeaAssumption[];
 
   // Feature 5 — Revisit Date + Staleness
-  revisitDate?: string;     // ISO date string
-  lastTouchedAt?: string;   // ISO datetime, auto-updated on save
+  revisitDate?: string; // ISO date string
+  lastTouchedAt?: string; // ISO datetime, auto-updated on save
 
   // Feature 6 — Promotion Trail
   promotedToTicketId?: string;

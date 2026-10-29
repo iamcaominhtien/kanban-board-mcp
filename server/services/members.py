@@ -18,11 +18,13 @@ _DEFAULT_COLORS = [
 
 
 async def list_members(session: AsyncSession, project_id: str) -> list[Member]:
+    """Return the members of a project."""
     result = await session.exec(select(Member).where(Member.project_id == project_id))
     return list(result.all())
 
 
 async def get_member(session: AsyncSession, member_id: str) -> Member | None:
+    """Return a member by id, or None."""
     return await session.get(Member, member_id)
 
 
@@ -31,9 +33,22 @@ async def create_member(
     project_id: str,
     name: str,
     color: str | None = None,
+    role: str = "member",
     *,
     commit: bool = True,
 ) -> Member:
+    """Add a member, picking a default color when none is given.
+
+    Args:
+        project_id: Project to add to.
+        name: Display name.
+        color: Avatar color; defaults to the next palette color.
+        role: Docs comment role: viewer, member or admin.
+        commit: Commit the session; pass False to batch with other changes.
+
+    Returns:
+        The created member.
+    """
     if not color:
         existing = await list_members(session, project_id)
         color = _DEFAULT_COLORS[len(existing) % len(_DEFAULT_COLORS)]
@@ -42,6 +57,7 @@ async def create_member(
         project_id=project_id,
         name=name,
         color=color,
+        role=role,
     )
     session.add(member)
     if commit:
@@ -54,9 +70,25 @@ async def create_member(
 
 
 async def remove_member(session: AsyncSession, project_id: str, member_id: str) -> bool:
+    """Delete a member.
+
+    Args:
+        project_id: Project the member belongs to.
+        member_id: Member to remove.
+
+    Returns:
+        True if removed, False if not found in that project.
+
+    Raises:
+        ValueError: If the member created tickets or is still assigned to some.
+    """
     member = await session.get(Member, member_id)
     if member is None or member.project_id != project_id:
         return False
+    if member.kind != "human":
+        raise ValueError(
+            "This is an AI member: remove it from the AI members page (it handles its tickets and runs)."
+        )
 
     creator_check = await session.exec(
         select(Ticket)
@@ -93,3 +125,34 @@ async def remove_member(session: AsyncSession, project_id: str, member_id: str) 
     await session.delete(member)
     await session.commit()
     return True
+
+
+MEMBER_ROLES = ("viewer", "member", "admin")
+
+
+async def set_member_role(
+    session: AsyncSession, project_id: str, member_id: str, role: str
+) -> Member | None:
+    """Change a member's Docs role.
+
+    Args:
+        project_id: Project the member belongs to.
+        member_id: Member to change.
+        role: New role: viewer, member or admin.
+
+    Returns:
+        The updated member, or None if not found in that project.
+
+    Raises:
+        ValueError: If the role is not one of `MEMBER_ROLES`.
+    """
+    if role not in MEMBER_ROLES:
+        raise ValueError(f"Invalid role '{role}'. Valid roles: {list(MEMBER_ROLES)}")
+    member = await session.get(Member, member_id)
+    if member is None or member.project_id != project_id:
+        return None
+    member.role = role
+    session.add(member)
+    await session.commit()
+    await session.refresh(member)
+    return member

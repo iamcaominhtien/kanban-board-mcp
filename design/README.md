@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1791083427-1a86` (34 desktop/web artboards; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1793277091-b441` (56 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards and the two Settings boards (which replace the old Settings modal design) — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -31,6 +31,7 @@ Each doc's header links to its source file and records the canvas version and sh
 - [Activity](components/activity.md)
 - [Add / Edit / Delete Acceptance Criterion](components/add-ac.md)
 - [Add Sub-ticket](components/add-subticket.md)
+- [AI work on tickets](components/ai-ticket-work.md)
 - [Attachments](components/attachments.md)
 - [Sub-task Grouping](components/board-grouping.md)
 - [Branches](components/branches.md)
@@ -45,20 +46,41 @@ Each doc's header links to its source file and records the canvas version and sh
 - [Tags](components/tags.md)
 - [Test Cases](components/test-cases.md)
 - [Ticket Card](components/ticket-card.md)
+- [Comments](components/ticket-comments.md)
 - [Ticket Detail — with Sub-tickets](components/ticket-detail-parent.md)
 - [Ticket Detail](components/ticket-detail.md)
+- [Doc references in tickets](components/ticket-doc-refs.md)
+- [Pending ticket](components/ticket-pending.md)
+- [Reopen ticket](components/ticket-reopen.md)
 - [Notification Toast](components/toast.md)
 - [Workspace](components/workspace.md)
 
 ### Screens
 
+- [Board AI — assistant & suggestions](screens/ai-board-assistant.md)
+- [AI members — list & register](screens/ai-members.md)
+- [AI provider configuration](screens/ai-provider-config.md)
+- [AI — schedules](screens/ai-schedules.md)
+- [AI safety & cost](screens/ai-safety-cost.md)
 - [App loading](screens/app-loading.md)
+- [Diagrams — draw.io](screens/diagrams-drawio.md)
+- [Docs — page actions & history](screens/docs-actions.md)
+- [Docs — comments](screens/docs-comments.md)
+- [Docs — editor](screens/docs-editor.md)
+- [Docs — empty, loading & errors](screens/docs-empty.md)
+- [Docs — page view](screens/docs-page.md)
+- [Docs — references](screens/docs-references.md)
+- [Docs — search](screens/docs-search.md)
 - [List View](screens/list-view.md)
 - [Login](screens/login.md)
 - [Main Board](screens/main-board.md)
 - [Members](screens/members-view.md)
 - [Forgot / Reset Password](screens/password-reset.md)
-- [Settings](screens/settings-view.md)
+- [Preview — file types & states](screens/preview-types.md)
+- [Preview — open & viewer](screens/preview-viewer.md)
+- [Settings — MCP integrations](screens/settings-mcp.md)
+- [Settings — pages & states](screens/settings-pages.md)
+- [Settings — structure & navigation](screens/settings-structure.md)
 - [Sign Up](screens/sign-up.md)
 - [Splash - Cards animation (live)](screens/splash-animation.md)
 - [Splash screen](screens/splash.md)

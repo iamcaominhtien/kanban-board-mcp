@@ -6,7 +6,9 @@ from main import app
 
 
 async def _get(path):
-    async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         return await c.get(path)
 
 
@@ -41,4 +43,6 @@ def test_server_version_matches_the_desktop_and_ui_packages():
     root = Path(__file__).resolve().parents[2]
     for package in ("desktop", "ui"):
         pkg = json.loads((root / package / "package.json").read_text())
-        assert pkg["version"] == version.APP_VERSION, f"{package}/package.json is out of sync with server/version.py"
+        assert pkg["version"] == version.APP_VERSION, (
+            f"{package}/package.json is out of sync with server/version.py"
+        )

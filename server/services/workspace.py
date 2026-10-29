@@ -18,7 +18,10 @@ from services import activity as act
 
 
 async def get_workspace_settings(session: AsyncSession) -> WorkspaceSettings:
-    result = await session.exec(select(WorkspaceSettings).where(WorkspaceSettings.id == 1))
+    """Return the workspace settings row, creating it with defaults if missing."""
+    result = await session.exec(
+        select(WorkspaceSettings).where(WorkspaceSettings.id == 1)
+    )
     settings = result.first()
     if settings is None:
         settings = WorkspaceSettings(
@@ -39,6 +42,19 @@ async def update_workspace_settings(
     root_path: Optional[str] = None,
     default_retention_days: Optional[int] = None,
 ) -> WorkspaceSettings:
+    """Update the given workspace settings; arguments left as None are unchanged.
+
+    Args:
+        enabled: Turn the workspace feature on or off.
+        root_path: Folder holding all ticket workspaces; validated before saving.
+        default_retention_days: Days before an unused workspace expires (0 = keep forever).
+
+    Returns:
+        The saved settings.
+
+    Raises:
+        WorkspaceError: If `root_path` is not usable.
+    """
     settings = await get_workspace_settings(session)
     if enabled is not None:
         settings.enabled = enabled
@@ -143,12 +159,16 @@ def _scan(folder: Path) -> tuple[list[dict[str, Any]], int, float, bool]:
             st = full.stat()
             latest = max(latest, st.st_mtime)
             if len(entries) < MAX_LISTED_ENTRIES:
-                entries.append({
-                    "name": str(full.relative_to(folder)),
-                    "is_dir": True,
-                    "size": 0,
-                    "modified_at": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
-                })
+                entries.append(
+                    {
+                        "name": str(full.relative_to(folder)),
+                        "is_dir": True,
+                        "size": 0,
+                        "modified_at": datetime.fromtimestamp(
+                            st.st_mtime, tz=timezone.utc
+                        ).isoformat(),
+                    }
+                )
             else:
                 truncated = True
         for name in sorted(filenames):
@@ -159,12 +179,16 @@ def _scan(folder: Path) -> tuple[list[dict[str, Any]], int, float, bool]:
             total += st.st_size
             latest = max(latest, st.st_mtime)
             if len(entries) < MAX_LISTED_ENTRIES:
-                entries.append({
-                    "name": str(full.relative_to(folder)),
-                    "is_dir": False,
-                    "size": st.st_size,
-                    "modified_at": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
-                })
+                entries.append(
+                    {
+                        "name": str(full.relative_to(folder)),
+                        "is_dir": False,
+                        "size": st.st_size,
+                        "modified_at": datetime.fromtimestamp(
+                            st.st_mtime, tz=timezone.utc
+                        ).isoformat(),
+                    }
+                )
             else:
                 truncated = True
     entries.sort(key=lambda e: e["name"].split("/"))
@@ -175,7 +199,10 @@ async def _get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
     return await session.get(Ticket, ticket_id)
 
 
-async def get_ticket_workspace(session: AsyncSession, ticket_id: str) -> dict[str, Any] | None:
+async def get_ticket_workspace(
+    session: AsyncSession, ticket_id: str
+) -> dict[str, Any] | None:
+    """Return a ticket's workspace folder state and entries, or None if the ticket is missing."""
     ticket = await _get_ticket(session, ticket_id)
     if ticket is None:
         return None
@@ -230,11 +257,25 @@ def _retention_label(days: Optional[int]) -> str:
 async def set_ticket_workspace_retention(
     session: AsyncSession, ticket_id: str, retention_days: Optional[int]
 ) -> Ticket | None:
+    """Set a ticket's retention override.
+
+    Args:
+        ticket_id: Ticket to change.
+        retention_days: Days to keep the workspace; 0 keeps it forever, None uses the default.
+
+    Returns:
+        The updated ticket, or None if it does not exist.
+
+    Raises:
+        WorkspaceError: If the value is negative.
+    """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return None
     if retention_days is not None and retention_days < 0:
-        raise WorkspaceError("Retention must be 0 (forever) or a positive number of days")
+        raise WorkspaceError(
+            "Retention must be 0 (forever) or a positive number of days"
+        )
     if ticket.workspace_retention_days != retention_days:
         act.record(
             ticket,
@@ -261,6 +302,7 @@ async def _enabled_folder(session: AsyncSession, ticket_id: str) -> Path:
 
 
 async def init_ticket_workspace(session: AsyncSession, ticket_id: str) -> Path:
+    """Create the ticket's workspace folder and return its path."""
     folder = await _enabled_folder(session, ticket_id)
     await asyncio.to_thread(folder.mkdir, 0o755, True, True)
     return folder
@@ -280,7 +322,15 @@ async def remove_ticket_workspace(session: AsyncSession, ticket_id: str) -> None
 async def get_workspace_path(
     session: AsyncSession, ticket_id: str, create: bool = True
 ) -> dict[str, Any] | None:
-    """Path an agent can read/write directly. Returns None for unknown tickets."""
+    """Return the ticket's workspace path, which an agent can read and write directly.
+
+    Args:
+        ticket_id: Ticket to look up.
+        create: Create the folder when the feature is enabled.
+
+    Returns:
+        `{enabled, path, exists}`, or None for an unknown ticket.
+    """
     ticket = await _get_ticket(session, ticket_id)
     if ticket is None:
         return None
@@ -296,6 +346,15 @@ async def get_workspace_path(
 
 
 async def create_folder(session: AsyncSession, ticket_id: str, rel: str) -> str:
+    """Create a sub-folder inside the ticket's workspace.
+
+    Args:
+        ticket_id: Ticket whose workspace to change.
+        rel: Folder path relative to the workspace.
+
+    Returns:
+        The folder's path relative to the workspace.
+    """
     folder = await _enabled_folder(session, ticket_id)
     target = _resolve_inside(folder, rel)
     await asyncio.to_thread(target.mkdir, 0o755, True, True)
@@ -312,8 +371,24 @@ def _safe_filename(name: str) -> str:
 async def save_upload(
     session: AsyncSession, ticket_id: str, directory: str, filename: str, data: bytes
 ) -> dict[str, Any]:
+    """Save an uploaded file into the ticket's workspace.
+
+    Args:
+        ticket_id: Ticket whose workspace to change.
+        directory: Target folder relative to the workspace; "" for the top.
+        filename: Name to store the file under.
+        data: File contents.
+
+    Returns:
+        Info about the stored entry.
+
+    Raises:
+        WorkspaceError: If the file is too large or a folder has that name.
+    """
     if len(data) > MAX_UPLOAD_BYTES:
-        raise WorkspaceError(f"File is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
+        raise WorkspaceError(
+            f"File is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB"
+        )
     folder = await _enabled_folder(session, ticket_id)
     name = _safe_filename(filename)
     rel = f"{directory.strip('/')}/{name}" if directory.strip("/") else name
@@ -326,10 +401,22 @@ async def save_upload(
         target.write_bytes(data)
 
     await asyncio.to_thread(_write)
-    return {"name": str(target.relative_to(os.path.realpath(folder))), "size": len(data)}
+    return {
+        "name": str(target.relative_to(os.path.realpath(folder))),
+        "size": len(data),
+    }
 
 
 async def delete_entry(session: AsyncSession, ticket_id: str, rel: str) -> None:
+    """Delete a file or folder inside the ticket's workspace.
+
+    Args:
+        ticket_id: Ticket whose workspace to change.
+        rel: Path relative to the workspace.
+
+    Raises:
+        LookupError: If the entry does not exist.
+    """
     folder = await _enabled_folder(session, ticket_id)
     target = _resolve_inside(folder, rel)
     if not target.exists():
@@ -343,7 +430,18 @@ async def delete_entry(session: AsyncSession, ticket_id: str, rel: str) -> None:
 async def resolve_file(
     session: AsyncSession, ticket_id: str, rel: str
 ) -> tuple[Path, str]:
-    """Return (path, media_type) for a regular file inside the workspace."""
+    """Resolve a regular file inside the workspace.
+
+    Args:
+        ticket_id: Ticket whose workspace to read.
+        rel: Path relative to the workspace.
+
+    Returns:
+        `(absolute path, media type)`.
+
+    Raises:
+        LookupError: If the file does not exist.
+    """
     folder = await _enabled_folder(session, ticket_id)
     target = _resolve_inside(folder, rel)
     if not target.is_file():
@@ -352,6 +450,7 @@ async def resolve_file(
 
 
 def read_text_preview(path: Path) -> dict[str, Any]:
+    """Read up to the preview limit of a file; flag binary or truncated content."""
     size = path.stat().st_size
     with open(path, "rb") as fh:
         raw = fh.read(MAX_PREVIEW_BYTES)
@@ -366,6 +465,17 @@ def read_text_preview(path: Path) -> dict[str, Any]:
 
 
 async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
+    """Open the ticket's workspace folder in the OS file manager.
+
+    Args:
+        ticket_id: Ticket whose workspace to open.
+
+    Returns:
+        The folder path.
+
+    Raises:
+        WorkspaceError: If no file manager is available.
+    """
     folder = await _enabled_folder(session, ticket_id)
     await asyncio.to_thread(folder.mkdir, 0o755, True, True)
     # The folder is passed as the working directory and "." as the only argument,
@@ -377,7 +487,9 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
     else:
         opener = "xdg-open"
     if shutil.which(opener) is None:
-        raise WorkspaceError("No file manager available on this machine; copy the path instead")
+        raise WorkspaceError(
+            "No file manager available on this machine; copy the path instead"
+        )
     subprocess.Popen(  # noqa: S603 - fixed argv
         [opener, "."],
         cwd=folder,
@@ -388,7 +500,9 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
     return str(folder)
 
 
-async def sweep_expired(session: AsyncSession, dry_run: bool = False) -> list[dict[str, Any]]:
+async def sweep_expired(
+    session: AsyncSession, dry_run: bool = False
+) -> list[dict[str, Any]]:
     """Delete workspace folders of closed tickets idle past their retention window.
 
     Only ``<root>/<ticket_id>`` folders are ever touched. Open tickets and tickets
@@ -397,7 +511,9 @@ async def sweep_expired(session: AsyncSession, dry_run: bool = False) -> list[di
     settings = await get_workspace_settings(session)
     if not settings.enabled:
         return []
-    result = await session.exec(select(Ticket).where(Ticket.status.in_(list(CLOSED_STATUSES))))
+    result = await session.exec(
+        select(Ticket).where(Ticket.status.in_(list(CLOSED_STATUSES)))
+    )
     removed: list[dict[str, Any]] = []
     now = time.time()
     for ticket in result.all():
@@ -427,6 +543,11 @@ async def sweep_expired(session: AsyncSession, dry_run: bool = False) -> list[di
 
 
 async def sweep_loop(session_factory) -> None:
+    """Periodically delete expired workspaces until cancelled.
+
+    Args:
+        session_factory: Callable returning a new async session per sweep.
+    """
     while True:
         try:
             async with session_factory() as session:

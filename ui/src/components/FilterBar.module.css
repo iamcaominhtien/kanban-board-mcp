@@ -13,21 +13,23 @@
   gap: 7px;
   padding: 7px 12px;
   border-radius: 8px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   width: 220px;
   box-sizing: border-box;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .searchBox:focus-within {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
 }
 
 .searchIcon {
   flex-shrink: 0;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .searchInput {
@@ -38,17 +40,17 @@
   outline: none;
   font-family: var(--font-body);
   font-size: 12.5px;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 
 .searchInput::placeholder {
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .divider {
   width: 1px;
   height: 20px;
-  background: #E3E8E5;
+  background: #e3e8e5;
   margin: 0 2px;
 }
 
@@ -62,38 +64,40 @@
   gap: 6px;
   padding: 7px 11px;
   border-radius: 8px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #1E2A22;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  color: #1e2a22;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .dropdownBtn:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .dropdownBtnActive {
-  border-color: #2E6F40;
+  border-color: #2e6f40;
 }
 
 .labelMuted {
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-weight: 500;
 }
 
 .chevronIcon {
-  color: #9AA8A0;
+  color: #9aa8a0;
   transition: transform 0.15s ease;
   margin-left: 2px;
 }
 
 .chevronRotated {
   transform: rotate(180deg);
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .dropdownMenu {
@@ -101,8 +105,8 @@
   top: calc(100% + 4px);
   left: 0;
   min-width: 190px;
-  background: #FFFFFF;
-  border: 1px solid #E3E8E5;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
   padding: 4px;
@@ -124,18 +128,18 @@
   text-align: left;
   font-family: var(--font-body);
   font-size: 13px;
-  color: #3A4A3E;
+  color: #3a4a3e;
   transition: background 0.12s ease;
   box-sizing: border-box;
 }
 
 .dropdownItem:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .dropdownItemActive {
-  background: #F1F8F3;
-  color: #1E2A22;
+  background: #f1f8f3;
+  color: #1e2a22;
   font-weight: 600;
 }
 
@@ -148,7 +152,7 @@
 
 .checkIcon {
   flex-shrink: 0;
-  color: #2E6F40;
+  color: #2e6f40;
   margin-left: auto;
 }
 

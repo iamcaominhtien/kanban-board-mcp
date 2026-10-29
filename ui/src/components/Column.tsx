@@ -2,6 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import type { Column as ColumnType, Member, Ticket } from '../types';
 import { DraggableTicketCard } from './DraggableTicketCard';
 import styles from './Board.module.css';
+import { useAiBoardState } from './ai/aiUi';
 import loading from './AppLoading.module.css';
 
 interface ColumnProps {
@@ -12,17 +13,47 @@ interface ColumnProps {
   memberMap?: Map<string, Member>;
   /** Tickets are still loading: real lane header, skeleton cards (same size as real cards, so nothing moves). */
   skeletonCards?: number;
+  onReopen?: (ticket: Ticket) => void;
+  onPending?: (ticket: Ticket) => void;
+  onResume?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
+  /** What the card being dragged carries: a closed ticket (reopen) or a pending one. */
+  dragKind?: 'reopen' | 'pending' | null;
 }
 
-export function Column({ column, tickets, allTickets, onCardClick, memberMap, skeletonCards }: ColumnProps) {
+/**
+ * One board column and its draggable ticket cards.
+ * @param props.column - Column definition (status and title).
+ * @param props.tickets - Tickets in this column.
+ * @param props.allTickets - All project tickets, used for lookups such as blockers.
+ * @param props.onCardClick - Called with the clicked ticket.
+ * @param props.memberMap - Members by id, used to render assignees.
+ * @param props.skeletonCards - While tickets load, show this many skeleton cards under the real header.
+ */
+export function Column({
+  column,
+  tickets,
+  allTickets,
+  onCardClick,
+  memberMap,
+  skeletonCards,
+  onReopen,
+  onPending,
+  onResume,
+  onDelete,
+  dragKind = null,
+}: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const { runsByTicket } = useAiBoardState();
+  const aiRunning = tickets.filter((t) => {
+    const r = runsByTicket.get(t.id);
+    return r && (r.state === 'running' || r.state === 'starting');
+  }).length;
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
 
   // Sort by createdAt descending (newest first) before applying hierarchy
-  const sorted = [...tickets].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const sorted = [...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Build ordered list: parents first, then their children immediately after
   const ordered: Ticket[] = [];
@@ -49,29 +80,65 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}
-    >
+    <div ref={setNodeRef} className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}>
       <div className={styles.columnHeaderContainer}>
         <div className={styles.columnHeaderTop}>
           <span className={styles.columnLabel}>{column.label}</span>
+          {aiRunning > 0 && (
+            <span
+              className="ai-col-chip"
+              style={{ marginLeft: 'auto', marginRight: 6 }}
+              data-testid="column-ai-running"
+            >
+              <span className="ai-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: '#2E6F40' }} />
+              {aiRunning} AI running
+            </span>
+          )}
           {skeletonCards !== undefined ? (
             <span className={`${loading.skel} ${loading.skelBadge}`} aria-hidden="true" />
           ) : (
-            <span
-              className={styles.columnBadge}
-              style={{ backgroundColor: column.accentColor }}
-              aria-label={`${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
-            >
-              {tickets.length}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span
+                className={styles.columnBadge}
+                style={{ backgroundColor: column.accentColor }}
+                aria-label={`${tickets.length - tickets.filter((t) => t.pending).length} active tickets`}
+              >
+                {tickets.length - tickets.filter((t) => t.pending).length}
+              </span>
+              {tickets.filter((t) => t.pending).length > 0 && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: '#34455A',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={`${tickets.filter((t) => t.pending).length} pending`}
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#5B6F86"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <path d="M8.5 5.5V18.5" />
+                    <path d="M15.5 5.5V18.5" />
+                  </svg>
+                  +{tickets.filter((t) => t.pending).length} pending
+                </span>
+              )}
+            </div>
           )}
         </div>
-        <div
-          className={styles.columnBar}
-          style={{ backgroundColor: column.accentColor }}
-        />
+        <div className={styles.columnBar} style={{ backgroundColor: column.accentColor }} />
       </div>
 
       <div className={styles.columnBody} aria-hidden={skeletonCards !== undefined ? true : undefined}>
@@ -86,42 +153,57 @@ export function Column({ column, tickets, allTickets, onCardClick, memberMap, sk
           ))}
         {skeletonCards === undefined && ordered.length === 0 && !isOver && (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon} aria-hidden="true">◻</span>
+            <span className={styles.emptyIcon} aria-hidden="true">
+              ◻
+            </span>
             <span className={styles.emptyText}>No tickets</span>
           </div>
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
           const childTicketsForThis = (allTickets ?? tickets).filter((t) => t.parentId === ticket.id);
-          const subtaskStats = childTicketsForThis.length > 0
-            ? {
-                total: childTicketsForThis.length,
-                completed: childTicketsForThis.filter((c) => c.status === 'done').length,
-              }
-            : undefined;
+          const subtaskStats =
+            childTicketsForThis.length > 0
+              ? {
+                  total: childTicketsForThis.length,
+                  completed: childTicketsForThis.filter((c) => c.status === 'done').length,
+                }
+              : undefined;
 
           return indented ? (
             <div key={ticket.id} className={styles.childIndent}>
               <DraggableTicketCard
                 ticket={ticket}
+                allTickets={allTickets}
                 onCardClick={onCardClick}
                 memberMap={memberMap}
                 subtaskStats={subtaskStats}
+                onReopen={onReopen}
+                onPending={onPending}
+                onResume={onResume}
+                onDelete={onDelete}
               />
             </div>
           ) : (
             <DraggableTicketCard
               key={ticket.id}
               ticket={ticket}
+              allTickets={allTickets}
               onCardClick={onCardClick}
               memberMap={memberMap}
               subtaskStats={subtaskStats}
+              onReopen={onReopen}
+              onPending={onPending}
+              onResume={onResume}
+              onDelete={onDelete}
             />
           );
         })}
         {isOver && (
-          <div className={styles.dropTargetGhost}>
-            Drop here
+          <div
+            className={`${styles.dropTargetGhost} ${dragKind === 'reopen' ? styles.dropTargetReopen : ''} ${dragKind === 'pending' ? styles.dropTargetPending : ''}`}
+          >
+            {dragKind === 'reopen' ? 'Drop to reopen' : dragKind === 'pending' ? 'Drop - stays pending' : 'Drop here'}
           </div>
         )}
       </div>

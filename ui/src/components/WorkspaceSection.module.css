@@ -10,7 +10,7 @@
 }
 
 .dropActive {
-  outline: 2px dashed #2E6F40;
+  outline: 2px dashed #2e6f40;
   outline-offset: 4px;
 }
 
@@ -30,11 +30,11 @@
   gap: 7px;
   padding: 6px 12px;
   border-radius: 7px;
-  background: #F6FAF7;
-  border: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11.5px;
-  color: #5B6B60;
+  color: #5b6b60;
 }
 
 .copyBtn {
@@ -47,14 +47,14 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9AA8A0;
+  color: #9aa8a0;
   transition: all 0.12s;
   padding: 0;
 }
 
 .copyBtn:hover {
-  background: #EEF3EF;
-  color: #1E2A22;
+  background: #eef3ef;
+  color: #1e2a22;
 }
 
 .topActions {
@@ -73,12 +73,12 @@
   font-size: 10.5px;
   font-weight: 700;
   background: rgba(226, 121, 61, 0.14);
-  color: #B4571F;
+  color: #b4571f;
 }
 
 .retentionChipForever {
   background: rgba(46, 111, 64, 0.12);
-  color: #2E6F40;
+  color: #2e6f40;
 }
 
 .actionBtn {
@@ -87,9 +87,9 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
-  color: #1E2A22;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  color: #1e2a22;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
@@ -98,7 +98,7 @@
 }
 
 .actionBtn:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .metaRow {
@@ -113,17 +113,17 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .tableContainer {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .wsRow {
@@ -131,8 +131,8 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #EEF3EF;
+  background: #ffffff;
+  border-bottom: 1px solid #eef3ef;
   transition: background 0.1s;
 }
 
@@ -141,7 +141,7 @@
 }
 
 .wsRow:hover {
-  background: #F6FAF7;
+  background: #f6faf7;
 }
 
 .tcFileIcon {
@@ -157,18 +157,18 @@
 .fileName {
   flex-grow: 1;
   font-size: 13px;
-  color: #1E2A22;
+  color: #1e2a22;
   font-weight: 500;
 }
 
 .fileSize {
   font-size: 11px;
-  color: #9AA8A0;
+  color: #9aa8a0;
 }
 
 .fileTime {
   font-size: 10.5px;
-  color: #9AA8A0;
+  color: #9aa8a0;
   width: 90px;
   text-align: right;
 }
@@ -176,17 +176,17 @@
 .emptyState {
   padding: 32px 20px;
   text-align: center;
-  color: #9AA8A0;
+  color: #9aa8a0;
   font-size: 13px;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 /* Retention setting card */
 .retentionCard {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
   padding: 12px 16px;
-  background: #F6FAF7;
+  background: #f6faf7;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -197,11 +197,11 @@
 .retentionSelect {
   padding: 5px 10px;
   border-radius: 6px;
-  border: 1px solid #E3E8E5;
-  background: #FFFFFF;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
-  color: #1E2A22;
+  color: #1e2a22;
   cursor: pointer;
   outline: none;
 }
@@ -213,17 +213,28 @@
   min-width: 0;
 }
 
-.actionBtn:disabled { opacity: 0.55; cursor: default; }
+.actionBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 
 .primaryBtn {
-  background: #2E6F40;
-  border-color: #2E6F40;
-  color: #FFFFFF;
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #ffffff;
 }
-.primaryBtn:hover { background: #265C35; }
+.primaryBtn:hover {
+  background: #265c35;
+}
 
-.dangerAction { background: #C0392B; border-color: #C0392B; color: #FFFFFF; }
-.dangerAction:hover { background: #A93226; }
+.dangerAction {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #ffffff;
+}
+.dangerAction:hover {
+  background: #a93226;
+}
 
 .notice {
   display: flex;
@@ -233,19 +244,51 @@
   padding: 8px 12px;
   border-radius: 7px;
   font-size: 12px;
-  background: #F6FAF7;
-  border: 1px solid #E3E8E5;
-  color: #5B6B60;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
+  color: #5b6b60;
 }
-.noticeError { background: #FDEEEC; border-color: #F2C4BE; color: #A93226; }
-.noticeClose { border: none; background: none; cursor: pointer; font-size: 16px; color: inherit; line-height: 1; }
+.noticeError {
+  background: #fdeeec;
+  border-color: #f2c4be;
+  color: #a93226;
+}
+.noticeClose {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: inherit;
+  line-height: 1;
+}
 
-.retentionText { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 260px; }
-.retentionTitle { font-size: 12.5px; font-weight: 600; color: #1E2A22; }
-.retentionHint { font-size: 11px; color: #5B6B60; }
+.retentionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+.retentionTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.retentionHint {
+  font-size: 11px;
+  color: #5b6b60;
+}
 
-.emptyHint { margin: 6px 0 14px; font-size: 12px; color: #9AA8A0; }
-.emptyState code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; word-break: break-all; }
+.emptyHint {
+  margin: 6px 0 14px;
+  font-size: 12px;
+  color: #9aa8a0;
+}
+.emptyState code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  word-break: break-all;
+}
 
 .dirChip {
   margin-left: 8px;
@@ -253,7 +296,7 @@
   border-radius: 999px;
   border: none;
   background: rgba(46, 111, 64, 0.12);
-  color: #2E6F40;
+  color: #2e6f40;
   font: inherit;
   letter-spacing: 0;
   text-transform: none;
@@ -265,25 +308,35 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
-  background: #FFFFFF;
+  background: #ffffff;
 }
-.newFolderPrefix { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9AA8A0; }
+.newFolderPrefix {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #9aa8a0;
+}
 .newFolderInput {
   flex: 1;
   min-width: 0;
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 6px;
   padding: 5px 9px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   outline: none;
 }
-.newFolderInput:focus { border-color: #2E6F40; }
+.newFolderInput:focus {
+  border-color: #2e6f40;
+}
 
-.wsRowActive { background: #F1F7F3; }
-.wsRowSelected { background: #EAF4EC; }
+.wsRowActive {
+  background: #f1f7f3;
+}
+.wsRowSelected {
+  background: #eaf4ec;
+}
 
 .dirToggle {
   display: flex;
@@ -298,21 +351,52 @@
   text-align: left;
   font: inherit;
 }
-.fileName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.fileSize { flex-shrink: 0; min-width: 52px; text-align: right; }
-.fileTime { flex-shrink: 0; }
-.chevron { display: inline-flex; color: #9AA8A0; transition: transform 0.12s; }
-.chevronOpen { transform: rotate(90deg); }
-.chevronSpacer { width: 11px; flex-shrink: 0; }
+.fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.fileSize {
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: right;
+}
+.fileTime {
+  flex-shrink: 0;
+}
+.chevron {
+  display: inline-flex;
+  color: #9aa8a0;
+  transition: transform 0.12s;
+}
+.chevronOpen {
+  transform: rotate(90deg);
+}
+.chevronSpacer {
+  width: 11px;
+  flex-shrink: 0;
+}
 
-.rowActions { display: inline-flex; gap: 2px; flex-shrink: 0; width: 70px; justify-content: flex-end; }
-.rowActions a.copyBtn { text-decoration: none; }
-.dangerBtn:hover { background: #FDEEEC; color: #C0392B; }
+.rowActions {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 70px;
+  justify-content: flex-end;
+}
+.rowActions a.copyBtn {
+  text-decoration: none;
+}
+.dangerBtn:hover {
+  background: #fdeeec;
+  color: #c0392b;
+}
 
 .previewPanel {
-  border: 1px solid #E3E8E5;
+  border: 1px solid #e3e8e5;
   border-radius: 8px;
-  background: #FFFFFF;
+  background: #ffffff;
   overflow: hidden;
 }
 .previewHeader {
@@ -320,8 +404,8 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: #F6FAF7;
-  border-bottom: 1px solid #E3E8E5;
+  background: #f6faf7;
+  border-bottom: 1px solid #e3e8e5;
 }
 .previewName {
   flex: 1;
@@ -331,7 +415,7 @@
   white-space: nowrap;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #1E2A22;
+  color: #1e2a22;
 }
 .previewText {
   margin: 0;
@@ -341,12 +425,21 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   line-height: 1.55;
-  color: #1E2A22;
+  color: #1e2a22;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.previewImageWrap { padding: 12px; display: flex; justify-content: center; background: #FAFBFA; }
-.previewImage { max-width: 100%; max-height: 360px; object-fit: contain; }
+.previewImageWrap {
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  background: #fafbfa;
+}
+.previewImage {
+  max-width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+}
 
 .dropHint {
   position: absolute;
@@ -355,7 +448,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(246, 250, 247, 0.85);
-  color: #2E6F40;
+  color: #2e6f40;
   font-weight: 700;
   font-size: 14px;
   pointer-events: none;
@@ -373,7 +466,7 @@
 }
 .dialog {
   width: min(420px, calc(100vw - 32px));
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 10px;
   padding: 18px 20px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
@@ -381,10 +474,26 @@
   flex-direction: column;
   gap: 10px;
 }
-.dialogTitle { font-size: 14px; font-weight: 700; color: #1E2A22; }
-.dialogBody { font-size: 12.5px; color: #5B6B60; word-break: break-word; }
-.dialogBody code { font-family: 'JetBrains Mono', monospace; color: #1E2A22; }
-.dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.dialogTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dialogBody {
+  font-size: 12.5px;
+  color: #5b6b60;
+  word-break: break-word;
+}
+.dialogBody code {
+  font-family: 'JetBrains Mono', monospace;
+  color: #1e2a22;
+}
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
 
 .chevronBtn {
   display: inline-flex;
@@ -400,4 +509,6 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-.chevronBtn:hover { background: #EEF3EF; }
+.chevronBtn:hover {
+  background: #eef3ef;
+}

@@ -1,11 +1,15 @@
-const { app, BrowserWindow, ipcMain, dialog, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, globalShortcut, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
+const { parseExportArgs, runExportCli } = require('./export-svg');
+const { setupUpdater } = require('./updater');
 const {
   StartupProfiler,
   buildBackendLaunchSpec,
+  buildExportCommand,
+  getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   parseReadyPort,
   shouldRunVscodeSetup,
@@ -31,7 +35,9 @@ function startBackend() {
       userDataPath: app.getPath('userData'),
       desktopDir: __dirname,
       baseEnv: process.env,
+      exportCommand: buildExportCommand({ isPackaged: app.isPackaged, execPath: process.execPath, desktopDir: __dirname }),
       devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
+      configPath: path.join(app.getPath('home'), '.kanban-board', 'config.json'),
     });
 
     // Strip macOS quarantine attribute from packaged binary so it can be spawned
@@ -151,7 +157,7 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:*; img-src 'self' data: blob:; base-uri 'self'; object-src 'none'"
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*; base-uri 'self'; object-src 'none'"
         ]
       }
     });
@@ -200,6 +206,28 @@ ipcMain.handle('select-folder', async () => {
   return result.canceled ? null : result.filePaths[0];
 });
 
+// IPC: open a file with system default application
+ipcMain.handle('open-path', async (_event, filePath) => {
+  if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' };
+  try {
+    const errorMsg = await shell.openPath(filePath);
+    return { success: !errorMsg, error: errorMsg || null };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// IPC: open external URL in default browser
+ipcMain.handle('open-external', async (_event, url) => {
+  if (!url || typeof url !== 'string') return { error: 'Invalid URL' };
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 function launchBackend() {
   return startBackend()
     .then((port) => {
@@ -207,22 +235,28 @@ function launchBackend() {
 
       // VS Code MCP setup — one-time, packaged builds only
       const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
-      if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists: fs.existsSync(setupFlag) })) {
-        const dbPath = path.join(app.getPath('userData'), 'kanban.db');
-        const result = registerMcpServer(
-          getMcpStdioBinaryPath({
-            isPackaged: app.isPackaged,
-            platform: process.platform,
-            resourcesPath: process.resourcesPath,
-            desktopDir: __dirname,
-          }),
-          dbPath
-        );
+      const setupFlagExists = fs.existsSync(setupFlag);
+      const dbPath = path.join(app.getPath('userData'), 'kanban.db');
+      const exportCommand = buildExportCommand({ isPackaged: app.isPackaged, execPath: process.execPath, desktopDir: __dirname });
+      const binaryOptions = {
+        isPackaged: app.isPackaged,
+        platform: process.platform,
+        resourcesPath: process.resourcesPath,
+        desktopDir: __dirname,
+      };
+      if (shouldRunVscodeSetup({ isPackaged: app.isPackaged, setupFlagExists })) {
+        const result = registerMcpServer(getMcpStdioBinaryPath(binaryOptions), dbPath, { exportCommand });
         if (shouldWriteSetupFlag(result)) {
           try {
             fs.writeFileSync(setupFlag, new Date().toISOString(), 'utf8');
           } catch { /* non-fatal */ }
         }
+      } else if (app.isPackaged) {
+        // Older versions registered the single-file binary, which is now a folder.
+        registerMcpServer(getMcpStdioBinaryPath(binaryOptions), dbPath, {
+          migrateFromCommand: getLegacyMcpStdioBinaryPath(binaryOptions),
+          exportCommand,
+        });
       }
 
       // Notify renderer that the backend is accepting requests
@@ -244,24 +278,33 @@ function launchBackend() {
     });
 }
 
-app.whenReady().then(() => {
-  profiler.mark('app-ready');
-  createWindow();
+// `--export-svg`: a headless run the backend asks for to draw a diagram's picture with the editor itself (no window,
+// no backend of its own). Every other start is the normal app.
+const exportArgs = parseExportArgs(process.argv);
 
-  launchBackend();
+if (exportArgs) {
+  app.whenReady().then(() => runExportCli(require('electron'), exportArgs));
+} else {
+  app.whenReady().then(() => {
+    profiler.mark('app-ready');
+    createWindow();
+    setupUpdater(() => mainWindow);
 
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    const focused = BrowserWindow.getFocusedWindow();
-    if (focused) focused.webContents.toggleDevTools();
+    launchBackend();
+
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+      const focused = BrowserWindow.getFocusedWindow();
+      if (focused) focused.webContents.toggleDevTools();
+    });
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
   });
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
+}
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (!exportArgs && process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {

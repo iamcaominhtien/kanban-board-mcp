@@ -4,6 +4,7 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
   size?: number;
 }
 
+/** Icon for the Test Cases tab. */
 export function TestCasesTabIcon({ size = 18, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -26,6 +27,7 @@ export function TestCasesTabIcon({ size = 18, className, style, ...props }: Icon
   );
 }
 
+/** Passed test icon. */
 export function PassIcon({ size = 14, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -39,17 +41,12 @@ export function PassIcon({ size = 14, className, style, ...props }: IconProps) {
       {...props}
     >
       <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.6" />
-      <path
-        d="M4.3 7.2L6.1 9L9.8 5"
-        stroke="#2E6F40"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
+/** Failed test icon. */
 export function FailIcon({ size = 14, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -68,7 +65,16 @@ export function FailIcon({ size = 14, className, style, ...props }: IconProps) {
   );
 }
 
-export function RunningIcon({ size = 15, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+/** Running test icon. */
+export function RunningIcon({
+  size = 15,
+  className,
+  style,
+}: {
+  size?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
     <span
       className={className}
@@ -102,6 +108,7 @@ export function RunningIcon({ size = 15, className, style }: { size?: number; cl
   );
 }
 
+/** Pending test icon. */
 export function PendingIcon({ size = 15, className, style, ...props }: IconProps) {
   return (
     <svg
@@ -120,13 +127,8 @@ export function PendingIcon({ size = 15, className, style, ...props }: IconProps
 
 export type TestCaseStatus = 'pass' | 'fail' | 'running' | 'pending';
 
-export function TestCaseStatusMark({
-  status,
-  size = 14,
-}: {
-  status: TestCaseStatus | string;
-  size?: number;
-}) {
+/** Icon for a test-case status. */
+export function TestCaseStatusMark({ status, size = 14 }: { status: TestCaseStatus | string; size?: number }) {
   switch (status) {
     case 'pass':
       return <PassIcon size={size} />;

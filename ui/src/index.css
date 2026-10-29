@@ -2,77 +2,103 @@
 
 :root {
   /* ── Brand ── */
-  --color-forest:    #2E6F40;   /* Primary actions, active states */
-  --color-mint:      #CFFFDC;   /* Hover, selection, tinted surfaces */
-  --color-sage:      #68BA7F;   /* Tags, success, Done column */
-  --color-ink:       #253D2C;   /* Headings, dark surfaces, nav */
+  --color-forest: #2e6f40; /* Primary actions, active states */
+  --color-mint: #cfffdc; /* Hover, selection, tinted surfaces */
+  --color-sage: #68ba7f; /* Tags, success, Done column */
+  --color-ink: #253d2c; /* Headings, dark surfaces, nav */
 
   /* ── Neutrals ── */
-  --color-surface:   #FFFFFF;
-  --color-bg:        #F6FAF7;
-  --color-border:    #DCE6DF;
-  --color-text-sec:  #5B6B60;
-  --color-text-pri:  #1E2A22;
-  --color-text-body: #3F4B45;
+  --color-surface: #ffffff;
+  --color-bg: #f6faf7;
+  --color-border: #dce6df;
+  --color-text-sec: #5b6b60;
+  --color-text-pri: #1e2a22;
+  --color-text-body: #3f4b45;
 
   /* ── Column / Status accents ── */
-  --color-backlog:    #9AA8A0;
-  --color-todo:       #2F6FB0;
-  --color-inprogress: #E2793D;
-  --color-review:     #6D5DD3;
-  --color-testing:    #B4571F;
-  --color-done:       #68BA7F;
-  --color-wontdo:     #C4432A;
+  --color-backlog: #9aa8a0;
+  --color-todo: #2f6fb0;
+  --color-inprogress: #e2793d;
+  --color-review: #6d5dd3;
+  --color-testing: #b4571f;
+  --color-done: #68ba7f;
+  --color-wontdo: #c4432a;
 
   /* ── Legacy aliases (for gradual migration) ── */
-  --color-dark:      var(--color-text-pri);
+  --color-dark: var(--color-text-pri);
 
   /* ── Radii ── */
-  --radius-card:   12px;
-  --radius-panel:  16px;
-  --radius-pill:   9999px;
-  --radius-code:   6px;
+  --radius-card: 12px;
+  --radius-panel: 16px;
+  --radius-pill: 9999px;
+  --radius-code: 6px;
 
   /* ── Fonts ── */
-  --font-display:  'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-body:     'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-mono:     'JetBrains Mono', monospace;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
 /* ── Keyframe animations ── */
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes shimmer {
-  from { background-position: -200px 0; }
-  to   { background-position:  200px 0; }
+  from {
+    background-position: -200px 0;
+  }
+  to {
+    background-position: 200px 0;
+  }
 }
 
 @keyframes ic-ring {
-  0%   { transform: scale(0.7); opacity: 1; }
-  100% { transform: scale(1.7); opacity: 0; }
+  0% {
+    transform: scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
 }
 
 @keyframes att-pulse-bg {
-  0%, 100% { opacity: 0.4; }
-  50%      { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 @keyframes att-pulse-icon {
-  0%, 100% { opacity: 0.3; }
-  50%      { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* ── Type scale ── */
@@ -146,6 +172,6 @@ body {
 }
 
 /* Black & White TV theme */
-html[data-theme="bw"] {
+html[data-theme='bw'] {
   filter: grayscale(100%) contrast(1.05);
 }

@@ -1,46 +1,118 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
 import {
   useUpdateTicket,
-  useAddComment, useUpdateComment, useDeleteComment,
-  useAddAcceptanceCriterion, useToggleAcceptanceCriterion, useDeleteAcceptanceCriterion,
-  useAddWorkLog, useUpdateWorkLog, useDeleteWorkLog,
-  uploadDescriptionImage,
-  useLinkBlock, useUnlinkBlock,
-  useAddTicketLink, useRemoveTicketLink,
-  useAddTestCase, useUpdateTestCase, useDeleteTestCase,
+  useUpdateTicketStatus,
+  useAddComment,
+  useUpdateComment,
+  useDeleteComment,
+  useRestoreComment,
+  useAddAcceptanceCriterion,
+  useToggleAcceptanceCriterion,
+  useDeleteAcceptanceCriterion,
+  useAddSubTask,
+  useToggleSubTask,
+  useDeleteSubTask,
+  useAddWorkLog,
+  useUpdateWorkLog,
+  useDeleteWorkLog,
+  uploadAnyFile,
+  useLinkBlock,
+  useUnlinkBlock,
+  useAddTicketLink,
+  useRemoveTicketLink,
+  useAddTestCase,
+  useUpdateTestCase,
+  useDeleteTestCase,
   useTicketBranches,
   useWorkspaceSettings,
+  uploadUrl,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { ActivitySection } from './ActivitySection';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
+import { FilePreviewModal } from './FilePreviewModal';
+import { FileCategoryIcon, getFileTypeMeta, formatFileSize } from '../utils/fileIcons';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
-import { MemberAvatar } from './MemberAvatar';
 import { RelationsSection } from './RelationsSection';
+import { TicketDocsSection } from './docs/TicketDocsSection';
+import { TicketDocsHost } from './docs/TicketDocsHost';
 import { TestCasesSection } from './TestCasesSection';
 import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
+import { AssigneePicker } from './ai/AssigneePicker';
+import { useMentionIntent } from './ai/MentionIntent';
+import { usePeopleAndAiSuggest } from './ai/useMentionList';
+import { AiCompletedBadge, HoldChips, StatusMovedBy } from './ai/TicketHold';
+import { TicketPlan } from './ai/TicketPlan';
+import { AiHoverHost } from './ai/MentionPill';
+import {
+  ASK_AI_EVENT,
+  ASSIGN_AI_EVENT,
+  AiTicketContext,
+  fireAiEvent,
+  type AiTicketActions,
+} from './ai/AiTicketContext';
+import { aiApi } from '../api/ai';
+import { useQueryClient } from '@tanstack/react-query';
+import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
+import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
+import { TicketSafetyBlocks } from './ai/AiTicketSafety';
+import { SplitBadge, SuggestCasesButton, SuggestCasesPanel, TicketAiMenu } from './assist/TicketAi';
+import { DraftWithAi } from './assist/DraftWithAi';
+import { useAssist } from './assist/AssistContext';
 import { BranchesSection } from './BranchesSection';
 import { CreateBranchModal } from './CreateBranchModal';
 import { useProject } from '../api/projects';
 import { SubTicketsSection } from './SubTicketsSection';
+import { SubTasksSection } from './SubTasksSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
 import { TagPill } from './TagPill';
 import { useToast } from './Toast';
+import { Icon } from './docs/Icon';
+import { WontDoDialog } from './WontDoDialog';
+import { ReopenDialog } from './ReopenDialog';
+import { PendingCloseConfirm } from './PendingCloseConfirm';
+import { useMarkerActions } from '../hooks/useMarkerActions';
+import { useOnline } from '../hooks/useOnline';
+import { SetPendingDialog } from './SetPendingDialog';
+import { ResumeDialog } from './ResumeDialog';
 import styles from './TicketModal.module.css';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
 
 const TYPE_CONFIG: Record<IssueType, { label: string }> = {
-  bug:     { label: 'Bug' },
+  bug: { label: 'Bug' },
   feature: { label: 'Feature' },
-  task:    { label: 'Task' },
-  chore:   { label: 'Chore' },
+  task: { label: 'Task' },
+  chore: { label: 'Chore' },
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  backlog: 'Backlog',
+  todo: 'To Do',
+  'in-progress': 'In Progress',
+  review: 'Review',
+  testing: 'Testing',
+  done: 'Done',
+  wont_do: "Won't Do",
+};
+
+/** 'user' / 'agent' are not names: show how the activity feed words them. */
+function fmtActor(actor?: string | null): string | null {
+  if (!actor) return null;
+  return actor === 'user' ? 'You' : actor === 'agent' ? 'AI agent' : actor;
+}
+
+/** 'Oct 21' (design date format) */
+function fmtShortDate(iso?: string | null): string {
+  if (!iso) return 'recently';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? 'recently' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 function formatDueDate(iso?: string | null): string {
   if (!iso) return 'Set date';
@@ -109,6 +181,7 @@ type TicketModalProps =
       onClose: () => void;
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
+      onOpenDocsPage?: (pageId: string) => void;
       members?: Member[];
     }
   | {
@@ -119,10 +192,11 @@ type TicketModalProps =
       onClose: () => void;
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
+      onOpenDocsPage?: (pageId: string) => void;
       members?: Member[];
     };
 
-export function TicketModal({
+function TicketModalInner({
   mode: initialMode,
   ticket,
   onSave,
@@ -130,10 +204,40 @@ export function TicketModal({
   onClose,
   allTickets = [],
   onOpenTicket,
+  onOpenDocsPage,
   members = [],
 }: TicketModalProps) {
   const localMode = initialMode;
-  const [activeTab, setActiveTab] = useState<'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity'>('main');
+  const [activeTab, setActiveTab] = useState<
+    'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity' | 'ai'
+  >('main');
+  const [suggestCases, setSuggestCases] = useState(false);
+  const [draftActive, setDraftActive] = useState(false);
+  // Which run the AI tab shows (set by the run links of the thread and the hover cards)
+  const queryClient = useQueryClient();
+  const mentionList = usePeopleAndAiSuggest(members);
+  const [aiRunId, setAiRunId] = useState<string | null>(null);
+  const openTicketId = ticket?.id ?? null;
+  const aiTicketActions = useMemo<AiTicketActions>(
+    () => ({
+      ticketId: openTicketId,
+      ask: (memberId) => {
+        setActiveTab('main');
+        window.setTimeout(() => openTicketId && fireAiEvent(ASK_AI_EVENT, openTicketId, memberId), 60);
+      },
+      assign: (memberId) => {
+        setActiveTab('main');
+        window.setTimeout(() => openTicketId && fireAiEvent(ASSIGN_AI_EVENT, openTicketId, memberId), 60);
+      },
+      openRun: (runId) => {
+        setAiRunId(runId);
+        setActiveTab('ai');
+      },
+    }),
+    [openTicketId],
+  );
+  const assist = useAssist();
+  const mentionIntent = useMentionIntent(ticket?.id ?? '');
   const { data: workspaceSettings } = useWorkspaceSettings();
   const workspaceEnabled = workspaceSettings?.enabled !== false;
 
@@ -152,6 +256,39 @@ export function TicketModal({
   const [blockTcs, setBlockTcs] = useState(ticket?.blockDoneIfTcsIncomplete ?? false);
   const [estimate, setEstimate] = useState<number | null>(ticket?.estimate ?? null);
   const [assignee, setAssignee] = useState<string | null>(ticket?.assignee ?? null);
+  const [wontDoReason, setWontDoReason] = useState<string | null>(ticket?.wontDoReason ?? null);
+  const [isWontDoOpen, setIsWontDoOpen] = useState(false);
+  const [isSubmittingWontDo, setIsSubmittingWontDo] = useState(false);
+
+  const [isReopenOpen, setIsReopenOpen] = useState(false);
+  const [isSubmittingReopen, setIsSubmittingReopen] = useState(false);
+
+  const [isPendingOpen, setIsPendingOpen] = useState(false);
+  const [isSubmittingPending, setIsSubmittingPending] = useState(false);
+
+  const [isResumeOpen, setIsResumeOpen] = useState(false);
+  const [isSubmittingResume, setIsSubmittingResume] = useState(false);
+
+  // The expanded / collapsed choice of the Reopen history is remembered per browser (TicketReopen D4)
+  const [showReopenHistory, setShowReopenHistoryRaw] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('kanban.reopenHistoryOpen') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const setShowReopenHistory = (v: boolean | ((prev: boolean) => boolean)) =>
+    setShowReopenHistoryRaw((prev) => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      try {
+        localStorage.setItem('kanban.reopenHistoryOpen', next ? '1' : '0');
+      } catch {
+        /* storage unavailable: the choice just is not remembered */
+      }
+      return next;
+    });
+  const [dismissPrompt, setDismissPrompt] = useState(false);
+  const reopenHistoryRef = useRef<HTMLDivElement>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const toast = useToast();
@@ -159,9 +296,15 @@ export function TicketModal({
   const addCommentMutation = useAddComment();
   const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
+  const restoreCommentMutation = useRestoreComment();
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
   const addACMutation = useAddAcceptanceCriterion();
   const toggleACMutation = useToggleAcceptanceCriterion();
   const deleteACMutation = useDeleteAcceptanceCriterion();
+  const updateTicketStatusMutation = useUpdateTicketStatus();
+  const addSubTaskMutation = useAddSubTask();
+  const toggleSubTaskMutation = useToggleSubTask();
+  const deleteSubTaskMutation = useDeleteSubTask();
   const addWorkLogMutation = useAddWorkLog();
   const updateWorkLogMutation = useUpdateWorkLog();
   const deleteWorkLogMutation = useDeleteWorkLog();
@@ -194,6 +337,33 @@ export function TicketModal({
   }
 
   const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<{
+    url: string;
+    fileName?: string;
+    fileSize?: number;
+  } | null>(null);
+  const attFileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleDirectAttachmentUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !ticket) return;
+    try {
+      const res = await uploadAnyFile(file);
+      const currentDesc = description || '';
+      const separator = currentDesc.trim() ? '\n\n' : '';
+      const nextDesc = `${currentDesc}${separator}${res.markdown}`;
+      setDescription(nextDesc);
+      updateTicketMutation.mutate({
+        ticketId: ticket.id,
+        data: { description: nextDesc },
+      });
+      toast.success('Attached file', file.name);
+    } catch (err) {
+      toast.error("Couldn't attach file", extractError(err));
+    } finally {
+      if (attFileInputRef.current) attFileInputRef.current.value = '';
+    }
+  }
   const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
   const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
   const branchContainerRef = useRef<HTMLDivElement>(null);
@@ -241,6 +411,7 @@ export function TicketModal({
     setStartDate(ticket.startDate ?? null);
     setEstimate(ticket.estimate ?? null);
     setAssignee(ticket.assignee ?? null);
+    setWontDoReason(ticket.wontDoReason ?? null);
     setBlockAcs(ticket.blockDoneIfAcsIncomplete);
     setBlockTcs(ticket.blockDoneIfTcsIncomplete);
   }
@@ -251,7 +422,6 @@ export function TicketModal({
       applyTicket(ticket);
       setIsFullscreen(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket]);
 
   function handleClose() {
@@ -259,6 +429,21 @@ export function TicketModal({
     setIsFullscreen(false);
     setTimeout(onClose, 150);
   }
+  const handleCloseRef = useRef(handleClose);
+  handleCloseRef.current = handleClose;
+
+  // Esc closes the ticket unless something inside is using it (a field, the doc side panel, another dialog)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      if (document.querySelectorAll('[role="dialog"]').length > 1) return;
+      handleCloseRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Description edits are debounced (one PATCH per pause, not per keystroke) and flushed on blur/close/switch
   const pendingDescRef = useRef<{ ticketId: string; value: string } | null>(null);
@@ -274,7 +459,7 @@ export function TicketModal({
     if (!pending) return;
     updateTicketMutation.mutate(
       { ticketId: pending.ticketId, data: { description: pending.value } },
-      { onError: (err) => toast.error("Couldn't save changes", extractError(err)) }
+      { onError: (err) => toast.error("Couldn't save changes", extractError(err)) },
     );
   };
   function scheduleDescriptionSave(value: string) {
@@ -298,7 +483,7 @@ export function TicketModal({
           toast.error("Couldn't save changes", extractError(err));
           applyTicket(ticket); // the server refused the edit: show what is really saved
         },
-      }
+      },
     );
   }
 
@@ -309,13 +494,159 @@ export function TicketModal({
     }
   }
 
-  function handleStatusChange(newStatus: Status) {
+  const [closeConfirmStatus, setCloseConfirmStatus] = useState<'done' | 'wont_do' | null>(null);
+
+  function handleStatusChange(newStatus: Status, confirmed = false) {
+    // A pending ticket that is closed loses its flag: confirm first (TicketPending E2)
+    if (ticket?.pending && (newStatus === 'done' || newStatus === 'wont_do') && !confirmed) {
+      setCloseConfirmStatus(newStatus);
+      return;
+    }
+    if (newStatus === 'wont_do') {
+      setIsWontDoOpen(true);
+      return;
+    }
+    const prevStatus = status;
     setStatus(newStatus);
-    autoSaveField('status', newStatus);
-    if (newStatus === 'done' && ticket) {
-      toast.success('Moved to Done', `${ticket.id} · ${ticket.title}`);
+    if (!ticket) return;
+
+    if (prevStatus === 'wont_do') {
+      setWontDoReason(null);
+      updateTicketMutation.mutate(
+        { ticketId: ticket.id, data: { status: newStatus, wontDoReason: null } },
+        {
+          onSuccess: () => toast.success('Ticket restored', `${ticket.id} moved to ${newStatus}`),
+          onError: (err) => {
+            toast.error("Couldn't save changes", extractError(err));
+            applyTicket(ticket);
+          },
+        },
+      );
+    } else {
+      autoSaveField('status', newStatus);
+      if (newStatus === 'done') {
+        toast.success('Moved to Done', `${ticket.id} · ${ticket.title}`);
+      }
     }
   }
+
+  async function handleConfirmWontDo(reason: string) {
+    if (!ticket) return;
+    setIsSubmittingWontDo(true);
+    try {
+      await updateTicketMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: { status: 'wont_do', wontDoReason: reason.trim() },
+      });
+      setStatus('wont_do');
+      setWontDoReason(reason.trim());
+      setIsWontDoOpen(false);
+      toast.success("Marked as Won't Do", `${ticket.id} moved to Recycle Bin`);
+    } catch (err) {
+      toast.error("Couldn't mark as Won't Do", extractError(err));
+    } finally {
+      setIsSubmittingWontDo(false);
+    }
+  }
+
+  async function handleRestoreFromWontDo() {
+    if (!ticket) return;
+    try {
+      await updateTicketMutation.mutateAsync({
+        ticketId: ticket.id,
+        data: { status: 'backlog', wontDoReason: null },
+      });
+      setStatus('backlog');
+      setWontDoReason(null);
+      toast.success('Ticket restored', `${ticket.id} moved back to Backlog`);
+    } catch (err) {
+      toast.error("Couldn't restore ticket", extractError(err));
+    }
+  }
+
+  const markers = useMarkerActions(members);
+  const online = useOnline();
+  const [reopenError, setReopenError] = useState<string | null>(null);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [lastReopenPayload, setLastReopenPayload] = useState<Parameters<typeof markers.reopen>[1] | null>(null);
+
+  async function handleConfirmReopen(payload: Parameters<typeof markers.reopen>[1]) {
+    if (!ticket) return;
+    setIsSubmittingReopen(true);
+    setReopenError(null);
+    setLastReopenPayload(payload);
+    try {
+      await markers.reopen(ticket, payload);
+      setStatus('todo');
+      setIsReopenOpen(false);
+    } catch (err) {
+      setReopenError(extractError(err));
+    } finally {
+      setIsSubmittingReopen(false);
+    }
+  }
+
+  async function handleConfirmPending(payload: Parameters<typeof markers.setPending>[1]) {
+    if (!ticket) return;
+    setIsSubmittingPending(true);
+    setPendingError(null);
+    try {
+      await markers.setPending(ticket, payload);
+      setIsPendingOpen(false);
+    } catch (err) {
+      setPendingError(extractError(err));
+    } finally {
+      setIsSubmittingPending(false);
+    }
+  }
+
+  async function handleConfirmResume(payload: { reason?: string; addComment?: boolean }) {
+    if (!ticket) return;
+    setIsSubmittingResume(true);
+    setResumeError(null);
+    try {
+      await markers.resume(ticket, payload);
+      setIsResumeOpen(false);
+    } catch (err) {
+      setResumeError(extractError(err));
+    } finally {
+      setIsSubmittingResume(false);
+    }
+  }
+
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (
+        activeTag === 'input' ||
+        activeTag === 'textarea' ||
+        (document.activeElement as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+      if (isReopenOpen || isPendingOpen || isResumeOpen || isWontDoOpen) {
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        if (status === 'done' || status === 'wont_do') {
+          e.preventDefault();
+          setIsReopenOpen(true);
+        }
+      } else if (e.key === 'p' || e.key === 'P') {
+        if (status !== 'done' && status !== 'wont_do') {
+          e.preventDefault();
+          if (ticket?.pending) {
+            setIsResumeOpen(true);
+          } else {
+            setIsPendingOpen(true);
+          }
+        }
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [status, ticket?.pending, isReopenOpen, isPendingOpen, isResumeOpen, isWontDoOpen]);
 
   function handlePriorityChange(newPriority: Priority) {
     setPriority(newPriority);
@@ -391,12 +722,12 @@ export function TicketModal({
   const assigneeMember = members.find((m) => m.id === assignee);
   const childTickets = ticket ? allTickets.filter((t) => t.parentId === ticket.id) : [];
   const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
+  const pendingBlockerTicket = ticket?.pendingTicketId
+    ? allTickets.find((t) => t.id === ticket.pendingTicketId)
+    : undefined;
 
   // View switchers tooltips & status dots
-  const allRelevantTestCases = [
-    ...(ticket?.testCases ?? []),
-    ...childTickets.flatMap((ct) => ct.testCases ?? []),
-  ];
+  const allRelevantTestCases = [...(ticket?.testCases ?? []), ...childTickets.flatMap((ct) => ct.testCases ?? [])];
   const passCount = allRelevantTestCases.filter((tc) => tc.status === 'pass').length;
   const failCount = allRelevantTestCases.filter((tc) => tc.status === 'fail').length;
   const runningCount = allRelevantTestCases.filter((tc) => tc.status === 'running').length;
@@ -414,13 +745,12 @@ export function TicketModal({
   const latestResolvedAt = wlList
     .filter((w) => w.kind === 'resolved')
     .reduce((max, w) => Math.max(max, new Date(w.at).getTime()), 0);
-  const blockedCount = wlList.filter(
-    (w) => w.kind === 'blocked' && new Date(w.at).getTime() > latestResolvedAt,
-  ).length;
+  const blockedCount = wlList.filter((w) => w.kind === 'blocked' && new Date(w.at).getTime() > latestResolvedAt).length;
   const wlDotColor = blockedCount > 0 ? '#C4432A' : wlList.length > 0 ? '#2E6F40' : undefined;
-  const wlTooltip = wlList.length > 0
-    ? `Debug — ${wlList.length} ${wlList.length === 1 ? 'entry' : 'entries'}${blockedCount > 0 ? ` · ${blockedCount} blocked` : ''}`
-    : 'Debug Space';
+  const wlTooltip =
+    wlList.length > 0
+      ? `Debug — ${wlList.length} ${wlList.length === 1 ? 'entry' : 'entries'}${blockedCount > 0 ? ` · ${blockedCount} blocked` : ''}`
+      : 'Debug Space';
 
   // ══════════════════════════════════════════════════════════════
   // RENDER: CREATE MODE (New Ticket)
@@ -428,11 +758,22 @@ export function TicketModal({
   if (localMode === 'create' || !ticket) {
     return (
       <div className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
-        <div className={`${styles.panel} ${styles.panelNew} ${visible ? styles.panelVisible : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`${styles.panel} ${styles.panelNew} ${visible ? styles.panelVisible : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className={styles.newModalHeader}>
             <span className={styles.newModalTitle}>New Ticket</span>
             <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
                 <path d="M6 6L18 18" />
                 <path d="M18 6L6 18" />
               </svg>
@@ -442,124 +783,161 @@ export function TicketModal({
           <form onSubmit={handleCreateSubmit}>
             <div className={styles.newModalBody}>
               {saveError && (
-                <div style={{ color: '#C4432A', fontSize: 13, background: '#FBE7E4', padding: '8px 12px', borderRadius: 6 }}>
+                <div
+                  style={{
+                    color: '#C4432A',
+                    fontSize: 13,
+                    background: '#FBE7E4',
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                  }}
+                >
                   {saveError}
                 </div>
               )}
 
-              <div className={styles.ntField}>
-                <span className={styles.ntLabel}>Title</span>
-                <input
-                  ref={titleInputRef}
-                  className={styles.ntInput}
-                  placeholder="Ticket title…"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              <div className={styles.ntField}>
-                <span className={styles.ntLabel}>Type</span>
-                <div className={styles.typeButtonsGrid}>
-                  {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      className={`${styles.ntTypeBtn} ${type === t ? styles.ntTypeBtnActive : ''}`}
-                      onClick={() => setType(t)}
-                    >
-                      <TicketTypeIcon type={t} size={14} />
-                      {TYPE_CONFIG[t].label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.ntField}>
-                <span className={styles.ntLabel}>Description</span>
-                <MarkdownEditor
-                  value={description}
-                  onChange={setDescription}
-                  onUploadImage={async (f: File) => {
-                    const res = await uploadDescriptionImage(f);
-                    return { markdown: `![${f.name}](${res.url})` };
+              {assist?.projectId && (
+                <DraftWithAi
+                  projectId={assist.projectId}
+                  members={members}
+                  onActive={setDraftActive}
+                  onCancel={handleClose}
+                  onCreated={(id) => {
+                    handleClose();
+                    // the board refetches the new ticket first, then opens it
+                    window.setTimeout(() => assist.onOpenTicket(id), 900);
+                  }}
+                  onUseExisting={(id) => {
+                    handleClose();
+                    assist.onOpenTicket(id);
+                  }}
+                  onFillManual={(f) => {
+                    if (f.title) setTitle(f.title);
+                    if (f.description) setDescription(f.description);
+                    if (f.type) setType(f.type as IssueType);
+                    if (f.priority) setPriority(f.priority as Priority);
+                    if (f.estimate != null) setEstimate(f.estimate);
+                    setDraftActive(false);
                   }}
                 />
-              </div>
-
-              <div style={{ display: 'flex', gap: 20 }}>
-                <div className={styles.ntField} style={{ flex: 1 }}>
-                  <span className={styles.ntLabel}>Priority</span>
-                  <div className={styles.priorityChips}>
-                    {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        className={`${styles.ntPriorityChip} ${priority === p ? styles.ntPriorityChipActive : ''}`}
-                        onClick={() => setPriority(p)}
-                      >
-                        <PriorityMark priority={p} width={14} height={12} />
-                        <span style={{ textTransform: 'capitalize' }}>{p}</span>
-                      </button>
-                    ))}
+              )}
+              {!draftActive && (
+                <>
+                  <div className={styles.ntField}>
+                    <span className={styles.ntLabel}>Title</span>
+                    <input
+                      ref={titleInputRef}
+                      className={styles.ntInput}
+                      placeholder="Ticket title…"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      autoFocus
+                    />
                   </div>
-                </div>
 
-                <div className={styles.ntField}>
-                  <span className={styles.ntLabel}>Estimate</span>
-                  <div className={styles.estimateRow}>
-                    {ESTIMATE_NUMBERS.map((sp) => (
-                      <button
-                        key={sp}
-                        type="button"
-                        className={`${styles.ntEstBtn} ${estimate === sp ? styles.ntEstBtnActive : ''}`}
-                        onClick={() => setEstimate(estimate === sp ? null : sp)}
-                      >
-                        {sp}
-                      </button>
-                    ))}
+                  <div className={styles.ntField}>
+                    <span className={styles.ntLabel}>Type</span>
+                    <div className={styles.typeButtonsGrid}>
+                      {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`${styles.ntTypeBtn} ${type === t ? styles.ntTypeBtnActive : ''}`}
+                          onClick={() => setType(t)}
+                        >
+                          <TicketTypeIcon type={t} size={14} />
+                          {TYPE_CONFIG[t].label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', gap: 20 }}>
-                <div className={styles.ntField} style={{ flex: 1 }}>
-                  <span className={styles.ntLabel}>Assignee</span>
-                  <select
-                    className={styles.ntInput}
-                    value={assignee ?? ''}
-                    onChange={(e) => setAssignee(e.target.value || null)}
-                  >
-                    <option value="">Unassigned</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div className={styles.ntField}>
+                    <span className={styles.ntLabel}>Description</span>
+                    <MarkdownEditor
+                      value={description}
+                      onChange={setDescription}
+                      onUploadFile={uploadAnyFile}
+                      onUploadImage={uploadAnyFile}
+                    />
+                  </div>
 
-                <div className={styles.ntField} style={{ flex: 1 }}>
-                  <span className={styles.ntLabel}>Due Date</span>
-                  <input
-                    type="date"
-                    className={styles.ntInput}
-                    value={dueDate ?? ''}
-                    onChange={(e) => setDueDate(e.target.value || null)}
-                  />
-                </div>
-              </div>
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    <div className={styles.ntField} style={{ flex: 1 }}>
+                      <span className={styles.ntLabel}>Priority</span>
+                      <div className={styles.priorityChips}>
+                        {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`${styles.ntPriorityChip} ${priority === p ? styles.ntPriorityChipActive : ''}`}
+                            onClick={() => setPriority(p)}
+                          >
+                            <PriorityMark priority={p} width={14} height={12} />
+                            <span style={{ textTransform: 'capitalize' }}>{p}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className={styles.ntField}>
+                      <span className={styles.ntLabel}>Estimate</span>
+                      <div className={styles.estimateRow}>
+                        {ESTIMATE_NUMBERS.map((sp) => (
+                          <button
+                            key={sp}
+                            type="button"
+                            className={`${styles.ntEstBtn} ${estimate === sp ? styles.ntEstBtnActive : ''}`}
+                            onClick={() => setEstimate(estimate === sp ? null : sp)}
+                          >
+                            {sp}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    <div className={styles.ntField} style={{ flex: 1 }}>
+                      <span className={styles.ntLabel}>Assignee</span>
+                      <select
+                        className={styles.ntInput}
+                        value={assignee ?? ''}
+                        onChange={(e) => setAssignee(e.target.value || null)}
+                      >
+                        <option value="">Unassigned</option>
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.ntField} style={{ flex: 1 }}>
+                      <span className={styles.ntLabel}>Due Date</span>
+                      <input
+                        type="date"
+                        className={styles.ntInput}
+                        value={dueDate ?? ''}
+                        onChange={(e) => setDueDate(e.target.value || null)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className={styles.newModalFooter}>
-              <button type="button" className={styles.btnCancel} onClick={handleClose}>
-                Cancel
-              </button>
-              <button type="submit" className={styles.btnSubmit}>
-                Create Ticket
-              </button>
-            </div>
+            {!draftActive && (
+              <div className={styles.newModalFooter}>
+                <button type="button" className={styles.btnCancel} onClick={handleClose}>
+                  Cancel
+                </button>
+                <button type="submit" className={styles.btnSubmit}>
+                  Create Ticket
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -569,909 +947,2211 @@ export function TicketModal({
   // ══════════════════════════════════════════════════════════════
   // RENDER: VIEW MODE (Ticket Detail Panel)
   // ══════════════════════════════════════════════════════════════
-  const rawBranches: TicketBranch[] = (ticketBranches.length > 0
-    ? ticketBranches
-    : (ticket?.branches && ticket.branches.length > 0)
-      ? ticket.branches
-      : []
-  );
+  const rawBranches: TicketBranch[] =
+    ticketBranches.length > 0 ? ticketBranches : ticket?.branches && ticket.branches.length > 0 ? ticket.branches : [];
 
   const branchesList: TicketBranch[] = [
     ...(!rawBranches.some((b) => b.name === 'main' || b.status === 'baseline')
-      ? [{
-          id: 'baseline-main',
-          name: 'main',
-          status: 'baseline' as const,
-          branchFrom: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }]
+      ? [
+          {
+            id: 'baseline-main',
+            name: 'main',
+            status: 'baseline' as const,
+            branchFrom: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ]
       : []),
     ...rawBranches,
   ];
 
   // Use the live list (git-refreshed) rather than ticket.branches, whose counts are stale
-  const defaultBranch = branchesList.find(b => b.status !== 'baseline') || branchesList[0];
-  const activeBranch = branchesList.find(b => b.name === selectedBranchName) || defaultBranch;
+  const defaultBranch = branchesList.find((b) => b.status !== 'baseline') || branchesList[0];
+  const activeBranch = branchesList.find((b) => b.name === selectedBranchName) || defaultBranch;
   const activeBranchName = activeBranch?.name ?? 'main';
   const activeBranchSubtext = activeBranch
-    ? (activeBranch.status === 'baseline'
-        ? 'baseline'
-        : `from ${activeBranch.branchFrom || 'main'}${
-            activeBranch.aheadCount !== undefined
-              ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
-              : ''
-          }`)
+    ? activeBranch.status === 'baseline'
+      ? 'baseline'
+      : `from ${activeBranch.branchFrom || 'main'}${
+          activeBranch.aheadCount !== undefined
+            ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
+            : ''
+        }`
     : 'from main';
 
   return (
-    <div
-      className={`${styles.overlay} ${visible ? styles.overlayVisible : ''} ${isFullscreen ? styles.overlayFullscreen : ''}`}
-      onClick={handleClose}
-    >
+    <AiTicketContext.Provider value={aiTicketActions}>
+      <AiHoverHost />
       <div
-        className={`${styles.panel} ${styles.panelDetail} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
-        onClick={(e) => e.stopPropagation()}
+        className={`${styles.overlay} ${visible ? styles.overlayVisible : ''} ${isFullscreen ? styles.overlayFullscreen : ''}`}
+        onClick={handleClose}
       >
-        {/* Header */}
-        <div className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.typeContainer} style={{ position: 'relative', cursor: 'pointer' }} title="Change ticket type">
-              <TicketTypeIcon type={ticket.type} size={16} />
-              <span>{TYPE_CONFIG[ticket.type].label}</span>
-              <select
-                className={styles.sidebarSelect}
-                value={ticket.type}
-                onChange={(e) => handleTypeChange(e.target.value as IssueType)}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Ticket ${ticket.id}`}
+          className={`${styles.panel} ${styles.panelDetail} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className={styles.header}>
+            <div className={styles.headerLeft}>
+              <div
+                className={styles.typeContainer}
+                style={{ position: 'relative', cursor: 'pointer' }}
+                title="Change ticket type"
               >
-                <option value="task">Task</option>
-                <option value="bug">Bug</option>
-                <option value="feature">Feature</option>
-                <option value="chore">Chore</option>
-              </select>
-            </div>
-
-            <span className={styles.headerDivider} />
-
-            {parentTicket && (
-              <>
-                <button
-                  type="button"
-                  className={styles.parentBtn}
-                  onClick={() => onOpenTicket?.(parentTicket)}
-                  title={`Parent: ${parentTicket.title}`}
+                <TicketTypeIcon type={ticket.type} size={16} />
+                <span>{TYPE_CONFIG[ticket.type].label}</span>
+                <select
+                  className={styles.sidebarSelect}
+                  value={ticket.type}
+                  onChange={(e) => handleTypeChange(e.target.value as IssueType)}
                 >
-                  <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
-                    <path d="M7.5 8.5L10 11L7.5 13.5" />
-                  </svg>
-                  {parentTicket.id}
-                </button>
-                <span className={styles.slashSep}>/</span>
-              </>
-            )}
+                  <option value="task">Task</option>
+                  <option value="bug">Bug</option>
+                  <option value="feature">Feature</option>
+                  <option value="chore">Chore</option>
+                </select>
+              </div>
 
-            <button
-              type="button"
-              className={styles.idBtn}
-              onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
-              title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
-            >
-              {ticket.id}
-            </button>
-          </div>
+              <span className={styles.headerDivider} />
 
-          {/* View switcher tabs */}
-          <div className={styles.headerViews}>
-            <button
-              type="button"
-              className={`${styles.viewBtn} ${activeTab === 'test_cases' ? styles.viewBtnActive : ''}`}
-              onClick={() => setActiveTab(activeTab === 'test_cases' ? 'main' : 'test_cases')}
-              aria-label="Test Cases"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11L12 14L22 4" />
-                <path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" />
-              </svg>
-              {tcDotColor && <span className={styles.viewDot} style={{ background: tcDotColor }} />}
-              <span className={styles.viewTooltip}>{tcTooltip}</span>
-            </button>
-
-            <button
-              type="button"
-              className={`${styles.viewBtn} ${activeTab === 'debug_space' ? styles.viewBtnActive : ''}`}
-              onClick={() => setActiveTab(activeTab === 'debug_space' ? 'main' : 'debug_space')}
-              aria-label="Debug Space"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <path d="M7 9L10 12L7 15" />
-                <path d="M12 15H17" />
-              </svg>
-              {wlDotColor && <span className={styles.viewDot} style={{ background: wlDotColor }} />}
-              <span className={styles.viewTooltip}>{wlTooltip}</span>
-            </button>
-
-            {workspaceEnabled && (
-            <button
-              type="button"
-              className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
-              onClick={() => setActiveTab(activeTab === 'workspace' ? 'main' : 'workspace')}
-              aria-label="Workspace"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
-              </svg>
-              <span className={styles.viewTooltip}>Workspace</span>
-            </button>
-            )}
-
-            <button
-              type="button"
-              className={`${styles.viewBtn} ${activeTab === 'branches' ? styles.viewBtnActive : ''}`}
-              onClick={() => setActiveTab(activeTab === 'branches' ? 'main' : 'branches')}
-              aria-label="Branches"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="6" cy="6" r="2.5" />
-                <circle cx="6" cy="18" r="2.5" />
-                <circle cx="18" cy="6" r="2.5" />
-                <path d="M6 8.5V15.5" />
-                <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
-              </svg>
-              <span className={styles.viewTooltip}>Branches</span>
-            </button>
-
-            <button
-              type="button"
-              className={`${styles.viewBtn} ${activeTab === 'activity' ? styles.viewBtnActive : ''}`}
-              onClick={() => setActiveTab(activeTab === 'activity' ? 'main' : 'activity')}
-              aria-label="Activity"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 7V12L15 14" />
-              </svg>
-              <span className={styles.viewTooltip}>Activity — {ticket?.activityLog?.length ?? 0} changes</span>
-            </button>
-          </div>
-
-          <div className={styles.headerRight}>
-            <button
-              type="button"
-              className={styles.fullscreenBtn}
-              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-              onClick={() => setIsFullscreen((prev) => !prev)}
-            >
-              {isFullscreen ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M14 4h6m0 0v6m0-6l-7 7M4 10h6m0 0V4m0 6L3 3" />
-                </svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                </svg>
+              {parentTicket && (
+                <>
+                  <button
+                    type="button"
+                    className={styles.parentBtn}
+                    onClick={() => onOpenTicket?.(parentTicket)}
+                    title={`Parent: ${parentTicket.title}`}
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      stroke="#9AA8A0"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
+                      <path d="M7.5 8.5L10 11L7.5 13.5" />
+                    </svg>
+                    {parentTicket.id}
+                  </button>
+                  <span className={styles.slashSep}>/</span>
+                </>
               )}
-            </button>
 
-            {onDelete && (
               <button
                 type="button"
-                className={styles.deleteHeaderBtn}
-                aria-label="Delete ticket"
-                title="Delete ticket"
-                onClick={() => {
-                  if (window.confirm(`Delete ${ticket.id}?`)) {
-                    onDelete(ticket.id);
-                    handleClose();
-                  }
-                }}
+                className={styles.idBtn}
+                onClick={activeTab !== 'main' ? () => setActiveTab('main') : handleCopyId}
+                title={activeTab !== 'main' ? 'Back to Details' : 'Click to copy ID'}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18" />
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                  <line x1="10" y1="11" x2="10" y2="17" />
-                  <line x1="14" y1="11" x2="14" y2="17" />
-                </svg>
+                {ticket.id}
               </button>
-            )}
 
-            <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                <path d="M6 6L18 18" />
-                <path d="M18 6L6 18" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        {activeTab === 'main' ? (
-          <div key="main" className={`${styles.detailBody} ${styles.tabFadeSlide}`}>
-            {/* Main Column */}
-            <div className={styles.mainCol}>
-              <>
-                {/* Title & Tags */}
-                <div className={styles.titleArea}>
-                  {isEditingTitle ? (
-                    <input
-                      className={styles.titleInputEdit}
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      onBlur={handleTitleBlur}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleTitleBlur();
-                        if (e.key === 'Escape') {
-                          setTitle(ticket.title);
-                          setIsEditingTitle(false);
-                        }
+              {/* Reopened Header Badge */}
+              {(ticket.reopenCount ?? 0) > 0 && status !== 'done' && status !== 'wont_do' && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: '#FFF1D6',
+                    border: '1px solid #F0C77A',
+                    color: '#8A4B00',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    marginLeft: 6,
+                  }}
+                >
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#C77700"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  Reopened
+                  {(ticket.reopenCount ?? 0) > 1 && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        background: '#FDE3A7',
+                        padding: '0 4px',
+                        borderRadius: 3,
+                        fontWeight: 700,
                       }}
-                      autoFocus
-                    />
-                  ) : (
-                    <h2 className={styles.titleText} onClick={() => setIsEditingTitle(true)} title="Click to edit">
-                      {ticket.title}
-                    </h2>
+                    >
+                      x{ticket.reopenCount}
+                    </span>
                   )}
+                </span>
+              )}
 
-                  <div className={styles.tagsRow}>
-                    {tags.map((tag) => (
-                      <TagPill
-                        key={tag}
-                        tag={tag}
-                        onRemove={() => handleRemoveTag(tag)}
-                      />
-                    ))}
-
-                    {isAddingTag ? (
-                      <input
-                        ref={tagInputRef}
-                        className={styles.tagInput}
-                        placeholder="Tag name…"
-                        value={newTagText}
-                        onChange={(e) => setNewTagText(e.target.value)}
-                        onBlur={handleAddTagSubmit}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddTagSubmit();
-                          if (e.key === 'Escape') setIsAddingTag(false);
-                        }}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className={styles.tagAddBtn}
-                        onClick={() => setIsAddingTag(true)}
-                      >
-                        <svg width="9" height="9" viewBox="0 0 12 12"><path d="M6 2V10M2 6H10" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" /></svg>
-                        Add tag
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className={styles.descSection}>
-                  <div className={styles.sectionLabel}>Description</div>
-                  <MarkdownEditor
-                    value={description}
-                    onChange={(nextDesc) => {
-                      setDescription(nextDesc);
-                      scheduleDescriptionSave(nextDesc);
-                    }}
-                    onBlur={() => flushDescRef.current()}
-                    onUploadImage={async (f: File) => {
-                      const res = await uploadDescriptionImage(f);
-                      return { markdown: `![${f.name}](${res.url})` };
-                    }}
-                  />
-                </div>
-
-                {/* Sub-tasks */}
-                <SubTicketsSection
-                  childTickets={childTickets}
-                  allTickets={allTickets}
-                  currentTicketId={ticket.id}
-                  projectId={ticket.projectId}
-                  onOpenTicket={(child) => onOpenTicket?.(child)}
-                  onLinkChild={(childId) => {
-                    updateTicketMutation.mutate({
-                      ticketId: childId,
-                      data: { parentId: ticket.id },
-                    });
+              {/* Pending Header Badge */}
+              {ticket.pending && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: '#E8EDF3',
+                    border: '1px solid #B8C4D2',
+                    color: '#34455A',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    marginLeft: 6,
                   }}
-                  onUnlinkChild={(childId) => {
-                    updateTicketMutation.mutate({
-                      ticketId: childId,
-                      data: { parentId: null },
-                    });
-                  }}
-                />
-
-                {/* Acceptance Criteria */}
-                <AcceptanceCriteriaSection
-                  acceptanceCriteria={ticket.acceptanceCriteria ?? []}
-                  onAdd={(text) => {
-                    addACMutation.mutate({ ticketId: ticket.id, text });
-                  }}
-                  onToggle={(id) => {
-                    toggleACMutation.mutate({ ticketId: ticket.id, criterionId: id });
-                  }}
-                  onDelete={(id) => {
-                    deleteACMutation.mutate({ ticketId: ticket.id, criterionId: id });
-                  }}
-                />
-
-                {/* Relations */}
-                <RelationsSection
-                  ticket={ticket}
-                  allTickets={allTickets}
-                  onLinkBlock={(blockerId, blockedId) => {
-                    linkBlockMutation.mutate({ blockerId, blockedId });
-                  }}
-                  onUnlinkBlock={(blockerId, blockedId) => {
-                    unlinkBlockMutation.mutate({ blockerId, blockedId });
-                  }}
-                  onAddLink={(ticketId, targetId, relType) => {
-                    addTicketLinkMutation.mutate({ ticketId, targetId, relationType: relType });
-                  }}
-                  onRemoveLink={(ticketId, linkId) => {
-                    removeTicketLinkMutation.mutate({ ticketId, linkId });
-                  }}
-                  onOpenTicket={(relT) => onOpenTicket?.(relT)}
-                />
-
-                {/* Consolidated Attachments Zone */}
-                {(() => {
-                  const rawAttachments = (ticket.description?.match(/!\[(.*?)\]\((.*?)\)/g) ?? [])
-                    .map((match) => {
-                      const exec = /!\[(.*?)\]\((.*?)\)/.exec(match);
-                      const alt = exec?.[1] || 'attachment';
-                      const src = exec?.[2] || '';
-                      return { alt, src };
-                    })
-                    .filter((att) => att.src && !att.src.startsWith('uploading:'));
-
-                  return (
-                    <div className={styles.attachmentsZone}>
-                      <div className={styles.sectionLabel}>
-                        ATTACHMENTS · {rawAttachments.length}
-                      </div>
-                      <div className={styles.attachmentsList}>
-                        {rawAttachments.map((att, i) => {
-                          const resolvedSrc = att.src.startsWith('/uploads/') ? `${resolveOrigin()}${att.src}` : att.src;
-                          return (
-                            <div key={i} className={styles.attThumbBox}>
-                              <div
-                                className={styles.attThumb}
-                                onClick={() => window.open(resolvedSrc, '_blank')}
-                                style={{ cursor: 'pointer' }}
-                                title="Click to view full size"
-                              >
-                                <img src={resolvedSrc} alt={att.alt} />
-                              </div>
-                              <span className={styles.attMetaText}>in Description</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <hr className={styles.sectionDivider} />
-
-                {/* Comments */}
-                <CommentsSection
-                  comments={ticket.comments ?? []}
-                  members={members}
-                  currentMember={assigneeMember}
-                  onAdd={(t) => addCommentMutation.mutate({ ticketId: ticket.id, text: t, author: assigneeMember?.name ?? 'user' })}
-                  onEdit={(cId, t) => updateCommentMutation.mutate({ ticketId: ticket.id, commentId: cId, text: t })}
-                  onDelete={(cId) => deleteCommentMutation.mutate({ ticketId: ticket.id, commentId: cId })}
-                />
-              </>
-          </div>
-
-          {/* Right Meta Sidebar matching ticket-detail-4-sidebar.png */}
-          <aside className={styles.sidebarCol}>
-            {/* 1. Status */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Status</span>
-              <StatusMenu value={status} onChange={handleStatusChange} />
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#5B6F86">
+                    <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+                    <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+                  </svg>
+                  Pending
+                </span>
+              )}
+              <span style={{ marginLeft: 6, display: 'inline-flex' }}>
+                <RunHeaderChip ticket={ticket} />
+                <AiCompletedBadge ticket={ticket} />
+              </span>
             </div>
 
-            {/* 2. Branch */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Branch</span>
-              <div ref={branchContainerRef} style={{ position: 'relative', width: '100%' }}>
+            {/* View switcher tabs */}
+            <div className={styles.headerViews}>
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${activeTab === 'test_cases' ? styles.viewBtnActive : ''}`}
+                onClick={() => setActiveTab(activeTab === 'test_cases' ? 'main' : 'test_cases')}
+                aria-label="Test Cases"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 11L12 14L22 4" />
+                  <path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" />
+                </svg>
+                {tcDotColor && <span className={styles.viewDot} style={{ background: tcDotColor }} />}
+                <span className={styles.viewTooltip}>{tcTooltip}</span>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${activeTab === 'debug_space' ? styles.viewBtnActive : ''}`}
+                onClick={() => setActiveTab(activeTab === 'debug_space' ? 'main' : 'debug_space')}
+                aria-label="Debug Space"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M7 9L10 12L7 15" />
+                  <path d="M12 15H17" />
+                </svg>
+                {wlDotColor && <span className={styles.viewDot} style={{ background: wlDotColor }} />}
+                <span className={styles.viewTooltip}>{wlTooltip}</span>
+              </button>
+
+              {workspaceEnabled && (
                 <button
                   type="button"
-                  className={`${styles.branchBtn} ${isBranchPopoverOpen ? styles.branchBtnActive : ''}`}
-                  onClick={() => setIsBranchPopoverOpen((prev) => !prev)}
-                  title={activeBranchName ? `Branch: ${activeBranchName}` : 'Branch: main'}
+                  className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
+                  onClick={() => setActiveTab(activeTab === 'workspace' ? 'main' : 'workspace')}
+                  aria-label="Workspace"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6D5DD3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <circle cx="6" cy="6" r="2.5" />
-                    <circle cx="6" cy="18" r="2.5" />
-                    <circle cx="18" cy="6" r="2.5" />
-                    <path d="M6 8.5V15.5" />
-                    <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
                   </svg>
-                  <span className={styles.branchText}>{activeBranchName}</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA8A0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <path d={isBranchPopoverOpen ? "M6 15L12 9L18 15" : "M6 9L12 15L18 9"} />
+                  <span className={styles.viewTooltip}>Workspace</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${activeTab === 'branches' ? styles.viewBtnActive : ''}`}
+                onClick={() => setActiveTab(activeTab === 'branches' ? 'main' : 'branches')}
+                aria-label="Branches"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="6" cy="6" r="2.5" />
+                  <circle cx="6" cy="18" r="2.5" />
+                  <circle cx="18" cy="6" r="2.5" />
+                  <path d="M6 8.5V15.5" />
+                  <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                </svg>
+                <span className={styles.viewTooltip}>Branches</span>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${activeTab === 'activity' ? styles.viewBtnActive : ''}`}
+                onClick={() => setActiveTab(activeTab === 'activity' ? 'main' : 'activity')}
+                aria-label="Activity"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7V12L15 14" />
+                </svg>
+                <span className={styles.viewTooltip}>Activity — {ticket?.activityLog?.length ?? 0} changes</span>
+              </button>
+              <RunHeaderButton
+                ticket={ticket}
+                active={activeTab === 'ai'}
+                onClick={() => setActiveTab(activeTab === 'ai' ? 'main' : 'ai')}
+              />
+              <TicketAiMenu
+                ticket={ticket}
+                onOpenTestCases={() => {
+                  setActiveTab('test_cases');
+                  setSuggestCases(true);
+                }}
+              />
+            </div>
+
+            <div className={styles.headerRight}>
+              <button
+                type="button"
+                className={styles.fullscreenBtn}
+                aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                onClick={() => setIsFullscreen((prev) => !prev)}
+              >
+                {isFullscreen ? (
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M14 4h6m0 0v6m0-6l-7 7M4 10h6m0 0V4m0 6L3 3" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                  </svg>
+                )}
+              </button>
+
+              {onDelete && (
+                <button
+                  type="button"
+                  className={styles.deleteHeaderBtn}
+                  aria-label="Delete ticket"
+                  title="Delete ticket"
+                  onClick={() => {
+                    if (window.confirm(`Delete ${ticket.id}?`)) {
+                      onDelete(ticket.id);
+                      handleClose();
+                    }
+                  }}
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
                   </svg>
                 </button>
+              )}
 
-              {/* Branch Switcher Popover */}
-              {isBranchPopoverOpen && (
-                <div className={styles.branchPopover}>
-                  <div className={styles.branchPopoverHeader}>
-                    Branches of {ticket.id}
-                  </div>
+              <button type="button" aria-label="Close" className={styles.closeBtn} onClick={handleClose}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                >
+                  <path d="M6 6L18 18" />
+                  <path d="M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
-                  <div className={styles.branchList}>
-                    {branchesList.map((b) => {
-                      const isActive = b.name === activeBranchName;
-                      const dotColor =
-                        b.status === 'baseline' ? '#2E6F40' :
-                        b.status === 'merged' ? '#2F6FB0' :
-                        b.status === 'stale' || b.status === 'archived' ? '#C4432A' : '#6D5DD3';
-                      
-                      const badgeClass =
-                        b.status === 'baseline' ? styles.branchBadgeBaseline :
-                        b.status === 'merged' ? styles.branchBadgeMerged :
-                        b.status === 'stale' || b.status === 'archived' ? styles.branchBadgeStale : '';
-
-                      return (
-                        <button
-                          key={b.id || b.name}
-                          type="button"
-                          className={`${styles.branchRow} ${isActive ? styles.branchRowActive : ''}`}
-                          onClick={() => {
-                            setSelectedBranchName(b.name);
-                            setIsBranchPopoverOpen(false);
-                            if (b.linkedTicketId && allTickets) {
-                              const found = allTickets.find(t => t.id === b.linkedTicketId);
-                              if (found) onOpenTicket?.(found);
-                            }
-                          }}
-                        >
-                          <span className={styles.branchDot} style={{ background: dotColor }} />
-                          <span className={`${styles.branchRowName} ${isActive ? styles.branchRowNameActive : ''}`}>
-                            {b.name}
-                          </span>
-                          {b.worktreePath && (
-                            <span
-                              className={styles.branchWorktreePill}
-                              title={`Worktree: ${b.worktreePath}`}
-                            >
-                              🌳
-                            </span>
-                          )}
-                          {isActive ? (
-                            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                              <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
-                              <path d="M4.3 7.2L6.1 9L9.8 5" stroke="#2E6F40" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          ) : (
-                            b.status !== 'open' && (
-                              <span className={`${styles.branchBadge} ${badgeClass}`}>
-                                {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
-                              </span>
-                            )
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className={styles.repoConfigBox}>
-                    <div className={styles.repoConfigHeader}>
-                      <div className={styles.repoConfigTitle}>
-                        <svg
-                          width="13"
-                          height="13"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className={styles.repoIcon}
-                        >
-                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                        </svg>
-                        <span>Local Git repo</span>
-                        <span className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}>
-                          {ticket.repoPath ? 'override' : project?.repoPath ? 'project' : 'not linked'}
+          {/* Body */}
+          {activeTab === 'main' ? (
+            <div key="main" className={styles.mainTabWrap}>
+              {/* Banners sit full width under the header (TicketReopen D1 / TicketPending D1) */}
+              <div className={styles.bannerStack}>
+                <TicketAiPanel ticket={ticket} members={members} onOpenRun={() => setActiveTab('ai')} />
+                <TicketPlan ticket={ticket} />
+                <TicketSafetyBlocks ticketId={ticket.id} />
+                <ScheduleTicketBlock ticket={ticket} />
+                {status === 'wont_do' && (
+                  <div className={styles.wontDoBanner} role="status">
+                    <div className={styles.wontDoBannerContent}>
+                      <span className={styles.wontDoBannerIcon}>
+                        <Icon name="i14" size={16} />
+                      </span>
+                      <div className={styles.wontDoBannerText}>
+                        <span className={styles.wontDoBannerTitle}>This ticket is marked as Won't Do</span>
+                        <span className={styles.wontDoBannerReason}>
+                          <strong>Reason:</strong> {wontDoReason || ticket.wontDoReason || 'No reason provided'}
                         </span>
                       </div>
-                      {!isEditingRepo && (
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        type="button"
+                        style={{
+                          flexShrink: 0,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          padding: '5px 11px',
+                          borderRadius: 6,
+                          border: '1px solid #F0C77A',
+                          background: '#FFF1D6',
+                          color: '#8A4B00',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                        onClick={() => setIsReopenOpen(true)}
+                        title="Reopen ticket to To Do (R)"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#C77700"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                        <span>Reopen</span>
+                        <span style={{ fontSize: 10, opacity: 0.8 }}>R</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.wontDoRestoreBtn}
+                        onClick={handleRestoreFromWontDo}
+                        title="Restore ticket to Backlog"
+                      >
+                        Restore to Backlog
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* E1 Auto Prompt Banner: Blocker is Done */}
+                {ticket &&
+                  ticket.pending &&
+                  pendingBlockerTicket &&
+                  pendingBlockerTicket.status === 'done' &&
+                  !dismissPrompt && (
+                    <div className={styles.promptBannerDone} role="alert">
+                      <div className={styles.promptBannerDoneContent}>
+                        <span style={{ color: '#2E6F40', display: 'flex', flexShrink: 0 }}>
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#2E6F40"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="9 11 12 14 22 4" />
+                          </svg>
+                        </span>
+                        <div className={styles.promptBannerDoneText}>
+                          <div className={styles.promptBannerDoneTitle}>
+                            <strong>{pendingBlockerTicket.id}</strong> is done. Resume <strong>{ticket.id}</strong>?
+                          </div>
+                          <div className={styles.promptBannerDoneSubtitle}>
+                            Pending since {ticket.pendingSince ? fmtShortDate(ticket.pendingSince) : 'recent'} · waiting
+                            on {pendingBlockerTicket.id} (Done)
+                          </div>
+                        </div>
+                      </div>
+                      <div className={styles.promptBannerActions}>
                         <button
                           type="button"
-                          className={styles.repoActionBtn}
+                          className={styles.promptResumeBtn}
+                          onClick={() => setIsResumeOpen(true)}
+                          title="Resume ticket"
+                        >
+                          Resume
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.promptDismissBtn}
+                          onClick={() => setDismissPrompt(true)}
+                          title="Keep pending"
+                        >
+                          Keep pending
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* E3 Auto Prompt Banner: Blocker is Won't Do */}
+                {ticket &&
+                  ticket.pending &&
+                  pendingBlockerTicket &&
+                  pendingBlockerTicket.status === 'wont_do' &&
+                  !dismissPrompt && (
+                    <div
+                      className={styles.reopenBanner}
+                      style={{ borderLeft: '3px solid #C77700', marginBottom: 16 }}
+                      role="alert"
+                    >
+                      <div className={styles.reopenBannerHeader}>
+                        <div className={styles.reopenBannerContent}>
+                          <span className={styles.reopenBannerIcon}>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#C77700"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                              <line x1="12" y1="9" x2="12" y2="13" />
+                              <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                          </span>
+                          <div className={styles.reopenBannerText}>
+                            <span className={styles.reopenBannerTitle}>Blocker removed</span>
+                            <span className={styles.reopenBannerReason}>
+                              <strong>{pendingBlockerTicket.id}</strong> was moved to Won't Do. This ticket is still
+                              pending on it.
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            className={styles.pendingBannerBtn}
+                            onClick={() => setIsPendingOpen(true)}
+                          >
+                            Change reason
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.pendingBannerBtn} ${styles.pendingBannerBtnPrimary}`}
+                            onClick={() => setIsResumeOpen(true)}
+                          >
+                            Resume
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Normal Pending Banner (D1/D2) */}
+                {ticket &&
+                  ticket.pending &&
+                  (!pendingBlockerTicket ||
+                    (pendingBlockerTicket.status !== 'done' && pendingBlockerTicket.status !== 'wont_do') ||
+                    dismissPrompt) && (
+                    <div className={styles.pendingBanner} role="status">
+                      <div className={styles.pendingBannerContent}>
+                        <span className={styles.pendingBannerIcon}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="#5B6F86">
+                            <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+                            <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+                          </svg>
+                        </span>
+                        <div className={styles.pendingBannerText}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className={styles.pendingBannerTitle}>
+                              Pending since {ticket.pendingSince ? fmtShortDate(ticket.pendingSince) : 'recent'}
+                              {ticket.pendingBy ? ` - set by ${fmtActor(ticket.pendingBy)}` : ''}
+                            </span>
+                          </div>
+                          <div className={styles.pendingBannerDetail}>
+                            Waiting on{' '}
+                            {ticket.pendingReasonType === 'ticket' ? (
+                              <span>
+                                <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                                  {ticket.pendingTicketId}
+                                </strong>
+                                {pendingBlockerTicket && (
+                                  <>
+                                    {' · '}
+                                    <span>{pendingBlockerTicket.title}</span>
+                                    <span
+                                      style={{
+                                        marginLeft: 6,
+                                        fontSize: 11,
+                                        padding: '1px 5px',
+                                        borderRadius: 3,
+                                        background: '#E8EDF3',
+                                        color: '#34455A',
+                                        textTransform: 'capitalize',
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          display: 'inline-block',
+                                          width: 6,
+                                          height: 6,
+                                          borderRadius: '50%',
+                                          background: '#2F6FD0',
+                                          marginRight: 5,
+                                        }}
+                                      />
+                                      {STATUS_LABELS[pendingBlockerTicket.status] ?? pendingBlockerTicket.status}
+                                    </span>
+                                  </>
+                                )}
+                              </span>
+                            ) : (
+                              <span>
+                                <strong>
+                                  {ticket.pendingParty ||
+                                    (ticket.pendingMemberId &&
+                                      members.find((m) => m.id === ticket.pendingMemberId)?.name) ||
+                                    ticket.pendingMemberId ||
+                                    'Person / Party'}
+                                </strong>
+                              </span>
+                            )}
+                            {ticket.pendingNote && <span> · {ticket.pendingNote}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={styles.pendingBannerActions}>
+                        <button
+                          type="button"
+                          className={styles.pendingBannerBtn}
+                          onClick={() => setIsPendingOpen(true)}
+                          title="Change pending reason"
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                          </svg>
+                          Change reason
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.pendingBannerBtn} ${styles.pendingBannerBtnPrimary}`}
+                          onClick={() => setIsResumeOpen(true)}
+                          title="Resume ticket (P)"
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polygon points="6 4 20 12 6 20 6 4" />
+                          </svg>
+                          Resume
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Reopen Banner (D1/D2) */}
+                {ticket && (ticket.reopenCount ?? 0) > 0 && status !== 'done' && status !== 'wont_do' && (
+                  <div className={styles.reopenBanner} role="status">
+                    <div className={styles.reopenBannerHeader}>
+                      <div className={styles.reopenBannerContent}>
+                        <span className={styles.reopenBannerIcon}>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#C77700"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
+                          </svg>
+                        </span>
+                        <div className={styles.reopenBannerText}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 13, color: '#5C3200' }}>
+                              Reopened by <strong>{fmtActor(ticket.lastReopenedBy) || 'Team'}</strong>
+                              {ticket.lastReopenedAt && <> on {fmtShortDate(ticket.lastReopenedAt)}</>}
+                              {ticket.lastReopenReason && <> - "{ticket.lastReopenReason}"</>}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {ticket.reopenHistory && ticket.reopenHistory.length > 0 && (
+                        <button
+                          type="button"
+                          className={styles.reopenHistoryToggle}
                           onClick={() => {
-                            setRepoPathDraft(ticket.repoPath ?? project?.repoPath ?? '');
-                            setIsEditingRepo(true);
+                            setShowReopenHistory(true);
+                            reopenHistoryRef.current?.scrollIntoView({ behavior: 'smooth' });
                           }}
                         >
-                          {effectiveRepoPath ? 'Change' : 'Set'}
+                          View history
                         </button>
                       )}
                     </div>
-
-                    {isEditingRepo ? (
-                      <form
-                        className={styles.repoEditForm}
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          saveTicketRepo(repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft);
-                        }}
-                      >
+                  </div>
+                )}
+              </div>
+              <div className={`${styles.detailBody} ${styles.tabFadeSlide}`}>
+                {/* Main Column */}
+                <div className={styles.mainCol}>
+                  <>
+                    {/* Title & Tags */}
+                    <div className={styles.titleArea}>
+                      {isEditingTitle ? (
                         <input
-                          type="text"
-                          className={styles.repoInput}
-                          placeholder="/absolute/path/to/local/git-repo"
-                          value={repoPathDraft}
-                          onChange={(e) => setRepoPathDraft(e.target.value)}
+                          className={styles.titleInputEdit}
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          onBlur={handleTitleBlur}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleTitleBlur();
+                            if (e.key === 'Escape') {
+                              setTitle(ticket.title);
+                              setIsEditingTitle(false);
+                            }
+                          }}
                           autoFocus
                         />
-                        <div className={styles.repoFormActions}>
-                          {ticket.repoPath && (
+                      ) : (
+                        <h2 className={styles.titleText} onClick={() => setIsEditingTitle(true)} title="Click to edit">
+                          {ticket.title}
+                        </h2>
+                      )}
+
+                      <div className={styles.tagsRow}>
+                        {tags.map((tag) => (
+                          <TagPill key={tag} tag={tag} onRemove={() => handleRemoveTag(tag)} />
+                        ))}
+
+                        {isAddingTag ? (
+                          <input
+                            ref={tagInputRef}
+                            className={styles.tagInput}
+                            placeholder="Tag name…"
+                            value={newTagText}
+                            onChange={(e) => setNewTagText(e.target.value)}
+                            onBlur={handleAddTagSubmit}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddTagSubmit();
+                              if (e.key === 'Escape') setIsAddingTag(false);
+                            }}
+                          />
+                        ) : (
+                          <button type="button" className={styles.tagAddBtn} onClick={() => setIsAddingTag(true)}>
+                            <svg width="9" height="9" viewBox="0 0 12 12">
+                              <path d="M6 2V10M2 6H10" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" />
+                            </svg>
+                            Add tag
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className={styles.descSection}>
+                      <div className={styles.sectionLabel}>Description</div>
+                      <MarkdownEditor
+                        value={description}
+                        onChange={(nextDesc) => {
+                          setDescription(nextDesc);
+                          scheduleDescriptionSave(nextDesc);
+                        }}
+                        onBlur={() => flushDescRef.current()}
+                        onUploadFile={uploadAnyFile}
+                        onUploadImage={uploadAnyFile}
+                        docsProjectId={ticket.projectId}
+                        mentionMembers={mentionList}
+                        diagramProjectId={ticket.projectId}
+                        diagramSaveTo={`${ticket.id} description`}
+                        diagramItem={{ kind: 'ticket', id: ticket.id }}
+                      />
+                    </div>
+
+                    {/* D1 / D4 REOPEN HISTORY Section */}
+                    {ticket && (ticket.reopenCount ?? 0) > 0 && (
+                      <div
+                        ref={reopenHistoryRef}
+                        style={{
+                          border: '1px solid #E3E8E5',
+                          borderRadius: 8,
+                          padding: '12px 14px',
+                          background: '#FBFCFB',
+                          marginTop: 18,
+                        }}
+                        role="region"
+                        aria-label="Reopen History"
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                          }}
+                          onClick={() => setShowReopenHistory((prev) => !prev)}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#5B6B60"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{
+                              flexShrink: 0,
+                              transform: showReopenHistory ? 'rotate(0deg)' : 'rotate(-90deg)',
+                              transition: 'transform 0.15s ease',
+                            }}
+                          >
+                            <path d="M6 9L12 15L18 9" />
+                          </svg>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                              color: '#9AA8A0',
+                            }}
+                          >
+                            REOPEN HISTORY
+                          </span>
+                          <span
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: '#8A4B00',
+                              background: '#FFF1D6',
+                              padding: '0 6px',
+                              borderRadius: 999,
+                            }}
+                          >
+                            {ticket.reopenCount || ticket.reopenHistory?.length || 1}
+                          </span>
+                        </div>
+
+                        {showReopenHistory && (
+                          <div style={{ borderTop: '1px solid #EEF3EF', marginTop: 10 }}>
+                            {(ticket.reopenHistory ?? []).map((entry, idx, arr) => {
+                              const initials = (entry.actor || 'U')
+                                .split(' ')
+                                .map((p) => p[0])
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase();
+                              const isLast = idx === arr.length - 1;
+                              const count = entry.reopenCount ?? (ticket.reopenCount ? ticket.reopenCount - idx : 1);
+
+                              return (
+                                <div
+                                  key={entry.id || idx}
+                                  style={{
+                                    display: 'flex',
+                                    gap: 12,
+                                    padding: '12px 0',
+                                    borderBottom: isLast ? 'none' : '1px solid #EEF3EF',
+                                  }}
+                                >
+                                  <div
+                                    title={entry.actor || 'User'}
+                                    style={{
+                                      width: 26,
+                                      height: 26,
+                                      borderRadius: '50%',
+                                      background: '#FBE4E9',
+                                      color: '#B0446E',
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {initials}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 5,
+                                      flex: 1,
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        flexWrap: 'wrap',
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          fontSize: 13,
+                                          fontWeight: 600,
+                                          color: '#1E2A22',
+                                        }}
+                                      >
+                                        {fmtActor(entry.actor) || 'Team member'}
+                                      </span>
+                                      <span style={{ fontSize: 12, color: '#9AA8A0' }}>
+                                        {entry.at
+                                          ? new Date(entry.at).toLocaleString('en-US', {
+                                              month: 'short',
+                                              day: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                              hour12: false,
+                                            })
+                                          : 'recently'}
+                                      </span>
+                                      <span style={{ flexGrow: 1 }} />
+                                      <span
+                                        style={{
+                                          fontFamily: "'JetBrains Mono', monospace",
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          color: '#8A4B00',
+                                          background: '#FFF1D6',
+                                          border: '1px solid #F0C77A',
+                                          padding: '1px 6px',
+                                          borderRadius: 999,
+                                        }}
+                                      >
+                                        Reopen #{count}
+                                      </span>
+                                    </div>
+
+                                    {entry.reason && (
+                                      <div
+                                        style={{
+                                          fontSize: 13,
+                                          color: '#3A4A3E',
+                                          lineHeight: 1.45,
+                                        }}
+                                      >
+                                        "{entry.reason}"
+                                      </div>
+                                    )}
+
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                        fontSize: 12,
+                                        color: '#5B6B60',
+                                      }}
+                                    >
+                                      <svg
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="#2E6F40"
+                                        strokeWidth="2.4"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        style={{ flexShrink: 0 }}
+                                      >
+                                        <path d="M5 12.5L10 17.5L19 7" />
+                                      </svg>
+                                      <span>
+                                        {entry.fromStatus === 'wont_do'
+                                          ? "Previously marked Won't Do"
+                                          : 'Previously completed'}
+                                        {entry.previousCompletedAt ? ` ${fmtShortDate(entry.previousCompletedAt)}` : ''}
+                                        {entry.sideEffects && entry.sideEffects.length > 0
+                                          ? ` · ${entry.sideEffects.join(', ')}`
+                                          : ''}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sub-tasks (checklist) */}
+                    <SubTasksSection
+                      subTasks={ticket.subTasks ?? []}
+                      onAdd={(text) => addSubTaskMutation.mutate({ ticketId: ticket.id, text })}
+                      onToggle={(id) => toggleSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })}
+                      onDelete={(id) => deleteSubTaskMutation.mutate({ ticketId: ticket.id, subTaskId: id })}
+                    />
+
+                    {/* Sub-tickets (child tickets) */}
+                    <SplitBadge ticketId={ticket.id} />
+                    <SubTicketsSection
+                      members={members}
+                      childTickets={childTickets}
+                      allTickets={allTickets}
+                      currentTicketId={ticket.id}
+                      projectId={ticket.projectId}
+                      onOpenTicket={(child) => onOpenTicket?.(child)}
+                      onLinkChild={(childId) => {
+                        updateTicketMutation.mutate({
+                          ticketId: childId,
+                          data: { parentId: ticket.id },
+                        });
+                      }}
+                      onUnlinkChild={(childId) => {
+                        updateTicketMutation.mutate({
+                          ticketId: childId,
+                          data: { parentId: null },
+                        });
+                      }}
+                    />
+
+                    {/* Acceptance Criteria */}
+                    <AcceptanceCriteriaSection
+                      acceptanceCriteria={ticket.acceptanceCriteria ?? []}
+                      onAdd={(text) => {
+                        addACMutation.mutate({ ticketId: ticket.id, text });
+                      }}
+                      onToggle={(id) => {
+                        toggleACMutation.mutate({ ticketId: ticket.id, criterionId: id });
+                      }}
+                      onDelete={(id) => {
+                        deleteACMutation.mutate({ ticketId: ticket.id, criterionId: id });
+                      }}
+                    />
+
+                    {/* Relations */}
+                    <RelationsSection
+                      ticket={ticket}
+                      allTickets={allTickets}
+                      onLinkBlock={(blockerId, blockedId) => {
+                        linkBlockMutation.mutate({ blockerId, blockedId });
+                      }}
+                      onUnlinkBlock={(blockerId, blockedId) => {
+                        unlinkBlockMutation.mutate({ blockerId, blockedId });
+                      }}
+                      onAddLink={(ticketId, targetId, relType) => {
+                        addTicketLinkMutation.mutate({ ticketId, targetId, relationType: relType });
+                      }}
+                      onRemoveLink={(ticketId, linkId) => {
+                        removeTicketLinkMutation.mutate({ ticketId, linkId });
+                      }}
+                      onOpenTicket={(relT) => onOpenTicket?.(relT)}
+                      onMarkPending={(blockerId) =>
+                        markers
+                          .setPending(ticket, {
+                            reasonType: 'ticket',
+                            pendingTicketId: blockerId,
+                            alsoAddBlockedBy: false,
+                          })
+                          .catch((err) => toast.error("Couldn't mark as pending", extractError(err)))
+                      }
+                      onChangeStatus={(ticketId, nextStatus) =>
+                        updateTicketStatusMutation.mutate(
+                          { ticketId, status: nextStatus },
+                          {
+                            onError: (err) => toast.error("Couldn't change status", extractError(err)),
+                          },
+                        )
+                      }
+                    />
+
+                    <TicketDocsSection
+                      ticketId={ticket.id}
+                      projectId={ticket.projectId}
+                      onOpenPage={(pageId) => onOpenDocsPage?.(pageId)}
+                    />
+
+                    <hr className={styles.sectionDivider} />
+
+                    {/* Consolidated Attachments Zone (matching Attachments.dc.html - placed after Comments) */}
+                    {(() => {
+                      interface ExtractedAttachment {
+                        type: 'image' | 'file';
+                        name: string;
+                        src: string;
+                        origin: string;
+                        size?: number;
+                      }
+
+                      const allAttachments: ExtractedAttachment[] = [];
+
+                      function scanText(text: string, origin: string) {
+                        if (!text) return;
+                        // Images: ![alt](url)
+                        const imgRegex = /!\[(.*?)\]\((.*?)\)/g;
+                        let m: RegExpExecArray | null;
+                        while ((m = imgRegex.exec(text)) !== null) {
+                          const [, alt, src] = m;
+                          if (src && !src.startsWith('uploading:')) {
+                            allAttachments.push({
+                              type: 'image',
+                              name: alt || 'image',
+                              src,
+                              origin,
+                            });
+                          }
+                        }
+                        // Non-image files: [name](url) not preceded by !
+                        const linkRegex = /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g;
+                        while ((m = linkRegex.exec(text)) !== null) {
+                          const [, name, src] = m;
+                          if (src && (src.startsWith('/uploads/') || src.includes('/uploads/'))) {
+                            allAttachments.push({
+                              type: 'file',
+                              name: name || 'file',
+                              src,
+                              origin,
+                            });
+                          }
+                        }
+                      }
+
+                      scanText(ticket.description || '', 'in Description');
+                      (ticket.comments || []).forEach((c) => {
+                        scanText(c.text || '', `in comment · ${c.author || 'user'}`);
+                      });
+
+                      if (allAttachments.length === 0) return null;
+
+                      return (
+                        <div className={styles.attachmentsZone}>
+                          <div className={styles.attachmentsLabel}>ATTACHMENTS · {allAttachments.length}</div>
+                          <div className={styles.attachmentsList}>
+                            {allAttachments.map((att, i) => {
+                              const resolvedSrc = att.src.startsWith('/uploads/')
+                                ? `${resolveOrigin()}${att.src}`
+                                : att.src;
+                              if (att.type === 'image') {
+                                return (
+                                  <div key={`att-${i}`} className={styles.attThumbBox}>
+                                    <div
+                                      className={styles.attThumb}
+                                      onClick={() => setPreviewAttachment({ url: att.src, fileName: att.name })}
+                                      title={`Click to view ${att.name}`}
+                                    >
+                                      <img src={resolvedSrc} alt={att.name} />
+                                    </div>
+                                    <span className={styles.attMetaText}>{att.origin}</span>
+                                  </div>
+                                );
+                              }
+
+                              const meta = getFileTypeMeta(att.name);
+                              const downloadHref = uploadUrl(att.src, att.name, true);
+
+                              return (
+                                <div key={`att-${i}`} className={styles.attThumbBox}>
+                                  <div
+                                    className={styles.attFileChip}
+                                    onClick={() => setPreviewAttachment({ url: att.src, fileName: att.name })}
+                                    title={`Click to preview ${att.name}`}
+                                  >
+                                    <div className={styles.attFileIcon} style={{ backgroundColor: meta.bgColor }}>
+                                      <FileCategoryIcon category={meta.category} size={14} color={meta.color} />
+                                    </div>
+                                    <div className={styles.attFileInfo}>
+                                      <span className={styles.attFileName} title={att.name}>
+                                        {att.name}
+                                      </span>
+                                      <span className={styles.attFileSize}>
+                                        {att.size ? formatFileSize(att.size) : meta.badge}
+                                      </span>
+                                    </div>
+                                    <a
+                                      href={downloadHref}
+                                      download={att.name}
+                                      className={styles.attDownloadBtn}
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Download"
+                                    >
+                                      <svg
+                                        width="13"
+                                        height="13"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      >
+                                        <path d="M12 4V15" />
+                                        <path d="M7 10L12 15L17 10" />
+                                        <path d="M5 19H19" />
+                                      </svg>
+                                    </a>
+                                  </div>
+                                  <span className={styles.attMetaText}>{att.origin}</span>
+                                </div>
+                              );
+                            })}
+
+                            {/* Dashed Add Attachment tile matching design */}
                             <button
                               type="button"
-                              className={styles.repoBtnSecondary}
-                              onClick={() => saveTicketRepo('')}
+                              className={styles.attAddBtn}
+                              onClick={() => attFileInputRef.current?.click()}
+                              aria-label="Add attachment"
+                              title="Add attachment"
                             >
-                              Reset to project
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              >
+                                <path d="M12 5V19" />
+                                <path d="M5 12H19" />
+                              </svg>
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            className={styles.repoBtnSecondary}
-                            onClick={() => setIsEditingRepo(false)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className={styles.repoBtnPrimary}
-                            disabled={updateTicketMutation.isPending || !repoPathDraft.trim()}
-                          >
-                            Save
-                          </button>
+                            <input
+                              ref={attFileInputRef}
+                              type="file"
+                              accept="*/*"
+                              style={{ display: 'none' }}
+                              onChange={handleDirectAttachmentUpload}
+                            />
+                          </div>
                         </div>
-                      </form>
-                    ) : (
-                      <div className={styles.repoStatusBody}>
-                        {effectiveRepoPath ? (
-                          <span className={styles.repoPathMono} title={effectiveRepoPath}>
-                            {effectiveRepoPath}
-                          </span>
-                        ) : (
-                          <span className={styles.repoEmptyDesc}>
-                            Branches only exist on this board until a local repository is linked.
-                          </span>
-                        )}
+                      );
+                    })()}
+
+                    {/* Comments: the last section of Details */}
+                    <CommentsSection
+                      ticketId={ticket.id}
+                      projectId={ticket.projectId}
+                      comments={ticket.comments ?? []}
+                      members={members}
+                      currentMember={
+                        assigneeMember && (assigneeMember.kind ?? 'human') === 'human' ? assigneeMember : undefined
+                      }
+                      reporterId={ticket.createdBy}
+                      assigneeId={ticket.assignee}
+                      focusCommentId={focusCommentId}
+                      onFocusHandled={() => setFocusCommentId(null)}
+                      criteriaCount={ticket.acceptanceCriteria?.length ?? 0}
+                      onAdd={async (t, opts) => {
+                        // The Ask button sends the text as a question to one AI member (C1)
+                        if (opts?.askMemberId) {
+                          await aiApi.ask(ticket.id, { memberId: opts.askMemberId, question: t });
+                          void queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                          return undefined;
+                        }
+                        // Mentioning an AI member asks what the mention means (B3): ask, do the work, or notify; the
+                        // Send menu chooses it up front
+                        const intent = opts?.intent ?? (await mentionIntent.choose(t));
+                        if (intent === null) throw new Error('Sending was cancelled');
+                        return addCommentMutation.mutateAsync({
+                          ticketId: ticket.id,
+                          text: t,
+                          author:
+                            assigneeMember && (assigneeMember.kind ?? 'human') === 'human'
+                              ? assigneeMember.name
+                              : 'user',
+                          aiIntent: intent,
+                          replyTo: opts?.replyTo,
+                        });
+                      }}
+                      onEdit={(cId, t) =>
+                        updateCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId, text: t })
+                      }
+                      onDelete={(cId) => deleteCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
+                      onRestore={(cId) => restoreCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
+                    />
+
+                    {previewAttachment && (
+                      <FilePreviewModal
+                        isOpen={Boolean(previewAttachment)}
+                        onClose={() => setPreviewAttachment(null)}
+                        url={previewAttachment.url}
+                        fileName={previewAttachment.fileName}
+                        fileSize={previewAttachment.fileSize}
+                      />
+                    )}
+                  </>
+                </div>
+
+                {/* Right Meta Sidebar matching ticket-detail-4-sidebar.png */}
+                <aside className={styles.sidebarCol}>
+                  {/* 1. Status */}
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Status</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', flexWrap: 'wrap' }}>
+                      <StatusMenu
+                        value={status}
+                        onChange={handleStatusChange}
+                        allowWontDo={!ticket?.parentId}
+                        onReopen={() => setIsReopenOpen(true)}
+                      />
+                      <span style={{ order: 9, flexBasis: '100%' }}>
+                        <StatusMovedBy ticket={ticket} />
+                      </span>
+                      {(status === 'done' || status === 'wont_do') && (
+                        <button
+                          type="button"
+                          onClick={() => setIsReopenOpen(true)}
+                          disabled={!online}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            background: '#fff',
+                            border: '1px solid #F0C77A',
+                            color: '#8A4B00',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: online ? 'pointer' : 'not-allowed',
+                            opacity: online ? 1 : 0.5,
+                            flexShrink: 0,
+                          }}
+                          title={online ? 'Reopen ticket (R)' : 'You are offline - reconnect to reopen'}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#C77700"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
+                          </svg>
+                          <span>Reopen</span>
+                          <kbd
+                            style={{
+                              fontSize: 10,
+                              fontFamily: 'inherit',
+                              border: '1px solid #F0C77A',
+                              borderRadius: 4,
+                              padding: '0 4px',
+                              background: '#FFFAF0',
+                            }}
+                          >
+                            R
+                          </kbd>
+                        </button>
+                      )}
+                      {status !== 'done' && status !== 'wont_do' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (ticket?.pending) {
+                              setIsResumeOpen(true);
+                            } else {
+                              setIsPendingOpen(true);
+                            }
+                          }}
+                          disabled={!online}
+                          style={{
+                            opacity: online ? 1 : 0.5,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            background: ticket?.pending ? '#E8EDF3' : '#fff',
+                            border: ticket?.pending ? '1px solid #B8C4D2' : '1px solid #CBD5E1',
+                            color: ticket?.pending ? '#34455A' : '#5B6B60',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                          }}
+                          title={
+                            !online
+                              ? 'You are offline - reconnect to change this'
+                              : ticket?.pending
+                                ? 'Pending (click to resume - P)'
+                                : 'Mark as pending (P)'
+                          }
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill={ticket?.pending ? '#34455A' : '#5B6F86'}
+                          >
+                            <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
+                            <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
+                          </svg>
+                          <span>Pending</span>
+                          <kbd
+                            style={{
+                              fontSize: 10,
+                              fontFamily: 'inherit',
+                              border: '1px solid #B8C4D2',
+                              borderRadius: 4,
+                              padding: '0 4px',
+                              background: '#fff',
+                            }}
+                          >
+                            P
+                          </kbd>
+                        </button>
+                      )}
+                      {(ticket.reopenCount ?? 0) > 0 && status !== 'done' && status !== 'wont_do' && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '2px 8px 2px 6px',
+                            borderRadius: 999,
+                            background: '#FFF1D6',
+                            border: '1px solid #F0C77A',
+                            color: '#8A4B00',
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#C77700"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
+                          </svg>
+                          Reopened
+                          {(ticket.reopenCount ?? 0) > 1 && (
+                            <span
+                              style={{
+                                fontFamily: "'JetBrains Mono', monospace",
+                                background: 'rgba(199,119,0,0.16)',
+                                padding: '0 4px',
+                                borderRadius: 999,
+                              }}
+                            >
+                              x{ticket.reopenCount}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {(status === 'done' || status === 'wont_do') && ticket.completedAt && (
+                      <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6 }}>
+                        {status === 'done' ? 'Completed' : "Marked Won't Do"} {fmtShortDate(ticket.completedAt)}
+                        {ticket.completedBy ? ` by ${fmtActor(ticket.completedBy)}` : ''}
+                      </div>
+                    )}
+                    {status !== 'done' && status !== 'wont_do' && (ticket.reopenCount ?? 0) > 0 && !ticket.pending && (
+                      <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6 }}>Completion date cleared</div>
+                    )}
+                    {ticket.pending && (
+                      <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6, lineHeight: 1.4 }}>
+                        Pending does not change the status. Click or press P to resume.
                       </div>
                     )}
                   </div>
 
-                  <div className={styles.branchPopoverFooter}>
-                    <button
-                      type="button"
-                      className={styles.branchFooterBtn}
-                      onClick={() => {
-                        setIsBranchPopoverOpen(false);
-                        setIsCreateBranchModalOpen(true);
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M12 5V19" />
-                        <path d="M5 12H19" />
-                      </svg>
-                      Create branch
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
-                      onClick={() => {
-                        setIsBranchPopoverOpen(false);
-                        setActiveTab('branches');
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                        <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                        <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                        <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                      </svg>
-                      View full graph →
-                    </button>
+                  {/* Reopens meta row (D1) */}
+                  {(ticket.reopenCount ?? 0) > 0 && (
+                    <div className={styles.sidebarRow}>
+                      <span className={styles.sidebarLabel}>Reopens</span>
+                      <div style={{ fontSize: 12, color: '#2C3A30' }}>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: '#8A4B00',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                          }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#C77700"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
+                          </svg>
+                          Reopened {ticket.reopenCount}×
+                        </span>
+                        {ticket.lastReopenedAt && (
+                          <div style={{ fontSize: 11.5, color: '#6A7870', marginTop: 2, paddingLeft: 17 }}>
+                            Last {fmtShortDate(ticket.lastReopenedAt)}
+                            {ticket.lastReopenedBy ? ` by ${fmtActor(ticket.lastReopenedBy)}` : ''}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. Branch */}
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Branch</span>
+                    <div ref={branchContainerRef} style={{ position: 'relative', width: '100%' }}>
+                      <button
+                        type="button"
+                        className={`${styles.branchBtn} ${isBranchPopoverOpen ? styles.branchBtnActive : ''}`}
+                        onClick={() => setIsBranchPopoverOpen((prev) => !prev)}
+                        title={activeBranchName ? `Branch: ${activeBranchName}` : 'Branch: main'}
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#6D5DD3"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ flexShrink: 0 }}
+                        >
+                          <circle cx="6" cy="6" r="2.5" />
+                          <circle cx="6" cy="18" r="2.5" />
+                          <circle cx="18" cy="6" r="2.5" />
+                          <path d="M6 8.5V15.5" />
+                          <path d="M8.5 6H13A5 5 0 0 1 18 11V15.5" />
+                        </svg>
+                        <span className={styles.branchText}>{activeBranchName}</span>
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#9AA8A0"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ flexShrink: 0 }}
+                        >
+                          <path d={isBranchPopoverOpen ? 'M6 15L12 9L18 15' : 'M6 9L12 15L18 9'} />
+                        </svg>
+                      </button>
+
+                      {/* Branch Switcher Popover */}
+                      {isBranchPopoverOpen && (
+                        <div className={styles.branchPopover}>
+                          <div className={styles.branchPopoverHeader}>Branches of {ticket.id}</div>
+
+                          <div className={styles.branchList}>
+                            {branchesList.map((b) => {
+                              const isActive = b.name === activeBranchName;
+                              const dotColor =
+                                b.status === 'baseline'
+                                  ? '#2E6F40'
+                                  : b.status === 'merged'
+                                    ? '#2F6FB0'
+                                    : b.status === 'stale' || b.status === 'archived'
+                                      ? '#C4432A'
+                                      : '#6D5DD3';
+
+                              const badgeClass =
+                                b.status === 'baseline'
+                                  ? styles.branchBadgeBaseline
+                                  : b.status === 'merged'
+                                    ? styles.branchBadgeMerged
+                                    : b.status === 'stale' || b.status === 'archived'
+                                      ? styles.branchBadgeStale
+                                      : '';
+
+                              return (
+                                <button
+                                  key={b.id || b.name}
+                                  type="button"
+                                  className={`${styles.branchRow} ${isActive ? styles.branchRowActive : ''}`}
+                                  onClick={() => {
+                                    setSelectedBranchName(b.name);
+                                    setIsBranchPopoverOpen(false);
+                                    if (b.linkedTicketId && allTickets) {
+                                      const found = allTickets.find((t) => t.id === b.linkedTicketId);
+                                      if (found) onOpenTicket?.(found);
+                                    }
+                                  }}
+                                >
+                                  <span className={styles.branchDot} style={{ background: dotColor }} />
+                                  <span
+                                    className={`${styles.branchRowName} ${isActive ? styles.branchRowNameActive : ''}`}
+                                  >
+                                    {b.name}
+                                  </span>
+                                  {b.worktreePath && (
+                                    <span className={styles.branchWorktreePill} title={`Worktree: ${b.worktreePath}`}>
+                                      🌳
+                                    </span>
+                                  )}
+                                  {isActive ? (
+                                    <svg
+                                      width="13"
+                                      height="13"
+                                      viewBox="0 0 14 14"
+                                      fill="none"
+                                      style={{ flexShrink: 0 }}
+                                    >
+                                      <circle cx="7" cy="7" r="6" stroke="#2E6F40" strokeWidth="1.4" />
+                                      <path
+                                        d="M4.3 7.2L6.1 9L9.8 5"
+                                        stroke="#2E6F40"
+                                        strokeWidth="1.4"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  ) : (
+                                    b.status !== 'open' && (
+                                      <span className={`${styles.branchBadge} ${badgeClass}`}>
+                                        {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                                      </span>
+                                    )
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className={styles.repoConfigBox}>
+                            <div className={styles.repoConfigHeader}>
+                              <div className={styles.repoConfigTitle}>
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className={styles.repoIcon}
+                                >
+                                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                </svg>
+                                <span>Local Git repo</span>
+                                <span className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}>
+                                  {ticket.repoPath ? 'override' : project?.repoPath ? 'project' : 'not linked'}
+                                </span>
+                              </div>
+                              {!isEditingRepo && (
+                                <button
+                                  type="button"
+                                  className={styles.repoActionBtn}
+                                  onClick={() => {
+                                    setRepoPathDraft(ticket.repoPath ?? project?.repoPath ?? '');
+                                    setIsEditingRepo(true);
+                                  }}
+                                >
+                                  {effectiveRepoPath ? 'Change' : 'Set'}
+                                </button>
+                              )}
+                            </div>
+
+                            {isEditingRepo ? (
+                              <form
+                                className={styles.repoEditForm}
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  saveTicketRepo(
+                                    repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft,
+                                  );
+                                }}
+                              >
+                                <input
+                                  type="text"
+                                  className={styles.repoInput}
+                                  placeholder="/absolute/path/to/local/git-repo"
+                                  value={repoPathDraft}
+                                  onChange={(e) => setRepoPathDraft(e.target.value)}
+                                  autoFocus
+                                />
+                                <div className={styles.repoFormActions}>
+                                  {ticket.repoPath && (
+                                    <button
+                                      type="button"
+                                      className={styles.repoBtnSecondary}
+                                      onClick={() => saveTicketRepo('')}
+                                    >
+                                      Reset to project
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className={styles.repoBtnSecondary}
+                                    onClick={() => setIsEditingRepo(false)}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    className={styles.repoBtnPrimary}
+                                    disabled={updateTicketMutation.isPending || !repoPathDraft.trim()}
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className={styles.repoStatusBody}>
+                                {effectiveRepoPath ? (
+                                  <span className={styles.repoPathMono} title={effectiveRepoPath}>
+                                    {effectiveRepoPath}
+                                  </span>
+                                ) : (
+                                  <span className={styles.repoEmptyDesc}>
+                                    Branches only exist on this board until a local repository is linked.
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className={styles.branchPopoverFooter}>
+                            <button
+                              type="button"
+                              className={styles.branchFooterBtn}
+                              onClick={() => {
+                                setIsBranchPopoverOpen(false);
+                                setIsCreateBranchModalOpen(true);
+                              }}
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              >
+                                <path d="M12 5V19" />
+                                <path d="M5 12H19" />
+                              </svg>
+                              Create branch
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.branchFooterBtn} ${styles.branchFooterBtnGraph}`}
+                              onClick={() => {
+                                setIsBranchPopoverOpen(false);
+                                setActiveTab('branches');
+                              }}
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                              </svg>
+                              View full graph →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <span className={styles.branchSubtext}>{activeBranchSubtext}</span>
                   </div>
-                </div>
-              )}
-            </div>
-            <span className={styles.branchSubtext}>
-              {activeBranchSubtext}
-            </span>
-          </div>
 
-            {/* 3. Assignee */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Assignee</span>
-              <div className={styles.sidebarItemInteractive} title="Click to change assignee">
-                {assigneeMember ? (
-                  <>
-                    <MemberAvatar member={assigneeMember} size={22} />
-                    <span>{assigneeMember.name}</span>
-                  </>
-                ) : (
-                  <span style={{ color: '#9AA8A0' }}>Unassigned</span>
-                )}
-                <select
-                  className={styles.sidebarSelect}
-                  value={assignee ?? ''}
-                  onChange={(e) => handleAssigneeChange(e.target.value || null)}
-                >
-                  <option value="">Unassigned</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                  {/* 3. Assignee: people and AI members (picking an AI asks how to start) */}
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Assignee</span>
+                    <AssigneePicker
+                      ticket={ticket}
+                      members={members}
+                      value={assignee}
+                      onPickPerson={(id) => handleAssigneeChange(id)}
+                      onAssignedAi={(id) => setAssignee(id)}
+                    />
+                    <HoldChips ticket={ticket} />
+                  </div>
+
+                  {/* 4. Priority */}
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Priority</span>
+                    <div className={styles.sidebarItemInteractive} title="Click to change priority">
+                      <PriorityMark priority={priority} width={16} height={15} />
+                      <span style={{ textTransform: 'capitalize' }}>{priority}</span>
+                      <select
+                        className={styles.sidebarSelect}
+                        value={priority}
+                        onChange={(e) => handlePriorityChange(e.target.value as Priority)}
+                      >
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 5. Due Date */}
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Due Date</span>
+                    <div
+                      className={styles.sidebarItemInteractive}
+                      title="Click to set due date"
+                      onClick={() => {
+                        try {
+                          dateInputRef.current?.showPicker?.();
+                        } catch {
+                          dateInputRef.current?.focus();
+                        }
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#5B6B60"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+                        <path d="M3.5 10H20.5" />
+                        <path d="M8 3V6.5" />
+                        <path d="M16 3V6.5" />
+                      </svg>
+                      <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
+                        {dueDate ? formatDueDate(dueDate) : '–'}
+                      </span>
+                      <input
+                        ref={dateInputRef}
+                        type="date"
+                        className={styles.invisibleDateInput}
+                        value={dueDate ?? ''}
+                        onChange={(e) => {
+                          const next = e.target.value || null;
+                          setDueDate(next);
+                          autoSaveField('dueDate', next);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 6. Estimate */}
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Estimate</span>
+                    <div className={styles.sidebarItemInteractive} title="Click to change estimate">
+                      <span style={estimate === null ? { color: '#9AA8A0' } : undefined}>
+                        {estimate !== null ? `${estimate} pt` : '–'}
+                      </span>
+                      <select
+                        className={styles.sidebarSelect}
+                        value={estimate ?? ''}
+                        onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
+                      >
+                        <option value="">–</option>
+                        <option value="1">1 pt</option>
+                        <option value="2">2 pt</option>
+                        <option value="3">3 pt</option>
+                        <option value="5">5 pt</option>
+                        <option value="8">8 pt</option>
+                        <option value="13">13 pt</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 6b. Done guards */}
+                  <div className={styles.sidebarRow}>
+                    <span className={styles.sidebarLabel}>Done requires</span>
+                    <div className={styles.doneGuards}>
+                      <label
+                        className={styles.guardOption}
+                        title="Block moving to Done until every acceptance criterion is checked"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={blockAcs}
+                          onChange={(e) => {
+                            setBlockAcs(e.target.checked);
+                            autoSaveField('blockDoneIfAcsIncomplete', e.target.checked);
+                          }}
+                        />
+                        All acceptance criteria met
+                      </label>
+                      <label className={styles.guardOption} title="Block moving to Done until every test case passes">
+                        <input
+                          type="checkbox"
+                          checked={blockTcs}
+                          onChange={(e) => {
+                            setBlockTcs(e.target.checked);
+                            autoSaveField('blockDoneIfTcsIncomplete', e.target.checked);
+                          }}
+                        />
+                        All test cases passed
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* 7. Divider */}
+                  <div className={styles.sidebarDivider} />
+
+                  {/* 8. Audit Metadata */}
+                  <div className={styles.auditMeta}>
+                    <div>
+                      Created {formatRelativeTime(ticket.createdAt)}
+                      {(() => {
+                        const creator = members.find((m) => m.id === ticket.createdBy)?.name;
+                        return creator ? (
+                          <>
+                            {' '}
+                            by <span style={{ color: '#5B6B60', fontWeight: 500 }}>{creator}</span>
+                          </>
+                        ) : null;
+                      })()}
+                    </div>
+                    <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
+                  </div>
+                </aside>
               </div>
             </div>
-
-            {/* 4. Priority */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Priority</span>
-              <div className={styles.sidebarItemInteractive} title="Click to change priority">
-                <PriorityMark priority={priority} width={16} height={15} />
-                <span style={{ textTransform: 'capitalize' }}>{priority}</span>
-                <select
-                  className={styles.sidebarSelect}
-                  value={priority}
-                  onChange={(e) => handlePriorityChange(e.target.value as Priority)}
-                >
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 5. Due Date */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Due Date</span>
-              <div
-                className={styles.sidebarItemInteractive}
-                title="Click to set due date"
-                onClick={() => {
-                  try {
-                    dateInputRef.current?.showPicker?.();
-                  } catch {
-                    dateInputRef.current?.focus();
+          ) : (
+            <div key={activeTab} className={`${styles.fullWidthBody} ${styles.tabFadeSlide}`}>
+              {activeTab === 'test_cases' && (
+                <TestCasesSection
+                  ticketId={ticket.id}
+                  testCases={ticket.testCases ?? []}
+                  aiActions={<SuggestCasesButton ticket={ticket} onOpen={() => setSuggestCases(true)} />}
+                  criteria={ticket.acceptanceCriteria ?? []}
+                  aiPanel={
+                    suggestCases ? <SuggestCasesPanel ticket={ticket} onClose={() => setSuggestCases(false)} /> : null
                   }
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6B60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
-                  <path d="M3.5 10H20.5" />
-                  <path d="M8 3V6.5" />
-                  <path d="M16 3V6.5" />
-                </svg>
-                <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
-                  {dueDate ? formatDueDate(dueDate) : '–'}
-                </span>
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  className={styles.invisibleDateInput}
-                  value={dueDate ?? ''}
-                  onChange={(e) => {
-                    const next = e.target.value || null;
-                    setDueDate(next);
-                    autoSaveField('dueDate', next);
+                  childTestCaseSources={childTickets.map((st) => ({
+                    ticketId: st.id,
+                    ticketTitle: st.title,
+                    testCases: st.testCases ?? [],
+                  }))}
+                  // a field edit saves on every keystroke: locking the editors while it is pending dropped focus
+                  disabled={addTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
+                  onAdd={(tTitle, tDesc) =>
+                    new Promise<void>((resolve, reject) =>
+                      addTestCaseMutation.mutate(
+                        { ticketId: ticket.id, title: tTitle, description: tDesc },
+                        {
+                          onSuccess: () => resolve(),
+                          onError: (err: unknown) => reject(err),
+                        },
+                      ),
+                    )
+                  }
+                  onChange={(updated) => {
+                    const old = ticket.testCases ?? [];
+                    const deletedIds = old.filter((o) => !updated.some((u) => u.id === o.id)).map((o) => o.id);
+                    const changedItems = updated.filter((u) => {
+                      const o = old.find((item) => item.id === u.id);
+                      return o && JSON.stringify(o) !== JSON.stringify(u);
+                    });
+                    deletedIds.forEach((id) => deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id }));
+                    changedItems.forEach((tc) =>
+                      updateTestCaseMutation.mutate({
+                        ticketId: ticket.id,
+                        testCaseId: tc.id,
+                        data: {
+                          title: tc.title,
+                          status: tc.status,
+                          description: tc.description,
+                          expectedResult: tc.expectedResult,
+                          notes: tc.notes,
+                          startedAt: tc.startedAt,
+                          assignee: tc.assignee,
+                          testDataFiles: tc.testDataFiles,
+                          proof: tc.proof ?? null,
+                          note: tc.note ?? null,
+                        },
+                      }),
+                    );
                   }}
                 />
-              </div>
-            </div>
-
-            {/* 6. Estimate */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Estimate</span>
-              <div className={styles.sidebarItemInteractive} title="Click to change estimate">
-                <span style={estimate === null ? { color: '#9AA8A0' } : undefined}>
-                  {estimate !== null ? `${estimate} pt` : '–'}
-                </span>
-                <select
-                  className={styles.sidebarSelect}
-                  value={estimate ?? ''}
-                  onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">–</option>
-                  <option value="1">1 pt</option>
-                  <option value="2">2 pt</option>
-                  <option value="3">3 pt</option>
-                  <option value="5">5 pt</option>
-                  <option value="8">8 pt</option>
-                  <option value="13">13 pt</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 6b. Done guards */}
-            <div className={styles.sidebarRow}>
-              <span className={styles.sidebarLabel}>Done requires</span>
-              <div className={styles.doneGuards}>
-                <label className={styles.guardOption} title="Block moving to Done until every acceptance criterion is checked">
-                  <input
-                    type="checkbox"
-                    checked={blockAcs}
-                    onChange={(e) => {
-                      setBlockAcs(e.target.checked);
-                      autoSaveField('blockDoneIfAcsIncomplete', e.target.checked);
-                    }}
-                  />
-                  All acceptance criteria met
-                </label>
-                <label className={styles.guardOption} title="Block moving to Done until every test case passes">
-                  <input
-                    type="checkbox"
-                    checked={blockTcs}
-                    onChange={(e) => {
-                      setBlockTcs(e.target.checked);
-                      autoSaveField('blockDoneIfTcsIncomplete', e.target.checked);
-                    }}
-                  />
-                  All test cases passed
-                </label>
-              </div>
-            </div>
-
-            {/* 7. Divider */}
-            <div className={styles.sidebarDivider} />
-
-            {/* 8. Audit Metadata */}
-            <div className={styles.auditMeta}>
-              <div>
-                Created {formatRelativeTime(ticket.createdAt)}
-                {(() => {
-                  const creator = members.find((m) => m.id === ticket.createdBy)?.name;
-                  return creator ? (
-                    <>
-                      {' '}by <span style={{ color: '#5B6B60', fontWeight: 500 }}>{creator}</span>
-                    </>
-                  ) : null;
-                })()}
-              </div>
-              <div>Updated {formatRelativeTime(ticket.updatedAt)}</div>
-            </div>
-          </aside>
-        </div>
-        ) : (
-          <div key={activeTab} className={`${styles.fullWidthBody} ${styles.tabFadeSlide}`}>
-            {activeTab === 'test_cases' && (
-              <TestCasesSection
-                ticketId={ticket.id}
-                testCases={ticket.testCases ?? []}
-                childTestCaseSources={childTickets.map((st) => ({
-                  ticketId: st.id,
-                  ticketTitle: st.title,
-                  testCases: st.testCases ?? [],
-                }))}
-                disabled={addTestCaseMutation.isPending || updateTestCaseMutation.isPending || deleteTestCaseMutation.isPending}
-                onAdd={(tTitle, tDesc) =>
-                  new Promise<void>((resolve, reject) =>
-                    addTestCaseMutation.mutate(
-                      { ticketId: ticket.id, title: tTitle, description: tDesc },
-                      {
-                        onSuccess: () => resolve(),
-                        onError: (err: unknown) => reject(err),
-                      }
-                    )
-                  )
-                }
-                onChange={(updated) => {
-                  const old = ticket.testCases ?? [];
-                  const deletedIds = old
-                    .filter((o) => !updated.some((u) => u.id === o.id))
-                    .map((o) => o.id);
-                  const changedItems = updated.filter((u) => {
-                    const o = old.find((item) => item.id === u.id);
-                    return o && JSON.stringify(o) !== JSON.stringify(u);
-                  });
-                  deletedIds.forEach((id) =>
-                    deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id })
-                  );
-                  changedItems.forEach((tc) =>
-                    updateTestCaseMutation.mutate({
+              )}
+              {activeTab === 'debug_space' && (
+                <DebugSpaceSection
+                  ticketId={ticket.id}
+                  entries={ticket.workLog ?? []}
+                  branchNames={rawBranches.map((b) => b.name)}
+                  testCases={(ticket.testCases ?? [])
+                    .filter((t) => t.code)
+                    .map((t) => ({ code: t.code as string, title: t.title }))}
+                  memberNames={members.map((m) => m.name)}
+                  onAdd={async (entry) => {
+                    await addWorkLogMutation.mutateAsync({
                       ticketId: ticket.id,
-                      testCaseId: tc.id,
-                      data: {
-                        title: tc.title,
-                        status: tc.status,
-                        description: tc.description,
-                        expectedResult: tc.expectedResult,
-                        notes: tc.notes,
-                        startedAt: tc.startedAt,
-                        assignee: tc.assignee,
-                        testDataFiles: tc.testDataFiles,
-                        proof: tc.proof ?? null,
-                        note: tc.note ?? null,
-                      },
-                    })
-                  );
-                }}
-              />
-            )}
-            {activeTab === 'debug_space' && (
-              <DebugSpaceSection
-                ticketId={ticket.id}
-                entries={ticket.workLog ?? []}
-                branchNames={rawBranches.map((b) => b.name)}
-                testCases={(ticket.testCases ?? [])
-                  .filter((t) => t.code)
-                  .map((t) => ({ code: t.code as string, title: t.title }))}
-                memberNames={members.map((m) => m.name)}
-                onAdd={async (entry) => {
-                  await addWorkLogMutation.mutateAsync({
-                    ticketId: ticket.id,
-                    data: entry,
-                  });
-                }}
-                onUpdate={async (entryId, data) => {
-                  await updateWorkLogMutation.mutateAsync({
-                    ticketId: ticket.id,
-                    entryId,
-                    data,
-                  });
-                }}
-                onDelete={async (entryId) => {
-                  await deleteWorkLogMutation.mutateAsync({
-                    ticketId: ticket.id,
-                    entryId,
-                  });
-                }}
-                onOpenBranch={() => setActiveTab('branches')}
-                onOpenTestCase={() => setActiveTab('test_cases')}
-              />
-            )}
-            {activeTab === 'workspace' && workspaceEnabled && (
-              <WorkspaceSection ticketId={ticket.id} />
-            )}
-            {activeTab === 'branches' && (
-              <BranchesSection ticketId={ticket.id} />
-            )}
-            {activeTab === 'activity' && (
-              <ActivitySection
-                ticketId={ticket.id}
-                entries={ticket.activityLog ?? []}
-                members={members}
-              />
-            )}
-          </div>
-        )}
+                      data: entry,
+                    });
+                  }}
+                  onUpdate={async (entryId, data) => {
+                    await updateWorkLogMutation.mutateAsync({
+                      ticketId: ticket.id,
+                      entryId,
+                      data,
+                    });
+                  }}
+                  onDelete={async (entryId) => {
+                    await deleteWorkLogMutation.mutateAsync({
+                      ticketId: ticket.id,
+                      entryId,
+                    });
+                  }}
+                  onOpenBranch={() => setActiveTab('branches')}
+                  onOpenTestCase={() => setActiveTab('test_cases')}
+                />
+              )}
+              {activeTab === 'workspace' && workspaceEnabled && <WorkspaceSection ticketId={ticket.id} />}
+              {activeTab === 'branches' && <BranchesSection ticketId={ticket.id} />}
+              {activeTab === 'ai' && <TicketRunsTab ticket={ticket} runId={aiRunId} />}
+              {activeTab === 'activity' && (
+                <ActivitySection
+                  ticketId={ticket.id}
+                  entries={ticket.activityLog ?? []}
+                  members={members}
+                  onViewComment={(commentId) => {
+                    setActiveTab('main');
+                    setTimeout(() => setFocusCommentId(commentId), 60);
+                  }}
+                />
+              )}
+            </div>
+          )}
 
-        <CreateBranchModal
-          isOpen={isCreateBranchModalOpen}
-          onClose={() => setIsCreateBranchModalOpen(false)}
-          ticketId={ticket.id}
-          branches={branchesList}
-          initialBranchFrom={activeBranch?.inRepo === false ? 'main' : (activeBranchName || 'main')}
-          defaultWorktreeTemplate={project?.worktreeTemplate}
-          defaultWorktreeEnabled={project?.worktreeByDefault}
-          projectPrefix={project?.prefix}
-          hasRepoLinked={Boolean(effectiveRepoPath)}
-          onSuccess={(newBranch) => {
-            setSelectedBranchName(newBranch);
-          }}
-        />
+          {mentionIntent.dialog}
+          <CreateBranchModal
+            isOpen={isCreateBranchModalOpen}
+            onClose={() => setIsCreateBranchModalOpen(false)}
+            ticketId={ticket.id}
+            branches={branchesList}
+            initialBranchFrom={activeBranch?.inRepo === false ? 'main' : activeBranchName || 'main'}
+            defaultWorktreeTemplate={project?.worktreeTemplate}
+            defaultWorktreeEnabled={project?.worktreeByDefault}
+            projectPrefix={project?.prefix}
+            hasRepoLinked={Boolean(effectiveRepoPath)}
+            onSuccess={(newBranch) => {
+              setSelectedBranchName(newBranch);
+            }}
+          />
+
+          <WontDoDialog
+            isOpen={isWontDoOpen}
+            ticketId={ticket.id}
+            ticketTitle={ticket.title}
+            isSubmitting={isSubmittingWontDo}
+            onConfirm={handleConfirmWontDo}
+            onClose={() => setIsWontDoOpen(false)}
+          />
+
+          <ReopenDialog
+            isOpen={isReopenOpen}
+            ticket={ticket}
+            allTickets={allTickets}
+            parentTicket={parentTicket}
+            members={members}
+            isSubmitting={isSubmittingReopen}
+            error={reopenError}
+            onRetry={() => lastReopenPayload && handleConfirmReopen(lastReopenPayload)}
+            onViewTicket={() => setIsReopenOpen(false)}
+            onClose={() => {
+              setIsReopenOpen(false);
+              setReopenError(null);
+            }}
+            onConfirm={handleConfirmReopen}
+          />
+
+          <SetPendingDialog
+            isOpen={isPendingOpen}
+            ticket={ticket}
+            allTickets={allTickets}
+            members={members}
+            isSubmitting={isSubmittingPending}
+            error={pendingError}
+            onClose={() => {
+              setIsPendingOpen(false);
+              setPendingError(null);
+            }}
+            onConfirm={handleConfirmPending}
+            onResume={() => {
+              setIsPendingOpen(false);
+              setIsResumeOpen(true);
+            }}
+          />
+
+          {closeConfirmStatus && ticket && (
+            <PendingCloseConfirm
+              ticket={ticket}
+              targetStatus={closeConfirmStatus}
+              allTickets={allTickets}
+              members={members}
+              onCancel={() => setCloseConfirmStatus(null)}
+              onResumeFirst={() => {
+                setCloseConfirmStatus(null);
+                setIsResumeOpen(true);
+              }}
+              onProceed={() => {
+                const target = closeConfirmStatus;
+                setCloseConfirmStatus(null);
+                handleStatusChange(target, true);
+              }}
+            />
+          )}
+
+          <ResumeDialog
+            isOpen={isResumeOpen}
+            ticket={ticket}
+            isSubmitting={isSubmittingResume}
+            error={resumeError}
+            onClose={() => {
+              setIsResumeOpen(false);
+              setResumeError(null);
+            }}
+            onConfirm={handleConfirmResume}
+          />
+        </div>
       </div>
-    </div>
+    </AiTicketContext.Provider>
+  );
+}
+
+/** The ticket modal, with doc and ticket pills wired to the side panel and navigation. */
+export function TicketModal(props: TicketModalProps) {
+  const { ticket, allTickets = [], onOpenTicket, onOpenDocsPage } = props;
+  if (!ticket) return <TicketModalInner {...props} />;
+  return (
+    <TicketDocsHost
+      projectId={ticket.projectId}
+      ticketId={ticket.id}
+      onOpenDocsPage={(pageId) => onOpenDocsPage?.(pageId)}
+      onOpenTicket={(id) => {
+        const next = allTickets.find((t) => t.id.toLowerCase() === id.toLowerCase());
+        if (next) onOpenTicket?.(next);
+      }}
+    >
+      <TicketModalInner {...props} />
+    </TicketDocsHost>
   );
 }
