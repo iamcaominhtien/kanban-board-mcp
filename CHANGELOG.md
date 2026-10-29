@@ -10,6 +10,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.7.0] - 2026-10-29
+
+### Added
+- MCP: the agent can work with **Docs comments** without new tools. `docs_read(action='comments')` lists a page's threads (inline and page comments, status, quoted text, whether the text is still attached); `docs_write` gains `comment` (on exact page text via `quote`, or on the whole page), `reply`, `edit_comment`, `delete_comment`, `resolve` and `reopen`. The agent acts as a member: it can edit and delete only its own comments, and people it mentions or replies to are notified.
+
 ## [3.6.0] - 2026-10-28
 
 ### Added
