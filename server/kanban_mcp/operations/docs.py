@@ -1,6 +1,9 @@
 """Docs operations: the wiki-like page tree of a project."""
 
 import services.docs as svc_docs
+import services.docs_anchors as svc_anchors
+import services.docs_comments as svc_comments
+import services.activity as svc_activity
 from pydantic import Field
 from typing import Annotated, Literal
 from .. import common
@@ -390,3 +393,157 @@ async def unlink_ticket_doc(ticket_id: TicketId, page_id: DocsPageId) -> dict:
             return await svc_docs.unlink_ticket_doc(session, ticket_id, page_id)
         except svc_docs.DocsError as exc:
             raise _docs_error(exc) from exc
+
+
+DocsThreadId = Annotated[
+    str, Field(description="Comment thread id from docs_read(action='comments').")
+]
+DocsCommentId = Annotated[
+    str, Field(description="Comment id from docs_read(action='comments').")
+]
+CommentBody = Annotated[
+    str,
+    Field(
+        description="Comment text (Markdown); @Name mentions a project member, [[Page]] and ticket keys link."
+    ),
+]
+
+
+def _thread_brief(t: dict) -> dict:
+    """A thread without the UI-only fields (permissions, unread dot, anchor position)."""
+    out = {
+        "id": t["id"],
+        "kind": t["kind"],
+        "status": t["status"],
+        "comments": [
+            {
+                "id": c["id"],
+                "author": c["author"],
+                "body": c["body"],
+                "created_at": c["created_at"],
+                "edited_at": c["edited_at"],
+            }
+            for c in t["comments"]
+        ],
+    }
+    if t["kind"] == "inline":
+        out["number"] = t["number"]
+        out["quote"] = t["anchor"]["quote"]
+        out["anchor_state"] = t["anchor"]["state"]
+    if t["resolved_by"]:
+        out["resolved_by"] = t["resolved_by"]
+    return out
+
+
+async def list_docs_comments(
+    page_id: DocsPageId,
+    state: Annotated[
+        Literal["all", "open", "resolved"],
+        Field(
+            description="Which inline threads to list (page comments are always listed)."
+        ),
+    ] = "all",
+) -> dict:
+    """List a Docs page's comment threads: {threads: [{id, kind: inline|page, status, number, quote, anchor_state: attached|orphaned, comments}], counts}."""
+    token = svc_activity.set_actor(svc_activity.AGENT_ACTOR)
+    try:
+        async with common.async_session() as session:
+            try:
+                res = await svc_comments.list_comments(session, page_id, state=state)
+            except svc_docs.DocsError as exc:
+                raise _docs_error(exc) from exc
+            return {
+                "threads": [_thread_brief(t) for t in res["threads"]],
+                "counts": res["counts"],
+            }
+    finally:
+        svc_activity.reset_actor(token)
+
+
+async def _comment_call(coro) -> dict:
+    try:
+        return _thread_brief(await coro)
+    except svc_docs.DocsError as exc:
+        raise _docs_error(exc) from exc
+
+
+@notify_on_success
+async def add_docs_comment(
+    page_id: DocsPageId,
+    body: CommentBody,
+    quote: Annotated[
+        str | None,
+        Field(
+            description="Exact text from the page to attach an inline comment to (inside one paragraph, list item or table cell). Omit for a comment on the whole page."
+        ),
+    ] = None,
+) -> dict:
+    """Comment on a Docs page: inline on `quote` (highlighted for people), or on the page as a whole. Returns the thread."""
+    async with common.async_session() as session:
+        try:
+            if quote is None:
+                return await _comment_call(
+                    svc_comments.create_thread(session, page_id, kind="page", body=body)
+                )
+            page = await svc_docs.page_detail(session, page_id)
+            hit = svc_anchors.find_anchor(
+                svc_anchors.blocks_of(page["markdown"]), quote
+            )
+            if hit is None or not hit.exact:
+                raise ValueError(
+                    "That text is not in the published page. Copy it exactly from docs_read(action='get') "
+                    "(plain text, within one paragraph, list item or table cell), or omit quote to comment on the page."
+                )
+            anchor = {
+                "quote": hit.quote,
+                "prefix": hit.prefix,
+                "suffix": hit.suffix,
+                "section": hit.section,
+            }
+            return await _comment_call(
+                svc_comments.create_thread(
+                    session, page_id, kind="inline", body=body, anchor=anchor
+                )
+            )
+        except svc_docs.DocsError as exc:
+            raise _docs_error(exc) from exc
+
+
+@notify_on_success
+async def reply_docs_comment(thread_id: DocsThreadId, body: CommentBody) -> dict:
+    """Reply in a Docs comment thread. Returns the thread."""
+    async with common.async_session() as session:
+        return await _comment_call(svc_comments.add_reply(session, thread_id, body))
+
+
+@notify_on_success
+async def edit_docs_comment(comment_id: DocsCommentId, body: CommentBody) -> dict:
+    """Edit a Docs comment written by the agent. Returns the thread."""
+    async with common.async_session() as session:
+        return await _comment_call(svc_comments.edit_comment(session, comment_id, body))
+
+
+@notify_on_success
+async def delete_docs_comment(comment_id: DocsCommentId) -> dict:
+    """Delete a Docs comment written by the agent; deleting a thread's first comment deletes the whole thread."""
+    async with common.async_session() as session:
+        try:
+            return await svc_comments.delete_comment(session, comment_id)
+        except svc_docs.DocsError as exc:
+            raise _docs_error(exc) from exc
+
+
+@notify_on_success
+async def resolve_docs_comment(thread_id: DocsThreadId) -> dict:
+    """Resolve an inline Docs comment thread (it leaves the page and stays in the Resolved tab)."""
+    async with common.async_session() as session:
+        return await _comment_call(
+            svc_comments.set_status(session, thread_id, "resolved")
+        )
+
+
+@notify_on_success
+async def reopen_docs_comment(thread_id: DocsThreadId) -> dict:
+    """Reopen a resolved inline Docs comment thread."""
+    async with common.async_session() as session:
+        return await _comment_call(svc_comments.set_status(session, thread_id, "open"))

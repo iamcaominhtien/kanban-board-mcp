@@ -25,7 +25,8 @@ _INSTRUCTIONS_IDEAS = """\
 _INSTRUCTIONS_TAIL = """\
 - Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with \
 docs_write (create, update, move, ...). Send the `version` you read as base_version when updating; a stale one is rejected, \
-so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12).
+so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: \
+docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) answers them.
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions
