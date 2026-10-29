@@ -290,7 +290,11 @@ export interface Project {
   worktreeByDefault?: boolean;
   /** Docs on/off per project (server default true). */
   docsEnabled?: boolean;
+  /** Who can edit Docs pages (server default "members"). */
+  docsEditPolicy?: DocsEditPolicy;
 }
+
+export type DocsEditPolicy = 'everyone' | 'members' | 'admins';
 
 export interface Column {
   id: Status;

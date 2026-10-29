@@ -27,6 +27,8 @@ interface Props {
   narrow: boolean;
   /** Showing a saved copy while offline: editing is off. */
   offline?: { savedAt: string; version?: number | null } | null;
+  /** Why the reader can't edit this space (the edit policy), shown on the disabled Edit button. */
+  readOnly?: string | null;
   onTryAgain?: () => void;
   onAction: (action: PageAction) => void;
   onOpenPage: (pageId: string, anchor?: string | null) => void;
@@ -54,6 +56,7 @@ const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: '
  * @param props.projectName - Space name shown in the header.
  * @param props.narrow - Use the compact layout (no side panel).
  * @param props.offline - Set when showing a saved copy while offline; editing is off.
+ * @param props.readOnly - Set when the space's edit policy doesn't let the reader edit; the text explains why.
  * @param props.onTryAgain - Called to retry loading the live page.
  * @param props.onAction - Called with the chosen page menu action.
  * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
@@ -70,6 +73,7 @@ export function DocsPageView({
   projectName,
   narrow,
   offline,
+  readOnly,
   onTryAgain,
   onAction,
   onOpenPage,
@@ -490,13 +494,13 @@ export function DocsPageView({
                   </div>
                   <div
                     style={{ position: 'relative' }}
-                    onMouseEnter={() => offline && setEditTip(true)}
+                    onMouseEnter={() => (offline || readOnly) && setEditTip(true)}
                     onMouseLeave={() => setEditTip(false)}
                   >
                     <button
                       type="button"
-                      className={offline ? 'st-btn' : 'st-btn st-btn-primary'}
-                      disabled={!!offline}
+                      className={offline || readOnly ? 'st-btn' : 'st-btn st-btn-primary'}
+                      disabled={!!offline || !!readOnly}
                       onClick={() => onAction('edit')}
                       data-testid="edit-page"
                     >
@@ -509,7 +513,7 @@ export function DocsPageView({
                         role="tooltip"
                         style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
                       >
-                        Reconnect to edit
+                        {offline ? 'Reconnect to edit' : readOnly}
                       </div>
                     )}
                   </div>

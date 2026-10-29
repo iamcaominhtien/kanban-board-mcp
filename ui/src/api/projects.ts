@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { Project } from '../types/ticket';
+import type { DocsEditPolicy, Project } from '../types/ticket';
 
 /** A first-load request that takes longer than this is abandoned and the error state is shown. */
 export const LIST_TIMEOUT_MS = 15000;
@@ -37,6 +37,7 @@ export async function updateProject(
     worktree_template?: string | null;
     worktree_by_default?: boolean;
     docs_enabled?: boolean;
+    docs_edit_policy?: DocsEditPolicy;
   },
 ): Promise<Project> {
   const res = await client.patch<Project>(`/projects/${id}`, data);

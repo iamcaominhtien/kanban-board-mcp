@@ -20,14 +20,14 @@ from models import (
     DocsPage,
     Member,
 )
-from services import activity
+from services import activity, docs_access
 from services import docs_anchors as anchors
 from services.docs import _latest_version, get_page
 from services.docs_text import DocsError
 
 MAX_BODY = 4000
 SNIPPET = 140
-ROLES = ("viewer", "member", "admin")
+ROLES = docs_access.ROLES
 STATES = ("all", "open", "resolved")
 
 
@@ -38,25 +38,8 @@ def _now() -> str:
 # --- people and permissions -------------------------------------------------
 
 
-async def _members(session: AsyncSession, project_id: str) -> list[Member]:
-    rows = await session.exec(select(Member).where(Member.project_id == project_id))
-    return list(rows.all())
-
-
-def role_in(members: list[Member], actor: str) -> str:
-    """Return the Docs role of an actor.
-
-    The board's own user (``user``) is an admin and the AI agent (``agent``) a member. Anyone else is
-    looked up by name among the project's members; a name that is not a member can only read.
-    """
-    if actor == activity.HUMAN_ACTOR:
-        return "admin"
-    if actor == activity.AGENT_ACTOR:
-        return "member"
-    for m in members:
-        if m.name.casefold() == actor.casefold():
-            return m.role if m.role in ROLES else "member"
-    return "viewer"
+_members = docs_access.members_of
+role_in = docs_access.role_in
 
 
 def _need_member(role: str) -> None:

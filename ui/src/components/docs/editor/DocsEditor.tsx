@@ -33,6 +33,7 @@ import { createSuggest } from './extensions/suggest';
 import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from '../../diagrams/diagramRefs';
 import { firstDiagramFile } from '../../diagrams/diagramFile';
+import { DiagramDropZone, isDiagramDrag } from '../../diagrams/DiagramDropZone';
 import { MarkdownPane } from './MarkdownPane';
 import { MenuHost } from './menuHost';
 import { RefSuggester, type RefPayload } from './RefSuggester';
@@ -201,6 +202,8 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   });
   const starterRef = useRef(diagramStarter);
   starterRef.current = diagramStarter;
+  const [diagramDrag, setDiagramDrag] = useState(false);
+  const dragDepth = useRef(0);
 
   const uploadImage = useCallback(async (file: File, at?: number) => {
     const ed = editorRef.current;
@@ -464,6 +467,21 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div
             data-testid="editor-scroll"
+            onDragEnter={(e) => {
+              if (!readOnly && mode === 'visual' && isDiagramDrag(e.dataTransfer)) {
+                dragDepth.current += 1;
+                setDiagramDrag(true);
+              }
+            }}
+            onDragLeave={() => {
+              if (!diagramDrag) return;
+              dragDepth.current = Math.max(0, dragDepth.current - 1);
+              if (dragDepth.current === 0) setDiagramDrag(false);
+            }}
+            onDrop={() => {
+              dragDepth.current = 0;
+              setDiagramDrag(false);
+            }}
             style={{
               flex: 1,
               minWidth: 0,
@@ -483,6 +501,16 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
               }}
             >
               {header}
+              {diagramDrag && (
+                <DiagramDropZone
+                  onFile={(f) => void starterRef.current.startImport(f)}
+                  onChoose={() => starterRef.current.pickFile()}
+                  onDone={() => {
+                    dragDepth.current = 0;
+                    setDiagramDrag(false);
+                  }}
+                />
+              )}
               <div style={{ display: mode === 'visual' ? 'block' : 'none' }}>
                 <div className="dk-md dk-editor">
                   <EditorContent editor={editor} />

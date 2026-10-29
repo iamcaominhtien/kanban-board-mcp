@@ -434,6 +434,7 @@ async def run_import(
     Returns:
         `{created, failed, skipped, ...}` with per-file results.
     """
+    await svc._project(session, project_id, edit=True)
     entries, nodes, _summary = await build_plan(
         session, project_id, files, parent_id=parent_id, on_conflict=on_conflict
     )
@@ -509,7 +510,7 @@ async def resolve_pages(
     Returns:
         `{pages, links_resolved, links_unresolved}`.
     """
-    await svc._project(session, project_id)
+    await svc._project(session, project_id, edit=True)
     resolved = unresolved = pages = 0
     contents: dict[str, str] = {}
     live = []

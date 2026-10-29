@@ -11,6 +11,7 @@ import {
 import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
+import { useDocsAccess, useRequestDocsAccess } from '../../api/docsAccess';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { useToast } from '../Toast';
@@ -24,6 +25,7 @@ import {
   DeletedPage,
   DocsDisabled,
   LoadError,
+  NoAccess,
   NotFound,
   PageSkeleton,
   SlowLoadNote,
@@ -241,6 +243,14 @@ export function DocsView({
   const pageError = pageQuery.error ? docsErrorDetail(pageQuery.error) : null;
   const treeError = tree.error ? docsErrorDetail(tree.error) : null;
   const networkDown = (pageQuery.isError && !pageError) || (tree.isError && !treeError);
+  const access = useDocsAccess(projectId);
+  const requestAccess = useRequestDocsAccess(projectId);
+  const readOnly =
+    access.data && access.data.access && !access.data.canEdit
+      ? access.data.policy === 'admins'
+        ? 'Only project admins can edit pages in this space'
+        : 'Only project members can edit pages in this space'
+      : null;
   const cachedPage = selectedId && !livePage ? offlineApi.getCachedPage(selectedId) : null;
   const offlineCopy = !livePage && networkDown && cachedPage ? cachedToPage(cachedPage, projectId, nodes) : null;
   const page = livePage ?? offlineCopy;
@@ -365,9 +375,9 @@ export function DocsView({
     }
   }
 
-  // dropping .md files or folders anywhere on the Docs page
+  // dropping .md files or folders anywhere on the Docs page (the editor takes dropped files itself)
   useEffect(() => {
-    if (!onDropFiles) return;
+    if (!onDropFiles || editing) return;
     const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files');
     let depth = 0;
     const enter = (e: DragEvent) => {
@@ -402,7 +412,7 @@ export function DocsView({
       window.removeEventListener('dragleave', leave);
       window.removeEventListener('drop', drop);
     };
-  }, [onDropFiles]);
+  }, [onDropFiles, editing]);
 
   const firstPage = () => nodes.filter((n) => !n.parentId).sort((a, b) => a.position - b.position)[0];
   const goOverview = () => {
@@ -430,6 +440,9 @@ export function DocsView({
   };
 
   const docsDisabled = treeError?.code === 'docs_disabled' || pageError?.code === 'docs_disabled';
+  const noAccess =
+    access.data?.access === false || treeError?.code === 'docs_no_access' || pageError?.code === 'docs_no_access';
+  const disabledRole = treeError?.role ?? pageError?.role;
 
   const treeEl = (
     <DocsTree
@@ -440,6 +453,7 @@ export function DocsView({
       loadingId={pageQuery.isLoading ? selectedId : null}
       onSelect={select}
       onNewPage={(parentId) => setNewPage({ parentId })}
+      readOnly={!!readOnly}
       onRequestRename={(n, t) => void requestRename(n, t)}
       renamingId={renamingId}
       onRenamingChange={setRenamingId}
@@ -468,7 +482,23 @@ export function DocsView({
   let leftOverride: React.ReactNode = null;
   if (docsDisabled) {
     leftOverride = <></>;
-    content = <DocsDisabled onOpenSettings={onOpenSettings} onBack={onBack} />;
+    content = (
+      <DocsDisabled
+        onOpenSettings={onOpenSettings}
+        onBack={onBack}
+        isAdmin={!disabledRole || disabledRole === 'admin'}
+      />
+    );
+  } else if (noAccess) {
+    leftOverride = <></>;
+    content = (
+      <NoAccess
+        projectName={projectName}
+        admins={access.data?.admins ?? []}
+        onRequest={async (note) => (await requestAccess.mutateAsync(note)).sent}
+        onBack={onBack}
+      />
+    );
   } else if (treeLoading) {
     leftOverride = <TreeSkeleton />;
     content =
@@ -605,6 +635,7 @@ export function DocsView({
         projectName={projectName}
         narrow={narrow}
         offline={offlineCopy ? { savedAt: cachedPage!.savedAt, version: cachedPage!.version } : null}
+        readOnly={readOnly}
         onTryAgain={() => {
           void pageQuery.refetch();
           void tree.refetch();
@@ -636,7 +667,7 @@ export function DocsView({
           selectedId={selectedId}
           onExpand={showTree}
           onSearch={() => onSearch?.()}
-          onNewPage={(p) => setNewPage({ parentId: p })}
+          onNewPage={readOnly ? undefined : (p) => setNewPage({ parentId: p })}
           onSelect={select}
         />
         {narrow && railOpen && (

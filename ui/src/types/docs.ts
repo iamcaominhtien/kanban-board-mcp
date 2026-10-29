@@ -150,6 +150,8 @@ export interface DocsErrorDetail {
   latestAt?: string | null;
   deletedBy?: string;
   deletedAt?: string;
+  /** docs_disabled: the caller's role, so non-admins are told to ask an admin. */
+  role?: string;
 }
 
 export type CommentRole = 'viewer' | 'member' | 'admin';
@@ -211,11 +213,12 @@ export interface CommentAnchorInput {
 
 export interface DocsCommentEvent {
   id: string;
-  pageId: string;
+  /** Null for an access request. */
+  pageId: string | null;
   pageTitle: string;
   threadId: string | null;
   commentId: string | null;
-  kind: 'comment' | 'reply' | 'resolved' | 'reopened';
+  kind: 'comment' | 'reply' | 'resolved' | 'reopened' | 'access_request';
   actor: string;
   mentioned: string[];
   recipients: string[];

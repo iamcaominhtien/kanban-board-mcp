@@ -264,6 +264,7 @@ async def test_index_follows_publish_rename_and_duplicate(c, pid):
 async def test_filters_author_status_edited_since_under_page_has_tickets_sort(c, pid):
     parent = await publish(c, await mk(c, pid, "Handbook"), "## H\nwidget parent")
     kid = await mk(c, pid, "Kid", parent_id=parent["id"])
+    await c.post(f"/projects/{pid}/members", json={"name": "Mai"})
     r = await c.post(
         f"/docs/pages/{kid['id']}/publish",
         json={"base_version": 0, "markdown": "widget child"},

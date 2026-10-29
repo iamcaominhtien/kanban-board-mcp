@@ -45,13 +45,25 @@ Note: auto-appended by server on changes to title, status, priority, type, estim
 | GET | /projects | — | ProjectRead[] | 200 |
 | POST | /projects | `{name, prefix, color}` | ProjectRead | 201 |
 | GET | /projects/{id} | — | ProjectRead | 200/404 |
-| PATCH | /projects/{id} | `{name?, color?}` | ProjectRead | 200/404 |
+| PATCH | /projects/{id} | `{name?, color?, docs_enabled?, docs_edit_policy?: "everyone"\|"members"\|"admins"}` | ProjectRead | 200/403/404/422 |
 | DELETE | /projects/{id} | — | — | 204/404/400 |
 
 ProjectRead shape (after camelCase):
 ```json
-{ "id": "uuid", "name": "string", "prefix": "IAM", "color": "#hex", "ticketCounter": 0 }
+{ "id": "uuid", "name": "string", "prefix": "IAM", "color": "#hex", "ticketCounter": 0, "docsEnabled": true, "docsEditPolicy": "members" }
 ```
+
+Only project admins (the board owner `user`, or a member with role `admin`) may change `docs_enabled` and `docs_edit_policy` (403 otherwise).
+
+### Docs access
+The caller is the `X-Actor` header (see Docs comments). Anyone who is part of the project (the board owner, the agent or a member of any role) reads published pages. Who edits pages (create, save draft, publish, rename, move, duplicate, delete, restore, purge, import) follows the project's `docs_edit_policy`: `everyone` (viewers too), `members` (default: members and admins) or `admins`. A refused write answers `403 read_only`; a name that is not part of the project gets `403 docs_no_access` on every Docs read and write; a disabled space answers `403 docs_disabled` (with the caller's `role`) before either.
+
+| Method | Path | Body | Response | Status |
+|---|---|---|---|---|
+| GET | /projects/{projectId}/docs/access | — | `{access, role, can_edit, policy, me, admins[]}` | 200/403/404 |
+| POST | /projects/{projectId}/docs/access-requests | `{note?}` | `{sent, admins[]}` | 201/404 |
+
+An access request writes a CommentEvent `{kind: "access_request", page_id: null, actor, recipients: ["user", ...admins], snippet: note}`; asking again within ten minutes, or asking while already in the project, sends nothing (`sent: false`).
 
 ### Tickets
 | Method | Path | Body | Response | Status |

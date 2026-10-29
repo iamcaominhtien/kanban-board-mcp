@@ -42,6 +42,8 @@ interface BoardProps {
   /** Docs view: a page to open (from a ticket's linked docs or a ?docs= link). */
   docsRequestedPageId?: string | null;
   onDocsRequestHandled?: () => void;
+  /** Docs view: opens Settings (Docs turned off). */
+  onOpenSettings?: () => void;
   members?: Member[];
   activeAssignee?: string | 'all';
   onAssigneeChange?: (id: string | 'all') => void;
@@ -95,6 +97,7 @@ export function Board({
   onViewModeChange,
   docsRequestedPageId,
   onDocsRequestHandled,
+  onOpenSettings,
   members = [],
   activeAssignee = 'all',
   onAssigneeChange,
@@ -279,6 +282,8 @@ export function Board({
             projectName={projectName}
             requestedPageId={docsRequestedPageId}
             onRequestHandled={onDocsRequestHandled}
+            onOpenSettings={onOpenSettings}
+            onBack={() => onViewModeChange('board')}
             onOpenTicket={(id) => {
               const t = allTickets.find((x) => x.id === id);
               if (t) onCardClick(t);

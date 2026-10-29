@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import events as board_events
 from database import get_session
 from services import docs as svc
-from services import docs_comments
+from services import docs_access, docs_comments
 from services import docs_import, docs_search
 from services.docs_templates import TEMPLATES
 
@@ -600,3 +600,36 @@ async def get_comment_events(
     return await docs_comments.list_events(
         session, project_id, recipient=recipient, limit=limit
     )
+
+
+@router.get("/projects/{project_id}/docs/access")
+async def get_docs_access(project_id: str, session: Session) -> dict[str, Any]:
+    """What the caller may do in the Docs space: access, role, can_edit, policy, admins."""
+    project = await session.get(svc.Project, project_id)
+    if project is None:
+        raise svc.DocsError(404, "project_not_found", "Project not found")
+    if not project.docs_enabled:
+        raise svc.DocsError(
+            403, "docs_disabled", "Docs are turned off for this project"
+        )
+    return await docs_access.access_of(session, project)
+
+
+class AccessRequestBody(BaseModel):
+    """Request body to ask an admin for access to Docs."""
+
+    note: str = ""
+
+
+@router.post("/projects/{project_id}/docs/access-requests", status_code=201)
+async def post_access_request(
+    project_id: str, body: AccessRequestBody, session: Session
+) -> dict[str, Any]:
+    """Ask the project's admins for access to Docs (notifies them)."""
+    project = await session.get(svc.Project, project_id)
+    if project is None:
+        raise svc.DocsError(404, "project_not_found", "Project not found")
+    result = await docs_access.request_access(session, project, body.note)
+    if result["sent"]:
+        await board_events.publish("invalidate")
+    return result

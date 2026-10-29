@@ -120,39 +120,52 @@ function build(doc: PMNode, threads: HighlightThread[], activeId: string | null,
     }
     if (!best) {
       // text typed inside a highlight no longer equals the stored quote: keep following the old range
-      for (const d of prev.find()) {
-        if ((d.spec as { threadId?: string }).threadId !== t.id) continue;
+      const old = prev.find().filter((d) => (d.spec as { threadId?: string }).threadId === t.id);
+      if (old.length)
         decos.push(
-          Decoration.inline(
-            d.from,
-            d.to,
-            {
-              class: 'dk-cmt-hl' + (t.id === activeId ? ' is-active' : ''),
-              'data-thread': t.id,
-              'data-num': String(t.number),
-            },
-            { threadId: t.id },
-          ),
+          ...highlight(doc, Math.min(...old.map((d) => d.from)), Math.max(...old.map((d) => d.to)), t, activeId),
         );
-      }
       continue;
     }
     const from = best.b.at[best.at].from;
     const to = best.b.at[best.at + quote.length - 1].to;
-    decos.push(
-      Decoration.inline(
-        from,
-        to,
-        {
-          class: 'dk-cmt-hl' + (t.id === activeId ? ' is-active' : ''),
-          'data-thread': t.id,
-          'data-num': String(t.number),
-        },
-        { threadId: t.id },
-      ),
-    );
+    decos.push(...highlight(doc, from, to, t, activeId));
   }
   return DecorationSet.create(doc, decos);
+}
+
+/**
+ * Decorations for one thread's range, one per text node so the number badge shows once, after the
+ * last piece (a range across a code span or a link would otherwise get a badge per piece).
+ */
+function highlight(
+  doc: PMNode,
+  from: number,
+  to: number,
+  t: { id: string; number: number },
+  activeId: string | null,
+): Decoration[] {
+  const pieces: [number, number][] = [];
+  doc.nodesBetween(from, to, (node, pos) => {
+    if (!node.isText) return true;
+    const a = Math.max(from, pos);
+    const b = Math.min(to, pos + node.nodeSize);
+    if (a < b) pieces.push([a, b]);
+    return false;
+  });
+  if (!pieces.length) pieces.push([from, to]);
+  return pieces.map(([a, b], i) =>
+    Decoration.inline(
+      a,
+      b,
+      {
+        class: 'dk-cmt-hl' + (t.id === activeId ? ' is-active' : ''),
+        'data-thread': t.id,
+        ...(i === pieces.length - 1 ? { 'data-num': String(t.number) } : {}),
+      },
+      { threadId: t.id },
+    ),
+  );
 }
 
 /**

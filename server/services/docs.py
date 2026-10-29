@@ -25,7 +25,7 @@ from models import (
     Project,
     Ticket,
 )
-from services import activity, diagrams, docs_search
+from services import activity, diagrams, docs_access, docs_search
 from services.docs_templates import TEMPLATES
 from services.docs_text import (  # noqa: F401  (re-exported)
     DocsError,
@@ -60,34 +60,52 @@ def _now() -> str:
 # ---------------------------------------------------------------------------
 
 
-async def _project(session: AsyncSession, project_id: str) -> Project:
+async def _project(
+    session: AsyncSession, project_id: str, *, edit: bool = False
+) -> Project:
     project = await session.get(Project, project_id)
     if project is None:
         raise DocsError(404, "project_not_found", "Project not found")
     if not project.docs_enabled:
-        raise DocsError(403, "docs_disabled", "Docs are turned off for this project")
+        members = await docs_access.members_of(session, project.id)
+        raise DocsError(
+            403,
+            "docs_disabled",
+            "Docs are turned off for this project",
+            role=docs_access.role_in(members, activity.current_actor()),
+        )
+    if edit:
+        await docs_access.require_editor(session, project)
+    else:
+        await docs_access.require_reader(session, project)
     return project
 
 
 async def get_page(
-    session: AsyncSession, page_id: str, *, include_deleted: bool = False
+    session: AsyncSession,
+    page_id: str,
+    *,
+    include_deleted: bool = False,
+    edit: bool = False,
 ) -> DocsPage:
     """Return a page, raising if it is missing or deleted.
 
     Args:
         page_id: Page to load.
         include_deleted: Allow a page that is in the Recycle Bin.
+        edit: The caller is about to change the page, so the actor must be allowed to edit.
 
     Returns:
         The page row.
 
     Raises:
-        DocsError: 404 if missing; 410 if deleted and `include_deleted` is False.
+        DocsError: 404 if missing; 410 if deleted and `include_deleted` is False; 403 when the
+            actor may not read (or, with `edit`, may not edit) the project's Docs.
     """
     page = await session.get(DocsPage, page_id)
     if page is None:
         raise DocsError(404, "page_not_found", "Page not found")
-    await _project(session, page.project_id)
+    await _project(session, page.project_id, edit=edit)
     if page.deleted_at and not include_deleted:
         raise DocsError(
             410,
@@ -223,7 +241,7 @@ async def create_page(
     Raises:
         DocsError: 422 if the parent is in another project or the template is unknown.
     """
-    await _project(session, project_id)
+    await _project(session, project_id, edit=True)
     title = _clean_title(title)
     if parent_id is not None:
         parent = await get_page(session, parent_id)
@@ -386,7 +404,7 @@ async def move_page(
         DocsError: 422 if the parent is in another project or the anchor is not a
             sibling; 409 if the page would move into itself or its sub-pages.
     """
-    page = await get_page(session, page_id)
+    page = await get_page(session, page_id, edit=True)
     if parent_id is not None:
         parent = await get_page(session, parent_id)
         if parent.project_id != page.project_id:
@@ -444,7 +462,7 @@ async def duplicate_page(
     Returns:
         The copy's detail.
     """
-    src = await get_page(session, page_id)
+    src = await get_page(session, page_id, edit=True)
     target_parent = parent_id if parent_given else src.parent_id
     new_title = _clean_title(title or f"{src.title} (copy)")
     root_id = await _copy_page(session, src, new_title, target_parent)
@@ -501,7 +519,7 @@ async def _copy_page(
 
 async def delete_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
     """Move a page and its sub-pages to the Recycle Bin."""
-    page = await get_page(session, page_id)
+    page = await get_page(session, page_id, edit=True)
     subtree = [page, *await _descendants(session, page)]
     now, actor = _now(), activity.current_actor()
     for p in subtree:
@@ -526,7 +544,7 @@ async def restore_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
     Raises:
         DocsError: 409 if the page is not in the Recycle Bin.
     """
-    page = await get_page(session, page_id, include_deleted=True)
+    page = await get_page(session, page_id, include_deleted=True, edit=True)
     if not page.deleted_at:
         raise DocsError(409, "not_deleted", "Page is not in the Recycle Bin")
     root = page.deleted_root_id
@@ -619,7 +637,7 @@ async def purge_page(session: AsyncSession, page_id: str) -> None:
     Raises:
         DocsError: 409 if the page is not in the Recycle Bin.
     """
-    page = await get_page(session, page_id, include_deleted=True)
+    page = await get_page(session, page_id, include_deleted=True, edit=True)
     if not page.deleted_at:
         raise DocsError(
             409, "not_deleted", "Only pages in the Recycle Bin can be deleted forever"
@@ -633,7 +651,7 @@ async def purge_page(session: AsyncSession, page_id: str) -> None:
 
 async def empty_recycle_bin(session: AsyncSession, project_id: str) -> dict[str, int]:
     """Delete everything in the project's Recycle Bin for good."""
-    await _project(session, project_id)
+    await _project(session, project_id, edit=True)
     pages = await _all_pages(session, project_id, deleted=True)
     await _hard_delete(session, pages)
     await session.commit()
@@ -678,7 +696,7 @@ async def save_draft(
     Returns:
         The page detail including the draft.
     """
-    page = await get_page(session, page_id)
+    page = await get_page(session, page_id, edit=True)
     _check_markdown(markdown)
     actor = activity.current_actor()
     draft = await _draft_for(session, page.id, actor)
@@ -705,7 +723,7 @@ async def save_draft(
 
 async def discard_draft(session: AsyncSession, page_id: str) -> dict[str, Any]:
     """Delete the caller's draft of a page."""
-    page = await get_page(session, page_id)
+    page = await get_page(session, page_id, edit=True)
     draft = await _draft_for(session, page.id, activity.current_actor())
     if draft:
         await session.delete(draft)
@@ -737,7 +755,7 @@ async def publish_page(
     Raises:
         DocsError: 409 if `base_version` is stale; 422 if there is nothing to publish.
     """
-    page = await get_page(session, page_id)
+    page = await get_page(session, page_id, edit=True)
     actor = activity.current_actor()
     if base_version != page.version:
         latest = await _latest_version(session, page)
@@ -1020,7 +1038,7 @@ async def restore_version(
     Returns:
         The page detail after publishing.
     """
-    page = await get_page(session, page_id)
+    page = await get_page(session, page_id, edit=True)
     v = await _version(session, page_id, n)
     actor = activity.current_actor()
     draft = await _draft_for(session, page.id, actor)
@@ -1730,7 +1748,7 @@ async def rename_page(
     Raises:
         DocsError: 422 if the title cannot be written as a `[[link]]` while rewriting links.
     """
-    page = await get_page(session, page_id)
+    page = await get_page(session, page_id, edit=True)
     new_title = _clean_title(title)
     old_title = page.title
     actor = activity.current_actor()
