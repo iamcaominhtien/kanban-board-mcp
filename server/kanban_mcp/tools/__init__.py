@@ -36,9 +36,38 @@ def _checked_read(fn: Callable) -> Callable:
     return wrapper
 
 
+def _hide_from_ai(fn: Callable) -> Callable:
+    """Inside an AI run, `docs_read` never shows a page hidden from AI (or outside "only picked"): a direct read is
+    refused and lists and searches leave it out. People and other MCP clients see everything they may read."""
+    from services.ai import guard
+
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs):
+        ctx = await guard.resolve()
+        if ctx is None:
+            return await fn(*args, **kwargs)
+        from services.docs_ai import access
+
+        from .. import common
+
+        async with common.async_session() as session:
+            hidden = await access.all_hidden_page_ids(session)
+        if kwargs.get("page_id") in hidden:
+            raise ValueError("That page is hidden from AI.")
+        result = await fn(*args, **kwargs)
+        if isinstance(result, list):
+            return [r for r in result if r.get("id") not in hidden]
+        if isinstance(result, dict) and isinstance(result.get("pages"), list):
+            kept = [r for r in result["pages"] if r.get("page_id", r.get("id")) not in hidden]
+            return {**result, "pages": kept, "total": len(kept)} if "total" in result else {**result, "pages": kept}
+        return result
+
+    return wrapper
+
+
 list_tickets = _checked_read(ops.list_tickets)
 get_ticket = _checked_read(ops.get_ticket)
-docs_read = _checked_read(docs_read)
+docs_read = _checked_read(_hide_from_ai(docs_read))
 _WRITE = ToolAnnotations(
     readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False
 )

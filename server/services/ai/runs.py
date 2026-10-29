@@ -1143,6 +1143,32 @@ async def _activity_for(session, run: AiRun, names: set[str]) -> str:
 async def _build_prompt(
     session, run: AiRun, profile: AiMember, member: Member, *, resume_note: str | None
 ):
+    """(system, user message, config) of a run, with the project's AI guidance pages added to the system prompt."""
+    system, prompt, config = await _build_prompt_base(
+        session, run, profile, member, resume_note=resume_note
+    )
+    from services.docs_ai import access as docs_ai_access
+
+    text, reads = await docs_ai_access.guidance_block(session, run.project_id)
+    if text:
+        system += "\n\n" + text
+        if not any(s.get("kind") == "read" for s in loads(run.steps, [])):
+            await _append(
+                run.id,
+                steps=[
+                    {
+                        "kind": "read",
+                        "text": "Read guidance: " + ", ".join(r["title"] for r in reads),
+                        "detail": {"pages": reads},
+                    }
+                ],
+            )
+    return system, prompt, config
+
+
+async def _build_prompt_base(
+    session, run: AiRun, profile: AiMember, member: Member, *, resume_note: str | None
+):
     ticket = await session.get(Ticket, run.ticket_id)
     project = await session.get(Project, run.project_id)
     settings = await get_settings(session, run.project_id)

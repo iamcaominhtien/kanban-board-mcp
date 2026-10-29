@@ -902,3 +902,27 @@ mark.docs-find-mark.docs-find-cur {
     background: #fff3c4;
   }
 }
+
+/* Docs AI rows in the tree ("Ask the docs", "Docs health") */
+.dk-tree-airow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3d5a47;
+  cursor: pointer;
+}
+.dk-tree-airow:hover,
+.dk-tree-airow[aria-current='page'] {
+  background: #eef3ef;
+}
+.dk-tree-airow svg {
+  color: #6b5bd2;
+}

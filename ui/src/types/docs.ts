@@ -10,6 +10,10 @@ export interface DocsTreeNode {
   version: number;
   hasDraft: boolean;
   updatedAt: string;
+  /** Hidden from every AI (a lock in the tree) */
+  aiHidden?: boolean;
+  /** Read by every AI run in the project (a small icon in the tree) */
+  aiGuidance?: boolean;
 }
 
 export interface DocsHeading {
@@ -32,6 +36,18 @@ export interface DocsDraft {
   saves: number;
   updatedAt: string;
   author: string;
+  /** Set on a draft an AI wrote: where it came from and what it could not find */
+  aiSource?: DocsAiSource | null;
+}
+
+/** "Drafted with AI": the sources a draft was written from and the gaps it left. */
+export interface DocsAiSource {
+  kind: string;
+  from?: string;
+  memberId?: string;
+  gaps?: string[];
+  sources?: { n: number; label: string; quote?: string }[];
+  accepted?: boolean;
 }
 
 export interface DocsPage {
@@ -50,6 +66,8 @@ export interface DocsPage {
   updatedAt: string;
   createdAt: string;
   hasUnpublishedChanges: boolean;
+  aiHidden?: boolean;
+  aiGuidance?: boolean;
   draft: DocsDraft | null;
 }
 

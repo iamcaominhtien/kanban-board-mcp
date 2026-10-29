@@ -215,6 +215,8 @@ async def list_tree(session: AsyncSession, project_id: str) -> list[dict[str, An
             "version": p.version,
             "has_draft": p.id in drafted,
             "updated_at": p.updated_at,
+            "ai_hidden": p.ai_hidden,
+            "ai_guidance": p.ai_guidance,
         }
         for p in pages
     ]
@@ -325,6 +327,8 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
         "created_at": page.created_at,
         "stats": await page_stats(session, page, markdown),
         "has_unpublished_changes": unpublished,
+        "ai_hidden": page.ai_hidden,
+        "ai_guidance": page.ai_guidance,
         "draft": (
             {
                 "title": draft.title,
@@ -333,6 +337,7 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "saves": draft.saves,
                 "updated_at": draft.updated_at,
                 "author": draft.author,
+                "ai_source": _json_or_none(draft.ai_source),
             }
             if draft
             else None
@@ -1452,6 +1457,15 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
         if new_target != link.target_page_id:
             link.target_page_id = new_target
             session.add(link)
+
+
+def _json_or_none(raw: str | None) -> Any:
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return None
 
 
 def _json_list(raw: str | None) -> list[Any]:

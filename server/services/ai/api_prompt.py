@@ -41,9 +41,12 @@ async def linked_docs(session, ticket: Ticket, config: dict) -> list[dict]:
         rows = await svc_docs.docs_for_ticket(session, ticket.id)
     except Exception:  # noqa: BLE001 - docs are optional context
         return []
+    from services.docs_ai import access as docs_ai_access
+
+    denied = await docs_ai_access.hidden_page_ids(session, ticket.project_id)
     out, seen = [], set()
     for row in rows:
-        if row["page_id"] in seen:
+        if row["page_id"] in seen or row["page_id"] in denied:
             continue
         seen.add(row["page_id"])
         try:

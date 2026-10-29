@@ -43,7 +43,7 @@ export function DocsSpace({
   const nodes = tree.data ?? [];
   const [request, setRequest] = useState<{ id: string; anchor?: string } | null>(null);
   const [intent, setIntent] = useState<ComponentProps<typeof DocsView>['intent']>(null);
-  const [palette, setPalette] = useState<{ q?: string } | null>(null);
+  const [palette, setPalette] = useState<{ q?: string; mode?: 'ask' } | null>(null);
   const [results, setResults] = useState<string | null>(null);
   const [importing, setImporting] = useState<{ files?: File[] } | null>(null);
   const [findOpen, setFindOpen] = useState(false);
@@ -86,6 +86,7 @@ export function DocsSpace({
         onOpenSettings={onOpenSettings}
         onBack={onBack}
         onSearch={(q) => (q ? setResults(q) : setPalette({}))}
+        onAskDocs={() => setPalette({ mode: 'ask' })}
         onBodyRef={setRoot}
         resultsQuery={results}
         onCloseResults={() => setResults(null)}

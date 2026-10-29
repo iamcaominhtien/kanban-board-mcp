@@ -12,6 +12,9 @@ import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
 import { useDocsAccess, useRequestDocsAccess } from '../../api/docsAccess';
+import { useDocsAiState } from '../../api/docsAi';
+import { useWaitingProposalPages } from '../../api/docsAiProposals';
+import { DocsHealthView } from './ai/DocsHealthView';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { slugify as slugifyHeading } from '../../utils/docsMarkdown';
@@ -64,6 +67,8 @@ interface Props {
   onBack?: () => void;
   /** Search palette / full results; `query` is passed when the tree filter's Enter or "Search page content" asks for it. */
   onSearch?: (query?: string) => void;
+  /** "Ask the docs": opens the search palette in Ask mode (Docs AI). */
+  onAskDocs?: () => void;
   /** Called with the element holding the rendered page body (find-in-page). */
   onBodyRef?: (el: HTMLElement | null) => void;
   /** Full search results shown in place of the page (the tree stays on the left); `null` shows the page. */
@@ -212,6 +217,7 @@ export function DocsView({
   onOpenSettings,
   onBack,
   onSearch,
+  onAskDocs,
   onBodyRef,
   resultsQuery = null,
   onCloseResults,
@@ -283,6 +289,10 @@ export function DocsView({
   const treeError = tree.error ? docsErrorDetail(tree.error) : null;
   const networkDown = (pageQuery.isError && !pageError) || (tree.isError && !treeError);
   const access = useDocsAccess(projectId);
+  const aiState = useDocsAiState(projectId);
+  const aiOn = aiState.data?.state === 'ready' || aiState.data?.state === 'no_member';
+  const [healthOpen, setHealthOpen] = useState(false);
+  const proposalPageIds = useWaitingProposalPages(projectId);
   const requestAccess = useRequestDocsAccess(projectId);
   const readOnly =
     access.data && access.data.access && !access.data.canEdit
@@ -519,7 +529,10 @@ export function DocsView({
       nodes={nodes}
       selectedId={selectedId}
       loadingId={pageQuery.isLoading ? selectedId : null}
-      onSelect={select}
+      onSelect={(id) => {
+        setHealthOpen(false);
+        select(id);
+      }}
       onNewPage={(parentId) => setNewPage({ parentId })}
       readOnly={!!readOnly}
       onRequestRename={(n, t) => void requestRename(n, t)}
@@ -531,6 +544,11 @@ export function DocsView({
         })
       }
       onCollapse={() => (narrow ? setRailOpen(false) : setCollapsed(true))}
+      aiOn={aiOn}
+      onAskDocs={onAskDocs}
+      onHealth={() => setHealthOpen(true)}
+      healthActive={healthOpen}
+      proposalPageIds={proposalPageIds}
       renderMenu={(node, close) => (
         <TreePageMenu
           node={node}
@@ -566,6 +584,18 @@ export function DocsView({
         admins={access.data?.admins ?? []}
         onRequest={async (note) => (await requestAccess.mutateAsync(note)).sent}
         onBack={onBack}
+      />
+    );
+  } else if (healthOpen && aiOn) {
+    content = (
+      <DocsHealthView
+        projectId={projectId}
+        onOpenPage={(id) => {
+          setHealthOpen(false);
+          select(id);
+        }}
+        onOpenTicket={onOpenTicket}
+        onClose={() => setHealthOpen(false)}
       />
     );
   } else if (treeLoading) {

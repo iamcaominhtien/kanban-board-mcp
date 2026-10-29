@@ -3,6 +3,8 @@ import type { DocsPage } from '../../types/docs';
 import { absoluteTime, actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
 import { OfflineBanner } from './DocsStates';
+import { DocsAiBanners } from './ai/DocsAiBanners';
+import { PageAiMenu } from './ai/PageAiMenu';
 import { CommentsPanel } from './comments/CommentsPanel';
 import { PageComments } from './comments/PageComments';
 import { ComposePopover, SelectionToolbar, type Pick } from './comments/SelectionComment';
@@ -269,6 +271,7 @@ export function DocsPageView({
                 <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
               </div>
             )}
+            {!offline && <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} />}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
                 <nav
@@ -362,6 +365,7 @@ export function DocsPageView({
                     flexShrink: 0,
                   }}
                 >
+                  {!offline && <PageAiMenu projectId={projectId} page={page} canEdit={!readOnly} />}
                   {!offline && (
                     <button
                       type="button"
