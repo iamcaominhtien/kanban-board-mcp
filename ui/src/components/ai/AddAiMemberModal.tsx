@@ -675,8 +675,10 @@ export function AddAiMemberModal({
                   </>
                 ) : (
                   local && (
-                    <div className="ai-field" style={{ width: 150 }}>
-                      <span className="ai-label ai-label-dark">Scheduled runs per day</span>
+                    <div className="ai-field" style={{ width: 190 }}>
+                      <span className="ai-label ai-label-dark" style={{ whiteSpace: 'nowrap' }}>
+                        Scheduled runs per day
+                      </span>
                       <Stepper value={runsPerDay} min={1} max={500} onChange={setRunsPerDay} />
                     </div>
                   )
