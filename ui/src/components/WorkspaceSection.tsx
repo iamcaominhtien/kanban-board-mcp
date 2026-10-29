@@ -8,7 +8,6 @@ import {
   useSetTicketWorkspaceRetention,
   useTicketWorkspace,
   useWorkspaceAction,
-  useWorkspacePreview,
   workspaceFileUrl,
 } from '../api/tickets';
 import { extractError } from '../api/extractError';
@@ -22,6 +21,8 @@ import {
   previewKind,
   visibleEntries,
 } from '../utils/workspaceTree';
+import { usePreview } from './preview/PreviewContext';
+import type { PreviewItem } from './preview/types';
 import styles from './WorkspaceSection.module.css';
 
 interface WorkspaceSectionProps {
@@ -103,7 +104,7 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
   const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selectedDir, setSelectedDir] = useState('');
-  const [previewPath, setPreviewPath] = useState<string | null>(null);
+  const preview = usePreview();
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<WorkspaceFile | null>(null);
@@ -112,8 +113,29 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
 
   const files = useMemo(() => ws?.files ?? [], [ws?.files]);
   const rows = useMemo(() => visibleEntries(files, collapsed), [files, collapsed]);
-  const previewEntry = previewPath ? files.find((f) => f.name === previewPath && !f.isDir) : undefined;
   const displayPath = ws?.path || `~/kanban-workspace/${ticketId}`;
+
+  /** Open the viewer on a workspace file, with the other files of the workspace around it. */
+  function openFile(name: string) {
+    const sep = displayPath.includes('\\') ? '\\' : '/';
+    const items: PreviewItem[] = files
+      .filter((f) => !f.isDir)
+      .map((f) => ({
+        id: f.name,
+        name: baseName(f.name),
+        // images are served as they are; everything else is read as bytes through the download URL
+        src: /\.(png|jpe?g|gif|webp|bmp|ico|svg)$/i.test(f.name)
+          ? workspaceFileUrl(ticketId, f.name)
+          : workspaceFileUrl(ticketId, f.name, true),
+        downloadUrl: workspaceFileUrl(ticketId, f.name, true),
+        size: f.size,
+        uploadedAt: formatTimeAgo(f.modifiedAt),
+        usedIn: [`${ticketId} workspace · ${f.name}`],
+        localPath: ws?.path ? `${ws.path}${sep}${f.name.split('/').join(sep)}` : undefined,
+      }));
+    const index = items.findIndex((it) => it.id === name);
+    preview.open(items, Math.max(index, 0));
+  }
 
   function fail(err: unknown) {
     setNotice({ kind: 'error', text: extractError(err) });
@@ -388,7 +410,7 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
               rows.map((file) => (
                 <div
                   key={file.name}
-                  className={`${styles.wsRow} ${previewPath === file.name ? styles.wsRowActive : ''} ${file.isDir && selectedDir === file.name ? styles.wsRowSelected : ''}`}
+                  className={`${styles.wsRow} ${file.isDir && selectedDir === file.name ? styles.wsRowSelected : ''}`}
                   style={{ paddingLeft: 14 + depthOf(file.name) * 18 }}
                   data-testid="workspace-row"
                   data-name={file.name}
@@ -423,7 +445,7 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
                     <button
                       type="button"
                       className={styles.dirToggle}
-                      onClick={() => setPreviewPath(previewPath === file.name ? null : file.name)}
+                      onClick={() => openFile(file.name)}
                       aria-label={`Preview ${file.name}`}
                     >
                       <span className={styles.chevronSpacer} />
@@ -441,7 +463,7 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
                         <button
                           type="button"
                           className={styles.copyBtn}
-                          onClick={() => setPreviewPath(previewPath === file.name ? null : file.name)}
+                          onClick={() => openFile(file.name)}
                           title="Preview"
                           aria-label={`Preview ${file.name}`}
                         >
@@ -475,10 +497,6 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
             )}
           </div>
           {ws.truncated && <div className={styles.retentionHint}>Showing the first 2000 entries only.</div>}
-
-          {previewEntry && (
-            <PreviewPanel ticketId={ticketId} entry={previewEntry} onClose={() => setPreviewPath(null)} />
-          )}
         </>
       )}
 
@@ -503,8 +521,6 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
                   const target = confirmDelete;
                   deleteMut.mutate(target.name, {
                     onSuccess: () => {
-                      if (previewPath && (previewPath === target.name || previewPath.startsWith(`${target.name}/`)))
-                        setPreviewPath(null);
                       if (selectedDir === target.name || selectedDir.startsWith(`${target.name}/`)) setSelectedDir('');
                     },
                     onError: fail,
@@ -517,44 +533,6 @@ export function WorkspaceSection({ ticketId, readOnly = false }: WorkspaceSectio
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-function PreviewPanel({ ticketId, entry, onClose }: { ticketId: string; entry: WorkspaceFile; onClose: () => void }) {
-  const kind = /\.(png|jpe?g|gif|webp)$/i.test(entry.name) ? 'image' : 'text';
-  const { data, isLoading, error } = useWorkspacePreview(ticketId, entry.name, kind === 'text');
-  return (
-    <div className={styles.previewPanel} data-testid="workspace-preview">
-      <div className={styles.previewHeader}>
-        <span className={styles.previewName} title={entry.name}>
-          {entry.name}
-        </span>
-        <span className={styles.fileSize}>{formatBytes(entry.size)}</span>
-        <button type="button" className={styles.copyBtn} onClick={onClose} aria-label="Close preview">
-          ×
-        </button>
-      </div>
-      {kind === 'image' ? (
-        <div className={styles.previewImageWrap}>
-          <img className={styles.previewImage} src={workspaceFileUrl(ticketId, entry.name)} alt={entry.name} />
-        </div>
-      ) : isLoading ? (
-        <div className={styles.emptyState}>Loading…</div>
-      ) : error ? (
-        <div className={styles.emptyState}>{extractError(error)}</div>
-      ) : data?.binary ? (
-        <div className={styles.emptyState}>Binary file — no preview. Use Download.</div>
-      ) : (
-        <>
-          <pre className={styles.previewText}>{data?.text || '(empty file)'}</pre>
-          {data?.truncated && (
-            <div className={styles.retentionHint} style={{ padding: '6px 12px' }}>
-              Preview truncated — download for the full file.
-            </div>
-          )}
-        </>
       )}
     </div>
   );

@@ -12,6 +12,7 @@ import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
+import { galleryAround, previewAttrs, usePreview } from '../preview/PreviewContext';
 import { highlight } from './docsHighlight';
 import { useDocsPeek } from './DocsRefsContext';
 import { Icon } from './Icon';
@@ -140,6 +141,35 @@ function Checkbox({ checked }: { checked: boolean }) {
         boxSizing: 'border-box',
         flexShrink: 0,
         marginTop: 3,
+      }}
+    />
+  );
+}
+
+/** An image in a page: click (or Enter / Space) to open it in the viewer with the other images on the page. */
+function DocsImage({ src, alt }: { src: string; alt: string }) {
+  const preview = usePreview();
+  const name = alt || src.split('/').pop() || 'image';
+  function open(el: HTMLElement) {
+    const { items, index } = galleryAround(el);
+    preview.open(items, index);
+  }
+  return (
+    <img
+      src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src}
+      alt={alt}
+      loading="lazy"
+      {...previewAttrs(src, name)}
+      tabIndex={0}
+      role="button"
+      aria-label={`Open ${name}`}
+      style={{ cursor: 'zoom-in' }}
+      onClick={(e) => open(e.currentTarget)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open(e.currentTarget);
+        }
       }}
     />
   );
@@ -337,9 +367,7 @@ export function DocsMarkdown({
         const diagramId = diagramIdOf(src);
         if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} />;
         if (!src || src.startsWith('uploading:')) return null;
-        return (
-          <img src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src} alt={alt ?? ''} loading="lazy" />
-        );
+        return <DocsImage src={src} alt={alt ?? ''} />;
       },
       a: ({ href, children: inner, ...props }) => {
         const diagramId = diagramIdOf(href);
@@ -391,7 +419,7 @@ export function DocsMarkdown({
   );
 
   return (
-    <div className="dk-md">
+    <div className="dk-md" data-preview-scope>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkDocs]}
         // KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
