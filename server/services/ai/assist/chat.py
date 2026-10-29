@@ -13,6 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
 import events as board_events
+import services.tickets as svc_tickets
 from models import AiChat, AiChatMessage, AiDraft, Member, Project, Ticket
 
 from .. import budget, llm
@@ -20,7 +21,7 @@ from ..providers import cost_of
 from ..store import loads, now_iso, parse_iso
 from . import context as ctxb
 from . import drafts as svc_drafts
-from . import prompts
+from . import prompts, scopes
 from . import settings as svc_settings
 from .settings import AssistError
 
@@ -65,6 +66,8 @@ def _chat(c: AiChat) -> dict:
         "owner": c.owner,
         "title": c.title,
         "scope": c.scope,
+        "scope_id": c.scope_id,
+        "member_id": c.member_id,
         "ticket_id": c.ticket_id,
         "doc_id": c.doc_id,
         "include_docs": loads(c.include_docs, []),
@@ -134,6 +137,11 @@ async def list_chats(
     }
 
 
+def valid_scope(scope: str) -> bool:
+    """The board-wide kinds and every registered scope kind."""
+    return scope in ("project", "all") or scopes.get(scope) is not None
+
+
 async def create_chat(
     session: AsyncSession,
     project_id: str,
@@ -142,19 +150,30 @@ async def create_chat(
     scope: str = "project",
     ticket_id: str | None = None,
     doc_id: str | None = None,
+    scope_id: str | None = None,
+    member_id: str | None = None,
 ) -> AiChat:
     """New chat ("New chat" or the first question)."""
-    if scope not in ("ticket", "project", "all", "doc"):
+    if not valid_scope(scope):
         raise AssistError(
-            "invalid", "Scope: this ticket, this project, all projects or this page."
+            "invalid",
+            "Scope: this ticket, this project, all projects, this page or another thing that has a chat.",
         )
     if await session.get(Project, project_id) is None:
         raise AssistError("not_found", "Project not found.")
+    if scope == "ticket":
+        scope_id = scope_id or ticket_id
+        ticket_id = ticket_id or scope_id
+    elif scope == "doc":
+        scope_id = scope_id or doc_id
+        doc_id = doc_id or scope_id
     c = AiChat(
         id=str(uuid.uuid4()),
         project_id=project_id,
         owner=owner,
         scope=scope,
+        scope_id=scope_id,
+        member_id=member_id,
         ticket_id=ticket_id,
         doc_id=doc_id,
         created_at=now_iso(),
@@ -164,6 +183,43 @@ async def create_chat(
     await session.commit()
     await session.refresh(c)
     return c
+
+
+async def scope_chat(
+    session: AsyncSession,
+    kind: str,
+    scope_id: str,
+    owner: str,
+    *,
+    fresh: bool = False,
+    create: bool = True,
+) -> AiChat | None:
+    """The person's saved chat about one thing (a ticket, a page, an idea…): the newest one, so closing and
+    reopening the thing picks the conversation up again. `fresh` starts a new one. Chats are private: only the
+    asker's own are ever returned."""
+    provider = scopes.get(kind)
+    if provider is None:
+        raise AssistError("invalid", f"Nothing to chat about called {kind!r}.")
+    info = await provider.info(session, scope_id, owner)
+    if not fresh:
+        row = (
+            await session.exec(
+                select(AiChat)
+                .where(
+                    AiChat.owner == owner,
+                    AiChat.scope == kind,
+                    AiChat.scope_id == scope_id,
+                )
+                .order_by(col(AiChat.updated_at).desc())
+            )
+        ).first()
+        if row is not None or not create:
+            return row
+    elif not create:
+        return None
+    return await create_chat(
+        session, info.project_id, owner, scope=kind, scope_id=scope_id
+    )
 
 
 async def get_chat(session: AsyncSession, chat_id: str, owner: str) -> AiChat:
@@ -205,13 +261,19 @@ async def update_chat(
     """Scope switch and "Include for this chat" of a private doc (only its owner may include it)."""
     c = await get_chat(session, chat_id, owner)
     if "scope" in data and data["scope"]:
-        if data["scope"] not in ("ticket", "project", "all", "doc"):
+        if not valid_scope(data["scope"]):
             raise AssistError("invalid", "Unknown scope.")
         c.scope = data["scope"]
     if "ticket_id" in data:
         c.ticket_id = data["ticket_id"]
+        if c.scope == "ticket":
+            c.scope_id = c.ticket_id
     if "doc_id" in data:
         c.doc_id = data["doc_id"]
+        if c.scope == "doc":
+            c.scope_id = c.doc_id
+    if "member_id" in data:
+        c.member_id = data["member_id"] or None
     if "include_doc" in data and data["include_doc"]:
         from models import DocsPage
 
@@ -240,6 +302,27 @@ async def delete_chat(session: AsyncSession, chat_id: str, owner: str) -> None:
     await session.commit()
 
 
+def _scoped(c: AiChat) -> bool:
+    """Chats about one thing (a ticket, a page, an idea) are asked by members only, with the person's own answerer."""
+    return scopes.get(c.scope) is not None and c.scope not in ("project", "all")
+
+
+async def _member_for(session: AsyncSession, c: AiChat) -> str | None:
+    """Who answers: the chat's chosen member; in a chat about one thing, else the ticket's AI assignee, else the
+    Board AI, else any AI member that can. The board-wide dock keeps asking the Board AI only."""
+    if c.member_id or not _scoped(c):
+        return c.member_id
+    prefer = None
+    if c.scope == "ticket" and c.scope_id:
+        t = await session.get(Ticket, c.scope_id)
+        prefer = t.assignee if t else None
+    return await svc_settings.resolve_member(session, c.project_id, None, prefer)
+
+
+def _feature(c: AiChat) -> str:
+    return "docs" if c.scope in ("doc", "idea") else "chat"
+
+
 async def send(
     session: AsyncSession,
     chat_id: str,
@@ -250,17 +333,38 @@ async def send(
     send_all: bool = False,
     doc_ids: list[str] | None = None,
     filters: dict | None = None,
+    mode: str = "ask",
+    member_id: str | None = None,
 ) -> dict:
-    """Post the person's message and start the answer (it streams into the AI message)."""
+    """Post the person's message and start the answer (it streams into the AI message).
+
+    `mode` "ask" (the default) only ever answers: nothing is run and nothing changes. "work" starts a run of an AI
+    member on the chat's ticket, with the same limits, permissions and approvals as an assignment."""
     c = await get_chat(session, chat_id, owner)
     text = (text or "").strip()
     if not text:
         raise AssistError("invalid", "Write a question first.")
-    feature = "docs" if c.scope == "doc" else "chat"
+    if mode not in ("ask", "work"):
+        raise AssistError("invalid", "Mode: ask only, or do the work.")
+    if member_id is not None and member_id != c.member_id:
+        c.member_id = member_id or None
+    if _scoped(c):
+        provider = scopes.get(c.scope)
+        await provider.info(
+            session, c.scope_id or "", owner
+        )  # unknown or not yours: refused here
+    if mode == "work":
+        return await _send_work(session, c, owner, text)
+    feature = _feature(c)
     over: AssistError | None = None
     try:
         info = await svc_settings.guard_request(
-            session, c.project_id, feature, person=owner
+            session,
+            c.project_id,
+            feature,
+            person=owner,
+            member_id=await _member_for(session, c),
+            require_member=_scoped(c),
         )
     except AssistError as exc:
         if exc.code != "over_budget":
@@ -278,7 +382,7 @@ async def send(
         chat_id=c.id,
         role="ai",
         state="over_budget" if over else "thinking",
-        member_id=info["member"].id if info else None,
+        member_id=info["member"].id if info else c.member_id,
         created_at=now_iso(),
         context=json.dumps(
             {
@@ -287,6 +391,7 @@ async def send(
                     "send_all": send_all,
                     "doc_ids": doc_ids or [],
                     "filters": filters or {},
+                    "mode": "ask",
                 }
             }
         ),
@@ -304,6 +409,99 @@ async def send(
     await session.commit()
     if not over:
         _spawn(ai.id)
+    await _publish()
+    return {"user": _msg(user), "ai": _msg(ai)}
+
+
+async def _send_work(session: AsyncSession, c: AiChat, owner: str, text: str) -> dict:
+    """ "Do the work": the person's message becomes the instruction of a work run on the chat's ticket. The run is
+    queued like any other (budgets, slots, permissions, approvals for risky steps, stops at Review)."""
+    from models import TicketUpdate
+
+    from .. import runs as ai_runs
+    from ..store import get_settings
+
+    if c.scope != "ticket" or not c.scope_id:
+        raise AssistError(
+            "invalid",
+            "Do the work starts a run on a ticket; open the chat on a ticket.",
+        )
+    # the same gates as a question: AI on, viewer, member usable, caps
+    info = await svc_settings.guard_request(
+        session,
+        c.project_id,
+        "chat",
+        person=owner,
+        member_id=await _member_for(session, c),
+        require_member=True,
+    )
+    member, profile = info["member"], info["profile"]
+    if profile.connection == "inbox":
+        raise AssistError(
+            "unavailable",
+            f"{member.name} is an inbox-only client and cannot be started here.",
+        )
+    project_settings = await get_settings(session, c.project_id)
+    if project_settings.paused_all:
+        raise AssistError(
+            "unavailable",
+            "AI is paused for this project. Resume it from the AI page first.",
+        )
+    ticket = await session.get(Ticket, c.scope_id)
+    try:
+        if ticket.assignee != member.id:
+            await svc_tickets.update_ticket(
+                session, ticket.id, TicketUpdate(assignee=member.id)
+            )
+        run = await ai_runs.create_run(
+            session,
+            ticket_id=ticket.id,
+            member_id=member.id,
+            mode="work",
+            trigger="chat",
+            started_by=owner,
+            instruction=text[:8000],
+        )
+    except ai_runs.RunError as exc:
+        raise AssistError("run_refused", str(exc)) from exc
+    user = AiChatMessage(
+        id=str(uuid.uuid4()),
+        chat_id=c.id,
+        role="user",
+        text=text[:8000],
+        created_at=now_iso(),
+    )
+    ai = AiChatMessage(
+        id=str(uuid.uuid4()),
+        chat_id=c.id,
+        role="ai",
+        state="done",
+        member_id=member.id,
+        text=(
+            f"Started run #{run.number} with {member.name} on {ticket.id}. It works through the same limits as an"
+            " assignment, stops at Review, and asks you before risky steps."
+        ),
+        context=json.dumps(
+            {
+                "request": {"mode": "work"},
+                "scope": c.scope,
+                "run": {
+                    "id": run.id,
+                    "number": run.number,
+                    "member_id": member.id,
+                    "member_name": member.name,
+                },
+            }
+        ),
+        created_at=now_iso(),
+        finished_at=now_iso(),
+        metered=False,
+    )
+    if c.title == "New chat":
+        c.title = " ".join(text.split())[:60]
+    c.updated_at = now_iso()
+    session.add_all([user, ai, c])
+    await session.commit()
     await _publish()
     return {"user": _msg(user), "ai": _msg(ai)}
 
@@ -357,8 +555,10 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             info = await svc_settings.guard_request(
                 session,
                 c.project_id,
-                "docs" if c.scope == "doc" else "chat",
+                _feature(c),
                 person=c.owner,
+                member_id=await _member_for(session, c),
+                require_member=_scoped(c),
             )
         except AssistError as exc:
             await _set(
@@ -373,18 +573,32 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         row = await svc_settings.get(session)
         project = await session.get(Project, c.project_id)
         scope = c.scope
-        built = await ctxb.build(
-            session,
-            project_id=c.project_id,
-            scope=scope,
-            person=c.owner,
-            ticket_id=c.ticket_id,
-            doc_ids=list(req.get("doc_ids") or []) + ([c.doc_id] if c.doc_id else []),
-            include_docs=loads(c.include_docs, []),
-            filters=req.get("filters") or {},
-            question=question,
-            send_all=bool(req.get("send_all")),
-        )
+        provider = scopes.get(scope) if scope not in ("project", "all") else None
+        scope_info = None
+        if provider is not None:
+            scope_info = await provider.info(session, c.scope_id or "", c.owner)
+            built = await provider.context(
+                session,
+                info=scope_info,
+                person=c.owner,
+                question=question,
+                send_all=bool(req.get("send_all")),
+                include_docs=loads(c.include_docs, []),
+                doc_ids=list(req.get("doc_ids") or []),
+            )
+        else:
+            built = await ctxb.build(
+                session,
+                project_id=c.project_id,
+                scope=scope,
+                person=c.owner,
+                ticket_id=c.ticket_id,
+                doc_ids=list(req.get("doc_ids") or []),
+                include_docs=loads(c.include_docs, []),
+                filters=req.get("filters") or {},
+                question=question,
+                send_all=bool(req.get("send_all")),
+            )
         members = (
             await session.exec(select(Member).where(Member.project_id == c.project_id))
         ).all()
@@ -415,15 +629,24 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             continue
         who = "Person" if h.role == "user" else "You"
         convo.append(f"{who}: {h.text[:1500]}")
-    scope_line = {
-        "ticket": f"Scope: this ticket ({c.ticket_id}).",
-        "project": f"Scope: the project {project.name if project else ''}.",
-        "all": "Scope: every project the person belongs to.",
-        "doc": "Scope: this page and its linked tickets. Answer only from the page and cite the section as Page › # Heading.",
-    }[scope]
+    if provider is not None and scope_info is not None:
+        scope_line = provider.scope_line(scope_info)
+    else:
+        scope_line = {
+            "project": f"Scope: the project {project.name if project else ''}.",
+            "all": "Scope: every project the person belongs to.",
+        }[scope]
     extra = prompts.CHAT_FORMAT
+    if provider is not None and provider.format_extra:
+        extra += "\n" + provider.format_extra
     if req.get("draft"):
         extra += "\nThis request is a suggested action: answer in one sentence and put the change in the actions block."
+    partial = str(req.get("continue_from") or "")
+    if partial:
+        extra += (
+            "\nYour previous answer was cut short at the length limit. Continue exactly where it stopped,"
+            " without repeating anything, and without an actions block unless the earlier part promised one."
+        )
     system = prompts.system(member.name, project.name if project else "", row, extra)
     prompt = "\n\n".join(
         [
@@ -432,9 +655,10 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             "Board context:\n" + built.text,
             ("Earlier in this chat:\n" + "\n".join(convo)) if convo else "",
             "The person asks:\n" + ctxb.fence("question", question),
+            ("Your answer so far:\n" + partial[-3000:]) if partial else "",
         ]
     )
-    buf: list[str] = []
+    buf: list[str] = [partial] if partial else []
     last_flush = [0.0]
     loop = asyncio.get_running_loop()
 
@@ -522,10 +746,27 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         await _publish()
         return
 
-    text, block = prompts.split_actions(out.text)
-    changes, problems = prompts.check_changes(
-        block.get("changes") or [], tickets_state, names
-    )
+    raw_text = partial + out.text if partial else out.text
+    text, block = prompts.split_actions(raw_text)
+    if out.stop_reason == "max_tokens" and not block:
+        text = raw_text  # keep the cut exactly, so Continue can pick up mid-sentence
+    raw_changes = block.get("changes") or []
+    own = [
+        ch
+        for ch in raw_changes
+        if provider is not None
+        and isinstance(ch, dict)
+        and ch.get("op") not in scopes.CORE_OPS
+        and ch.get("op") not in ("status", "priority")
+    ]
+    core = [ch for ch in raw_changes if ch not in own]
+    changes, problems = prompts.check_changes(core, tickets_state, names)
+    for ch in own:
+        ok = provider.validate_change(ch, scope_info) if scope_info else None
+        if ok:
+            changes.append({**ok, "scope": scope})
+        else:
+            problems.append(f"Unknown change {ch.get('op')!r}")
     suggestions = prompts.check_suggestions(block.get("suggestions") or [])
     draft_id = None
     if changes:
@@ -552,6 +793,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             session.add(d)
             await session.commit()
             draft_id = d.id
+    cut_short = out.stop_reason == "max_tokens"
     await _set(
         message_id,
         state="done",
@@ -563,12 +805,18 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         tokens_out=out.tokens_out,
         finished_at=now_iso(),
         error={"problems": problems} if problems else {},
+        context={
+            **built.summary(),
+            "request": req,
+            "scope": scope,
+            **({"cut_short": True} if cut_short else {}),
+        },
     )
     async with database.async_session() as session:
         await svc_settings.record_usage(
             session,
             c.project_id,
-            "docs" if c.scope == "doc" else "chat",
+            _feature(c),
             member.id,
             c.owner,
             out,
@@ -617,9 +865,15 @@ async def stop(session: AsyncSession, message_id: str, owner: str) -> dict:
 
 
 async def retry(
-    session: AsyncSession, message_id: str, owner: str, *, send_all: bool = False
+    session: AsyncSession,
+    message_id: str,
+    owner: str,
+    *,
+    send_all: bool = False,
+    continue_: bool = False,
 ) -> dict:
-    """Try again ("Try again", "Send now" on a rate limit, "Send all" for a truncated context)."""
+    """Try again ("Try again", "Send now" on a rate limit, "Send all" for a truncated context). With `continue_` an
+    answer cut short at the length limit goes on from where it stopped and keeps what it had."""
     m = await session.get(AiChatMessage, message_id)
     if m is None or m.role != "ai":
         raise AssistError("not_found", "Message not found.")
@@ -631,8 +885,12 @@ async def retry(
     req = ctx.get("request") or {}
     if send_all:
         req["send_all"] = True
+    if continue_:
+        req["continue_from"] = m.text
+    else:
+        req.pop("continue_from", None)
+        m.text = ""
     m.state = "thinking"
-    m.text = ""
     m.error = "{}"
     m.retry_at = None
     m.finished_at = None
@@ -644,6 +902,63 @@ async def retry(
     await _publish()
     await session.refresh(m)
     return _msg(m)
+
+
+async def post_as_comment(
+    session: AsyncSession, message_id: str, owner: str, text: str | None = None
+) -> dict:
+    """ "Post as comment": the answer of a ticket chat becomes an ordinary comment the team sees. It is written under
+    the AI member's name with the AI badge and says who asked; chats stay private until a person shares an answer.
+    Mentions in the text are plain words, so posting can never wake an AI or notify people by accident."""
+    from .. import mentions as ai_mentions
+
+    m = await session.get(AiChatMessage, message_id)
+    if m is None or m.role != "ai":
+        raise AssistError("not_found", "Answer not found.")
+    c = await get_chat(session, m.chat_id, owner)
+    if c.scope != "ticket" or not c.scope_id:
+        raise AssistError(
+            "invalid", "Only an answer about a ticket can be posted as a comment."
+        )
+    if m.state not in ("done", "stopped"):
+        raise AssistError("invalid", "Wait for the answer to finish.")
+    from .drafts import role_of
+
+    if await role_of(session, c.project_id, owner) == "viewer":
+        raise AssistError(
+            "viewer", "Only members can post to a ticket. You can still read it."
+        )
+    body = (text if text is not None else m.text or "").strip()
+    if not body:
+        raise AssistError("invalid", "There is nothing to post.")
+    member = await session.get(Member, m.member_id) if m.member_id else None
+    author = member.name if member else "Board AI"
+    ticket = await svc_tickets.add_comment(
+        session,
+        c.scope_id,
+        ai_mentions.plain(body),
+        author=author,
+        meta={
+            "ai": {
+                "kind": "chat_answer",
+                "member_id": m.member_id,
+                "model": m.model,
+                "cost_usd": m.cost,
+                "metered": m.metered,
+                "asked_by": owner,
+            }
+        },
+    )
+    if ticket is None:
+        raise AssistError("not_found", "Ticket not found.")
+    comment = (loads(ticket.comments, [])[-1]) or {}
+    ctx_now = loads(m.context, {})
+    ctx_now["posted"] = {"comment_id": comment.get("id"), "at": now_iso(), "by": owner}
+    m.context = json.dumps(ctx_now)
+    session.add(m)
+    await session.commit()
+    await _publish()
+    return {"comment_id": comment.get("id"), "ticket_id": c.scope_id}
 
 
 async def set_feedback(

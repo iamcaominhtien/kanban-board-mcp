@@ -92,24 +92,12 @@ def excluded_docs(row: AiAssistSettings) -> set[str]:
     return set(loads(row.excluded_docs, []))
 
 
-async def board_ai(session: AsyncSession, project_id: str) -> dict:
-    """The project's Board AI and whether it can answer now.
-
-    Returns:
-        {"state": "ready" | "not_configured" | "unavailable", "member", "profile", "status"}
-    """
+async def _info_for(
+    session: AsyncSession, member: Member | None, profile: AiMember | None, settings
+) -> dict:
+    """{"state": "ready" | "not_configured" | "unavailable", "member", "profile", "status"} for one AI member."""
     from .. import members as svc_members
 
-    settings = await get_settings(session, project_id)
-    if not settings.board_ai_id:
-        return {
-            "state": "not_configured",
-            "member": None,
-            "profile": None,
-            "status": None,
-        }
-    member = await session.get(Member, settings.board_ai_id)
-    profile = await session.get(AiMember, settings.board_ai_id)
     if member is None or profile is None or member.kind != "ai":
         return {
             "state": "not_configured",
@@ -122,12 +110,15 @@ async def board_ai(session: AsyncSession, project_id: str) -> dict:
     ready = status["code"] in READY or (
         status["code"] == "over_budget" and profile.connection == "local"
     )
-    if profile.connection == "local" and profile.provider != "claude-code":
+    if profile.connection == "inbox" or (
+        profile.connection == "local" and profile.provider != "claude-code"
+    ):
         ready = False
         status = {
             "code": "unsupported",
-            "label": "Can't answer board questions",
-            "detail": "Only Claude Code answers as the Board AI among local runners.",
+            "label": "Can't answer questions here",
+            "detail": "Only Claude Code and API-key members answer chat and editor requests; "
+            "an MCP client or another local runner can be asked in a comment instead.",
         }
     return {
         "state": "ready" if ready else "unavailable",
@@ -135,6 +126,64 @@ async def board_ai(session: AsyncSession, project_id: str) -> dict:
         "profile": profile,
         "status": status,
     }
+
+
+async def board_ai(session: AsyncSession, project_id: str) -> dict:
+    """The project's Board AI and whether it can answer now.
+
+    Returns:
+        {"state": "ready" | "not_configured" | "unavailable", "member", "profile", "status"}
+    """
+    settings = await get_settings(session, project_id)
+    if not settings.board_ai_id:
+        return await _info_for(session, None, None, settings)
+    member = await session.get(Member, settings.board_ai_id)
+    profile = await session.get(AiMember, settings.board_ai_id)
+    return await _info_for(session, member, profile, settings)
+
+
+async def member_ai(session: AsyncSession, project_id: str, member_id: str) -> dict:
+    """Same as `board_ai` for a chosen AI member of the project (the member a chat or ticket asks)."""
+    settings = await get_settings(session, project_id)
+    member = await session.get(Member, member_id)
+    if member is not None and member.project_id != project_id:
+        member = None
+    profile = await session.get(AiMember, member_id) if member else None
+    return await _info_for(session, member, profile, settings)
+
+
+async def answerers(session: AsyncSession, project_id: str) -> list[dict]:
+    """AI members of the project that can answer one-shot requests (Claude Code, API-key), with their state, the
+    Board AI first. Used by the chat header's picker and the @ list."""
+    settings = await get_settings(session, project_id)
+    rows = (
+        await session.exec(
+            select(Member).where(Member.project_id == project_id, Member.kind == "ai")
+        )
+    ).all()
+    out = []
+    for m in rows:
+        profile = await session.get(AiMember, m.id)
+        info = await _info_for(session, m, profile, settings)
+        if (
+            info["state"] == "not_configured"
+            or (info["status"] or {}).get("code") == "unsupported"
+        ):
+            continue
+        out.append(
+            {
+                "id": m.id,
+                "name": m.name,
+                "state": info["state"],
+                "status": info["status"],
+                "board_ai": m.id == settings.board_ai_id,
+                "provider": profile.provider,
+                "connection": profile.connection,
+                "metered": profile.connection == "api_key",
+            }
+        )
+    out.sort(key=lambda x: (not x["board_ai"], x["state"] != "ready", x["name"]))
+    return out
 
 
 async def month_spend(session: AsyncSession, feature: str | None = None) -> float:
@@ -154,12 +203,50 @@ def next_month_label() -> str:
     return f"{first:%b} {first.day}"  # not strftime with a dash flag: Windows does not know it
 
 
+async def resolve_member(
+    session: AsyncSession,
+    project_id: str,
+    requested: str | None = None,
+    prefer: str | None = None,
+) -> str | None:
+    """The AI member a chat or editor request goes to: the one asked for, else `prefer` (a ticket's AI assignee),
+    else the Board AI, else the first AI member that can answer. None when the project has no AI member that can."""
+    cands = await answerers(session, project_id)
+    for want in (requested, prefer):
+        if want and any(a["id"] == want and a["state"] == "ready" for a in cands):
+            return want
+    if requested and any(a["id"] == requested for a in cands):
+        return requested  # not available now: the guard says why
+    return cands[0]["id"] if cands else None
+
+
 async def guard_request(
-    session: AsyncSession, project_id: str, feature: str, *, person: str | None = None
+    session: AsyncSession,
+    project_id: str,
+    feature: str,
+    *,
+    person: str | None = None,
+    member_id: str | None = None,
+    require_member: bool = False,
 ) -> dict:
-    """Everything that must hold before the Board AI is called: the feature is on, the Board AI answers, the
-    monthly cap is not reached, the project is shared. Returns the `board_ai` info; raises `AssistError`."""
+    """Everything that must hold before an AI member is called for a one-shot request: AI is on for the project,
+    the feature is on, the member (the Board AI, or `member_id`) answers, no cap is reached, the project is shared.
+    With `require_member` a viewer is refused. Returns the `board_ai`-style info; raises `AssistError`."""
     row = await get(session)
+    project_settings = await get_settings(session, project_id)
+    if not project_settings.ai_enabled:
+        raise AssistError(
+            "ai_off",
+            "AI is turned off for this project (Settings → AI). Nothing was sent.",
+        )
+    if require_member and person:
+        from .drafts import role_of
+
+        if await role_of(session, project_id, person) == "viewer":
+            raise AssistError(
+                "viewer",
+                "Only members can ask the AI. You can still read answers posted on this ticket.",
+            )
     if not features(row).get(feature, True):
         label = FEATURES.get(feature, (feature,))[0]
         raise AssistError(
@@ -171,19 +258,15 @@ async def guard_request(
             "not_shared",
             "This project is not shared with the Board AI (Settings → AI · data scope).",
         )
-    info = await board_ai(session, project_id)
+    info = (
+        await member_ai(session, project_id, member_id)
+        if member_id
+        else await board_ai(session, project_id)
+    )
     if info["state"] == "not_configured":
         raise AssistError(
             "not_configured",
             "Board AI isn't set up. Pick the AI that answers board-wide questions in Settings → AI.",
-        )
-    if info["state"] == "unavailable":
-        st = info["status"] or {}
-        raise AssistError(
-            "unavailable",
-            f"{info['member'].name}: {st.get('label', 'unavailable')}.",
-            status=st,
-            member_id=info["member"].id,
         )
     if (
         row.monthly_cap is not None
@@ -199,6 +282,24 @@ async def guard_request(
                 cap=row.monthly_cap,
                 resets=next_month_label(),
             )
+    if info["state"] == "unavailable":
+        st = info["status"] or {}
+        if st.get("code") == "over_budget":
+            raise AssistError(
+                "over_budget",
+                f"{info['member'].name} is over budget. AI is paused until tomorrow.",
+                daily=True,
+                detail=st.get("detail"),
+                resets="tomorrow",
+                status=st,
+                member_id=info["member"].id,
+            )
+        raise AssistError(
+            "unavailable",
+            f"{info['member'].name}: {st.get('label', 'unavailable')}.",
+            status=st,
+            member_id=info["member"].id,
+        )
     return info
 
 

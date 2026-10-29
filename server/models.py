@@ -799,6 +799,8 @@ class AiProjectSettings(SQLModel, table=True):
 
     project_id: str = Field(foreign_key="project.id", primary_key=True)
     board_ai_id: Optional[str] = Field(default=None)
+    # False turns the AI helpers off for the project: no AI button, no AI in the @ list, no /ai
+    ai_enabled: bool = Field(default=True)
     paused_all: bool = Field(default=False)
     paused_at: Optional[str] = Field(default=None)
     paused_by: Optional[str] = Field(default=None)
@@ -938,9 +940,13 @@ class AiChat(SQLModel, table=True):
     project_id: str = Field(foreign_key="project.id", index=True)
     owner: str = Field(index=True)  # person name (X-Actor)
     title: str = Field(default="New chat")
-    scope: str = Field(default="project")  # ticket | project | all
+    scope: str = Field(default="project")  # ticket | doc | idea | project | all
     ticket_id: Optional[str] = Field(default=None)
     doc_id: Optional[str] = Field(default=None)
+    # The thing the chat is about, for any scope kind (ticket id, page id, idea id…); `scope` is its kind
+    scope_id: Optional[str] = Field(default=None, index=True)
+    # The AI member that answers; None means the project's Board AI
+    member_id: Optional[str] = Field(default=None)
     include_docs: str = Field(
         default="[]"
     )  # private docs its owner included for this chat

@@ -24,7 +24,7 @@ from .. import llm
 from ..context import STATUS_LABELS
 from ..store import loads, now_iso, parse_iso
 from . import context as ctxb
-from . import match, prompts
+from . import match, prompts, scopes
 from . import settings as svc_settings
 from .settings import AssistError
 
@@ -129,6 +129,11 @@ async def _ticket_state(session: AsyncSession, project_id: str) -> tuple[dict, d
             "due_date": t.due_date,
             "estimate": t.estimate,
             "title": t.title,
+            "criteria": [
+                a.get("text", "")
+                for a in loads(t.acceptance_criteria, [])
+                if isinstance(a, dict)
+            ],
         }
         for t in tickets
     }
@@ -1191,6 +1196,43 @@ async def apply_changes(
                 continue
             tid = ch["ticket"]
             try:
+                if ch.get("scope"):
+                    provider = scopes.get(ch["scope"])
+                    if provider is None:
+                        raise ValueError(f"No chat about {ch['scope']} here.")
+                    done = await provider.apply_change(
+                        session, ch, person, d.member_name
+                    )
+                    applied.append(
+                        {
+                            "i": i,
+                            "op": ch["op"],
+                            "ticket": tid,
+                            "undo_with": ch["scope"],
+                            **done,
+                        }
+                    )
+                    continue
+                if ch["op"] == "add_criteria":
+                    raw = (edits or {}).get(str(i))
+                    items = (
+                        [x.strip() for x in raw.splitlines() if x.strip()]
+                        if raw is not None
+                        else list(ch["items"])
+                    )
+                    ids: list[str] = []
+                    for text in items:
+                        t = await svc_tickets.add_acceptance_criterion(
+                            session, tid, text
+                        )
+                        if t is not None:
+                            ids.append(loads(t.acceptance_criteria, [])[-1]["id"])
+                    if not ids:
+                        raise ValueError("Write at least one criterion.")
+                    applied.append(
+                        {"i": i, "op": "add_criteria", "ticket": tid, "ids": ids}
+                    )
+                    continue
                 if ch["op"] == "comment":
                     text = (edits or {}).get(str(i)) or ch["text"]
                     t = await svc_tickets.add_comment(
@@ -1517,6 +1559,22 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
     with _As(person, d.member_name):
         if d.kind in ("changes", "nudge", "assignee"):
             for a in reversed(res.get("applied") or []):
+                if a["op"] == "add_criteria":
+                    for cid in a.get("ids") or []:
+                        await svc_tickets.delete_acceptance_criterion(
+                            session, a["ticket"], cid
+                        )
+                        undone += 1
+                    continue
+                if a.get("undo_with"):
+                    provider = scopes.get(a["undo_with"])
+                    if provider is not None and await provider.undo_change(
+                        session, a, person
+                    ):
+                        undone += 1
+                    else:
+                        skipped.append(f"{a['ticket']} {a['op']} was changed since")
+                    continue
                 if a["op"] == "comment":
                     if a.get("comment_id"):
                         await svc_tickets.delete_comment(
