@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import type { AiMember, AiProvider, AiRun, AiSettings, AiStatus, RunState } from '../../types/ai';
 import './ai.css';
+import { extractError } from '../../api/extractError';
 
 /** Adapters an AI member can use (mirrors server/services/ai/providers.py). */
 export const PROVIDERS: Record<
@@ -678,5 +679,17 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!on)}
     />
+  );
+}
+
+/** A query that failed: what could not load, why, and Try again (instead of a spinner that never stops). */
+export function LoadError({ what, error, onRetry }: { what: string; error: unknown; onRetry: () => void }) {
+  return (
+    <div className="ai-notice ai-notice-error" role="alert" data-testid="load-error">
+      Couldn't load {what}: {extractError(error)}.{' '}
+      <button type="button" className="ai-link" onClick={onRetry}>
+        Try again
+      </button>
+    </div>
   );
 }

@@ -36,7 +36,7 @@ from models import (
     Ticket,
 )
 
-from . import budget, llm
+from . import budget, cli, llm
 from . import runs as svc_runs
 from .assist.context import fence
 from .store import get_profile, get_settings, loads, now_iso, parse_iso
@@ -1914,11 +1914,13 @@ async def _run_tests(command: str, folder: Path | None) -> dict:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             env={**os.environ, "CI": "1"},
+            **cli._popen_kwargs(),  # its own process group, so a timeout stops the tests it started too
         )
         try:
             out, _ = await asyncio.wait_for(proc.communicate(), timeout=TEST_TIMEOUT_S)
         except TimeoutError:
-            proc.kill()
+            cli.kill_tree(proc.pid)
+            await proc.wait()
             return {
                 **base,
                 "ok": False,

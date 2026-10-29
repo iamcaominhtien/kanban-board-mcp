@@ -13,7 +13,7 @@ import { extractError } from '../../api/extractError';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import type { AiAuditEntry, AiMember } from '../../types/ai';
 import { useToast } from '../Toast';
-import { AiAvatar } from './aiUi';
+import { AiAvatar, LoadError } from './aiUi';
 import {
   ACTION_LABEL,
   ChipChoice,
@@ -769,7 +769,12 @@ function RevertPreviewDialog({ ids, onClose, onDone }: { ids: string[]; onClose:
           </h2>
         </div>
         <div className="ai-modal-body">
-          {!q.data && <span className="ai-spin" />}
+          {!q.data &&
+            (q.isError ? (
+              <LoadError what="the changes" error={q.error} onRetry={() => void q.refetch()} />
+            ) : (
+              <span className="ai-spin" />
+            ))}
           {rows.map((r) => (
             <div key={r.entryId} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13 }}>
               <span
@@ -848,7 +853,12 @@ function RunRevertDialog({
           <h2 className="ai-modal-title">Revert run #{number}?</h2>
         </div>
         <div className="ai-modal-body">
-          {!q.data && <span className="ai-spin" />}
+          {!q.data &&
+            (q.isError ? (
+              <LoadError what="the changes" error={q.error} onRetry={() => void q.refetch()} />
+            ) : (
+              <span className="ai-spin" />
+            ))}
           {q.data && rows.length === 0 && (
             <div className="ai-hint">This run made no field or status changes that can be reverted.</div>
           )}
