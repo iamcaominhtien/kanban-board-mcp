@@ -72,8 +72,8 @@ async def post_validate(member_id: str, body: ConfigBody, session: Session) -> d
             problem = (
                 None if os.path.isdir(real) else "Folder not found on this computer."
             )
-        except paths.PathRefused as exc:
-            problem = str(exc)
+        except paths.PathRefused:
+            problem = paths.folder_refused(folder)
         if problem:
             issues.append(
                 {"path": "working_dir", "message": problem, "severity": "error"}

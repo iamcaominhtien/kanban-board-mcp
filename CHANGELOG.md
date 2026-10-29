@@ -30,7 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ### Security
 - A working folder or CLI path given for an AI member must sit inside the home folder (not the home folder itself), another drive or volume, or a folder listed in `KANBAN_AI_ROOTS`; system folders are refused. Configuration files stay inside the working folder (symlinks included).
-- A custom HTTP tool's **Test call** calls the saved tool only, never an address sent with the test; tool URLs must be http(s) and may not point at private, loopback or link-local addresses.
+- A custom HTTP tool's **Test call** calls the saved tool only, never an address sent with the test. Arguments fill the path and query of a tool's URL, never its host; tool URLs must be http(s) and may not point at link-local (cloud metadata), multicast or unspecified addresses.
 
 ### Fixed
 - Editing a test case no longer drops focus or loses typed text while the field saves.

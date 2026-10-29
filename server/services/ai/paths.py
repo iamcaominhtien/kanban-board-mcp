@@ -45,13 +45,16 @@ def _program_roots() -> list[str]:
     return roots
 
 
+def folder_refused(raw: str) -> str:
+    """What to tell a person whose working folder is refused."""
+    return f"Choose a project folder inside your home folder (or add its parent to {ROOTS_ENV}): {raw.strip()}"
+
+
 def folder(raw: str) -> str:
     """The real absolute path of a working folder; refuses the home folder itself and anything outside the roots."""
     path = os.path.realpath(os.path.expanduser(raw.strip()))
     if not path.startswith(tuple(_prefix(r) for r in _work_roots())):
-        raise PathRefused(
-            f"Choose a project folder inside your home folder (or add its parent to {ROOTS_ENV}): {raw.strip()}"
-        )
+        raise PathRefused(folder_refused(raw))
     return path
 
 

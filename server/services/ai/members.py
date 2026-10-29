@@ -189,8 +189,8 @@ def _validate_connection(
         if folder:
             try:
                 real = paths.folder(folder)
-            except paths.PathRefused as exc:
-                raise AiMemberError(str(exc)) from None
+            except paths.PathRefused:
+                raise AiMemberError(paths.folder_refused(folder)) from None
             if not os.path.isdir(real):
                 raise AiMemberError(
                     f"Working folder not found on this computer: {folder}"

@@ -180,8 +180,8 @@ async def post_test_run(body: TestRunBody) -> dict:
     if (body.working_dir or "").strip():
         try:
             folder = paths.folder(body.working_dir)
-        except paths.PathRefused as exc:
-            return {"ok": False, "error": str(exc)}
+        except paths.PathRefused:
+            return {"ok": False, "error": paths.folder_refused(body.working_dir)}
         if not os.path.isdir(folder):
             return {
                 "ok": False,

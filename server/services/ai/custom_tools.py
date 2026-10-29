@@ -43,7 +43,8 @@ def _blocked_host(url: str) -> str | None:
 
 def build_request(spec: dict, args: dict) -> tuple[str, str, dict | None, dict | None]:
     """(method, url, query params, JSON body) of a call: ``{name}`` in the URL is filled from the arguments, the
-    rest goes to the query string (GET, DELETE) or the JSON body."""
+    rest goes to the query string (GET, DELETE) or the JSON body. Arguments fill the path and query only: the
+    scheme and host always come from the saved tool."""
     http = spec["http"]
     method = (http.get("method") or "GET").upper()
     rest = dict(args)
@@ -54,7 +55,13 @@ def build_request(spec: dict, args: dict) -> tuple[str, str, dict | None, dict |
             raise ValueError(f"Missing argument “{m.group(1)}” for the URL.")
         return quote(str(value), safe="")
 
-    url = _PLACEHOLDER.sub(fill, http["url"])
+    parsed = urlparse(http["url"])
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    if _PLACEHOLDER.search(origin):
+        raise ValueError(
+            "Arguments can fill the path or query of the URL, not its host."
+        )
+    url = origin + _PLACEHOLDER.sub(fill, http["url"][len(origin) :])
     if method in ("GET", "DELETE"):
         return (
             method,
