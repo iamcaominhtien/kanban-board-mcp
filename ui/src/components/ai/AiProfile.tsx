@@ -83,6 +83,16 @@ export function AiProfile({
             <ConnectionChip connection={member.connection} />
             <CeilingChip ceiling={member.ceiling} />
             {member.safeMode && <SafeModeChip />}
+            {member.config.permissionMode === 'bypass' && (
+              <span
+                className="ai-chip"
+                style={{ background: '#FBE9E5', color: '#B2331F' }}
+                title="The CLI runs any tool except what a Deny rule stops"
+                data-testid="bypass-chip"
+              >
+                Bypass permissions
+              </span>
+            )}
             {member.isBoardAi && (
               <span className="ai-chip" style={{ background: '#1E2A22', color: '#fff' }}>
                 ✦ Board AI
@@ -503,6 +513,7 @@ function Configuration({ member, focus }: { member: AiMember; focus?: ConfigFocu
       maxRunsPerDay: member.maxRunsPerDay ?? 20,
       dailyBudget: member.dailyBudget ?? 5,
       monthlyCap: member.monthlyCap ?? 0,
+      confirmBypass: '',
       config: member.config,
     }),
     [member],
@@ -559,6 +570,10 @@ function Configuration({ member, focus }: { member: AiMember; focus?: ConfigFocu
         dailyBudget: api ? Number(form.dailyBudget) : undefined,
         monthlyCap: api ? Number(form.monthlyCap) || null : undefined,
         apiKey: newKey || undefined,
+        confirmBypass:
+          form.config.permissionMode === 'bypass' && member.config.permissionMode !== 'bypass'
+            ? form.confirmBypass
+            : undefined,
         config: form.config,
       });
       setNewKey('');

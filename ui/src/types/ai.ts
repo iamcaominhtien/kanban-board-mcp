@@ -115,6 +115,7 @@ export interface AiConfig {
   runTimeoutMin: number;
   idleTimeoutMin: number;
   compactAtPct: number;
+  permissionMode: 'allowlist' | 'bypass';
   maxSteps: number;
   maxTokensPerRun: number;
   temperature: number;

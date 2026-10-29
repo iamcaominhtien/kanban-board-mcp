@@ -569,8 +569,11 @@ def claude_args(
     resume: bool,
     effort: str | None = None,
     extra_flags: list[str] | None = None,
+    bypass: bool = False,
 ) -> list[str]:
-    """Command line of one headless Claude Code run. Never skips the CLI's own permission checks."""
+    """Command line of one headless Claude Code run. By default it never skips the CLI's own permission checks:
+    only the Allow rules run, anything else is denied. `bypass` (an owner's explicit choice for the member) lets
+    every tool run except what a Deny rule stops."""
     args = [
         path,
         "-p",
@@ -579,7 +582,7 @@ def claude_args(
         "stream-json",
         "--verbose",
         "--permission-mode",
-        "dontAsk",
+        "bypassPermissions" if bypass else "dontAsk",
         "--max-turns",
         str(max_turns),
         "--mcp-config",

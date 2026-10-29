@@ -1350,12 +1350,23 @@ async def _execute_claude(
                     allowed.append(f"mcp__{server}")
             denied = list(config.get("deny_rules") or [])
         settings = await get_settings(session, run.project_id)
+        safe = settings.safe_mode or profile.safe_mode
         allowed, denied = cli_tool_rules(
             allowed,
             denied,
-            safe=settings.safe_mode or profile.safe_mode,
+            safe=safe,
             domains=loads(settings.allowed_domains, []),
         )
+        # An owner's "Bypass permissions": work runs only, never in safe mode. Deny rules and the board's own
+        # checks (status ceiling, approvals) still apply; the web stays off because its domain list needs the
+        # allow list the mode skips.
+        bypass = (
+            config.get("permission_mode") == "bypass"
+            and run.mode == "work"
+            and not safe
+        )
+        if bypass:
+            denied += [d for d in _WEB_TOOLS if d not in denied]
         args = cli.claude_args(
             path,
             prompt=prompt,
@@ -1371,6 +1382,7 @@ async def _execute_claude(
             extra_flags=[
                 f for f in (config.get("extra_flags") or []) if isinstance(f, str)
             ],
+            bypass=bypass,
         )
         run.session_id = session_id
         session.add(run)
@@ -1399,6 +1411,16 @@ async def _execute_claude(
                 ),
             },
             *([{"kind": "start", "text": fresh_note}] if fresh_note else []),
+            *(
+                [
+                    {
+                        "kind": "start",
+                        "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops (web off)",
+                    }
+                ]
+                if bypass
+                else []
+            ),
         ],
         pid=pid,
     )

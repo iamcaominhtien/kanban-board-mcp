@@ -376,6 +376,13 @@ p_members = f"""
 <p>Mở AI member, chọn tab <b>Permissions</b>. Thẻ <b>Role template</b> có bốn lựa chọn <b>Developer</b>, <b>Reviewer</b>, <b>Read-only</b>, <b>Custom</b> (Custom cần owner). Đặt Reviewer = <b>Reviewer</b> và General = <b>Read-only</b>. Bảng <b>What it may do</b> bên dưới cho thấy từng hành động đang ở mức Allowed, Needs approval hay Blocked, và đến từ đâu.</p>
 {fig("u03-role-template", "Tab Permissions: Status ceiling, Role template (Developer, Reviewer, Read-only, Custom), bảng What it may do và thẻ Scope (chọn dự án).")}
 <p><b>PM chỉ đọc code.</b> Template quyền chỉ điều khiển hành động trên ticket; việc AI sửa file do <b>luật của CLI</b> quyết định. Với PM: AI member → tab <b>Configuration → Permissions</b>, bỏ luật <code>Edit</code> và <code>Write</code>, giữ <code>Read</code>, <code>Glob</code>, <code>Grep</code> và các lệnh git đọc. Tuỳ chọn thêm: trong bảng What it may do, đặt <b>Create branches = Blocked</b>.</p>
+<p><b>Permission mode (Bypass permissions).</b> Cũng ở thẻ Permissions của tab Configuration có <b>Permission mode</b>. Mặc định là <b>Allow list only</b>: CLI chỉ chạy những công cụ nằm trong Allow, việc nào khác bị từ chối (ví dụ <code>touch</code> bị chặn vì Dev đang chạy ở chế độ don’t-ask). Chọn <b>Bypass permissions</b> thì CLI chạy <b>mọi công cụ</b> mà không cần Allow list. Chỉ <b>owner</b> bật được, phải gõ cụm <code>bypass permissions</code> để xác nhận, và việc bật/tắt được ghi vào audit log. Hồ sơ AI hiện chip đỏ <b>Bypass permissions</b>.</p>
+{ul([
+    "Vẫn còn hiệu lực: các luật <b>Deny</b>, trần trạng thái và duyệt của board, và <b>Safe mode</b> (Safe mode thắng Bypass).",
+    "Chỉ áp dụng cho run <b>làm việc</b>. Run Ask luôn chỉ đọc. Web vẫn tắt vì danh sách domain cần Allow list mà chế độ này bỏ qua.",
+    "Chỉ có cho AI dùng Claude Code. AI mới tạo luôn bắt đầu ở Allow list only.",
+    "Nên dùng trong thư mục bạn có thể khôi phục bằng git, và giữ các luật Deny như <code>Bash(rm -rf:*)</code>, <code>Read(./.env)</code>.",
+])}
 <h2>3.5 Working folder và những gì có sẵn trong đó</h2>
 <p>Nếu thư mục đã có <code>CLAUDE.md</code>, <code>.claude/</code>… thì AI <b>làm ticket</b> (PM, Dev, Reviewer) sẽ chịu ảnh hưởng. Board chạy CLI với <code>--permission-mode dontAsk</code>, <code>--strict-mcp-config</code> và <code>--append-system-prompt</code>, không tắt việc nạp cấu hình có sẵn.</p>
 {table(
@@ -695,6 +702,7 @@ p10 = f"""
     ["Lớp", "Tác dụng", "Ở đâu"],
     [
         ["<b>Trần trạng thái</b>", "AI chỉ đưa ticket tới mức tối đa bạn đặt (mặc định Review). Testing và Done cần xác nhận thêm và owner.", "Add / Edit AI member"],
+        ["<b>Permission mode</b>", "Allow list only (mặc định) hoặc Bypass permissions (owner, gõ cụm xác nhận, có audit). Deny rule và Safe mode vẫn thắng.", "AI member → Configuration → Permissions"],
         ["<b>Duyệt</b>", "Hành động mức “Cần duyệt” bị giữ lại; AI <b>chờ</b> quyết định của bạn rồi mới tiếp tục. Có thể “Approve &amp; remember”.", "Inbox / Approvals"],
         ["<b>Giới hạn</b>", "Scheduled runs per day (mỗi AI), runs per ticket và runs per day của board (chỉ chặn run do lịch hoặc AI khác gọi), daily budget và monthly cap (API key). Báo ở 80% và 100%.", "Profile → Usage; Settings → AI"],
         ["<b>Safe mode</b>", "AI chỉ đọc và comment, mọi hành động khác bị chặn. Bật cho cả dự án hoặc từng AI.", "Settings → AI"],
