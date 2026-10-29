@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Board } from './components/Board';
 import { IdeaBoard } from './components/IdeaBoard';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
-import { SettingsPanel } from './components/SettingsPanel';
+import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
+import { isSettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
@@ -125,7 +126,12 @@ export default function App() {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
-  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  // Settings page (null = closed); `?settings=<page>` opens it on that page
+  const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(() => {
+    const page = new URLSearchParams(window.location.search).get('settings');
+    return page === '' || isSettingsPageId(page) ? { page: page || undefined } : null;
+  });
+  const openSettings = useCallback(() => setSettingsTarget({}), []);
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
@@ -660,7 +666,7 @@ export default function App() {
         }}
         currentTicketId={modalTicket?.id ?? null}
         onOpenTicket={openTicketModal}
-        onOpenSettings={() => setSettingsPanelOpen(true)}
+        onOpenSettings={() => openSettings()}
         onOpenAiMembers={() => setAiPage({ key: Date.now() })}
         onOpenDoc={(pageId) => openDocsPage(pageId)}
       >
@@ -679,7 +685,7 @@ export default function App() {
               onOpenRecycleBin={() => setRecycleBinOpen(true)}
               onOpenMembers={() => setMembersPanelOpen(true)}
               memberCounts={{ humans: humanMembers.length, ai: aiMemberCount }}
-              onOpenSettings={() => setSettingsPanelOpen(true)}
+              onOpenSettings={() => openSettings()}
               wontDoCount={wontDoTickets.length}
               activeBoard={activeBoard}
               onBoardChange={setActiveBoard}
@@ -776,7 +782,19 @@ export default function App() {
                 <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
               )}
               <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                {aiPage && currentProjectId && !noProjects ? (
+                {settingsTarget ? (
+                  <SettingsPage
+                    onClose={() => setSettingsTarget(null)}
+                    theme={theme}
+                    onToggleTheme={toggleTheme}
+                    projectId={currentProjectId}
+                    target={settingsTarget}
+                    onManageAi={() => {
+                      setSettingsTarget(null);
+                      setAiPage({ key: Date.now() });
+                    }}
+                  />
+                ) : aiPage && currentProjectId && !noProjects ? (
                   <AiMembersPage
                     key={aiPage.key}
                     projectId={currentProjectId}
@@ -792,7 +810,7 @@ export default function App() {
                       openTicketModal(id);
                     }}
                     onOpenMembersModal={() => setMembersPanelOpen(true)}
-                    onOpenSettings={() => setSettingsPanelOpen(true)}
+                    onOpenSettings={() => openSettings()}
                     onViewOnBoard={(id) => {
                       setAiPage(null);
                       setActiveAssignee(id);
@@ -998,18 +1016,6 @@ export default function App() {
                     onOpenAiPage={(opts) => {
                       setMembersPanelOpen(false);
                       setAiPage({ memberId: opts?.memberId, add: opts?.add, key: Date.now() });
-                    }}
-                  />
-                )}
-                {settingsPanelOpen && (
-                  <SettingsPanel
-                    onClose={() => setSettingsPanelOpen(false)}
-                    theme={theme}
-                    onToggleTheme={toggleTheme}
-                    projectId={currentProjectId}
-                    onManageAi={() => {
-                      setSettingsPanelOpen(false);
-                      setAiPage({ key: Date.now() });
                     }}
                   />
                 )}

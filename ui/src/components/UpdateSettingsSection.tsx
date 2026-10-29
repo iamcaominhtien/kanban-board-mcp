@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import styles from './SettingsPanel.module.css';
+import styles from './settings/SettingsPage.module.css';
 
 type Result =
   { kind: 'latest' } | { kind: 'available'; version: string } | { kind: 'error'; message: string; automatic: boolean };

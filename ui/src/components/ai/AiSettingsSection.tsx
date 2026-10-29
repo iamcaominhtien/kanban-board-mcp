@@ -4,7 +4,6 @@ import { extractError } from '../../api/extractError';
 import type { AiSettings } from '../../types/ai';
 import { BoardAiPicker } from './AiDialogs';
 import { AiAvatar, Toggle } from './aiUi';
-import { AssistSettings } from '../assist/AssistSettings';
 import { LibraryModal } from './config/LibraryView';
 
 const EXPIRY = [
@@ -27,8 +26,12 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
   };
   const money = (v: string) => (v.trim() === '' ? null : Number(v));
   return (
-    <div className="ai-card" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div
+      className="ai-card"
+      data-setting="ai-limits"
+      style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
+    >
+      <div data-setting="safe-mode" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Safe mode</div>
           <div className="ai-hint">AI members may only read and comment; every other action is blocked.</div>
@@ -109,7 +112,7 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
   );
 }
 
-/** Settings › AI: the second home of the Board AI selector (A4). */
+/** Settings › AI: the Board AI selector, safe mode and the board-wide limits (A4). The board assistant has its own page. */
 export function AiSettingsSection({ projectId, onManage }: { projectId: string; onManage?: () => void }) {
   const overview = useAiOverview(projectId);
   const [picker, setPicker] = useState(false);
@@ -117,9 +120,14 @@ export function AiSettingsSection({ projectId, onManage }: { projectId: string; 
   const members = overview.data?.members ?? [];
   const boardAi = members.find((m) => m.id === overview.data?.settings.boardAiId);
   return (
-    <div className="ai-root" style={{ display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="settings-ai">
+    <div
+      className="ai-root"
+      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      data-testid="settings-ai"
+      data-setting="board-ai"
+    >
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, flex: 1 }}>AI</span>
+        <span style={{ fontSize: 13, fontWeight: 700, flex: 1 }}>Board AI</span>
         <button
           type="button"
           className="ai-link"
@@ -171,7 +179,6 @@ export function AiSettingsSection({ projectId, onManage }: { projectId: string; 
       <div className="ai-muted">
         Changing it never affects who is assigned to tickets; it only picks which AI answers board-wide requests.
       </div>
-      <AssistSettings projectId={projectId} onOpenAudit={onManage} />
       <div className="ai-divider" />
       <div style={{ fontSize: 13, fontWeight: 700 }}>AI members · safety and limits</div>
       {overview.data && <AiSafetySettings projectId={projectId} settings={overview.data.settings} />}
