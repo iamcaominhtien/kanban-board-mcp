@@ -1383,6 +1383,12 @@ async def _ticket_mentions(
                     pages, [], ref["title"], ref["anchor"], headings, aliases, renamed
                 )
                 if res.get("page_id"):
+                    context, excerpt = ref["context"], ref["excerpt"]
+                    old = ref["title"]
+                    if "/" not in old and res["title"].lower() != old.lower():
+                        # written with an old title: show the new one
+                        context = context.replace(old, res["title"], 1)
+                        excerpt = excerpt.replace(f"[[{old}", f"[[{res['title']}", 1)
                     out.append(
                         {
                             "ticket": t,
@@ -1390,8 +1396,8 @@ async def _ticket_mentions(
                             "detail": detail,
                             "page_id": res["page_id"],
                             "section": res.get("section"),
-                            "context": ref["context"],
-                            "excerpt": ref["excerpt"],
+                            "context": context,
+                            "excerpt": excerpt,
                             "anchor": ref["anchor"],
                         }
                     )

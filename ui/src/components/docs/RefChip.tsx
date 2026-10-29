@@ -290,6 +290,11 @@ export function closestHeading(headings: DocsHeading[], wanted: string): DocsHea
 
 /* ---------- the chip bodies ---------- */
 
+/** The page's current title: a chip written with an old title (a renamed page) follows the rename. */
+function shownTitle(written: string | undefined, result?: DocsRefResult): string | undefined {
+  return written && !written.includes('/') && result?.status === 'ok' && result.title ? result.title : written;
+}
+
 const sage = { color: '#68BA7F', fontWeight: 500 } as const;
 
 function PageChipBody({
@@ -373,7 +378,7 @@ export function RefChip(props: RefChipProps) {
       >
         <Icon name="page" size={13} strokeWidth={1.9} />
         <PageChipBody
-          title={props.pageTitle}
+          title={shownTitle(props.pageTitle, result)}
           anchor={props.anchor}
           section={result?.section}
           custom={props.custom}
@@ -616,7 +621,7 @@ export function RefChip(props: RefChipProps) {
       >
         <Icon name="page" size={13} strokeWidth={1.9} style={iconColor ? { color: iconColor } : undefined} />
         <PageChipBody
-          title={pageTitle}
+          title={shownTitle(pageTitle, result)}
           anchor={props.anchor}
           section={result?.section}
           custom={props.custom}

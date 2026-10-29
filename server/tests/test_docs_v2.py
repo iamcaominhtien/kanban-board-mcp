@@ -540,6 +540,7 @@ async def test_renamed_page_keeps_ticket_references_working(c, pid):
     assert [(x["page_id"], x["title"]) for x in after] == [(target["id"], "Schema")]
     bl = (await c.get(f"/docs/pages/{target['id']}/backlinks")).json()
     assert [x["ticket_id"] for x in bl["tickets"]] == [t["id"]]
+    assert "[[Schema]]" in bl["tickets"][0]["excerpt"]  # shown with the new title
     ref = {"refs": [{"kind": "page", "title": "Data model"}], "from_ticket": True}
     res = (await c.post(f"/projects/{pid}/docs/resolve", json=ref)).json()
     assert res[0]["status"] == "ok" and res[0]["title"] == "Schema"
