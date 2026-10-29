@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
-## [3.8.0] - 2026-10-29
+## [3.7.1] - 2026-10-29
 
 ### Added
 - Docs: the page tree can be **resized** by dragging its right edge (arrow keys work too, double-click resets). The width is remembered.
