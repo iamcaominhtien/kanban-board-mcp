@@ -17,6 +17,7 @@ from models import (
     IDEA_STAGES,
     LOG_KINDS,
     WORKSPACE_RETENTIONS,
+    IdeaAdvice,
     IdeaAssumption,
     IdeaComment,
     IdeaEvidence,
@@ -264,6 +265,27 @@ def _parse_date(value: str | None) -> str:
     return parsed.isoformat()
 
 
+_ADVICE_FOR_STAGE = {"exploring": "keep", "parked": "park", "archived": "archive"}
+
+
+async def _close_advice(
+    session: AsyncSession, idea_id: str, action: str | None
+) -> None:
+    """The idea left the Inbox: its open AI advice is accepted when the person did what it said, ignored if not."""
+    rows = (
+        await session.exec(
+            select(IdeaAdvice).where(
+                IdeaAdvice.idea_id == idea_id, IdeaAdvice.state == "open"
+            )
+        )
+    ).all()
+    for advice in rows:
+        advice.state = "accepted" if advice.action == action else "ignored"
+        session.add(advice)
+    if rows:
+        await session.commit()
+
+
 async def move_stage(
     session: AsyncSession,
     idea_id: str,
@@ -359,7 +381,10 @@ async def move_stage(
         kind="stage",
         meta={"from": before, "to": to_stage, **({"via": via} if via else {})},
     )
-    return await _save(session, idea)
+    saved = await _save(session, idea)
+    if before == "inbox":
+        await _close_advice(session, idea_id, _ADVICE_FOR_STAGE.get(to_stage))
+    return saved
 
 
 async def undo_last_move(
@@ -619,6 +644,7 @@ async def merge(
         meta={"target": target.id},
     )
     await _save(session, source)
+    await _close_advice(session, source.id, "merge")
     return await base._reload(session, target.id)
 
 

@@ -704,3 +704,39 @@ async def test_a_closed_idea_workspace_expires_after_thirty_days_unless_kept(
     assert {r["ticket_id"] for r in swept["removed"]} == {closed}
     assert not (tmp_path / closed).exists()
     assert (tmp_path / open_).exists() and (tmp_path / kept).exists()
+
+
+async def test_attachments_and_the_viewer_flag_come_with_the_idea(client):
+    async with client as c:
+        p = await _create_project(c)
+        await c.post(
+            f"/projects/{p['id']}/members", json={"name": "Vera", "role": "viewer"}
+        )
+        idea = await _create_idea(c, p["id"], title="With proof")
+        a = await _assumption(c, idea["id"])
+        for kind, ref, title in (
+            ("file", "/uploads/run-cost-sheet.png", "run-cost-sheet.png"),
+            ("link", "https://example.com/price", "Price page"),
+            ("sketch", "![Run card](sketch:abc)", "Run card with cost"),
+        ):
+            await c.post(
+                f"{API}/{idea['id']}/evidence",
+                json={
+                    "assumption_ids": [a["id"]],
+                    "kind": kind,
+                    "ref": ref,
+                    "title": title,
+                },
+            )
+        preview = (await c.get(f"{API}/{idea['id']}/promote/preview")).json()
+        as_member = (await c.get(f"{API}/{idea['id']}")).json()
+        as_viewer = (
+            await c.get(f"{API}/{idea['id']}", headers={"X-Actor": "Vera"})
+        ).json()
+
+    text = preview["draft"]["description"]
+    assert "### Attachments from the idea" in text
+    assert "![run-cost-sheet.png](/uploads/run-cost-sheet.png)" in text
+    assert "[Price page](https://example.com/price)" in text
+    assert "![Run card](sketch:abc)" in text
+    assert as_member["can_edit"] is True and as_viewer["can_edit"] is False

@@ -29,6 +29,8 @@ export interface IdeaAssumption {
   state: AssumptionState;
   impact: AssumptionImpact;
   testTicketId?: string | null;
+  /** Added from the AI chat: keeps the purple chip until a person edits it. */
+  ai: boolean;
   evidence: IdeaEvidence[];
   at: string;
 }
@@ -111,6 +113,8 @@ export interface Idea {
   promotedToTicketId: string | null;
   promotedAt: string | null;
   ticket: IdeaTicketLink | null;
+  /** False for viewers: they can add ideas, vote and comment, not move or edit. */
+  canEdit: boolean;
   createdAt: string;
   updatedAt: string;
 }

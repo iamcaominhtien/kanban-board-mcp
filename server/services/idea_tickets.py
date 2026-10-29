@@ -500,6 +500,7 @@ async def add_assumption(
     text: str,
     impact: str = "medium",
     author: str | None = DEFAULT_AUTHOR,
+    ai: bool = False,
 ) -> IdeaTicket:
     """Append an assumption (max 500 characters).
 
@@ -508,6 +509,7 @@ async def add_assumption(
         text: Text of the new item.
         impact: How much the idea depends on it: low, medium or high.
         author: Who is credited in the activity.
+        ai: Added from the AI chat: it keeps the purple AI chip until a person edits it.
 
     Returns:
         The updated idea ticket.
@@ -532,11 +534,17 @@ async def add_assumption(
             position=len(ticket.assumption_records),
             text=text,
             impact=impact,
+            ai=ai,
             created_at=now,
             updated_at=now,
         )
     )
-    return await _save_assumption_change(session, ticket, "Assumption added", author)
+    return await _save_assumption_change(
+        session,
+        ticket,
+        "Assumption added" + (" from the AI chat" if ai else ""),
+        author,
+    )
 
 
 async def update_assumption_status(
@@ -608,6 +616,7 @@ async def update_assumption(
         if not text or len(text) > 500:
             raise ValueError("text must be 1 to 500 characters")
         assumption.text = text
+        assumption.ai = False  # a person edited it: it is theirs now
     if impact is not None:
         if impact not in ASSUMPTION_IMPACTS:
             raise ValueError(

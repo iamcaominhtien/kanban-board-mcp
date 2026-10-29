@@ -23,6 +23,7 @@ import { IdeaEvidenceTab } from './IdeaEvidenceTab';
 import { AiChip, Demand, ReadinessBadge, StagePill, sourceLine } from './ideaShared';
 import { ProjectSelect } from './TriageDialogs';
 import { useIdeaMoves } from './useIdeaMoves';
+import { AiRailCard, ShapeButton, ShapePanel } from './IdeaAiPanel';
 
 type Tab = 'page' | 'assumptions' | 'evidence' | 'comments' | 'log' | 'workspace' | 'activity';
 
@@ -42,10 +43,8 @@ interface Props {
   onOpenIdea: (id: string) => void;
   onOpenTicket: (id: string) => void;
   onPromote: (idea: Pick<Idea, 'id' | 'title' | 'projectId' | 'stage' | 'tags' | 'body' | 'description'>) => void;
-  /** Extra content of the right rail (the "Shape with AI" card). */
-  rail?: (idea: Idea) => React.ReactNode;
-  /** Extra buttons of the header (Shape with AI). */
-  headerActions?: (idea: Idea) => React.ReactNode;
+  /** Open Settings › Idea Space (from the AI states). */
+  onOpenSettings?: () => void;
 }
 
 const MOVES: Record<IdeaStage, IdeaStage[]> = {
@@ -59,16 +58,7 @@ const MOVES: Record<IdeaStage, IdeaStage[]> = {
 };
 
 /** The idea as a page: writing, assumptions, evidence, comments, research log, workspace and activity. */
-export function IdeaPage({
-  ideaId,
-  projects,
-  onBack,
-  onOpenIdea,
-  onOpenTicket,
-  onPromote,
-  rail,
-  headerActions,
-}: Props) {
+export function IdeaPage({ ideaId, projects, onBack, onOpenIdea, onOpenTicket, onPromote, onOpenSettings }: Props) {
   const toast = useToast();
   const { data: idea, isLoading, isError, refetch } = useIdea(ideaId);
   const edit = useEditIdeaPage();
@@ -78,9 +68,13 @@ export function IdeaPage({
   const del = useDeleteIdea();
   const [tab, setTab] = useState<Tab>('page');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [shapeOpen, setShapeOpen] = useState(false);
   const moves = useIdeaMoves({ onPromote });
 
-  useEffect(() => setTab('page'), [ideaId]);
+  useEffect(() => {
+    setTab('page');
+    setShapeOpen(false);
+  }, [ideaId]);
 
   if (isLoading) return <div className="is-empty">Loading the idea…</div>;
   if (isError || !idea) {
@@ -98,6 +92,7 @@ export function IdeaPage({
   }
 
   const closed = idea.stage === 'archived' || idea.stage === 'shipped';
+  const readOnly = closed || !idea.canEdit;
   const me = currentActor();
   const voted = idea.voters.includes(me);
   const promotable = ['inbox', 'exploring', 'ready'].includes(idea.stage);
@@ -125,7 +120,7 @@ export function IdeaPage({
         <StagePill stage={idea.stage} />
         <ReadinessBadge readiness={idea.readiness} />
         <span className="is-grow" />
-        {headerActions?.(idea)}
+        <ShapeButton projectId={idea.projectId} active={shapeOpen} onClick={() => setShapeOpen(!shapeOpen)} />
         {!closed && idea.stage !== 'building' && (
           <button type="button" className="is-btn" onClick={() => moves.request(idea, 'parked')}>
             Park
@@ -278,12 +273,12 @@ export function IdeaPage({
 
           <div className="is-page-body">
             {tab === 'page' && (
-              <PageTab idea={idea} projects={projects} readOnly={closed} onOpenTicket={onOpenTicket} />
+              <PageTab idea={idea} projects={projects} readOnly={readOnly} onOpenTicket={onOpenTicket} />
             )}
-            {tab === 'assumptions' && <IdeaAssumptions idea={idea} readOnly={closed} onOpenTicket={onOpenTicket} />}
-            {tab === 'evidence' && <IdeaEvidenceTab idea={idea} readOnly={closed} />}
+            {tab === 'assumptions' && <IdeaAssumptions idea={idea} readOnly={readOnly} onOpenTicket={onOpenTicket} />}
+            {tab === 'evidence' && <IdeaEvidenceTab idea={idea} readOnly={readOnly} />}
             {tab === 'comments' && <IdeaComments idea={idea} readOnly={false} />}
-            {tab === 'log' && <IdeaLog idea={idea} readOnly={false} closed={closed} />}
+            {tab === 'log' && <IdeaLog idea={idea} readOnly={!idea.canEdit} closed={closed} />}
             {tab === 'workspace' && <IdeaWorkspaceTab idea={idea} closed={closed} />}
             {tab === 'activity' && <IdeaActivityTab idea={idea} />}
           </div>
@@ -399,9 +394,18 @@ export function IdeaPage({
               </div>
             )}
           </section>
-          {rail?.(idea)}
+          <AiRailCard idea={idea} onOpen={() => setShapeOpen(true)} />
         </aside>
       </div>
+      {shapeOpen && (
+        <ShapePanel
+          idea={idea}
+          onClose={() => setShapeOpen(false)}
+          onOpenIdea={onOpenIdea}
+          onOpenTicket={onOpenTicket}
+          onOpenSettings={onOpenSettings}
+        />
+      )}
       {moves.dialogs}
     </div>
   );

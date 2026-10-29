@@ -1,7 +1,16 @@
 export type SettingsScope = 'project' | 'app';
 
 export type SettingsPageId =
-  'repositories' | 'docs' | 'ai' | 'assistant' | 'appearance' | 'storage' | 'integrations' | 'updates' | 'diagnostics';
+  | 'repositories'
+  | 'docs'
+  | 'ai'
+  | 'assistant'
+  | 'ideas'
+  | 'appearance'
+  | 'storage'
+  | 'integrations'
+  | 'updates'
+  | 'diagnostics';
 
 export interface SettingsPageDef {
   id: SettingsPageId;
@@ -43,6 +52,13 @@ export const SETTINGS_PAGES: SettingsPageDef[] = [
     title: 'Board assistant',
     summary: 'How the board assistant behaves in this project.',
   },
+  {
+    id: 'ideas',
+    scope: 'project',
+    label: 'Idea Space',
+    title: 'Idea Space',
+    summary: 'AI helpers and what they may use.',
+  },
   { id: 'appearance', scope: 'app', label: 'Appearance', title: 'Appearance', summary: 'How the app looks.' },
   {
     id: 'storage',
@@ -82,6 +98,30 @@ export interface SettingEntry {
 
 /** Every setting, for search and direct links. */
 export const SETTINGS_INDEX: SettingEntry[] = [
+  {
+    id: 'idea-ai-enable',
+    page: 'ideas',
+    section: 'AI help in Idea Space',
+    name: 'AI help in Idea Space',
+    description: 'Turn the optional helpers (triage advice, shaping, ask, weekly grooming) on or off.',
+    keywords: 'ideas triage advice grooming digest shape',
+  },
+  {
+    id: 'idea-ai-member',
+    page: 'ideas',
+    section: 'Who and what it may use',
+    name: 'What the idea helpers may read',
+    description: 'Docs, tickets and the linked repository (read only).',
+    keywords: 'ideas repository docs read',
+  },
+  {
+    id: 'idea-ai-cap',
+    page: 'ideas',
+    section: 'Cost',
+    name: 'Daily cap for Idea Space',
+    description: 'How much the idea helpers may cost in a day.',
+    keywords: 'ideas budget money limit',
+  },
   {
     id: 'repo-path',
     page: 'repositories',

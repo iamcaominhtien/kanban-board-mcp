@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ideaRuleError, usePromoteIdea, usePromotePreview } from '../../api/ideas';
+import { useIdeaAiStatus, usePrepareTicket } from '../../api/ideaAi';
 import type { Project } from '../../types';
 import type { Idea } from '../../types/idea';
 import { FooterNote, ModalShell, Spacer, plural } from '../docs/docsShared';
@@ -40,6 +41,9 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
   const [description, setDescription] = useState<string | null>(null);
   const [subs, setSubs] = useState<string[]>(['']);
   const [ack, setAck] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const aiStatus = useIdeaAiStatus(idea.projectId).data;
+  const prepare = usePrepareTicket();
   const [error, setError] = useState<string | null>(null);
 
   // the first preview fills in the description; the person may then edit it
@@ -61,6 +65,26 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
     !!target &&
     (!notReady || ack) &&
     (createAs === 'one' || cleanSubs.length > 0);
+
+  /** "Prepare the ticket": the AI drafts the text, acceptance criteria and a split; the person edits before Create. */
+  async function draftWithAi() {
+    setError(null);
+    try {
+      const r = await prepare.mutateAsync(idea.id);
+      if (r.title) setTitle(r.title);
+      const criteria = r.acceptanceCriteria.length
+        ? `\n\n### Acceptance criteria\n\n${r.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}`
+        : '';
+      if (r.description) setDescription(`${r.description}${criteria}`);
+      if (r.subTickets.length) {
+        setCreateAs('split');
+        setSubs(r.subTickets);
+      }
+      setAiNote(`Drafted by ${r.member}. Edit what you want before Create.`);
+    } catch (e) {
+      setError(`${ideaRuleError(e).message} Nothing was changed.`);
+    }
+  }
 
   async function create() {
     setError(null);
@@ -177,6 +201,22 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
               aria-label="Ticket title"
             />
           </div>
+          {aiStatus?.state === 'on' && (
+            <div className="is-field">
+              <button
+                type="button"
+                className="is-btn is-btn-sm"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={draftWithAi}
+                disabled={prepare.isPending}
+                data-testid="draft-with-ai"
+              >
+                <span aria-hidden="true">✦</span>{' '}
+                {prepare.isPending ? 'Drafting…' : `Draft with AI · about $${aiStatus.hints.ticket.toFixed(2)}`}
+              </button>
+              {aiNote && <span className="is-muted">{aiNote}</span>}
+            </div>
+          )}
           <div className="is-promote-row">
             <label className="is-field">
               <span className="is-label">Type</span>

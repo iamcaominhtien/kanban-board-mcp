@@ -1264,3 +1264,119 @@
     border-left: none;
   }
 }
+
+/* ── AI help ── */
+
+.is-ai-panel {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--color-border);
+  background: #fff;
+  box-shadow: -10px 0 30px rgba(30, 42, 34, 0.14);
+  font: 13px/1.5 var(--font-body);
+  color: var(--color-text-pri);
+}
+.is-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.is-ai-body {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.is-ai-input {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.is-starter {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #fff;
+  text-align: left;
+  font-weight: 600;
+  cursor: pointer;
+}
+.is-starter:hover {
+  border-color: var(--is-purple);
+  background: var(--is-purple-bg);
+}
+.is-turn-you {
+  align-self: flex-end;
+  max-width: 90%;
+  padding: 7px 11px;
+  border-radius: 12px 12px 3px 12px;
+  background: var(--color-mint);
+  margin-bottom: 6px;
+}
+.is-draft {
+  padding: 10px 12px;
+  border: 1px dashed #cfc8f3;
+  border-radius: 10px;
+  background: #faf9ff;
+}
+.is-draft p {
+  margin: 4px 0 8px;
+}
+.is-draft-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid #ece9fb;
+}
+.is-draft-item:first-of-type {
+  border-top: none;
+}
+.is-set-card {
+  margin: 14px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #fff;
+}
+.is-set-card h3 {
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.is-set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid #eef2ef;
+  cursor: pointer;
+}
+.is-set-row:first-of-type {
+  margin-top: 6px;
+}
+.is-set-hint {
+  display: block;
+  font-size: 12px;
+}
+.is-draft-item > .is-btn {
+  align-self: flex-start;
+}

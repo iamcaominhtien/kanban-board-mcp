@@ -880,6 +880,7 @@ export default function App() {
                     requestedIdeaId={ideaRequest}
                     onRequestHandled={() => setIdeaRequest(null)}
                     onOpenTicket={(id) => void openTicketFromIdeas(id)}
+                    onOpenSettings={() => setSettingsTarget({ page: 'ideas' })}
                   />
                 ) : (
                   <>

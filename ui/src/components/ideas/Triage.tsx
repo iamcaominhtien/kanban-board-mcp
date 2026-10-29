@@ -15,6 +15,7 @@ import { plural } from '../docs/docsShared';
 import { AiChip, Kbd, StagePill, dateIn, sourceLine } from './ideaShared';
 import { useIdeaMoves, type Decision } from './useIdeaMoves';
 import { useIdeaCapture } from './IdeaCapture';
+import { AdviceBar, AdviceCard } from './IdeaAiExtras';
 
 interface Props {
   scope: IdeaScope;
@@ -23,12 +24,13 @@ interface Props {
   onOpenTicket: (id: string) => void;
   onPromote: (idea: IdeaRow) => void;
   onBack: () => void;
+  onOpenSettings?: () => void;
 }
 
 const WAITING_DAYS = 14;
 
 /** Triage: a short list on the left, one idea in focus on the right, one key per decision. */
-export function Triage({ scope, projectId, onOpenIdea, onOpenTicket, onPromote, onBack }: Props) {
+export function Triage({ scope, projectId, onOpenIdea, onOpenTicket, onPromote, onBack, onOpenSettings }: Props) {
   const toast = useToast();
   const capture = useIdeaCapture();
   const list = useIdeaList({ scope, projectId, stages: ['inbox'], sort: 'created' });
@@ -150,6 +152,11 @@ export function Triage({ scope, projectId, onOpenIdea, onOpenTicket, onPromote, 
         </button>
       </div>
 
+      <AdviceBar
+        projectId={scope === 'project' ? (projectId ?? null) : null}
+        ideaIds={ideas.map((i) => i.id)}
+        onOpenSettings={onOpenSettings}
+      />
       {waiting.length > 0 && (
         <div className="is-banner is-banner-warn" style={{ marginBottom: 12 }} role="status">
           <div style={{ flex: 1 }}>
@@ -162,6 +169,13 @@ export function Triage({ scope, projectId, onOpenIdea, onOpenTicket, onPromote, 
         </div>
       )}
 
+      {current && !current.canEdit && (
+        <div className="is-banner" style={{ marginBottom: 12 }} role="status" data-testid="view-only">
+          <div>
+            <b>View only.</b> Only owners and members can move ideas. You can still add one, and vote.
+          </div>
+        </div>
+      )}
       <div className="is-triage">
         <aside className="is-inbox-list" aria-label="Inbox">
           <div className="is-inbox-title">
@@ -260,6 +274,10 @@ export function Triage({ scope, projectId, onOpenIdea, onOpenTicket, onPromote, 
               )}
             </div>
           )}
+
+          <div style={{ marginTop: 14 }}>
+            <AdviceCard projectId={current.projectId} ideaId={current.id} onAccept={(decision) => decide(decision)} />
+          </div>
 
           <div className="is-label" style={{ margin: '18px 0 8px' }}>
             What do you want to do with it?

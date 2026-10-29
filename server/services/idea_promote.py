@@ -45,6 +45,20 @@ def _split_assumptions(idea: IdeaTicket) -> dict[str, list]:
     return groups
 
 
+_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
+
+
+def _attachment_line(e: dict[str, Any]) -> str:
+    """One markdown list item for a piece of evidence: a picture shows, a file or link is a link, and a sketch or
+    diagram keeps its own markdown line so it stays editable."""
+    ref, title = e["ref"], (e["title"] or e["ref"]).replace("\n", " ")
+    if e["kind"] in ("sketch", "diagram") and ref.lstrip().startswith(("![", "[")):
+        return f"- {ref.strip()}"
+    if ref.lower().split("?")[0].endswith(_IMAGE_EXTENSIONS):
+        return f"- ![{title}]({ref})"
+    return f"- [{title}]({ref})"
+
+
 def build_description(idea: IdeaTicket) -> str:
     """The ticket text built from the idea: its page, what was already confirmed, and where it came from."""
     groups = _split_assumptions(idea)
@@ -53,6 +67,16 @@ def build_description(idea: IdeaTicket) -> str:
         parts.append(
             "### Already confirmed\n\n"
             + "\n".join(f"- ✓ {a.text}" for a in groups["validated"])
+        )
+    attachments = [
+        e
+        for e in space.list_evidence(idea)
+        if e["kind"] in ("file", "sketch", "diagram", "link")
+    ]
+    if attachments:
+        parts.append(
+            "### Attachments from the idea\n\n"
+            + "\n".join(_attachment_line(e) for e in attachments)
         )
     footer = f"From idea `{idea.id}`"
     if demand_note(idea):

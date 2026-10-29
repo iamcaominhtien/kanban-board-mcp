@@ -299,6 +299,9 @@ class IdeaAssumption(SQLModel, table=True):
     impact: str = Field(default="medium")  # see ASSUMPTION_IMPACTS
     status: str = Field(default="untested")  # see ASSUMPTION_STATUSES
     test_ticket_id: Optional[str] = Field(default=None)  # a ticket that tests it
+    ai: bool = Field(
+        default=False
+    )  # added from the AI chat; stays marked until a person edits it
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -392,6 +395,71 @@ class IdeaVote(SQLModel, table=True):
     )
 
     idea: Optional[IdeaTicket] = Relationship(back_populates="vote_records")
+
+
+class IdeaAiSettings(SQLModel, table=True):
+    """Per-project switches of the optional AI helpers of the Idea Space; all off by default (table).
+
+    `project_id` "" holds the defaults for ideas that belong to no project.
+    """
+
+    __tablename__ = "idea_ai_settings"
+
+    project_id: str = Field(default="", primary_key=True)
+    enabled: bool = Field(default=False)
+    triage_advice: bool = Field(default=False)
+    weekly_grooming: bool = Field(default=False)
+    ask: bool = Field(default=True)
+    read_docs: bool = Field(default=True)
+    read_repo: bool = Field(default=False)
+    daily_cap: float = Field(default=1.0)  # dollars a day for the Idea Space helpers
+    updated_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
+class IdeaAdvice(SQLModel, table=True):
+    """What the AI suggests for an Inbox idea: Keep, Park, Merge or Archive, with a reason; it never applies it (table)."""
+
+    __tablename__ = "idea_advice"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    idea_id: str = Field(foreign_key="idea_ticket.id", index=True)
+    action: str  # keep | park | merge | archive
+    reason: str = Field(default="")
+    confidence: str = Field(default="medium")  # high | medium | low
+    target_id: Optional[str] = Field(default=None)  # the idea to merge into
+    archive_reason: Optional[str] = Field(default=None)
+    park_days: Optional[int] = Field(default=None)
+    idea_stamp: str = Field(
+        default=""
+    )  # the idea's updated_at when it was read: later edits make it stale
+    member_id: Optional[str] = Field(default=None)
+    cost: float = Field(default=0.0)
+    state: str = Field(default="open")  # open | accepted | ignored
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
+class IdeaDigest(SQLModel, table=True):
+    """The weekly grooming digest of a project's Idea Space; a digest is not a notification (table)."""
+
+    __tablename__ = "idea_digest"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(default="", index=True)
+    text: str = Field(default="")  # markdown
+    items: str = Field(default="[]")  # JSON list of {kind, idea_ids, text}
+    ai: bool = Field(
+        default=False
+    )  # the sentence around the findings was written by the AI
+    member_id: Optional[str] = Field(default=None)
+    cost: float = Field(default=0.0)
+    ideas_read: int = Field(default=0)
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 def _now_iso() -> str:
@@ -1686,6 +1754,7 @@ def _assumption_view(a: IdeaAssumption) -> dict[str, Any]:
         "state": a.status,
         "impact": a.impact,
         "test_ticket_id": a.test_ticket_id,
+        "ai": a.ai,
         "evidence": [
             {
                 "id": e.id,
@@ -1736,6 +1805,8 @@ class IdeaTicketRead(SQLModel):
     readiness: dict[str, Any] = Field(default_factory=dict)
     # The ticket it became, filled in by the API layer: {id, title, status, project_id}.
     ticket: Optional[dict[str, Any]] = None
+    # Whether the current actor may move and edit it (viewers can only add, vote and comment); API layer.
+    can_edit: bool = True
     idea_color: str
     idea_emoji: str
     idea_energy: Optional[str]

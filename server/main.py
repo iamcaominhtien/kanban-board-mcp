@@ -20,6 +20,7 @@ from api.members import router as members_router
 from api.settings import router as settings_router
 from api.data import router as data_router
 from api.logs import router as logs_router
+from api.idea_ai import router as idea_ai_router
 from api.idea_space import router as idea_space_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
@@ -44,6 +45,7 @@ import database
 from version import version_info
 from database import init_db
 from services import activity as svc_activity
+from services import idea_ai as svc_idea_ai
 from services import workspace as svc_workspace
 from uploads import (
     MIME_BY_EXTENSION,
@@ -80,6 +82,9 @@ async def lifespan(app: FastAPI):
         sweeper = asyncio.create_task(
             svc_workspace.sweep_loop(lambda: database.async_session())
         )
+        digests = asyncio.create_task(
+            svc_idea_ai.digest_loop(lambda: database.async_session())
+        )
         await ai_runs.start_scheduler()
         await assist_chat.recover()
         assist_health.start_scheduler()
@@ -92,10 +97,12 @@ async def lifespan(app: FastAPI):
             await ai_schedules.stop_scheduler()
             await ai_runs.stop_scheduler()
             sweeper.cancel()
-            try:
-                await sweeper
-            except asyncio.CancelledError:
-                pass
+            digests.cancel()
+            for task in (sweeper, digests):
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
 
 app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
@@ -191,6 +198,7 @@ app.include_router(tickets_router)
 app.include_router(members_router)
 app.include_router(settings_router)
 app.include_router(data_router)
+app.include_router(idea_ai_router)
 app.include_router(idea_space_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)

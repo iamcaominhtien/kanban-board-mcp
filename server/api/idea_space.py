@@ -98,8 +98,12 @@ async def reads(session: AsyncSession, ideas: list[IdeaTicket]) -> list[IdeaTick
         rows = await session.exec(select(Ticket).where(Ticket.id.in_(ids)))
         tickets = {t.id: t for t in rows.all()}
     out = []
+    editable: dict[str | None, bool] = {}
     for idea in ideas:
         item = IdeaTicketRead.from_idea_ticket(idea)
+        if idea.project_id not in editable:
+            editable[idea.project_id] = await can_edit(session, idea)
+        item.can_edit = editable[idea.project_id]
         t = tickets.get(idea.promoted_to_ticket_id or "")
         if t is not None:
             item.ticket = {
@@ -492,7 +496,12 @@ async def post_assumption_record(
     await _need_edit(session, idea_id)
     try:
         idea = await base.add_assumption(
-            session, idea_id, body.text, impact=body.impact, author=_actor()
+            session,
+            idea_id,
+            body.text,
+            impact=body.impact,
+            author=_actor(),
+            ai=body.ai,
         )
     except ValueError as exc:
         _value(exc)

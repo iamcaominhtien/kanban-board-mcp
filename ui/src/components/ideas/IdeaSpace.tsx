@@ -7,6 +7,8 @@ import { IdeaList, StageChips, type StageFilter } from './IdeaList';
 import { IdeaMatrix } from './IdeaMatrix';
 import { IdeaPage } from './IdeaPage';
 import { IdeaStages } from './IdeaStages';
+import { AskPanel, DigestCard } from './IdeaAiExtras';
+import { useIdeaAiStatus } from '../../api/ideaAi';
 import { Kbd, BulbIcon } from './ideaShared';
 import { PromoteDialog } from './PromoteDialog';
 import { Triage } from './Triage';
@@ -39,7 +41,7 @@ interface Props {
   requestedIdeaId?: string | null;
   onRequestHandled?: () => void;
   onOpenTicket: (ticketId: string) => void;
-  /** The project to switch the board to after Promote created a ticket there. */
+  /** Open Settings › Idea Space (from the AI states). */
   onOpenSettings?: () => void;
 }
 
@@ -138,7 +140,14 @@ function Switcher({
  * Idea Space at the workspace level: a place for rough ideas that can become tickets.
  * Three ways to look at the same ideas (list, stages, matrix), the Inbox with its triage, and the idea page.
  */
-export function IdeaSpace({ projects, currentProjectId, requestedIdeaId, onRequestHandled, onOpenTicket }: Props) {
+export function IdeaSpace({
+  projects,
+  currentProjectId,
+  requestedIdeaId,
+  onRequestHandled,
+  onOpenTicket,
+  onOpenSettings,
+}: Props) {
   const capture = useIdeaCapture();
   const [scope, setScope] = useState<ScopeState>(() => loadScope(currentProjectId));
   const [view, setView] = useState<View>('list');
@@ -152,6 +161,7 @@ export function IdeaSpace({ projects, currentProjectId, requestedIdeaId, onReque
   const [openId, setOpenId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [promoting, setPromoting] = useState<IdeaRow | null>(null);
+  const [askOpen, setAskOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -179,6 +189,9 @@ export function IdeaSpace({ projects, currentProjectId, requestedIdeaId, onReque
   }, [projects, scope, currentProjectId]);
 
   const counts = useIdeaCounts().data;
+  const aiStatus = useIdeaAiStatus(scope.scope === 'project' ? (scope.projectId ?? null) : null).data;
+  // "Ask" shows while AI help is on and its Ask switch is on; with AI off nothing is drawn
+  const askAvailable = !!aiStatus && aiStatus.state !== 'off' && aiStatus.settings.ask;
   const bucket: IdeaBucketCounts | undefined =
     scope.scope === 'all'
       ? counts?.all
@@ -244,6 +257,7 @@ export function IdeaSpace({ projects, currentProjectId, requestedIdeaId, onReque
           onOpenIdea={setOpenId}
           onOpenTicket={onOpenTicket}
           onPromote={(i) => setPromoting(i as IdeaRow)}
+          onOpenSettings={onOpenSettings}
         />
         {promoting && (
           <PromoteDialog
@@ -294,6 +308,17 @@ export function IdeaSpace({ projects, currentProjectId, requestedIdeaId, onReque
           />
           <Kbd>/</Kbd>
         </div>
+        {askAvailable && (
+          <button
+            type="button"
+            className="is-btn"
+            aria-pressed={askOpen}
+            onClick={() => setAskOpen(!askOpen)}
+            data-testid="ask-button"
+          >
+            <span aria-hidden="true">✦</span> Ask
+          </button>
+        )}
         <button type="button" className="is-btn" onClick={() => setTriage(true)} data-testid="inbox-button">
           Inbox {inboxHere > 0 && <span className="is-count-pill">{inboxHere}</span>}
         </button>
@@ -313,9 +338,15 @@ export function IdeaSpace({ projects, currentProjectId, requestedIdeaId, onReque
           onOpenTicket={onOpenTicket}
           onPromote={(i) => setPromoting(i)}
           onBack={() => setTriage(false)}
+          onOpenSettings={onOpenSettings}
         />
       ) : (
         <div className="is-body">
+          <DigestCard
+            projectId={scope.scope === 'project' ? (scope.projectId ?? null) : null}
+            onOpenInbox={() => setTriage(true)}
+            onOpenIdea={setOpenId}
+          />
           <div className="is-filters">
             {view !== 'matrix' && <StageChips value={stage} onChange={setStage} counts={bucket} />}
             <span className="is-grow" />
@@ -396,6 +427,18 @@ export function IdeaSpace({ projects, currentProjectId, requestedIdeaId, onReque
         </div>
       )}
       {moves.dialogs}
+      {askOpen && (
+        <AskPanel
+          projectId={scope.scope === 'project' ? scope.projectId : undefined}
+          scope={scope.scope}
+          onClose={() => setAskOpen(false)}
+          onOpenIdea={(id) => {
+            setAskOpen(false);
+            setOpenId(id);
+          }}
+          onOpenSettings={onOpenSettings}
+        />
+      )}
       {promoting && (
         <PromoteDialog
           idea={promoting}

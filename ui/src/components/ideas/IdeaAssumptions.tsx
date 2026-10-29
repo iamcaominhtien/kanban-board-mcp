@@ -23,12 +23,10 @@ interface Props {
   onOpenTicket: (id: string) => void;
   /** Open the Evidence tab on this assumption. */
   focusId?: string | null;
-  /** Assumptions an AI member added in the chat keep the purple chip until a person edits them. */
-  aiIds?: Set<string>;
 }
 
 /** "What must be true": each assumption says how bad it is if wrong, what proof exists and how it is being tested. */
-export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId, aiIds }: Props) {
+export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props) {
   const toast = useToast();
   const add = useAddAssumption();
   const edit = useEditAssumption();
@@ -119,8 +117,7 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId, aiIds }
                         />
                       ) : (
                         <span>
-                          {a.text}{' '}
-                          {aiIds?.has(a.id) && <AiChip title="Added from the AI chat. It is yours once you edit it." />}
+                          {a.text} {a.ai && <AiChip title="Added from the AI chat. It is yours once you edit it." />}
                         </span>
                       )}
                     </td>
