@@ -64,6 +64,7 @@ Each doc's header links to its source file and records the canvas version and sh
 - [AI safety & cost](screens/ai-safety-cost.md)
 - [AI where you work — ticket chat, @mentions & editor](screens/ai-where-you-work.md)
 - [App loading](screens/app-loading.md)
+- [Desktop — menu bar (macOS, Windows)](screens/desktop-menu.md)
 - [Diagrams — draw.io](screens/diagrams-drawio.md)
 - [Docs — page actions & history](screens/docs-actions.md)
 - [Docs — comments](screens/docs-comments.md)
