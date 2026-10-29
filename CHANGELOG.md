@@ -13,10 +13,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 ## [3.7.2] - 2026-10-29
 
 ### Added
-- MCP: the AI agent can work with **diagrams** (#167): `diagram_read` (`list`, `get`, `versions`, `recycle_bin`) and `diagram_write` (`create`, `edit`, `replace`, `delete`, `restore`, `restore_version`). The agent reads a drawing as `nodes` and `edges`, creates one from nodes and edges (laid out in layers, left to right or top to bottom) and edits it with a few operations (`add_node`, `add_edge`, `update`, `delete`, `layout`) that change only what they name, so styles, groups and other pages are kept. The whole `.drawio` XML can also be read or replaced. A stale `base_version` is rejected like in Docs; each agent save keeps a version note ("Edited by an AI agent"). The server draws the SVG preview of an agent's edit; the draw.io editor draws the fine one the next time a person saves.
-
-### Changed
-- The MCP tool list grew by about 4.5k characters for the two diagram tools (the size guard in the tests is raised accordingly).
+- MCP: the AI agent can work with **diagrams** (#167) through the Docs tools, as a file. `docs_read(diagrams)` lists a project's draw.io diagrams; `docs_read(diagram)` writes a diagram's `.drawio` file to a local path; the agent edits it with its own file tools (so every draw.io feature is available); `docs_write(diagram_save)` stores it as a new version (a stale `base_version` is rejected like in Docs) and `docs_write(diagram_create)` makes a new diagram from a file and returns the `[Name](diagram:dg_…)` line to put in a text. `diagram_delete` / `diagram_restore` unlink and bring back. Paths are absolute, as for `import`.
+- The preview of a diagram saved by the agent is drawn by the server (boxes, ellipses, diamonds, cylinders, arrows and text; other shapes as boxes) unless the agent passes an SVG export with `svg_path`. The draw.io editor draws the full one the next time a person saves.
 
 ---
 

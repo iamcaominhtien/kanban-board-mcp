@@ -9,6 +9,7 @@ Docs pages pin the diagram versions they were published with, so restoring a pag
 import base64
 import json
 import re
+from pathlib import Path
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zlib
@@ -651,135 +652,127 @@ async def set_settings(
     return await get_settings(session)
 
 
-# --- AI agent access: the drawing as nodes and edges ----------------------------------------------
+# --- AI agent access: the .drawio file on disk ---------------------------------------------------
 
 
-async def read_outline(
-    session: AsyncSession,
-    diagram_id: str,
-    *,
-    version: int | None = None,
-    include_xml: bool = False,
+def _file_error(message: str) -> DocsError:
+    return DocsError(422, "invalid_path", message)
+
+
+def _read_file(path: str, what: str) -> str:
+    """Text of a local file an agent points at (absolute path, within the size limit)."""
+    p = Path(path)
+    if not p.is_absolute():
+        raise _file_error(f"{what}: give an absolute path (got {path!r}).")
+    try:
+        if not p.is_file():
+            raise _file_error(f"{what}: {path} is not a file.")
+        with p.open("rb") as f:
+            raw = f.read(MAX_BYTES + 1)
+    except OSError as e:
+        raise _file_error(f"{what}: {path} could not be read ({e.strerror}).") from e
+    if len(raw) > MAX_BYTES:
+        _check_size(what, raw.decode("utf-8", "ignore"))
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise _file_error(f"{what}: {path} is not UTF-8 text.") from e
+
+
+async def export_to_file(
+    session: AsyncSession, diagram_id: str, path: str, *, version: int | None = None
 ) -> dict[str, Any]:
-    """A diagram as the agent reads it: details plus the first page as ``nodes`` and ``edges``.
+    """Write a diagram's ``.drawio`` source to a local path (a folder gets ``<name>.drawio`` inside it).
 
-    Args:
-        diagram_id: Diagram to read.
-        version: A saved version; the latest by default.
-        include_xml: Also return the raw ``.drawio`` XML.
+    Returns:
+        ``{path, id, label, version, markdown}``; send ``version`` back as ``base_version`` when saving.
     """
     d = await _diagram(session, diagram_id)
     v = await _version(session, d.id, version, d.version)
-    out = {
+    target = Path(path)
+    if not target.is_absolute():
+        raise _file_error(f"Give an absolute path (got {path!r}).")
+    if target.is_dir() or path.endswith(("/", "\\")):
+        stem = (
+            re.sub(r"[^\w.-]+", "-", d.label, flags=re.ASCII).strip("-._") or "diagram"
+        )
+        target = target / f"{stem}.drawio"
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(v.source, encoding="utf-8")
+    except OSError as e:
+        raise _file_error(f"{target} could not be written ({e.strerror}).") from e
+    return {
+        "path": str(target),
         "id": d.id,
-        "project_id": d.project_id,
         "label": d.label,
-        "summary": d.summary,
         "version": d.version,
-        "shown_version": v.version,
-        "updated_by": d.updated_by,
-        "updated_at": d.updated_at,
         "markdown": f"[{d.label}](diagram:{d.id})",
     }
-    out.update(diagram_model.Drawing(v.source).outline())
-    if include_xml:
-        out["xml"] = v.source
-    return out
 
 
-async def agent_create(
+def _preview(source: str, svg_path: str | None) -> str:
+    """The SVG to store: the agent's own export when it gives one, else a plain one drawn from the source."""
+    if svg_path:
+        return _read_file(svg_path, "svg_path")
+    return diagram_model.render_svg(source)
+
+
+async def create_from_file(
     session: AsyncSession,
     project_id: str,
     *,
     label: str,
-    nodes: list[dict[str, Any]] | None = None,
-    edges: list[dict[str, Any]] | None = None,
-    direction: str = "LR",
-    xml: str | None = None,
+    path: str,
+    svg_path: str | None = None,
     summary: str | None = None,
 ) -> dict[str, Any]:
-    """Create a diagram from nodes and edges (laid out for you) or from complete ``.drawio`` XML."""
-    if (xml is None) == (not nodes):
-        raise DocsError(
-            422,
-            "invalid_diagram_edit",
-            "Give either nodes (and edges) or xml, not both.",
-        )
-    source = (
-        xml
-        if xml is not None
-        else diagram_model.build_source(nodes or [], edges or [], direction)
-    )
-    svg = diagram_model.render_svg(source)
+    """Create a diagram from a local ``.drawio`` file."""
+    source = _read_file(path, "path")
+    validate_source(source)
     out = await create_diagram(
-        session, project_id, label=label, source=source, svg=svg, summary=summary
+        session,
+        project_id,
+        label=label,
+        source=source,
+        svg=_preview(source, svg_path),
+        summary=summary,
     )
     out["markdown"] = f"[{out['label']}](diagram:{out['id']})"
     return out
 
 
-async def agent_edit(
+async def save_from_file(
     session: AsyncSession,
     diagram_id: str,
     *,
+    path: str,
     base_version: int,
-    ops: list[dict[str, Any]],
+    svg_path: str | None = None,
     label: str | None = None,
-    summary: str | None = None,
 ) -> dict[str, Any]:
-    """Apply edit operations to the latest version and save the result as a new version."""
+    """Save a local ``.drawio`` file as a new version of a diagram (``base_version`` guards against overwrites)."""
     d = await _diagram(session, diagram_id)
-    if base_version != d.version:
-        return await update_diagram(  # raises the 409 with who saved the newer one
+    if base_version != d.version:  # answer the conflict before reading the file
+        return await update_diagram(
             session, diagram_id, base_version=base_version, source="", svg=""
         )
-    v = await _version(session, d.id, None, d.version)
-    source, info = diagram_model.apply_ops(v.source, ops)
-    out = await update_diagram(
+    source = _read_file(path, "path")
+    validate_source(source)
+    return await update_diagram(
         session,
         diagram_id,
         base_version=base_version,
         source=source,
-        svg=diagram_model.render_svg(source),
+        svg=_preview(source, svg_path),
         label=label,
-        summary=summary,
-        note=f"Edited by an AI agent ({len(ops)} operation{'s' if len(ops) != 1 else ''})",
-    )
-    out["added"] = info["added"]
-    return out
-
-
-async def agent_replace(
-    session: AsyncSession,
-    diagram_id: str,
-    *,
-    base_version: int,
-    xml: str,
-    label: str | None = None,
-) -> dict[str, Any]:
-    """Replace a diagram's whole ``.drawio`` source."""
-    return await update_diagram(
-        session,
-        diagram_id,
-        base_version=base_version,
-        source=xml,
-        svg=diagram_model.render_svg(xml),
-        label=label,
-        note="Replaced by an AI agent",
+        note="Saved by an AI agent",
     )
 
 
-async def restore_version(
-    session: AsyncSession, diagram_id: str, version: int
-) -> dict[str, Any]:
-    """Save an old version's content again as a new version (history is kept)."""
-    d = await _diagram(session, diagram_id)
-    old = await _version(session, d.id, version, d.version)
-    return await update_diagram(
-        session,
-        diagram_id,
-        base_version=d.version,
-        source=old.source,
-        svg=old.svg,
-        note=f"Restored from v{version}",
-    )
+async def list_for_agent(
+    session: AsyncSession, project_id: str
+) -> list[dict[str, Any]]:
+    """A project's diagrams in brief: ``[{id, label, version, updated_by, updated_at, summary}]``."""
+    keys = ("id", "label", "version", "updated_by", "updated_at", "summary")
+    return [{k: d[k] for k in keys} for d in await list_diagrams(session, project_id)]

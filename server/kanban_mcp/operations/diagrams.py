@@ -1,117 +1,92 @@
-"""Diagram operations: draw.io drawings that sit in markdown as ``[label](diagram:dg_xxxxxxxx)``."""
+"""Diagram operations: draw.io drawings that sit in markdown as ``[label](diagram:dg_xxxxxxxx)``.
+
+An agent works on the ``.drawio`` file itself: export it to a local path, edit it with its own file tools, save it back.
+"""
 
 import services.diagrams as svc_diagrams
 from pydantic import Field
-from typing import Annotated, Any, Literal
+from typing import Annotated
 from .. import common
 from ..common import ProjectId, notify_on_success
 
 DiagramId = Annotated[
     str,
     Field(
-        description="Diagram id 'dg_xxxxxxxx' (the id inside `(diagram:dg_xxxxxxxx)`)."
+        description="Diagram id 'dg_xxxxxxxx' (the id inside `(diagram:dg_xxxxxxxx)` in a text)."
+    ),
+]
+LocalPath = Annotated[
+    str, Field(description="Absolute path of a local .drawio file (XML).")
+]
+SvgPath = Annotated[
+    str | None,
+    Field(
+        description="Absolute path of an SVG export of the drawing, used as the preview. Without it the server draws a plain preview (boxes, arrows, text)."
     ),
 ]
 
 
 def _error(exc: "svc_diagrams.DocsError") -> ValueError:
-    hint = {
-        "diagram_conflict": " Call diagram_read(action='get') again, re-apply your change on the new version, and retry.",
-        "invalid_diagram_edit": " Nothing was changed.",
-    }.get(exc.code, "")
+    hint = (
+        " Export the diagram again, re-apply your change on the new version, and save it."
+        if exc.code == "diagram_conflict"
+        else ""
+    )
     return ValueError(f"{exc.message}{hint}")
 
 
-def _brief(d: dict) -> dict:
-    keys = ("id", "label", "version", "updated_by", "updated_at", "summary")
-    return {k: d[k] for k in keys if k in d}
-
-
-async def list_diagrams(project_id: ProjectId) -> list[dict]:
+async def list_project_diagrams(project_id: ProjectId) -> list[dict]:
     """List a project's diagrams: [{id, label, version, updated_by, updated_at, summary}]."""
     async with common.async_session() as session:
         try:
-            return [
-                _brief(d) for d in await svc_diagrams.list_diagrams(session, project_id)
-            ]
+            return await svc_diagrams.list_for_agent(session, project_id)
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
 
 
-async def list_deleted_diagrams(project_id: ProjectId) -> list[dict]:
-    """List a project's unlinked diagrams (kept so they can be restored)."""
-    async with common.async_session() as session:
-        try:
-            rows = await svc_diagrams.list_diagrams(session, project_id, deleted=True)
-        except svc_diagrams.DocsError as exc:
-            raise _error(exc) from exc
-        return [{**_brief(d), "deleted_at": d["deleted_at"]} for d in rows]
-
-
-async def get_diagram(
+async def export_diagram(
     diagram_id: DiagramId,
+    path: Annotated[
+        str,
+        Field(
+            description="Absolute path to write to; a folder gets '<name>.drawio' inside it."
+        ),
+    ],
     version: Annotated[
         int | None, Field(description="A saved version; default the latest.")
     ] = None,
-    include_xml: Annotated[
-        bool, Field(description="Also return the raw .drawio XML (large).")
-    ] = False,
 ) -> dict:
-    """Read a diagram: {id, label, version, markdown, pages, nodes, edges, xml?}. Pass its `version` to diagram_write as base_version."""
+    """Write a diagram's .drawio file to a local path. Returns {path, id, label, version, markdown}."""
     async with common.async_session() as session:
         try:
-            return await svc_diagrams.read_outline(
-                session, diagram_id, version=version, include_xml=include_xml
+            return await svc_diagrams.export_to_file(
+                session, diagram_id, path, version=version
             )
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
 
 
-async def list_diagram_versions(diagram_id: DiagramId) -> list[dict]:
-    """List a diagram's saved versions, newest first: [{version, author, note, created_at, size_bytes}]."""
-    async with common.async_session() as session:
-        try:
-            return await svc_diagrams.list_versions(session, diagram_id)
-        except svc_diagrams.DocsError as exc:
-            raise _error(exc) from exc
-
-
 @notify_on_success
-async def create_diagram(
+async def create_diagram_from_file(
     project_id: ProjectId,
     label: Annotated[
         str, Field(description="Name of the diagram; it is the alt text.")
     ],
-    nodes: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="Boxes: [{id, label, shape?, fill?, stroke?}]."),
-    ] = None,
-    edges: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="Arrows: [{from, to, label?}] between node ids."),
-    ] = None,
-    direction: Annotated[
-        Literal["LR", "TB"],
-        Field(description="Layout: left-to-right or top-to-bottom."),
-    ] = "LR",
-    xml: Annotated[
-        str | None, Field(description="Instead of nodes/edges: a complete .drawio XML.")
-    ] = None,
+    path: LocalPath,
+    svg_path: SvgPath = None,
     summary: Annotated[
         str | None, Field(description="Short text summary shown with the image.")
     ] = None,
 ) -> dict:
-    """Create a diagram. Returns {id, label, version, markdown}; put `markdown` on its own line in a ticket, comment or Docs page."""
+    """Create a diagram from a local .drawio file. Returns {id, label, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page."""
     async with common.async_session() as session:
         try:
-            out = await svc_diagrams.agent_create(
+            out = await svc_diagrams.create_from_file(
                 session,
                 project_id,
                 label=label,
-                nodes=nodes,
-                edges=edges,
-                direction=direction,
-                xml=xml,
+                path=path,
+                svg_path=svg_path,
                 summary=summary,
             )
         except svc_diagrams.DocsError as exc:
@@ -120,48 +95,28 @@ async def create_diagram(
 
 
 @notify_on_success
-async def edit_diagram(
+async def save_diagram_file(
     diagram_id: DiagramId,
+    path: LocalPath,
     base_version: Annotated[
-        int, Field(description="`version` from get_diagram; a stale value is rejected.")
+        int,
+        Field(
+            description="`version` from docs_read(diagram); a stale value is rejected."
+        ),
     ],
-    ops: Annotated[
-        list[dict[str, Any]],
-        Field(description="Operations applied in order; all or nothing."),
-    ],
+    svg_path: SvgPath = None,
     label: Annotated[str | None, Field(description="New name.")] = None,
-    summary: Annotated[str | None, Field(description="New text summary.")] = None,
 ) -> dict:
-    """Edit a diagram with operations. Returns {id, label, version, added}."""
+    """Save a local .drawio file as a new version of a diagram. Returns {id, label, version}."""
     async with common.async_session() as session:
         try:
-            out = await svc_diagrams.agent_edit(
+            out = await svc_diagrams.save_from_file(
                 session,
                 diagram_id,
+                path=path,
                 base_version=base_version,
-                ops=ops,
+                svg_path=svg_path,
                 label=label,
-                summary=summary,
-            )
-        except svc_diagrams.DocsError as exc:
-            raise _error(exc) from exc
-        return {k: out[k] for k in ("id", "label", "version", "added")}
-
-
-@notify_on_success
-async def replace_diagram(
-    diagram_id: DiagramId,
-    base_version: Annotated[
-        int, Field(description="`version` from get_diagram; a stale value is rejected.")
-    ],
-    xml: Annotated[str, Field(description="The complete new .drawio XML.")],
-    label: Annotated[str | None, Field(description="New name.")] = None,
-) -> dict:
-    """Replace a diagram's whole drawing. Returns {id, label, version}."""
-    async with common.async_session() as session:
-        try:
-            out = await svc_diagrams.agent_replace(
-                session, diagram_id, base_version=base_version, xml=xml, label=label
             )
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
@@ -170,7 +125,7 @@ async def replace_diagram(
 
 @notify_on_success
 async def delete_diagram(diagram_id: DiagramId) -> dict:
-    """Unlink a diagram. It is kept and can be restored; text that references it shows 'Diagram not found'."""
+    """Unlink a diagram. It is kept and can be restored; texts that reference it show 'Diagram not found'."""
     async with common.async_session() as session:
         try:
             return await svc_diagrams.delete_diagram(session, diagram_id)
@@ -186,20 +141,4 @@ async def restore_diagram(diagram_id: DiagramId) -> dict:
             out = await svc_diagrams.restore_diagram(session, diagram_id)
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
-        return _brief(out)
-
-
-@notify_on_success
-async def restore_diagram_version(
-    diagram_id: DiagramId,
-    version: Annotated[
-        int, Field(description="Version to save again (from diagram_read(versions)).")
-    ],
-) -> dict:
-    """Save an old version's drawing again as a new version (history is kept)."""
-    async with common.async_session() as session:
-        try:
-            out = await svc_diagrams.restore_version(session, diagram_id, version)
-        except svc_diagrams.DocsError as exc:
-            raise _error(exc) from exc
-        return _brief(out)
+        return {k: out[k] for k in ("id", "label", "version")}

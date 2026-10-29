@@ -10,7 +10,6 @@ import services.tickets as svc_tickets
 from main import mcp
 from kanban_mcp.tools import CORE_TOOL_TABLE
 from kanban_mcp.tools.branches import BRANCH_OPS
-from kanban_mcp.tools.diagrams import DIAGRAM_READ_OPS, DIAGRAM_WRITE_OPS
 from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_OPS
 from kanban_mcp.tools.items import ITEM_OPS
 from kanban_mcp.tools.projects import PROJECT_OPS
@@ -51,11 +50,11 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     assert not core & ideas
     assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(core) == 11 and len(ideas) == 13
+    assert len(core) == 9 and len(ideas) == 13
 
 
 async def test_every_operation_is_reachable_through_a_tool():
-    """Folding 56 tools into 9 (11 with the diagram tools) must not drop a capability: each former tool is an action of one of them."""
+    """Folding 56 tools into 9 must not drop a capability: each former tool is an action of one of them."""
     routed = {
         op.impl.__name__
         for table in (
@@ -65,8 +64,6 @@ async def test_every_operation_is_reachable_through_a_tool():
             BRANCH_OPS,
             DOCS_READ_OPS,
             DOCS_WRITE_OPS,
-            DIAGRAM_READ_OPS,
-            DIAGRAM_WRITE_OPS,
         )
         for op in table.values()
     }
@@ -118,7 +115,7 @@ async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(
 
 
 async def test_every_tool_has_annotations_that_match_its_name():
-    reads = {"get_projects", "list_tickets", "get_ticket", "docs_read", "diagram_read"}
+    reads = {"get_projects", "list_tickets", "get_ticket", "docs_read"}
     for name, tool in (await _tools(_full_mcp())).items():
         a = tool.annotations
         assert a is not None, name
@@ -133,7 +130,6 @@ async def test_every_tool_has_annotations_that_match_its_name():
             "ticket_items",
             "ticket_branches",
             "docs_write",
-            "diagram_write",
         }:
             assert a.destructiveHint is True, name
         else:
@@ -188,10 +184,10 @@ async def test_the_tool_list_stays_compact():
         )
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    assert default < 35_500, (
+    assert default < 33_000, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 44_000, (
+    assert full < 41_500, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
@@ -249,8 +245,6 @@ async def test_schema_enums_match_the_services():
         ("ticket_branches", BRANCH_OPS),
         ("docs_read", DOCS_READ_OPS),
         ("docs_write", DOCS_WRITE_OPS),
-        ("diagram_read", DIAGRAM_READ_OPS),
-        ("diagram_write", DIAGRAM_WRITE_OPS),
     ):
         assert enum(tool, "action") == set(table), tool
     pairs = set(ITEM_OPS)

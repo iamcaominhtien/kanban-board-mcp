@@ -10,9 +10,9 @@ ticket_items (test_case, criterion) -> manage_ticket(update, status='done').
 
 Tools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the \
 parameters every action takes, and a wrong call is answered with what that action accepts.
-- get_projects, list_tickets, get_ticket, docs_read, diagram_read: read only.
+- get_projects, list_tickets, get_ticket, docs_read: read only.
 - manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, \
-acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, diagram_write.
+acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write.
 
 Concepts
 - Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, \
@@ -28,9 +28,9 @@ docs_write (create, update, move, ...). Send the `version` you read as base_vers
 so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: \
 docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) answers them.
 - Diagrams: a draw.io drawing shows in any text (ticket description, comment, Docs page) as one line `[Name](diagram:dg_xxxxxxxx)`. \
-Read its nodes and edges with diagram_read(get); create or edit it with diagram_write (create from nodes/edges, edit with operations, \
-or replace the whole .drawio XML), sending the `version` you read as base_version. To show a new diagram, put the returned `markdown` \
-line on its own line in the text.
+Edit it as a file: docs_read(diagram) writes the .drawio XML to a path, change it with your own file tools, docs_write(diagram_save) \
+stores it (with the `version` you got as base_version). docs_write(diagram_create) makes a new one from a file; put the returned \
+`markdown` line on its own line in the text.
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions

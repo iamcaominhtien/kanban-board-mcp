@@ -1,4 +1,4 @@
-"""The 11 tools the agent sees. Each is a family of related operations picked with `action`.
+"""The 9 tools the agent sees. Each is a family of related operations picked with `action`.
 
 Why so few: an agent pays for every tool description and schema on every session. Grouping by noun keeps all the
 capabilities while the tool list shrinks to a fraction of its size. The operations themselves live in
@@ -12,7 +12,6 @@ from mcp.types import ToolAnnotations
 
 from .. import operations as ops
 from .branches import ticket_branches
-from .diagrams import diagram_read, diagram_write
 from .docs import docs_read, docs_write
 from .items import ticket_items
 from .projects import get_projects, manage_project
@@ -33,6 +32,4 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (ticket_items, _DESTRUCTIVE),  # delete
     (ticket_branches, _DESTRUCTIVE),  # delete (optionally the git branch)
     (docs_write, _DESTRUCTIVE),  # delete
-    (diagram_read, _READ),
-    (diagram_write, _DESTRUCTIVE),  # delete
 ]
