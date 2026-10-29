@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793314497-f4b9",
+  "canvas_version": "1793315125-cd46",
   "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
@@ -522,6 +522,14 @@
       "page": "screens_account",
       "w": 1480,
       "h": 6579
+    },
+    "GuidelineDesign.dc.html": {
+      "bytes": 144551,
+      "sha256": "97e1ac2fd0b0b1f38cbbb99faf3e423842ae7ead505f669932485f86d4b7e905",
+      "title": "Guideline — design of the user and administrator guide",
+      "page": "guideline",
+      "w": 1480,
+      "h": 8862
     }
   }
 }
