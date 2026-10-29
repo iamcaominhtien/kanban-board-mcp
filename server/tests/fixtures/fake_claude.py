@@ -143,8 +143,14 @@ if mode == "fail":
     )
     sys.exit(1)
 if mode == "wait_question":
-    # the test posts a question for this run while it waits, then lets it exit
-    time.sleep(float(os.environ.get("FAKE_CLAUDE_WAIT", "1.5")))
+    # the test posts a question for this run while it waits, then lets it exit (FAKE_CLAUDE_GATE: once that file
+    # exists, which the test creates right after asking)
+    gate = os.environ.get("FAKE_CLAUDE_GATE")
+    end = time.time() + float(
+        os.environ.get("FAKE_CLAUDE_WAIT", "10" if gate else "1.5")
+    )
+    while time.time() < end and not (gate and os.path.exists(gate)):
+        time.sleep(0.02)
 emit(
     {
         "type": "result",

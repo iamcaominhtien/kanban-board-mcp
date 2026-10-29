@@ -101,6 +101,21 @@ async def _wait(c, ticket_id, states, timeout=15.0):
         await asyncio.sleep(0.1)
 
 
+def _ask_gate(env, monkeypatch) -> None:
+    """In wait_question mode the fake CLI waits until the test has asked its question, not a fixed time."""
+    gate = env["tmp"] / "asked"
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "wait_question")
+    monkeypatch.setenv("FAKE_CLAUDE_GATE", str(gate))
+    original = runs.record_question
+
+    async def record(*args, **kwargs):
+        out = await original(*args, **kwargs)
+        gate.touch()
+        return out
+
+    monkeypatch.setattr(runs, "record_question", record)
+
+
 def _alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -439,7 +454,7 @@ async def test_needs_input_sets_pending_and_the_answer_resumes_the_session(
     c = env["c"]
     record = env["tmp"] / "args.jsonl"
     monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
-    monkeypatch.setenv("FAKE_CLAUDE_MODE", "wait_question")
+    _ask_gate(env, monkeypatch)
     pid, _ = await _project(c)
     m = await _runner(c, pid, env["repo"])
     tid = await _ticket(c, pid)
@@ -498,9 +513,7 @@ async def test_runs_wait_for_slots_pause_and_daily_limit(env, monkeypatch):
         f"/tickets/{t2}/ai/assign", json={"member_id": m["id"], "start": "queue"}
     )
     await _wait(c, t1, ("running",))
-    await asyncio.sleep(0.3)
-    runs.RT.wake.set()
-    await asyncio.sleep(0.3)
+    await runs.tick()
     board = {
         r["ticket_id"]: r
         for r in (await c.get(f"/projects/{pid}/ai/board")).json()["runs"]
@@ -509,7 +522,7 @@ async def test_runs_wait_for_slots_pause_and_daily_limit(env, monkeypatch):
     assert board[t2]["queue_position"] == 1
     await c.post(f"/ai/members/{m['id']}/pause", json={"cancel_current": True})
     await _wait(c, t1, ("cancelled",))
-    await asyncio.sleep(0.3)
+    await runs.tick()
     assert (await c.get(f"/tickets/{t2}/ai/runs")).json()[0]["state"] == "queued"
     await c.post(f"/ai/members/{m['id']}/resume")
     await _wait(c, t2, ("running",))
@@ -740,8 +753,7 @@ async def test_pause_all_cancels_holds_and_resume_needs_review(env, monkeypatch)
     ).json()
     assert (r["cancelled"], r["held"]) == (1, 1)
     await _wait(c, t1, ("cancelled",))
-    runs.RT.wake.set()
-    await asyncio.sleep(0.4)
+    await runs.tick()
     assert (await c.get(f"/tickets/{t2}/ai/runs")).json()[0]["state"] == "queued"
     pill = f"@[{m['name']}](member:{m['id']})"
     await c.post(
@@ -935,9 +947,7 @@ async def test_budget_stops_new_runs(env, monkeypatch):
     await c.post(
         f"/tickets/{t2}/ai/assign", json={"member_id": m["id"], "start": "now"}
     )
-    await asyncio.sleep(0.4)
-    runs.RT.wake.set()
-    await asyncio.sleep(0.4)
+    await runs.tick()
     board = {
         r["ticket_id"]: r
         for r in (await c.get(f"/projects/{pid}/ai/board")).json()["runs"]
@@ -1027,7 +1037,7 @@ def test_fake_cli_is_executable():
 async def test_a_long_question_still_sets_pending_and_waits(env, monkeypatch):
     """Regression: a question longer than a Pending note (240 chars) used to fail the run."""
     c = env["c"]
-    monkeypatch.setenv("FAKE_CLAUDE_MODE", "wait_question")
+    _ask_gate(env, monkeypatch)
     pid, _ = await _project(c)
     m = await _runner(c, pid, env["repo"])
     tid = await _ticket(c, pid)

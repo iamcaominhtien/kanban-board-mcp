@@ -13,6 +13,7 @@ from models import AiRun, Ticket
 from services.ai import runs
 from services.ai.context import RunContext
 from tests.test_ai import (  # noqa: F401
+    _ask_gate,
     _project,
     _runner,
     _ticket,
@@ -124,7 +125,7 @@ async def test_queue_waits_behind_the_members_current_run_even_with_a_free_slot(
     r = await _assign(c, second, m["id"], start="queue")
     assert r.status_code == 200
     queued = r.json()["run"]
-    await asyncio.sleep(2.5)  # the scheduler had time to start it if it could
+    await runs.tick()  # one scheduler pass: it would have started it if it could
     queued = (await _runs(c, second))[0]
     assert queued["state"] == "queued" and queued["queue_after_current"]
     assert queued["waiting_reason"] == f"Queued behind {first}"
@@ -228,6 +229,14 @@ def _proc_state(pid: int) -> str:
     return Path(f"/proc/{pid}/stat").read_text().split()[2]
 
 
+async def _state_is(pid: int, state: str | None) -> bool:
+    """Whether the process is in `state` ("T" stopped), or gone when `state` is None."""
+    try:
+        return _proc_state(pid) == state
+    except FileNotFoundError:
+        return state is None
+
+
 async def test_pause_stops_the_run_and_resume_continues_it(env, monkeypatch):
     c = env["c"]
     monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
@@ -240,10 +249,9 @@ async def test_pause_stops_the_run_and_resume_continues_it(env, monkeypatch):
     r = await c.post(f"/ai/runs/{run['id']}/pause", headers=AN)
     assert r.status_code == 200 and r.json()["paused"] is True
     os_pid = (await _run(env, run["id"])).pid
-    await asyncio.sleep(0.5)
-    assert _proc_state(os_pid) == "T"  # stopped
+    await _until(lambda: _state_is(os_pid, "T"))  # stopped
     before = len((await _runs(c, tid))[0]["steps"])
-    await asyncio.sleep(1.2)
+    await asyncio.sleep(0.6)  # three steps of the fake CLI would have come by now
     paused = (await _runs(c, tid))[0]
     assert len(paused["steps"]) == before and paused["state"] == "running"
     assert any(s["text"] == "Paused by An Nguyen" for s in paused["steps"])
@@ -254,13 +262,11 @@ async def test_pause_stops_the_run_and_resume_continues_it(env, monkeypatch):
     await _until(lambda: _steps_over(c, tid, before + 3))
     # a paused run can still be cancelled: the stopped process dies
     await c.post(f"/ai/runs/{run['id']}/pause", headers=AN)
-    await asyncio.sleep(0.3)
+    await _until(lambda: _state_is(os_pid, "T"))
     r = await c.post(f"/ai/runs/{run['id']}/cancel", json={})
     assert r.status_code == 200 and r.json()["state"] == "cancelled"
     assert r.json()["paused"] is False
-    await asyncio.sleep(0.5)
-    with pytest.raises(FileNotFoundError):
-        _proc_state(os_pid)
+    await _until(lambda: _state_is(os_pid, None))
 
 
 async def _steps_over(c, tid, n):
@@ -360,7 +366,7 @@ async def test_archiving_and_taking_over_leave_a_stop_code(env, monkeypatch):
 
 
 async def _asking(env, c, monkeypatch):
-    monkeypatch.setenv("FAKE_CLAUDE_MODE", "wait_question")
+    _ask_gate(env, monkeypatch)
     pid, an = await _project(c)
     m = await _runner(c, pid, env["repo"])
     tid = await _ticket(c, pid)

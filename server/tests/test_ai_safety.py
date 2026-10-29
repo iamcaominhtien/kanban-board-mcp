@@ -1,7 +1,6 @@
 """AI safety: who decides approvals, stale changes, remembered approvals, permissions and owner confirmation,
 the kill switch, the audit log, prompt injection and loop limits (design/screens/ai-safety-cost.md)."""
 
-import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 
@@ -486,8 +485,7 @@ async def test_revoked_token_stops_calls_and_reconnect_restores(env):
         f"/tickets/{t2}/ai/assign", json={"member_id": m["id"], "start": "now"}
     )
     assert r.status_code == 200
-    runs.RT.wake.set()
-    await asyncio.sleep(0.5)
+    await runs.tick()
     board = {
         x["ticket_id"]: x
         for x in (await c.get(f"/projects/{pid}/ai/board")).json()["runs"]

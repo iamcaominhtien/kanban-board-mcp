@@ -1,7 +1,6 @@
 """AI cost: budgets and limits (tokens, cap per run, board limits), the cap policies, alerts, the usage dashboard
 with its forecast and CSV, and the limits table (design/screens/ai-safety-cost.md, C)."""
 
-import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 
@@ -32,9 +31,7 @@ async def _run_api(c, monkeypatch, pid, m, tid, replies):
 
 
 async def _blocked_reason(c, pid, tid):
-    await asyncio.sleep(0.4)
-    runs.RT.wake.set()
-    await asyncio.sleep(0.4)
+    await runs.tick()
     board = {
         x["ticket_id"]: x
         for x in (await c.get(f"/projects/{pid}/ai/board")).json()["runs"]
@@ -171,8 +168,7 @@ async def test_at_the_cap_ask_an_owner_creates_a_raise_cap_approval(env, monkeyp
     [a] = [x for x in pending if x["action"] == "raise_cap"]
     assert a["risk"] == "medium" and "$2.00" in a["summary"]
     # asking again does not pile up a second request
-    runs.RT.wake.set()
-    await asyncio.sleep(0.5)
+    await runs.tick()
     again = (
         await c.get(f"/projects/{pid}/ai/approvals", params={"status": "pending"})
     ).json()
