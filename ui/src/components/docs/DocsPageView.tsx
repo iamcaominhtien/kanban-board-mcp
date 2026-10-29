@@ -16,7 +16,7 @@ import { PageInfoPopover } from './PageInfoPopover';
 import { PageMenu, type PageMenuAction } from './PageMenu';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
-import { SinceViewedBanner } from './SinceViewedBanner';
+import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
 
 export type PageAction = PageMenuAction | 'edit' | 'share';
 
@@ -80,6 +80,7 @@ export function DocsPageView({
   onReplaceSection,
   onBodyRef,
 }: Props) {
+  const since = useSinceViewed(page, !offline);
   const [menu, setMenu] = useState(false);
   const [share, setShare] = useState(false);
   const [info, setInfo] = useState(false);
@@ -261,7 +262,7 @@ export function DocsPageView({
           <div style={{ maxWidth: 'clamp(640px, 62vw, 1120px)', margin: '0 auto' }}>
             {!offline && (
               <div style={{ marginBottom: 16 }}>
-                <SinceViewedBanner page={page} onCompare={onCompare ?? (() => undefined)} />
+                <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -574,6 +575,7 @@ export function DocsPageView({
                   onCreatePage={onCreatePage}
                   onRestorePage={onRestorePage}
                   onReplaceSection={published ? onReplaceSection : undefined}
+                  changedIn={published && since.behind ? since.changedIn : undefined}
                 >
                   {published ? page.markdown : page.draft!.markdown}
                 </DocsMarkdown>

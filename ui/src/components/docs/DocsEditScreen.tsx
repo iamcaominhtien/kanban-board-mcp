@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { docsErrorDetail, useDiscardDraft, usePublishPage, useSaveDraft } from '../../api/docs';
+import { docsErrorDetail, useDiscardDraft, useMarkDocsSeen, usePublishPage, useSaveDraft } from '../../api/docs';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { useToast } from '../Toast';
@@ -17,7 +17,6 @@ import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorRep
 import { Icon } from './Icon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
 import { PublishDialog } from './PublishDialog';
-import { markDocsSeen } from './SinceViewedBanner';
 import { markOwnPublish } from './useDocsNotifications';
 import './docs.css';
 import { DocsAi, startSelectionDraft } from '../assist/DocsAi';
@@ -68,6 +67,7 @@ export function DocsEditScreen({
   const [aiMenu, setAiMenu] = useState(false);
   const saveDraft = useSaveDraft(projectId);
   const publish = usePublishPage(projectId);
+  const markSeen = useMarkDocsSeen();
   const discard = useDiscardDraft(projectId);
   const { online, setOnline, justBack, clearJustBack } = useOnline();
 
@@ -265,7 +265,7 @@ export function DocsEditScreen({
       }
       setPublishOpen(false);
       setConflict(null);
-      markDocsSeen(page.id, updated.version);
+      markSeen(page.id, updated.version);
       toast.success(`Published v${updated.version}`, updated.title);
       onExit(updated);
     } catch (err) {

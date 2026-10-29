@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { docsErrorDetail, useDocsDiff, useDocsVersions, useRestoreVersion } from '../../api/docs';
+import { docsErrorDetail, useDocsDiff, useDocsVersions, useMarkDocsSeen, useRestoreVersion } from '../../api/docs';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsVersionSummary } from '../../types/docs';
 import { useToast } from '../Toast';
@@ -103,6 +103,7 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
   const toast = useToast();
   const versionsQ = useDocsVersions(page.id);
   const restore = useRestoreVersion(projectId);
+  const markSeen = useMarkDocsSeen();
   const [visible, setVisible] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [comparing, setComparing] = useState<{ from: number; to: number } | null>(initialCompare ?? null);
@@ -207,6 +208,7 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
     const target = restoreTarget.version;
     try {
       const updated = await restore.mutateAsync({ pageId: page.id, version: target, note: note.trim() || undefined });
+      markSeen(page.id, updated.version); // your own restore is not news to you
       setRestoreTarget(null);
       setComparing(null);
       setSelected([]);

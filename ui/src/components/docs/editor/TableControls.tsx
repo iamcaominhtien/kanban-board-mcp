@@ -93,7 +93,7 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
       caret,
       anySel: selection instanceof CellSelection,
     });
-  }, [editor, hostRef]);
+  }, [editor]);
 
   useEffect(() => {
     compute();

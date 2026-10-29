@@ -66,7 +66,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
   const move = useMovePage(projectId);
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(true);
-  const [target, setTarget] = useState<Target | null>(null);
+  const [pickedTarget, setTarget] = useState<Target | null>(null);
   const [closed, setClosed] = useState<Set<string>>(new Set());
   const [active, setActive] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +154,13 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, query, descendants, page.id]);
+
+  // While searching, only a pick from the current results counts: a target chosen in the tree, or from an earlier
+  // query, would otherwise stay in the preview and keep Move enabled behind an empty result list.
+  const target =
+    searching && !(pickedTarget?.via !== undefined && flat.some((f) => f.id === pickedTarget.via && !f.reason))
+      ? null
+      : pickedTarget;
 
   const rows: Row[] = useMemo(() => {
     const out: Row[] = [
@@ -454,7 +461,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
 
   return (
     <ModalShell
-      width={560}
+      width={668}
       ariaLabel={`Move “${page.title}”`}
       icon="i35"
       title={<>Move “{page.title}”</>}

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import camelcaseKeys from 'camelcase-keys';
 import { client } from './client';
 import type {
@@ -32,6 +32,7 @@ export function docsErrorDetail(err: unknown): (DocsErrorDetail & { status?: num
 export const docsKeys = {
   tree: (projectId: string) => ['docs', 'tree', projectId] as const,
   page: (pageId: string) => ['docs', 'page', pageId] as const,
+  seen: (pageId: string) => ['docs', 'seen', pageId] as const,
   versions: (pageId: string) => ['docs', 'versions', pageId] as const,
   diff: (pageId: string, a: number, b: number) => ['docs', 'diff', pageId, a, b] as const,
   backlinks: (pageId: string) => ['docs', 'backlinks', pageId] as const,
@@ -66,6 +67,40 @@ export function useDocsTemplates() {
     queryKey: docsKeys.templates,
     queryFn: async () => (await client.get<DocsTemplate[]>('/docs/templates')).data,
     staleTime: Infinity,
+  });
+}
+
+/** Query the version of a page you last viewed (`null` = never). */
+export function useDocsSeen(pageId: string | null) {
+  return useQuery({
+    queryKey: docsKeys.seen(pageId ?? ''),
+    queryFn: async () => (await client.get<{ version: number | null }>(`/docs/pages/${pageId}/seen`)).data.version,
+    enabled: !!pageId,
+    staleTime: Infinity,
+  });
+}
+
+/** Returns a function that records the latest version of a page you have seen (also after your own publish). */
+export function useMarkDocsSeen() {
+  const qc = useQueryClient();
+  return (pageId: string, version: number) => {
+    qc.setQueryData(docsKeys.seen(pageId), version);
+    client.put(`/docs/pages/${pageId}/seen`, { version }).catch(() => undefined);
+  };
+}
+
+/**
+ * Query the diff of each given version against the one before it, in the same order.
+ * @param pageId - Page the versions belong to.
+ * @param versions - Version numbers (1 and up) to diff against their predecessor.
+ */
+export function useDocsStepDiffs(pageId: string | null, versions: number[]) {
+  return useQueries({
+    queries: versions.map((v) => ({
+      queryKey: docsKeys.diff(pageId ?? '', v - 1, v),
+      queryFn: async () => (await client.get<DocsDiff>(`/docs/pages/${pageId}/versions/${v - 1}/diff/${v}`)).data,
+      enabled: !!pageId && v > 1,
+    })),
   });
 }
 

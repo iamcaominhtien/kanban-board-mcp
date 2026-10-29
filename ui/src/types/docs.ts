@@ -28,6 +28,8 @@ export interface DocsDraft {
   title: string;
   markdown: string;
   baseVersion: number;
+  /** autosaves since the draft was started */
+  saves: number;
   updatedAt: string;
   author: string;
 }
