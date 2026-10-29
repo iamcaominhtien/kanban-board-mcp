@@ -99,6 +99,8 @@ class ResolveBody(BaseModel):
     """Request body listing references to resolve."""
 
     refs: list[dict[str, Any]]
+    # The references sit in a ticket: it links by page id, so a renamed page's old title still resolves.
+    from_ticket: bool = False
 
 
 class ImportResolveBody(BaseModel):
@@ -230,7 +232,9 @@ async def post_resolve(
     project_id: str, body: ResolveBody, session: Session
 ) -> list[dict[str, Any]]:
     """Resolve `[[references]]` to pages, sections and tickets."""
-    return await svc.resolve_refs(session, project_id, body.refs)
+    return await svc.resolve_refs(
+        session, project_id, body.refs, from_ticket=body.from_ticket
+    )
 
 
 @router.post("/projects/{project_id}/docs/import")

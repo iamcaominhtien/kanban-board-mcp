@@ -131,6 +131,12 @@ A diagram is a `.drawio` source plus an SVG preview (the editor exports it on sa
 | GET | /diagrams/{id}/download | query: `format=drawio\|svg`, `version?` | file attachment | 200/404 |
 | GET · PUT | /diagrams/settings | `{mode: self-hosted\|public, url?}` (PUT: admin only) | `{mode, url, effective_url, ...}` | 200/403/422 |
 - Diagram shape: `{id, project_id, label, summary, suggested_summary, item_kind, item_id, version, shown_version, empty, created_by, created_at, updated_by, updated_at, deleted_at, size_bytes, role, can_edit}`.
+- Docs references and search (see also the Docs v2 tests):
+  - `POST /projects/{id}/docs/resolve` takes `{refs, from_ticket?}`. With `from_ticket: true` the old title of a renamed page still resolves to the page (tickets link by page id and show the new title); page links in pages stay literal.
+  - `GET /docs/pages/{id}/backlinks` rows carry `context` (plain sentence), `excerpt` (about 120 characters around the reference, the `[[reference]]` kept for a chip), `in` (heading text of the source section) and `target_anchor` (the section of this page the reference points at, as written).
+  - `GET /docs/pages/{id}/delete-preview` also returns `linking: [{page_id, title, parent, count}]` (at most 5, most links first) and `linking_tickets`.
+  - `GET /tickets/{id}/docs` rows carry the heading text, not the slug, in `section`.
+  - `GET /projects/{id}/docs/search` returns `match_count` (matching sections over all result pages), `tickets` on every page result (`[{ticket_id, status}]`), `assignee` (member name) on ticket hits and `facets.edited` (`{any, day, week, month}`) beside `facets.status` (`[{name, count}]`).
 - Docs page versions (`GET /docs/pages/{id}/versions/{n}`) carry `diagram_versions: {id: version}`; restoring a page version restores those diagram versions (as new diagram versions) and links unlinked ones again.
 
 ### AI members and AI work on tickets

@@ -26,3 +26,13 @@ export const DocsRefsProvider = Ctx.Provider;
 export function useDocsRefs(): DocsRefsValue | null {
   return useContext(Ctx);
 }
+
+/** What the Docs page offers to the chips in its text: the same side panel as in a ticket. */
+const PeekCtx = createContext<DocsRefsValue['peek'] | null>(null);
+
+export const DocsPeekProvider = PeekCtx.Provider;
+
+/** Return the Docs page's "Open in side panel" action, or null outside the Docs page. */
+export function useDocsPeek(): DocsRefsValue['peek'] | null {
+  return useContext(PeekCtx);
+}

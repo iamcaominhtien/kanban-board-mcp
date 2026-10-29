@@ -216,6 +216,7 @@ function plain(md: string): string {
   return md
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/\[!\w+\]\s*/g, '')
+    .replace(/^[ \t]*\|?[ \t]*:?-{2,}:?[ \t]*(?:\|[ \t]*:?-{2,}:?[ \t]*)*\|?[ \t]*$/gm, '') // table separator rows
     .replace(/\[\[([^\]|#]+?)(?:#[^\]|]+?)?(?:\|([^\]]+?))?\]\]/g, (_m, t, l) => l || t)
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
@@ -289,6 +290,11 @@ export function closestHeading(headings: DocsHeading[], wanted: string): DocsHea
 
 /* ---------- the chip bodies ---------- */
 
+/** The page's current title: a chip written with an old title (a renamed page) follows the rename. */
+function shownTitle(written: string | undefined, result?: DocsRefResult): string | undefined {
+  return written && !written.includes('/') && result?.status === 'ok' && result.title ? result.title : written;
+}
+
 const sage = { color: '#68BA7F', fontWeight: 500 } as const;
 
 function PageChipBody({
@@ -324,10 +330,7 @@ function PageChipBody({
       {anchor && (
         <>
           <span style={color ? { color, fontWeight: 500 } : sage}>›</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-            <Icon name="hash" size={11} strokeWidth={2.2} />
-            {section ?? anchor}
-          </span>
+          {section ?? anchor}
         </>
       )}
     </>
@@ -375,7 +378,7 @@ export function RefChip(props: RefChipProps) {
       >
         <Icon name="page" size={13} strokeWidth={1.9} />
         <PageChipBody
-          title={props.pageTitle}
+          title={shownTitle(props.pageTitle, result)}
           anchor={props.anchor}
           section={result?.section}
           custom={props.custom}
@@ -446,6 +449,7 @@ export function RefChip(props: RefChipProps) {
             }}
           />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600 }}>{ticketKey}</span>
+          {!ticketSurface && result?.title && <span className="dk-chip-ticket-title">{result.title}</span>}
         </span>
         {hover.open && hover.rect && (
           <Floating
@@ -617,7 +621,7 @@ export function RefChip(props: RefChipProps) {
       >
         <Icon name="page" size={13} strokeWidth={1.9} style={iconColor ? { color: iconColor } : undefined} />
         <PageChipBody
-          title={pageTitle}
+          title={shownTitle(pageTitle, result)}
           anchor={props.anchor}
           section={result?.section}
           custom={props.custom}
@@ -681,6 +685,14 @@ export function RefChip(props: RefChipProps) {
                 hover.close();
                 go();
               }}
+              onPeek={
+                props.onPeek
+                  ? () => {
+                      hover.close();
+                      props.onPeek?.(result.pageId!, result.anchor ?? props.anchor ?? null);
+                    }
+                  : undefined
+              }
             />
           )}
         </Floating>
@@ -709,11 +721,14 @@ function PageCard({
   anchor,
   projectName,
   onOpen,
+  onPeek,
 }: {
   pageId: string;
   anchor: string | null;
   projectName?: string;
   onOpen: () => void;
+  /** Docs surface: "Open in side panel" next to "Open". */
+  onPeek?: () => void;
 }) {
   const { data: page, isLoading, isError } = useDocsPage(pageId);
   return (
@@ -739,8 +754,13 @@ function PageCard({
       >
         <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={onOpen}>
           <Icon name="i38" size={14} strokeWidth={1.9} />
-          Open page
+          {onPeek ? 'Open' : 'Open page'}
         </button>
+        {onPeek && (
+          <button type="button" className="st-btn st-btn-sm" onClick={onPeek}>
+            Open in side panel
+          </button>
+        )}
       </div>
     </div>
   );

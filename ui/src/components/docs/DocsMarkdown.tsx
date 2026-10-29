@@ -12,6 +12,7 @@ import { escapeStrayDollars } from '../../utils/mathDollars';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
 import { highlight } from './docsHighlight';
+import { useDocsPeek } from './DocsRefsContext';
 import { Icon } from './Icon';
 import { RefChip, type RefChipProps } from './RefChip';
 import { DiagramEmbed } from '../diagrams/DiagramEmbed';
@@ -176,7 +177,9 @@ export function DocsMarkdown({
 
   // The component map must keep one identity across renders: a new function per render makes React remount
   // every chip (and close its hover card) whenever anything above re-renders.
+  const peek = useDocsPeek();
   const live = useRef({
+    peek,
     projectId,
     projectName,
     onOpenPage,
@@ -188,6 +191,7 @@ export function DocsMarkdown({
     tickets,
   });
   live.current = {
+    peek,
     projectId,
     projectName,
     onOpenPage,
@@ -335,6 +339,7 @@ export function DocsMarkdown({
               projectId={live.current.projectId}
               projectName={live.current.projectName}
               onOpenPage={live.current.onOpenPage}
+              onPeek={live.current.peek ?? undefined}
               onCreatePage={live.current.onCreatePage}
               onRestorePage={live.current.onRestorePage}
               onReplaceSection={live.current.onReplaceSection}

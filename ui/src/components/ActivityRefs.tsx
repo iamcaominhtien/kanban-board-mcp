@@ -42,7 +42,7 @@ export function useRefSegments(projectId: string, texts: string[], prefix: strin
     () => parsed.flatMap((p) => p.filter((s) => s.ref).map((s) => s.ref as DocsRefRequest)),
     [parsed],
   );
-  const resolved = useResolveRefs(projectId, refs);
+  const resolved = useResolveRefs(projectId, refs, true);
   return { parsed, resolved: resolved.data };
 }
 

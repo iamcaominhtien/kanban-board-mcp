@@ -264,6 +264,16 @@ class DocsAnchorAlias(SQLModel, table=True):
     new_slug: str
 
 
+class DocsTitleAlias(SQLModel, table=True):
+    """A title a page used to have: ``[[Old title]]`` keeps resolving to the page (by id) after a rename."""
+
+    __tablename__ = "docs_title_aliases"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    old_title: str  # lower-cased, trimmed
+
+
 class DocsCommentThread(SQLModel, table=True):
     """A comment thread on a Docs page: inline (tied to selected text) or page-level."""
 

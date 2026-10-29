@@ -323,6 +323,14 @@ async def test_filters_author_status_edited_since_under_page_has_tickets_sort(c,
         "Solo": 1,
     }
     assert facets["has_tickets"] == 1
+    assert (await search(c, pid, "widget"))["match_count"] == 4
+    assert facets["edited"] == {"any": 4, "day": 4, "week": 4, "month": 4}
+    # each result carries the tickets its page references (chips on the results page)
+    by_title = {p["title"]: p for p in (await search(c, pid, "widget"))["pages"]}
+    assert by_title["Solo"]["tickets"] == [
+        {"ticket_id": t["id"], "status": t["status"]}
+    ]
+    assert by_title["Kid"]["tickets"] == []
 
 
 async def test_pagination(c, pid):

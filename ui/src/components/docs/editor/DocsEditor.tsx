@@ -149,6 +149,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const slashHost = useMemo(() => new MenuHost(), []);
   const refHost = useMemo(() => new MenuHost(), []);
+  const keyHost = useMemo(() => new MenuHost(), []);
   const resolver = useMemo(() => new RefResolver(projectId), [projectId]);
   const hostRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -281,6 +282,39 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         }
       },
     });
+    // a bare ticket key ("KAN-" or "KAN-1") offers the project's tickets, with no [[ needed
+    const bareKey = createSuggest({
+      name: 'ticketKeyMenu',
+      char: '',
+      host: keyHost,
+      accept: (q) => live.current.tickets.some((t) => t.id.toLowerCase().startsWith(q.toLowerCase())),
+      find: ({ $position }) => {
+        const text = $position.nodeBefore?.isText ? ($position.nodeBefore.text ?? '') : '';
+        const m = /(?:^|\s)([A-Za-z][A-Za-z0-9]{1,5}-\d*)$/.exec(text);
+        if (!m) return null;
+        const before = text.slice(0, m.index);
+        if (before.lastIndexOf('[[') > before.lastIndexOf(']]')) return null; // inside a [[ reference
+        return { range: { from: $position.pos - m[1].length, to: $position.pos }, query: m[1], text: m[1] };
+      },
+      command: ({ editor, range, payload }) => {
+        const p = payload as RefPayload;
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(
+            range,
+            p.kind === 'ticket'
+              ? [
+                  { type: 'ticketRef', attrs: { key: p.key } },
+                  { type: 'text', text: ' ' },
+                ]
+              : p.kind === 'text'
+                ? p.text
+                : '',
+          )
+          .run();
+      },
+    });
     return [
       ...buildExtensions({
         isTicket: (key) => live.current.tickets.some((t) => t.id === key),
@@ -289,8 +323,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       }),
       slash,
       ref,
+      bareKey,
     ];
-  }, [slashHost, refHost, pickImage, projectId, qc, resolver]);
+  }, [slashHost, refHost, keyHost, pickImage, projectId, qc, resolver]);
 
   const emit = useCallback(() => {
     const ed = editorRef.current;
@@ -396,6 +431,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const slashState = useSyncExternalStore(slashHost.subscribe, slashHost.getSnapshot);
   const refState = useSyncExternalStore(refHost.subscribe, refHost.getSnapshot);
+  const keyState = useSyncExternalStore(keyHost.subscribe, keyHost.getSnapshot);
 
   const env = useMemo<EditorEnv>(
     () => ({ projectId, currentPageId, resolver, onOpenPage, onOpenTicket }),
@@ -593,6 +629,17 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           <RefSuggester
             host={refHost}
             state={refState}
+            nodes={nodes}
+            tickets={tickets}
+            currentPageId={currentPageId}
+            onClose={() => undefined}
+          />
+        )}
+        {keyState && mode === 'visual' && !refState && (
+          <RefSuggester
+            bare
+            host={keyHost}
+            state={keyState}
             nodes={nodes}
             tickets={tickets}
             currentPageId={currentPageId}
