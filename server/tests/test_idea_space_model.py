@@ -14,6 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
+import services.idea_promote as idea_promote
 import services.idea_tickets as svc
 from models import IdeaVote, Project, Ticket
 from tests.fast_db import fresh_tables
@@ -372,6 +373,14 @@ def test_archived_parked_and_unlinked_details(converted: Path):
     assert all(r["source"] == "import" for r in rows.values())
 
 
+def test_tickets_of_building_and_shipped_ideas_point_back_to_them(converted: Path):
+    marks = {
+        r["id"]: r["from_idea_id"]
+        for r in _rows(converted, "SELECT id, from_idea_id FROM ticket")
+    }
+    assert marks == {"PP-1": "IDEA-5", "PP-2": "IDEA-6", "PP-3": None}
+
+
 def test_page_body_and_details_are_built_from_the_old_fields(converted: Path):
     idea = {r["id"]: r for r in _rows(converted, "SELECT * FROM idea_ticket")}["IDEA-2"]
     assert idea["body"] == "## Problem\n\nThe problem\n\nSome text"
@@ -382,6 +391,11 @@ def test_page_body_and_details_are_built_from_the_old_fields(converted: Path):
         and idea["problem_statement"] == "The problem"
     )
     assert json.loads(idea["microthoughts"])[0]["text"] == "thought"
+    # ... and they are comments on the idea page now
+    comments = _rows(converted, "SELECT id, idea_id, body FROM idea_comment")
+    assert [(c["id"], c["idea_id"], c["body"]) for c in comments] == [
+        ("m1", "IDEA-2", "thought")
+    ]
 
 
 def test_assumptions_become_records_with_medium_impact(converted: Path):
@@ -506,7 +520,9 @@ async def test_promoting_makes_the_idea_building_and_building_cannot_be_dropped(
     idea = await svc.create_idea_ticket(session, "p1", "T", problem_statement="P")
     await svc.update_idea_status(session, idea.id, "in_review")
     await svc.update_idea_status(session, idea.id, "approved")
-    await svc.promote_idea_to_ticket(session, idea.id, "p1")
+    await idea_promote.promote(
+        session, idea.id, project_id="p1", acknowledge_not_ready=True
+    )
     idea = await svc.get_idea_ticket(session, idea.id)
     assert idea.stage == "building"
     with pytest.raises(ValueError, match="Not allowed while the ticket is open"):

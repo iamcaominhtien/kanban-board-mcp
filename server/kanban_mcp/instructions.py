@@ -20,7 +20,7 @@ review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (ch
 relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.
 """
 _INSTRUCTIONS_IDEAS = """\
-- Idea Space is separate: ideas have ids 'IDEA-N' and can be promoted to a ticket once approved.
+- Idea Space is separate: ideas have ids 'IDEA-N'. You can read ideas and their assumptions, and suggest a new one with create_idea_ticket (it lands in the Inbox for a person to sort); you cannot move, edit or promote ideas.
 """
 _INSTRUCTIONS_TAIL = """\
 - Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with \
@@ -36,11 +36,11 @@ stores it (with the `version` you got as base_version). docs_write(diagram_creat
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry.
 - Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).
-- Omitted optional arguments mean "unchanged". To empty a field use manage_ticket's clear_fields{ideas_null}.
+- Omitted optional arguments mean "unchanged". To empty a field use manage_ticket's clear_fields.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.
 - File attachments and images use standard root-relative path '/uploads/{{filename}}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.
 - Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.
-- Every `delete` is permanent; prefer status 'wont_do'{ideas_drop} to retire tickets.
+- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.
 """
 
 
@@ -49,8 +49,7 @@ def build_instructions(include_ideas: bool | None = None) -> str:
     if include_ideas is None:
         include_ideas = ideas_enabled()
     tail = _INSTRUCTIONS_TAIL.format(
-        ideas_null=" (idea tools: explicit null)" if include_ideas else "",
-        ideas_drop=" / idea status 'dropped'" if include_ideas else "",
+        ideas_null="",
     )
     return _INSTRUCTIONS_HEAD + (_INSTRUCTIONS_IDEAS if include_ideas else "") + tail
 

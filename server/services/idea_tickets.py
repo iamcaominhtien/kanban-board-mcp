@@ -13,11 +13,11 @@ from models import (
     IDEA_SOURCES,
     IDEA_STATUSES,
     IdeaAssumption,
+    IdeaComment,
     IdeaTicket,
     Project,
     Ticket,
 )
-from services.tickets import create_ticket as svc_create_ticket
 
 UTC = timezone.utc
 DEFAULT_AUTHOR = (
@@ -65,13 +65,42 @@ async def _reload(session: AsyncSession, ticket_id: str) -> IdeaTicket:
     return result.one()
 
 
-def _add_trail(
-    ticket: IdeaTicket, label: str, now: str, author: str | None = DEFAULT_AUTHOR
+def add_trail(
+    ticket: IdeaTicket,
+    label: str,
+    now: str,
+    author: str | None = DEFAULT_AUTHOR,
+    kind: str | None = None,
+    meta: dict | None = None,
+    ai: bool = False,
 ) -> None:
-    """Append an activity entry (what happened, when, and who did it)."""
+    """Append an activity entry: what happened, when, who did it, and what kind of change it was.
+
+    Args:
+        label: One line for the activity list.
+        author: A person's name, or an AI member's name when `ai` is set.
+        kind: stage, assumption, evidence, page, project, link, merge, log, vote, ai or created; used to filter.
+        meta: Details for the entry (ids, from/to values, a short text diff).
+        ai: The change was made by an AI member.
+    """
     trail = _safe_json(ticket.activity_trail)
-    trail.append({"id": str(uuid.uuid4()), "label": label, "at": now, "author": author})
+    entry: dict = {
+        "id": str(uuid.uuid4()),
+        "label": label,
+        "at": now,
+        "author": author,
+    }
+    if kind:
+        entry["kind"] = kind
+    if meta:
+        entry["meta"] = meta
+    if ai:
+        entry["ai"] = True
+    trail.append(entry)
     ticket.activity_trail = _dumps(trail)
+
+
+_add_trail = add_trail
 
 
 async def _trail_entry_and_save(
@@ -145,6 +174,7 @@ async def create_idea_ticket(
     problem_statement: str | None = None,
     source: str = "manual",
     author: str | None = DEFAULT_AUTHOR,
+    source_ref: dict | None = None,
 ) -> IdeaTicket:
     """Create an idea ticket with the next idea number.
 
@@ -161,6 +191,7 @@ async def create_idea_ticket(
         problem_statement: The problem the idea solves; required before promotion.
         source: Where the idea came from, one of IDEA_SOURCES.
         author: Who is credited for creating it in the activity.
+        source_ref: Details of the source: {kind, id, label, quote, url, by, why}.
 
     Returns:
         The created idea ticket.
@@ -182,9 +213,16 @@ async def create_idea_ticket(
     ticket_id = await _next_idea_id(session)
     now = _now_iso()
 
-    activity_trail = [
-        {"id": str(uuid.uuid4()), "label": "Idea created", "at": now, "author": author}
-    ]
+    created: dict = {
+        "id": str(uuid.uuid4()),
+        "label": "Idea created" if source != "ai" else "Idea suggested by AI",
+        "at": now,
+        "author": author,
+        "kind": "created",
+    }
+    if source == "ai":
+        created["ai"] = True
+    activity_trail = [created]
 
     ticket = IdeaTicket(
         id=ticket_id,
@@ -198,6 +236,9 @@ async def create_idea_ticket(
         problem_statement=problem_statement,
         stage="inbox",
         source=source,
+        source_ref=_dumps(source_ref or {}),
+        created_by=author,
+        stage_changed_at=now,
         body=_page_body(problem_statement, description),
         last_touched_at=now,
         activity_trail=_dumps(activity_trail),
@@ -426,72 +467,6 @@ async def update_idea_status(
     return await _reload(session, ticket.id)
 
 
-async def promote_idea_to_ticket(
-    session: AsyncSession,
-    idea_ticket_id: str,
-    project_id: str,
-    title: str | None = None,
-    type_: str = "feature",
-    priority: str = "medium",
-    author: str | None = DEFAULT_AUTHOR,
-) -> Ticket:
-    """Turn an approved idea into a regular ticket and link the two.
-
-    Args:
-        idea_ticket_id: Idea to promote.
-        project_id: Project that will own the new ticket.
-        title: Ticket title; defaults to the idea's.
-        type_: Ticket type.
-        priority: Ticket priority.
-
-    Returns:
-        The created ticket.
-
-    Raises:
-        ValueError: If the idea or project is missing, the idea is not approved,
-            lacks a problem statement, or was already promoted.
-    """
-    ticket = await session.get(IdeaTicket, idea_ticket_id)
-    if ticket is None:
-        raise ValueError(f"Idea ticket '{idea_ticket_id}' not found")
-    if ticket.idea_status != "approved":
-        raise ValueError("Only approved ideas can be promoted")
-    if not ticket.problem_statement or not ticket.problem_statement.strip():
-        raise ValueError("Problem statement is required to promote")
-    if ticket.promoted_to_ticket_id is not None:
-        raise ValueError(f"Idea already promoted to {ticket.promoted_to_ticket_id}")
-
-    # Validate project exists before calling svc_create_ticket (which commits internally).
-    # NOTE: true atomicity would require svc_create_ticket to use flush instead of commit;
-    # the UNIQUE constraint on promoted_to_ticket_id prevents double-promotion at the DB level.
-    project = await session.get(Project, project_id)
-    if project is None:
-        raise ValueError(f"Project '{project_id}' not found")
-
-    tags = _safe_json(ticket.tags)
-    new_ticket = await svc_create_ticket(
-        session,
-        project_id=project_id,
-        title=title or ticket.title,
-        description=ticket.problem_statement,
-        type=type_,
-        priority=priority,
-        tags=tags,
-    )
-
-    now = _now_iso()
-    ticket.promoted_to_ticket_id = new_ticket.id
-    ticket.promoted_at = now
-    ticket.stage = "building"
-    ticket.updated_at = now
-    ticket.last_touched_at = now
-    _add_trail(ticket, f"Promoted to ticket {new_ticket.id}", now, author)
-
-    session.add(ticket)
-    await session.commit()
-    return new_ticket
-
-
 # The statuses the current Idea board sends: "invalidated" is now called "disproved".
 _LEGACY_ASSUMPTION_STATUSES = {"invalidated": "disproved"}
 _VALID_ASSUMPTION_STATUSES = set(ASSUMPTION_STATUSES) | set(_LEGACY_ASSUMPTION_STATUSES)
@@ -501,7 +476,7 @@ async def _save_assumption_change(
     session: AsyncSession, ticket: IdeaTicket, label: str, author: str | None
 ) -> IdeaTicket:
     now = _now_iso()
-    _add_trail(ticket, label, now, author)
+    _add_trail(ticket, label, now, author, kind="assumption")
     ticket.last_touched_at = now
     ticket.updated_at = now
     session.add(ticket)
@@ -679,13 +654,17 @@ async def delete_assumption(
 
 
 async def add_microthought(
-    session: AsyncSession, ticket_id: str, text: str
+    session: AsyncSession,
+    ticket_id: str,
+    text: str,
+    author: str | None = DEFAULT_AUTHOR,
 ) -> IdeaTicket:
-    """Append a microthought (max 500 characters).
+    """Add a comment to the idea (the old "microthought"; max 500 characters).
 
     Args:
         ticket_id: Idea to add to.
         text: Text of the new item.
+        author: Who wrote it.
 
     Returns:
         The updated idea ticket.
@@ -700,16 +679,16 @@ async def add_microthought(
         raise ValueError("text must be 500 characters or fewer")
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     now = _now_iso()
-    microthoughts = _safe_json(ticket.microthoughts)
-    microthoughts.append({"id": str(uuid.uuid4()), "text": text, "at": now})
-    ticket.microthoughts = _dumps(microthoughts)
+    session.add(
+        IdeaComment(idea_id=ticket.id, author=author, body=text, created_at=now)
+    )
     return await _trail_entry_and_save(session, ticket, "Microthought added", now)
 
 
 async def delete_microthought(
     session: AsyncSession, ticket_id: str, microthought_id: str
 ) -> IdeaTicket:
-    """Remove a microthought.
+    """Remove a comment of the idea (the old "microthought").
 
     Args:
         ticket_id: Idea holding the item.
@@ -722,10 +701,11 @@ async def delete_microthought(
         ValueError: If the item does not exist.
     """
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
-    microthoughts = _safe_json(ticket.microthoughts)
-    filtered = [m for m in microthoughts if m.get("id") != microthought_id]
-    if len(filtered) == len(microthoughts):
+    comment = next((c for c in ticket.comment_records if c.id == microthought_id), None)
+    if comment is None:
         raise ValueError(f"Microthought '{microthought_id}' not found")
-    ticket.microthoughts = _dumps(filtered)
-    now = _now_iso()
-    return await _trail_entry_and_save(session, ticket, "Microthought deleted", now)
+    ticket.comment_records.remove(comment)
+    await session.flush()
+    return await _trail_entry_and_save(
+        session, ticket, "Microthought deleted", _now_iso()
+    )

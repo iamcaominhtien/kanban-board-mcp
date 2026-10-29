@@ -160,7 +160,8 @@ def _convert_ideas(conn) -> None:
                 "UPDATE idea_ticket SET stage = :stage, park_until = :park_until,"
                 " archive_reason = :reason, source = 'import', body = :body,"
                 " details = :details, promoted_to_ticket_id = :promoted_to,"
-                " promoted_at = :promoted_at, activity_trail = :trail WHERE id = :id"
+                " promoted_at = :promoted_at, activity_trail = :trail,"
+                " stage_changed_at = :changed_at WHERE id = :id"
             ),
             {
                 "stage": stage,
@@ -171,9 +172,30 @@ def _convert_ideas(conn) -> None:
                 "promoted_to": promoted_to,
                 "promoted_at": promoted_at,
                 "trail": json.dumps(trail),
+                "changed_at": row["updated_at"] or now,
                 "id": row["id"],
             },
         )
+        if stage in ("building", "shipped") and promoted_to:
+            conn.execute(
+                sa.text("UPDATE ticket SET from_idea_id = :idea WHERE id = :id"),
+                {"idea": row["id"], "id": promoted_to},
+            )
+        for m in _loads(row["microthoughts"]):
+            if not isinstance(m, dict) or not str(m.get("text", "")).strip():
+                continue
+            conn.execute(
+                sa.text(
+                    "INSERT INTO idea_comment (id, idea_id, author, body, ai, created_at)"
+                    " VALUES (:id, :idea, NULL, :body, 0, :at)"
+                ),
+                {
+                    "id": m.get("id") or str(uuid.uuid4()),
+                    "idea": row["id"],
+                    "body": str(m["text"]).strip(),
+                    "at": m.get("at") or row["created_at"],
+                },
+            )
 
         for position, a in enumerate(_loads(row["assumptions"])):
             if not isinstance(a, dict) or not str(a.get("text", "")).strip():
@@ -214,6 +236,33 @@ def upgrade() -> None:
         batch_op.add_column(
             sa.Column("details", _S(), nullable=False, server_default="")
         )
+        for name in (
+            "created_by",
+            "owner",
+            "park_note",
+            "archive_note",
+            "stage_changed_at",
+            "merged_into_id",
+            "merged_at",
+            "shipped_at",
+            "outcome",
+            "outcome_note",
+            "former_ticket_id",
+            "effort_guess",
+        ):
+            batch_op.add_column(sa.Column(name, _S(), nullable=True))
+        for name in ("source_ref", "prev_state", "merge_undo"):
+            batch_op.add_column(
+                sa.Column(name, _S(), nullable=False, server_default="{}")
+            )
+        batch_op.add_column(
+            sa.Column(
+                "workspace_retention",
+                _S(),
+                nullable=False,
+                server_default="open_then_30",
+            )
+        )
         batch_op.create_index("ix_idea_ticket_stage", ["stage"])
 
     op.create_table(
@@ -247,6 +296,37 @@ def upgrade() -> None:
         "ix_idea_evidence_assumption_id", "idea_evidence", ["assumption_id"]
     )
     op.create_table(
+        "idea_comment",
+        sa.Column("id", _S(), nullable=False),
+        sa.Column("idea_id", _S(), nullable=False),
+        sa.Column("author", _S(), nullable=True),
+        sa.Column("body", _S(), nullable=False, server_default=""),
+        sa.Column("ai", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("run_id", _S(), nullable=True),
+        sa.Column("created_at", _S(), nullable=False),
+        sa.Column("edited_at", _S(), nullable=True),
+        sa.ForeignKeyConstraint(["idea_id"], ["idea_ticket.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_idea_comment_idea_id", "idea_comment", ["idea_id"])
+    op.create_table(
+        "idea_log_entry",
+        sa.Column("id", _S(), nullable=False),
+        sa.Column("idea_id", _S(), nullable=False),
+        sa.Column("kind", _S(), nullable=False, server_default="note"),
+        sa.Column("body", _S(), nullable=False, server_default=""),
+        sa.Column("author", _S(), nullable=True),
+        sa.Column("ai", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("pinned", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("assumption_id", _S(), nullable=True),
+        sa.Column("attachments", _S(), nullable=False, server_default="[]"),
+        sa.Column("ticket_id", _S(), nullable=True),
+        sa.Column("created_at", _S(), nullable=False),
+        sa.ForeignKeyConstraint(["idea_id"], ["idea_ticket.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_idea_log_entry_idea_id", "idea_log_entry", ["idea_id"])
+    op.create_table(
         "idea_vote",
         sa.Column("id", _S(), nullable=False),
         sa.Column("idea_id", _S(), nullable=False),
@@ -259,6 +339,11 @@ def upgrade() -> None:
     op.create_index(
         "uq_idea_vote_idea_voter", "idea_vote", ["idea_id", "voter"], unique=True
     )
+
+    op.add_column("ticket", sa.Column("from_idea_id", _S(), nullable=True))
+    op.add_column("ticket", sa.Column("tests_assumption_id", _S(), nullable=True))
+    op.create_index("ix_ticket_from_idea_id", "ticket", ["from_idea_id"])
+    op.create_index("ix_ticket_tests_assumption_id", "ticket", ["tests_assumption_id"])
 
     _convert_ideas(conn)
 
@@ -285,11 +370,36 @@ def downgrade() -> None:
             {"a": json.dumps(items), "id": idea_id},
         )
 
+    op.drop_index("ix_ticket_tests_assumption_id", "ticket")
+    op.drop_index("ix_ticket_from_idea_id", "ticket")
+    op.drop_column("ticket", "tests_assumption_id")
+    op.drop_column("ticket", "from_idea_id")
+    op.drop_table("idea_log_entry")
+    op.drop_table("idea_comment")
     op.drop_table("idea_vote")
     op.drop_table("idea_evidence")
     op.drop_table("idea_assumption")
     with op.batch_alter_table("idea_ticket", schema=None) as batch_op:
         batch_op.drop_index("ix_idea_ticket_stage")
+        for name in (
+            "workspace_retention",
+            "merge_undo",
+            "prev_state",
+            "source_ref",
+            "effort_guess",
+            "former_ticket_id",
+            "outcome_note",
+            "outcome",
+            "shipped_at",
+            "merged_at",
+            "merged_into_id",
+            "stage_changed_at",
+            "archive_note",
+            "park_note",
+            "owner",
+            "created_by",
+        ):
+            batch_op.drop_column(name)
         batch_op.drop_column("details")
         batch_op.drop_column("body")
         batch_op.drop_column("source")

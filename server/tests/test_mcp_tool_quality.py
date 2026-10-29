@@ -14,7 +14,7 @@ from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_OPS
 from kanban_mcp.tools.items import ITEM_OPS
 from kanban_mcp.tools.projects import PROJECT_OPS
 from kanban_mcp.tools.tickets import TICKET_OPS
-from models import IDEA_COLORS, IDEA_STATUSES
+from models import IDEA_STAGES
 from tests.test_activity import _ticket, client, setup_db  # noqa: F401  (fixtures)
 
 
@@ -50,7 +50,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     assert not core & ideas
     assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(core) == 11 and len(ideas) == 13
+    assert len(core) == 11 and len(ideas) == 5
 
 
 async def test_every_operation_is_reachable_through_a_tool():
@@ -96,7 +96,7 @@ async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(
     from mcp.server.fastmcp import FastMCP
 
     ideas = {f.__name__ for f, _ in kanban_mcp.IDEA_TOOL_TABLE}
-    assert len(ideas) == 13
+    assert len(ideas) == 5
     assert not ideas & set(await _tools())  # the real server: hidden
     assert (
         "IDEA-N" not in (mcp.instructions or "")
@@ -204,7 +204,7 @@ async def test_server_instructions_explain_the_ids_and_conventions():
         ),
         (
             kanban_mcp.build_instructions(True),
-            ("IAM-12", "IDEA-N", "explicit null", "dropped"),
+            ("IAM-12", "IDEA-N", "Inbox", "cannot move"),
         ),
     ):
         for must in musts:
@@ -224,14 +224,7 @@ async def test_schema_enums_match_the_services():
         svc_tickets.VALID_RELATION_TYPES
     )
     assert enum("ticket_branches", "status") == set(svc_tickets.VALID_BRANCH_STATUSES)
-    assert enum("update_idea_status", "new_status") == set(IDEA_STATUSES)
-    assert enum("create_idea_ticket", "idea_color") == set(IDEA_COLORS)
-    assert enum("create_idea_ticket", "idea_energy") == {
-        "seed",
-        "concept",
-        "hot",
-        "big_bet",
-    }
+    assert enum("list_idea_tickets", "stage") == set(IDEA_STAGES)
     assert enum("manage_ticket", "status") == {
         "backlog",
         "todo",
@@ -358,7 +351,7 @@ async def test_failures_are_raised_for_idea_tools_too():
     with pytest.raises(ValueError, match="not found"):
         await ops.get_idea_ticket("IDEA-999")
     with pytest.raises(ValueError, match="not found"):
-        await ops.update_idea_status("IDEA-999", "in_review")
+        await ops.list_idea_assumptions("IDEA-999")
     with pytest.raises(ValueError, match="not found"):
         await ops.get_idea_activity_trail("IDEA-999")
 
