@@ -259,7 +259,7 @@ export function DocsPageView({
             position: 'relative',
           }}
         >
-          <div style={{ maxWidth: 'clamp(640px, 62vw, 1120px)', margin: '0 auto' }}>
+          <div style={{ maxWidth: 'min(100%, clamp(640px, 62vw, 1120px))', margin: '0 auto' }}>
             {!offline && (
               <div style={{ marginBottom: 16 }}>
                 <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
@@ -454,6 +454,11 @@ export function DocsPageView({
                             setInfo(false);
                             onAction('history');
                           }}
+                          onOpenReferences={() =>
+                            scrollRef.current
+                              ?.querySelector('[data-testid="referenced-by"]')
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          }
                         />
                       )}
                     </div>

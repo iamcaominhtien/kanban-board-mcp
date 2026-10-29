@@ -570,6 +570,11 @@ async def list_deleted(session: AsyncSession, project_id: str) -> list[dict[str,
             [d for d in pages if d.deleted_root_id == p.id and d.id != p.id]
         )
         parent = await session.get(DocsPage, p.parent_id) if p.parent_id else None
+        children = [
+            d.title
+            for d in pages
+            if d.parent_id == p.id and d.deleted_root_id == p.id and d.id != p.id
+        ]
         out.append(
             {
                 "id": p.id,
@@ -580,6 +585,7 @@ async def list_deleted(session: AsyncSession, project_id: str) -> list[dict[str,
                 "deleted_at": p.deleted_at,
                 "deleted_by": p.deleted_by,
                 "page_count": count,
+                "child_titles": children,
                 "days_left": max(
                     0,
                     RECYCLE_DAYS

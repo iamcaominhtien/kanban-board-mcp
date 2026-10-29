@@ -112,6 +112,8 @@ export interface DocsDeletedEntry {
   deletedAt: string;
   deletedBy: string;
   pageCount: number;
+  /** titles of the pages directly under it that were deleted with it */
+  childTitles?: string[];
   daysLeft: number;
 }
 

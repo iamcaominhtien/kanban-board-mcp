@@ -90,6 +90,16 @@ const EMIT_MS = 180;
 // which tears down the "/" and "[[" suggestion views while they are open
 const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
 
+/** Caption above each pane in the side-by-side Markdown view. */
+const PANE_LABEL: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'baseline',
+  gap: 8,
+  height: 32,
+  fontSize: 12,
+  color: '#5B6B60',
+};
+
 /**
  * Tiptap WYSIWYG editor that reads and writes Markdown.
  * @param props.projectId - Project used to resolve references.
@@ -111,15 +121,6 @@ const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const
  * @param props.ai - Board AI entry points (toolbar Ask AI, selection actions).
  * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
  */
-const PANE_LABEL: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'baseline',
-  gap: 8,
-  height: 32,
-  fontSize: 12,
-  color: '#5B6B60',
-};
-
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
   {
     projectId,

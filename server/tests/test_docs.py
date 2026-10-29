@@ -237,6 +237,7 @@ async def test_delete_restore_subtree_and_orphan_child(c, pid):
     assert (await c.get(f"/docs/pages/{a['id']}")).status_code == 410
     bin_ = (await c.get(f"/projects/{pid}/docs/recycle-bin")).json()
     assert len(bin_) == 1 and bin_[0]["page_count"] == 2 and bin_[0]["title"] == "A"
+    assert bin_[0]["child_titles"] == ["Kid"]
     # restoring only the child while its parent stays deleted lands at top level
     r = await c.post(f"/docs/pages/{kid['id']}/restore")
     assert r.json()["moved_to_top_level"] is True

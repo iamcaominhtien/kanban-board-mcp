@@ -604,7 +604,8 @@ export function DocsView({
         page={page}
         projectId={projectId}
         projectName={projectName}
-        narrow={narrow}
+        // the history drawer takes 420px of the row: use the compact page layout while it is open
+        narrow={narrow || history !== null}
         offline={offlineCopy ? { savedAt: cachedPage!.savedAt, version: cachedPage!.version } : null}
         onTryAgain={() => {
           void pageQuery.refetch();
@@ -757,6 +758,7 @@ export function DocsView({
           page={page}
           initialCompare={history.compare}
           onClose={() => setHistory(null)}
+          onReopen={() => setHistory({})}
         />
       )}
       {deleteFor && (

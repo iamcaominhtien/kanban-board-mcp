@@ -322,8 +322,8 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
             <Icon name="i14" size={15} strokeWidth={2} />
           </span>
           <span>
-            {displayName(draft.author)} has an unpublished draft. It is kept, and will now be based on v
-            {page.version + 1}.
+            {displayName(draft.author)} {displayName(draft.author) === 'You' ? 'have' : 'has'} an unpublished draft (
+            {plural(draft.saves ?? 1, 'autosave')}). It is kept, and will now be based on v{page.version + 1}.
           </span>
         </div>
       )}
@@ -684,35 +684,39 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
         .hd-row .hd-actions { display: none; }
         .hd-row:hover .hd-actions, .hd-row:focus-within .hd-actions { display: flex; }
       `}</style>
+      {/* In the page row, so the page makes room for the drawer instead of sitting under it. */}
       <div
         className="docs-root"
-        onClick={handleClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'transparent' }}
+        data-testid="history-drawer"
+        style={{
+          position: 'relative',
+          flexShrink: 0,
+          width: visible ? 420 : 0,
+          maxWidth: '60vw',
+          overflow: 'hidden',
+          transition: 'width .18s ease',
+          zIndex: 5,
+        }}
       >
         <div
           ref={drawerRef}
           tabIndex={-1}
           role="dialog"
-          aria-modal="true"
+          aria-modal="false"
           aria-label="Page history"
-          onClick={(e) => e.stopPropagation()}
           style={{
             position: 'absolute',
             top: 0,
             right: 0,
             bottom: 0,
             width: 420,
-            maxWidth: '100vw',
+            maxWidth: '60vw',
             display: 'flex',
             flexDirection: 'column',
             background: '#FFFFFF',
             borderLeft: '1px solid #E3E8E5',
-            boxShadow: '-12px 0 32px rgba(30,42,34,0.08)',
             color: '#1E2A22',
             outline: 'none',
-            transform: visible ? 'translateX(0)' : 'translateX(24px)',
-            opacity: visible ? 1 : 0,
-            transition: 'transform .18s ease, opacity .18s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 16px 12px' }}>

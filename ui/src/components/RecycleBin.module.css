@@ -47,6 +47,18 @@
   background: #fbfcfb;
 }
 
+/* Restore / Delete forever show on hover or focus (design/screens/docs-actions.md D); touch screens always show them */
+@media (hover: hover) {
+  .list :global(.bin-row:not([data-pinned]) .bin-actions) {
+    opacity: 0;
+  }
+
+  .list :global(.bin-row:hover .bin-actions),
+  .list :global(.bin-row:focus-within .bin-actions) {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .overlay,
   .panel {
