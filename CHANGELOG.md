@@ -10,6 +10,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [3.9.1] - 2026-10-29
+
+### Fixed
+- Desktop: the packaged app starts again. 3.9.0 crashed on launch with `Cannot find module './export-svg'` again: a merge dropped `export-svg.js` from the files electron-builder packages (the 3.8.4 fix). CI now runs the desktop tests, including the check that every local module a shipped file requires is shipped, so this can't merge unnoticed.
+
+---
+
 ## [3.9.0] - 2026-10-29
 
 ### Changed
