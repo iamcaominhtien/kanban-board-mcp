@@ -2,6 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import type { Column as ColumnType, Member, Ticket } from '../types';
 import { DraggableTicketCard } from './DraggableTicketCard';
 import styles from './Board.module.css';
+import { useAiBoardState } from './ai/aiUi';
 import loading from './AppLoading.module.css';
 
 interface ColumnProps {
@@ -43,6 +44,11 @@ export function Column({
   dragKind = null,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const { runsByTicket } = useAiBoardState();
+  const aiRunning = tickets.filter((t) => {
+    const r = runsByTicket.get(t.id);
+    return r && (r.state === 'running' || r.state === 'starting');
+  }).length;
 
   const columnTicketIds = new Set(tickets.map((t) => t.id));
 
@@ -78,6 +84,16 @@ export function Column({
       <div className={styles.columnHeaderContainer}>
         <div className={styles.columnHeaderTop}>
           <span className={styles.columnLabel}>{column.label}</span>
+          {aiRunning > 0 && (
+            <span
+              className="ai-col-chip"
+              style={{ marginLeft: 'auto', marginRight: 6 }}
+              data-testid="column-ai-running"
+            >
+              <span className="ai-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: '#2E6F40' }} />
+              {aiRunning} AI running
+            </span>
+          )}
           {skeletonCards !== undefined ? (
             <span className={`${loading.skel} ${loading.skelBadge}`} aria-hidden="true" />
           ) : (

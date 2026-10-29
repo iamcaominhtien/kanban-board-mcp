@@ -1,0 +1,556 @@
+"""Local runner: find the official CLI, check it is signed in, launch it headless, read its stream, kill it cleanly.
+
+The board only starts the CLI exactly as a person would type it. It never reads, copies or stores the CLI's login:
+the account shown is what ``claude auth status`` prints (no token is in that output).
+"""
+
+import asyncio
+import json
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+from .secrets import redact
+
+_SEARCH_DIRS = [
+    "~/.local/bin",
+    "~/.claude/local",
+    "~/.npm-global/bin",
+    "~/bin",
+    "/usr/local/bin",
+    "/opt/homebrew/bin",
+    "/usr/bin",
+    "~/AppData/Roaming/npm",
+]
+
+
+def find_cli(binary: str, explicit: str | None = None) -> tuple[str | None, list[str]]:
+    """Path of the CLI: the configured one, then PATH, then the usual install folders.
+
+    Returns:
+        (path or None, the places that were checked)
+    """
+    checked: list[str] = []
+    if explicit:
+        p = Path(explicit).expanduser()
+        checked.append(str(p))
+        if p.is_file() and os.access(p, os.X_OK):
+            return str(p), checked
+    checked.append("PATH")
+    found = shutil.which(binary)
+    if found:
+        return found, checked
+    names = (
+        [binary, f"{binary}.cmd", f"{binary}.exe"]
+        if sys.platform == "win32"
+        else [binary]
+    )
+    for folder in _SEARCH_DIRS:
+        base = Path(folder).expanduser()
+        checked.append(str(base))
+        for name in names:
+            cand = base / name
+            if cand.is_file() and os.access(cand, os.X_OK):
+                return str(cand), checked
+    return None, checked
+
+
+def _popen_kwargs() -> dict:
+    """Start the CLI in its own process group so cancel can stop it and every child it started."""
+    if sys.platform == "win32":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
+def child_env() -> dict:
+    """Environment for the CLI: the person's own, minus variables that would make it think it runs inside a
+    Claude Code session (when the board itself was started from one)."""
+    env = dict(os.environ)
+    for key in list(env):
+        if key in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID"):
+            env.pop(key, None)
+    # A board tool call may wait for a person's approval (guard.APPROVAL_WAIT_S); keep the CLI from giving up first
+    env.setdefault("MCP_TOOL_TIMEOUT", str(15 * 60 * 1000))
+    return env
+
+
+async def run_capture(
+    args: list[str], timeout: float, cwd: str | None = None
+) -> tuple[int, str, str]:
+    """Run a short command and capture its output; kills it on timeout."""
+    proc = await asyncio.create_subprocess_exec(
+        *args,
+        cwd=cwd,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=child_env(),
+        **_popen_kwargs(),
+    )
+    try:
+        out, err = await asyncio.wait_for(proc.communicate(), timeout)
+    except asyncio.TimeoutError:
+        kill_tree(proc.pid)
+        await proc.wait()
+        return -1, "", f"Timed out after {int(timeout)} s"
+    return (
+        proc.returncode or 0,
+        out.decode(errors="replace"),
+        err.decode(errors="replace"),
+    )
+
+
+async def detect(provider: str, binary: str, explicit: str | None = None) -> dict:
+    """CLI found? version? signed in (and as whom, without ever touching the token)?"""
+    path, checked = find_cli(binary, explicit)
+    info: dict = {
+        "found": bool(path),
+        "path": path,
+        "checked": checked,
+        "version": None,
+        "logged_in": None,
+        "account": None,
+    }
+    if not path:
+        return info
+    code, out, err = await run_capture([path, "--version"], 20)
+    if code == 0:
+        info["version"] = out.strip().split("\n")[0][:80]
+    if provider == "claude-code":
+        code, out, _ = await run_capture([path, "auth", "status"], 20)
+        try:
+            status = json.loads(out)
+        except ValueError:
+            status = {}
+        if status:
+            info["logged_in"] = bool(status.get("loggedIn"))
+            account = (
+                status.get("email") or status.get("account") or status.get("orgName")
+            )
+            plan = str(status.get("subscriptionType") or "").strip()
+            method = (
+                f"{plan.capitalize()} plan"
+                if plan
+                else {"oauth_token": "subscription login", "api_key": "API key"}.get(
+                    status.get("authMethod"), status.get("authMethod")
+                )
+            )
+            info["account"] = " · ".join(x for x in (account, method) if x) or None
+    return info
+
+
+async def test_run(path: str, model: str | None, cwd: str | None) -> dict:
+    """A one-line headless run: proves the CLI starts, is signed in and answers."""
+    started = time.monotonic()
+    args = [
+        path,
+        "-p",
+        "Reply with exactly the word: pong",
+        "--output-format",
+        "json",
+        "--max-turns",
+        "1",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+    ]
+    if model:
+        args += ["--model", model]
+    code, out, err = await run_capture(args, 90, cwd=cwd)
+    seconds = round(time.monotonic() - started, 1)
+    try:
+        data = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
+    except ValueError:
+        data = {}
+    reply = (data.get("result") or "").strip()
+    if code == 0 and not data.get("is_error"):
+        return {"ok": True, "seconds": seconds, "reply": reply[:80]}
+    detail = reply or err.strip() or out.strip() or f"exit code {code}"
+    low = detail.lower()
+    kind = (
+        "not_logged_in"
+        if ("log in" in low or "login" in low or "auth" in low)
+        else "failed"
+    )
+    return {
+        "ok": False,
+        "seconds": seconds,
+        "error": redact(detail)[:300],
+        "kind": kind,
+    }
+
+
+_RATE_LIMITED = re.compile(
+    r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests)", re.I
+)
+RATE_WAIT_DEFAULT = 45.0
+RATE_WAIT_MAX = 6 * 3600.0
+
+
+def rate_limit_wait(text: str | None) -> float | None:
+    """Seconds to wait when the CLI's output says the provider is rate-limiting it, else None. A usage-limit
+    message names the time it resets (``...limit reached|1760000000``); "retry after N" is honoured too."""
+    if not text or not _RATE_LIMITED.search(text):
+        return None
+    reset = re.search(r"\|(\d{10})\b", text)
+    if reset:
+        wait = int(reset.group(1)) - time.time()
+    else:
+        after = re.search(r"retry[- ]after\D{0,10}(\d+)", text, re.I)
+        wait = float(after.group(1)) if after else RATE_WAIT_DEFAULT
+    return max(5.0, min(wait, RATE_WAIT_MAX))
+
+
+def kill_tree(pid: int | None) -> None:
+    """Stop a process and everything it started (its process group); safe on an already-dead pid."""
+    if not pid:
+        return
+    if sys.platform == "win32":
+        subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, check=False
+        )
+        return
+    try:
+        pgid = os.getpgid(pid)
+    except ProcessLookupError:
+        return
+    if pgid == os.getpgid(0):  # never our own group
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        return
+    try:
+        os.killpg(pgid, signal.SIGCONT)  # a paused run must wake up to see the SIGTERM
+        os.killpg(pgid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+
+    def _force() -> None:
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+    # Whatever ignored SIGTERM is killed 2 s later, without blocking the event loop
+    timer = threading.Timer(2.0, _force)
+    timer.daemon = True
+    timer.start()
+
+
+def can_pause() -> bool:
+    """Whether a run's CLI can be paused on this computer (a stopped process group needs POSIX signals)."""
+    return sys.platform != "win32"
+
+
+def suspend_tree(pid: int | None, stop: bool = True) -> bool:
+    """Pause (SIGSTOP) or continue (SIGCONT) a process and everything it started; False when it is gone."""
+    if not pid or not can_pause():
+        return False
+    try:
+        pgid = os.getpgid(pid)
+        if pgid == os.getpgid(0):  # never stop our own group
+            return False
+        os.killpg(pgid, signal.SIGSTOP if stop else signal.SIGCONT)
+    except (ProcessLookupError, PermissionError):
+        return False
+    return True
+
+
+def looks_like_cli(pid: int, binary: str = "claude") -> bool:
+    """Is `pid` still one of our CLI processes? Used before killing a run left over from a crash, so a reused
+    pid is never killed by mistake."""
+    try:
+        cmd = (
+            Path(f"/proc/{pid}/cmdline")
+            .read_bytes()
+            .replace(b"\0", b" ")
+            .decode(errors="replace")
+        )
+    except OSError:
+        return False
+    return binary in cmd and "--output-format" in cmd
+
+
+class CliProcess:
+    """One running CLI: yields its stdout lines; `kill()` stops the whole tree."""
+
+    def __init__(self, args: list[str], cwd: str, env: dict | None = None):
+        """Prepare the command; nothing starts until `start()`."""
+        self.args = args
+        self.cwd = cwd
+        self.env = env or child_env()
+        self.proc: asyncio.subprocess.Process | None = None
+        self.stderr_tail: list[str] = []
+
+    async def start(self) -> int:
+        """Launch; returns the pid."""
+        self.proc = await asyncio.create_subprocess_exec(
+            *self.args,
+            cwd=self.cwd,
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=self.env,
+            limit=16 * 1024 * 1024,
+            **_popen_kwargs(),
+        )
+        asyncio.create_task(self._drain_stderr())
+        return self.proc.pid
+
+    async def _drain_stderr(self) -> None:
+        assert self.proc and self.proc.stderr
+        async for raw in self.proc.stderr:
+            line = raw.decode(errors="replace").rstrip()
+            if line:
+                self.stderr_tail = (self.stderr_tail + [redact(line)])[-20:]
+
+    async def lines(self):
+        """Stdout lines as they arrive."""
+        assert self.proc and self.proc.stdout
+        async for raw in self.proc.stdout:
+            yield raw.decode(errors="replace").rstrip("\n")
+
+    async def wait(self) -> int:
+        """Exit code."""
+        assert self.proc
+        return await self.proc.wait()
+
+    def kill(self) -> None:
+        """Stop the CLI and its children."""
+        if self.proc and self.proc.returncode is None:
+            kill_tree(self.proc.pid)
+
+
+# ---------------------------------------------------------------------------
+# Claude Code stream-json → run steps
+# ---------------------------------------------------------------------------
+
+
+def _short(text: str, n: int = 160) -> str:
+    text = " ".join((text or "").split())
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
+def _rel(path: str, cwd: str) -> str:
+    try:
+        return str(Path(path).resolve().relative_to(Path(cwd).resolve()))
+    except (ValueError, OSError):
+        return path
+
+
+def describe_tool(name: str, inp: dict, cwd: str) -> tuple[str, str, dict | None]:
+    """(kind, text, file change) for one tool call of the CLI."""
+    if name in ("Edit", "MultiEdit"):
+        path = _rel(inp.get("file_path", ""), cwd)
+        edits = inp.get("edits") or [inp]
+        added = sum(len((e.get("new_string") or "").splitlines()) for e in edits)
+        removed = sum(len((e.get("old_string") or "").splitlines()) for e in edits)
+        return (
+            "edit",
+            f"Edited {path}",
+            {"path": path, "added": added, "removed": removed, "new": False},
+        )
+    if name == "Write":
+        path = _rel(inp.get("file_path", ""), cwd)
+        added = len((inp.get("content") or "").splitlines())
+        return (
+            "create",
+            f"Wrote {path}",
+            {"path": path, "added": added, "removed": 0, "new": True},
+        )
+    if name == "Read":
+        return "read", f"Read {_rel(inp.get('file_path', ''), cwd)}", None
+    if name == "Bash":
+        return "command", f"Ran {_short(inp.get('command', ''), 120)}", None
+    if name in ("Grep", "Glob"):
+        return "search", f"Searched {_short(inp.get('pattern', ''), 80)}", None
+    if name.startswith("mcp__"):
+        parts = name.split("__")
+        tool = parts[-1]
+        action = inp.get("action")
+        item = inp.get("item")
+        label = ".".join(x for x in (tool, item, action) if x)
+        target = inp.get("ticket_id") or inp.get("project_id") or ""
+        return "board", f"board.{label}({target})", None
+    return "tool", f"{name} {_short(json.dumps(inp)[:200], 80)}", None
+
+
+_PASSED = re.compile(r"\b(\d+) (?:passed|passing)\b", re.I)
+_FAILED = re.compile(r"\b(\d+) (?:failed|failing)\b", re.I)
+_FAILING_NAME = re.compile(r"^(?:FAILED|FAIL|✗|×)\s+(\S.{0,120})$", re.M)
+
+
+def parse_tests(output: str) -> dict | None:
+    """Pass and fail counts read from a test command's output (pytest, jest, vitest, mocha, ...), or None when the
+    output does not look like a test run."""
+    passed = _PASSED.findall(output or "")
+    failed = _FAILED.findall(output or "")
+    if not passed and not failed:
+        return None
+    return {
+        "passed": int(passed[-1]) if passed else 0,
+        "failed": int(failed[-1]) if failed else 0,
+        "failing": [m.strip() for m in _FAILING_NAME.findall(output)][:5],
+    }
+
+
+def _result_text(content) -> str:
+    if isinstance(content, list):
+        content = "\n".join(c.get("text", "") for c in content if isinstance(c, dict))
+    return str(content or "")
+
+
+def parse_stream_line(line: str, cwd: str) -> dict:
+    """One line of ``--output-format stream-json`` → {steps, files, session_id, result, results}.
+
+    `results` are the outputs of earlier tool calls, to attach to their steps: {tool_id, output, exit_code, is_error}.
+    """
+    out: dict = {
+        "steps": [],
+        "files": [],
+        "session_id": None,
+        "result": None,
+        "ready": False,
+        "results": [],
+    }
+    line = line.strip()
+    if not line.startswith("{"):
+        return out
+    try:
+        ev = json.loads(line)
+    except ValueError:
+        return out
+    kind = ev.get("type")
+    if kind == "system" and ev.get("subtype") == "init":
+        out["ready"] = True
+        out["session_id"] = ev.get("session_id")
+        out["model"] = ev.get("model")
+    elif kind == "assistant":
+        for block in (ev.get("message") or {}).get("content") or []:
+            if block.get("type") == "tool_use" and block.get("name") == "ToolSearch":
+                continue  # the CLI loading its own deferred tools: not a step of the work
+            if block.get("type") == "tool_use":
+                k, text, change = describe_tool(
+                    block.get("name", ""), block.get("input") or {}, cwd
+                )
+                out["steps"].append(
+                    {"kind": k, "text": redact(text), "tool_id": block.get("id")}
+                )
+                if change:
+                    out["files"].append(change)
+            elif block.get("type") == "text" and (block.get("text") or "").strip():
+                out["steps"].append(
+                    {"kind": "say", "text": redact(_short(block["text"], 300))}
+                )
+    elif kind == "user":
+        for block in (ev.get("message") or {}).get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "tool_result":
+                text = _result_text(block.get("content"))
+                code = re.match(r"Exit code (\d+)", text)
+                out["results"].append(
+                    {
+                        "tool_id": block.get("tool_use_id"),
+                        "output": redact(text)[:4000],
+                        "is_error": bool(block.get("is_error")),
+                        "exit_code": int(code.group(1))
+                        if code
+                        else (1 if block.get("is_error") else 0),
+                    }
+                )
+            if (
+                isinstance(block, dict)
+                and block.get("type") == "tool_result"
+                and block.get("is_error")
+            ):
+                content = block.get("content")
+                if isinstance(content, list):
+                    content = " ".join(
+                        c.get("text", "") for c in content if isinstance(c, dict)
+                    )
+                out["steps"].append(
+                    {
+                        "kind": "error",
+                        "text": redact(_short(str(content), 240)),
+                        "tool_id": block.get("tool_use_id"),
+                    }
+                )
+    elif kind == "result":
+        usage = ev.get("usage") or {}
+        out["result"] = {
+            "is_error": bool(ev.get("is_error"))
+            or ev.get("subtype") not in (None, "success"),
+            "subtype": ev.get("subtype"),
+            "text": redact(ev.get("result") or ""),
+            "cost_usd": float(ev.get("total_cost_usd") or 0),
+            "tokens_in": int(usage.get("input_tokens") or 0)
+            + int(usage.get("cache_creation_input_tokens") or 0)
+            + int(usage.get("cache_read_input_tokens") or 0),
+            "tokens_out": int(usage.get("output_tokens") or 0),
+            "turns": ev.get("num_turns"),
+        }
+        out["session_id"] = ev.get("session_id")
+    return out
+
+
+REJECTED_FLAGS = (
+    "--dangerously-skip-permissions",
+    "--allow-dangerously-skip-permissions",
+    "bypassPermissions",
+    "--permission-mode",
+)
+
+
+def claude_args(
+    path: str,
+    *,
+    prompt: str,
+    system: str,
+    model: str | None,
+    mcp_config: dict,
+    allowed: list[str],
+    denied: list[str],
+    max_turns: int,
+    session_id: str,
+    resume: bool,
+    effort: str | None = None,
+    extra_flags: list[str] | None = None,
+) -> list[str]:
+    """Command line of one headless Claude Code run. Never skips the CLI's own permission checks."""
+    args = [
+        path,
+        "-p",
+        prompt,
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--permission-mode",
+        "dontAsk",
+        "--max-turns",
+        str(max_turns),
+        "--mcp-config",
+        json.dumps(mcp_config),
+        "--strict-mcp-config",
+        "--append-system-prompt",
+        system,
+    ]
+    args += ["--resume", session_id] if resume else ["--session-id", session_id]
+    if model:
+        args += ["--model", model]
+    if effort:
+        args += ["--effort", effort]
+    if allowed:
+        args += ["--allowedTools", ",".join(allowed)]
+    if denied:
+        args += ["--disallowedTools", ",".join(denied)]
+    for flag in extra_flags or []:
+        if any(bad in flag for bad in REJECTED_FLAGS):
+            continue
+        args.append(flag)
+    return args

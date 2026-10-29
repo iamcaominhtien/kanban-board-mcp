@@ -20,6 +20,9 @@ import { PublishDialog } from './PublishDialog';
 import { markDocsSeen } from './SinceViewedBanner';
 import { markOwnPublish } from './useDocsNotifications';
 import './docs.css';
+import { DocsAi, startSelectionDraft } from '../assist/DocsAi';
+import { useAssist } from '../assist/AssistContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
   projectId: string;
@@ -60,6 +63,9 @@ export function DocsEditScreen({
   onEditorRoot,
 }: Props) {
   const toast = useToast();
+  const assist = useAssist();
+  const qc = useQueryClient();
+  const [aiMenu, setAiMenu] = useState(false);
   const saveDraft = useSaveDraft(projectId);
   const publish = usePublishPage(projectId);
   const discard = useDiscardDraft(projectId);
@@ -525,6 +531,23 @@ export function DocsEditScreen({
               onUserInput={() => {
                 userInput.current = true;
               }}
+              ai={{
+                onAsk: () => setAiMenu((v) => !v),
+                onSelection: (action, text) => {
+                  if (action === 'ask') {
+                    assist?.ask({
+                      scope: 'doc',
+                      docId: page.id,
+                      fresh: true,
+                      text: `About this passage of the page: “${text.slice(0, 600)}” — what does it mean, and is anything missing?`,
+                    });
+                    return;
+                  }
+                  void startSelectionDraft(projectId, page.id, action, text)
+                    .then(() => qc.invalidateQueries({ queryKey: ['assist', 'doc-drafts', projectId, page.id] }))
+                    .catch((e: unknown) => toast.error('Board AI', extractError(e)));
+                },
+              }}
               header={
                 <div style={{ paddingBottom: 12, marginBottom: 6, borderBottom: '1px solid #E3E8E5' }}>
                   <input
@@ -547,6 +570,25 @@ export function DocsEditScreen({
                       letterSpacing: '-0.01em',
                       color: '#1E2A22',
                       padding: 0,
+                    }}
+                  />
+                  <DocsAi
+                    projectId={projectId}
+                    pageId={page.id}
+                    pageTitle={title}
+                    menuOpen={aiMenu}
+                    setMenuOpen={setAiMenu}
+                    ed={{
+                      getEditor: () => editor.current?.getEditor() ?? null,
+                      getMarkdown: () => editor.current?.flush() ?? latest.current.markdown,
+                      setMarkdown: (md) => {
+                        editor.current
+                          ?.getEditor()
+                          ?.commands.setContent(md, { contentType: 'markdown', emitUpdate: true } as never);
+                        userInput.current = true;
+                        setMarkdown(md);
+                        touch();
+                      },
                     }}
                   />
                 </div>

@@ -237,9 +237,17 @@ export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
  * @param ticketId - Ticket to comment on.
  * @param text - Comment body (Markdown).
  * @param author - Display name of the author.
+ * @param aiIntent - What an @mention of an AI member means: ask, work (assign + run) or notify.
+ * @param replyTo - Id of the comment this answers; under an AI's comment it asks that AI again.
  */
-export async function addComment(ticketId: string, text: string, author = 'user'): Promise<Ticket> {
-  const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author });
+export async function addComment(
+  ticketId: string,
+  text: string,
+  author = 'user',
+  aiIntent?: 'ask' | 'work' | 'notify',
+  replyTo?: string,
+): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author, aiIntent, replyTo });
   return res.data;
 }
 
@@ -793,8 +801,20 @@ function useTicketSubMutation<T>(mutationFn: (arg: T) => Promise<Ticket>) {
 
 /** Mutation: add a comment. */
 export function useAddComment() {
-  return useTicketSubMutation(({ ticketId, text, author }: { ticketId: string; text: string; author?: string }) =>
-    addComment(ticketId, text, author),
+  return useTicketSubMutation(
+    ({
+      ticketId,
+      text,
+      author,
+      aiIntent,
+      replyTo,
+    }: {
+      ticketId: string;
+      text: string;
+      author?: string;
+      aiIntent?: 'ask' | 'work' | 'notify';
+      replyTo?: string;
+    }) => addComment(ticketId, text, author, aiIntent, replyTo),
   );
 }
 

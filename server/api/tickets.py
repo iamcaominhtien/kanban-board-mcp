@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
+from services import activity as act_ctx
 from database import get_session
 from models import (
     ActivityEventRead,
@@ -286,20 +287,46 @@ async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
 async def patch_ticket(
     ticket_id: str, data: TicketUpdate, session: Session
 ) -> TicketRead:
-    """Update a ticket."""
+    """Update a ticket (archiving or reassigning it ends an AI run holding it)."""
+    from services.ai import runs as ai_runs
+
+    fields = data.model_dump(exclude_unset=True)
+    await ai_runs.before_ticket_change(
+        ticket_id,
+        status=fields.get("status"),
+        assignee=fields["assignee"] if "assignee" in fields else ai_runs._UNSET,
+        by=act_ctx.current_actor(),
+    )
+    before = await get_ticket(session, ticket_id)
+    was = {"title": before.title, "description": before.description} if before else {}
     try:
         ticket = await update_ticket(session, ticket_id, data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
+    # A person edits what an AI is working on: its run records it and refreshes its context (design H2)
+    edited = [
+        label
+        for key, label in (("title", "the title"), ("description", "the description"))
+        if key in fields and fields[key] != was.get(key)
+    ]
+    if edited:
+        await ai_runs.note_person_edit(
+            ticket_id, by=act_ctx.current_actor(), what=" and ".join(edited)
+        )
     await board_events.publish("invalidate")
     return _read(ticket)
 
 
 @router.delete("/tickets/{ticket_id}", status_code=204)
 async def del_ticket(ticket_id: str, session: Session) -> None:
-    """Delete a ticket."""
+    """Delete a ticket (any AI run on it is cancelled; its run history is kept)."""
+    from services.ai import runs as ai_runs
+
+    await ai_runs.before_ticket_change(
+        ticket_id, deleting=True, by=act_ctx.current_actor()
+    )
     found = await delete_ticket(session, ticket_id)
     if not found:
         _404()
@@ -323,7 +350,13 @@ class StatusBody(BaseModel):
 async def patch_status(
     ticket_id: str, body: StatusBody, session: Session
 ) -> TicketRead:
-    """Move a ticket to another status."""
+    """Move a ticket to another status (Won't Do cancels an AI run holding it)."""
+    if body.status == "wont_do":
+        from services.ai import runs as ai_runs
+
+        await ai_runs.before_ticket_change(
+            ticket_id, status="wont_do", by=act_ctx.current_actor()
+        )
     try:
         ticket = await update_ticket(
             session, ticket_id, TicketUpdate(status=body.status)
@@ -474,6 +507,10 @@ class CommentBody(BaseModel):
 
     text: str
     author: str = "user"
+    # What an @mention of an AI member means: ask (answer in a comment), work (assign + run) or notify
+    ai_intent: Optional[Literal["ask", "work", "notify"]] = None
+    # A reply under another comment; under an AI's comment it asks that AI again
+    reply_to: Optional[str] = None
 
 
 class CommentUpdateBody(BaseModel):
@@ -487,8 +524,22 @@ async def post_comment(
     ticket_id: str, body: CommentBody, session: Session
 ) -> TicketRead:
     """Add a comment and publish a `comment_added` event."""
+    meta = None
+    if body.reply_to:
+        current = await get_ticket(session, ticket_id)
+        target = (
+            next(
+                (c for c in _loads_comments(current) if c.get("id") == body.reply_to),
+                None,
+            )
+            if current
+            else None
+        )
+        meta = {"reply_to": body.reply_to}
+        if target and (target.get("ai") or {}).get("member_id"):
+            meta["asks_again"] = target["ai"]["member_id"]
     try:
-        ticket = await add_comment(session, ticket_id, body.text, body.author)
+        ticket = await add_comment(session, ticket_id, body.text, body.author, meta)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
@@ -507,6 +558,35 @@ async def post_comment(
                 }
             )
         )
+    if latest and body.ai_intent != "notify":
+        from services.ai import mentions as ai_mentions
+
+        from services import activity as act_ctx
+
+        # The person the AI acts for: the named author, else the board user sending the request (X-Actor)
+        by = (
+            body.author
+            if body.author and body.author != "user"
+            else act_ctx.current_actor()
+        )
+        delivered = await ai_mentions.deliver(
+            ticket.id,
+            body.text,
+            by=by,
+            intent=body.ai_intent or "ask",
+            source_comment_id=latest["id"],
+        )
+        if delivered:
+            await session.refresh(ticket)
+        if body.reply_to and body.ai_intent != "notify":
+            if await ai_mentions.deliver_reply(
+                ticket.id,
+                body.text,
+                by=by,
+                reply_to=body.reply_to,
+                source_comment_id=latest["id"],
+            ):
+                await session.refresh(ticket)
     return _read(ticket)
 
 
@@ -772,6 +852,7 @@ class TestCaseCreateBody(BaseModel):
     notes: Optional[str] = None
     assignee: Optional[str] = None
     test_data_files: list[dict[str, Any]] = []
+    criterion_id: Optional[str] = None
 
 
 class TestCaseUpdateBody(BaseModel):
@@ -786,6 +867,7 @@ class TestCaseUpdateBody(BaseModel):
     notes: Optional[str] = None
     assignee: Optional[str] = None
     test_data_files: Optional[list[dict[str, Any]]] = None
+    criterion_id: Optional[str] = None  # "" unlinks
 
 
 @router.post("/tickets/{ticket_id}/test-cases", response_model=TicketRead)
@@ -806,6 +888,7 @@ async def post_test_case(
             notes=body.notes,
             assignee=body.assignee,
             test_data_files=body.test_data_files,
+            criterion_id=body.criterion_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -834,6 +917,7 @@ async def patch_test_case(
             notes=body.notes,
             assignee=body.assignee,
             test_data_files=body.test_data_files,
+            criterion_id=body.criterion_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

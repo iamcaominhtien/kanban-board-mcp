@@ -217,7 +217,9 @@
 }
 
 .typeLabel {
-  flex-shrink: 0;
+  /* on a narrow card (indented sub-ticket) the label gives way rather than run into the ticket id */
+  flex-shrink: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

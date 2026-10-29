@@ -56,8 +56,15 @@ async def route(label: str, op: Op, given: dict[str, Any]) -> Any:
 async def dispatch(
     tool: str, table: dict[str, Op], action: str, given: dict[str, Any]
 ) -> Any:
-    """Run the operation that `action` names in a tool's table."""
-    return await route(f"{tool}(action='{action}')", table[action], given)
+    """Run the operation that `action` names in a tool's table (checked by the AI guard when an AI run calls it)."""
+    from services.ai import guard
+
+    return await guard.guarded(
+        tool,
+        action,
+        given,
+        lambda g: route(f"{tool}(action='{action}')", table[action], g),
+    )
 
 
 def params_of(values: dict[str, Any]) -> dict[str, Any]:

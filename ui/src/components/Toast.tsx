@@ -16,6 +16,8 @@ export interface ToastItem {
   duration?: number;
   /** Optional button on the toast (e.g. Undo). */
   action?: ToastAction;
+  /** Optional second button (e.g. Review and Deny). */
+  secondaryAction?: ToastAction;
 }
 
 interface ToastContextValue {
@@ -38,11 +40,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    ({ variant, title, message, duration, action }: Omit<ToastItem, 'id'>) => {
+    ({ variant, title, message, duration, action, secondaryAction }: Omit<ToastItem, 'id'>) => {
       // a toast with an action button stays a little longer so it can be used
       if (duration === undefined) duration = action ? 8000 : 4000;
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      setToasts((prev) => [...prev, { id, variant, title, message, duration, action }]);
+      setToasts((prev) => [...prev, { id, variant, title, message, duration, action, secondaryAction }]);
 
       if (duration > 0) {
         setTimeout(() => {
@@ -125,6 +127,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 }}
               >
                 {toast.action.label}
+              </button>
+            )}
+            {toast.secondaryAction && (
+              <button
+                type="button"
+                className={styles.actionButton}
+                onClick={() => {
+                  toast.secondaryAction?.onClick();
+                  removeToast(toast.id);
+                }}
+              >
+                {toast.secondaryAction.label}
               </button>
             )}
             <button

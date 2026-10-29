@@ -13,7 +13,11 @@ interface ProjectSidebarProps {
   onOpenRecycleBin: () => void;
   onOpenMembers: () => void;
   onOpenSettings: () => void;
+  /** Board AI dock ("Ask AI", badge = unseen insights); hidden when chat is turned off. */
+  askAi?: { onClick: () => void; unseen: number; active: boolean } | null;
   wontDoCount: number;
+  /** People and AI member counts for the Members pill (“4 · 7 AI”). */
+  memberCounts?: { humans: number; ai: number };
   activeBoard: 'main' | 'idea';
   onBoardChange: (board: 'main' | 'idea') => void;
   /** 'loading': skeleton rows, static items dimmed; 'error': inline retry row; 'empty': only "New project". */
@@ -46,7 +50,9 @@ export function ProjectSidebar({
   onOpenRecycleBin,
   onOpenMembers,
   onOpenSettings,
+  askAi,
   wontDoCount,
+  memberCounts,
   activeBoard,
   onBoardChange,
   loadState,
@@ -276,6 +282,26 @@ export function ProjectSidebar({
 
       {/* Bottom Actions */}
       <div className={styles.bottomNav}>
+        {askAi && (
+          <button
+            type="button"
+            className={styles.sidebarIconBtn}
+            onClick={askAi.onClick}
+            title="Ask AI"
+            data-testid="sidebar-ask-ai"
+            style={askAi.active ? { background: 'rgba(255,255,255,0.12)' } : undefined}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0 }} aria-hidden="true">
+              <path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="currentColor" />
+            </svg>
+            <span className={styles.navLabel}>Ask AI</span>
+            {askAi.unseen > 0 && (
+              <span className={styles.badgeCount} data-testid="ask-ai-badge" title="Unseen board insights">
+                {askAi.unseen}
+              </span>
+            )}
+          </button>
+        )}
         <button type="button" className={styles.sidebarIconBtn} onClick={onOpenSettings} title="Settings">
           <svg
             width="16"
@@ -311,6 +337,11 @@ export function ProjectSidebar({
             <path d="M15.5 13.6C18 13.6 20 15.3 20.3 18" />
           </svg>
           <span className={styles.navLabel}>Members</span>
+          {memberCounts && memberCounts.ai > 0 && (
+            <span className={`${styles.badgeCount} ${styles.memberPill}`} data-testid="members-pill">
+              {memberCounts.humans} · {memberCounts.ai} AI
+            </span>
+          )}
         </button>
         <button
           type="button"

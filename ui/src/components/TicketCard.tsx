@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import type { IssueType, Member, Ticket } from '../types';
 import { MemberAvatar } from './MemberAvatar';
+import { CardAiFooter } from './ai/RunPanel';
+import { CardInsightChip } from './assist/BoardHealth';
+import { ScheduleCardChip } from './schedules/ScheduleTicketBlock';
 import { TagPill } from './TagPill';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import styles from './TicketCard.module.css';
@@ -654,6 +657,15 @@ export function TicketCard({
             </div>
           </div>
         )}
+
+        {/* AI line: Run, running, queued, needs input, failed, summary ready (AI work on tickets, A4) */}
+        {!isDragging && <CardAiFooter ticket={ticket} />}
+
+        {/* Schedule chip: "Tue 02:00", "Starts in 12 min", "Missed, waiting for runner", "Schedule paused" (AI schedules, E2) */}
+        {!isDragging && <ScheduleCardChip ticket={ticket} />}
+
+        {/* Board health insight ("Stuck 6 days"; hover shows why) */}
+        {!isDragging && <CardInsightChip ticketId={ticket.id} />}
 
         {/* Footer: Assignee, Priority, Estimate, AC count, Due date */}
         <div className={styles.cardFooter}>

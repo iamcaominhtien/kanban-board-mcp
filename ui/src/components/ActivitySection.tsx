@@ -1,3 +1,5 @@
+import { AiAvatar, useAiBoardState } from './ai/aiUi';
+import { RevertChangeDialog } from './ai/RevertChange';
 import { useMemo, useState } from 'react';
 import type { ActivityEntry, Member } from '../types';
 import { getAvatarColors } from './MemberAvatar';
@@ -15,7 +17,33 @@ interface ActivitySectionProps {
 }
 
 type FilterGroup =
-  'all' | 'status' | 'reopened' | 'pending' | 'assignee' | 'priority' | 'comments' | 'branch' | 'other';
+  | 'all'
+  | 'status'
+  | 'reopened'
+  | 'pending'
+  | 'assignee'
+  | 'priority'
+  | 'comments'
+  | 'branch'
+  | 'other'
+  | 'people'
+  | 'ai'
+  | 'agent'
+  | `ai:${string}`;
+
+/** Fields an AI changed that a person can revert one at a time. */
+const REVERTIBLE = new Set([
+  'status',
+  'estimate',
+  'priority',
+  'title',
+  'description',
+  'assignee',
+  'tags',
+  'due_date',
+  'start_date',
+  'type',
+]);
 
 const isReopenField = (field: string) => field === 'reopen' || field.startsWith('reopen_child');
 const isPendingField = (field: string) =>
@@ -283,6 +311,7 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
   branch_status: 'Branch status',
   branch_checkout: 'Checkout',
   branch_worktree: 'Worktree',
+  ai_schedule: 'Schedule',
 };
 
 const COMMENT_FIELDS = new Set(['comment', 'work_log']);
@@ -659,6 +688,8 @@ export function ActivitySection({
     return out;
   }, [rawEntries]);
   const [filter, setFilter] = useState<FilterGroup>('all');
+  const { members: aiMembers, projectId: aiProjectId } = useAiBoardState();
+  const [revert, setRevert] = useState<ActivityEntry | null>(null);
   const [expandedDiffs, setExpandedDiffs] = useState<Record<string, boolean>>({});
   const [visibleCount, setVisibleCount] = useState<number>(20);
 
@@ -676,8 +707,17 @@ export function ActivitySection({
     let comments = 0;
     let branch = 0;
     let other = 0;
+    let people = 0;
+    let ai = 0;
+    let agent = 0;
+    const byAi = new Map<string, number>();
 
     for (const e of entries) {
+      if (e.ai) {
+        ai++;
+        if (e.memberId) byAi.set(e.memberId, (byAi.get(e.memberId) ?? 0) + 1);
+      } else if (e.actor === 'agent') agent++;
+      else people++;
       if (e.field === 'status') status++;
       else if (isReopenField(e.field)) reopened++;
       else if (isPendingField(e.field)) pending++;
@@ -698,6 +738,10 @@ export function ActivitySection({
       comments,
       branch,
       other,
+      people,
+      ai,
+      agent,
+      byAi,
     };
   }, [entries]);
 
@@ -705,6 +749,10 @@ export function ActivitySection({
   const filteredEntries = useMemo(() => {
     const list = entries.filter((e) => {
       if (filter === 'all') return true;
+      if (filter === 'people') return !e.ai && e.actor !== 'agent';
+      if (filter === 'ai') return !!e.ai;
+      if (filter === 'agent') return !e.ai && e.actor === 'agent';
+      if (typeof filter === 'string' && filter.startsWith('ai:')) return !!e.ai && e.memberId === filter.slice(3);
       if (filter === 'status') return e.field === 'status';
       if (filter === 'reopened') return isReopenField(e.field);
       if (filter === 'pending') return isPendingField(e.field);
@@ -939,6 +987,13 @@ export function ActivitySection({
         return iconBubble('#F1F3F1', '#8C9BAE', ['M5 5L19 19', 'M12 3A9 9 0 1 0 12 21A9 9 0 0 0 12 3Z']);
       case 'created':
         return iconBubble('#DCEEE1', '#2E6F40', ['M12 5V19', 'M5 12H19']);
+      case 'ai_schedule':
+        return iconBubble('#DCEEE1', '#2E6F40', [
+          'M3.5 7.5A2 2 0 0 1 5.5 5.5H18.5A2 2 0 0 1 20.5 7.5V19A2 2 0 0 1 18.5 21H5.5A2 2 0 0 1 3.5 19Z',
+          'M3.5 10H20.5',
+          'M8 3V6.5',
+          'M16 3V6.5',
+        ]);
       default:
         return (
           <div className={styles.acBubble} style={{ background: '#F1F3F1', color: '#5B6B60' }}>
@@ -1156,7 +1211,7 @@ export function ActivitySection({
               ['comments', 'Comments'],
               ['branch', 'Branch'],
               ['other', 'Other'],
-            ] as [FilterGroup, string][]
+            ] as [Exclude<FilterGroup, `ai:${string}`>, string][]
           )
             .filter(([key]) => (key !== 'reopened' && key !== 'pending') || counts[key] > 0)
             .map(([key, label]) => (
@@ -1169,6 +1224,48 @@ export function ActivitySection({
                 {label} ({counts[key]})
               </button>
             ))}
+          {/* Who made the change: people, AI members (each one), the external agent */}
+          {(counts.ai > 0 || counts.agent > 0) && (
+            <>
+              <span style={{ width: 1, height: 16, background: '#DCE3DF', margin: '0 2px' }} />
+              {(
+                [
+                  ['people', 'People', counts.people],
+                  ['ai', 'AI', counts.ai],
+                ] as [FilterGroup, string, number][]
+              ).map(([key, label, n]) => (
+                <button
+                  key={key}
+                  type="button"
+                  data-testid={`activity-filter-${key}`}
+                  className={`${styles.acFilter} ${filter === key ? styles.acFilterActive : ''}`}
+                  onClick={() => setFilter(key)}
+                >
+                  {label} ({n})
+                </button>
+              ))}
+              {[...counts.byAi.entries()].map(([id, n]) => (
+                <button
+                  key={id}
+                  type="button"
+                  data-testid="activity-filter-member"
+                  className={`${styles.acFilter} ${filter === `ai:${id}` ? styles.acFilterActive : ''}`}
+                  onClick={() => setFilter(`ai:${id}`)}
+                >
+                  {aiMembers.get(id)?.name ?? members.find((m) => m.id === id)?.name ?? 'AI'} ({n})
+                </button>
+              ))}
+              {counts.agent > 0 && (
+                <button
+                  type="button"
+                  className={`${styles.acFilter} ${filter === 'agent' ? styles.acFilterActive : ''}`}
+                  onClick={() => setFilter('agent')}
+                >
+                  Agent ({counts.agent})
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -1222,7 +1319,22 @@ export function ActivitySection({
 
                     return (
                       <div key={rowKey} className={`${styles.acRow} ${isDescription ? styles.acRowTop : ''}`}>
-                        {renderBubble(entry.field)}
+                        {entry.ai && entry.memberId && aiMembers.get(entry.memberId) ? (
+                          <span
+                            style={{ flexShrink: 0, width: 28, display: 'inline-flex', justifyContent: 'center' }}
+                            data-testid="activity-ai-bubble"
+                          >
+                            <AiAvatar
+                              provider={aiMembers.get(entry.memberId)!.provider}
+                              color={aiMembers.get(entry.memberId)!.color}
+                              glyph={aiMembers.get(entry.memberId)!.glyph}
+                              size={26}
+                              title={entry.actor}
+                            />
+                          </span>
+                        ) : (
+                          renderBubble(entry.field)
+                        )}
 
                         <div className={styles.acMain}>
                           <span className={styles.acField}>
@@ -1234,6 +1346,13 @@ export function ActivitySection({
 
                           {entry.field.startsWith('reopen') || isPendingField(entry.field) ? (
                             <MarkerRow entry={entry as MarkerEntry} members={members} />
+                          ) : entry.field === 'ai_schedule' ? (
+                            // "<who> started a scheduled run on KAN-151 (schedule by An Nguyen)" (AI schedules, E3)
+                            <div className={styles.acChange} data-testid="schedule-activity">
+                              <span style={{ fontSize: '12.5px', color: '#3A4A3E' }}>
+                                <b>{actorLabel(entry.actor, members) ?? 'Schedule'}</b> {String(entry.to ?? '')}
+                              </span>
+                            </div>
                           ) : isDescription && diffData ? (
                             <>
                               <div className={styles.acChange}>
@@ -1353,11 +1472,36 @@ export function ActivitySection({
 
                         <span className={styles.acTime} style={isDescription ? { paddingTop: '2px' } : undefined}>
                           {actorLabel(entry.actor, members) &&
+                            entry.field !== 'ai_schedule' &&
                             !isReopenField(entry.field) &&
                             !isPendingField(entry.field) && (
-                              <span className={styles.acActor}>{actorLabel(entry.actor, members)} · </span>
+                              <span className={styles.acActor}>
+                                {actorLabel(entry.actor, members)}
+                                {entry.ai && entry.onBehalfOf ? `, on behalf of ${entry.onBehalfOf}` : ''}
+                                {entry.suggestedBy ? ` (suggested by ${entry.suggestedBy})` : ''} ·{' '}
+                              </span>
                             )}
+                          {entry.ai && entry.field === 'status' && entry.to === 'done' && (
+                            <span
+                              className="ai-chip"
+                              style={{ background: '#E5F2E9', color: '#2E6F40', marginRight: 6, height: 18 }}
+                              data-testid="activity-ai-completed"
+                            >
+                              AI-completed
+                            </span>
+                          )}
                           {isToday ? formatRelative(entry.at) : formatClockTime(entry.at)}
+                          {entry.ai && entry.runId && REVERTIBLE.has(entry.field) && (
+                            <button
+                              type="button"
+                              className={styles.acToggle}
+                              style={{ marginLeft: 8 }}
+                              data-testid="activity-revert"
+                              onClick={() => setRevert(entry)}
+                            >
+                              Revert
+                            </button>
+                          )}
                           <span className={styles.acTt}>
                             {fullDate}
                             {age && (
@@ -1376,6 +1520,7 @@ export function ActivitySection({
             );
           })}
 
+          {revert && <RevertChangeDialog entry={revert} projectId={aiProjectId} onClose={() => setRevert(null)} />}
           {filteredEntries.length > visibleCount && (
             <button type="button" className={styles.acMore} onClick={() => setVisibleCount((prev) => prev + 20)}>
               Show {filteredEntries.length - visibleCount} earlier changes

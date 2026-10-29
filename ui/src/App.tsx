@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Board } from './components/Board';
 import { IdeaBoard } from './components/IdeaBoard';
 import { MembersPanel } from './components/MembersPanel';
@@ -33,11 +33,73 @@ import { FirstRun } from './components/FirstRun';
 import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
 import { UpdateNotice } from './components/UpdateNotice';
+import { useAiBoard, useAiOverview, aiApi } from './api/ai';
+import { AiBoardContext, type AiBoardState } from './components/ai/aiUi';
+import { AiMembersPage } from './components/ai/AiMembersPage';
+import { AiPausedBanner, PauseAllButton } from './components/ai/AiDialogs';
+import { useAiRunNotifications } from './components/ai/useAiRunNotifications';
+import { DragConfirm } from './components/ai/DragConfirm';
+import { AiHoverHost } from './components/ai/MentionPill';
+import type { AiRun } from './types/ai';
+import { useAiSafetyNotifications } from './components/ai/useAiSafetyNotifications';
+import { AssistProvider, useAssist, useAssistShortcut } from './components/assist/AssistContext';
+import { AssistDock } from './components/assist/AssistDock';
+import { AskAiButton, BoardHealthChip } from './components/assist/AssistEntry';
+import { BoardHealthPanel, BoardHealthToast, InsightChipsProvider } from './components/assist/BoardHealth';
+import { useAssistState, useInsightChips } from './api/assist';
+import { SchedulesProvider } from './components/schedules/SchedulesContext';
 import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
 
 const EMPTY_PROJECTS: Project[] = [];
 const EMPTY_TICKETS: Ticket[] = [];
 const EMPTY_MEMBERS: Member[] = [];
+
+/** ⌘J, the Board health panel and its toast (they read the dock's shared state). */
+function AssistOverlays() {
+  const ctx = useAssist();
+  useAssistShortcut(true);
+  if (!ctx?.projectId) return null;
+  return (
+    <>
+      {ctx.healthOpen && <BoardHealthPanel onClose={() => ctx.setHealthOpen(false)} />}
+      <BoardHealthToast />
+    </>
+  );
+}
+
+/** Sidebar "Ask AI" with the unseen-insight badge; hidden when chat is turned off. */
+function useAskAiNav(projectId: string | null) {
+  const ctx = useAssist();
+  const st = useAssistState(projectId);
+  if (!ctx || !st.data) return null;
+  const chat = st.data.features.find((f) => f.key === 'chat');
+  if (chat && !chat.on) return null;
+  return { onClick: ctx.toggle, unseen: st.data.unseenInsights, active: ctx.open };
+}
+
+/** The sidebar, given the Ask AI entry from the dock's state. */
+function SidebarWithAssist(props: Omit<Parameters<typeof ProjectSidebar>[0], 'askAi'> & { projectId: string | null }) {
+  const { projectId, ...rest } = props;
+  const askAi = useAskAiNav(projectId);
+  return <ProjectSidebar {...rest} askAi={askAi} />;
+}
+
+/** The AI state and the schedule layers (editor, detail) for everything under them. */
+function BoardProviders({
+  ai,
+  schedules,
+  children,
+}: {
+  ai: AiBoardState;
+  schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
+  children: ReactNode;
+}) {
+  return (
+    <AiBoardContext.Provider value={ai}>
+      <SchedulesProvider {...schedules}>{children}</SchedulesProvider>
+    </AiBoardContext.Provider>
+  );
+}
 
 /** Application shell: project sidebar, board / list / timeline / Docs views and modals. */
 export default function App() {
@@ -53,7 +115,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
-  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs'>(() =>
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules'>(() =>
     new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board',
   );
   const [docsRequest, setDocsRequest] = useState<string | null>(() =>
@@ -66,9 +128,38 @@ export default function App() {
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
+  // The card of an AI's ticket was dropped on another column: a dialog asks before its run is cancelled
+  const [dragConfirm, setDragConfirm] = useState<{
+    run: AiRun;
+    to: string;
+    resolve: (move: boolean) => void;
+  } | null>(null);
 
   const { data: members = EMPTY_MEMBERS } = useMembers(currentProjectId ?? '');
   const toast = useToast();
+  // AI members page (null = the board); opened from the Members modal, Settings or a ticket
+  const [aiPage, setAiPage] = useState<{
+    memberId?: string | null;
+    add?: boolean;
+    tab?: 'approvals' | 'audit' | 'usage' | 'safety';
+    auditMemberId?: string;
+    key: number;
+  } | null>(null);
+  const aiOverview = useAiOverview(currentProjectId ?? '');
+  const aiBoard = useAiBoard(currentProjectId ?? '');
+  const aiState = useMemo<AiBoardState>(
+    () => ({
+      projectId: currentProjectId ?? '',
+      members: new Map((aiOverview.data?.members ?? []).map((m) => [m.id, m])),
+      runsByTicket: new Map((aiBoard.data?.runs ?? []).map((r) => [r.ticketId, r])),
+      settings: aiBoard.data?.settings ?? aiOverview.data?.settings ?? null,
+      openAiPage: (memberId?: string) => setAiPage({ memberId, key: Date.now() }),
+      openAiTab: (tab, opts) => setAiPage({ tab, auditMemberId: opts?.memberId, key: Date.now() }),
+    }),
+    [currentProjectId, aiOverview.data, aiBoard.data],
+  );
+  useAiRunNotifications(aiBoard.data?.runs, (id) => openTicketModal(id), aiState.openAiPage);
+  useAiSafetyNotifications(currentProjectId ?? '', () => setAiPage({ tab: 'approvals', key: Date.now() }));
 
   useEffect(() => {
     if (!globalError) return;
@@ -313,6 +404,13 @@ export default function App() {
     window.history.replaceState({}, '', url.toString());
   }
 
+  /** Show the Schedules tab (a ticket's "View schedules" closes the ticket first). */
+  function showSchedulesTab() {
+    setAiPage(null);
+    setViewMode('schedules');
+    closeModal();
+  }
+
   function closeModal() {
     setModalState(null);
     const url = new URL(window.location.href);
@@ -331,6 +429,24 @@ export default function App() {
       // Not applied until confirmed: the card snaps back and a popover opens at the drop point
       setDropReopen({ ticket: dragged, ...lastPointer.current, reason: '' });
       return;
+    }
+
+    const heldBy = aiState.runsByTicket.get(ticketId);
+    if (
+      heldBy &&
+      heldBy.mode === 'work' &&
+      ['queued', 'starting', 'running', 'needs_input'].includes(heldBy.state) &&
+      dragged?.status !== newStatus &&
+      !confirmed
+    ) {
+      // Dragging a card an AI holds asks first (AI work on tickets, A4)
+      const move = await new Promise<boolean>((resolve) => setDragConfirm({ run: heldBy, to: newStatus, resolve }));
+      if (!move) return;
+      try {
+        await aiApi.cancel(heldBy.id, 'The card was moved by a person');
+      } catch {
+        /* it ended meanwhile */
+      }
     }
 
     if (dragged?.pending && newStatus === 'done' && !confirmed) {
@@ -448,6 +564,7 @@ export default function App() {
 
   function handleSelectProject(id: string) {
     setCurrentProjectId(id);
+    setAiPage(null);
     setSearchQuery('');
     setActiveType('all');
     setActivePriority('all');
@@ -517,299 +634,405 @@ export default function App() {
     />
   );
 
+  const aiMemberCount = aiOverview.data?.members.length ?? 0;
+  const insightChips = useInsightChips(currentProjectId);
+  const humanMembers = members.filter((m) => (m.kind ?? 'human') === 'human');
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Splash status={backendStatus} errorMessage={backendError} onRetryBackend={retryBackend} />
-      <UpdateNotice />
-      <ProjectSidebar
-        projects={apiProjects}
-        currentProjectId={currentProjectId}
-        onSelectProject={handleSelectProject}
-        onCreateProject={handleCreateProject}
-        onDeleteProject={handleDeleteProject}
-        onOpenRecycleBin={() => setRecycleBinOpen(true)}
-        onOpenMembers={() => setMembersPanelOpen(true)}
+    <BoardProviders
+      ai={aiState}
+      schedules={{
+        projectId: currentProjectId,
+        tickets: allAvailableTickets,
+        onOpenTicket: openTicketModal,
+        onShowTab: showSchedulesTab,
+      }}
+    >
+      <AssistProvider
+        projectId={currentProjectId}
+        projectName={currentProject?.name ?? ''}
+        filters={{
+          assignee: activeAssignee === 'all' ? null : activeAssignee,
+          type: activeType === 'all' ? null : activeType,
+          priority: activePriority === 'all' ? null : activePriority,
+          q: searchQuery || null,
+        }}
+        currentTicketId={modalTicket?.id ?? null}
+        onOpenTicket={openTicketModal}
         onOpenSettings={() => setSettingsPanelOpen(true)}
-        wontDoCount={wontDoTickets.length}
-        activeBoard={activeBoard}
-        onBoardChange={setActiveBoard}
-        loadState={projectsPhase ? 'loading' : projectsError ? 'error' : noProjects ? 'empty' : undefined}
-        onRetryProjects={() => void projectsQuery.refetch()}
-      />
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        {globalError && (
-          <div
-            style={{
-              background: '#DC2626',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              margin: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
-            }}
-          >
-            <span>{globalError}</span>
-            <button
-              type="button"
-              onClick={() => setGlobalError(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                lineHeight: 1,
-                padding: '0 4px',
-              }}
-            >
-              ×
-            </button>
-          </div>
-        )}
-        {blockedDragPending && (
-          <div
-            style={{
-              position: 'fixed',
-              top: '16px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 1000,
-              background: '#FEF3C7',
-              border: '1.5px solid #F5C518',
-              color: 'var(--color-dark)',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-            }}
-          >
-            <span>⚠️ This ticket is blocked. Move to In Progress anyway?</span>
-            <button
-              type="button"
-              onClick={proceedBlockedDrag}
-              style={{
-                background: '#F5C518',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                color: 'var(--color-dark)',
-              }}
-            >
-              Move Anyway
-            </button>
-            <button
-              type="button"
-              onClick={() => setBlockedDragPending(null)}
-              style={{
-                background: 'transparent',
-                border: '1.5px solid #F5C518',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                color: 'var(--color-dark)',
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          {noProjects ? (
-            <FirstRun
-              onCreate={async (data) => {
-                const created = await createProjectMutation.mutateAsync(data);
-                setCurrentProjectId(created.id);
-              }}
-            />
-          ) : activeBoard === 'idea' && !boardLoadState ? (
-            <IdeaBoard projectId={currentProjectId ?? ''} />
-          ) : (
-            <>
-              <Board
-                tickets={filteredTickets}
-                allTickets={allAvailableTickets}
-                onDragEnd={handleDragEnd}
-                onNewTicket={handleOpenCreate}
-                onCardClick={handleOpenView}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                activeType={activeType}
-                onTypeChange={setActiveType}
-                activePriority={activePriority}
-                onPriorityChange={setActivePriority}
-                projectName={currentProject?.name ?? ''}
-                projectId={currentProjectId ?? ''}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                docsRequestedPageId={docsRequest}
-                onDocsRequestHandled={() => setDocsRequest(null)}
-                members={members}
-                activeAssignee={activeAssignee}
-                onAssigneeChange={setActiveAssignee}
-                loadState={boardLoadState}
-                lanesOverride={lanesOverride}
-                statusSlot={loadingPill}
-                filterReopened={filterReopened}
-                onFilterReopenedChange={setFilterReopened}
-                filterPending={filterPending}
-                onFilterPendingChange={setFilterPending}
-                hidePending={hidePending}
-                onHidePendingChange={setHidePending}
-                reopenedCount={reopenedCount}
-                pendingCount={pendingCount}
-                totalReopens30d={totalReopens30d}
-                waitingOnTicketsCount={waitingOnTicketsCount}
-                waitingOnPersonsCount={waitingOnPersonsCount}
-                onReopen={setReopenTargetTicket}
-                onPending={setPendingTargetTicket}
-                onResume={setResumeTargetTicket}
-                onDelete={(t) => handleDeleteTicket(t.id)}
-              />
-              {!boardLoadState &&
-                modalState &&
-                (modalState.mode === 'create' ? (
-                  <TicketModal
-                    key="create"
-                    mode="create"
-                    onSave={handleCreateTicket}
-                    onClose={closeModal}
-                    allTickets={allAvailableTickets}
-                    onOpenTicket={(t) => openTicketModal(t.id)}
-                    members={members}
-                  />
-                ) : modalTicket ? (
-                  <TicketModal
-                    key={modalTicket.id}
-                    mode="view"
-                    ticket={modalTicket}
-                    onDelete={handleDeleteTicket}
-                    onClose={closeModal}
-                    onOpenDocsPage={openDocsPage}
-                    allTickets={allAvailableTickets}
-                    onOpenTicket={(t) => openTicketModal(t.id)}
-                    members={members}
-                  />
-                ) : null)}
-
-              {/* Standalone Dialogs opened from Card menus */}
-              {reopenTargetTicket && (
-                <ReopenDialog
-                  ticket={reopenTargetTicket}
-                  allTickets={allAvailableTickets}
-                  members={members}
-                  onClose={() => {
-                    setReopenTargetTicket(null);
-                    setReopenError(null);
-                  }}
-                  onConfirm={handleConfirmReopen}
-                  isSubmitting={markerBusy}
-                  error={reopenError}
-                  onRetry={() => lastReopenPayload && handleConfirmReopen(lastReopenPayload)}
-                  onViewTicket={() => {
-                    const t = reopenTargetTicket;
-                    setReopenTargetTicket(null);
-                    setReopenError(null);
-                    openTicketModal(t.id);
-                  }}
-                  initialReason={dropReopen?.reason}
-                />
-              )}
-              {dropReopen && !reopenTargetTicket && (
-                <ReopenDropPopover
-                  ticket={dropReopen.ticket}
-                  x={dropReopen.x}
-                  y={dropReopen.y}
-                  isSubmitting={markerBusy}
-                  onCancel={() => setDropReopen(null)}
-                  onMoreOptions={(reason) => {
-                    setReopenTargetTicket(dropReopen.ticket);
-                    setDropReopen({ ...dropReopen, reason });
-                  }}
-                  onConfirm={(reason) => handleConfirmReopen({ reason: reason || undefined })}
-                />
-              )}
-              {pendingTargetTicket && (
-                <SetPendingDialog
-                  ticket={pendingTargetTicket}
-                  allTickets={allAvailableTickets}
-                  members={members}
-                  onClose={() => {
-                    setPendingTargetTicket(null);
-                    setPendingError(null);
-                  }}
-                  onConfirm={handleConfirmPending}
-                  onResumeClick={() => {
-                    const t = pendingTargetTicket;
-                    setPendingTargetTicket(null);
-                    setResumeTargetTicket(t);
-                  }}
-                  isSubmitting={markerBusy}
-                  error={pendingError}
-                />
-              )}
-              {resumeTargetTicket && (
-                <ResumeDialog
-                  ticket={resumeTargetTicket}
-                  members={members}
-                  onClose={() => {
-                    setResumeTargetTicket(null);
-                    setResumeError(null);
-                  }}
-                  onConfirm={handleConfirmResume}
-                  isSubmitting={markerBusy}
-                  error={resumeError}
-                />
-              )}
-              {closeConfirm &&
-                (() => {
-                  const t = localTickets.find((x) => x.id === closeConfirm.ticketId);
-                  if (!t) return null;
-                  return (
-                    <PendingCloseConfirm
-                      ticket={t}
-                      targetStatus="done"
-                      allTickets={allAvailableTickets}
-                      members={members}
-                      onCancel={() => setCloseConfirm(null)}
-                      onResumeFirst={() => {
-                        setCloseConfirm(null);
-                        setResumeTargetTicket(t);
-                      }}
-                      onProceed={() => {
-                        const c = closeConfirm;
-                        setCloseConfirm(null);
-                        void handleDragEnd(c.ticketId, c.newStatus, true);
-                      }}
-                    />
-                  );
-                })()}
-            </>
-          )}
-          {recycleBinOpen && (
-            <RecycleBin
-              tickets={wontDoTickets}
+        onOpenAiMembers={() => setAiPage({ key: Date.now() })}
+        onOpenDoc={(pageId) => openDocsPage(pageId)}
+      >
+        <InsightChipsProvider chips={insightChips.data ?? []}>
+          <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+            <Splash status={backendStatus} errorMessage={backendError} onRetryBackend={retryBackend} />
+            <UpdateNotice />
+            <AssistOverlays />
+            <SidebarWithAssist
               projectId={currentProjectId}
-              onRestore={(id) => restoreTicketMutation.mutate(id)}
-              onClose={() => setRecycleBinOpen(false)}
+              projects={apiProjects}
+              currentProjectId={currentProjectId}
+              onSelectProject={handleSelectProject}
+              onCreateProject={handleCreateProject}
+              onDeleteProject={handleDeleteProject}
+              onOpenRecycleBin={() => setRecycleBinOpen(true)}
+              onOpenMembers={() => setMembersPanelOpen(true)}
+              memberCounts={{ humans: humanMembers.length, ai: aiMemberCount }}
+              onOpenSettings={() => setSettingsPanelOpen(true)}
+              wontDoCount={wontDoTickets.length}
+              activeBoard={activeBoard}
+              onBoardChange={setActiveBoard}
+              loadState={projectsPhase ? 'loading' : projectsError ? 'error' : noProjects ? 'empty' : undefined}
+              onRetryProjects={() => void projectsQuery.refetch()}
             />
-          )}
-          {membersPanelOpen && currentProjectId && (
-            <MembersPanel projectId={currentProjectId} members={members} onClose={() => setMembersPanelOpen(false)} />
-          )}
-          {settingsPanelOpen && (
-            <SettingsPanel onClose={() => setSettingsPanelOpen(false)} theme={theme} onToggleTheme={toggleTheme} />
-          )}
-        </div>
-      </div>
-    </div>
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+              {globalError && (
+                <div
+                  style={{
+                    background: '#DC2626',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    margin: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                  }}
+                >
+                  <span>{globalError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setGlobalError(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      lineHeight: 1,
+                      padding: '0 4px',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              {blockedDragPending && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: '16px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 1000,
+                    background: '#FEF3C7',
+                    border: '1.5px solid #F5C518',
+                    color: 'var(--color-dark)',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  <span>⚠️ This ticket is blocked. Move to In Progress anyway?</span>
+                  <button
+                    type="button"
+                    onClick={proceedBlockedDrag}
+                    style={{
+                      background: '#F5C518',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      color: 'var(--color-dark)',
+                    }}
+                  >
+                    Move Anyway
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBlockedDragPending(null)}
+                    style={{
+                      background: 'transparent',
+                      border: '1.5px solid #F5C518',
+                      borderRadius: '8px',
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      color: 'var(--color-dark)',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {aiState.settings?.pausedAll && (
+                <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
+              )}
+              <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                {aiPage && currentProjectId && !noProjects ? (
+                  <AiMembersPage
+                    key={aiPage.key}
+                    projectId={currentProjectId}
+                    projectName={currentProject?.name ?? ''}
+                    humans={humanMembers}
+                    initialMemberId={aiPage.memberId}
+                    initialAdd={aiPage.add}
+                    initialTab={aiPage.tab}
+                    initialAuditMemberId={aiPage.auditMemberId}
+                    onBack={() => setAiPage(null)}
+                    onOpenTicket={(id) => {
+                      setAiPage(null);
+                      openTicketModal(id);
+                    }}
+                    onOpenMembersModal={() => setMembersPanelOpen(true)}
+                    onOpenSettings={() => setSettingsPanelOpen(true)}
+                    onViewOnBoard={(id) => {
+                      setAiPage(null);
+                      setActiveAssignee(id);
+                    }}
+                  />
+                ) : noProjects ? (
+                  <FirstRun
+                    onCreate={async (data) => {
+                      const created = await createProjectMutation.mutateAsync(data);
+                      setCurrentProjectId(created.id);
+                    }}
+                  />
+                ) : activeBoard === 'idea' && !boardLoadState ? (
+                  <IdeaBoard projectId={currentProjectId ?? ''} />
+                ) : (
+                  <>
+                    <Board
+                      tickets={filteredTickets}
+                      allTickets={allAvailableTickets}
+                      onDragEnd={handleDragEnd}
+                      onNewTicket={handleOpenCreate}
+                      onCardClick={handleOpenView}
+                      searchQuery={searchQuery}
+                      onSearchChange={setSearchQuery}
+                      activeType={activeType}
+                      onTypeChange={setActiveType}
+                      activePriority={activePriority}
+                      onPriorityChange={setActivePriority}
+                      projectName={currentProject?.name ?? ''}
+                      projectId={currentProjectId ?? ''}
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                      docsRequestedPageId={docsRequest}
+                      onDocsRequestHandled={() => setDocsRequest(null)}
+                      members={members}
+                      activeAssignee={activeAssignee}
+                      onAssigneeChange={setActiveAssignee}
+                      loadState={boardLoadState}
+                      lanesOverride={lanesOverride}
+                      statusSlot={loadingPill}
+                      headerExtra={
+                        <>
+                          <BoardHealthChip />
+                          {aiState.settings && currentProjectId ? (
+                            <PauseAllButton
+                              projectId={currentProjectId}
+                              settings={aiState.settings}
+                              members={aiOverview.data?.members ?? []}
+                            />
+                          ) : null}
+                          <AskAiButton />
+                        </>
+                      }
+                      filterReopened={filterReopened}
+                      onFilterReopenedChange={setFilterReopened}
+                      filterPending={filterPending}
+                      onFilterPendingChange={setFilterPending}
+                      hidePending={hidePending}
+                      onHidePendingChange={setHidePending}
+                      reopenedCount={reopenedCount}
+                      pendingCount={pendingCount}
+                      totalReopens30d={totalReopens30d}
+                      waitingOnTicketsCount={waitingOnTicketsCount}
+                      waitingOnPersonsCount={waitingOnPersonsCount}
+                      onReopen={setReopenTargetTicket}
+                      onPending={setPendingTargetTicket}
+                      onResume={setResumeTargetTicket}
+                      onDelete={(t) => handleDeleteTicket(t.id)}
+                    />
+                    {!boardLoadState &&
+                      modalState &&
+                      (modalState.mode === 'create' ? (
+                        <TicketModal
+                          key="create"
+                          mode="create"
+                          onSave={handleCreateTicket}
+                          onClose={closeModal}
+                          allTickets={allAvailableTickets}
+                          onOpenTicket={(t) => openTicketModal(t.id)}
+                          members={members}
+                        />
+                      ) : modalTicket ? (
+                        <TicketModal
+                          key={modalTicket.id}
+                          mode="view"
+                          ticket={modalTicket}
+                          onDelete={handleDeleteTicket}
+                          onClose={closeModal}
+                          onOpenDocsPage={openDocsPage}
+                          allTickets={allAvailableTickets}
+                          onOpenTicket={(t) => openTicketModal(t.id)}
+                          members={members}
+                        />
+                      ) : null)}
+
+                    {/* Standalone Dialogs opened from Card menus */}
+                    {reopenTargetTicket && (
+                      <ReopenDialog
+                        ticket={reopenTargetTicket}
+                        allTickets={allAvailableTickets}
+                        members={members}
+                        onClose={() => {
+                          setReopenTargetTicket(null);
+                          setReopenError(null);
+                        }}
+                        onConfirm={handleConfirmReopen}
+                        isSubmitting={markerBusy}
+                        error={reopenError}
+                        onRetry={() => lastReopenPayload && handleConfirmReopen(lastReopenPayload)}
+                        onViewTicket={() => {
+                          const t = reopenTargetTicket;
+                          setReopenTargetTicket(null);
+                          setReopenError(null);
+                          openTicketModal(t.id);
+                        }}
+                        initialReason={dropReopen?.reason}
+                      />
+                    )}
+                    {dropReopen && !reopenTargetTicket && (
+                      <ReopenDropPopover
+                        ticket={dropReopen.ticket}
+                        x={dropReopen.x}
+                        y={dropReopen.y}
+                        isSubmitting={markerBusy}
+                        onCancel={() => setDropReopen(null)}
+                        onMoreOptions={(reason) => {
+                          setReopenTargetTicket(dropReopen.ticket);
+                          setDropReopen({ ...dropReopen, reason });
+                        }}
+                        onConfirm={(reason) => handleConfirmReopen({ reason: reason || undefined })}
+                      />
+                    )}
+                    {pendingTargetTicket && (
+                      <SetPendingDialog
+                        ticket={pendingTargetTicket}
+                        allTickets={allAvailableTickets}
+                        members={members}
+                        onClose={() => {
+                          setPendingTargetTicket(null);
+                          setPendingError(null);
+                        }}
+                        onConfirm={handleConfirmPending}
+                        onResumeClick={() => {
+                          const t = pendingTargetTicket;
+                          setPendingTargetTicket(null);
+                          setResumeTargetTicket(t);
+                        }}
+                        isSubmitting={markerBusy}
+                        error={pendingError}
+                      />
+                    )}
+                    {resumeTargetTicket && (
+                      <ResumeDialog
+                        ticket={resumeTargetTicket}
+                        members={members}
+                        onClose={() => {
+                          setResumeTargetTicket(null);
+                          setResumeError(null);
+                        }}
+                        onConfirm={handleConfirmResume}
+                        isSubmitting={markerBusy}
+                        error={resumeError}
+                      />
+                    )}
+                    {closeConfirm &&
+                      (() => {
+                        const t = localTickets.find((x) => x.id === closeConfirm.ticketId);
+                        if (!t) return null;
+                        return (
+                          <PendingCloseConfirm
+                            ticket={t}
+                            targetStatus="done"
+                            allTickets={allAvailableTickets}
+                            members={members}
+                            onCancel={() => setCloseConfirm(null)}
+                            onResumeFirst={() => {
+                              setCloseConfirm(null);
+                              setResumeTargetTicket(t);
+                            }}
+                            onProceed={() => {
+                              const c = closeConfirm;
+                              setCloseConfirm(null);
+                              void handleDragEnd(c.ticketId, c.newStatus, true);
+                            }}
+                          />
+                        );
+                      })()}
+                  </>
+                )}
+                {recycleBinOpen && (
+                  <RecycleBin
+                    tickets={wontDoTickets}
+                    projectId={currentProjectId}
+                    onRestore={(id) => restoreTicketMutation.mutate(id)}
+                    onClose={() => setRecycleBinOpen(false)}
+                  />
+                )}
+                {membersPanelOpen && currentProjectId && (
+                  <MembersPanel
+                    projectId={currentProjectId}
+                    members={members}
+                    onClose={() => setMembersPanelOpen(false)}
+                    onOpenAiPage={(opts) => {
+                      setMembersPanelOpen(false);
+                      setAiPage({ memberId: opts?.memberId, add: opts?.add, key: Date.now() });
+                    }}
+                  />
+                )}
+                {settingsPanelOpen && (
+                  <SettingsPanel
+                    onClose={() => setSettingsPanelOpen(false)}
+                    theme={theme}
+                    onToggleTheme={toggleTheme}
+                    projectId={currentProjectId}
+                    onManageAi={() => {
+                      setSettingsPanelOpen(false);
+                      setAiPage({ key: Date.now() });
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+            <AssistDock />
+            {!modalState && <AiHoverHost />}
+            {dragConfirm && (
+              <DragConfirm
+                run={dragConfirm.run}
+                to={dragConfirm.to}
+                onCancel={() => {
+                  dragConfirm.resolve(false);
+                  setDragConfirm(null);
+                }}
+                onConfirm={() => {
+                  dragConfirm.resolve(true);
+                  setDragConfirm(null);
+                }}
+              />
+            )}
+          </div>
+        </InsightChipsProvider>
+      </AssistProvider>
+    </BoardProviders>
   );
 }
