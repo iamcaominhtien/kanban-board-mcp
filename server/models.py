@@ -421,6 +421,40 @@ class DiagramSettings(SQLModel, table=True):
     )  # self-hosted editor address, e.g. http://localhost:8080
 
 
+class Sketch(SQLModel, table=True):
+    """A paint-style drawing: a PNG and an editable source (JSON with layers) kept in the uploads folder.
+
+    The files are ``uploads/sketches/<id>.png`` and ``<id>.sketch.json``; this row holds who owns the
+    drawing, its size and a version for the "someone saved in the meantime" check. Deleting only
+    unlinks it (``deleted_at``), as for diagrams.
+    """
+
+    __tablename__ = "sketch"
+
+    id: str = Field(
+        default_factory=lambda: f"sk_{uuid.uuid4().hex[:8]}", primary_key=True
+    )
+    # Resolved from the owner when the drawing is created; None for an idea that belongs to no project.
+    project_id: Optional[str] = Field(
+        default=None, foreign_key="project.id", index=True
+    )
+    owner_kind: str = Field(default="doc")  # idea | ticket | doc | comment
+    owner_id: str = Field(default="", index=True)
+    title: str = Field(default="Sketch")
+    width: int = Field(default=840)
+    height: int = Field(default=500)
+    layer_count: int = Field(default=1)
+    version: int = Field(default=1)  # latest saved version
+    png_bytes: int = Field(default=0)
+    source_bytes: int = Field(default=0)
+    created_by: str = Field(default="user")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_by: str = Field(default="user")
+    updated_at: str = Field(default_factory=_now_iso)
+    deleted_at: Optional[str] = Field(default=None)
+    deleted_by: Optional[str] = Field(default=None)
+
+
 # ---------------------------------------------------------------------------
 # AI members, runs, approvals and audit (see design/screens/ai-members.md)
 # ---------------------------------------------------------------------------

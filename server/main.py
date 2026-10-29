@@ -24,6 +24,7 @@ from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
 from api.docs import docs_error_handler, router as docs_router
 from api.diagrams import router as diagrams_router
+from api.sketches import router as sketches_router
 from api.ai import router as ai_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
@@ -194,6 +195,7 @@ app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
 app.include_router(docs_router)
 app.include_router(diagrams_router)
+app.include_router(sketches_router)
 app.include_router(logs_router)
 app.include_router(ai_router)
 app.include_router(ai_safety_router)
