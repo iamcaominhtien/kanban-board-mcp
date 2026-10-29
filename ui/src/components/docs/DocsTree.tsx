@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { DocsTreeNode } from '../../types/docs';
 import { Icon } from './Icon';
 import { TreeEmpty } from './DocsStates';
@@ -51,6 +52,135 @@ interface Drop {
 }
 
 const INDENT = 20;
+const WIDTH_KEY = 'docsTreeWidth';
+const WIDTH_MIN = 220;
+const WIDTH_MAX = 520;
+const WIDTH_DEFAULT = 280;
+
+function maxWidth() {
+  return Math.max(WIDTH_MIN, Math.min(WIDTH_MAX, window.innerWidth - 80));
+}
+
+function clampWidth(w: number) {
+  return Math.round(Math.min(Math.max(w, WIDTH_MIN), maxWidth()));
+}
+
+function readWidth() {
+  try {
+    const v = Number(localStorage.getItem(WIDTH_KEY));
+    return v > 0 ? clampWidth(v) : WIDTH_DEFAULT;
+  } catch {
+    return WIDTH_DEFAULT;
+  }
+}
+
+function saveWidth(w: number) {
+  try {
+    localStorage.setItem(WIDTH_KEY, String(w));
+  } catch {
+    /* storage is optional */
+  }
+}
+
+/** Drag (or arrow keys) on the tree's right edge to resize it; double-click resets. */
+function ResizeHandle({ width, onChange }: { width: number; onChange: (w: number) => void }) {
+  const [active, setActive] = useState(false);
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = width;
+    let last = startW;
+    setActive(true);
+    const move = (ev: PointerEvent) => {
+      last = clampWidth(startW + ev.clientX - startX);
+      onChange(last);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setActive(false);
+      saveWidth(last);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const w = clampWidth(width + (e.key === 'ArrowRight' ? 16 : -16));
+    onChange(w);
+    saveWidth(w);
+  }
+
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize page tree"
+      aria-valuemin={WIDTH_MIN}
+      aria-valuemax={WIDTH_MAX}
+      aria-valuenow={width}
+      tabIndex={0}
+      className={`dk-tree-resize${active ? ' dk-tree-resize-on' : ''}`}
+      title="Drag to resize, double-click to reset"
+      onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
+      onDoubleClick={() => {
+        onChange(WIDTH_DEFAULT);
+        saveWidth(WIDTH_DEFAULT);
+      }}
+    />
+  );
+}
+
+/** Page title that ends in an ellipsis; shows the full title in a tooltip right away, only when it is cut off. */
+function TitleTip({ title, suppressed, children }: { title: string; suppressed: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  function show() {
+    const el = ref.current;
+    if (!el || suppressed || el.scrollWidth <= el.clientWidth) return;
+    const r = el.getBoundingClientRect();
+    setPos({ x: r.left, y: r.bottom + 6 });
+  }
+
+  return (
+    <span
+      ref={ref}
+      style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+      onMouseEnter={show}
+      onMouseLeave={() => setPos(null)}
+      onPointerDown={() => setPos(null)}
+    >
+      {children}
+      {pos &&
+        !suppressed &&
+        createPortal(
+          <div
+            role="tooltip"
+            className="dk-tt"
+            style={{
+              position: 'fixed',
+              left: Math.min(pos.x, window.innerWidth - 328),
+              top: pos.y,
+              zIndex: 10000,
+              maxWidth: 320,
+              whiteSpace: 'normal',
+              overflowWrap: 'anywhere',
+              fontWeight: 500,
+              pointerEvents: 'none',
+            }}
+          >
+            {title}
+          </div>,
+          document.body,
+        )}
+    </span>
+  );
+}
 
 function highlight(text: string, q: string): ReactNode {
   if (!q) return text;
@@ -114,6 +244,7 @@ export function DocsTree({
   const [movingId, setMovingId] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null);
   const [drop, setDrop] = useState<Drop | null>(null);
+  const [width, setWidth] = useState(readWidth);
   const filterRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowEls = useRef(new Map<string, HTMLElement>());
@@ -531,9 +662,9 @@ export function DocsTree({
               onCancel={() => onRenamingChange(null)}
             />
           ) : (
-            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <TitleTip title={n.title} suppressed={!!drag || menu?.id === n.id}>
               {highlight(n.title, q)}
-            </span>
+            </TitleTip>
           )}
           {!renaming && n.status === 'draft' && (
             <span
@@ -560,7 +691,7 @@ export function DocsTree({
             />
           )}
           {!renaming && (
-            <span className="dk-hov" style={{ display: 'flex', alignItems: 'center' }}>
+            <span className="dk-tree-actions">
               <button
                 type="button"
                 title="Add child page"
@@ -636,7 +767,8 @@ export function DocsTree({
       aria-label="Docs space"
       className="docs-root"
       style={{
-        width: 248,
+        position: 'relative',
+        width: Math.min(width, maxWidth()),
         flexShrink: 0,
         background: '#F6FAF7',
         borderRight: '1px solid #E3E8E5',
@@ -646,6 +778,7 @@ export function DocsTree({
         minHeight: 0,
       }}
     >
+      <ResizeHandle width={width} onChange={setWidth} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 12px 8px 14px' }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <span
