@@ -272,3 +272,265 @@
   background: #f1f8f3;
   color: #1e2a22;
 }
+
+/* Page shell */
+.page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  font-family: var(--font-body);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e3e8e5;
+}
+
+.backBtn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2e6f40;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.backBtn:hover {
+  background: #eef3ef;
+}
+
+.searchWrap {
+  position: relative;
+  flex: 1;
+  max-width: 460px;
+}
+
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 12px;
+  border: 1px solid #d5ded8;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #2e6f40;
+}
+
+.results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #d5ded8;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+  z-index: 20;
+  max-height: 360px;
+  overflow: auto;
+  padding: 4px;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.result:hover,
+.resultActive {
+  background: #eef3ef;
+}
+
+.resultWhere {
+  font-size: 11px;
+  color: #7a8a80;
+}
+
+.resultName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+
+.resultDesc {
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+.noResults {
+  padding: 12px;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.nav {
+  width: 232px;
+  flex-shrink: 0;
+  border-right: 1px solid #e3e8e5;
+  padding: 16px 12px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navGroup {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #7a8a80;
+  text-transform: uppercase;
+  padding: 10px 8px 4px;
+}
+
+.navItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.navItem:hover {
+  background: #f1f5f2;
+}
+
+.navItemActive {
+  background: #eaf5ed;
+  color: #2e6f40;
+  font-weight: 700;
+}
+
+.picker {
+  margin: 0 0 4px;
+}
+
+.navSelect {
+  display: none;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 24px 32px 48px;
+}
+
+.contentInner {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+
+.pageSummary {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #5b6b60;
+}
+
+.scopeNote {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #7a8a80;
+  margin-bottom: 4px;
+}
+
+.flash {
+  animation: settingFlash 1.6s ease-out;
+  border-radius: 8px;
+}
+
+@keyframes settingFlash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.35);
+    background: #f1f8f3;
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(46, 111, 64, 0);
+    background: transparent;
+  }
+}
+
+.confirmBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #e5b4ad;
+  background: #fdf3f1;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+
+.btnDanger {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #ffffff;
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: #a93226;
+}
+
+@media (max-width: 720px) {
+  .nav {
+    display: none;
+  }
+  .navSelect {
+    display: block;
+    margin: 12px 24px 0;
+    padding: 7px 10px;
+    border: 1px solid #d5ded8;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+  }
+  .layout {
+    flex-direction: column;
+  }
+  .content {
+    padding: 16px;
+  }
+}
