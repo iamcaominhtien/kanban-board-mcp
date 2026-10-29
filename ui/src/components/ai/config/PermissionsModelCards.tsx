@@ -118,59 +118,50 @@ function PermissionModeBlock() {
   const bypass = cfg.permissionMode === 'bypass';
   const saved = member.config.permissionMode === 'bypass';
   const projects = (member.projects ?? []).filter((p) => p.on).length;
-  const pick = (mode: 'allowlist' | 'bypass') => {
-    setCfg({ permissionMode: mode });
-    if (mode === 'allowlist') setDraft({ confirmBypass: '' });
-  };
+  const locked = !isOwner && !bypass;
+  // the typed phrase is only sent while Bypass is being turned on, so switching back needs no clean-up
+  const pick = (mode: 'allowlist' | 'bypass') => setCfg({ permissionMode: mode });
   return (
     <div className="ai-field" data-testid="permission-mode" data-path="permission_mode">
       <span className="ai-label ai-label-dark">Permission mode</span>
-      <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', cursor: 'pointer', fontSize: 13 }}>
-        <input
-          type="radio"
-          name={`perm-mode-${member.id}`}
-          checked={!bypass}
-          onChange={() => pick('allowlist')}
-          data-testid="perm-mode-allowlist"
-        />
-        <span>
-          <b>Allow list only</b> (recommended)
-          <span className="ai-muted" style={{ display: 'block' }}>
-            The CLI runs only the tools in Allow; anything else is refused, because a run cannot ask a person.
+      <div className="perm-opts" role="radiogroup" aria-label="Permission mode">
+        <label className={`perm-opt ${bypass ? '' : 'is-on'}`}>
+          <input
+            type="radio"
+            name={`perm-mode-${member.id}`}
+            checked={!bypass}
+            onChange={() => pick('allowlist')}
+            data-testid="perm-mode-allowlist"
+          />
+          <span className="perm-opt-text">
+            <span className="perm-opt-title">
+              Allow list only <span className="perm-opt-tag">Recommended</span>
+            </span>
+            <span className="perm-opt-desc">
+              The CLI runs only the tools in Allow; anything else is refused, because a run cannot ask a person.
+            </span>
           </span>
-        </span>
-      </label>
-      <label
-        style={{
-          display: 'flex',
-          gap: 8,
-          alignItems: 'flex-start',
-          cursor: isOwner || bypass ? 'pointer' : 'not-allowed',
-          fontSize: 13,
-        }}
-      >
-        <input
-          type="radio"
-          name={`perm-mode-${member.id}`}
-          checked={bypass}
-          disabled={!isOwner && !bypass}
-          onChange={() => pick('bypass')}
-          data-testid="perm-mode-bypass"
-        />
-        <span>
-          <b style={{ color: '#B2331F' }}>Bypass permissions</b>
-          <span className="ai-muted" style={{ display: 'block' }}>
-            The CLI runs any tool without the Allow list. Only for work runs;{' '}
-            {isOwner || bypass ? '' : 'only the project owner can turn it on.'}
+        </label>
+        <label className={`perm-opt perm-opt-danger ${bypass ? 'is-on' : ''} ${locked ? 'is-disabled' : ''}`}>
+          <input
+            type="radio"
+            name={`perm-mode-${member.id}`}
+            checked={bypass}
+            disabled={locked}
+            onChange={() => pick('bypass')}
+            data-testid="perm-mode-bypass"
+          />
+          <span className="perm-opt-text">
+            <span className="perm-opt-title">Bypass permissions</span>
+            <span className="perm-opt-desc">
+              The CLI runs any tool without the Allow list. Only for work runs.
+              {locked ? ' Only the project owner can turn it on.' : ''}
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      </div>
       {bypass && (
-        <div
-          className="ai-hint"
-          style={{ background: '#FBE9E5', color: '#7A2418', padding: '8px 10px', borderRadius: 8 }}
-          data-testid="bypass-warning"
-        >
+        <div className="perm-warn" data-testid="bypass-warning">
           <b>Bypass permissions runs shell commands and edits files on this computer without asking.</b> Still in force:
           the Deny rules, the board’s own ceiling and approvals, and Safe mode (it overrides Bypass). Ask runs stay
           read-only and the web stays off. Use it in a folder you can restore from git.
