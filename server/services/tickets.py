@@ -662,7 +662,11 @@ async def _comment_recipients(
 
 
 async def add_comment(
-    session: AsyncSession, ticket_id: str, text: str, author: str = "user"
+    session: AsyncSession,
+    ticket_id: str,
+    text: str,
+    author: str = "user",
+    meta: dict | None = None,
 ) -> Ticket | None:
     """Add a comment, record its mentions and notify the people involved.
 
@@ -670,6 +674,7 @@ async def add_comment(
         ticket_id: Ticket to comment on.
         text: Markdown text; `@[Name](member:id)` mentions are recorded.
         author: Actor name stored with the comment.
+        meta: Extra keys stored on the comment, e.g. ``{"ai": {...}}`` for an AI member's reply.
 
     Returns:
         The updated ticket, or None if it does not exist.
@@ -692,6 +697,7 @@ async def add_comment(
             "deleted_at": None,
             "mentions": mentions,
             "notified": notified,
+            **(meta or {}),
         }
     )
     act.record(
@@ -1254,6 +1260,8 @@ async def add_test_case(
     notes: str | None = None,
     assignee: str | None = None,
     test_data_files: list | None = None,
+    criterion_id: str | None = None,
+    suggested_by: str | None = None,
 ) -> Ticket | None:
     """Append a test case with the next `TC-n` code.
 
@@ -1268,6 +1276,8 @@ async def add_test_case(
         notes: Free-form extra notes.
         assignee: Member id who runs it.
         test_data_files: Attached data files.
+        criterion_id: Acceptance criterion the case tests (for coverage).
+        suggested_by: Board AI that suggested the case, when a person accepted its draft.
 
     Returns:
         The updated ticket, or None if it does not exist.
@@ -1276,6 +1286,10 @@ async def add_test_case(
     if ticket is None:
         return None
     title = _clean_text(title, "Test case title", MAX_TITLE)
+    if criterion_id and not any(
+        a.get("id") == criterion_id for a in _loads(ticket.acceptance_criteria)
+    ):
+        raise ValueError("Unknown acceptance criterion")
     tcs = _loads(ticket.test_cases)
     # Determine human-readable TC code (TC-1, TC-2, ...)
     max_num = 0
@@ -1306,6 +1320,8 @@ async def add_test_case(
         "updated_at": now_iso,
         "assignee": assignee,
         "test_data_files": test_data_files or [],
+        "criterion_id": criterion_id,
+        "suggested_by": suggested_by,
     }
     tcs.append(new_tc)
     act.record(ticket, "test_case", None, title, ref=tc_code)
@@ -1330,6 +1346,7 @@ async def update_test_case(
     notes: str | None = None,
     assignee: str | None = None,
     test_data_files: list | None = None,
+    criterion_id: str | None = None,
 ) -> Ticket | None:
     """Update a test case; only the fields you pass are changed.
 
@@ -1385,6 +1402,8 @@ async def update_test_case(
                 tc["assignee"] = assignee
             if test_data_files is not None:
                 tc["test_data_files"] = test_data_files
+            if criterion_id is not None:
+                tc["criterion_id"] = criterion_id or None
             tc["updated_at"] = datetime.now(UTC).isoformat()
             break
     ticket.test_cases = _dumps(tcs)

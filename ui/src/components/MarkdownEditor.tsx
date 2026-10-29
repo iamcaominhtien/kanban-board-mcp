@@ -8,7 +8,7 @@ import { DIAGRAM_LINE } from './diagrams/diagramRefs';
 import { firstDiagramFile } from './diagrams/diagramFile';
 import diagramStyles from './diagrams/Diagrams.module.css';
 import { resolveOrigin } from '../api/resolveOrigin';
-import { RefSuggester } from './docs/RefSuggester';
+import { RefSuggester, type SuggestMember } from './docs/RefSuggester';
 import { useDocsRefs } from './docs/DocsRefsContext';
 import { expandRefChip, setKeyPrefix, snapRefTokens, tokenAtCaret } from '../utils/docRefTokens';
 import styles from './MarkdownEditor.module.css';
@@ -53,6 +53,8 @@ interface Props {
   actions?: React.ReactNode;
   /** When set, typing `[[` offers pages and sections of this project's docs. */
   docsProjectId?: string;
+  /** People and AI members offered after `@` (a ticket description, a test case note). */
+  mentionMembers?: SuggestMember[];
   /** When set, the toolbar offers a Diagram action (draw.io) for this project. */
   diagramProjectId?: string;
   /** Where diagrams drawn here are saved to, shown in the editor header. */
@@ -96,6 +98,7 @@ export function MarkdownEditor({
   compact = false,
   actions,
   docsProjectId: docsProjectIdProp,
+  mentionMembers,
   diagramProjectId,
   diagramSaveTo,
   diagramItem,
@@ -140,6 +143,8 @@ export function MarkdownEditor({
   // Populate or update contentEditable when entering edit mode or when value changes externally
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
+      // while the person types, a value coming back from an earlier save is older than what is on screen
+      if (document.activeElement === wysiwygRef.current) return;
       const currentMd = htmlToMarkdown(wysiwygRef.current);
       if (value !== currentMd) {
         wysiwygRef.current.innerHTML = markdownToHtml(value);
@@ -1524,6 +1529,7 @@ export function MarkdownEditor({
             targetRef={wysiwygRef}
             projectId={docsProjectId}
             keyPrefix={docsRefs?.ticketId?.split('-')[0]}
+            members={mentionMembers}
             onChanged={() => {
               if (wysiwygRef.current) snapRefTokens(wysiwygRef.current, false);
               syncContent();

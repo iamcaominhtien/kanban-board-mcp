@@ -18,6 +18,8 @@ export interface SuggestMember {
   note?: string;
   bg?: string;
   color?: string;
+  /** An AI member: its avatar, and its status in words (greyed and not insertable when it cannot be used now). */
+  ai?: { avatar: ReactNode; status: string; note: string; tone: 'ok' | 'warn' | 'off'; usable: boolean };
 }
 type Mode = 'page' | 'section' | 'ticket' | 'member';
 
@@ -43,6 +45,10 @@ interface Item {
   bg?: string;
   color?: string;
   insert: string;
+  /** Second line instead of `sub` (an AI member's status). */
+  subNode?: ReactNode;
+  /** Shown but not insertable (an AI member that cannot be mentioned now). */
+  disabled?: boolean;
 }
 
 const isText = (el: Field): el is HTMLTextAreaElement | HTMLInputElement =>
@@ -210,9 +216,22 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
         }));
     }
     const mem = (members ?? []).filter((m) => !q || m.name.toLowerCase().includes(q));
-    return mem.slice(0, 8).map((m) => ({
+    const TONE = { ok: '#2E6F40', warn: '#B4791E', off: '#9AA8A0' } as const;
+    return mem.slice(0, 12).map((m) => ({
       key: m.id,
-      icon: (
+      disabled: m.ai ? !m.ai.usable : false,
+      subNode: m.ai ? (
+        <span style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 11.5 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: TONE[m.ai.tone], flexShrink: 0 }} />
+          <span style={{ color: m.ai.tone === 'off' ? '#9AA8A0' : TONE[m.ai.tone], fontWeight: 600 }}>
+            {m.ai.status}
+          </span>
+          <span style={{ color: '#9AA8A0' }}>{m.ai.note}</span>
+        </span>
+      ) : undefined,
+      icon: m.ai ? (
+        m.ai.avatar
+      ) : (
         <span
           style={{
             width: 22,
@@ -293,7 +312,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
       });
     }
     if (members) {
-      m = /(?:^|\s)@([\p{L}\p{N} ._-]{0,30})$/u.exec(before);
+      m = /(?:^|\s)@([\p{L}\p{N} ._()·-]{0,40})$/u.exec(before);
       if (m)
         return setState({
           mode: 'member',
@@ -368,7 +387,8 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
       } else if (list.length && (ke.key === 'Enter' || ke.key === 'Tab')) {
         ke.preventDefault();
         ke.stopPropagation();
-        pickRef.current(list[Math.min(activeRef.current, list.length - 1)]);
+        const chosen = list[Math.min(activeRef.current, list.length - 1)];
+        if (!chosen.disabled) pickRef.current(chosen);
       }
     };
     const onClose = () => setState(null);
@@ -476,18 +496,27 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
                   }}
                 >
                   {it.group}
+                  {(it.group === 'People' || it.group === 'AI') && (
+                    <span style={{ fontWeight: 600 }}> · {items.filter((x) => x.group === it.group).length}</span>
+                  )}
                 </div>
               )}
               <div
                 role="option"
                 aria-selected={on}
+                aria-disabled={it.disabled || undefined}
                 data-testid="doc-suggest-item"
                 className={`dk-mi ${on ? 'dk-mi-on' : ''}`}
-                style={{ gap: 10, padding: '6px 10px' }}
+                style={{
+                  gap: 10,
+                  padding: '6px 10px',
+                  opacity: it.disabled ? 0.55 : 1,
+                  cursor: it.disabled ? 'not-allowed' : undefined,
+                }}
                 onMouseEnter={() => setActive(i)}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  pick(it);
+                  if (!it.disabled) pick(it);
                 }}
               >
                 <span
@@ -512,6 +541,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
                   >
                     {boldMatch(it.title, state.mode === 'section' ? state.query : state.query)}
                   </span>
+                  {it.subNode}
                   {it.sub && (
                     <span
                       style={{

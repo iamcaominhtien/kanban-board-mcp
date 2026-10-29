@@ -198,7 +198,6 @@ export function DocsMarkdown({
     pages,
     tickets,
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const components = useMemo<Components>(
     () => ({
       h2: ({ node: _n, children: inner, id }) => {

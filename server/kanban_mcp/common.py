@@ -252,8 +252,11 @@ def notify_on_success(func):
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        # Changes made through MCP tools are attributed to the AI agent
-        token = svc_activity.set_actor(svc_activity.AGENT_ACTOR)
+        # Changes made through MCP tools are attributed to the AI agent (by name when it is a board AI member's run)
+        ai = svc_activity.current_ai() or {}
+        token = svc_activity.set_actor(
+            ai.get("member_name") or svc_activity.AGENT_ACTOR
+        )
         try:
             result = await func(*args, **kwargs)
         finally:

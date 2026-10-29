@@ -7,6 +7,9 @@ import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
 import { DocsSpace } from './docs/DocsSpace';
+import { SchedulesTab } from './schedules/SchedulesTab';
+import { CalendarIcon } from './schedules/schedulesUi';
+import { useScheduleList } from '../api/schedules';
 import { TicketCard } from './TicketCard';
 import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
@@ -34,8 +37,8 @@ interface BoardProps {
   onPriorityChange: (p: Priority | 'all') => void;
   projectName: string;
   projectId?: string;
-  viewMode: 'board' | 'list' | 'timeline' | 'docs';
-  onViewModeChange: (v: 'board' | 'list' | 'timeline' | 'docs') => void;
+  viewMode: 'board' | 'list' | 'timeline' | 'docs' | 'schedules';
+  onViewModeChange: (v: 'board' | 'list' | 'timeline' | 'docs' | 'schedules') => void;
   /** Docs view: a page to open (from a ticket's linked docs or a ?docs= link). */
   docsRequestedPageId?: string | null;
   onDocsRequestHandled?: () => void;
@@ -48,6 +51,8 @@ interface BoardProps {
   lanesOverride?: ReactNode;
   /** Content of the reserved status row at the top right (the loading pill). */
   statusSlot?: ReactNode;
+  /** Extra controls at the left of the view switcher (e.g. “Pause all AI”). */
+  headerExtra?: ReactNode;
   filterReopened?: boolean;
   onFilterReopenedChange?: (val: boolean) => void;
   filterPending?: boolean;
@@ -96,6 +101,7 @@ export function Board({
   loadState,
   lanesOverride,
   statusSlot,
+  headerExtra,
   filterReopened,
   onFilterReopenedChange,
   filterPending,
@@ -123,6 +129,8 @@ export function Board({
         ? 'pending'
         : null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
+  // Schedules that will run in the next 24 hours (badge on the tab)
+  const { data: scheduleList } = useScheduleList(projectId ?? '');
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(event.active.id as string);
@@ -155,6 +163,7 @@ export function Board({
             <h1 className={styles.title}>{projectName}</h1>
           )}
           <div className={styles.topBarRight}>
+            {headerExtra}
             <div className={styles.viewSwitcher}>
               <button
                 type="button"
@@ -185,6 +194,33 @@ export function Board({
               >
                 Docs
               </button>
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${viewMode === 'schedules' ? styles.viewBtnActive : ''}`}
+                onClick={() => onViewModeChange('schedules')}
+                data-testid="view-schedules"
+                title="Count = schedules that will run in the next 24 hours"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <CalendarIcon size={13} />
+                Schedules
+                {scheduleList && (
+                  <span
+                    data-testid="schedules-badge"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: '#2E6F40',
+                      background: '#DCEEE1',
+                      padding: '1px 6px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    {scheduleList.next24H}
+                  </span>
+                )}
+              </button>
             </div>
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
               <svg
@@ -211,7 +247,7 @@ export function Board({
             ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } }
             : {})}
         >
-          {viewMode !== 'docs' && (
+          {viewMode !== 'docs' && viewMode !== 'schedules' && (
             <FilterBar
               searchQuery={searchQuery}
               onSearchChange={onSearchChange}
@@ -248,6 +284,8 @@ export function Board({
               if (t) onCardClick(t);
             }}
           />
+        ) : viewMode === 'schedules' && projectId && !loadState ? (
+          <SchedulesTab projectId={projectId} tickets={allTickets} />
         ) : lanesOverride ? (
           <div className={styles.columns}>{lanesOverride}</div>
         ) : loadState === 'projects' ? (

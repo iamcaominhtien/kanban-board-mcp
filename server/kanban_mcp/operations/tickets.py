@@ -5,6 +5,7 @@ import re
 import services.tickets as svc_tickets
 import services.workspace as svc_workspace
 from services import activity as svc_activity
+from services.ai import runs as ai_runs
 from datetime import datetime, timezone
 from models import TicketUpdate
 from pydantic import Field
@@ -314,6 +315,7 @@ async def update_ticket_status(
     are not all passed (the error says which). 'wont_do' needs a reason and is not allowed for sub-tickets.
     Returns the updated ticket."""
     data: dict = {"status": status}
+    await ai_runs.before_ticket_change(ticket_id, status=status)
     if wont_do_reason is not None:
         data["wont_do_reason"] = wont_do_reason
     return await _edit_ticket(
@@ -444,6 +446,13 @@ async def update_ticket(
         if name in update_data:
             raise ValueError(f"'{name}' was both set and listed in clear_fields")
         update_data[name] = None
+    await ai_runs.before_ticket_change(
+        ticket_id,
+        status=update_data.get("status"),
+        assignee=update_data["assignee"]
+        if "assignee" in update_data
+        else ai_runs._UNSET,
+    )
     return await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.update_ticket(s, ticket_id, TicketUpdate(**update_data)),
@@ -486,6 +495,7 @@ async def delete_ticket(ticket_id: TicketId) -> dict:
     """PERMANENTLY delete a ticket (cannot be undone). Its sub-tickets are detached (kept), block/link references on other
     tickets are removed, and its workspace folder is deleted. To retire a ticket but keep its history use
     update_ticket_status(status='wont_do', wont_do_reason=...) instead. Returns {"deleted": ticket_id}."""
+    await ai_runs.before_ticket_change(ticket_id, deleting=True)
     async with common.async_session() as session:
         found = await svc_tickets.delete_ticket(session, ticket_id)
     if not found:

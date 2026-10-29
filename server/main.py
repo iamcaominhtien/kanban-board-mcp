@@ -24,6 +24,20 @@ from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
 from api.docs import docs_error_handler, router as docs_router
 from api.diagrams import router as diagrams_router
+from api.ai import router as ai_router
+from api.ai_safety import router as ai_safety_router
+from api.ai_config import router as ai_config_router
+from api.assist import assist_error_handler
+from api.assist import router as assist_router
+from api import ai_roles
+from api.schedules import router as schedules_router
+from api.schedules import schedule_error_handler
+from services.ai.assist import chat as assist_chat
+from services.ai.assist import health as assist_health
+from services.ai.assist.settings import AssistError
+from services.ai import schedules as ai_schedules
+from services.ai.schedules import ScheduleError
+from services.ai import runs as ai_runs
 from services.docs_text import DocsError
 import database
 from version import version_info
@@ -65,9 +79,17 @@ async def lifespan(app: FastAPI):
         sweeper = asyncio.create_task(
             svc_workspace.sweep_loop(lambda: database.async_session())
         )
+        await ai_runs.start_scheduler()
+        await assist_chat.recover()
+        assist_health.start_scheduler()
+        ai_schedules.start_scheduler()
         try:
             yield
         finally:
+            # No CLI process outlives the board: cancel the AI runs and kill their process trees
+            await assist_health.stop_scheduler()
+            await ai_schedules.stop_scheduler()
+            await ai_runs.stop_scheduler()
             sweeper.cancel()
             try:
                 await sweeper
@@ -96,6 +118,10 @@ app.add_middleware(
 )
 
 
+# AI endpoints check the person's project role first (api/ai_roles.py)
+app.middleware("http")(ai_roles.enforce)
+
+
 @app.middleware("http")
 async def record_activity_actor(request: Request, call_next):
     """Attribute REST calls to the board user, or to `X-Actor` when the header is sent.
@@ -107,6 +133,10 @@ async def record_activity_actor(request: Request, call_next):
     Returns:
         The downstream response.
     """
+    server = request.scope.get("server")
+    if server and server[0] in ("127.0.0.1", "localhost", "::1"):
+        # A local runner's CLI reaches the board's MCP server on the same socket
+        ai_runs.set_board_url(f"http://127.0.0.1:{server[1]}")
     header = (request.headers.get("x-actor") or "").strip()[:80]
     token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
     try:
@@ -152,6 +182,10 @@ async def log_requests(request: Request, call_next):
 app.mount("/mcp", mcp.streamable_http_app())
 
 app.include_router(projects_router)
+app.include_router(assist_router)
+app.add_exception_handler(AssistError, assist_error_handler)
+app.include_router(schedules_router)
+app.add_exception_handler(ScheduleError, schedule_error_handler)
 app.include_router(tickets_router)
 app.include_router(members_router)
 app.include_router(settings_router)
@@ -161,6 +195,9 @@ app.include_router(workspace_router)
 app.include_router(docs_router)
 app.include_router(diagrams_router)
 app.include_router(logs_router)
+app.include_router(ai_router)
+app.include_router(ai_safety_router)
+app.include_router(ai_config_router)
 app.add_exception_handler(DocsError, docs_error_handler)
 
 

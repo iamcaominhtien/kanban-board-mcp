@@ -23,6 +23,7 @@ export default defineConfig({
       '/workspace': 'http://localhost:8000',
       '/diagrams': 'http://localhost:8000',
       '/docs/': 'http://localhost:8000',
+      '/ai': 'http://localhost:8000',
     },
   },
 })

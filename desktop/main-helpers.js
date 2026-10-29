@@ -59,7 +59,8 @@ function buildBackendLaunchSpec({
 }) {
   const dbPath = path.join(userDataPath, 'kanban.db');
   const uploadsDir = resolveConfiguredUploadsDir(userDataPath, configPath);
-  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir };
+  // API keys are encrypted with a key the server keeps in the OS keychain (server/services/ai/secrets.py)
+  const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir, KANBAN_SECRET_STORE: 'keychain' };
   const stdio = ['ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {

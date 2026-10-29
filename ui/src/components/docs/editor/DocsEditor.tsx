@@ -81,6 +81,8 @@ interface Props {
   onUserInput?: () => void;
   readOnly?: boolean;
   comments?: EditorComments;
+  /** Board AI: the toolbar "Ask AI" and the selection's Summarise / Rewrite / Ask AI… */
+  ai?: { onAsk: () => void; onSelection: (action: 'summarise' | 'rewrite' | 'ask', text: string) => void };
 }
 
 const EMIT_MS = 180;
@@ -106,6 +108,7 @@ const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const
  * @param props.onUserInput - Called on the first real keystroke, paste or drop (tells edits from load-time normalisation).
  * @param props.readOnly - Disable editing.
  * @param props.comments - Inline comments: highlights, Comment button and shortcut.
+ * @param props.ai - Board AI entry points (toolbar Ask AI, selection actions).
  * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
  */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
@@ -126,6 +129,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     onUserInput,
     readOnly,
     comments,
+    ai,
   },
   ref,
 ) {
@@ -454,6 +458,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             onLink={openLink}
             onPickImage={pickImage}
             ticketPrefix={ticketPrefix}
+            onAskAi={ai?.onAsk}
           />
         )}
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
@@ -540,6 +545,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             setLinkOpen={setLinkOpen}
             ticketPrefix={ticketPrefix}
             onComment={comments ? startComment : undefined}
+            onAi={ai?.onSelection}
           />
         )}
         {slashState && mode === 'visual' && (

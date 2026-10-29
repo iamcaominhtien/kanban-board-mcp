@@ -6,6 +6,10 @@ import { Icon } from '../docs/Icon';
 import { DiagramIcon } from '../diagrams/DiagramIcon';
 import { useDiagramStarter } from '../diagrams/useDiagramStarter';
 import { firstDiagramFile } from '../diagrams/diagramFile';
+import { aiAvailability } from '../ai/aiAvailability';
+import { mentionedAi, type SendOpts } from '../ai/MentionIntent';
+import { useAiBoardState } from '../ai/aiUi';
+import { AskSplit, SendSplit } from '../ai/ComposerAi';
 import { COUNTER_FROM, MAX_COMMENT_CHARS, draftKey, readJson, writeJson, type Person } from './commentUtils';
 
 interface Chip {
@@ -26,8 +30,20 @@ interface Props {
   initial?: string;
   editing?: boolean;
   autoFocus?: boolean;
-  onSubmit: (text: string) => void;
+  /** Called with the comment text, and how to send it when the person chose (Send menu, Ask button). */
+  onSubmit: (text: string, opts?: SendOpts) => void;
   onCancel: () => void;
+  /** Starting text for a new comment (a mention put there by Ask on a hover card); replaces the saved draft. */
+  prefill?: string;
+  /** The comment this one answers: under an AI's comment it asks that AI again. */
+  replyTo?: string;
+  /** Who wrote it, for the “Replying to …” strip. */
+  replyLabel?: string;
+  /** What an AI gets as context, for the “Context sent” chips. */
+  criteriaCount?: number;
+  commentCount?: number;
+  /** The AI member the Ask button asks first (the ticket's AI assignee). */
+  defaultAskId?: string | null;
 }
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -75,8 +91,13 @@ const kb = {
  * @param props.initial - Starting text; used with `editing` to edit a comment in place.
  * @param props.editing - Edit mode: label "EDITING" and a Save button, no draft kept.
  * @param props.autoFocus - Focus the box on mount.
- * @param props.onSubmit - Called with the comment text.
+ * @param props.onSubmit - Called with the comment text and, when chosen, how to send it (Send menu, Ask button).
  * @param props.onCancel - Called when the box is dismissed.
+ * @param props.prefill - Starting text for a new comment (replaces the saved draft).
+ * @param props.replyTo - Id of the comment this one answers (an AI's: it is asked again).
+ * @param props.criteriaCount - Acceptance criteria an AI gets as context.
+ * @param props.commentCount - Comments an AI gets as context.
+ * @param props.defaultAskId - AI member the Ask button asks first.
  */
 export function Composer({
   ticketId,
@@ -88,8 +109,27 @@ export function Composer({
   autoFocus = true,
   onSubmit,
   onCancel,
+  prefill,
+  replyTo,
+  replyLabel,
+  criteriaCount = 0,
+  commentCount = 0,
+  defaultAskId,
 }: Props) {
-  const [text, setText] = useState(() => (editing ? initial : readJson<string>(draftKey(ticketId), '')));
+  const [text, setText] = useState(() => (editing ? initial : (prefill ?? readJson<string>(draftKey(ticketId), ''))));
+  const { members: aiMap } = useAiBoardState();
+  const mentioned = useMemo(() => mentionedAi(text, aiMap), [text, aiMap]);
+  // AI members that can answer a question now (the Ask split button), the ticket's assignee first
+  const askable = useMemo(
+    () =>
+      [...aiMap.values()]
+        .filter((m) => m.kind === 'ai' && m.connection !== 'inbox' && aiAvailability(m).usable)
+        .sort((a, b) => Number(b.id === defaultAskId) - Number(a.id === defaultAskId)),
+    [aiMap, defaultAskId],
+  );
+  const [askId, setAskId] = useState<string | null>(null);
+  const asking = askable.find((m) => m.id === askId) ?? askable[0];
+  const [menu, setMenu] = useState<null | 'send' | 'ask'>(null);
   const [tab, setTab] = useState<'write' | 'preview'>('write');
   const [chips, setChips] = useState<Chip[]>([]);
   const [saved, setSaved] = useState(!editing && !!readJson<string>(draftKey(ticketId), ''));
@@ -191,14 +231,21 @@ export function Composer({
     }
   }
 
-  function send() {
+  function send(how?: SendOpts) {
     if (!canSend) return;
     const extra = chips
       .filter((c) => c.status === 'done' && c.markdown)
       .map((c) => c.markdown)
       .join('\n\n');
-    onSubmit([text.trim(), extra].filter(Boolean).join('\n\n'));
+    setMenu(null);
+    const opts = replyTo || how ? { ...how, replyTo } : undefined;
+    onSubmit([text.trim(), extra].filter(Boolean).join('\n\n'), opts);
     if (!editing) writeJson(draftKey(ticketId), null);
+  }
+  /** Ctrl+Shift+Enter: ask. With a mention it means “Ask” for it; without, the Ask button's AI gets the text. */
+  function ask() {
+    if (mentioned.length) send({ intent: 'ask' });
+    else if (asking) send({ askMemberId: asking.id });
   }
 
   function cancel() {
@@ -235,7 +282,6 @@ export function Composer({
       { label: 'Quote', node: <span style={{ fontSize: 14 }}>❝</span>, run: () => prefixLines('> ') },
       { label: 'List', node: <Icon name="i05" size={0} />, run: () => prefixLines('- ') },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -357,6 +403,11 @@ export function Composer({
           )}
         </div>
 
+        {replyTo && !editing && (
+          <div className="tw-reply-strip" data-testid="comment-replying">
+            ↩ Replying to <b>{replyLabel ?? 'an AI'}</b> · it will answer again
+          </div>
+        )}
         {tab === 'preview' && (
           <div
             data-testid="comment-preview"
@@ -378,7 +429,10 @@ export function Composer({
             placeholder="Add a comment…"
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.shiftKey && !editing) {
+                e.preventDefault();
+                ask();
+              } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 send();
               } else if (e.key === 'Escape' && !e.defaultPrevented) {
@@ -498,8 +552,34 @@ export function Composer({
           </div>
         )}
 
+        {!editing && text.trim() && (mentioned.length > 0 || asking) && (
+          <div
+            data-testid="comment-context-chips"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 8,
+              padding: '8px 12px',
+              borderTop: '1px solid #EEF3EF',
+              fontSize: 12,
+              color: '#9AA8A0',
+            }}
+          >
+            Context sent
+            <span className="tw-ctx">✓ {criteriaCount} criteria</span>
+            <span className="tw-ctx">▭ {commentCount} comments</span>
+          </div>
+        )}
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderTop: '1px solid #EEF3EF' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+            padding: '8px 12px',
+            borderTop: '1px solid #EEF3EF',
+          }}
         >
           <button
             type="button"
@@ -532,7 +612,19 @@ export function Composer({
           />
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: '#9AA8A0' }}>
             <span style={kb}>{MOD}</span>+<span style={kb}>Enter</span>
+            {!editing && (mentioned.length > 0 || asking) && (
+              <>
+                <span>comment ·</span>
+                <span style={kb}>{MOD}</span>+<span style={kb}>Shift</span>+<span style={kb}>Enter</span>
+                <span>ask</span>
+              </>
+            )}
           </span>
+          {!editing && mentioned.length > 0 && (
+            <span data-testid="comment-ai-mentioned" className="tw-mentioned">
+              <span style={{ color: '#2F6FB0', fontWeight: 700 }}>@</span> {mentioned.length} AI mentioned
+            </span>
+          )}
           {text.length >= COUNTER_FROM && (
             <span
               data-testid="comment-counter"
@@ -541,19 +633,43 @@ export function Composer({
               {text.length.toLocaleString()} / {MAX_COMMENT_CHARS.toLocaleString()}
             </span>
           )}
-          <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8 }}>
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {!editing && mentioned.length === 0 && asking && (
+              <AskSplit
+                member={asking}
+                options={askable}
+                open={menu === 'ask'}
+                disabled={!canSend}
+                onToggle={() => setMenu(menu === 'ask' ? null : 'ask')}
+                onPick={(id) => {
+                  setAskId(id);
+                  setMenu(null);
+                }}
+                onAsk={() => ask()}
+              />
+            )}
             <button type="button" className="st-btn" data-testid="comment-cancel" onClick={cancel}>
               Cancel
             </button>
-            <button
-              type="button"
-              className="st-btn st-btn-primary"
-              data-testid="comment-send"
-              disabled={!canSend}
-              onClick={send}
-            >
-              {editing ? 'Save' : 'Comment'}
-            </button>
+            {!editing && mentioned.length > 0 ? (
+              <SendSplit
+                open={menu === 'send'}
+                disabled={!canSend}
+                onToggle={() => setMenu(menu === 'send' ? null : 'send')}
+                onSend={() => send()}
+                onPick={(intent) => send({ intent })}
+              />
+            ) : (
+              <button
+                type="button"
+                className="st-btn st-btn-primary"
+                data-testid="comment-send"
+                disabled={!canSend}
+                onClick={() => send()}
+              >
+                {editing ? 'Save' : 'Comment'}
+              </button>
+            )}
           </span>
         </div>
         {!editing && saved && (

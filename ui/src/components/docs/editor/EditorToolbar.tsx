@@ -9,6 +9,8 @@ interface Props {
   onLink: () => void;
   onPickImage: () => void;
   ticketPrefix: string;
+  /** Board AI "Ask AI" button (A6). */
+  onAskAi?: () => void;
 }
 
 const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
@@ -20,8 +22,9 @@ const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
  * @param props.onLink - Called by the link button.
  * @param props.onPickImage - Called by the image button.
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
+ * @param props.onAskAi - Shows the Board AI "Ask AI" button.
  */
-export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPrefix }: Props) {
+export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPrefix, onAskAi }: Props) {
   const st = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -156,6 +159,30 @@ export function EditorToolbar({ editor, disabled, onLink, onPickImage, ticketPre
         <Icon name="i54" size={16} />
       </Btn>
       <div style={{ flex: 1 }} />
+      {onAskAi && (
+        <button
+          type="button"
+          onClick={onAskAi}
+          data-testid="docs-ask-ai"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '5px 11px',
+            marginRight: 8,
+            border: '1.5px solid #2E6F40',
+            borderRadius: 8,
+            background: '#FFFFFF',
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: '#1E2A22',
+            cursor: 'pointer',
+          }}
+        >
+          ✦ Ask AI
+        </button>
+      )}
       <Btn label="Undo" off={!s.canUndo} onClick={() => c().undo().run()}>
         <Icon name="i19" size={16} />
       </Btn>

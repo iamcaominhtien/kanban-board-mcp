@@ -647,3 +647,15 @@
 .sidebar:focus-within .projectRetry {
   max-width: 60px;
 }
+
+/* Members pill "4 · 7 AI" (AI members): same as the count badge, wider and in the people/AI neutral colours */
+.sidebar:hover .memberPill,
+.sidebar.expanded .memberPill,
+.sidebar:focus-within .memberPill {
+  max-width: 90px;
+}
+
+.memberPill {
+  background: #dceee1;
+  color: #2e6f40;
+}

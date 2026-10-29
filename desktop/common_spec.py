@@ -19,12 +19,16 @@ def get_base_analysis_args(entry_point, app_name):
     alembic_hidden = collect_submodules('alembic')
     aiosqlite_hidden = collect_submodules('aiosqlite')
     sqlalchemy_async_hidden = ['sqlalchemy.ext.asyncio']
+    # API keys: the encryption key lives in the OS keychain; keyring is imported lazily and finds its
+    # backends through entry points, so both the modules and the metadata must be bundled
+    keyring_hidden = collect_submodules('keyring')
 
     # Common metadata
     pydantic_meta = copy_metadata('pydantic')
     pydantic_meta += copy_metadata('pydantic_core')
     pydantic_meta += copy_metadata('sqlmodel')
     pydantic_meta += copy_metadata('anyio')
+    pydantic_meta += copy_metadata('keyring')
 
     # Common data files (Alembic)
     alembic_data = collect_data_files('alembic')
@@ -35,7 +39,7 @@ def get_base_analysis_args(entry_point, app_name):
 
     hidden_imports = (
         sqlmodel_hidden + anyio_hidden + alembic_hidden + aiosqlite_hidden +
-        sqlalchemy_async_hidden +
+        sqlalchemy_async_hidden + keyring_hidden +
         ['sqlalchemy.dialects.sqlite', 'multiprocessing.freeze_support']
     )
 
