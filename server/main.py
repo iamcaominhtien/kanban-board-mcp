@@ -94,6 +94,9 @@ async def lifespan(app: FastAPI):
         digests = asyncio.create_task(
             svc_idea_ai.digest_loop(lambda: database.async_session())
         )
+        db_watcher = asyncio.create_task(
+            board_events.watch_database(database.get_db_path())
+        )
         await ai_runs.start_scheduler()
         await assist_chat.recover()
         await docs_ai_jobs.recover()
@@ -112,7 +115,8 @@ async def lifespan(app: FastAPI):
             await ai_runs.stop_scheduler()
             sweeper.cancel()
             digests.cancel()
-            for task in (sweeper, digests):
+            db_watcher.cancel()
+            for task in (sweeper, digests, db_watcher):
                 try:
                     await task
                 except asyncio.CancelledError:
