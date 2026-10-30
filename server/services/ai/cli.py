@@ -321,7 +321,8 @@ def looks_like_cli(pid: int, binary: str = "claude") -> bool:
 # Windows runs the CLI through its `claude.cmd` shim, and cmd.exe refuses a command line over 8191 characters
 # ("The command line is too long", exit 1); CreateProcess itself stops at 32767 (WinError 206). Linux and macOS
 # cap one argument at 128 KB. A long ticket or chat history in the prompt or system prompt goes over, so past
-# these sizes they travel by stdin and a file instead.
+# these sizes they travel by stdin and a file instead. Through that shim they always do: cmd.exe cuts an argument at
+# its first line break (the CLI then exits 0 without an answer) and reads `&`, `|` and `%` in it as commands.
 _MAX_COMMAND_CHARS = 6000 if sys.platform == "win32" else 100_000
 
 # flag -> the flag that takes the same text from a file
@@ -331,15 +332,27 @@ _FILE_FLAGS = {
 }
 
 
+def _through_cmd_exe(args: list[str]) -> bool:
+    """Whether Windows starts this command through cmd.exe (a `.cmd` or `.bat` shim such as npm's claude.cmd)."""
+    return (
+        sys.platform == "win32"
+        and bool(args)
+        and args[0].lower().endswith((".cmd", ".bat"))
+    )
+
+
 def spill_long_args(args: list[str]) -> tuple[list[str], str | None, str | None]:
     """Move a long prompt and system prompt off the command line.
 
     Returns:
         (args to run, text for stdin or None, temp folder holding the system prompt file or None). Short commands come
-        back unchanged. `-p <text>` becomes a bare `-p` (the CLI then reads the prompt from stdin); `--system-prompt
+        back unchanged, except behind a Windows `.cmd` shim. `-p <text>` becomes a bare `-p` (the CLI then reads the prompt from stdin); `--system-prompt
         <text>` becomes `--system-prompt-file <path>`.
     """
-    if len(subprocess.list2cmdline(args)) <= _MAX_COMMAND_CHARS:
+    if (
+        not _through_cmd_exe(args)
+        and len(subprocess.list2cmdline(args)) <= _MAX_COMMAND_CHARS
+    ):
         return args, None, None
     out = list(args)
     stdin_text: str | None = None

@@ -93,3 +93,22 @@ async def test_a_short_command_still_gets_no_stdin(tmp_path):
     got = json.loads(lines[0])
     assert got["stdin"] == "" and got["argv"][:2] == ["-p", "hello"]
     assert got["system"] is None
+
+
+def test_behind_a_windows_cmd_shim_even_a_short_multiline_prompt_leaves_the_command_line(
+    monkeypatch,
+):
+    monkeypatch.setattr(cli.sys, "platform", "win32")
+    prompt = "line one\nline two & more | %PATH%"
+    out, stdin_text, folder = cli.spill_long_args(
+        [r"C:\npm\claude.cmd", "-p", prompt, "--system-prompt", "rules\nmore"]
+    )
+    try:
+        assert stdin_text == prompt
+        assert out[1] == "-p" and "--system-prompt-file" in out
+        assert prompt not in out
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+    # a native claude.exe takes short arguments as they are
+    args = [r"C:\bin\claude.exe", "-p", prompt]
+    assert cli.spill_long_args(args) == (args, None, None)
