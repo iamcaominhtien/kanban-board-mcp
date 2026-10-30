@@ -128,17 +128,33 @@ function listNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** Show or hide the green bars and "Changed in vN" labels on the page. */
+/** Show or hide the green bars and "Changed in vN" labels on the page: an eye, slashed when they are hidden. */
 function MarksToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
   return (
     <button
       type="button"
-      className="st-btn st-btn-sm"
+      className="dk-icobtn"
+      aria-label="Mark changed paragraphs in the page"
       aria-pressed={on}
-      title="Mark the paragraphs that changed since you last viewed this page"
+      title={on ? 'Hide change markers in the page' : 'Show change markers in the page'}
+      style={{ width: 26, height: 26, color: '#2F6FB0' }}
       onClick={() => onChange(!on)}
     >
-      {on ? 'Hide markers' : 'Show markers'}
+      <svg
+        aria-hidden="true"
+        width={16}
+        height={16}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
+        {!on && <path d="M4 4l16 16" />}
+      </svg>
     </button>
   );
 }
@@ -241,7 +257,6 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
               <button type="button" className="st-btn st-btn-sm" onClick={markSeen}>
                 Mark as seen
               </button>
-              <MarksToggle on={marks} onChange={setMarks} />
             </div>
           </div>
         ) : (
@@ -255,9 +270,9 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
               <Icon name="i40" size={13} strokeWidth={2} />
               Show changes
             </button>
-            <MarksToggle on={marks} onChange={setMarks} />
           </>
         )}
+        <MarksToggle on={marks} onChange={setMarks} />
         <button
           type="button"
           className="dk-icobtn"
