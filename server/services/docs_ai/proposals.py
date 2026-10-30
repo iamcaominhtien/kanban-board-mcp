@@ -899,7 +899,8 @@ async def decide_from_approval(
 # ---------------------------------------------------------------------------
 
 
-async def _docs_ai_on(session: AsyncSession, project_id: str) -> bool:
+async def docs_ai_on(session: AsyncSession, project_id: str) -> bool:
+    """Whether Docs AI is on for the project (the project switch and the board-wide switch)."""
     row = await svc_settings.get(session, project_id)
     return bool(row.enabled and await svc_settings.master_on(session))
 
@@ -929,7 +930,7 @@ async def intercept(ctx, action: str, params: dict[str, Any]) -> dict[str, Any] 
             page = await session.get(DocsPage, t.page_id) if t else None
         if page is None or page.deleted_at:
             return None
-        if not await _docs_ai_on(session, page.project_id):
+        if not await docs_ai_on(session, page.project_id):
             return None
         detail = {
             "tool": "docs_write",
@@ -1255,3 +1256,27 @@ async def stop_scheduler() -> None:
         except (asyncio.CancelledError, Exception):  # noqa: BLE001
             pass
         _task = None
+
+
+async def hand_draft_to_person(session: AsyncSession, page_id: str, ctx: Any) -> None:
+    """A page an AI member created stays unpublished: its draft becomes the private draft of the person the run acts
+    for (marked "Drafted with AI"), so only that person sees it until they publish."""
+    drafts = (
+        await session.exec(select(DocsDraft).where(DocsDraft.page_id == page_id))
+    ).all()
+    for d in drafts:
+        d.author = ctx.on_behalf_of
+        d.ai_source = json.dumps(
+            {
+                "kind": "member",
+                "from": ctx.member_name,
+                "member_id": ctx.member_id,
+                "accepted": False,
+            }
+        )
+        session.add(d)
+    page = await session.get(DocsPage, page_id)
+    if page is not None:
+        page.created_by = ctx.on_behalf_of
+        session.add(page)
+    await session.commit()

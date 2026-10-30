@@ -130,6 +130,10 @@ export function DocsSpace({
             setPalette(null);
             setIntent({ kind: 'filter-tree', q });
           }}
+          onWritePage={(question) => {
+            setPalette(null);
+            setIntent({ kind: 'write-page', question });
+          }}
         />
       )}
       {importing && (

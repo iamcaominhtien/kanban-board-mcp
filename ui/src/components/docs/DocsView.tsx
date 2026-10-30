@@ -77,7 +77,11 @@ interface Props {
   resultsQuery?: string | null;
   onCloseResults?: () => void;
   /** One-shot request from the search palette: create a page with this title, or filter the tree. */
-  intent?: { kind: 'create-page'; title: string } | { kind: 'filter-tree'; q: string } | null;
+  intent?:
+    | { kind: 'create-page'; title: string }
+    | { kind: 'write-page'; question: string }
+    | { kind: 'filter-tree'; q: string }
+    | null;
   onIntentHandled?: () => void;
 }
 
@@ -346,7 +350,9 @@ export function DocsView({
   // palette hand-offs: "Create page “…”" and "Filter the tree instead"
   useEffect(() => {
     if (!intent) return;
-    if (intent.kind === 'create-page') {
+    if (intent.kind === 'write-page') {
+      setNewPage({ parentId: null, aiFrom: { kind: 'prompt', text: intent.question } });
+    } else if (intent.kind === 'create-page') {
       setNewPage({ parentId: null, title: intent.title });
     } else {
       onCloseResults?.();

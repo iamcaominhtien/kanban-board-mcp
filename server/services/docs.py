@@ -645,6 +645,14 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
             await session.delete(row)
+    # Docs AI rows that belong to the pages (proposals and the freshness check have a foreign key to the page)
+    from models import DocsAiCheck, DocsAiIgnore, DocsAiJob, DocsAiProposal
+
+    for ai_model in (DocsAiProposal, DocsAiCheck, DocsAiIgnore, DocsAiJob):
+        for row in (
+            await session.exec(select(ai_model).where(ai_model.page_id.in_(ids)))  # type: ignore[attr-defined]
+        ).all():
+            await session.delete(row)
     # children first so the parent foreign key never dangles
     for p in sorted(pages, key=lambda p: 0 if p.parent_id in ids else 1):
         await session.delete(p)
