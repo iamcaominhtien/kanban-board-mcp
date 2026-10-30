@@ -5,7 +5,7 @@ from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database import get_session
@@ -15,6 +15,7 @@ from services.ai.assist import chat as svc_chat
 from services.ai.assist import drafts as svc_drafts
 from services.ai.assist import health as svc_health
 from services.ai.assist import match as svc_match
+from services.ai.assist import scoped as svc_scoped
 from services.ai.assist import settings as svc_settings
 from services.ai.assist.settings import AssistError
 
@@ -35,6 +36,8 @@ STATUS = {
     "unavailable": 409,
     "over_budget": 409,
     "not_shared": 409,
+    "ai_off": 409,
+    "run_refused": 409,
 }
 
 
@@ -123,6 +126,8 @@ class ChatBody(BaseModel):
     scope: str = "project"
     ticket_id: Optional[str] = None
     doc_id: Optional[str] = None
+    scope_id: Optional[str] = None
+    member_id: Optional[str] = None
 
 
 @router.post("/projects/{project_id}/ai/assist/chats", status_code=201)
@@ -135,8 +140,48 @@ async def post_chat(project_id: str, body: ChatBody, session: Session) -> dict:
         scope=body.scope,
         ticket_id=body.ticket_id,
         doc_id=body.doc_id,
+        scope_id=body.scope_id,
+        member_id=body.member_id,
     )
     return await svc_chat.chat_detail(session, c.id, _by())
+
+
+# --------------------------------------------------------------------------- chat about one thing (a scope)
+
+
+@router.get("/ai/scopes/{kind}/{scope_id}")
+async def get_scope(kind: str, scope_id: str, session: Session) -> dict:
+    """The chat panel's state for a ticket, a page or an idea: what it reads, who answers, whether this person may
+    ask and what an answer or a run would cost."""
+    return await svc_scoped.state(session, kind, scope_id, _by())
+
+
+class ScopeChatBody(BaseModel):
+    """Open the person's chat about a thing."""
+
+    fresh: bool = False
+
+
+@router.post("/ai/scopes/{kind}/{scope_id}/chat")
+async def post_scope_chat(
+    kind: str, scope_id: str, session: Session, body: Optional[ScopeChatBody] = None
+) -> dict:
+    """The person's saved chat about this thing (private to them), or a new one with `fresh`."""
+    c = await svc_chat.scope_chat(
+        session, kind, scope_id, _by(), fresh=bool(body and body.fresh)
+    )
+    return await svc_chat.chat_detail(session, c.id, _by())
+
+
+@router.get("/tickets/{ticket_id}/ai/estimate")
+async def get_estimate(
+    ticket_id: str,
+    session: Session,
+    member_id: str,
+    mode: str = Query("ask"),
+) -> dict:
+    """What asking an AI member in a comment would do and cost, shown before the comment is sent."""
+    return await svc_scoped.mention_estimate(session, ticket_id, member_id, mode, _by())
 
 
 @router.get("/ai/assist/chats/{chat_id}")
@@ -152,6 +197,7 @@ class ChatPatch(BaseModel):
     ticket_id: Optional[str] = None
     doc_id: Optional[str] = None
     include_doc: Optional[str] = None
+    member_id: Optional[str] = None
 
 
 @router.patch("/ai/assist/chats/{chat_id}")
@@ -177,6 +223,9 @@ class MessageBody(BaseModel):
     send_all: bool = False
     doc_ids: list[str] = []
     filters: dict[str, Any] = {}
+    # "ask" only answers; "work" starts a run on the chat's ticket (never the default)
+    mode: str = "ask"
+    member_id: Optional[str] = None
 
 
 @router.post("/ai/assist/chats/{chat_id}/messages")
@@ -191,6 +240,8 @@ async def post_message(chat_id: str, body: MessageBody, session: Session) -> dic
         send_all=body.send_all,
         doc_ids=body.doc_ids,
         filters=body.filters,
+        mode=body.mode,
+        member_id=body.member_id,
     )
 
 
@@ -222,15 +273,34 @@ async def post_stop(message_id: str, session: Session) -> dict:
 
 
 class RetryBody(BaseModel):
-    """Try again, Send now, or Send all."""
+    """Try again, Send now, Send all, or Continue an answer cut short."""
 
     send_all: bool = False
+    continue_: bool = Field(default=False, alias="continue")
 
 
 @router.post("/ai/assist/messages/{message_id}/retry")
 async def post_retry(message_id: str, body: RetryBody, session: Session) -> dict:
     """Try again (also "Send now" on a rate limit and "Send all" on a truncated context)."""
-    return await svc_chat.retry(session, message_id, _by(), send_all=body.send_all)
+    return await svc_chat.retry(
+        session, message_id, _by(), send_all=body.send_all, continue_=body.continue_
+    )
+
+
+class PostCommentBody(BaseModel):
+    """Post an answer as a comment (optionally edited first)."""
+
+    text: Optional[str] = None
+
+
+@router.post("/ai/assist/messages/{message_id}/post-comment")
+async def post_message_as_comment(
+    message_id: str, session: Session, body: Optional[PostCommentBody] = None
+) -> dict:
+    """ "Post as comment": share a ticket chat answer with the team, as a comment with the AI badge."""
+    return await svc_chat.post_as_comment(
+        session, message_id, _by(), body.text if body else None
+    )
 
 
 # --------------------------------------------------------------------------- drafts

@@ -242,6 +242,8 @@ export interface AiMember {
 export interface AiSettings {
   projectId: string;
   boardAiId: string | null;
+  /** False turns the AI helpers off for the project: no AI button, no AI in the @ list, no /ai. */
+  aiEnabled: boolean;
   pausedAll: boolean;
   pausedAt: string | null;
   pausedBy: string | null;

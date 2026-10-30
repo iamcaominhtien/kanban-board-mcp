@@ -23,6 +23,7 @@ class FakeLLM:
         """Empty queue."""
         self.queue: list = []
         self.prompts: list[str] = []
+        self.systems: list[str] = []
         self.delay = 0.0
 
     async def __call__(
@@ -38,6 +39,7 @@ class FakeLLM:
     ):
         """One fake completion, streamed in small pieces."""
         self.prompts.append(prompt)
+        self.systems.append(system)
         item = self.queue.pop(0) if self.queue else "OK."
         if isinstance(item, Exception):
             raise item

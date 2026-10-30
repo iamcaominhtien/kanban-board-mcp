@@ -467,6 +467,13 @@ async def _ticket_full(
                     else ""
                 )
             )
+    branches = [
+        b
+        for b in _list(t.branches)
+        if isinstance(b, dict) and b.get("name") and not b.get("deleted_at")
+    ]
+    if branches:
+        lines.append("Branches: " + ", ".join(redact(str(b["name"])) for b in branches))
     subs = (await session.exec(select(Ticket).where(Ticket.parent_id == t.id))).all()
     if subs:
         lines.append("Sub-tickets:")

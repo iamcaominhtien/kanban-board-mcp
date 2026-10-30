@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StartedAsIdea, TestsAssumption } from './ideas/ideaLinks';
 import { useResolveAssumption } from '../api/ideas';
 import type { IssueType, Member, Priority, Status, Ticket, TicketBranch } from '../types';
@@ -65,6 +65,8 @@ import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketSafetyBlocks } from './ai/AiTicketSafety';
 import { SplitBadge, SuggestCasesButton, SuggestCasesPanel, TicketAiMenu } from './assist/TicketAi';
+import { TicketChat } from './assist/TicketChat';
+import { useAiBoardState } from './ai/aiUi';
 import { DraftWithAi } from './assist/DraftWithAi';
 import { useAssist } from './assist/AssistContext';
 import { BranchesSection } from './BranchesSection';
@@ -241,6 +243,24 @@ function TicketModalInner({
     [openTicketId],
   );
   const assist = useAssist();
+  // The AI chat docked in the ticket page (design/screens/ai-where-you-work.md, B); Ctrl+J opens and closes it
+  const { members: aiMembers, settings: aiSettings } = useAiBoardState();
+  const [chatOpen, setChatOpen] = useState(false);
+  const aiChatAvailable = aiSettings?.aiEnabled !== false && aiMembers.size > 0;
+  const toggleChat = useCallback((open?: boolean) => setChatOpen((v) => open ?? !v), []);
+  useEffect(() => {
+    if (!openTicketId || !aiChatAvailable) return undefined;
+    // capture phase: this runs before the board-wide Ctrl+J; inside an editor Ctrl+J belongs to its /ai menu
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'j') return;
+      if ((e.target as Element | null)?.closest?.('[data-ai-editor]')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setChatOpen((v) => !v);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [openTicketId, aiChatAvailable]);
   const mentionIntent = useMentionIntent(ticket?.id ?? '');
   const { data: workspaceSettings } = useWorkspaceSettings();
   const workspaceEnabled = workspaceSettings?.enabled !== false;
@@ -996,7 +1016,7 @@ function TicketModalInner({
           role="dialog"
           aria-modal="true"
           aria-label={`Ticket ${ticket.id}`}
-          className={`${styles.panel} ${styles.panelDetail} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
+          className={`${styles.panel} ${styles.panelDetail} ${chatOpen && aiChatAvailable ? styles.panelWithChat : ''} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -1261,6 +1281,8 @@ function TicketModalInner({
               />
               <TicketAiMenu
                 ticket={ticket}
+                chatOpen={chatOpen && aiChatAvailable}
+                onToggleChat={aiChatAvailable ? toggleChat : undefined}
                 onOpenTestCases={() => {
                   setActiveTab('test_cases');
                   setSuggestCases(true);
@@ -1354,7 +1376,9 @@ function TicketModalInner({
             </div>
           </div>
 
-          {/* Body */}
+          {/* Body, with the AI chat docked on the right when it is open */}
+          <div className={styles.bodyRow}>
+            <div className={styles.bodyCol}>
           {activeTab === 'main' ? (
             <div key="main" className={styles.mainTabWrap}>
               {/* Banners sit full width under the header (TicketReopen D1 / TicketPending D1) */}
@@ -1452,8 +1476,8 @@ function TicketModalInner({
                             <strong>{pendingBlockerTicket.id}</strong> is done. Resume <strong>{ticket.id}</strong>?
                           </div>
                           <div className={styles.promptBannerDoneSubtitle}>
-                            Pending since {ticket.pendingSince ? fmtShortDate(ticket.pendingSince) : 'recent'} · waiting
-                            on {pendingBlockerTicket.id} (Done)
+                                Pending since {ticket.pendingSince ? fmtShortDate(ticket.pendingSince) : 'recent'} ·
+                                waiting on {pendingBlockerTicket.id} (Done)
                           </div>
                         </div>
                       </div>
@@ -1722,7 +1746,11 @@ function TicketModalInner({
                           autoFocus
                         />
                       ) : (
-                        <h2 className={styles.titleText} onClick={() => setIsEditingTitle(true)} title="Click to edit">
+                            <h2
+                              className={styles.titleText}
+                              onClick={() => setIsEditingTitle(true)}
+                              title="Click to edit"
+                            >
                           {ticket.title}
                         </h2>
                       )}
@@ -1776,6 +1804,7 @@ function TicketModalInner({
                         diagramProjectId={ticket.projectId}
                         diagramSaveTo={`${ticket.id} description`}
                         diagramItem={{ kind: 'ticket', id: ticket.id }}
+                            ai={{ surface: 'ticket_description', projectId: ticket.projectId, ticketId: ticket.id }}
                       />
                     </div>
 
@@ -1882,7 +1911,8 @@ function TicketModalInner({
                                 .slice(0, 2)
                                 .toUpperCase();
                               const isLast = idx === arr.length - 1;
-                              const count = entry.reopenCount ?? (ticket.reopenCount ? ticket.reopenCount - idx : 1);
+                                  const count =
+                                    entry.reopenCount ?? (ticket.reopenCount ? ticket.reopenCount - idx : 1);
 
                               return (
                                 <div
@@ -2004,7 +2034,9 @@ function TicketModalInner({
                                         {entry.fromStatus === 'wont_do'
                                           ? "Previously marked Won't Do"
                                           : 'Previously completed'}
-                                        {entry.previousCompletedAt ? ` ${fmtShortDate(entry.previousCompletedAt)}` : ''}
+                                            {entry.previousCompletedAt
+                                              ? ` ${fmtShortDate(entry.previousCompletedAt)}`
+                                              : ''}
                                         {entry.sideEffects && entry.sideEffects.length > 0
                                           ? ` · ${entry.sideEffects.join(', ')}`
                                           : ''}
@@ -2062,6 +2094,7 @@ function TicketModalInner({
                       onDelete={(id) => {
                         deleteACMutation.mutate({ ticketId: ticket.id, criterionId: id });
                       }}
+                          ai={{ projectId: ticket.projectId, ticketId: ticket.id }}
                     />
 
                     {/* Relations */}
@@ -2306,7 +2339,9 @@ function TicketModalInner({
                         updateCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId, text: t })
                       }
                       onDelete={(cId) => deleteCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
-                      onRestore={(cId) => restoreCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })}
+                          onRestore={(cId) =>
+                            restoreCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })
+                          }
                     />
 
                     {previewAttachment && (
@@ -2495,8 +2530,13 @@ function TicketModalInner({
                         {ticket.completedBy ? ` by ${fmtActor(ticket.completedBy)}` : ''}
                       </div>
                     )}
-                    {status !== 'done' && status !== 'wont_do' && (ticket.reopenCount ?? 0) > 0 && !ticket.pending && (
-                      <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6 }}>Completion date cleared</div>
+                        {status !== 'done' &&
+                          status !== 'wont_do' &&
+                          (ticket.reopenCount ?? 0) > 0 &&
+                          !ticket.pending && (
+                            <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6 }}>
+                              Completion date cleared
+                            </div>
                     )}
                     {ticket.pending && (
                       <div style={{ fontSize: 11.5, color: '#8A99A8', marginTop: 6, lineHeight: 1.4 }}>
@@ -2634,7 +2674,10 @@ function TicketModalInner({
                                     {b.name}
                                   </span>
                                   {b.worktreePath && (
-                                    <span className={styles.branchWorktreePill} title={`Worktree: ${b.worktreePath}`}>
+                                        <span
+                                          className={styles.branchWorktreePill}
+                                          title={`Worktree: ${b.worktreePath}`}
+                                        >
                                       🌳
                                     </span>
                                   )}
@@ -2684,7 +2727,9 @@ function TicketModalInner({
                                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                                 </svg>
                                 <span>Local Git repo</span>
-                                <span className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}>
+                                    <span
+                                      className={effectiveRepoPath ? styles.repoBadgeConnected : styles.repoBadgeEmpty}
+                                    >
                                   {ticket.repoPath ? 'override' : project?.repoPath ? 'project' : 'not linked'}
                                 </span>
                               </div>
@@ -2935,7 +2980,10 @@ function TicketModalInner({
                         />
                         All acceptance criteria met
                       </label>
-                      <label className={styles.guardOption} title="Block moving to Done until every test case passes">
+                          <label
+                            className={styles.guardOption}
+                            title="Block moving to Done until every test case passes"
+                          >
                         <input
                           type="checkbox"
                           checked={blockTcs}
@@ -2980,7 +3028,9 @@ function TicketModalInner({
                   aiActions={<SuggestCasesButton ticket={ticket} onOpen={() => setSuggestCases(true)} />}
                   criteria={ticket.acceptanceCriteria ?? []}
                   aiPanel={
-                    suggestCases ? <SuggestCasesPanel ticket={ticket} onClose={() => setSuggestCases(false)} /> : null
+                        suggestCases ? (
+                          <SuggestCasesPanel ticket={ticket} onClose={() => setSuggestCases(false)} />
+                        ) : null
                   }
                   childTestCaseSources={childTickets.map((st) => ({
                     ticketId: st.id,
@@ -3007,7 +3057,9 @@ function TicketModalInner({
                       const o = old.find((item) => item.id === u.id);
                       return o && JSON.stringify(o) !== JSON.stringify(u);
                     });
-                    deletedIds.forEach((id) => deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id }));
+                        deletedIds.forEach((id) =>
+                          deleteTestCaseMutation.mutate({ ticketId: ticket.id, testCaseId: id }),
+                        );
                     changedItems.forEach((tc) =>
                       updateTestCaseMutation.mutate({
                         ticketId: ticket.id,
@@ -3077,6 +3129,15 @@ function TicketModalInner({
               )}
             </div>
           )}
+            </div>
+            {chatOpen && aiChatAvailable && (
+              <TicketChat
+                ticket={ticket}
+                onClose={() => setChatOpen(false)}
+                onOpenRun={(runId) => aiTicketActions.openRun(runId)}
+              />
+            )}
+          </div>
 
           {mentionIntent.dialog}
           <CreateBranchModal

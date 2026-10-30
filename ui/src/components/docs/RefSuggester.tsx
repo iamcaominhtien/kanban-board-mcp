@@ -19,7 +19,17 @@ export interface SuggestMember {
   bg?: string;
   color?: string;
   /** An AI member: its avatar, and its status in words (greyed and not insertable when it cannot be used now). */
-  ai?: { avatar: ReactNode; status: string; note: string; tone: 'ok' | 'warn' | 'off'; usable: boolean };
+  ai?: {
+    avatar: ReactNode;
+    status: string;
+    note: string;
+    tone: 'ok' | 'warn' | 'off';
+    usable: boolean;
+    /** The whole sub line ("Local runner · online · can edit code"); replaces status + note. */
+    sub?: string;
+    /** A pill at the right ("Paused") for a member that cannot be used now. */
+    chip?: string;
+  };
 }
 type Mode = 'page' | 'section' | 'ticket' | 'member';
 
@@ -36,6 +46,8 @@ interface Open {
 
 interface Item {
   key: string;
+  /** A pill at the right of the row ("Paused"). */
+  chip?: string;
   icon: ReactNode;
   title: string;
   sub?: string;
@@ -221,14 +233,31 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
       key: m.id,
       disabled: m.ai ? !m.ai.usable : false,
       subNode: m.ai ? (
-        <span style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 11.5 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: TONE[m.ai.tone], flexShrink: 0 }} />
-          <span style={{ color: m.ai.tone === 'off' ? '#9AA8A0' : TONE[m.ai.tone], fontWeight: 600 }}>
-            {m.ai.status}
+        m.ai.sub ? (
+          <span style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11.5 }} data-testid="ai-sub">
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: TONE[m.ai.tone], flexShrink: 0 }} />
+            <span
+              style={{
+                color: m.ai.tone === 'off' ? '#9AA8A0' : '#5B6B60',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {m.ai.sub}
+            </span>
           </span>
-          <span style={{ color: '#9AA8A0' }}>{m.ai.note}</span>
-        </span>
+        ) : (
+          <span style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 11.5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: TONE[m.ai.tone], flexShrink: 0 }} />
+            <span style={{ color: m.ai.tone === 'off' ? '#9AA8A0' : TONE[m.ai.tone], fontWeight: 600 }}>
+              {m.ai.status}
+            </span>
+            <span style={{ color: '#9AA8A0' }}>{m.ai.note}</span>
+          </span>
+        )
       ) : undefined,
+      chip: m.ai?.chip,
       icon: m.ai ? (
         m.ai.avatar
       ) : (
@@ -496,7 +525,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
                   }}
                 >
                   {it.group}
-                  {(it.group === 'People' || it.group === 'AI') && (
+                  {(it.group === 'People' || it.group === 'AI members') && (
                     <span style={{ fontWeight: 600 }}> · {items.filter((x) => x.group === it.group).length}</span>
                   )}
                 </div>
@@ -556,6 +585,21 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
                     </span>
                   )}
                 </span>
+                {it.chip && (
+                  <span
+                    data-testid="ai-chip"
+                    style={{
+                      padding: '2px 9px',
+                      borderRadius: 999,
+                      background: '#EEF1EE',
+                      color: '#5B6B60',
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {it.chip}
+                  </span>
+                )}
                 {it.tag && <span className="dk-kbd">{it.tag}</span>}
                 {(on || it.hint) && !it.tag && (
                   <span style={{ fontSize: 11.5, color: '#9AA8A0', whiteSpace: 'nowrap' }}>

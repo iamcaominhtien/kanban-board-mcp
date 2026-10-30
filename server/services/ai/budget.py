@@ -61,7 +61,7 @@ async def spent(
     until: datetime | None = None,
     whole_group: bool = False,
 ) -> float:
-    """Metered spend since `since`: runs of one agent or one project, plus the agent's one-shot calls.
+    """Metered spend since `since`: runs of one agent or one project, plus its one-shot calls.
     `whole_group` counts the agent's copies in other projects too (its budget is one)."""
     stmt = select(func.coalesce(func.sum(AiRun.cost_usd), 0.0)).where(
         AiRun.metered == True,  # noqa: E712
@@ -80,7 +80,17 @@ async def spent(
         stmt = stmt.where(AiRun.project_id == project_id)
     runs = float((await session.exec(stmt)).one() or 0.0)
     if not member_id:
-        return runs
+        if not project_id:
+            return runs
+        # The project's one-shot calls (chat, drafts, editor help) count toward the board's caps too
+        board_calls = select(func.coalesce(func.sum(AiUsage.cost), 0.0)).where(
+            AiUsage.metered == True,  # noqa: E712
+            AiUsage.project_id == project_id,
+            col(AiUsage.created_at) >= since.isoformat(),
+        )
+        if until:
+            board_calls = board_calls.where(col(AiUsage.created_at) < until.isoformat())
+        return runs + float((await session.exec(board_calls)).one() or 0.0)
     # The agent's own one-shot calls (Board AI answers, schedule reviews, dry runs) spend its budget too
     calls = select(func.coalesce(func.sum(AiUsage.cost), 0.0)).where(
         AiUsage.metered == True,  # noqa: E712

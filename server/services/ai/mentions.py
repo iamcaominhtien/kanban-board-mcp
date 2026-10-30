@@ -71,8 +71,25 @@ async def deliver(
         if not targets:
             return out
         settings = await get_settings(session, ticket.project_id)
+        if not settings.ai_enabled:
+            # AI is off for the project: an old mention is plain text; nothing runs and nobody is told
+            return [
+                {"member_id": m.id, "result": "not_delivered", "reason": "AI is off"}
+                for m in targets
+            ]
         if intent == "notify":
             return [{"member_id": m.id, "result": "notified"} for m in targets]
+        from .assist.drafts import role_of
+
+        if await role_of(session, ticket.project_id, by) == "viewer":
+            await _board_note(
+                ticket_id,
+                "Mention not delivered: only members can ask an AI. A viewer can read the answers.",
+            )
+            return [
+                {"member_id": m.id, "result": "not_delivered", "reason": "viewer"}
+                for m in targets
+            ]
         if settings.paused_all:
             await _board_note(
                 ticket_id,

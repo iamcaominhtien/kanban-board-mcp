@@ -2,34 +2,40 @@ import { useMemo } from 'react';
 import type { Member } from '../../types/ticket';
 import type { SuggestMember } from '../docs/RefSuggester';
 import { getAvatarColors } from '../MemberAvatar';
-import { aiAvailability } from './aiAvailability';
+import { aiAvailability, aiPickerLine } from './aiAvailability';
 import { AiAvatar, useAiBoardState } from './aiUi';
 
 /** The project's AI members as rows of the @ list: avatar, status in words, greyed when they cannot be used now. */
 export function useAiSuggest(): SuggestMember[] {
-  const { members } = useAiBoardState();
+  const { members, settings } = useAiBoardState();
+  const on = settings?.aiEnabled !== false; // AI turned off for the project: no AI in the @ list
   return useMemo(
     () =>
-      [...members.values()]
-        .filter((m) => m.kind === 'ai')
-        .map((m) => {
-          const av = aiAvailability(m);
-          return {
-            id: m.id,
-            name: m.name,
-            group: 'AI',
-            ai: {
-              avatar: <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={22} />,
-              status: av.label,
-              note: av.note,
-              tone: av.tone,
-              usable: av.usable,
-            },
-          };
-        })
-        // usable first, then the ones that cannot be mentioned now
-        .sort((a, b) => Number(b.ai.usable) - Number(a.ai.usable)),
-    [members],
+      on
+        ? [...members.values()]
+            .filter((m) => m.kind === 'ai')
+            .map((m) => {
+              const av = aiAvailability(m);
+              const pick = aiPickerLine(m);
+              return {
+                id: m.id,
+                name: m.name,
+                group: 'AI members',
+                ai: {
+                  avatar: <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={22} />,
+                  status: av.label,
+                  note: av.note,
+                  tone: av.tone,
+                  usable: av.usable,
+                  sub: pick.line,
+                  chip: pick.chip,
+                },
+              };
+            })
+            // usable first, then the ones that cannot be mentioned now
+            .sort((a, b) => Number(b.ai.usable) - Number(a.ai.usable))
+        : [],
+    [members, on],
   );
 }
 

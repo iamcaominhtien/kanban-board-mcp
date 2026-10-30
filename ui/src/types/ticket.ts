@@ -51,10 +51,13 @@ export interface Comment {
 }
 
 export interface AiCommentMeta {
-  kind: 'answer' | 'summary' | 'failed' | 'ask_failed' | 'move_blocked' | 'comment';
+  kind: 'answer' | 'summary' | 'failed' | 'ask_failed' | 'move_blocked' | 'comment' | 'chat_answer';
   /** The comment an `ask_failed` reply is about. */
   replyTo?: string | null;
+  /** The run behind the comment; a `chat_answer` (posted from the ticket chat) has none. */
   runId: string;
+  /** chat_answer: the person who asked in the chat and shared the answer. */
+  askedBy?: string;
   runNumber?: number;
   memberId: string;
   durationS?: number;

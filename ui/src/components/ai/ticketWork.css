@@ -562,6 +562,7 @@
 
 /* ---- parent ticket plan (H7) ---- */
 .tw-plan {
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -681,4 +682,126 @@
 }
 .ai-card-footer .ai-muted {
   white-space: nowrap;
+}
+
+/* ---- what a mention will do (design/screens/ai-where-you-work.md, C2) ---- */
+.tw-plan {
+  text-align: left;
+  margin: 0 12px 10px;
+  padding: 10px 12px;
+  border: 1px solid #d9d1f6;
+  background: #f6f3fe;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #5b5280;
+}
+.tw-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tw-plan-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #5a3fd0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tw-plan-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: #ece8fb;
+  border-radius: 8px;
+}
+.tw-plan-seg button {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b628f;
+  cursor: pointer;
+}
+.tw-plan-seg .tw-plan-on {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.12);
+}
+.tw-plan-line b {
+  color: #3d2f86;
+}
+.tw-plan-strong {
+  color: #2d2566;
+}
+.tw-plan-warn {
+  padding: 6px 9px;
+  border: 1px solid #efd9a6;
+  background: #fdf5e4;
+  border-radius: 8px;
+  color: #7a4f08;
+}
+.tw-plan-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- the state of a run a comment started, under that comment (design C3) ---- */
+.tw-runrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  margin: 2px 0 2px 44px;
+  font-size: 13.5px;
+}
+.tw-runrow-label {
+  flex-shrink: 0;
+  width: 92px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #5b6b60;
+}
+.tw-runrow-text {
+  flex: 1;
+  min-width: 0;
+  color: #1e2a22;
+}
+.tw-runrow code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: #f1f4f2;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.tw-runrow-bad {
+  border-color: #efc4b8;
+  background: #fdf6f3;
+}
+.tw-runrow-ok {
+  border-color: #bfdcc7;
+  background: #f6fbf7;
+}
+
+.tw-dot-grey {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #9aa8a0;
+  display: inline-block;
 }

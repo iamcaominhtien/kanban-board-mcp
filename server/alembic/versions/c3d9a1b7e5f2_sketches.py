@@ -13,7 +13,7 @@ import sqlmodel
 from alembic import op
 
 revision: str = "c3d9a1b7e5f2"
-down_revision: Union[str, Sequence[str], None] = "d7e8f9a0b1c2"
+down_revision: Union[str, Sequence[str], None] = "a3b4c5d6e7f8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

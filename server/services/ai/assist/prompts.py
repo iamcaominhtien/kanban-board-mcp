@@ -57,6 +57,9 @@ the answer with ONE fenced block in exactly this form:
   {"op": "estimate", "ticket": "KAN-1", "to": 1|2|3|5|8|13|null}
   {"op": "title", "ticket": "KAN-1", "to": "new title"}
   {"op": "comment", "ticket": "KAN-1", "text": "comment text; mention people as @Name"}
+  {"op": "add_criteria", "ticket": "KAN-1", "items": ["a testable acceptance criterion", "another"]}
+Use add_criteria when asked for acceptance criteria: one short, testable sentence each, none that the ticket already
+has, at most 8.
 "suggestions" (optional, at most 2): follow-ups the person may want, each
   {"label": "Nudge KAN-147", "request": "Draft a comment on KAN-147 asking its owner what blocks it"}
 Leave the block out when there is nothing to change or suggest."""
@@ -179,6 +182,18 @@ def check_changes(
             text = str(ch.get("text") or "").strip()
             if text:
                 out.append({"op": "comment", "ticket": tid, "text": text[:4000]})
+            continue
+        if op == "add_criteria":
+            have = {str(x).strip().lower() for x in cur.get("criteria") or []}
+            items: list[str] = []
+            for item in ch.get("items") or []:
+                text = " ".join(str(item or "").split())[:500]
+                if text and text.lower() not in have and text not in items:
+                    items.append(text)
+            if items:
+                out.append({"op": "add_criteria", "ticket": tid, "items": items[:8]})
+            else:
+                problems.append(f"{tid}: no new acceptance criteria")
             continue
         to = ch.get("to")
         if op == "status":
