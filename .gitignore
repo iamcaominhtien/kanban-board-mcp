@@ -37,6 +37,9 @@ desktop/build/*
 !desktop/build/icon.icns
 !desktop/build/icon.ico
 
+# CodeGraph index (local, rebuilt by .claude/scripts/codegraph.sh)
+.codegraph/
+
 # Playwright & test artifacts
 .playwright-mcp/
 comments_*.png
