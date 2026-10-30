@@ -612,10 +612,12 @@ function PageTab({
   const latest = useRef({ value: idea.body, id: idea.id, saved: idea.body });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // `mutate` is stable; `edit` changes on every mutation state, which would re-run the unmount flush below
+  const { mutate } = edit;
   const save = useCallback(
     (body: string) => {
       setStatus('saving');
-      edit.mutate(
+      mutate(
         { id: latest.current.id, body },
         {
           onSuccess: () => {
@@ -626,7 +628,7 @@ function PageTab({
         },
       );
     },
-    [edit],
+    [mutate],
   );
 
   // a different idea, or a change made elsewhere while there are no edits of ours, reloads the text
@@ -641,6 +643,7 @@ function PageTab({
     () => () => {
       if (timer.current) {
         clearTimeout(timer.current);
+        timer.current = null;
         if (latest.current.value !== latest.current.saved) save(latest.current.value);
       }
     },

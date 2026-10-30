@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { SKETCH_LINE } from '../sketch/sketchRefs';
 import { useSketchStarter } from '../sketch/useSketchStarter';
-import { SketchEmbed } from '../sketch/SketchEmbed';
+import { useSketch } from '../sketch/SketchContext';
+import { sketchPngUrl } from '../../api/sketches';
 import { extractError } from '../../api/extractError';
 import { useAddEvidence, useDeleteEvidence, useIdeaEvidence } from '../../api/ideas';
 import { uploadAnyFile } from '../../api/tickets';
@@ -180,6 +181,45 @@ export function EvidenceForm({ assumptions, onAdd, ideaId, projectId, ideaTitle 
   );
 }
 
+/** A sketch as a small picture in the evidence list; a click opens it in the Sketch editor (the viewer when read only). */
+function SketchThumb({
+  sketchId,
+  title,
+  ideaId,
+  projectId,
+  readOnly,
+}: {
+  sketchId: string;
+  title: string;
+  ideaId: string;
+  projectId?: string;
+  readOnly: boolean;
+}) {
+  const api = useSketch();
+  return (
+    <button
+      type="button"
+      className="is-btn-ghost"
+      style={{ display: 'block', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
+      title={readOnly ? 'View sketch' : 'Edit sketch'}
+      onClick={() => void api.openSketch({ ownerKind: 'idea', ownerId: ideaId, projectId, sketchId, title })}
+    >
+      <img
+        src={sketchPngUrl(sketchId)}
+        alt={title}
+        style={{
+          maxWidth: 220,
+          maxHeight: 110,
+          border: '1px solid var(--is-line, #ddd)',
+          borderRadius: 6,
+          display: 'block',
+        }}
+      />
+      <span className="is-muted">{title}</span>
+    </button>
+  );
+}
+
 /** Evidence tab: each piece once, with the assumptions it supports. */
 export function IdeaEvidenceTab({ idea, readOnly }: { idea: Idea; readOnly: boolean }) {
   const list = useIdeaEvidence(idea.id);
@@ -214,10 +254,11 @@ export function IdeaEvidenceTab({ idea, readOnly }: { idea: Idea; readOnly: bool
                       {e.title || e.ref}
                     </a>
                   ) : e.kind === 'sketch' && SKETCH_LINE.test(e.ref) ? (
-                    <SketchEmbed
-                      id={SKETCH_LINE.exec(e.ref)![2]}
-                      label={e.title || SKETCH_LINE.exec(e.ref)![1]}
-                      small
+                    <SketchThumb
+                      sketchId={SKETCH_LINE.exec(e.ref)![2]}
+                      title={e.title || SKETCH_LINE.exec(e.ref)![1]}
+                      ideaId={idea.id}
+                      projectId={idea.projectId ?? undefined}
                       readOnly={readOnly}
                     />
                   ) : (
