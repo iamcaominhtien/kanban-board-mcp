@@ -8,6 +8,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.15.1] - 2026-10-30
+
+Hotfix for how a mention looks in the comment boxes.
+
 ### Fixed
 - **A mention in a comment box showed its code.** Picking someone with `@` put `@[PM](member:465eec59-…)` in the ticket comment box and in the Docs comment box. The box now shows `@PM`; the comment is still saved with the member's id when it is sent, so the link, the notification and an AI mention work as before. A name typed by hand (`@Tien Cao`) is linked too, and editing an old comment shows the same plain `@Name`.
 
