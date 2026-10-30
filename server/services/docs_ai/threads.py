@@ -117,8 +117,10 @@ async def annotate(
     for t in threads:
         t["ai_jobs"] = []
         t["ai_summary"] = None
-    if not threads or not await docs_ai_on(session, page.project_id):
+    if not await docs_ai_on(session, page.project_id):
         return False
+    if not threads:  # a page with no thread yet still offers @AI for its first comment
+        return True
     ids = [t["id"] for t in threads]
     rows = (
         await session.exec(

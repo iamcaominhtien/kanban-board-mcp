@@ -208,6 +208,14 @@ async def test_docs_ai_off_only_notifies(env, fake):
     )
 
 
+async def test_a_page_without_threads_still_offers_the_ai_members(env, fake):
+    c, pid, m = await setup(env)
+    p = await page(c, pid, "API", TEXT)
+    data = await _comments(c, p["id"])
+    assert data["threads"] == [] and data["docs_ai"] is True
+    assert next(x for x in data["members"] if x["id"] == m["id"])["ai"]["usable"]
+
+
 async def test_a_typed_name_works_and_notify_runs_nothing(env, fake):
     c, pid, m = await setup(env)
     p = await page(c, pid, "API", TEXT)

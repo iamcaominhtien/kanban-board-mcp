@@ -33,6 +33,11 @@ Docs AI (issue 209, following `design/screens/docs-ai.md` and `docs-ai-care.md`)
 
 ### Fixed
 - Purging a page leaves no Docs AI rows behind.
+- **@AI in the first comment of a page**: the @ list offered no AI members on a page that had no comment thread yet (Docs AI looked off there), so a thread could not be started with @AI.
+- **Docs lines of the Monday digest** are shown in Board health ("Docs that may be out of date", one line per page); they were stored but never rendered.
+- **Tables in "Proposed by …" marks**: a waiting proposal that changes a table row now marks the whole table in the page (it was left unmarked).
+- **Import tidy** starts as drawn: split by top-level section, ticket-key chips and heading levels are ticked; "see X" links stay off until you tick them.
+- **"Changes since you last viewed"** now sits in the bottom right corner instead of covering the page's Edit and Share buttons, and the history and comments drawers open over it.
 
 Demo: `docs/demo/docs-ai-demo.pdf`: screenshots of the running app with real Claude Code (Haiku) answers.
 

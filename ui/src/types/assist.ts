@@ -354,6 +354,8 @@ export interface HealthPanel {
     blocked: string[];
     text: string;
     tickets: number;
+    /** One line per Docs page that may be out of date; only on the Monday digest (Docs AI). */
+    docs?: string[];
   } | null;
   needsAction: Insight[];
   snoozed: Insight[];

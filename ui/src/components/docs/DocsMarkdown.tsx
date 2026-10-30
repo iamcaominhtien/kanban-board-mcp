@@ -350,7 +350,13 @@ export function DocsMarkdown({
         const lang = /language-([\w-]+)/.exec(code?.props.className ?? '')?.[1];
         return <CodeBlock code={textOf(code?.props.children).replace(/\n$/, '')} lang={lang} />;
       },
-      table: ({ node: _n, children: inner }) => <table className="dk-table">{inner}</table>,
+      table: ({ node, children: inner }) => {
+        // a table is one block: a row a waiting proposal would change (or one edited since last viewed) marks the whole
+        // table. The mark sits on a wrapper because the table clips its own overflow.
+        const own = changedProps(node);
+        const table = <table className="dk-table">{inner}</table>;
+        return own.className ? <div {...own}>{table}</div> : table;
+      },
       th: ({ node: _n, children: inner, style }) => {
         const t = textOf(inner).trim();
         const width = t === 'Method' ? 78 : t === 'Auth' ? 70 : undefined;

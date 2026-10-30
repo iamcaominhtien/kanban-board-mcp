@@ -43,7 +43,7 @@ interface Props {
 }
 
 /**
- * "Changes since you last viewed" at the top of the space (docs-ai-care D3): one line per page changed since this
+ * "Changes since you last viewed" as a card in the corner of the space (docs-ai-care D3): one line per page changed since this
  * person was last here, summarised by AI on request. Summary only: open a page to see the diff. Nothing renders when
  * Docs AI is off or nothing changed.
  */
@@ -73,11 +73,12 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
       className="docs-root"
       data-testid="since-viewed-digest"
       style={{
+        // bottom right, like a toast: at the top it covered the page's Edit / Share buttons
         position: 'absolute',
-        top: 12,
+        bottom: 16,
         right: 16,
         width: 340,
-        zIndex: 30,
+        zIndex: 4, // under the history / comments drawers, which have their own footers
         borderRadius: 12,
         border: '1px solid #E3E8E5',
         background: '#FFFFFF',

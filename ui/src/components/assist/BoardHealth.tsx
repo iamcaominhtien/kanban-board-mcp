@@ -431,6 +431,16 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
                   {p.digest.text}
                 </div>
               )}
+              {!!p.digest.docs?.length && (
+                <div className="as-tile" data-testid="health-digest-docs">
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Docs that may be out of date</div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                    {p.digest.docs.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
           {!p?.digest && tab === 'needs' && (

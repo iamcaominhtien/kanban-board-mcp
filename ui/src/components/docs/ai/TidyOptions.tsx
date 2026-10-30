@@ -18,16 +18,17 @@ interface Props {
 }
 
 /**
- * "TIDY WHILE IMPORTING (OPTIONAL)" (docs-ai D4): options with their counts. Every option is off until ticked; "see X"
- * links are only added for the ones the person ticks in the review list. Nothing is imported until Import.
+ * "TIDY WHILE IMPORTING (OPTIONAL)" (docs-ai D4): options with their counts. Split, ticket chips and heading levels start
+ * ticked and "see X" links start off, as drawn; "see X" links are only added for the ones the person ticks in the review
+ * list. Nothing is imported until Import.
  */
 export function TidyOptions({ projectId, file, onResult }: Props) {
   const tidy = useTidyPreview(projectId);
   const [opts, setOpts] = useState<TidyOptionsBody>({
-    splitByHeading: false,
-    ticketChips: false,
+    splitByHeading: true,
+    ticketChips: true,
     seeLinks: false,
-    headingLevels: false,
+    headingLevels: true,
   });
   const [accept, setAccept] = useState<string[]>([]);
   const [result, setResult] = useState<TidyResult | null>(null);
