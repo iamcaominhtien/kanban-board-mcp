@@ -4,6 +4,7 @@ part: 6
 audience: [desktop]
 summary: What the app’s menus do, the small windows they open, and how updates work.
 reading: 8
+standalone: desktop-menu
 ---
 The desktop app packages the interface, the local server and the MCP server into one installed application. This chapter describes its menu bar, which is the same on macOS and on Windows apart from where a few items live.
 
