@@ -130,7 +130,7 @@ class ChatBody(BaseModel):
 
 @router.post("/projects/{project_id}/ai/assist/chats", status_code=201)
 async def post_chat(project_id: str, body: ChatBody, session: Session) -> dict:
-    """New chat, or the person's latest chat about the same ticket or page from the last 24 hours."""
+    """New chat, or the person's latest chat about the same ticket or page."""
     c = await svc_chat.create_chat(
         session,
         project_id,

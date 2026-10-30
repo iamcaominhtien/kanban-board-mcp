@@ -35,7 +35,6 @@ HISTORY_TOKENS = 6000
 KEEP_RECENT = 4
 MSG_CHARS = 3000
 SUMMARY_TOKENS = 450
-REUSE_HOURS = 24
 TIMEOUT_S = 120.0
 TASKS: dict[str, asyncio.Task] = {}
 ACTIVE = ("queued", "thinking", "streaming", "rate_limited")
@@ -157,8 +156,9 @@ async def create_chat(
 ) -> AiChat:
     """New chat ("New chat" or the first question).
 
-    A chat about one ticket or one page continues the person's latest chat about the same ticket or page from the
-    last 24 hours instead of starting from zero; `fresh` (the "New chat" button) always starts a new one.
+    A chat about one ticket or one page continues the person's latest chat about the same ticket or page instead of
+    starting from zero; `fresh` (the "New chat" button) always starts a new one. The rolling summary keeps a long chat
+    small, so there is no time limit.
     """
     if scope not in ("ticket", "project", "all", "doc"):
         raise AssistError(
@@ -168,7 +168,6 @@ async def create_chat(
         raise AssistError("not_found", "Project not found.")
     target = ticket_id if scope == "ticket" else doc_id if scope == "doc" else None
     if not fresh and target:
-        since = (datetime.now(UTC) - timedelta(hours=REUSE_HOURS)).isoformat()
         column = AiChat.ticket_id if scope == "ticket" else AiChat.doc_id
         last = (
             await session.exec(
@@ -178,7 +177,6 @@ async def create_chat(
                     AiChat.owner == owner,
                     AiChat.scope == scope,
                     column == target,
-                    col(AiChat.updated_at) >= since,
                 )
                 .order_by(col(AiChat.updated_at).desc())
                 .limit(1)

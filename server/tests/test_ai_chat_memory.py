@@ -126,7 +126,7 @@ async def test_chat_about_a_page_or_ticket_continues_and_fresh_starts_over(env, 
     assert r.json()["id"] != d1["id"]
 
 
-async def test_an_old_chat_is_not_continued(env, fake):
+async def test_an_old_chat_is_still_continued(env, fake):
     c, pid, an, m = await _setup(env)
     d1 = await _chat(c, pid, scope="doc", doc_id="page-1")
     async with env["maker"]() as s:
@@ -136,7 +136,7 @@ async def test_an_old_chat_is_not_continued(env, fake):
         row.updated_at = "2020-01-01T00:00:00+00:00"
         s.add(row)
         await s.commit()
-    assert (await _chat(c, pid, scope="doc", doc_id="page-1"))["id"] != d1["id"]
+    assert (await _chat(c, pid, scope="doc", doc_id="page-1"))["id"] == d1["id"]
 
 
 async def test_switching_scope_adds_a_divider_and_it_reaches_the_prompt(env, fake):

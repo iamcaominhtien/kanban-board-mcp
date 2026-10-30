@@ -384,7 +384,7 @@ story += [
 rows = [
     ["Tình huống", "Trước", "Bây giờ"],
     ["Chat Board AI bằng API key", "Chỉ dán 14 tin cuối (mỗi tin cắt 1.500 ký tự), tin cũ mất, câu hỏi bị gửi hai lần, tin lỗi lẫn vào", "Tin cũ được tóm tắt vào chat (hiện 'Earlier messages summarised'), câu hỏi gửi một lần, tin lỗi/dừng bị loại"],
-    ["'Ask this page', hỏi về ticket", "Luôn mở chat mới (fresh:true)", "Tiếp tục chat gần nhất về trang/ticket đó trong 24 giờ; nút '+' mới bắt đầu chat mới; đổi phạm vi thì có dòng ngăn cách"],
+    ["'Ask this page', hỏi về ticket", "Luôn mở chat mới (fresh:true)", "Tiếp tục chat gần nhất về trang/ticket đó (không giới hạn thời gian, tóm tắt tự động giữ cho gọn); nút '+' mới bắt đầu chat mới; đổi phạm vi thì có dòng ngăn cách"],
     ["Thread comment Docs", "Tag AI chỉ gửi thông báo", "AI trả lời; thread là bộ nhớ; thread dài được tóm tắt; Claude Code dùng lại session theo (thread, AI)"],
     ["AI member bằng API key trên ticket", "Mỗi lần chạy bắt đầu từ đầu, không có khối Activity, trả lời câu hỏi xong thì mất việc đã làm", "Có khối 'Activity since your last run'; giữ việc đã làm khi được trả lời; nén khi run dài (bước 'Long session compacted')"],
     ["Claude Code", "Đã có phiên theo ticket và auto-compact (3.11.0)", "Không đổi; chat Board AI và thread Docs dùng thêm session"],
