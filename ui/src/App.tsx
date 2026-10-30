@@ -687,7 +687,10 @@ export default function App() {
   }
 
   function handleMenuSettings(target: { page?: string; setting?: string }) {
-    setSettingsTarget({ page: isSettingsPageId(target.page ?? null) ? (target.page as SettingsPageId) : undefined, setting: target.setting });
+    setSettingsTarget({
+      page: isSettingsPageId(target.page ?? null) ? (target.page as SettingsPageId) : undefined,
+      setting: target.setting,
+    });
   }
 
   function handleOpenView(ticket: Ticket) {

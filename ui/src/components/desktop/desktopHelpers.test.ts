@@ -45,7 +45,23 @@ describe('filterShortcuts', () => {
 });
 
 describe('releaseNotesFor', () => {
-  const log = ['# Changelog', '', '## [Unreleased]', '', '## [3.15.0] - 2026-10-30', '', 'Menu.', '', '### Added', '- one', '', '---', '', '## [3.14.0] - 2026-10-29', 'Old.'].join('\n');
+  const log = [
+    '# Changelog',
+    '',
+    '## [Unreleased]',
+    '',
+    '## [3.15.0] - 2026-10-30',
+    '',
+    'Menu.',
+    '',
+    '### Added',
+    '- one',
+    '',
+    '---',
+    '',
+    '## [3.14.0] - 2026-10-29',
+    'Old.',
+  ].join('\n');
   it('returns the notes of one version without its heading', () => {
     const notes = releaseNotesFor(log, '3.15.0');
     expect(notes?.date).toBe('2026-10-30');

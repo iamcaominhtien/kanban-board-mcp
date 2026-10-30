@@ -59,7 +59,10 @@ export function filterShortcuts(groups: ShortcutGroup[], query: string, mac: boo
     .map((g) => ({
       ...g,
       items: g.items.filter((i) =>
-        [i.label, i.where, g.title, formatKeys(i.keys, mac).join(' '), i.keys.join(' ')].join(' ').toLowerCase().includes(q),
+        [i.label, i.where, g.title, formatKeys(i.keys, mac).join(' '), i.keys.join(' ')]
+          .join(' ')
+          .toLowerCase()
+          .includes(q),
       ),
     }))
     .filter((g) => g.items.length > 0);

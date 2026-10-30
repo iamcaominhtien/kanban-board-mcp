@@ -57,7 +57,10 @@ export function DesktopMenuHost({ view, onSettings, onNewTicket, onView }: Props
             variant: (msg.variant as 'success' | 'error' | 'warning' | 'info') ?? 'info',
             title: String(msg.title ?? ''),
             message: msg.message ? String(msg.message) : undefined,
-            action: action && { label: action.label, onClick: () => action.command === 'open-releases' && void api.openReleasesPage?.() },
+            action: action && {
+              label: action.label,
+              onClick: () => action.command === 'open-releases' && void api.openReleasesPage?.(),
+            },
           });
         }
         default: {
@@ -67,7 +70,13 @@ export function DesktopMenuHost({ view, onSettings, onNewTicket, onView }: Props
           // on once it is on screen. Search tickets is not on Docs or Schedules, so Find in Board goes to the Board.
           const target = SCREEN_FOR[key];
           if (target) {
-            l.onView(target === 'current' ? (['docs', 'schedules'].includes(l.view) && key === 'find-board' ? 'board' : l.view) : target);
+            l.onView(
+              target === 'current'
+                ? ['docs', 'schedules'].includes(l.view) && key === 'find-board'
+                  ? 'board'
+                  : l.view
+                : target,
+            );
             return void setTimeout(() => emitAppCommand(msg), 80);
           }
           return emitAppCommand(msg);

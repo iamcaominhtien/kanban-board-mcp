@@ -38,7 +38,12 @@ function Dialog({ title, subtitle, small, onClose, footer, children }: DialogPro
   }, [onClose]);
   return (
     <div className={styles.scrim} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`${styles.panel} ${small ? styles.small : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        className={`${styles.panel} ${small ? styles.small : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <div className={styles.head}>
           <h2 className={styles.title}>{title}</h2>
           <button type="button" className={styles.x} aria-label="Close" onClick={onClose}>
@@ -81,11 +86,7 @@ export function KeyboardShortcutsWindow({ onClose }: { onClose: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.focus(), []);
   return (
-    <Dialog
-      title="Keyboard Shortcuts"
-      onClose={onClose}
-      footer={<CloseButton onClose={onClose} />}
-    >
+    <Dialog title="Keyboard Shortcuts" onClose={onClose} footer={<CloseButton onClose={onClose} />}>
       <input
         ref={input}
         className={styles.search}
@@ -150,7 +151,9 @@ export function WhatsNewWindow({ onClose }: { onClose: () => void }) {
       }
     >
       {notes === undefined && <div className={styles.empty}>Loading…</div>}
-      {notes === null && <div className={styles.empty}>There are no release notes for this version. Use Full changelog.</div>}
+      {notes === null && (
+        <div className={styles.empty}>There are no release notes for this version. Use Full changelog.</div>
+      )}
       {notes && <MarkdownRenderer plain>{notes.body}</MarkdownRenderer>}
     </Dialog>
   );
@@ -216,7 +219,11 @@ export function AboutWindow({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       footer={
         <>
-          <button type="button" className={styles.btn} onClick={() => void window.electronAPI?.openExternal?.(RELEASES_URL)}>
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => void window.electronAPI?.openExternal?.(RELEASES_URL)}
+          >
             Release notes
           </button>
           <button
@@ -237,7 +244,9 @@ export function AboutWindow({ onClose }: { onClose: () => void }) {
       <div className={styles.about}>
         <p className={styles.aboutName}>Kanban Board</p>
         <p className={styles.facts}>
-          {info ? `Version ${info.version} · Backend ${info.backendRunning ? 'running' : 'not running'} · Electron ${info.electron}` : 'Loading…'}
+          {info
+            ? `Version ${info.version} · Backend ${info.backendRunning ? 'running' : 'not running'} · Electron ${info.electron}`
+            : 'Loading…'}
         </p>
         <p>A local Kanban board with Docs, ideas and AI members. Your data stays on this computer.</p>
         <p className={styles.never}>
