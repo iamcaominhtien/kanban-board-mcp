@@ -704,15 +704,15 @@ export function Composer({
             <button type="button" className="st-btn" data-testid="comment-cancel" onClick={cancel}>
               Cancel
             </button>
-              <button
-                type="button"
-                className="st-btn st-btn-primary"
-                data-testid="comment-send"
-                disabled={!canSend}
-                onClick={() => send()}
-              >
-                {editing ? 'Save' : 'Comment'}
-              </button>
+            <button
+              type="button"
+              className="st-btn st-btn-primary"
+              data-testid="comment-send"
+              disabled={!canSend}
+              onClick={() => send()}
+            >
+              {editing ? 'Save' : 'Comment'}
+            </button>
           </span>
         </div>
         {!editing && saved && (
