@@ -36,6 +36,8 @@ import { ActivitySection } from './ActivitySection';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
 import { FilePreviewModal } from './FilePreviewModal';
+import { SketchOwnerContext } from './sketch/SketchContext';
+import { sketchIdOf } from './sketch/sketchRefs';
 import { FileCategoryIcon, getFileTypeMeta, formatFileSize } from '../utils/fileIcons';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { RelationsSection } from './RelationsSection';
@@ -2124,7 +2126,10 @@ function TicketModalInner({
                         const imgRegex = /!\[(.*?)\]\((.*?)\)/g;
                         let m: RegExpExecArray | null;
                         while ((m = imgRegex.exec(text)) !== null) {
-                          const [, alt, src] = m;
+                          const [, alt, rawSrc] = m;
+                          // a sketch is attached as its PNG
+                          const sketchId = sketchIdOf(rawSrc);
+                          const src = sketchId ? `/uploads/sketches/${sketchId}.png` : rawSrc;
                           if (src && !src.startsWith('uploading:')) {
                             allAttachments.push({
                               type: 'image',
@@ -3172,18 +3177,37 @@ function TicketModalInner({
 /** The ticket modal, with doc and ticket pills wired to the side panel and navigation. */
 export function TicketModal(props: TicketModalProps) {
   const { ticket, allTickets = [], onOpenTicket, onOpenDocsPage } = props;
+  const toast = useToast();
+  const updateTicket = useUpdateTicket();
+  const latestTicket = useRef(ticket);
+  latestTicket.current = ticket; // a drawing can take minutes: add it to the description as it is by then
   if (!ticket) return <TicketModalInner {...props} />;
+  // "Draw on it" in the file viewer saves the drawing to this ticket and adds it to the description, as an attachment is
+  const sketchOwner = {
+    ownerKind: 'ticket' as const,
+    ownerId: ticket.id,
+    projectId: ticket.projectId,
+    ownerLabel: ticket.id,
+    onSaved: (r: { markdown: string; title: string }) => {
+      const current = latestTicket.current?.description ?? '';
+      const next = `${current}${current.trim() ? '\n\n' : ''}${r.markdown}`;
+      updateTicket.mutate({ ticketId: ticket.id, data: { description: next } });
+      toast.success('Saved a copy', `“${r.title}” is attached to ${ticket.id}.`);
+    },
+  };
   return (
-    <TicketDocsHost
-      projectId={ticket.projectId}
-      ticketId={ticket.id}
-      onOpenDocsPage={(pageId) => onOpenDocsPage?.(pageId)}
-      onOpenTicket={(id) => {
-        const next = allTickets.find((t) => t.id.toLowerCase() === id.toLowerCase());
-        if (next) onOpenTicket?.(next);
-      }}
-    >
-      <TicketModalInner {...props} />
-    </TicketDocsHost>
+    <SketchOwnerContext.Provider value={sketchOwner}>
+      <TicketDocsHost
+        projectId={ticket.projectId}
+        ticketId={ticket.id}
+        onOpenDocsPage={(pageId) => onOpenDocsPage?.(pageId)}
+        onOpenTicket={(id) => {
+          const next = allTickets.find((t) => t.id.toLowerCase() === id.toLowerCase());
+          if (next) onOpenTicket?.(next);
+        }}
+      >
+        <TicketModalInner {...props} />
+      </TicketDocsHost>
+    </SketchOwnerContext.Provider>
   );
 }

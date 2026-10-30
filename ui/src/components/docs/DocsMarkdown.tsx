@@ -18,6 +18,8 @@ import { Icon } from './Icon';
 import { RefChip, type RefChipProps } from './RefChip';
 import { DiagramEmbed } from '../diagrams/DiagramEmbed';
 import { DIAGRAM_SCHEME, diagramIdOf, hasDiagram } from '../diagrams/diagramRefs';
+import { SketchEmbed } from '../sketch/SketchEmbed';
+import { SKETCH_SCHEME, hasSketch, sketchIdOf } from '../sketch/sketchRefs';
 
 const SCHEMA = {
   ...defaultSchema,
@@ -39,8 +41,8 @@ const SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram'],
-    src: ['http', 'https', 'diagram'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram', 'sketch'],
+    src: ['http', 'https', 'diagram', 'sketch'],
   },
 };
 
@@ -332,10 +334,12 @@ export function DocsMarkdown({
         );
       },
       p: ({ node, children: inner }) =>
-        hasDiagram(node) ? <div>{inner}</div> : <p {...changedProps(node)}>{inner}</p>,
+        hasDiagram(node) || hasSketch(node) ? <div>{inner}</div> : <p {...changedProps(node)}>{inner}</p>,
       img: ({ src, alt }) => {
         const diagramId = diagramIdOf(src);
         if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} />;
+        const sketchId = sketchIdOf(src);
+        if (sketchId) return <SketchEmbed id={sketchId} label={alt ?? ''} />;
         if (!src || src.startsWith('uploading:')) return null;
         return (
           <img src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src} alt={alt ?? ''} loading="lazy" />
@@ -344,6 +348,8 @@ export function DocsMarkdown({
       a: ({ href, children: inner, ...props }) => {
         const diagramId = diagramIdOf(href);
         if (diagramId) return <DiagramEmbed id={diagramId} label={textOf(inner)} />;
+        const sketchId = sketchIdOf(href);
+        if (sketchId) return <SketchEmbed id={sketchId} label={textOf(inner)} />;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
           return (
@@ -400,7 +406,10 @@ export function DocsMarkdown({
           [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
         ]}
         urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) || url.startsWith(DIAGRAM_SCHEME)
+          url.startsWith(REF_SCHEME) ||
+          url.startsWith(TICKET_SCHEME) ||
+          url.startsWith(DIAGRAM_SCHEME) ||
+          url.startsWith(SKETCH_SCHEME)
             ? url
             : defaultUrlTransform(url)
         }

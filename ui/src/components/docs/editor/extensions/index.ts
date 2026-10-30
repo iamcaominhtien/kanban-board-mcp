@@ -13,6 +13,7 @@ import { HeadingAnchors } from './HeadingAnchors';
 import { MathBlock, MathInline } from './Math';
 import { Placeholder } from './Placeholder';
 import { Shortcuts } from './Shortcuts';
+import { Sketch } from './Sketch';
 import { TableMethods } from './TableMethods';
 import { TicketRef } from './TicketRef';
 
@@ -66,6 +67,7 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     CodeBlock,
     DocImage,
     Diagram,
+    Sketch,
     Callout,
     DocRefInput,
     MathInline,

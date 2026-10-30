@@ -4,6 +4,7 @@ import type { CalloutKind } from './constants';
 export interface SlashCtx {
   pickImage: () => void;
   newDiagram: () => void;
+  newSketch: () => void;
   importDiagram: () => void;
   ticketPrefix: string;
   pageTitle: string;
@@ -180,10 +181,22 @@ export const SLASH_ITEMS: SlashItem[] = [
     },
   },
   {
+    id: 'sketch',
+    group: 'Blocks',
+    label: 'Sketch',
+    desc: 'Draw freehand, like a paint program',
+    kbd: '/draw',
+    tile: { icon: 'sketch' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      ctx.newSketch();
+    },
+  },
+  {
     id: 'diagram',
     group: 'Blocks',
-    label: 'New draw.io drawing',
-    desc: 'Draw a flow or sketch',
+    label: 'Diagram',
+    desc: 'Boxes and arrows (draw.io)',
     kbd: '/diagram',
     tile: { icon: 'i33' },
     run: (e, r, ctx) => {

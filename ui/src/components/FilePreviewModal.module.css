@@ -483,3 +483,13 @@
     transform: rotate(360deg);
   }
 }
+
+.btnDraw {
+  background: #6d5dd3;
+  border-color: #6d5dd3;
+  color: #fff;
+  border-radius: 999px;
+}
+.btnDraw:hover {
+  background: #5a49c2;
+}

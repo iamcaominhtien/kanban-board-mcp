@@ -32,6 +32,8 @@ import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
 import { createSuggest } from './extensions/suggest';
 import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from '../../diagrams/diagramRefs';
+import { SKETCH_LINE } from '../../sketch/sketchRefs';
+import { useSketchStarter } from '../../sketch/useSketchStarter';
 import { firstDiagramFile } from '../../diagrams/diagramFile';
 import { DiagramDropZone, isDiagramDrag } from '../../diagrams/DiagramDropZone';
 import { MarkdownPane } from './MarkdownPane';
@@ -214,6 +216,26 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   });
   const starterRef = useRef(diagramStarter);
   starterRef.current = diagramStarter;
+
+  // Sketch: /draw opens the paint-style editor and puts the saved drawing on its own line
+  const insertSketch = useCallback((md: string) => {
+    const parts = SKETCH_LINE.exec(md);
+    if (!parts || !editorRef.current) return;
+    editorRef.current
+      .chain()
+      .focus()
+      .insertContent({ type: 'sketch', attrs: { id: parts[2], label: parts[1] } })
+      .run();
+  }, []);
+  const sketchStarter = useSketchStarter({
+    ownerKind: 'doc',
+    ownerId: currentPageId ?? undefined,
+    projectId,
+    ownerLabel: pageTitle || 'Untitled',
+    onInsert: insertSketch,
+  });
+  const sketchRef = useRef(sketchStarter);
+  sketchRef.current = sketchStarter;
   const [diagramDrag, setDiagramDrag] = useState(false);
   const dragDepth = useRef(0);
 
@@ -243,6 +265,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         (payload as SlashItem).run(editor, range, {
           pickImage,
           newDiagram: () => starterRef.current.startNew(),
+          newSketch: () => void sketchRef.current.start(),
           importDiagram: () => starterRef.current.pickFile(),
           ticketPrefix: live.current.ticketPrefix,
           pageTitle: live.current.pageTitle,
@@ -509,6 +532,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             disabled={readOnly}
             onLink={openLink}
             onPickImage={pickImage}
+            onSketch={sketchStarter.available ? () => void sketchStarter.start() : undefined}
             ticketPrefix={ticketPrefix}
             onAskAi={ai?.onAsk}
           />
@@ -647,6 +671,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             ctx={{
               pickImage,
               newDiagram: diagramStarter.startNew,
+              newSketch: () => void sketchStarter.start(),
               importDiagram: diagramStarter.pickFile,
               ticketPrefix,
               pageTitle,
