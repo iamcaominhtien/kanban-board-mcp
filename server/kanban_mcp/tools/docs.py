@@ -21,6 +21,8 @@ DocsReadAction = Literal[
     "comments",
     "diagrams",
     "diagram",
+    "sketches",
+    "sketch",
 ]
 
 DOCS_READ_OPS = {
@@ -34,6 +36,8 @@ DOCS_READ_OPS = {
     "comments": Op(ops.list_docs_comments, ("page_id",), ("state",)),
     "diagrams": Op(ops.list_project_diagrams, ("project_id",)),
     "diagram": Op(ops.export_diagram, ("diagram_id", "path"), ("version",)),
+    "sketches": Op(ops.list_project_sketches, ("project_id",)),
+    "sketch": Op(ops.export_sketch, ("sketch_id", "path")),
 }
 
 
@@ -44,7 +48,7 @@ async def docs_read(
     project_id: Annotated[
         str | None,
         Field(
-            description="Project UUID from get_projects (list, search, recycle_bin, check_links)."
+            description="Project UUID from get_projects (list, search, recycle_bin, check_links, diagrams, sketches)."
         ),
     ] = None,
     page_id: PageId = None,
@@ -78,7 +82,13 @@ async def docs_read(
     path: Annotated[
         str | None,
         Field(
-            description="diagram: absolute path to write the .drawio file to (a folder gets '<name>.drawio' inside it)."
+            description="diagram: absolute path to write the .drawio file to (a folder gets '<name>.drawio' inside it). sketch: absolute folder (gets '<name>.png' and '<name>.sketch.json') or a '.png' path."
+        ),
+    ] = None,
+    sketch_id: Annotated[
+        str | None,
+        Field(
+            description="sketch, sketch_save: id 'sk_xxxxxxxx' from `(sketch:sk_xxxxxxxx)` in a text."
         ),
     ] = None,
     compare_to: Annotated[
@@ -108,7 +118,9 @@ async def docs_read(
     - check_links: project_id, refs. Whether [[page]] / ticket references resolve: ok, missing, section_missing, in_bin or ambiguous.
     - comments: page_id [, state]. {threads: [{id, kind: inline|page, status, quote, anchor_state, comments: [{id, author, body}]}], counts}.
     - diagrams: project_id. draw.io diagrams: [{id, label, version, updated_by, updated_at, summary}]. A text shows one as `[Name](diagram:dg_xxxxxxxx)`.
-    - diagram: diagram_id, path [, version]. Writes the diagram's .drawio file (XML) to `path`: edit it with your own file tools, then docs_write(diagram_save). Returns {path, version, markdown}."""
+    - diagram: diagram_id, path [, version]. Writes the diagram's .drawio file (XML) to `path`: edit it with your own file tools, then docs_write(diagram_save). Returns {path, version, markdown}.
+    - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.
+    - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 
@@ -131,6 +143,8 @@ DocsWriteAction = Literal[
     "diagram_save",
     "diagram_delete",
     "diagram_restore",
+    "sketch_create",
+    "sketch_save",
 ]
 
 DOCS_WRITE_OPS = {
@@ -170,6 +184,16 @@ DOCS_WRITE_OPS = {
     ),
     "diagram_delete": Op(ops.delete_diagram, ("diagram_id",)),
     "diagram_restore": Op(ops.restore_diagram, ("diagram_id",)),
+    "sketch_create": Op(
+        ops.create_sketch_from_files,
+        ("owner_kind", "owner_id", "title", "path"),
+        ("source_path",),
+    ),
+    "sketch_save": Op(
+        ops.save_sketch_files,
+        ("sketch_id", "path", "base_version"),
+        ("source_path", "title"),
+    ),
 }
 
 
@@ -185,7 +209,7 @@ async def docs_write(
     title: Annotated[
         str | None,
         Field(
-            description="create: page title (body headings start at '##'). update: new title (renames the page; links to it are rewritten). duplicate: title of the copy (default '<title> (copy)')."
+            description="create: page title (body headings start at '##'). update: new title (renames the page; links to it are rewritten). duplicate: title of the copy (default '<title> (copy)'). sketch_create, sketch_save: name of the sketch."
         ),
     ] = None,
     markdown: Annotated[
@@ -209,7 +233,7 @@ async def docs_write(
     base_version: Annotated[
         int | None,
         Field(
-            description="update: the `version` you read with docs_read(get). diagram_save: the `version` from docs_read(diagram). A stale value is rejected, so re-read and retry."
+            description="update: the `version` you read with docs_read(get). diagram_save: from docs_read(diagram). sketch_save: from docs_read(sketch). A stale value is rejected, so re-read and retry."
         ),
     ] = None,
     note: Annotated[
@@ -253,7 +277,7 @@ async def docs_write(
     path: Annotated[
         str | None,
         Field(
-            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). diagram_create, diagram_save: absolute path of a .drawio file."
+            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB)."
         ),
     ] = None,
     diagram_id: Annotated[
@@ -272,6 +296,26 @@ async def docs_write(
         str | None,
         Field(description="diagram_create: short text summary shown with the image."),
     ] = None,
+    sketch_id: Annotated[
+        str | None,
+        Field(description="sketch_save: sketch id 'sk_xxxxxxxx'."),
+    ] = None,
+    source_path: Annotated[
+        str | None,
+        Field(
+            description="sketch_create, sketch_save: absolute path of the .sketch.json (format 'kanban-sketch', version 1; at most 10 layers, 10 MB; width and height equal to the PNG's). Without it the PNG becomes one picture layer on a white page."
+        ),
+    ] = None,
+    owner_kind: Annotated[
+        Literal["ticket", "doc"] | None,
+        Field(
+            description="sketch_create: the sketch belongs to a ticket or a Docs page."
+        ),
+    ] = None,
+    owner_id: Annotated[
+        str | None,
+        Field(description="sketch_create: ticket id 'IAM-12' or Docs page id (UUID)."),
+    ] = None,
 ) -> dict:
     """Write a project's Docs. `action`:
     - create: project_id, title [, markdown, parent_id]. Published as v1. Returns {id, title, slug, status, version}.
@@ -289,6 +333,8 @@ async def docs_write(
     - diagram_create: project_id, title, path [, svg_path, summary]. A new diagram from a local .drawio file. Returns {id, label, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.
     - diagram_save: diagram_id, path, base_version [, svg_path, title]. Saves the edited .drawio file as a new version; base_version is the `version` from docs_read(diagram), a stale one is rejected. Returns {id, label, version}.
     - diagram_delete / diagram_restore: diagram_id. Unlink a diagram (kept, restorable) / bring it back.
+    - sketch_create: owner_kind (ticket|doc), owner_id, title, path [, source_path]. A new sketch from a local PNG and its .sketch.json. Returns {id, title, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.
+    - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. The PNG is what the text shows, so keep it the flattened picture of the source.
     The preview of a saved diagram is drawn by the server (boxes, arrows, text) unless you pass an SVG export; a person who opens it in the editor sees the full drawing.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     return await dispatch("docs_write", DOCS_WRITE_OPS, action, params_of(locals()))

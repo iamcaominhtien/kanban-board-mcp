@@ -139,6 +139,11 @@
 .btnPrimary:hover {
   background: #265c35;
 }
+.btnOn {
+  background: #e7f1ea;
+  border-color: #2e6f40;
+  color: #1e4d2c;
+}
 .btnDanger {
   background: #c4432a;
   border-color: #c4432a;
@@ -1046,4 +1051,232 @@
   color: #1d4f86;
   box-shadow: 0 10px 30px rgba(37, 61, 44, 0.2);
   flex-wrap: wrap;
+}
+
+/* ---- AI help ---- */
+.ai {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  flex-shrink: 0;
+  min-height: 0;
+  border-left: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+.aiHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e3e8e5;
+  color: #2e6f40;
+}
+.aiHead b {
+  font: 700 14px var(--font-body);
+  color: #1e2a22;
+}
+.aiTabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+}
+.aiTab {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #dce6df;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: #f1f5f2;
+  color: #4d5f53;
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+.aiTabOn {
+  background: #fff;
+  color: #1e2a22;
+}
+.aiBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid #dce6df;
+  background: #fff;
+}
+.aiBody > * {
+  flex-shrink: 0;
+}
+.aiHint,
+.aiMuted {
+  margin: 0;
+  color: #5c6e62;
+  font: 400 12px var(--font-body);
+  line-height: 1.45;
+}
+.aiThread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.aiQ {
+  align-self: flex-end;
+  max-width: 92%;
+  padding: 7px 10px;
+  border-radius: 10px 10px 2px 10px;
+  background: #e7f1ea;
+  font: 500 13px var(--font-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.aiA {
+  margin-top: 6px;
+  font: 400 13px var(--font-body);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.aiIdeas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aiIdeas li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  font: 400 13px var(--font-body);
+}
+.aiIdeas .btn {
+  height: 30px;
+  padding: 0 10px;
+  flex-shrink: 0;
+}
+.aiCard,
+.aiNote,
+.aiDone,
+.aiError,
+.aiBusy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font: 400 13px var(--font-body);
+}
+.aiCard {
+  border: 1px solid #b9d6c1;
+  background: #f1f8f3;
+}
+.aiNote {
+  border: 1px solid #ecd9a8;
+  background: #fff8e6;
+}
+.aiDone {
+  border: 1px solid #b9d6c1;
+  background: #f1f8f3;
+}
+.aiError {
+  border: 1px solid #efc2b8;
+  background: #fdf1ee;
+  color: #8a2f1b;
+}
+.aiBusy {
+  flex-direction: row;
+  align-items: center;
+  border: 1px solid #e3e8e5;
+}
+.aiNoteText {
+  font-style: italic;
+}
+.aiRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aiForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid #e3e8e5;
+}
+.aiInput {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 60px;
+  max-height: 160px;
+  padding: 8px 10px;
+  border: 1px solid #dce6df;
+  border-radius: 10px;
+  font: 400 13px var(--font-body);
+  color: #1e2a22;
+  background: #fff;
+}
+.aiInput:focus-visible,
+.aiLink:focus-visible {
+  outline: 2px solid #2e6f40;
+  outline-offset: 1px;
+}
+.aiCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 400 12px var(--font-body);
+  color: #3d4f44;
+}
+.aiCost {
+  font: 500 12px var(--font-body);
+  color: #5c6e62;
+}
+.aiLink {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2e6f40;
+  font: 600 12px var(--font-body);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.aiSent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f1f5f2;
+  font: 400 12px var(--font-body);
+}
+.aiSent ul {
+  margin: 0;
+  padding-left: 18px;
+}
+@media (max-width: 760px) {
+  .ai {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 59px;
+    z-index: 7;
+    width: auto;
+    max-height: 70%;
+    border: 1px solid #e3e8e5;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 30px rgba(37, 61, 44, 0.2);
+  }
 }

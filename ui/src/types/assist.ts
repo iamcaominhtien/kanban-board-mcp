@@ -1,7 +1,7 @@
 import type { AiProvider, AiStatus } from './ai';
 
 export type AssistScope = 'ticket' | 'project' | 'all' | 'doc' | 'idea';
-export type FeatureKey = 'chat' | 'drafting' | 'split' | 'test_cases' | 'health' | 'docs';
+export type FeatureKey = 'chat' | 'drafting' | 'split' | 'test_cases' | 'health' | 'docs' | 'sketch';
 
 export interface AssistFeature {
   key: FeatureKey;
@@ -153,7 +153,8 @@ export type DraftKind =
   | 'nudge'
   | 'assignee'
   | 'editor'
-  | 'editor_doc';
+  | 'editor_doc'
+  | 'sketch';
 
 export interface DraftChange {
   /** The board's own kinds, or a kind that another scope adds (an idea's, for example). */

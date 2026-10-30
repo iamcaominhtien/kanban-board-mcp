@@ -7,7 +7,7 @@ from ..llm import estimate_tokens
 from ..providers import cost_of
 
 # Typical answer length used for the estimate, by kind of request
-ANSWER_TOKENS = {"answer": 400, "draft": 600, "run": 1500}
+ANSWER_TOKENS = {"answer": 400, "draft": 600, "run": 1500, "sketch_draw": 1200}
 
 
 def estimate(
@@ -20,7 +20,8 @@ def estimate(
     Args:
         profile: The AI member that would answer; None when none is set up.
         text_in: The text that would be sent, or its token count.
-        kind: "answer" (chat), "draft" (editor) or "run" (a work run, shown as a rough ceiling).
+        kind: "answer" (chat), "draft" (editor), "sketch_draw" (shapes for a sketch) or "run" (a work run, shown as a
+            rough ceiling).
 
     Returns:
         {"metered", "usd", "tokens_in", "tokens_out"}; `usd` is None when the member is not metered.

@@ -187,6 +187,37 @@ the caller's role in that project decides whether they can ask. A person who bel
 | **An AI cannot approve itself or widen its rights** | approvals take a person's name only; an AI-written mention is an Ask; chain depth, cooldown and no repeats between AI members |
 | **Private Docs are never sent** | `excluded_docs` is applied by the ticket and doc scopes and the editor's "This page" |
 
+### 2.6 AI in the Sketch editor and on an embedded sketch
+
+`server/services/ai/assist/sketch_ai.py`, `server/api/ai_sketch.py`, `ui/src/components/sketch/SketchAiPanel.tsx`. Full
+description, the ops format and the MCP actions are in [`sketch-tool.md`](sketch-tool.md) ("AI help in the editor" and "AI
+agents over MCP"); this section says how it plugs into the rules above.
+
+* **One more draft kind, `sketch`**, on the same draft engine as the editor drafts: written in the background, polled
+  with `GET /ai/assist/drafts/{id}`, metered by `record_usage`, audited, discarded with the existing route. Modes `ask`
+  and `ideas` return text (`result.kind` `answer` / `ideas`); `draw` returns validated vector **ops** that the editor puts
+  on a **new "AI" layer** as one undoable step after the person presses Accept. The server never writes pixels or a
+  sketch: only a person's save stores the drawing.
+* **The model sees the picture.** The LLM layer had no image input; `llm.complete(..., images=[png_bytes])` now sends an
+  Anthropic `image` block, an OpenAI-compatible `image_url`, or (Claude Code) a file in a private temporary folder read with
+  the `Read` tool only. A call without `images` is byte-for-byte the old request, so the other helpers are unchanged.
+* **The same gates as everything else** (`sketch_ai.book` and `guard`): the person belongs to the project of the owner
+  (`403 forbidden` for a stranger), only members ask (`403 viewer`), the project's AI switch (`ai_off`), a new **Sketch AI**
+  feature switch in Settings → AI (`feature_off`), the AI member's readiness and the kill switch (`unavailable`), the
+  member's daily budget, the board's daily cap and monthly cap (`over_budget`). A sketch in an idea also follows the Idea
+  Space's switch and daily cap, and an idea with no project is booked on a project of the caller.
+* **Cost and what is sent are shown first**: "About $0.01 per answer" from the picture size plus a typical answer length
+  (`cost.estimate`, kind `sketch_draw` for a drawing), and a "What will be sent" list (question, title, flattened picture,
+  canvas size; never the layers, the owner's text, other sketches or attachments). Usage is booked as `sketch_chat` /
+  `sketch_draw` (`idea_sketch_chat` / `idea_sketch_draw` for a sketch in an idea, counted by the Idea Space cap).
+* **Untrusted data**: the title, the question and the earlier exchanges are fenced as `<untrusted>`, checked for
+  instruction-like wording (flagged on the answer) and the system prompt says text inside the picture is data.
+* **Only editors see the button**: the sketch editor and the **Ask AI** button of an embedded sketch ask
+  `GET /ai/sketch/state`; a viewer, a stranger and a project with AI off get no button. Everything else about sketches
+  works with AI off.
+* **Audit**: `sketch_help` when an answer is written (mode, whether a picture was sent, number of ops, cost) and
+  `sketch_edit` when a person accepts shapes.
+
 ## 3. API
 
 Errors from the assistant answer `{"detail": message, "code": …}`; the codes the panels map to states are `ai_off`,
@@ -205,6 +236,8 @@ Errors from the assistant answer `{"detail": message, "code": …}`; the codes t
 | `POST /projects/{p}/ai/editor/preview` | "What will be sent": the pieces, their sizes, what is never sent, the cost |
 | `POST /projects/{p}/ai/editor/drafts` | Ask for a draft (written in the background, poll `GET /ai/assist/drafts/{id}`); the text is not touched |
 | `POST /ai/editor/drafts/{id}/accept`, `…/continue` | Record an accepted draft (and add accepted criteria to the ticket); go on with a draft cut short |
+| `GET /ai/sketch/state`, `POST /ai/sketch/preview` | The Sketch editor's AI state (never an error: `availability.code`) and "What will be sent" for a request. Send nothing. |
+| `POST /ai/sketch/drafts` (multipart), `POST /ai/sketch/drafts/{id}/accept` | Ask, ideas or draw with the flattened picture (poll the draft); record accepted shapes. See `sketch-tool.md`. |
 
 `{p}` is the project the request is booked on. For an idea of a project it is that project; for an idea with no project
 the client gets it from `GET /ai/scopes/idea/{id}` (`scope.project_id`).
@@ -217,8 +250,9 @@ scope's own draft card, as `IdeaChat` does).
 `server/tests/test_ai_where_you_work.py` (ticket chat, mentions, caps, safety, criteria drafts, Continue, the scope
 extension point), `test_ai_editor.py` (editor actions, preview, accept, conflicts) and `test_ai_idea_scope.py` (the idea
 scope: what it reads and fences, the two draft kinds with Add and Undo, nothing that moves an idea, permissions of
-members, viewers and strangers, the Idea Space switch and cap, ideas with no project, the idea page editor). The model is
-a fake in all of them.
+members, viewers and strangers, the Idea Space switch and cap, ideas with no project, the idea page editor) and
+`test_sketch_ai.py` (the Sketch editor's AI: ops validation, permissions, switches and caps, usage labels, the picture
+reaching each provider). The model is a fake in all of them.
 
 ## 5. Not built, or simplified
 
@@ -243,5 +277,12 @@ a fake in all of them.
   table (`assist/cost.py`); the answer shows the metered cost. A local runner is not metered.
 - **Safe mode** is a rule of runs (what a member may write). Chat answers and editor drafts only produce text that a
   person applies, so safe mode has nothing extra to stop there; the kill switch and pauses do stop them.
+- **Sketch AI (2.6) is a one-shot panel, not a saved chat.** The Ask tab's conversation lives in the open editor; it is not
+  stored per person and thing like the ticket and idea chats, and it has no Post as comment. Ask only ever answers: Do the
+  work does not exist for sketches.
+- **Sketch AI reads the picture and the title only**, not the text of the ticket, page or idea the sketch sits in, so it
+  cannot answer from that context unless the person says it in the question.
+- **Image input is new and thin**: one PNG per request, scaled to 1280 px; a Claude Code member reads it from a temporary
+  folder with the `Read` tool (not tried against a real `claude` binary in the tests); a local runner is not metered.
 - **Not part of this step:** sharing a chat with the team (a chat is private; only an answer shared as a comment is
   visible to others).

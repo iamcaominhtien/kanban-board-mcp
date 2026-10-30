@@ -72,6 +72,12 @@ from .diagrams import (
     delete_diagram,
     restore_diagram,
 )
+from .sketches import (
+    list_project_sketches,
+    export_sketch,
+    create_sketch_from_files,
+    save_sketch_files,
+)
 from .ideas import (
     list_idea_tickets,
     create_idea_ticket,
@@ -130,6 +136,10 @@ __all__ = [
     "save_diagram_file",
     "delete_diagram",
     "restore_diagram",
+    "list_project_sketches",
+    "export_sketch",
+    "create_sketch_from_files",
+    "save_sketch_files",
     "list_docs_pages",
     "get_docs_page",
     "create_docs_page",

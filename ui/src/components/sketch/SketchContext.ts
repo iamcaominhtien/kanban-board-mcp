@@ -19,6 +19,8 @@ export interface OpenSketchRequest {
   ownerLabel?: string;
   /** Open the unsaved draft kept on this computer instead of asking. */
   restoreDraft?: boolean;
+  /** Open with the AI panel shown (the "Ask AI" button of an embedded sketch); ignored when AI is not available. */
+  openAi?: boolean;
 }
 
 /** What `openSketch` resolves to once the person pressed Done. */

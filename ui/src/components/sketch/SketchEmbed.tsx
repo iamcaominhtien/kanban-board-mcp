@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { sketchPngUrl, useSketchMeta, type Sketch } from '../../api/sketches';
+import { useSketchAiState } from '../../api/sketchAi';
 import { actorName, relativeTime } from '../../utils/relativeTime';
 import { useToast } from '../Toast';
+import { sketchAiVisible } from './SketchAiPanel';
 import { SketchIcon } from './SketchIcon';
 import { useSketch } from './SketchContext';
 import styles from './Sketch.module.css';
@@ -34,6 +36,13 @@ export function SketchEmbed({ id, label, small, readOnly, onReplace, onChanged }
   const api = useSketch();
   const q = useSketchMeta(id);
   const [broken, setBroken] = useState(false);
+  // "Ask AI" is offered to people who can edit, where the project's AI is available (one shared question per owner)
+  const meta = q.data;
+  const mayAsk = api.available && !!meta?.canEdit && !readOnly;
+  const aiState = useSketchAiState(
+    { ownerKind: meta?.ownerKind ?? 'doc', ownerId: meta?.ownerId ?? '', projectId: meta?.projectId ?? undefined },
+    mayAsk,
+  ).data;
   const cls = `${styles.embed} ${small ? styles.embedSmall : ''}`;
 
   if (q.isLoading) {
@@ -56,8 +65,10 @@ export function SketchEmbed({ id, label, small, readOnly, onReplace, onChanged }
 
   const s = q.data;
   const canEdit = api.available && s.canEdit && !readOnly;
-  const edit = async () => {
+  const askAi = mayAsk && sketchAiVisible(aiState);
+  const edit = async (openAi = false) => {
     const r = await api.openSketch({
+      openAi,
       ownerKind: s.ownerKind,
       ownerId: s.ownerId,
       sketchId: s.id,
@@ -105,6 +116,17 @@ export function SketchEmbed({ id, label, small, readOnly, onReplace, onChanged }
         {canEdit && (
           <button type="button" className={styles.tbBtn} onClick={() => void edit()} data-testid="sketch-edit">
             <SketchIcon name="edit" size={14} /> Edit sketch
+          </button>
+        )}
+        {askAi && (
+          <button
+            type="button"
+            className={styles.tbBtn}
+            title="Ask the AI about this drawing, get ideas, or have shapes drawn (opens the editor)"
+            onClick={() => void edit(true)}
+            data-testid="sketch-ask-ai"
+          >
+            <SketchIcon name="spark" size={14} /> Ask AI
           </button>
         )}
         <button type="button" className={styles.tbBtn} aria-label="View large" onClick={view} data-testid="sketch-view">

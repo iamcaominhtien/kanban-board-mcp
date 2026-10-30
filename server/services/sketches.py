@@ -7,6 +7,7 @@ Saving needs the version you started from (``base_version``), so two people cann
 each other. Deleting only *unlinks*: the row and the files stay.
 """
 
+import base64
 import json
 import os
 import re
@@ -500,3 +501,208 @@ async def list_sketches(
         .order_by(Sketch.updated_at.desc())  # type: ignore[attr-defined]
     )
     return [await _out(session, s) for s in rows.all()]
+
+
+# --- files for an agent (MCP: docs_read sketch(es), docs_write sketch_create / sketch_save) --------------------
+
+
+def _file_error(message: str) -> DocsError:
+    return DocsError(422, "invalid_file", message)
+
+
+def _read_local(path: str, what: str) -> bytes:
+    """Read a local file the agent named: an absolute path to a regular file of at most 10 MB."""
+    p = Path(path)
+    if not p.is_absolute():
+        raise _file_error(f"Give an absolute path for the {what} (got {path!r}).")
+    if not p.is_file():
+        raise _file_error(f"The {what} is not a file: {path}.")
+    try:
+        if p.stat().st_size > MAX_BYTES:
+            raise _too_large(what, p.stat().st_size)
+        return p.read_bytes()
+    except OSError as e:
+        raise _file_error(f"The {what} could not be read ({e.strerror}).") from e
+
+
+def flat_source(png: bytes) -> bytes:
+    """A source for a picture that came without one: the white page and the picture on a layer of its own. Used when an
+    agent saves only a PNG; the drawing then opens in the editor as one picture layer that can be drawn over."""
+    width, height = png_size(png)
+    doc = {
+        "format": SOURCE_FORMAT,
+        "version": SOURCE_VERSION,
+        "width": width,
+        "height": height,
+        "background": "white",
+        "activeLayer": "l2",
+        "layers": [
+            {
+                "id": "l1",
+                "name": "Background",
+                "kind": "paper",
+                "visible": True,
+                "opacity": 1,
+                "locked": True,
+                "png": None,
+                "texts": [],
+            },
+            {
+                "id": "l2",
+                "name": "Picture",
+                "kind": "picture",
+                "visible": True,
+                "opacity": 1,
+                "locked": False,
+                "png": "data:image/png;base64," + base64.b64encode(png).decode("ascii"),
+                "texts": [],
+            },
+        ],
+    }
+    return json.dumps(doc).encode()
+
+
+async def list_for_agent(
+    session: AsyncSession, project_id: str
+) -> list[dict[str, Any]]:
+    """A project's sketches in brief, newest change first: ``[{id, title, owner_kind, owner_id, version, width, height,
+    layers, updated_by, updated_at, markdown}]``."""
+    rows = await session.exec(
+        select(Sketch)
+        .where(
+            Sketch.project_id == project_id,
+            Sketch.deleted_at.is_(None),  # type: ignore[union-attr]
+        )
+        .order_by(Sketch.updated_at.desc())  # type: ignore[attr-defined]
+    )
+    return [
+        {
+            "id": s.id,
+            "title": s.title,
+            "owner_kind": s.owner_kind,
+            "owner_id": s.owner_id,
+            "version": s.version,
+            "width": s.width,
+            "height": s.height,
+            "layers": s.layer_count,
+            "updated_by": s.updated_by,
+            "updated_at": s.updated_at,
+            "markdown": f"![{s.title}](sketch:{s.id})",
+        }
+        for s in rows.all()
+    ]
+
+
+async def export_to_files(
+    session: AsyncSession, sketch_id: str, path: str
+) -> dict[str, Any]:
+    """Write a sketch's PNG and its editable source to local paths.
+
+    Args:
+        sketch_id: ``sk_xxxxxxxx``.
+        path: A folder (or a path ending in ``/``): ``<name>.png`` and ``<name>.sketch.json`` are written inside it. A
+            path ending in ``.png`` names the picture; the source goes next to it as ``<same name>.sketch.json``.
+
+    Returns:
+        ``{png_path, source_path, id, title, version, width, height, layers, markdown}``; send ``version`` back as
+        ``base_version`` when saving.
+    """
+    s = await _sketch(session, sketch_id)
+    target = Path(path)
+    if not target.is_absolute():
+        raise _file_error(f"Give an absolute path (got {path!r}).")
+    if target.is_dir() or path.endswith(("/", "\\")) or target.suffix.lower() != ".png":
+        stem = (
+            re.sub(r"[^\w.-]+", "-", s.title, flags=re.ASCII).strip("-._") or "sketch"
+        )
+        png_target = target / f"{stem}.png"
+    else:
+        png_target = target
+    source_target = png_target.with_name(png_target.stem + ".sketch.json")
+    png = png_path(s.id).read_bytes() if png_path(s.id).exists() else None
+    src = source_path(s.id).read_bytes() if source_path(s.id).exists() else None
+    if png is None or src is None:
+        raise DocsError(
+            404,
+            "sketch_file_missing",
+            "The drawing's file is missing from the data folder.",
+        )
+    try:
+        png_target.parent.mkdir(parents=True, exist_ok=True)
+        png_target.write_bytes(png)
+        source_target.write_bytes(src)
+    except OSError as e:
+        raise _file_error(
+            f"{png_target.parent} could not be written ({e.strerror})."
+        ) from e
+    return {
+        "png_path": str(png_target),
+        "source_path": str(source_target),
+        "id": s.id,
+        "title": s.title,
+        "version": s.version,
+        "width": s.width,
+        "height": s.height,
+        "layers": s.layer_count,
+        "markdown": f"![{s.title}](sketch:{s.id})",
+    }
+
+
+async def create_from_files(
+    session: AsyncSession,
+    *,
+    owner_kind: str,
+    owner_id: str,
+    title: str,
+    path: str,
+    source_path: str | None = None,
+) -> dict[str, Any]:
+    """Create a sketch from a local PNG and (optionally) its ``.sketch.json`` source. Without a source the picture
+    becomes one picture layer on a white page. The owner (a ticket or a Docs page) must exist."""
+    if owner_kind not in ("ticket", "doc"):
+        raise DocsError(422, "invalid_owner", "owner_kind must be 'ticket' or 'doc'.")
+    if await _project_of(session, owner_kind, owner_id, None) is None:
+        raise DocsError(
+            404,
+            "owner_not_found",
+            f"No {'ticket' if owner_kind == 'ticket' else 'Docs page'} with id {owner_id!r}.",
+        )
+    png = _read_local(path, "picture")
+    source = _read_local(source_path, "source") if source_path else flat_source(png)
+    out = await create_sketch(
+        session,
+        owner_kind=owner_kind,
+        owner_id=owner_id,
+        title=title,
+        png=png,
+        source=source,
+    )
+    return out
+
+
+async def save_from_files(
+    session: AsyncSession,
+    sketch_id: str,
+    *,
+    path: str,
+    base_version: int,
+    source_path: str | None = None,
+    title: str | None = None,
+) -> dict[str, Any]:
+    """Save a local PNG (and its ``.sketch.json``) as a new version of a sketch; a stale ``base_version`` is refused
+    (409 ``sketch_conflict``) before the files are read. Without a source the picture becomes one picture layer."""
+    s = await _sketch(session, sketch_id)
+    if base_version != s.version:
+        return await update_sketch(
+            session, sketch_id, base_version=base_version, png=b"", source=b""
+        )
+    png = _read_local(path, "picture")
+    source = _read_local(source_path, "source") if source_path else flat_source(png)
+    return await update_sketch(
+        session,
+        sketch_id,
+        base_version=base_version,
+        png=png,
+        source=source,
+        title=title,
+    )

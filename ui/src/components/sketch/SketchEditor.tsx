@@ -15,11 +15,13 @@ import {
   type SketchFiles,
 } from '../../api/sketches';
 import { resolveOrigin } from '../../api/resolveOrigin';
+import { useSketchAiState } from '../../api/sketchAi';
 import { relativeTime } from '../../utils/relativeTime';
 import { byteLength, parseSource, serializeSource, SourceError } from './engine/sourceFormat';
 import { checkLimits, formatBytes, nearLimit, MAX_BYTES, type Problem } from './engine/limits';
 import { deleteDraft, draftKey, getDraft, putDraft, type SketchDraft } from './draftStore';
 import { NewSketchDialog } from './NewSketchDialog';
+import { SketchAiPanel, sketchAiVisible } from './SketchAiPanel';
 import { ColourPanel, LayersPanel, OptionsBar, TOOLS } from './SketchPanels';
 import { SketchIcon } from './SketchIcon';
 import { Sketcher, type ToolId } from './sketcher';
@@ -88,8 +90,21 @@ export function SketchEditor({ request, onClose }: Props) {
   const [draftStatus, setDraftStatus] = useState<'none' | 'saved' | 'failed'>('none');
   const [sourceBytes, setSourceBytes] = useState(0);
   const [sheet, setSheet] = useState<'colour' | 'layers' | null>(null);
+  const [aiOpen, setAiOpen] = useState(!!request.openAi);
   const narrow = useMedia('(max-width: 760px)');
   const savedTitle = saved?.title;
+  // AI help: asked of the server once; nothing is shown to a viewer, a stranger, or where AI is off
+  const aiOwner = useMemo(
+    () => ({
+      ownerKind: request.ownerKind,
+      ownerId: request.ownerId,
+      projectId: request.projectId ?? undefined,
+      sketchId: request.sketchId,
+    }),
+    [request.ownerKind, request.ownerId, request.projectId, request.sketchId],
+  );
+  const aiState = useSketchAiState(aiOwner, phase === 'ready' || phase === 'new').data;
+  const aiShown = sketchAiVisible(aiState);
   const key = useMemo(
     () => draftKey({ ownerKind: request.ownerKind, ownerId: request.ownerId, sketchId: request.sketchId }),
     [request.ownerKind, request.ownerId, request.sketchId],
@@ -351,6 +366,7 @@ export function SketchEditor({ request, onClose }: Props) {
         const st = sketcher.getState();
         if (st.textEdit) sketcher.endText(false);
         else if (st.hasSelection || st.hasCropBox || st.selectedText) sketcher.cancel();
+        else if (st.aiPreview) sketcher.discardAiOps();
         else requestCloseRef.current();
         return;
       }
@@ -578,6 +594,20 @@ export function SketchEditor({ request, onClose }: Props) {
                 </button>
               </span>
               <span className={styles.divider} />
+              {aiShown && (
+                <button
+                  type="button"
+                  className={`${styles.btn} ${aiOpen ? styles.btnOn : ''}`}
+                  aria-pressed={aiOpen}
+                  aria-label="AI help"
+                  title="AI help: ask about the drawing, get ideas, or have shapes drawn on a new layer"
+                  onClick={() => setAiOpen((v) => !v)}
+                  data-testid="sketch-ai-button"
+                >
+                  <SketchIcon name="spark" size={16} />
+                  <span className={styles.hideNarrow}>AI</span>
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.btn}
@@ -860,6 +890,17 @@ export function SketchEditor({ request, onClose }: Props) {
               {(!narrow || sheet === 'colour') && <ColourPanel sketcher={sketcher} state={state} />}
               {(!narrow || sheet === 'layers') && <LayersPanel sketcher={sketcher} state={state} />}
             </aside>
+          )}
+          {ready && aiShown && aiOpen && aiState && (
+            <SketchAiPanel
+              sketcher={sketcher}
+              state={state}
+              owner={aiOwner}
+              title={title}
+              ai={aiState}
+              sketchId={saved?.id ?? request.sketchId}
+              onClose={() => setAiOpen(false)}
+            />
           )}
         </div>
 

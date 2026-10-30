@@ -33,6 +33,7 @@ from api.ai_config import router as ai_config_router
 from api.assist import assist_error_handler
 from api.assist import router as assist_router
 from api.ai_editor import router as ai_editor_router
+from api.ai_sketch import router as ai_sketch_router
 from api import ai_roles
 from api.schedules import router as schedules_router
 from api.schedules import schedule_error_handler
@@ -194,6 +195,7 @@ app.mount("/mcp", mcp.streamable_http_app())
 app.include_router(projects_router)
 app.include_router(assist_router)
 app.include_router(ai_editor_router)
+app.include_router(ai_sketch_router)
 app.add_exception_handler(AssistError, assist_error_handler)
 app.include_router(schedules_router)
 app.add_exception_handler(ScheduleError, schedule_error_handler)

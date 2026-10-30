@@ -48,6 +48,8 @@ const PATHS: Record<string, string> = {
   edit: '<path d="M12 20H21"/><path d="M16.5 3.5A2.1 2.1 0 0 1 19.5 6.5L7 19L3 20L4 16Z"/>',
   download: '<path d="M12 4V15"/><path d="M7 10.5L12 15.5L17 10.5"/><path d="M5 20H19"/>',
   expand: '<path d="M4 9V4H9"/><path d="M20 9V4H15"/><path d="M4 15V20H9"/><path d="M20 15V20H15"/>',
+  spark:
+    '<path d="M12 3L13.8 9.2L20 11L13.8 12.8L12 19L10.2 12.8L4 11L10.2 9.2Z"/><path d="M19 3.5V6.5"/><path d="M17.5 5H20.5"/>',
   bold: '<path d="M7 4H13A4 4 0 0 1 13 12H7Z"/><path d="M7 12H14A4 4 0 0 1 14 20H7Z"/>',
 };
 

@@ -186,8 +186,9 @@ async def test_the_tool_list_stays_compact():
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
     # ai_run (AI member runs) ~700 characters and ai_schedules ~1,600 in 3.8.0, on top of Docs comments (3.7.0)
-    # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters
-    assert default < 35_500, (
+    # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters, the sketch actions (3.11.0) about
+    # 1,900 more
+    assert default < 37_500, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
     assert full < 43_800, (
@@ -465,3 +466,19 @@ async def test_default_activity_is_capped_and_long_texts_are_shortened(client):
     cutoff = full["activity_log"][-2]["at"]
     tail = await ops.get_ticket(i, activity_limit=-5, activity_since=cutoff)
     assert tail["activity_log"] == [e for e in full["activity_log"] if e["at"] > cutoff]
+
+
+async def test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own():
+    tools = await _tools(_full_mcp())
+    assert not [n for n in tools if "sketch" in n]  # the tool count stays the same
+    read, write = tools["docs_read"], tools["docs_write"]
+    for action in ("sketches", "sketch"):
+        assert action in DOCS_READ_OPS and f"- {action}:" in read.description
+    for action in ("sketch_create", "sketch_save"):
+        assert action in DOCS_WRITE_OPS and f"- {action}:" in write.description
+    # the limits an agent must respect are in front of it
+    assert "base_version" in write.description and "stale" in write.description
+    props = write.inputSchema["properties"]
+    assert "10 layers" in props["source_path"]["description"]
+    assert "4096" in props["path"]["description"]
+    assert "sketch_id" in read.inputSchema["properties"]

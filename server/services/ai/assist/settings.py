@@ -28,6 +28,19 @@ FEATURES = {
     "test_cases": ("Test case suggestions", "Suggest cases and coverage gaps"),
     "health": ("Board health and digest", "Daily insights"),
     "docs": ("Docs AI", "Summaries, sections, link suggestions"),
+    "sketch": (
+        "Sketch AI",
+        "Ask about a drawing, ideas, and shapes drawn on an AI layer",
+    ),
+}
+# Features whose spend is booked under other labels than their key (describe sums them for "cost this month")
+USAGE_LABELS = {
+    "sketch": (
+        "sketch_chat",
+        "sketch_draw",
+        "idea_sketch_chat",
+        "idea_sketch_draw",
+    )
 }
 DEFAULT_FEATURES = {k: True for k in FEATURES}
 DEFAULT_HEALTH = {
@@ -353,7 +366,10 @@ async def describe(session: AsyncSession, project_id: str) -> dict:
     feats = features(row)
     costs = {}
     for key in FEATURES:
-        costs[key] = round(await month_spend(session, key), 4)
+        costs[key] = round(
+            sum([await month_spend(session, u) for u in USAGE_LABELS.get(key, (key,))]),
+            4,
+        )
     projects = (await session.exec(select(Project))).all()
     scope = []
     excluded = excluded_docs(row)

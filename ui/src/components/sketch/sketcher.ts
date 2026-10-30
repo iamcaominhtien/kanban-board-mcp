@@ -8,6 +8,7 @@ import {
   type Sample,
 } from './engine/brush.ts';
 import { SWATCHES, hexToRgb, normaliseHex, pushRecent, rgbToHex } from './engine/colour.ts';
+import { AI_LAYER_NAME, aiTexts, drawAiShapes, type AiOp } from './engine/aiOps.ts';
 import { floodMask, growMask, maskToPatch } from './engine/floodFill.ts';
 import { arrowHead, clampZoom, fitZoom, snapAngle, squareCorner } from './engine/geometry.ts';
 import { History } from './engine/history.ts';
@@ -104,6 +105,8 @@ export interface SketchState {
   textEdit: TextEdit | null;
   background: 'white' | 'clear';
   revision: number;
+  /** Shapes from the AI are shown and wait for Accept or Discard. */
+  aiPreview: boolean;
 }
 
 /** What the editor asks of the page around it. */
@@ -281,6 +284,8 @@ export class Sketcher {
   /** True until the person zooms or pans: then the drawing stays fitted when the window is resized. */
   private autoFit = true;
   private checker: CanvasPattern | null = null;
+  /** Shapes the AI proposed, shown above the drawing until the person accepts or discards them. */
+  private aiPreview: { layer: Layer; w: number; h: number } | null = null;
 
   /**
    * @param view - The canvas the drawing is shown on.
@@ -366,6 +371,7 @@ export class Sketcher {
     this.selectedTextId = null;
     this.textEdit = null;
     this.strokeCanvas = null;
+    this.aiPreview = null;
   }
 
   private pushLayer(name: string, kind: Layer['kind'], locked: boolean, white: boolean, id?: string): Layer {
@@ -471,6 +477,7 @@ export class Sketcher {
       textEdit,
       background: this.background,
       revision: this.revision,
+      aiPreview: !!this.aiPreview,
     };
   }
 
@@ -774,6 +781,161 @@ export class Sketcher {
         this.activeId = layer.id;
       },
     );
+  }
+
+  // --- AI help ------------------------------------------------------------------------
+
+  /**
+   * The picture the AI is shown: every visible layer flattened, scaled down so its longest side is at most `maxSide`.
+   * A shape proposed by the AI and not yet accepted is not part of it.
+   * @param maxSide - Longest side in px.
+   * @returns The PNG and its size.
+   */
+  async exportForAi(maxSide = 1280): Promise<{ blob: Blob; width: number; height: number }> {
+    this.commitSelection();
+    const flat = this.flatten();
+    const k = Math.min(1, maxSide / Math.max(flat.width, flat.height));
+    let out = flat;
+    if (k < 1) {
+      out = makeCanvas(Math.max(1, Math.round(flat.width * k)), Math.max(1, Math.round(flat.height * k)));
+      const c = ctxOf(out);
+      c.imageSmoothingQuality = 'high';
+      c.drawImage(flat, 0, 0, out.width, out.height);
+    }
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      out.toBlob((b) => (b ? resolve(b) : reject(new Error('The picture could not be made.'))), 'image/png'),
+    );
+    return { blob, width: out.width, height: out.height };
+  }
+
+  /**
+   * Show shapes the AI proposed above the drawing, without changing it. They stay a preview until `acceptAiOps`
+   * puts them on a new layer; `discardAiOps` throws them away. A new preview replaces the old one.
+   * @param ops - Ops already checked by `cleanAiOps`.
+   * @returns False when a new layer would not fit (10 layers), with a notice.
+   */
+  previewAiOps(ops: readonly AiOp[]): boolean {
+    this.aiPreview = null;
+    if (!canAddLayer(this.layers.length)) {
+      this.hooks.notice(`A drawing can have ${MAX_LAYERS} layers. Merge or delete one first, then try again.`);
+      this.changed(false);
+      return false;
+    }
+    const canvas = makeCanvas(this.width, this.height);
+    const ctx = ctxOf(canvas);
+    drawAiShapes(ctx, ops);
+    const texts = aiTexts(ops, `ai${Date.now().toString(36)}`);
+    const layer: Layer = {
+      id: '',
+      name: AI_LAYER_NAME,
+      kind: 'layer',
+      visible: true,
+      opacity: 1,
+      locked: false,
+      canvas,
+      ctx,
+      texts,
+      blank: ops.length === texts.length,
+      rev: 1,
+      cache: null,
+    };
+    this.aiPreview = { layer, w: this.width, h: this.height };
+    this.changed(false);
+    return true;
+  }
+
+  /** Whether shapes from the AI are waiting to be accepted. */
+  get hasAiPreview(): boolean {
+    return !!this.aiPreview;
+  }
+
+  /** Throw away the shapes the AI proposed. */
+  discardAiOps(): void {
+    if (!this.aiPreview) return;
+    this.aiPreview = null;
+    this.changed(false);
+  }
+
+  /**
+   * Put the previewed shapes on a new layer named "AI" on top of the drawing, as ONE undoable step. Nothing of the
+   * person's own layers is touched.
+   * @returns True when the layer was added.
+   */
+  acceptAiOps(): boolean {
+    const p = this.aiPreview;
+    if (!p) return false;
+    if (p.w !== this.width || p.h !== this.height) {
+      this.aiPreview = null;
+      this.hooks.notice('The canvas size changed, so the AI shapes were dropped. Ask again.');
+      this.changed(false);
+      return false;
+    }
+    if (!canAddLayer(this.layers.length)) {
+      this.hooks.notice(`A drawing can have ${MAX_LAYERS} layers. Merge or delete one first.`);
+      return false;
+    }
+    this.commitSelection();
+    this.endText(true);
+    const before = this.layers;
+    const beforeActive = this.activeId;
+    const taken = new Set(before.map((l) => l.name));
+    let name: string = AI_LAYER_NAME;
+    for (let n = 2; taken.has(name); n++) name = `${AI_LAYER_NAME} ${n}`;
+    const layer = p.layer;
+    layer.id = nextLayerId(before);
+    layer.name = name;
+    const after = insertLayer(before, layer);
+    this.aiPreview = null;
+    this.layers = after;
+    this.activeId = layer.id;
+    this.selectedTextId = null;
+    this.pushToggle(
+      'AI drawing',
+      () => {
+        this.layers = before;
+        this.activeId = beforeActive;
+      },
+      () => {
+        this.layers = after;
+        this.activeId = layer.id;
+      },
+    );
+    return true;
+  }
+
+  /**
+   * Add a line of text (an idea from the AI, say) to the selected layer, at the left edge below the labels already
+   * there. One undoable step; the text stays editable.
+   * @param text - The words.
+   * @returns False when the selected layer is hidden or locked (a notice says so).
+   */
+  addTextLabel(text: string): boolean {
+    const clean = text.replace(/\s+/g, ' ').trim().slice(0, 140);
+    const layer = this.activeLayer();
+    if (!clean || !this.canDraw(layer)) return false;
+    this.commitSelection();
+    const size = Math.min(this.options.sizes.text, 24);
+    const before = layer.texts;
+    const y = Math.min(this.height - size * 1.25, 24 + (before.length % 12) * Math.round(size * 1.6));
+    const after = [
+      ...before,
+      {
+        id: `t${Date.now().toString(36)}${before.length}`,
+        x: 24,
+        y: Math.max(0, Math.round(y)),
+        text: clean,
+        size,
+        color: this.colour,
+      },
+    ];
+    layer.texts = after;
+    this.pushToggle(
+      'Text',
+      () => (layer.texts = before),
+      () => (layer.texts = after),
+    );
+    this.changed();
+    return true;
   }
 
   /**
@@ -1191,6 +1353,7 @@ export class Sketcher {
     ctx.scale(z, z);
     ctx.imageSmoothingEnabled = z < 2;
     for (const l of this.layers) this.drawLayer(ctx, l);
+    if (this.aiPreview) this.drawLayer(ctx, this.aiPreview.layer);
     ctx.restore();
     // what is being made: shapes, selections, the crop box, the brush ring
     ctx.save();
