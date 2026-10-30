@@ -8,6 +8,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.15.2] - 2026-10-30
+
+Hotfix for changes that did not show on the board until the app was restarted, and for the side panels' width.
+
+### Fixed
+- **Changes an AI made through the MCP server did not appear on the board.** When the AI is connected over stdio (the desktop app, VS Code and Claude Desktop launch it that way) it runs as its own process, so the "board changed" signal it sent reached nobody; an updated ticket or Docs page showed up only after another action, the 60-second refresh or a restart. The server now watches the database and announces changes that another process made. A change the server itself announced is not announced twice.
+- **A slow screen could stop receiving updates.** When a client fell behind, the server dropped it from the live stream without closing it, so the board went quiet until a restart. It now keeps the client and skips its oldest event.
+- **The board refetched everything for every event.** An AI editing many things at once made the board reload once per edit. Events within 150 ms are now gathered into one refresh, and a tab that comes back from sleep reconnects (or refreshes) at once.
+
+### Added
+- **Resize and maximize the side panels.** Drag the left edge of Board AI, the ticket chat, the idea chat, Shape with AI and the Docs inline comments to widen them (the width is remembered for each panel; double-click the edge or press Home to reset; arrow keys nudge it). The new button in each header fills the window, and Esc restores it.
+
 ## [3.15.1] - 2026-10-30
 
 Hotfix for how a mention looks in the comment boxes.
