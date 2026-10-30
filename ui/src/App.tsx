@@ -7,7 +7,7 @@ import { useIdeaCounts } from './api/ideas';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
-import { isSettingsPageId } from './components/settings/settingsIndex';
+import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
@@ -38,6 +38,7 @@ import { FirstRun } from './components/FirstRun';
 import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
 import { UpdateNotice } from './components/UpdateNotice';
+import { DesktopMenuHost, type MenuView } from './components/desktop/DesktopMenuHost';
 import { useAiBoard, useAiOverview, aiApi } from './api/ai';
 import { AiBoardContext, type AiBoardState } from './components/ai/aiUi';
 import { AiMembersPage } from './components/ai/AiMembersPage';
@@ -668,6 +669,30 @@ export default function App() {
     window.history.replaceState({}, '', url.toString());
   }
 
+  // Desktop menu: a view or New Ticket must show even when Settings, the AI members page or the Idea Space is on top
+  function showMenuView(next: MenuView) {
+    setSettingsTarget(null);
+    setAiPage(null);
+    if (next === 'ideas') {
+      setActiveBoard('idea');
+    } else {
+      setActiveBoard('main');
+      setViewMode(next);
+    }
+  }
+
+  function handleMenuNewTicket() {
+    showMenuView(activeBoard === 'idea' ? 'board' : viewMode);
+    handleOpenCreate();
+  }
+
+  function handleMenuSettings(target: { page?: string; setting?: string }) {
+    setSettingsTarget({
+      page: isSettingsPageId(target.page ?? null) ? (target.page as SettingsPageId) : undefined,
+      setting: target.setting,
+    });
+  }
+
   function handleOpenView(ticket: Ticket) {
     openTicketModal(ticket.id);
   }
@@ -738,6 +763,12 @@ export default function App() {
           <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <Splash status={backendStatus} errorMessage={backendError} onRetryBackend={retryBackend} />
             <UpdateNotice />
+            <DesktopMenuHost
+              view={activeBoard === 'idea' ? 'ideas' : viewMode}
+              onSettings={handleMenuSettings}
+              onNewTicket={handleMenuNewTicket}
+              onView={showMenuView}
+            />
             <AssistOverlays />
             <SidebarWithAssist
               projectId={currentProjectId}

@@ -9,6 +9,7 @@ import { useToast } from '../Toast';
 import { BulbIcon, Kbd } from './ideaShared';
 import { ProjectSelect, TagInput } from './TriageDialogs';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAppCommand } from '../../utils/appCommands';
 
 export interface CapturePrefill {
   title?: string;
@@ -47,6 +48,8 @@ export function IdeaCaptureProvider({
 }) {
   const [prefill, setPrefill] = useState<CapturePrefill | null>(null);
   const open = useCallback((p?: CapturePrefill) => setPrefill(p ?? {}), []);
+  // Desktop menu: File › New Idea
+  useAppCommand('new-idea', () => open());
   const api = useMemo(() => ({ open }), [open]);
 
   useEffect(() => {

@@ -13,6 +13,9 @@ const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let latestInfo = null;
 let lastCheck = null; // { at, error } of the most recent check, automatic or manual
 let downloading = false;
+let checking = false; // a manual check is running (the menu greys "Check for Updates…")
+let onChange = () => {};
+let runManualCheck = async () => ({ info: null, lastCheck, error: 'Updates are not set up' });
 
 // Electron's net.fetch goes through Chromium's network stack, so it honours the system proxy
 // and the OS certificate store. Node's global fetch does neither, which on Windows machines
@@ -83,7 +86,13 @@ async function installUpdate(filePath) {
   if (err) throw new Error(err);
 }
 
-function setupUpdater(getWindow) {
+/** What the application menu needs: whether a manual check runs and the newer version found, if any. */
+function getUpdateState() {
+  return { checking, availableVersion: latestInfo ? latestInfo.version : null };
+}
+
+function setupUpdater(getWindow, onStateChange) {
+  if (onStateChange) onChange = onStateChange;
   const notify = (channel, payload) => {
     const win = getWindow();
     if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
@@ -92,7 +101,10 @@ function setupUpdater(getWindow) {
   const runCheck = async () => {
     try {
       const info = await checkForUpdate();
-      if (info) notify('update-available', info);
+      if (info) {
+        notify('update-available', info);
+        onChange();
+      }
     } catch (err) {
       console.warn('[updater] check failed:', err.message); // offline etc. — stay silent
     }
@@ -100,7 +112,10 @@ function setupUpdater(getWindow) {
 
   ipcMain.handle('update-get', () => latestInfo);
   ipcMain.handle('update-status', () => ({ currentVersion: app.getVersion(), lastCheck, info: latestInfo }));
-  ipcMain.handle('update-check', async () => {
+  // A check the user started (Settings › Updates or the Help menu); the automatic ones stay silent
+  const manualCheck = async () => {
+    checking = true;
+    onChange();
     try {
       const info = await checkForUpdate();
       // A manual check brings the notice back, even after "Later" or "Skip this version"
@@ -108,8 +123,13 @@ function setupUpdater(getWindow) {
       return { info, lastCheck };
     } catch (err) {
       return { info: null, lastCheck, error: err.message };
+    } finally {
+      checking = false;
+      onChange();
     }
-  });
+  };
+  runManualCheck = manualCheck;
+  ipcMain.handle('update-check', manualCheck);
   ipcMain.handle('update-open-releases', () => shell.openExternal(RELEASES_PAGE_URL));
   ipcMain.handle('update-download', async () => {
     if (!latestInfo) return { error: 'No update available' };
@@ -140,4 +160,4 @@ function setupUpdater(getWindow) {
   }
 }
 
-module.exports = { setupUpdater };
+module.exports = { setupUpdater, getUpdateState, checkNow: () => runManualCheck() };

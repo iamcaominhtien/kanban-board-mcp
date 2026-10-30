@@ -5,9 +5,57 @@ User guides that ship with the repository. Each guide keeps its source next to t
 
 | Guide | Language | PDF |
 | --- | --- | --- |
+| **User and administrator guide**: using the app (tickets, Docs, ideas, AI, settings, desktop app) and installing, connecting and administering it (data and backup, configuration, MCP, privacy, troubleshooting), in 7 parts, 25 chapters and 3 appendices, with audience tags | English | built into `guide/dist/` (see below); attached to each release |
 | Using AI in Kanban Board: the AI team (PM, Dev, Reviewer, General), creating members step by step, the rest of the setup, copy-paste prompts, assigning work, schedules, safety, troubleshooting | Vietnamese | [`ai/huong-dan-dung-ai.pdf`](ai/huong-dan-dung-ai.pdf) |
 
-## Updating the AI guideline
+## The user and administrator guide
+
+Source in [`guide/`](guide/). One Markdown file per chapter in `guide/chapters/`, built into the full PDF, a web version and stand-alone PDFs. Design: [`design/screens/guideline-design.md`](../../design/screens/guideline-design.md).
+
+```bash
+cd docs/guideline/guide
+pip install -r requirements.txt     # markdown, pypdf
+npm install --no-save playwright && npx playwright install chromium
+python3 build.py                    # dist/kanban-board-guide-<version>.pdf, dist/web/, dist/standalone/*.pdf
+python3 build.py --release          # what CI runs: chapters marked to-confirm are left out and "to confirm" markers fail the build
+python3 build.py --facts            # print the facts read from the code and check the documented environment variables
+```
+
+**A chapter** is `guide/chapters/NN-name.md` (the number sets the order and the chapter number). It starts with front matter:
+
+| Key | Meaning |
+| --- | --- |
+| `title`, `summary`, `reading` | Title, the line under it on the opener, minutes to read |
+| `part` | 1 to 7, or `appendix` |
+| `audience` | One or more of `everyone`, `admin`, `developer`, `desktop`, `ai` (the tags under the title) |
+| `status` | `released` (default), `draft` (left out unless `--drafts`) or `to-confirm` (shown with a banner, left out of `--release`) |
+| `kind` | `chapter` (default) or `sheet` (one page, no opener) |
+| `standalone` | A name: also build this chapter as a stand-alone PDF |
+
+**In the text.** Plain Markdown, plus: `!!! tip "Title"` (also `note`, `warning`, `caution`, `ai`) for callouts; numbered lists become steps; `++Ctrl+N++` for keys (`Mod` is Ctrl, or ⌘ on a Mac); `{menu:Settings › Updates}` for menu paths; `@figure <image-name> "Caption" markers=x,y;x,y` for a figure with numbered markers (percent positions; the build fails when the image is missing, and the caption is the alt text); `{fact:tool_count}` for a value read from the code; `{confirm: what to check}` for something that must be checked before release; `@preset pm persona` for the text of a built-in AI role; `{{shortcuts}}` and `{{releases}}` for generated tables. Headings level 2 are numbered `chapter.section` and listed on the chapter opener.
+
+**Screenshots** are `guide/images/<name>.jpg` (the AI guide's `ai/images/` are used too). Retake them with `guide/shots/take_screenshots.js` (the header of the script says how to start a demo server); JPEG, 1440 × 900, about 1500 px wide.
+
+**One list of shortcuts.** `ui/src/components/shortcuts/shortcuts.json` feeds the Keyboard Shortcuts window in the app, the shortcut sheet in the guide and a test (`desktop/tests/menu.test.js`) that keeps the desktop menu's accelerators in line. To add or change a shortcut, change the file and the code that handles the key (each entry names its `source`).
+
+**Facts from code.** `guide/facts.py` reads values from the code (the number and names of MCP tools, AI defaults, ticket statuses, types and priorities, settings pages, the documented environment variables). A chapter uses `{fact:name}`, so the text follows the code; `python3 build.py --facts` lists every fact with its source and fails when a documented variable no longer exists in the code. A statement that cannot be read from the code and has not been checked gets a `{confirm: …}` marker; a chapter with `status: to-confirm` (today the privacy chapter) is not released.
+
+**Publishing.** The release workflow builds the guide and attaches the full PDF and the stand-alone PDFs to the GitHub release (a problem in that job never blocks the installers). The PDF is not committed.
+
+### Facts to re-check in the guide
+
+| Fact | Where it comes from |
+| --- | --- |
+| Number and names of MCP tools, the Idea Space tools | `server/kanban_mcp/tools/__init__.py`, `registry.py` (read by `facts.py`) |
+| AI defaults (parallel runs, runs per day, daily budget) | `server/services/ai/members.py` (read by `facts.py`) |
+| Statuses, types, priorities | `server/models.py` (read by `facts.py`) |
+| Settings pages and their scope | `ui/src/components/settings/settingsIndex.ts` (read by `facts.py`) |
+| Menu items, accelerators, which items need the backend | `desktop/menu.js` (tested in `desktop/tests/menu.test.js`) |
+| The built-in AI roles | `ui/src/components/ai/memberPresets.json` (read through `@preset`) |
+| Docs, Sketch, Idea Space and editor shortcuts and limits stated in prose | `shortcuts.json` entries name their `source`; limits come from `CHANGELOG.md` and `docs/specs/` and are re-read when the feature changes |
+| What an AI request contains (privacy chapter) | `server/services/ai/` (to confirm) |
+
+## Updating the AI guideline (Vietnamese)
 
 Everything is in [`ai/`](ai/):
 
