@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/iamcaominhtien/kanban-board-mcp/releases/latest"><img src="https://img.shields.io/github/v/release/iamcaominhtien/kanban-board-mcp?style=flat-square&label=release&color=2E6F40" alt="Latest release" /></a>
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
@@ -155,15 +156,17 @@ cd server && uv run uvicorn main:app --port 8000
 
 Then connect any MCP-compatible client to `http://localhost:8000/mcp/` (note the trailing slash — the mount only matches with it).
 
-## Desktop App Release Status
+## Desktop App
 
-The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) into a single installable application via Electron.
+The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) into a single installable application via Electron. Download the installer from the [latest release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/latest); the badge at the top shows its version, so this page needs no edit when a new one comes out.
 
-| Platform | Status | Artifact |
-|---|---|---|
-| **macOS** (x64 + arm64) | Available | DMG — see [v1.4.5 release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/tag/v1.4.5) |
-| **Windows** (NSIS) | Not yet uploaded | Build from source: `./build-desktop.sh` |
-| **Linux** | Not yet supported | — |
+| Platform | Artifact |
+|---|---|
+| **macOS** (x64 + arm64) | DMG |
+| **Windows** (x64) | NSIS installer |
+| **Linux** | Not yet supported |
+
+You can also build it yourself: `./build-desktop.sh`.
 
 > **macOS note:** the app is not notarized — right-click → Open on first launch.
 

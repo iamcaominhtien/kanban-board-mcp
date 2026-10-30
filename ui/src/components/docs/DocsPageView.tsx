@@ -658,7 +658,7 @@ export function DocsPageView({
                     onCreatePage={onCreatePage}
                     onRestorePage={onRestorePage}
                     onReplaceSection={published && !translated ? onReplaceSection : undefined}
-                    changedIn={published && since.behind && !translated ? since.changedIn : undefined}
+                    changedIn={published && since.behind && since.marks && !translated ? since.changedIn : undefined}
                     proposed={published && !translated ? proposed : undefined}
                   >
                     {translated ?? (published ? page.markdown : page.draft!.markdown)}

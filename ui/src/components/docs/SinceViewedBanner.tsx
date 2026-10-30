@@ -25,6 +25,25 @@ function clearLegacySeen(pageId: string): void {
   }
 }
 
+/** Whether paragraphs changed since the last view carry their green bar and "Changed in vN" label; a reader's choice. */
+const MARKS_KEY = 'docsChangeMarks';
+
+function readMarks(): boolean {
+  try {
+    return localStorage.getItem(MARKS_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+function writeMarks(on: boolean): void {
+  try {
+    localStorage.setItem(MARKS_KEY, on ? 'on' : 'off');
+  } catch {
+    /* storage unavailable: the choice lasts until the page is closed */
+  }
+}
+
 /** Lines that say nothing on their own, so they never mark a paragraph as changed. */
 const TRIVIAL_LINE = /^[\s|:\-`>#*]*$/;
 
@@ -38,6 +57,9 @@ export interface SinceViewed {
   /** source line text -> latest version that added it, for marking changed paragraphs */
   changedIn: Map<string, number>;
   markSeen: () => void;
+  /** whether changed paragraphs are marked in the page */
+  marks: boolean;
+  setMarks: (on: boolean) => void;
 }
 
 /**
@@ -47,6 +69,7 @@ export interface SinceViewed {
  * @param enabled - False to skip recording and loading anything (e.g. while offline).
  */
 export function useSinceViewed(page: DocsPage, enabled = true): SinceViewed {
+  const [marks, setMarksState] = useState(readMarks);
   const seenQ = useDocsSeen(enabled ? page.id : null);
   const mark = useMarkDocsSeen();
   const versionsQ = useDocsVersions(enabled ? page.id : null);
@@ -92,12 +115,48 @@ export function useSinceViewed(page: DocsPage, enabled = true): SinceViewed {
     edits: edits.length ? edits : undefined,
     changedIn,
     markSeen: () => mark(page.id, page.version),
+    marks,
+    setMarks: (on: boolean) => {
+      writeMarks(on);
+      setMarksState(on);
+    },
   };
 }
 
 function listNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? '';
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** Show or hide the green bars and "Changed in vN" labels on the page: an eye, slashed when they are hidden. */
+function MarksToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      className="dk-icobtn"
+      aria-label="Mark changed paragraphs in the page"
+      aria-pressed={on}
+      title={on ? 'Hide change markers in the page' : 'Show change markers in the page'}
+      style={{ width: 26, height: 26, color: '#2F6FB0' }}
+      onClick={() => onChange(!on)}
+    >
+      <svg
+        aria-hidden="true"
+        width={16}
+        height={16}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
+        {!on && <path d="M4 4l16 16" />}
+      </svg>
+    </button>
+  );
 }
 
 interface SinceViewedBannerProps {
@@ -113,7 +172,7 @@ interface SinceViewedBannerProps {
  * @param props.onCompare - Called with two version numbers to open their diff.
  */
 export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerProps) {
-  const { seen, behind, markSeen } = since;
+  const { seen, behind, markSeen, marks, setMarks } = since;
   const edits = since.edits ?? [];
   const [open, setOpen] = useState(false);
   const versionsQ = useDocsVersions(page.id);
@@ -213,6 +272,7 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
             </button>
           </>
         )}
+        <MarksToggle on={marks} onChange={setMarks} />
         <button
           type="button"
           className="dk-icobtn"

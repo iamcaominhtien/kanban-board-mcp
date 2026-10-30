@@ -586,6 +586,14 @@ input:focus-visible {
   font-family: var(--font-body, inherit);
 }
 
+/* in a list the bar sits left of the bullet column (ul padding 22px), not on the bullets */
+.dk-md li.dk-changed::before,
+.dk-md li > p.dk-changed::before,
+.dk-md li.dk-proposed::before,
+.dk-md li > p.dk-proposed::before {
+  left: -30px;
+}
+
 .dk-md li {
   margin: 2px 0;
 }
