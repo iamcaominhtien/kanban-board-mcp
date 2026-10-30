@@ -233,7 +233,8 @@ async def update(
     if data.get("edits_mode") is not None:
         if data["edits_mode"] not in EDIT_MODES:
             raise DocsAiError(
-                "invalid", "Edits by AI members: made directly, a proposal to review, or a draft only."
+                "invalid",
+                "Edits by AI members: made directly, a proposal to review, or a draft only.",
             )
         row.edits_mode = data["edits_mode"]
     if data.get("proposal_days") is not None:

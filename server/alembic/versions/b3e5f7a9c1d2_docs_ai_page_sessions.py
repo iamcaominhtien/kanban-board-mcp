@@ -32,9 +32,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["project_id"], ["project.id"]),
         sa.PrimaryKeyConstraint("scope", "member_id"),
     )
-    op.create_index(
-        "ix_docs_ai_session_project_id", "docs_ai_session", ["project_id"]
-    )
+    op.create_index("ix_docs_ai_session_project_id", "docs_ai_session", ["project_id"])
 
 
 def downgrade() -> None:

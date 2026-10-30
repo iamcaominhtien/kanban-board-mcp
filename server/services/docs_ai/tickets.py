@@ -572,7 +572,9 @@ async def undo(session: AsyncSession, token: str, by: str) -> dict[str, Any]:
         raise DocsAiError(
             "forbidden", "Only the person who created the tickets can undo it."
         )
-    await jobs.update(job.id, result={**loads(job.result, {}), "undo": None, "undone": True})
+    await jobs.update(
+        job.id, result={**loads(job.result, {}), "undo": None, "undone": True}
+    )
     deleted = 0
     for tid in entry["tickets"]:
         await svc_docs.unlink_ticket_doc(session, tid, entry["page_id"])

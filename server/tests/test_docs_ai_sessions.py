@@ -35,7 +35,9 @@ async def test_every_kind_of_call_on_a_page_continues_one_session(env, fake):
     t = await _thread(c, p["id"], f"{_mention(m)} still true?")
     await _wait(c, t["ai_delivery"][0]["job_id"])
     # Ask this page
-    fake.queue.append(reply(answer="Tokens last 30 days.", citations=[], verdict="not_covered"))
+    fake.queue.append(
+        reply(answer="Tokens last 30 days.", citations=[], verdict="not_covered")
+    )
     await ask(c, pid, "How long do tokens last?", scope="page", page_id=p["id"])
     # a summary
     fake.queue.append("A short summary.")
@@ -43,7 +45,9 @@ async def test_every_kind_of_call_on_a_page_continues_one_session(env, fake):
     assert r.status_code == 202
     await _wait(c, r.json()["id"])
     # a suggested edit
-    th = (await c.get(f"/docs/pages/{p['id']}/comments", headers=H)).json()["threads"][0]
+    th = (await c.get(f"/docs/pages/{p['id']}/comments", headers=H)).json()["threads"][
+        0
+    ]
     fake.queue.append(
         '{"title": "T", "reason": "r", "old": "Rate limits are not enforced yet.", "new": "Rate limits are on."}'
     )
@@ -59,7 +63,9 @@ async def test_every_kind_of_call_on_a_page_continues_one_session(env, fake):
     assert len({x.id for x in used}) == 1
     rows = await _rows(pid)
     assert len(rows) == 1 and rows[0].calls == 4
-    assert rows[0].scope == sessions.page_scope(p["id"]) and rows[0].member_id == m["id"]
+    assert (
+        rows[0].scope == sessions.page_scope(p["id"]) and rows[0].member_id == m["id"]
+    )
 
 
 async def test_the_prompt_names_who_is_asking(env, fake):

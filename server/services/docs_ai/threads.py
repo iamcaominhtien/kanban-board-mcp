@@ -2,9 +2,9 @@
 
 The thread *is* the conversation: every answer reads the page (published text, through `access`), the passage the
 thread is anchored to and all comments in order (the oldest summarised when the thread is long), each fenced as
-data. A local Claude Code member also keeps one CLI session per (thread, member), so a second tag continues the
-conversation instead of starting from zero. The AI never edits the page and never resolves the thread: "Suggest an
-edit" makes a proposal (section B) and a person decides.
+data. A local Claude Code member also continues its one session on the page (`sessions`), so a second tag, or anything
+else asked of it on the page, builds on what it already knows instead of starting from zero. The AI answering here never
+edits the page or resolves the thread: "Suggest an edit" makes a proposal (section B) and a person decides.
 """
 
 import json

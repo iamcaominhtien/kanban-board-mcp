@@ -22,7 +22,9 @@ async def _draw(c, page_id, **body):
     return await _wait(c, r.json()["id"])
 
 
-async def test_a_section_becomes_an_editable_diagram_and_the_page_is_untouched(env, fake):
+async def test_a_section_becomes_an_editable_diagram_and_the_page_is_untouched(
+    env, fake
+):
     c, pid, m = await setup(env)
     p = await page(c, pid, "API", TEXT)
     fake.queue.append(f"Here you go:\n```xml\n{GRAPH}\n```")
@@ -46,11 +48,16 @@ async def test_an_existing_diagram_gets_a_new_version(env, fake):
     changed = GRAPH.replace("Client", "Browser")
     fake.queue.append(changed)
     job = await _draw(
-        c, p["id"], diagram_id=first["diagram_id"], instruction="Rename Client to Browser"
+        c,
+        p["id"],
+        diagram_id=first["diagram_id"],
+        instruction="Rename Client to Browser",
     )
     assert job["state"] == "finished", job
     assert job["result"]["changed"] is True and job["result"]["version"] == 2
-    assert "Client" in fake.prompts[-1] and "Rename Client to Browser" in fake.prompts[-1]
+    assert (
+        "Client" in fake.prompts[-1] and "Rename Client to Browser" in fake.prompts[-1]
+    )
 
 
 async def test_a_reply_that_is_not_a_diagram_saves_nothing(env, fake):
@@ -59,7 +66,9 @@ async def test_a_reply_that_is_not_a_diagram_saves_nothing(env, fake):
     fake.queue.append("Sorry, I cannot draw that.")
     job = await _draw(c, p["id"])
     assert job["state"] == "failed" and job["error"]["code"] == "invalid"
-    fake.queue.append("<mxGraphModel><root><mxCell id='0'/><mxCell id='1' parent='0'/></root></mxGraphModel>")
+    fake.queue.append(
+        "<mxGraphModel><root><mxCell id='0'/><mxCell id='1' parent='0'/></root></mxGraphModel>"
+    )
     job = await _draw(c, p["id"])
     assert job["state"] == "failed" and "no boxes" in job["error"]["message"]
     listed = (await c.get(f"/projects/{pid}/diagrams", headers=H)).json()

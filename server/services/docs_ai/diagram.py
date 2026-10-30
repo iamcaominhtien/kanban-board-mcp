@@ -27,11 +27,11 @@ _XML = re.compile(r"<mxfile\b.*?</mxfile>|<mxGraphModel\b.*?</mxGraphModel>", re
 RULES = (
     "You draw diagrams as draw.io XML. Reply with ONE <mxGraphModel> element and nothing else: no explanation, no "
     "code fence. Use only what the text says; do not invent steps or systems.\n"
-    "Format: <mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/> then one <mxCell id=\"n\" "
-    "value=\"label\" style=\"rounded=1;whiteSpace=wrap;html=1;\" vertex=\"1\" parent=\"1\"><mxGeometry x=\"..\" "
-    "y=\"..\" width=\"140\" height=\"50\" as=\"geometry\"/></mxCell> for each box, and <mxCell id=\"n\" value=\"\" "
-    "style=\"endArrow=classic;html=1;\" edge=\"1\" parent=\"1\" source=\"a\" target=\"b\"><mxGeometry relative=\"1\" "
-    "as=\"geometry\"/></mxCell> for each arrow. Give every box an explicit x, y, width and height, laid out left to "
+    'Format: <mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/> then one <mxCell id="n" '
+    'value="label" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x=".." '
+    'y=".." width="140" height="50" as="geometry"/></mxCell> for each box, and <mxCell id="n" value="" '
+    'style="endArrow=classic;html=1;" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" '
+    'as="geometry"/></mxCell> for each arrow. Give every box an explicit x, y, width and height, laid out left to '
     "right or top to bottom with at least 60 px between boxes, and short labels (under 6 words). At most 25 boxes."
 )
 
@@ -106,7 +106,13 @@ async def _draw(job: Any) -> dict[str, Any]:
         raise DocsAiError("invalid", "There is nothing on this page to draw yet.")
     await jobs.set_reads(
         job.id,
-        [{"page_id": page.id, "title": page.title, "why": "this section" if selection else "this page"}],
+        [
+            {
+                "page_id": page.id,
+                "title": page.title,
+                "why": "this section" if selection else "this page",
+            }
+        ],
     )
     who, system = await start_system(job.project_id, RULES)
     out = await engine.call(
@@ -136,7 +142,9 @@ async def _draw(job: Any) -> dict[str, Any]:
                     base_version=base_version,
                     source=source,
                     svg=svg,
-                    note=f"Changed by {who.member.name}: {instruction or 'redrawn'}"[:200],
+                    note=f"Changed by {who.member.name}: {instruction or 'redrawn'}"[
+                        :200
+                    ],
                     preview_kind=kind,
                 )
             else:

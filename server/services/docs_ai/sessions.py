@@ -47,7 +47,9 @@ async def lookup(scope: str, member_id: str) -> str | None:
         return None
 
 
-async def remember(scope: str, member_id: str, project_id: str, session_id: str) -> None:
+async def remember(
+    scope: str, member_id: str, project_id: str, session_id: str
+) -> None:
     """Keep `session_id` as the conversation of (page, member)."""
     async with database.async_session() as session:
         row = await session.get(DocsAiSession, (scope, member_id))

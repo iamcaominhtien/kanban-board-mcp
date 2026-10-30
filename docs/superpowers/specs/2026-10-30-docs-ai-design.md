@@ -7,8 +7,10 @@ AI conversations that keep their memory and compact, @AI in Docs comment threads
 ## Intent
 
 Put AI into the Docs space as a whole (ask, write, read, edit, keep pages true) on top of what exists: AI members,
-budgets, approvals, audit and the Board AI assist services. Nothing here is a new kind of AI, and **AI never edits a
-published page**: output is a dashed block, a private draft, a proposal or a list to review.
+budgets, approvals, audit and the Board AI assist services. Nothing here is a new kind of AI. Docs AI is **on by
+default**; an AI member **edits pages directly** within its own permissions (`edits_mode = direct`), and a project can
+hold those edits as a proposal or a private draft instead. What the AI writes for a person (Ask, summaries, Write with
+AI, Draw a diagram, suggested edits) is a dashed block, a private draft, a diagram, a proposal or a list to review.
 
 ## Goals / non-goals
 
@@ -22,7 +24,7 @@ instructions; an AI answer that cites a ticket or page that does not exist.
 
 | Finding | Where | Fix in this PR |
 |---|---|---|
-| `Docs AI` switch is board-wide and **on** by default | `assist/settings.py` `FEATURES["docs"]` | New per-project `docs_ai_settings.enabled` (off by default) gates everything Docs-side. The board-wide switch stays as the master "allowed at all" switch. |
+| `Docs AI` switch is board-wide and **on** by default | `assist/settings.py` `FEATURES["docs"]` | New per-project `docs_ai_settings.enabled` (on by default) gates everything Docs-side. The board-wide switch stays as the master "allowed at all" switch. |
 | API-key Board AI chat is stateless: last 14 rows pasted as text, 1500 chars each, older turns dropped, the question appears twice | `assist/chat.py` | Rolling **summary** kept on `ai_chat` (compaction), question de-duplicated, "Earlier conversation was summarised" notice. Claude Code keeps `--resume`. |
 | "Ask this page", selection Ask, Ticket AI always open a **new** chat (`fresh:true`) | `AssistContext.tsx`, `DocsAi.tsx` | Docs asks continue the owner's last chat for that page; "New chat" is an explicit button. |
 | API-key agents get no "Activity since your last run" block and restart from the full prompt after Answer | `api_prompt.py`, `api_agent.py` | `activity_block` added to the API prompt (own earlier runs included). |
@@ -36,7 +38,7 @@ instructions; an AI answer that cites a ticket or page that does not exist.
 - `docs_draft.ai_source` (JSON: `{kind, from, member_id, gaps[], sources[]}`), `docs_version.with_ai` (bool).
 - `docs_comment.ai` (JSON: `{member_id, job_id, cost, sources[], can_suggest}`), set only on AI replies.
 - `docs_ai_settings` (per project): `enabled`, `member_id`, `read_scope` (`all|except_hidden|picked`), `picked_pages`,
-  `style_page_id`, `edits_mode` (`proposal|draft`), `proposal_days` (7), `freshness_on`, `guidance_limit` (8000),
+  `style_page_id`, `edits_mode` (`direct|proposal|draft`, default `direct`), `proposal_days` (7), `freshness_on`, `guidance_limit` (8000),
   `digest_on`.
 - `docs_ai_job` — one row per Docs AI call (ask, thread reply, check, translate, explain, summary, history summary,
   publish note, tickets, write, freshness, thread summary): who asked, which AI, state, pages read, steps, result,
@@ -102,3 +104,20 @@ forbidden to AI runs and its enum is already large), delivering @mentions from e
 
 Prompt wording, exact UI spacing (follow the design boards), copy. Each slice has server tests and, for UI, pure
 logic in `*Rules.ts` modules.
+
+## One session for each (page, AI member)
+
+`docs_ai_session (scope = page:<id>, member_id) -> session_id`. `engine.call` resolves the page from the call or its
+job; for a local Claude Code member it resumes that session (under a per-key lock, since a CLI session cannot be
+resumed twice at once), stores the id afterwards, and starts a new one when the CLI lost it or the page is no longer
+readable by AI. Ask this page, thread replies, suggest edit, thread summary, summaries, Check this page, Write and the
+Board AI chat about a page (`scope = doc`) all use it; the prompt of a shared session starts with who is asking.
+Background freshness checks and calls without a page stay one-shot. API-key members have no sessions: their prompts
+carry the thread or a rolling summary.
+
+## Draw a diagram
+
+Job kind `diagram` (`POST /docs/pages/{id}/ai/diagram`): the member answers with draw.io XML, which is validated
+(`diagrams.validate_source`, not empty, `diagram_model.render_svg`) and saved as a diagram of the project or as a new
+version of the selected one (`base_version`). The page is untouched; the result carries the `[name](diagram:dg_x)` line
+for the person's draft.

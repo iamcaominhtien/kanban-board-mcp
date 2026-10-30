@@ -176,7 +176,12 @@ async def _complete(
             )
             return out, use
         except llm.LlmError as exc:
-            if exc.kind == "session" and use is not None and use.resume and attempt == 0:
+            if (
+                exc.kind == "session"
+                and use is not None
+                and use.resume
+                and attempt == 0
+            ):
                 use = llm.SessionUse(str(uuid.uuid4()), False, use.compact_at_pct)
                 continue
             code = _LLM_CODES.get(exc.kind, "unavailable")

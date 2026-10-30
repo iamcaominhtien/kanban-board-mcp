@@ -642,4 +642,6 @@ async def test_ask_finds_an_answer_in_a_vietnamese_page(env, fake):
     )
     job = await ask(c, pid, "Sau bao lâu thì nhận được thư đặt lại mật khẩu?")
     result = job["result"]
-    assert result["verdict"] == "answer" and result["citations"][0]["page_id"] == p["id"]
+    assert (
+        result["verdict"] == "answer" and result["citations"][0]["page_id"] == p["id"]
+    )
