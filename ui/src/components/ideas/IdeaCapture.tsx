@@ -4,6 +4,7 @@ import { ideaKeys, useAddComment, useCreateIdea, useSimilar, useTagSuggestions, 
 import { uploadDescriptionImage } from '../../api/tickets';
 import type { IdeaSource, IdeaSourceRef } from '../../types/idea';
 import { FooterNote, ModalShell, Spacer } from '../docs/docsShared';
+import { useSketchStarter } from '../sketch/useSketchStarter';
 import { useToast } from '../Toast';
 import { BulbIcon, Kbd } from './ideaShared';
 import { ProjectSelect, TagInput } from './TriageDialogs';
@@ -180,6 +181,19 @@ function QuickAdd({
 
   useEffect(() => titleRef.current?.focus(), []);
 
+  // a drawing made here belongs to the idea only once it exists, so it is kept by its id and put in the page
+  const sketch = useSketchStarter({
+    ownerKind: 'idea',
+    ownerId: 'new-idea',
+    projectId: projectId ?? undefined,
+    ownerLabel: title.trim() || 'a new idea',
+    onInsert: (md) => {
+      setDescription((d) => `${d ? `${d}\n\n` : ''}${md}`);
+      setMoreOpen(true);
+      setSource((s) => (s === 'manual' ? 'picture' : s));
+    },
+  });
+
   async function add() {
     if (!title.trim()) return;
     setError(null);
@@ -332,6 +346,18 @@ function QuickAdd({
           <button type="button" className="is-link" onClick={() => setMoreOpen(true)}>
             Add details or paste a picture
           </button>
+        )}
+        {sketch.available && (
+          <div style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className="is-link"
+              data-testid="quick-add-sketch"
+              onClick={() => void sketch.start()}
+            >
+              Start with a sketch
+            </button>
+          </div>
         )}
       </div>
     </ModalShell>

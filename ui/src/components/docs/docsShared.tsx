@@ -109,6 +109,9 @@ export function useEscape(onEscape: () => void) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // the sketch and diagram editors sit over the dialog and take Esc themselves
+      if ((e.target as HTMLElement | null)?.closest?.('[data-sketch-layer], [data-diagram-layer]')) return;
+      if (document.querySelector('[data-sketch-layer]')) return;
       e.stopPropagation();
       onEscape();
     };
