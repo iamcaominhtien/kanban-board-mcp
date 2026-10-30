@@ -14,6 +14,7 @@ Kept files live in the uploads folder under ``_private/ai-chat/<chat id>/<turn i
 ``/uploads``), are readable only by the person whose chat it is, and go away with the chat.
 """
 
+import os
 import re
 import shutil
 import struct
@@ -365,12 +366,17 @@ def save(
 
 def path_of(chat_id: str, turn_id: str, file: str) -> Path:
     """The path of one kept file; `not_found` for a name that is not one of ours."""
-    if not _SAFE_FILE.match(file):
+    if not (
+        _SAFE_CHAT.match(chat_id)
+        and _SAFE_TURN.match(turn_id)
+        and _SAFE_FILE.match(file)
+    ):
         raise AssistError("not_found", "File not found.")
-    p = turn_dir(chat_id, turn_id) / file
-    if not p.is_file():
+    base = os.path.realpath(get_private_dir() / "ai-chat")
+    full = os.path.realpath(os.path.join(base, chat_id, turn_id, file))
+    if not full.startswith(base + os.sep) or not os.path.isfile(full):
         raise AssistError("not_found", "File not found.")
-    return p
+    return Path(full)
 
 
 def forget(chat_id: str) -> None:
