@@ -415,6 +415,7 @@ async def test_ai_off_for_the_project_hides_nothing_it_just_answers_no(env, fake
 
 async def test_the_idea_space_switch_must_be_on(env, fake):
     c, pid, m = await _setup(env, idea_ai=False)
+    await _idea_ai_on(c, pid, on=False)  # the helpers are on by default
     iid = await _rich_idea(c, pid)
     s = (await c.get(f"/ai/scopes/idea/{iid}", headers=H)).json()
     assert (

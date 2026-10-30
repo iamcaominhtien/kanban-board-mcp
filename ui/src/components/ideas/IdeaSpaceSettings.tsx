@@ -31,7 +31,7 @@ function SwitchRow({ label, hint, checked, disabled, onChange, testId }: RowProp
   );
 }
 
-/** Settings › Idea Space: four switches, one AI member, what it can read, one cap. All off by default. */
+/** Settings › Idea Space: four switches, one AI member, what it can read, one cap. All on by default. */
 export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string; onManageAi?: () => void }) {
   const status = useIdeaAiStatus(projectId).data;
   const update = useUpdateIdeaAiSettings(projectId);
@@ -67,7 +67,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
         />
         <SwitchRow
           label="Triage advice"
-          hint="Suggest Keep, Park, Merge or Archive for new ideas. Off by default."
+          hint="Suggest Keep, Park, Merge or Archive for new ideas."
           checked={s.triageAdvice}
           disabled={off}
           onChange={(triageAdvice) => set({ triageAdvice })}

@@ -398,7 +398,7 @@ class IdeaVote(SQLModel, table=True):
 
 
 class IdeaAiSettings(SQLModel, table=True):
-    """Per-project switches of the optional AI helpers of the Idea Space; all off by default (table).
+    """Per-project switches of the optional AI helpers of the Idea Space; all on by default (table).
 
     `project_id` "" holds the defaults for ideas that belong to no project.
     """
@@ -406,12 +406,12 @@ class IdeaAiSettings(SQLModel, table=True):
     __tablename__ = "idea_ai_settings"
 
     project_id: str = Field(default="", primary_key=True)
-    enabled: bool = Field(default=False)
-    triage_advice: bool = Field(default=False)
-    weekly_grooming: bool = Field(default=False)
+    enabled: bool = Field(default=True)
+    triage_advice: bool = Field(default=True)
+    weekly_grooming: bool = Field(default=True)
     ask: bool = Field(default=True)
     read_docs: bool = Field(default=True)
-    read_repo: bool = Field(default=False)
+    read_repo: bool = Field(default=True)
     daily_cap: float = Field(default=1.0)  # dollars a day for the Idea Space helpers
     updated_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()

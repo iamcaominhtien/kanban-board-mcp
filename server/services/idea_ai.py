@@ -80,7 +80,7 @@ SETTING_FIELDS = {
 
 
 async def get_settings(session: AsyncSession, project_id: str | None) -> IdeaAiSettings:
-    """The AI settings of a project (ideas with no project use the workspace defaults); all off until switched on."""
+    """The AI settings of a project (ideas with no project use the workspace defaults); all on until switched off."""
     key = project_id or ""
     row = await session.get(IdeaAiSettings, key)
     if row is None:

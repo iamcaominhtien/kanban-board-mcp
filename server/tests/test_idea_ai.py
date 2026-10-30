@@ -1,4 +1,4 @@
-"""Optional AI help in the Idea Space: off by default, advice that never applies itself, shaping drafts, ask,
+"""Optional AI help in the Idea Space: on by default and switchable off, advice that never applies itself, shaping drafts, ask,
 prepare the ticket, the daily cap, injection fencing and the weekly digest. The model is a fake; the rest is real."""
 
 import json
@@ -48,15 +48,27 @@ def _answer(**data):
     return "Here you go:\n```json\n" + json.dumps(data) + "\n```"
 
 
-async def test_everything_is_off_until_switched_on_and_no_model_is_called(env, fake):
+async def test_helpers_are_on_by_default_and_nothing_is_called_once_switched_off(
+    env, fake
+):
     c, pid = await _setup(env)
     idea = await _idea(c, pid)
+    first = (await c.get(f"{AI}/status", params={"project_id": pid})).json()
+    assert first["state"] != "off" and first["settings"]["enabled"] is True
+    assert first["settings"]["triage_advice"] is True
+    assert first["settings"]["weekly_grooming"] is True
+    assert first["settings"]["read_repo"] is True
+
+    r = await c.put(
+        f"{AI}/settings", params={"project_id": pid}, json={"enabled": False}
+    )
+    assert r.status_code == 200, r.text
     status = (await c.get(f"{AI}/status", params={"project_id": pid})).json()
     advice = await c.post(f"{AI}/advice", json={"idea_ids": [idea["id"]]})
     shape = await c.post(f"{AI}/shape", json={"idea_id": idea["id"], "kind": "problem"})
     similar = await c.get(f"{API}/similar", params={"text": "cost on the AI run card"})
 
-    assert status["state"] == "off" and status["settings"]["triage_advice"] is False
+    assert status["state"] == "off"
     assert advice.status_code == 409 and advice.json()["detail"]["code"] == "off"
     assert shape.status_code == 409
     assert similar.status_code == 200, "duplicate matching needs no model"
@@ -298,10 +310,13 @@ async def test_the_effort_guess_needs_a_repository_and_reads_only_file_names(env
     )
     loose = (await c.post(API, json={"title": "No project idea"})).json()
 
+    await _on(c, pid, read_repo=False)
     refused = await c.post(
         f"{AI}/shape", json={"idea_id": idea["id"], "kind": "effort"}
     )
-    assert refused.json()["detail"]["code"] == "no_repo"  # read_repo is off by default
+    assert (
+        refused.json()["detail"]["code"] == "no_repo"
+    )  # reading the repository is switched off
 
     await _on(c, pid, read_repo=True)
     no_repo = await c.post(
@@ -448,6 +463,9 @@ async def test_the_digest_points_out_what_needs_attention_without_a_model(env, f
         f"{API}/{owned['id']}/assumption-records/{asm['id']}/test-ticket", json={}
     )
 
+    await _on(
+        c, pid, weekly_grooming=False
+    )  # findings need no model; the sentence does
     r = await c.post(f"{AI}/digest/run", json={"project_id": pid})
     digest = r.json()
     kinds = {i["kind"]: i for i in digest["items"]}
@@ -495,6 +513,9 @@ async def test_findings_do_not_need_a_project(env, fake):
     c, pid = await _setup(env)
     loose = (await c.post(API, json={"title": "Loose idea"})).json()
     await _age(env, loose["id"], 30)
+    await c.put(
+        f"{AI}/settings", json={"weekly_grooming": False}
+    )  # the workspace defaults
     r = (await c.post(f"{AI}/digest/run", json={})).json()
     assert [i["kind"] for i in r["items"]] == ["waiting"]
     assert pytest.approx(r["cost"]) == 0

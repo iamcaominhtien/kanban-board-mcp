@@ -15,7 +15,7 @@ What shipped for the Idea Space redesign. The design is in [`design/screens/idea
 | Research log | `idea_log_entry` | Note, research, interview, experiment, finding, decision; pin; "Use as evidence". |
 | Activity | `idea_ticket.activity_trail` (JSON) | Every entry has an author, a kind and, for page edits, a short before/after. |
 | Ticket links | `ticket.from_idea_id`, `ticket.tests_assumption_id` | The lightbulb, the "From an idea" filter, the "Started as an idea" block and the test-ticket question read these. |
-| AI | `idea_ai_settings`, `idea_advice`, `idea_digest` | Per-project switches (all off), advice with a reason and confidence, weekly digests. |
+| AI | `idea_ai_settings`, `idea_advice`, `idea_digest` | Per-project switches (all on, switch off in Settings), advice with a reason and confidence, weekly digests. |
 
 Readiness is computed, never stored (`models.idea_readiness`): only high-impact assumptions decide it; with none, every assumption must be validated; no assumptions is "Not started", never "Ready".
 

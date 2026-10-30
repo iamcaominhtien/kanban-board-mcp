@@ -1,6 +1,6 @@
 """REST API of the optional AI helpers of the Idea Space (design: `design/screens/idea-ai-help.md`).
 
-Every helper only suggests. Switches are per project and off by default; with AI off nothing here is needed and
+Every helper only suggests. Switches are per project and on by default; with AI off nothing here is needed and
 the rest of the Idea Space works unchanged.
 """
 

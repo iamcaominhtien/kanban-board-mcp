@@ -28,16 +28,16 @@ def upgrade() -> None:
     op.create_table(
         "idea_ai_settings",
         sa.Column("project_id", _S(), nullable=False),
-        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column(
-            "triage_advice", sa.Boolean(), nullable=False, server_default=sa.false()
+            "triage_advice", sa.Boolean(), nullable=False, server_default=sa.true()
         ),
         sa.Column(
-            "weekly_grooming", sa.Boolean(), nullable=False, server_default=sa.false()
+            "weekly_grooming", sa.Boolean(), nullable=False, server_default=sa.true()
         ),
         sa.Column("ask", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("read_docs", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("read_repo", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("read_repo", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("daily_cap", sa.Float(), nullable=False, server_default="1.0"),
         sa.Column("updated_at", _S(), nullable=False),
         sa.PrimaryKeyConstraint("project_id"),
