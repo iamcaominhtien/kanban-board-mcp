@@ -57,6 +57,8 @@ interface Item {
   bg?: string;
   color?: string;
   insert: string;
+  /** What a plain text box gets instead of `insert` (a member is shown as `@Name`; the box saves the id when it sends). */
+  plain?: string;
   /** Second line instead of `sub` (an AI member's status). */
   subNode?: ReactNode;
   /** Shown but not insertable (an AI member that cannot be mentioned now). */
@@ -287,6 +289,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
       hint: m.note,
       group: m.group,
       insert: `@[${m.name}](member:${m.id})`,
+      plain: `@${m.name} `,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, tree.data, tickets.data, page.data, members]);
@@ -374,8 +377,9 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
     if (isText(el)) {
       const pos = el.selectionStart ?? 0;
       const start = pos - st.typed;
-      setNativeValue(el, el.value.slice(0, start) + item.insert + el.value.slice(pos));
-      const caret = start + item.insert.length;
+      const put = item.plain ?? item.insert;
+      setNativeValue(el, el.value.slice(0, start) + put + el.value.slice(pos));
+      const caret = start + put.length;
       el.setSelectionRange(caret, caret);
     } else {
       const sel = window.getSelection();

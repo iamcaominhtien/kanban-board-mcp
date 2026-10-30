@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useProject } from '../../../api/projects';
 import { uploadAnyFile } from '../../../api/tickets';
 import { extractError } from '../../../api/extractError';
@@ -9,6 +9,7 @@ import { SketchIcon } from '../../sketch/SketchIcon';
 import { useSketchStarter } from '../../sketch/useSketchStarter';
 import { RefSuggester, type SuggestMember } from '../RefSuggester';
 import { Icon } from '../Icon';
+import { mentionRefs, toFriendly, toStored } from '../../../utils/mentionText';
 
 interface Props {
   projectId: string;
@@ -55,7 +56,10 @@ export function CommentBox({
   compact,
   testId = 'comment-input',
 }: Props) {
-  const [text, setText] = useState(initial);
+  // the box shows a mention as @PM; the comment is saved with the member's id (`stored`)
+  const [text, setText] = useState(() => toFriendly(initial));
+  const people = useMemo(() => [...members, ...mentionRefs(initial)], [members, initial]);
+  const stored = useMemo(() => toStored(text, people), [text, people]);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [focused, setFocused] = useState(!compact);
@@ -128,13 +132,13 @@ export function CommentBox({
     onInsert: insertBlock,
   });
 
-  const canSend = !!text.trim() && text.length <= MAX && !busy && uploads === 0;
+  const canSend = !!text.trim() && stored.length <= MAX && !busy && uploads === 0;
   async function send() {
     if (!canSend) return;
     setBusy(true);
     setFailed(false);
     try {
-      await onSubmit(text.trim());
+      await onSubmit(stored.trim());
       setText('');
     } catch {
       setFailed(true);
@@ -305,9 +309,9 @@ export function CommentBox({
           </>
         )}
         <span style={{ flex: 1 }} />
-        {text.length > MAX - 300 && (
-          <span className="dc-count" style={{ color: text.length > MAX ? '#C4432A' : undefined }}>
-            {text.length}/{MAX}
+        {stored.length > MAX - 300 && (
+          <span className="dc-count" style={{ color: stored.length > MAX ? '#C4432A' : undefined }}>
+            {stored.length}/{MAX}
           </span>
         )}
         {onCancel && (
