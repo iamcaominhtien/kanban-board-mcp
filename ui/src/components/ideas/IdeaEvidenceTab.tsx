@@ -1,4 +1,7 @@
 import { useRef, useState } from 'react';
+import { SKETCH_LINE } from '../sketch/sketchRefs';
+import { useSketchStarter } from '../sketch/useSketchStarter';
+import { SketchEmbed } from '../sketch/SketchEmbed';
 import { extractError } from '../../api/extractError';
 import { useAddEvidence, useDeleteEvidence, useIdeaEvidence } from '../../api/ideas';
 import { uploadAnyFile } from '../../api/tickets';
@@ -16,6 +19,10 @@ const KIND_LABEL: Record<FormKind, string> = {
 };
 
 interface FormProps {
+  /** The idea the evidence is for; with it, "Draw a sketch" is offered. */
+  ideaId?: string;
+  projectId?: string;
+  ideaTitle?: string;
   assumptions: { id: string; text: string }[];
   onAdd: (v: { assumptionIds: string[]; kind: EvidenceKind; ref: string; title?: string }) => Promise<void>;
 }
@@ -24,7 +31,7 @@ interface FormProps {
  * "Add comment, file, link or sketch" for one or more assumptions: one piece of evidence can support many.
  * @param props.assumptions - The assumptions it can be attached to; with several, they are shown as checkboxes.
  */
-export function EvidenceForm({ assumptions, onAdd }: FormProps) {
+export function EvidenceForm({ assumptions, onAdd, ideaId, projectId, ideaTitle }: FormProps) {
   const [kind, setKind] = useState<FormKind>('link');
   const [ref, setRef] = useState('');
   const [title, setTitle] = useState('');
@@ -58,6 +65,16 @@ export function EvidenceForm({ assumptions, onAdd }: FormProps) {
     }
   }
 
+  const sketch = useSketchStarter({
+    ownerKind: 'idea',
+    ownerId: ideaId,
+    projectId,
+    ownerLabel: ideaTitle,
+    onInsert: (md) => {
+      const parts = SKETCH_LINE.exec(md);
+      if (parts && chosen.length) void submit(md, parts[1]);
+    },
+  });
   const needsText = kind !== 'file';
   return (
     <div className="is-evidence-form" data-testid="evidence-form">
@@ -124,6 +141,16 @@ export function EvidenceForm({ assumptions, onAdd }: FormProps) {
             >
               Add
             </button>
+            {kind === 'sketch' && sketch.available && (
+              <button
+                type="button"
+                className="is-btn"
+                disabled={busy || chosen.length === 0}
+                onClick={() => void sketch.start()}
+              >
+                Draw a sketch
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -186,6 +213,13 @@ export function IdeaEvidenceTab({ idea, readOnly }: { idea: Idea; readOnly: bool
                     <a href={e.ref} target="_blank" rel="noreferrer noopener">
                       {e.title || e.ref}
                     </a>
+                  ) : e.kind === 'sketch' && SKETCH_LINE.test(e.ref) ? (
+                    <SketchEmbed
+                      id={SKETCH_LINE.exec(e.ref)![2]}
+                      label={e.title || SKETCH_LINE.exec(e.ref)![1]}
+                      small
+                      readOnly={readOnly}
+                    />
                   ) : (
                     <span>{e.title || e.ref}</span>
                   )}
@@ -226,6 +260,9 @@ export function IdeaEvidenceTab({ idea, readOnly }: { idea: Idea; readOnly: bool
           <div style={{ marginTop: 14 }}>
             <div className="is-label">Add evidence</div>
             <EvidenceForm
+              ideaId={idea.id}
+              projectId={idea.projectId ?? undefined}
+              ideaTitle={idea.title}
               assumptions={idea.assumptions.map((a) => ({ id: a.id, text: a.text }))}
               onAdd={async (v) => {
                 await add.mutateAsync({ id: idea.id, ...v });

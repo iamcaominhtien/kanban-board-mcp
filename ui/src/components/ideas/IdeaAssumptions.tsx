@@ -238,6 +238,9 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
                         ))}
                         {!readOnly && (
                           <EvidenceForm
+                            ideaId={idea.id}
+                            projectId={idea.projectId ?? undefined}
+                            ideaTitle={idea.title}
                             assumptions={[{ id: a.id, text: a.text }]}
                             onAdd={async (v) => {
                               await evidence.mutateAsync({ id: idea.id, ...v });

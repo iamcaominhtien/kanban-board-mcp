@@ -669,6 +669,7 @@ function PageTab({
         mode="visual"
         nodes={tree.data ?? []}
         currentPageId={idea.id}
+        sketchOwnerKind="idea"
         pageTitle={idea.title}
         filename={`${idea.id}.md`}
         toc={null}

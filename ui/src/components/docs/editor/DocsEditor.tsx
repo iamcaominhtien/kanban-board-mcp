@@ -71,6 +71,8 @@ interface Props {
   onChange: (markdown: string) => void;
   nodes: DocsTreeNode[];
   currentPageId: string;
+  /** Idea pages save their drawings as the idea's; everything else is a Docs page. */
+  sketchOwnerKind?: 'doc' | 'idea';
   pageTitle: string;
   /** File name shown in the Markdown view (e.g. "api.md"). */
   filename: string;
@@ -133,6 +135,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     onChange,
     nodes,
     currentPageId,
+    sketchOwnerKind = 'doc',
     pageTitle,
     filename,
     header,
@@ -228,7 +231,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       .run();
   }, []);
   const sketchStarter = useSketchStarter({
-    ownerKind: 'doc',
+    ownerKind: sketchOwnerKind,
     ownerId: currentPageId ?? undefined,
     projectId,
     ownerLabel: pageTitle || 'Untitled',
