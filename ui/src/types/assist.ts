@@ -83,7 +83,8 @@ export interface ChatMessage {
   feedback?: { thumb: 'up' | 'down'; reason: string; at: string } | null;
   id: string;
   chatId: string;
-  role: 'user' | 'ai';
+  /** `note` is a divider the server adds when a chat changes what it is about ("Now about KAN-12"). */
+  role: 'user' | 'ai' | 'note';
   text: string;
   state: MessageState;
   steps: { text: string; at: string }[];
@@ -123,6 +124,9 @@ export interface Chat {
   cost: number;
   tokens: number;
   applied: boolean;
+  /** Rolling summary of the older messages; `compactions` counts how often it was refreshed. */
+  summary?: string;
+  compactions?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -350,6 +354,8 @@ export interface HealthPanel {
     blocked: string[];
     text: string;
     tickets: number;
+    /** One line per Docs page that may be out of date; only on the Monday digest (Docs AI). */
+    docs?: string[];
   } | null;
   needsAction: Insight[];
   snoozed: Insight[];

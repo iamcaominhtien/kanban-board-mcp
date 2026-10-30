@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useDocsFollowers } from '../../api/docs';
+import { docsAiError, useDocsAiJob, useDocsAiState } from '../../api/docsAi';
+import { useStartPublishNote } from '../../api/docsAiWrite';
+import { aiGate, costLabel } from '../../utils/docsAiRules';
+import { findMarkers, publishLabel, publishWarning } from '../../utils/writeRules';
+import { AiSpark } from './ai/AiSpark';
 import { countPageRefs, lineDiffCounts } from '../../utils/lineDiff';
 import { avatarColors } from './docsUi';
 import { CloseButton, DOCS_SCRIM, useEscape } from './docsShared';
@@ -35,6 +40,10 @@ function withKeys(text: string, tone: 'text' | 'hint') {
 
 interface Props {
   projectId: string;
+  /** The page being published (the AI suggests its change note). */
+  pageId?: string;
+  /** Close the dialog and select the first Needs input marker in the editor. */
+  onGoToMarker?: (text: string) => void;
   pageTitle: string;
   fromVersion: number;
   baseMarkdown: string;
@@ -60,6 +69,8 @@ interface Props {
  */
 export function PublishDialog({
   projectId,
+  pageId,
+  onGoToMarker,
   pageTitle,
   fromVersion,
   baseMarkdown,
@@ -72,6 +83,22 @@ export function PublishDialog({
 }: Props) {
   const [note, setNote] = useState('');
   const [notify, setNotify] = useState(true);
+  const [suggested, setSuggested] = useState(false);
+  const aiState = useDocsAiState(projectId);
+  const aiOn = aiGate(aiState.data).show && aiState.data?.state === 'ready' && !!pageId;
+  const startNote = useStartPublishNote(pageId ?? '');
+  const [noteJob, setNoteJob] = useState<string | null>(null);
+  const noteQ = useDocsAiJob(noteJob);
+  const noteBusy =
+    startNote.isPending ||
+    (!!noteJob && (!noteQ.data || noteQ.data.state === 'queued' || noteQ.data.state === 'running'));
+  const noteProblem = startNote.error
+    ? docsAiError(startNote.error)?.detail
+    : noteQ.data?.state === 'failed'
+      ? noteQ.data.error.message
+      : null;
+  const markers = findMarkers(draftMarkdown);
+  const warning = publishWarning(markers);
   useEscape(onClose);
   const { added, removed } = lineDiffCounts(baseMarkdown, draftMarkdown);
   const refsAdded = Math.max(0, countPageRefs(draftMarkdown) - countPageRefs(baseMarkdown));
@@ -79,6 +106,17 @@ export function PublishDialog({
   const followersQ = useDocsFollowers(projectId);
   const followers = followersQ.data?.count ?? 0;
   const followerNames = followersQ.data?.names ?? [];
+
+  // the suggested note fills an empty note box; a note the person already typed is never replaced
+  useEffect(() => {
+    const j = noteQ.data;
+    if (j?.state !== 'finished') return;
+    const text = typeof j.result.note === 'string' ? j.result.note : '';
+    if (text) {
+      setNote((cur) => (cur.trim() ? cur : text.slice(0, MAX_NOTE)));
+      setSuggested(true);
+    }
+  }, [noteQ.data]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -233,7 +271,10 @@ export function PublishDialog({
                 className="st-input dk-note"
                 value={note}
                 maxLength={MAX_NOTE}
-                onChange={(e) => setNote(e.target.value)}
+                onChange={(e) => {
+                  setNote(e.target.value);
+                  setSuggested(false);
+                }}
                 style={{
                   minHeight: 72,
                   width: '100%',
@@ -245,7 +286,47 @@ export function PublishDialog({
                 }}
               />
             </div>
-            <div className="st-hint">Shown in version history next to v{next}. Optional.</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {suggested ? (
+                <>
+                  <span
+                    className="mc-chip"
+                    style={{ background: '#F1ECFD', color: '#5B3FBF', fontWeight: 600 }}
+                    data-testid="suggested-note"
+                  >
+                    Suggested from your changes
+                  </span>
+                  <span className="st-hint">Edit it or write your own.</span>
+                </>
+              ) : (
+                <div className="st-hint">Shown in version history next to v{next}. Optional.</div>
+              )}
+              {aiOn && !suggested && (
+                <button
+                  type="button"
+                  className="st-btn st-btn-sm"
+                  disabled={noteBusy}
+                  data-testid="suggest-note"
+                  onClick={() => startNote.mutate({ markdown: draftMarkdown }, { onSuccess: (j) => setNoteJob(j.id) })}
+                >
+                  <AiSpark size={12} />
+                  {noteBusy ? 'Reading your changes…' : 'Suggest a note'}
+                </button>
+              )}
+              {noteQ.data?.state === 'finished' && !noteQ.data.result.note && (
+                <span className="st-hint">Nothing changed yet, so there is nothing to suggest.</span>
+              )}
+              {noteQ.data?.state === 'finished' && noteQ.data.cost > 0 && (
+                <span className="st-hint">
+                  AI · {costLabel(noteQ.data.cost, noteQ.data.metered).replace('About ', '')}
+                </span>
+              )}
+              {noteProblem && (
+                <span role="alert" style={{ fontSize: 12, color: '#C4432A' }}>
+                  {noteProblem}
+                </span>
+              )}
+            </div>
           </div>
           <div
             style={{
@@ -306,6 +387,38 @@ export function PublishDialog({
               <span className="st-toggle-dot" style={{ left: notify ? 17 : 2 }} />
             </button>
           </div>
+          {warning.show && (
+            <div
+              role="alert"
+              data-testid="markers-warning"
+              style={{
+                display: 'flex',
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: 9,
+                background: '#FEF6E7',
+                border: '1px solid #F0DBA8',
+              }}
+            >
+              <span style={{ color: '#B4791E', display: 'flex', marginTop: 1 }}>
+                <Icon name="i14" size={17} strokeWidth={2} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#7A4F08' }}>{warning.title}</div>
+                <div style={{ fontSize: 12.5, color: '#5B4A1E', marginTop: 2, lineHeight: 1.45 }}>{warning.detail}</div>
+                {onGoToMarker && (
+                  <button
+                    type="button"
+                    className="st-btn st-btn-sm"
+                    style={{ marginTop: 8 }}
+                    onClick={() => onGoToMarker(markers[0].text)}
+                  >
+                    Go to marker
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           {error && (
             <div
               role="alert"
@@ -336,7 +449,7 @@ export function PublishDialog({
             data-testid="confirm-publish"
           >
             {publishing ? <span className="mc-spin mc-spin-w" /> : <Icon name="i46" size={14} />}
-            Publish v{next}
+            {publishLabel(markers, next)}
           </button>
         </div>
       </div>

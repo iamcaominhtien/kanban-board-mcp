@@ -1,7 +1,13 @@
 import type { Editor, JSONContent, Range } from '@tiptap/core';
 import type { CalloutKind } from './constants';
 
+/** The AI rows of `/ai` (design/screens/docs-ai.md F1). `docs` marks the rows of the "Docs only" group. */
+export type AiSlashId =
+  'ask' | 'section' | 'links' | 'summary' | 'table' | 'explain_code' | 'diagram' | 'tickets' | 'check';
+
 export interface SlashCtx {
+  /** Set while the editor offers AI: picking a row runs it. `docs` is true when Docs AI is on for the project. */
+  ai?: { run: (id: AiSlashId) => void; docs: boolean };
   pickImage: () => void;
   newDiagram: () => void;
   importDiagram: () => void;
@@ -11,7 +17,9 @@ export interface SlashCtx {
 
 export interface SlashItem {
   id: string;
-  group: 'Text' | 'Blocks' | 'Link to';
+  group: 'Text' | 'Blocks' | 'Link to' | 'AI' | 'Docs only';
+  /** Extra words that find the row (the AI rows answer to `ai`). */
+  keywords?: string;
   label: string;
   desc: string;
   kbd?: string;
@@ -230,9 +238,45 @@ export const SLASH_ITEMS: SlashItem[] = [
   },
 ];
 
-/** Return the slash-menu items matching a query. */
-export function filterSlash(query: string): SlashItem[] {
+function aiItem(id: AiSlashId, group: 'AI' | 'Docs only', label: string, desc: string, icon: string): SlashItem {
+  return {
+    id: `ai-${id}`,
+    group,
+    label,
+    desc,
+    keywords: 'ai',
+    tile: { icon, color: '#6B5BD2' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      ctx.ai?.run(id);
+    },
+  };
+}
+
+/** The `/ai` rows: the editor's own, then the Docs-only group (docs-ai F1). */
+export function aiSlashItems(docs: boolean): SlashItem[] {
+  const own = [
+    aiItem('ask', 'AI', 'Ask AI…', 'Write from a prompt, with this page as context', 'i58'),
+    aiItem('section', 'AI', 'Draft a section from a ticket…', 'Write a section about a ticket', 'i15'),
+    aiItem('links', 'AI', 'Suggest [[ ]] links', 'Pages and tickets mentioned in the text', 'i11'),
+  ];
+  if (!docs) return own;
+  return [
+    ...own,
+    aiItem('summary', 'Docs only', 'Summary at the top', 'A short summary block, as a draft', 'i42'),
+    aiItem('table', 'Docs only', 'Table from this list', 'Turns the list above into a table', 'i52'),
+    aiItem('explain_code', 'Docs only', 'Explain this code block', 'Plain-language notes under the code', 'i33'),
+    aiItem('diagram', 'Docs only', 'Draw a diagram', 'From this section, as an editable draw.io diagram', 'i57'),
+    aiItem('tickets', 'Docs only', 'Create tickets from this list', 'Drafts to review first', 'i01'),
+    aiItem('check', 'Docs only', 'Check this page', 'Unclear text, gaps, broken or unknown references', 'i17'),
+  ];
+}
+
+/** Return the slash-menu items matching a query (with the AI rows when the editor offers AI). */
+export function filterSlash(query: string, ctx?: Pick<SlashCtx, 'ai'>): SlashItem[] {
   const q = query.trim().toLowerCase();
-  if (!q) return SLASH_ITEMS;
-  return SLASH_ITEMS.filter((i) => `${i.label} ${i.desc} ${i.kbd ?? ''} ${i.id}`.toLowerCase().includes(q));
+  const all = ctx?.ai ? [...SLASH_ITEMS, ...aiSlashItems(ctx.ai.docs)] : SLASH_ITEMS;
+  if (!q) return all;
+  if (q === 'ai') return all.filter((i) => i.group === 'AI' || i.group === 'Docs only');
+  return all.filter((i) => `${i.label} ${i.desc} ${i.kbd ?? ''} ${i.id} ${i.keywords ?? ''}`.toLowerCase().includes(q));
 }

@@ -1,0 +1,220 @@
+tools: 12 ['get_projects', 'list_tickets', 'get_ticket', 'docs_read', 'manage_project', 'manage_ticket', 'ticket_items', 'ticket_branches', 'docs_write', 'ai_run', 'ai_schedules', 'ai_team']
+
+### ai_team run (progress)
+{
+ "state": "finished",
+ "mode": "ask",
+ "trigger": "ask",
+ "steps": [
+  {
+   "at": "00:51:34",
+   "kind": "start",
+   "text": "Reading the question"
+  },
+  {
+   "at": "00:51:38",
+   "kind": "search",
+   "text": "Searched **/*{openapi,swagger}*"
+  },
+  {
+   "at": "00:51:38",
+   "kind": "search",
+   "text": "Searched **/*.{yaml,yml,json}"
+  },
+  {
+   "at": "00:51:40",
+   "kind": "say",
+   "text": "Publishing the OpenAPI spec first needs a spec file that doesn't exist yet: the repo has no OpenAPI or Swagger file, and KAN-2's description is empty. So someone has to write or generate the spec for…"
+  }
+ ],
+ "summary": "Publishing the OpenAPI spec first needs a spec file that doesn't exist yet: the repo has no OpenAPI or Swagger file, and KAN-2's description is empty. So someone has to write or generate the spec for…",
+ "cost_usd": 0.005843870000000001,
+ "tokens_in": 51173
+}
+
+### ai_team runs
+{
+ "result": [
+  {
+   "id": "run_0480f82a510d",
+   "ticket_id": "KAN-2",
+   "number": 1,
+   "member_id": "eeb2825d-ada1-48b2-9e2e-d0949a302841",
+   "member": "Reviewer",
+   "mode": "ask",
+   "trigger": "ask",
+   "state": "finished",
+   "started_by": "user",
+   "queued_at": "2026-10-30T00:51:32.525185+00:00",
+   "ended_at": "2026-10-30T00:51:41.277769+00:00",
+   "summary": "Publishing the OpenAPI spec first needs a spec file that doesn't exist yet: the repo has no OpenAPI or Swagger file, and KAN-2's description is empty. So someone has to write or generate the spec for…",
+   "cost_usd": 0.005843870000000001,
+   "waiting": null,
+   "question": null,
+   "last_step": "Publishing the OpenAPI spec first needs a spec file that doesn't exist yet: the repo has no OpenAPI or Swagger file, an…"
+  }
+ ]
+}
+
+### ai_team usage
+{
+ "result": {
+  "range": {
+   "key": "month",
+   "since": "2026-10-01",
+   "until": "2026-10-30"
+  },
+  "totals": {
+   "spend": 0,
+   "month_spend": 0,
+   "month_budget": 200.0,
+   "today": 0,
+   "daily_cap": 15.0,
+   "forecast": 0.0,
+   "forecast_per_day": 0.0,
+   "forecast_date": "2026-10-31",
+   "forecast_within": true,
+   "runs": 1,
+   "api_runs": 0,
+   "local_runs": 1
+  },
+  "by_member": [
+   {
+    "member_id": "eeb2825d-ada1-48b2-9e2e-d0949a302841",
+    "name": "Reviewer",
+    "runs": 1,
+    "tokens": 51730,
+    "cost_usd": 0.0,
+    "monthly_cap": null,
+    "pct_of_cap": null
+   }
+  ],
+  "top_tickets": [
+   {
+    "ticket_id": "KAN-2",
+    "title": "Publish the OpenAPI spec",
+    "runs": 1,
+    "cost_usd": 0.0
+   }
+  ],
+  "limits": {
+   "board": {
+    "name": "All AI in this board",
+    "daily": {
+     "used": 0.0,
+     "cap": 15.0,
+     "full": false
+    },
+    "monthly": {
+     "used": 0.0,
+     "cap": 200.0,
+     "full": false
+    },
+    "tokens": {
+     "used": 0,
+     "cap": 1000000,
+     "full": false
+    },
+    "parallel": {
+     "used": 0,
+     "cap": 4,
+     "full": false
+    },
+    "runs": {
+     "used": 0,
+     "cap": 100,
+     "full": false
+    },
+    "at_cap": "pause"
+   },
+   "agents": [
+    {
+     "member_id": "eeb2825d-ada1-48b2-9e2e-d0949a302841",
+     "name": "Reviewer",
+     "provider": "claude-code",
+     "connection": "local",
+     "metered": false,
+     "parallel": 2,
+     "at_cap": "pause",
+     "per_run_minutes": 30,
+     "cap_per_run": null,
+     "runs": {
+      "used": 0,
+      "cap": 20,
+      "full": false
+     }
+    }
+   ]
+  }
+ }
+}
+
+### ai_team docs_jobs
+{
+ "result": [
+  {
+   "id": "dj_4a953e7ac4f3",
+   "kind": "ask",
+   "state": "finished",
+   "page_id": null,
+   "thread_id": null,
+   "member_id": "eeb2825d-ada1-48b2-9e2e-d0949a302841",
+   "started_by": "user",
+   "instruction": "How long does a token last?",
+   "pages_read": 3,
+   "cost_usd": 0.0,
+   "tokens_in": 1726,
+   "tokens_out": 700,
+   "error": null,
+   "queued_at": "2026-10-30T00:50:57.288372+00:00",
+   "ended_at": "2026-10-30T00:51:03.313763+00:00"
+  },
+  {
+   "id": "dj_a16db777931a",
+   "kind": "tickets",
+   "state": "finished",
+   "page_id": "cb54f3e5-4c2f-478b-9203-664977f1739d",
+   "thread_id": null,
+   "member_id": null,
+   "started_by": "user",
+   "instruction": "Tickets from Meeting notes",
+   "pages_read": 0,
+   "cost_usd": 0.0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "error": null,
+   "queued_at": "2026-10-30T00:50:12.127402+00:00",
+   "ended_at": "2026-10-30T00:50:12.168022+00:00"
+  },
+  {
+   "id": "dj_64b8711168d3",
+   "kind": "tickets",
+   "state": "finished",
+   "page_id": "cb54f3e5-4c2f-478b-9203-664977f1739d",
+   "thread_id": null,
+   "member_id": "eeb2825d-ada1-48b2-9e2e-d0949a302841",
+   "started_by": "user",
+   "instruction": "Tickets from Meeting notes",
+   "pages_read": 0,
+   "cost_usd": 0.0,
+   "tokens_in": 1059,
+   "tokens_out": 398,
+   "error": null,
+   "queued_at": "2026-10-30T00:49:58.149079+00:00",
+   "ended_at": "2026-10-30T00:50:03.316919+00:00"
+  },
+  {
+   "id": "dj_84f3386cc42f",
+   "kind": "tickets",
+   "state": "finished",
+   "page_id": "cb54f3e5-4c2f-478b-9203-664977f1739d",
+   "thread_id": null,
+   "member_id": "eeb2825d-ada1-48b2-9e2e-d0949a302841",
+   "started_by": "user",
+   "instruction": "Tickets from Meeting notes",
+   "pages_read": 0,
+   "cost_usd": 0.0,
+   "tokens_in": 1059,
+   "tokens_out": 358,
+   "error": null,
+

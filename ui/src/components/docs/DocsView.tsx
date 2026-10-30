@@ -12,6 +12,10 @@ import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
 import { useDocsAccess, useRequestDocsAccess } from '../../api/docsAccess';
+import { useDocsAiState } from '../../api/docsAi';
+import { useDocsHealthCount } from '../../api/docsAiCare';
+import { useWaitingProposalPages } from '../../api/docsAiProposals';
+import { DocsHealthView } from './ai/DocsHealthView';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { slugify as slugifyHeading } from '../../utils/docsMarkdown';
@@ -22,6 +26,7 @@ import { DocsPeekProvider } from './DocsRefsContext';
 import { DocsEditScreen } from './DocsEditScreen';
 import { DocsFollowToggle } from './DocsFollowToggle';
 import { DocsHero } from './DocsHero';
+import { SinceViewedDigest } from './ai/SinceViewedDigest';
 import { DocsPageView, type PageAction } from './DocsPageView';
 import { DocsRail } from './DocsRail';
 import {
@@ -64,13 +69,19 @@ interface Props {
   onBack?: () => void;
   /** Search palette / full results; `query` is passed when the tree filter's Enter or "Search page content" asks for it. */
   onSearch?: (query?: string) => void;
+  /** "Ask the docs": opens the search palette in Ask mode (Docs AI). */
+  onAskDocs?: () => void;
   /** Called with the element holding the rendered page body (find-in-page). */
   onBodyRef?: (el: HTMLElement | null) => void;
   /** Full search results shown in place of the page (the tree stays on the left); `null` shows the page. */
   resultsQuery?: string | null;
   onCloseResults?: () => void;
   /** One-shot request from the search palette: create a page with this title, or filter the tree. */
-  intent?: { kind: 'create-page'; title: string } | { kind: 'filter-tree'; q: string } | null;
+  intent?:
+    | { kind: 'create-page'; title: string }
+    | { kind: 'write-page'; question: string }
+    | { kind: 'filter-tree'; q: string }
+    | null;
   onIntentHandled?: () => void;
 }
 
@@ -212,6 +223,7 @@ export function DocsView({
   onOpenSettings,
   onBack,
   onSearch,
+  onAskDocs,
   onBodyRef,
   resultsQuery = null,
   onCloseResults,
@@ -226,7 +238,13 @@ export function DocsView({
   const nodes = tree.data ? liveNodes : (cachedTree ?? liveNodes);
   const [selectedId, setSelectedId] = useState<string | null>(() => localStorage.getItem(`docsPage:${projectId}`));
   const [editing, setEditing] = useState(false);
-  const [newPage, setNewPage] = useState<{ parentId: string | null; template?: string; title?: string } | null>(null);
+  const [newPage, setNewPage] = useState<{
+    parentId: string | null;
+    template?: string;
+    title?: string;
+    /** Opens the dialog with Write with AI preselected. */
+    aiFrom?: { kind: 'ticket' | 'idea' | 'notes' | 'prompt'; ticketId?: string; text?: string };
+  } | null>(null);
   const [moveFor, setMoveFor] = useState<DocsPage | null>(null);
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
   const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);
@@ -268,10 +286,10 @@ export function DocsView({
 
   // open the first top-level page when nothing is selected yet
   useEffect(() => {
-    if (!tree.isSuccess || nodes.length === 0 || selectedId) return;
+    if (!tree.isSuccess || nodes.length === 0 || selectedId || requestedPageId) return;
     const first = nodes.filter((n) => !n.parentId).sort((x, y) => x.position - y.position)[0];
     if (first) setSelectedId(first.id);
-  }, [tree.isSuccess, nodes, selectedId]);
+  }, [tree.isSuccess, nodes, selectedId, requestedPageId]);
 
   useEffect(() => {
     if (selectedId) localStorage.setItem(`docsPage:${projectId}`, selectedId);
@@ -283,6 +301,11 @@ export function DocsView({
   const treeError = tree.error ? docsErrorDetail(tree.error) : null;
   const networkDown = (pageQuery.isError && !pageError) || (tree.isError && !treeError);
   const access = useDocsAccess(projectId);
+  const aiState = useDocsAiState(projectId);
+  const aiOn = aiState.data?.state === 'ready' || aiState.data?.state === 'no_member';
+  const healthCount = useDocsHealthCount(projectId, aiState.data?.state === 'ready');
+  const [healthOpen, setHealthOpen] = useState(false);
+  const proposalPageIds = useWaitingProposalPages(projectId);
   const requestAccess = useRequestDocsAccess(projectId);
   const readOnly =
     access.data && access.data.access && !access.data.canEdit
@@ -327,7 +350,9 @@ export function DocsView({
   // palette hand-offs: "Create page “…”" and "Filter the tree instead"
   useEffect(() => {
     if (!intent) return;
-    if (intent.kind === 'create-page') {
+    if (intent.kind === 'write-page') {
+      setNewPage({ parentId: null, aiFrom: { kind: 'prompt', text: intent.question } });
+    } else if (intent.kind === 'create-page') {
       setNewPage({ parentId: null, title: intent.title });
     } else {
       onCloseResults?.();
@@ -519,7 +544,10 @@ export function DocsView({
       nodes={nodes}
       selectedId={selectedId}
       loadingId={pageQuery.isLoading ? selectedId : null}
-      onSelect={select}
+      onSelect={(id) => {
+        setHealthOpen(false);
+        select(id);
+      }}
       onNewPage={(parentId) => setNewPage({ parentId })}
       readOnly={!!readOnly}
       onRequestRename={(n, t) => void requestRename(n, t)}
@@ -531,6 +559,12 @@ export function DocsView({
         })
       }
       onCollapse={() => (narrow ? setRailOpen(false) : setCollapsed(true))}
+      aiOn={aiOn}
+      onAskDocs={onAskDocs}
+      onHealth={() => setHealthOpen(true)}
+      healthActive={healthOpen}
+      healthCount={healthCount}
+      proposalPageIds={proposalPageIds}
       renderMenu={(node, close) => (
         <TreePageMenu
           node={node}
@@ -566,6 +600,22 @@ export function DocsView({
         admins={access.data?.admins ?? []}
         onRequest={async (note) => (await requestAccess.mutateAsync(note)).sent}
         onBack={onBack}
+      />
+    );
+  } else if (healthOpen && aiOn) {
+    content = (
+      <DocsHealthView
+        projectId={projectId}
+        onOpenPage={(id) => {
+          setHealthOpen(false);
+          select(id);
+        }}
+        onOpenTicket={onOpenTicket}
+        onWritePage={(ticketId) => {
+          setHealthOpen(false);
+          setNewPage({ parentId: null, aiFrom: { kind: 'ticket', ticketId } });
+        }}
+        onClose={() => setHealthOpen(false)}
       />
     );
   } else if (treeLoading) {
@@ -793,6 +843,9 @@ export function DocsView({
       >
         {left}
         {content}
+        {!editing && !empty && !docsDisabled && (
+          <SinceViewedDigest projectId={projectId} nodes={nodes} onOpenPage={select} />
+        )}
 
         {dragFiles != null && (
           <div
@@ -839,6 +892,7 @@ export function DocsView({
             initialParentId={newPage.parentId}
             initialTemplate={newPage.template}
             initialTitle={newPage.title}
+            aiFrom={newPage.aiFrom}
             onClose={() => setNewPage(null)}
             onCreated={(p) => {
               setNewPage(null);

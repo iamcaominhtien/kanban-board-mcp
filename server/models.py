@@ -201,6 +201,9 @@ class DocsPage(SQLModel, table=True):
     deleted_at: Optional[str] = Field(default=None)
     deleted_by: Optional[str] = Field(default=None)
     deleted_root_id: Optional[str] = Field(default=None)
+    # Docs AI: a page hidden from every AI, and a page every AI run in the project reads (guidance)
+    ai_hidden: bool = Field(default=False)
+    ai_guidance: bool = Field(default=False)
 
 
 class DocsVersion(SQLModel, table=True):
@@ -218,6 +221,8 @@ class DocsVersion(SQLModel, table=True):
     created_at: str = Field(default_factory=_now_iso)
     # JSON {diagram id: version} the page used when it was published; restoring the page restores them
     diagram_versions: str = Field(default="{}")
+    # The author accepted AI text in this version (History marks it; the page itself is never stamped)
+    with_ai: bool = Field(default=False)
 
 
 class DocsDraft(SQLModel, table=True):
@@ -233,6 +238,8 @@ class DocsDraft(SQLModel, table=True):
     base_version: int = Field(default=0)
     saves: int = Field(default=1)  # autosaves since the draft was started
     updated_at: str = Field(default_factory=_now_iso)
+    # "Drafted with AI": JSON {kind, from, member_id, gaps: [], sources: [], accepted: bool}; None for a plain draft
+    ai_source: Optional[str] = Field(default=None)
 
 
 class DocsPageSeen(SQLModel, table=True):
@@ -333,6 +340,8 @@ class DocsComment(SQLModel, table=True):
     mentions: str = Field(default="[]")  # JSON list of member ids
     created_at: str = Field(default_factory=_now_iso)
     edited_at: Optional[str] = Field(default=None)
+    # Set on an AI member's reply: JSON {member_id, job_id, cost, sources: [], can_suggest: bool}
+    ai: Optional[str] = Field(default=None)
 
 
 class DocsCommentRead(SQLModel, table=True):
@@ -365,6 +374,177 @@ class DocsCommentEvent(SQLModel, table=True):
     page_title: str = Field(default="")
     snippet: str = Field(default="")
     created_at: str = Field(default_factory=_now_iso)
+
+
+# ---------------------------------------------------------------------------
+# Docs AI (design/screens/docs-ai.md and docs-ai-care.md; docs/superpowers/specs/2026-10-30-docs-ai-design.md)
+# ---------------------------------------------------------------------------
+
+
+class DocsAiSettings(SQLModel, table=True):
+    """Per-project Docs AI settings. Docs AI is on by default; an admin can turn it off (Settings > Docs > AI)."""
+
+    __tablename__ = "docs_ai_settings"
+
+    project_id: str = Field(foreign_key="project.id", primary_key=True)
+    enabled: bool = Field(default=True)
+    member_id: Optional[str] = Field(
+        default=None
+    )  # the AI member that answers and checks
+    read_scope: str = Field(default="except_hidden")  # all | except_hidden | picked
+    picked_pages: str = Field(default="[]")  # JSON page ids, for read_scope "picked"
+    style_page_id: Optional[str] = Field(default=None)
+    edits_mode: str = Field(
+        default="direct"
+    )  # direct | proposal | draft: what an AI member's page edit becomes (direct: the edit is made)
+    proposal_days: int = Field(default=7)
+    freshness_on: bool = Field(default=True)
+    guidance_limit: int = Field(
+        default=8000
+    )  # tokens of guidance pages read by every run
+    digest_on: bool = Field(default=True)
+    updated_by: Optional[str] = Field(default=None)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class DocsAiSession(SQLModel, table=True):
+    """The one Claude Code session of an AI member on a Docs page (`scope` is `page:<id>`): every Docs AI call and
+    chat about the page by that member continues it."""
+
+    __tablename__ = "docs_ai_session"
+
+    scope: str = Field(primary_key=True)
+    member_id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    session_id: str
+    calls: int = Field(default=0)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class DocsAiJob(SQLModel, table=True):
+    """One Docs AI call (ask, thread reply, check, translate, summary, freshness...). The Docs counterpart of an
+    AI run: who asked, which AI answered, which pages it read, what it cost."""
+
+    __tablename__ = "docs_ai_job"
+
+    id: str = Field(
+        default_factory=lambda: f"dj_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(foreign_key="project.id", index=True)
+    page_id: Optional[str] = Field(default=None, index=True)
+    thread_id: Optional[str] = Field(default=None, index=True)
+    comment_id: Optional[str] = Field(default=None)
+    member_id: Optional[str] = Field(default=None, index=True)
+    # ask | thread_reply | thread_summary | check | translate | explain | summary | history_summary | publish_note
+    # | tickets | write | freshness | tidy | suggest_edit
+    kind: str = Field(index=True)
+    state: str = Field(
+        default="queued", index=True
+    )  # queued | running | finished | failed | cancelled
+    started_by: str = Field(default="user")
+    instruction: str = Field(default="")
+    session_id: Optional[str] = Field(
+        default=None
+    )  # CLI session of a local Claude Code member
+    reads: str = Field(
+        default="[]"
+    )  # JSON [{page_id, title, why}]: pages read (the run's "Read" chips)
+    steps: str = Field(default="[]")  # JSON [{at, text}]
+    result: str = Field(default="{}")  # JSON, per kind
+    error: str = Field(default="{}")  # JSON {code, message}
+    tokens_in: int = Field(default=0)
+    tokens_out: int = Field(default=0)
+    cost_usd: float = Field(default=0.0)
+    metered: bool = Field(default=False)
+    reply_comment_id: Optional[str] = Field(default=None)
+    queued_at: str = Field(default_factory=_now_iso)
+    started_at: Optional[str] = Field(default=None)
+    ended_at: Optional[str] = Field(default=None)
+
+
+class DocsAiProposal(SQLModel, table=True):
+    """Changes an AI member proposes for a published page. Accepting puts text into the reviewer's draft."""
+
+    __tablename__ = "docs_ai_proposal"
+
+    id: str = Field(
+        default_factory=lambda: f"dp_{uuid.uuid4().hex[:10]}", primary_key=True
+    )
+    project_id: str = Field(foreign_key="project.id", index=True)
+    page_id: str = Field(foreign_key="docs_page.id", index=True)
+    member_id: str = Field(index=True)
+    run_id: Optional[str] = Field(default=None)
+    job_id: Optional[str] = Field(default=None)
+    ticket_id: Optional[str] = Field(default=None)
+    approval_id: Optional[str] = Field(
+        default=None
+    )  # the row in Approvals, when the safety rule asks for one
+    on_behalf_of: Optional[str] = Field(default=None)
+    base_version: int = Field(
+        default=0
+    )  # the page version the changes were made against
+    # waiting | accepted | partial | rejected | expired
+    status: str = Field(default="waiting", index=True)
+    summary: str = Field(default="")
+    # JSON [{n, title, reason, section, old, new, status: pending|accepted|rejected, stale: bool}]
+    changes: str = Field(default="[]")
+    created_at: str = Field(default_factory=_now_iso)
+    expires_at: Optional[str] = Field(default=None)
+    decided_by: Optional[str] = Field(default=None)
+    decided_at: Optional[str] = Field(default=None)
+    decision_note: Optional[str] = Field(default=None)
+
+
+class DocsAiCheck(SQLModel, table=True):
+    """Freshness of a page against its linked tickets and pages (one row per page)."""
+
+    __tablename__ = "docs_ai_check"
+
+    page_id: str = Field(foreign_key="docs_page.id", primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    state: str = Field(default="ok")  # ok | stale
+    # JSON [{kind: ticket|page, ref, text, compared}]: every reason names what was compared
+    reasons: str = Field(default="[]")
+    based_on_version: int = Field(default=0)
+    deps_hash: str = Field(
+        default=""
+    )  # hash of what the page depends on, to flag again only on change
+    checked_at: str = Field(default_factory=_now_iso)
+    ok_until: Optional[str] = Field(
+        default=None
+    )  # "Still correct" hides the banner until this time
+    ok_hash: Optional[str] = Field(default=None)
+    dismissed: str = Field(
+        default="[]"
+    )  # JSON [{key, level: once|30d|never, until, by}]
+    job_id: Optional[str] = Field(default=None)
+
+
+class DocsAiHealth(SQLModel, table=True):
+    """The last Docs health run of a project: missing docs, broken links, overlaps (out-of-date pages are in
+    `docs_ai_check`)."""
+
+    __tablename__ = "docs_ai_health"
+
+    project_id: str = Field(foreign_key="project.id", primary_key=True)
+    data: str = Field(
+        default="{}"
+    )  # JSON {missing: [], broken: [], overlaps: [], dismissed: []}
+    checked_at: Optional[str] = Field(default=None)
+    digest_at: Optional[str] = Field(default=None)
+
+
+class DocsAiIgnore(SQLModel, table=True):
+    """A "Check this page" finding a person chose to ignore for a page (the key is a hash of kind + quote)."""
+
+    __tablename__ = "docs_ai_ignore"
+
+    page_id: str = Field(
+        primary_key=True
+    )  # no foreign key: a purged page must not be blocked by it
+    key: str = Field(primary_key=True)
+    by: str = Field(default="user")
+    at: str = Field(default_factory=_now_iso)
 
 
 class Diagram(SQLModel, table=True):
@@ -842,6 +1022,11 @@ class AiChat(SQLModel, table=True):
     applied: bool = Field(default=False)
     # Claude Code conversation of a local Board AI: the whole chat is one session, so it is not resent each time
     session_id: Optional[str] = Field(default=None)
+    # Rolling summary of the older messages (API-key Board AI has no CLI session): messages created up to
+    # `summary_upto` are covered by `summary` and are not sent again
+    summary: str = Field(default="")
+    summary_upto: Optional[str] = Field(default=None)
+    compactions: int = Field(default=0)
     created_at: str = Field(default_factory=_now_iso)
     updated_at: str = Field(default_factory=_now_iso)
 

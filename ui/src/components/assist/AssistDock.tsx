@@ -176,6 +176,7 @@ export function AssistDock() {
           scope,
           ticketId: scope === 'ticket' ? ctx.ticketId : null,
           docId: scope === 'doc' ? ctx.docId : null,
+          fresh: ctx.fresh,
         });
         id = created.id;
         ctx.setChatId(id);
@@ -209,6 +210,17 @@ export function AssistDock() {
     const p = ctx.consumePending();
     setView('chat');
     if (p?.text) void send(p.text);
+    else if (p && !p.fresh && (p.scope === 'doc' || p.scope === 'ticket') && projectId) {
+      // "Ask this page" / "Ask about this ticket" pick up the latest chat about it (the server decides)
+      void assistApi
+        .createChat(projectId, {
+          scope: p.scope,
+          ticketId: p.scope === 'ticket' ? (p.ticketId ?? ctx.ticketId) : null,
+          docId: p.scope === 'doc' ? (p.docId ?? ctx.docId) : null,
+        })
+        .then((c) => ctx.setChatId(c.id))
+        .catch((e: unknown) => setError(extractError(e)));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx?.pending]);
 
@@ -295,7 +307,7 @@ export function AssistDock() {
           title="New chat"
           aria-label="New chat"
           onClick={() => {
-            ctx.setChatId(null);
+            ctx.startFresh();
             setView('chat');
           }}
         >
@@ -313,7 +325,7 @@ export function AssistDock() {
             setView('chat');
           }}
           onNew={() => {
-            ctx.setChatId(null);
+            ctx.startFresh();
             setView('chat');
           }}
         />
@@ -536,9 +548,25 @@ export function AssistDock() {
                 )}
               </div>
             )}
+            {(chat.data?.compactions ?? 0) > 0 && (
+              <div className="ai-muted" style={{ textAlign: 'center' }} data-testid="assist-summarised">
+                Earlier messages summarised
+              </div>
+            )}
             {chat.data &&
               messages.map((m) =>
-                m.role === 'user' ? (
+                m.role === 'note' ? (
+                  <div
+                    key={m.id}
+                    className="ai-muted"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    data-testid="assist-divider"
+                  >
+                    <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
+                    <span>{m.text}</span>
+                    <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
+                  </div>
+                ) : m.role === 'user' ? (
                   <div key={m.id} className="as-user">
                     {m.text}
                   </div>

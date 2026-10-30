@@ -139,8 +139,10 @@ export function assistError(err: unknown): AssistErrorBody | null {
 export const assistApi = {
   updateSettings: async (projectId: string, body: Record<string, unknown>) =>
     (await client.patch<AssistState>(`/projects/${projectId}/ai/assist`, body)).data,
-  createChat: async (projectId: string, body: { scope: string; ticketId?: string | null; docId?: string | null }) =>
-    (await client.post<ChatDetail>(`/projects/${projectId}/ai/assist/chats`, body)).data,
+  createChat: async (
+    projectId: string,
+    body: { scope: string; ticketId?: string | null; docId?: string | null; fresh?: boolean },
+  ) => (await client.post<ChatDetail>(`/projects/${projectId}/ai/assist/chats`, body)).data,
   patchChat: async (
     id: string,
     body: { scope?: string; ticketId?: string | null; docId?: string | null; includeDoc?: string },

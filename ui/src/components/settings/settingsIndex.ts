@@ -115,6 +115,14 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     keywords: 'permission role viewer member admin access',
   },
   {
+    id: 'docs-ai',
+    page: 'docs',
+    section: 'AI in Docs',
+    name: 'AI in Docs',
+    description: 'Ask the docs, check pages and write drafts: who answers, what AI may read, edits by AI members.',
+    keywords: 'ai ask hide guidance style guide freshness proposal',
+  },
+  {
     id: 'board-ai',
     page: 'ai',
     section: 'Board AI',

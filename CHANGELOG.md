@@ -8,6 +8,41 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-10-30
+
+Docs AI (issue 209, following `design/screens/docs-ai.md` and `docs-ai-care.md`), conversations that keep their memory, and one MCP tool for the AI team.
+
+### Added
+- **Docs AI**, on by default, and an admin can turn it off per project (Settings › Docs › AI): who answers (an AI member, else the Board AI), what AI may read (all / except hidden / only picked), a style guide page, freshness checks, how AI members' edits are handled (made directly, a proposal, or a draft) and how long a proposal waits. When it is off nothing in Docs shows AI.
+- **Hide from AI** and **Use as AI guidance** per page (page info; a lock and a small mark in the tree). One check (`services/docs_ai/access.py`) decides what any AI may read: Ask, summaries, checks, the Board AI chat, AI runs and the MCP `docs_read` of an AI run all skip a hidden page. Guidance pages (limit 8k tokens by default) are added to every AI run in the project and listed as "Read" on the run.
+- **Ask the docs**: an Ask tab in the Docs search palette (This space / This page / All my projects). It answers from published pages the asker can see, cites the section (each citation is checked against the page), says "the docs do not say" with the closest pages, or shows both pages when they disagree. A question that matches nothing is answered without calling the model. Open as chat, Copy, Was this right?, Report as out of date. Keywords work for English and Vietnamese questions.
+- **The page AI menu** (Ask this page, Summarise, Check if up to date, Create tickets, Suggest links, Translate view, Edit with AI): a summary is a dashed block above the page and is never saved; selecting text offers Explain / Summarise / Ask; Translate view keeps code, links and ticket keys byte for byte and leaves the page unchanged. In the editor `/ai` has a Docs-only group and **Check this page** (unclear text, gaps, unknown links, style guide), with Fix as draft and Ignore.
+- **Write with AI**: a page from a ticket, an idea, notes or a prompt, written only from the sources you pick (a "what will be sent" list first; code changes off by default). It opens as your private draft marked "Drafted with AI" with visible `[Needs input: …]` markers, a Gaps list and numbered sources; Publish warns while markers remain. Import Markdown can tidy while importing (split by heading, heading levels, "see X" candidates shown for review). History gets an AI summary of a range and a "with AI" mark; Publish suggests a change note.
+- **AI members edit pages directly by default** (still within each member's own permissions; the version shows "with AI"). Choose "Proposal to review" or "Draft only" in Settings › Docs › AI to hold their edits instead: a proposal has a banner, per-change Accept / Reject / Edit, "made against vN", expiry, a purple dot in the tree, a row in Approvals with **Review on page**, and the blocks it would change are marked "Proposed by …" in the page (click to review). Accepting writes into the reviewer's draft; an AI cannot decide its own proposal; a page an AI member creates stays an unpublished draft. Freshness checks and **Suggest an edit** always make proposals. A page hidden from AI is never edited by an AI member.
+- **Draw a diagram** (`/ai`): the AI member draws the selected text or the page as an editable draw.io diagram and adds it to your draft, or, with a diagram selected, changes it as a new version. The XML is checked before anything is saved.
+- **One Claude Code session for each (page, AI member)**: Ask this page, a tag in a thread, Suggest an edit, summaries, Check this page and the chat about the page all continue the same conversation, so the AI remembers what was said and done on that page. Everyone shares it and the prompt names who is asking. The board's own background freshness checks and questions about the whole space are one-shot.
+- **@AI in Docs comment threads**: tag an AI member (Ask / Ask and suggest an edit / Just notify). It answers inside the thread with its sources and cost; a second tag in the same thread continues the same conversation (the thread is the memory; a long thread is summarised; Claude Code continues the member's session for that page). **Suggest an edit** turns a reply into a proposal; long threads get a summary. It never resolves a thread and never answers another AI's reply.
+- **Keeping docs true**: a daily and on-demand check compares a page with the tickets and pages it links to (every reason names what was compared and quotes the page), a banner for editors, Still correct (30 days), suggested edits one at a time. **Docs health** lists out of date pages, Done tickets no page mentions, broken links and overlaps.
+- **Create tickets from a page**: unchecked items and action items become reviewed drafts (suggested assignee, never set); nothing exists before the button; links the tickets to the page, adds the key to your draft, Undo (kept for 30 minutes, also after a restart).
+- **MCP `ai_team`** (the 12th tool, one tool and no more): list AI members with status and spend, usage, ask or give work (a ticket, or a Docs page or thread), runs and one run's steps, cancel / retry / answer, pause / resume, create and update AI members (no key, folder, Bypass permissions or ceiling above Review over MCP), pending approvals (read only), recent Docs AI jobs. Refused inside an AI run except for reads; approvals are decided in the board.
+
+### Changed
+- **The Board AI chat keeps its memory with an API key too**: older messages are summarised into the chat (shown as "Earlier messages summarised"), the question is sent once, failed or stopped turns are not sent again. "Ask this page" and ticket asks continue your latest chat on that page or ticket instead of opening a new one; "+" starts a new one, and switching scope adds a divider.
+- **API-key AI members remember their work**: the "Activity since your last run" block (their own runs and other members') is in their prompt, the work done before a question is kept when they are answered, and a long run is compacted (step "Long session compacted") like a Claude Code session. A resumed run no longer restarts its token and cost counters at 0.
+- The Board AI chat never reads a page hidden from AI, even when a person includes a private doc for the chat, and an AI member's `docs_write` on a hidden page is refused. A page the Board AI chat lists as private is still read by Docs AI, AI runs and MCP.
+
+### Fixed
+- Purging a page leaves no Docs AI rows behind.
+- **@AI in the first comment of a page**: the @ list offered no AI members on a page that had no comment thread yet (Docs AI looked off there), so a thread could not be started with @AI.
+- **Docs lines of the Monday digest** are shown in Board health ("Docs that may be out of date", one line per page); they were stored but never rendered.
+- **Tables in "Proposed by …" marks**: a waiting proposal that changes a table row now marks the whole table in the page (it was left unmarked).
+- **Import tidy** starts as drawn: split by top-level section, ticket-key chips and heading levels are ticked; "see X" links stay off until you tick them.
+- **"Changes since you last viewed"** now sits in the bottom right corner instead of covering the page's Edit and Share buttons, and the history and comments drawers open over it.
+
+Demo: `docs/demo/docs-ai-demo.pdf`: screenshots of the running app with real Claude Code (Haiku) answers.
+
+---
+
 ## [3.12.0] - 2026-10-29
 
 One viewer for every image and file (issue 191, following `design/screens/preview-viewer.md` and `preview-types.md`).

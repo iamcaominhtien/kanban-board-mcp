@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1793295530-5588` (64 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool and AI where you work — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1793315909-1e64` (66 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool, AI where you work and the Docs AI boards — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -72,6 +72,8 @@ Each doc's header links to its source file and records the canvas version and sh
 - [Docs — page view](screens/docs-page.md)
 - [Docs — references](screens/docs-references.md)
 - [Docs — search](screens/docs-search.md)
+- [Docs AI — ask, write, read & edit](screens/docs-ai.md)
+- [Docs AI — keeping docs true, proposals & control](screens/docs-ai-care.md)
 - [List View](screens/list-view.md)
 - [Login](screens/login.md)
 - [Main Board](screens/main-board.md)

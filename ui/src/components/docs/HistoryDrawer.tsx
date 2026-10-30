@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { AiSpark } from './ai/AiSpark';
+import { HistorySummary } from './ai/HistorySummary';
 import { docsErrorDetail, useDocsDiff, useDocsVersions, useMarkDocsSeen, useRestoreVersion } from '../../api/docs';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsVersionSummary } from '../../types/docs';
@@ -655,6 +657,23 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#5B6B60' }}>
             <Avatar name={v.author} />
             {displayName(v.author)}
+            {v.withAi && (
+              <span
+                className="mc-chip"
+                data-testid={`with-ai-${v.version}`}
+                title="The author accepted AI text in this version"
+                style={{
+                  background: '#F1ECFD',
+                  border: '1px solid #D9CCF7',
+                  color: '#5B3FBF',
+                  fontWeight: 600,
+                  height: 20,
+                }}
+              >
+                <AiSpark size={11} />
+                with AI
+              </span>
+            )}
           </div>
           {v.note && <div style={{ fontSize: 12.5, lineHeight: 1.45, color: '#3A4A3E' }}>{v.note}</div>}
           <div className="hd-actions" style={{ gap: 6, marginTop: 6 }}>
@@ -736,6 +755,12 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
           <div style={{ padding: '0 16px 10px', fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
             Select two versions to compare them, or one to see what it changed.
           </div>
+          <HistorySummary
+            projectId={projectId}
+            pageId={page.id}
+            versions={versions.map((x) => x.version)}
+            selected={selected}
+          />
           <div style={{ borderTop: '1px solid #E3E8E5', flex: 1, minHeight: 0, overflowY: 'auto' }}>
             {versionsQ.isLoading && (
               <p style={{ margin: 0, padding: 16, fontSize: 13, color: '#5B6B60' }}>Loading versions…</p>
