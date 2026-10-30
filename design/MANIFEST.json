@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793315909-1e64",
+  "canvas_version": "1793384608-0b7c",
   "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
@@ -546,6 +546,22 @@
       "page": "guideline",
       "w": 1480,
       "h": 8862
+    },
+    "AiTeam.dc.html": {
+      "bytes": 93731,
+      "sha256": "32cc77023f82195dd01c97c2a6e7893bf2034a15e72d51a82c0505105ccc07da",
+      "title": "AI Team — what the AIs are doing and how work moves",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 3815
+    },
+    "AiTeamReview.dc.html": {
+      "bytes": 114459,
+      "sha256": "e2034fcb52b5257220f0756baa5fd5d8d6d3966d15e97b103516f0c646c9ea14",
+      "title": "AI Team — where people stepped in, and AI health",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 6070
     }
   }
 }
