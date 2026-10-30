@@ -33,6 +33,7 @@ log = logging.getLogger(__name__)
 
 FEATURE_OF = {
     "changes": "chat",
+    "ai_members": "chat",
     "ticket": "drafting",
     "description": "drafting",
     "assignee": "drafting",
@@ -198,6 +199,13 @@ async def start(
         page = await session.get(DocsPage, doc_id)
         if page is None or page.project_id != project_id:
             raise AssistError("invalid", "Doc not found in this project.")
+        from services.docs_ai import access as docs_ai_access
+
+        if not await docs_ai_access.ai_can_read(session, page):
+            raise AssistError(
+                "hidden",
+                "This page is hidden from AI. Ask, summaries and AI runs skip it.",
+            )
     if kind == "ticket" and not str(data.get("prompt") or "").strip():
         raise AssistError("invalid", "Write one sentence about the ticket first.")
     d = AiDraft(
@@ -217,7 +225,7 @@ async def start(
         created_at=now_iso(),
         expires_at=(
             (datetime.now(UTC) + timedelta(days=SPLIT_DAYS)).isoformat()
-            if kind in ("split", "changes")
+            if kind in ("split", "changes", "ai_members")
             else None
         ),
     )
@@ -962,8 +970,13 @@ async def _gen_doc_links(d: AiDraft, profile, row, project, allow_more):
                 )
             )
         ).all()
+        from services.docs_ai import access as docs_ai_access
+
+        blocked = await docs_ai_access.hidden_page_ids(session, d.project_id)
         targets = []
         for o in others:
+            if o.id in blocked:
+                continue
             heads = [
                 h.get("text") for h in heading_anchors(await ctxb.doc_text(session, o))
             ][:12]
@@ -1044,6 +1057,14 @@ async def _gen_doc_text(d: AiDraft, profile, row, project, allow_more):
         "summarise": 'Summarise the selected text in one or two sentences. JSON: {"text": "..."}',
         "rewrite": 'Rewrite the selected text to be clearer, same meaning, same Markdown. JSON: {"text": "..."}',
         "ask": f'Answer the question about the selected text: {inp.get("question") or ""}. JSON: {{"text": "..."}}',
+        "table": (
+            "Turn the selected Markdown list into a Markdown table. Keep every item and its words; add columns only"
+            ' when the items clearly have parts (for example "name: description"). JSON: {"text": "the Markdown table"}'
+        ),
+        "explain_code": (
+            "Explain the selected code in plain language for someone who does not know it: 2 to 5 short sentences or"
+            ' bullets, Markdown, no code in the answer. JSON: {"text": "..."}'
+        ),
     }.get(action)
     if task is None:
         raise AssistError("invalid", "Unknown action.")
@@ -1519,6 +1540,20 @@ async def apply(
     """Dispatch Apply / Accept / Create by kind."""
     d = await _get(session, draft_id)
     force = bool(body.get("force"))
+    if d.kind == "ai_members":
+        from . import member_drafts
+
+        result = await member_drafts.apply(
+            session,
+            d,
+            person,
+            selected=body.get("selected"),
+            edited=(body.get("fields") or {}).get("members"),
+        )
+        if not result["created"]:
+            msg = "; ".join(f"{f['name']}: {f['message']}" for f in result["failed"])
+            raise AssistError("invalid", msg or "No member was created.")
+        return await _finish(session, d, person, result)
     if d.kind in ("changes", "nudge", "assignee"):
         return await apply_changes(
             session,
@@ -1661,6 +1696,12 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
                 session, res["ticket_id"]
             ):
                 undone += 1
+        elif d.kind == "ai_members":
+            from . import member_drafts
+
+            n, skipped_members = await member_drafts.undo(session, d, person)
+            undone += n
+            skipped += skipped_members
     d.status = "undone"
     res["undo"] = {"by": person, "at": now_iso(), "undone": undone, "skipped": skipped}
     d.result = json.dumps(res)

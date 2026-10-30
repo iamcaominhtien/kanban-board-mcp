@@ -52,6 +52,8 @@ uv run ruff format .
 
 ## Connecting AI Agents (MCP)
 
+The server offers **12 tools** (17 with the Idea Space tools, `KANBAN_MCP_IDEA_TOOLS=1`), each a family of actions in `kanban_mcp/tools/`: `get_projects`, `list_tickets`, `get_ticket`, `docs_read` (read), `manage_project`, `manage_ticket`, `ticket_items`, `ticket_branches`, `docs_write`, `ai_run` (only inside a board-started AI run), `ai_schedules` and `ai_team` (the AI members, their runs, usage and approvals; `ask` wakes an AI, because an `@mention` in an MCP comment does not). The full table is in the root `README.md`.
+
 ### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 
 Uses `mcp_stdio.py` — the server launches as a subprocess. The database schema is created automatically on first run.

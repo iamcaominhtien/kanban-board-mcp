@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { client } from '../../api/client';
 import { docsErrorDetail, useCreatePage, useDocsTemplates } from '../../api/docs';
+import { docsAiError, useCancelDocsAiJob, useDocsAiJob, useDocsAiState } from '../../api/docsAi';
+import { useStartWrite, type WritePreview } from '../../api/docsAiWrite';
 import { extractError } from '../../api/extractError';
+import { aiGate } from '../../utils/docsAiRules';
+import { canWrite, initialWriteForm, writeRequest, type WriteForm, type WriteSourceKind } from '../../utils/writeRules';
+import { AiSpark } from './ai/AiSpark';
+import { WriteWithAi } from './ai/WriteWithAi';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { slugify } from '../../utils/docsMarkdown';
 import { Icon } from './Icon';
@@ -13,6 +20,8 @@ interface Props {
   initialParentId: string | null;
   initialTemplate?: string;
   initialTitle?: string;
+  /** Opens with Write with AI preselected (e.g. Docs health "Write a page"). */
+  aiFrom?: { kind: WriteSourceKind; ticketId?: string; text?: string };
   onClose: () => void;
   onCreated: (page: DocsPage) => void;
 }
@@ -109,6 +118,7 @@ export function NewPageDialog({
   initialParentId,
   initialTemplate = 'blank',
   initialTitle,
+  aiFrom,
   onClose,
   onCreated,
 }: Props) {
@@ -125,6 +135,45 @@ export function NewPageDialog({
   const [error, setError] = useState<string | null>(null);
   const pickRef = useRef<HTMLDivElement>(null);
   const tpl = templates.find((t) => t.id === template);
+  const aiState = useDocsAiState(projectId);
+  const gate = aiGate(aiState.data);
+  const aiReady = gate.show && gate.reason === null;
+  const [aiKind, setAiKind] = useState<WriteSourceKind | null>(aiFrom?.kind ?? null);
+  const [form, setForm] = useState<WriteForm>(() => initialWriteForm(aiFrom?.kind ?? 'ticket', aiFrom));
+  const startWrite = useStartWrite(projectId);
+  const cancelJob = useCancelDocsAiJob();
+  const [jobId, setJobId] = useState<string | null>(null);
+  const job = useDocsAiJob(jobId);
+  const writing = !!jobId && (!job.data || job.data.state === 'queued' || job.data.state === 'running');
+  const aiOn = aiReady && aiKind !== null;
+
+  function pickAi(kind: WriteSourceKind) {
+    setAiKind(kind);
+    setForm((f) =>
+      f.kind === kind ? f : initialWriteForm(kind, { text: f.kind === 'notes' || f.kind === 'prompt' ? f.text : '' }),
+    );
+  }
+  function onPreview(p: WritePreview | undefined) {
+    if (p?.suggestedTitle && !titleTouched) setTitle(p.suggestedTitle);
+  }
+
+  // the job finished: open the draft it made
+  useEffect(() => {
+    const j = job.data;
+    if (!j) return;
+    if (j.state === 'failed' || j.state === 'cancelled') {
+      setError(j.error.message ?? 'The AI could not write the draft.');
+      setJobId(null);
+      return;
+    }
+    const pageId = typeof j.result.pageId === 'string' ? j.result.pageId : null;
+    if (j.state !== 'finished' || !pageId) return;
+    setJobId(null);
+    void client
+      .get<DocsPage>(`/docs/pages/${pageId}`)
+      .then((r) => onCreated(r.data))
+      .catch((err: unknown) => setError(extractError(err)));
+  }, [job.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // the title defaults to the template name until the user types their own
   useEffect(() => {
@@ -194,6 +243,16 @@ export function NewPageDialog({
       return;
     }
     setError(null);
+    if (aiOn) {
+      if (!canWrite(form, trimmed)) return;
+      try {
+        const j = await startWrite.mutateAsync(writeRequest(form, trimmed, parentId));
+        setJobId(j.id);
+      } catch (err) {
+        setError(docsAiError(err)?.detail ?? docsErrorDetail(err)?.message ?? extractError(err));
+      }
+      return;
+    }
     try {
       const page = await create.mutateAsync({ title: trimmed, parentId, template });
       onCreated(page);
@@ -297,7 +356,7 @@ export function NewPageDialog({
               style={{ width: 250, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}
             >
               {templates.map((t) => {
-                const on = template === t.id;
+                const on = !aiOn && template === t.id;
                 return (
                   <button
                     key={t.id}
@@ -306,7 +365,10 @@ export function NewPageDialog({
                     aria-checked={on}
                     className="dk-tpl-row"
                     data-testid={`template-${t.id}`}
-                    onClick={() => setTemplate(t.id)}
+                    onClick={() => {
+                      setTemplate(t.id);
+                      setAiKind(null);
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -354,61 +416,125 @@ export function NewPageDialog({
                   </button>
                 );
               })}
-            </div>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 0,
-                height: 300,
-                borderRadius: 10,
-                border: '1px solid #E3E8E5',
-                background: '#FFFFFF',
-                padding: '14px 18px',
-                boxSizing: 'border-box',
-                overflow: 'hidden',
-                position: 'relative',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: '#5B6B60',
-                  marginBottom: 6,
-                }}
-              >
-                Preview · {tpl?.name ?? ''}
-              </div>
-              {tpl && tpl.markdown ? (
-                <TemplatePreview markdown={tpl.markdown} />
-              ) : (
+              {aiReady && (
                 <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    marginTop: 10,
-                    fontSize: 12,
-                    color: '#9AA8A0',
-                  }}
+                  role="group"
+                  aria-label="Write with AI"
+                  style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
                 >
-                  <span className="dk-caret" style={{ height: 13, background: '#9AA8A0' }} />
-                  Type / to start
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#5B3FBF',
+                      margin: '8px 0 0 2px',
+                    }}
+                  >
+                    Write with AI
+                  </div>
+                  {(
+                    [
+                      ['ticket', 'From a ticket', 'i00'],
+                      ['idea', 'From an idea', 'i17'],
+                      ['notes', 'From pasted notes', 'i32'],
+                      ['prompt', 'From a prompt', 'spark'],
+                    ] as const
+                  ).map(([kind, text, icon]) => {
+                    const sel = aiKind === kind;
+                    return (
+                      <button
+                        key={kind}
+                        type="button"
+                        aria-pressed={sel}
+                        data-testid={`write-ai-${kind}`}
+                        onClick={() => pickAi(kind)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '8px 10px',
+                          borderRadius: 9,
+                          border: '1px solid',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          font: 'inherit',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: '#1E2A22',
+                          background: sel ? '#F1ECFD' : '#FFFFFF',
+                          borderColor: sel ? '#8D6FE3' : '#E3E8E5',
+                        }}
+                      >
+                        <span style={{ display: 'flex', color: sel ? '#5B3FBF' : '#5B6B60' }}>
+                          {icon === 'spark' ? <AiSpark size={16} /> : <Icon name={icon} size={16} strokeWidth={1.8} />}
+                        </span>
+                        {text}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
+            </div>
+            {aiOn ? (
+              <WriteWithAi projectId={projectId} form={form} onForm={setForm} onPreview={onPreview} error={null} />
+            ) : (
               <div
                 style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 46,
-                  background: 'linear-gradient(rgba(255,255,255,0),#FFFFFF)',
+                  flex: 1,
+                  minWidth: 0,
+                  height: 300,
+                  borderRadius: 10,
+                  border: '1px solid #E3E8E5',
+                  background: '#FFFFFF',
+                  padding: '14px 18px',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  position: 'relative',
                 }}
-              />
-            </div>
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: '#5B6B60',
+                    marginBottom: 6,
+                  }}
+                >
+                  Preview · {tpl?.name ?? ''}
+                </div>
+                {tpl && tpl.markdown ? (
+                  <TemplatePreview markdown={tpl.markdown} />
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      marginTop: 10,
+                      fontSize: 12,
+                      color: '#9AA8A0',
+                    }}
+                  >
+                    <span className="dk-caret" style={{ height: 13, background: '#9AA8A0' }} />
+                    Type / to start
+                  </div>
+                )}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 46,
+                    background: 'linear-gradient(rgba(255,255,255,0),#FFFFFF)',
+                  }}
+                />
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 14 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -651,22 +777,47 @@ export function NewPageDialog({
           }}
         >
           <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
-            Created as a draft. Only you can see it until you publish.
+            {writing
+              ? (job.data?.steps[(job.data?.steps.length ?? 1) - 1]?.text ?? 'Starting…')
+              : aiOn
+                ? 'The draft is private to you until you publish it.'
+                : 'Created as a draft. Only you can see it until you publish.'}
           </span>
           <div style={{ flex: 1 }} />
-          <button type="button" className="st-btn" onClick={onClose}>
-            Cancel
-          </button>
           <button
             type="button"
-            className="st-btn st-btn-primary"
-            disabled={create.isPending}
-            onClick={() => void submit()}
-            data-testid="create-page"
+            className="st-btn"
+            onClick={() => {
+              if (jobId) cancelJob.mutate(jobId);
+              onClose();
+            }}
           >
-            <Icon name="plus" size={14} strokeWidth={1.9} />
-            {create.isPending ? 'Creating…' : 'Create page'}
+            Cancel
           </button>
+          {aiOn ? (
+            <button
+              type="button"
+              className="st-btn st-btn-primary"
+              style={{ background: '#6F4BD8', borderColor: '#6F4BD8' }}
+              disabled={writing || startWrite.isPending || !canWrite(form, title)}
+              onClick={() => void submit()}
+              data-testid="write-draft"
+            >
+              <AiSpark size={14} />
+              {writing || startWrite.isPending ? 'Writing…' : 'Write draft'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="st-btn st-btn-primary"
+              disabled={create.isPending}
+              onClick={() => void submit()}
+              data-testid="create-page"
+            >
+              <Icon name="plus" size={14} strokeWidth={1.9} />
+              {create.isPending ? 'Creating…' : 'Create page'}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 """idea_ai_helpers: AI settings, triage advice and weekly digests of the Idea Space; AI mark on assumptions
 
 Revision ID: c9d0e1f2a3b4
-Revises: e8f9a0b1c2d3
+Revises: f4a6b8c0d2e4
 Create Date: 2026-10-29 12:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlmodel
 from alembic import op
 
 revision: str = "c9d0e1f2a3b4"
-down_revision: Union[str, Sequence[str], None] = "e8f9a0b1c2d3"
+down_revision: Union[str, Sequence[str], None] = "f4a6b8c0d2e4"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

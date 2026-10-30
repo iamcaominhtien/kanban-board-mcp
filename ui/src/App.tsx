@@ -41,6 +41,7 @@ import { UpdateNotice } from './components/UpdateNotice';
 import { useAiBoard, useAiOverview, aiApi } from './api/ai';
 import { AiBoardContext, type AiBoardState } from './components/ai/aiUi';
 import { AiMembersPage } from './components/ai/AiMembersPage';
+import { OPEN_DOC_EVENT } from './utils/openDoc';
 import { AiPausedBanner, PauseAllButton } from './components/ai/AiDialogs';
 import { useAiRunNotifications } from './components/ai/useAiRunNotifications';
 import { DragConfirm } from './components/ai/DragConfirm';
@@ -451,6 +452,20 @@ export default function App() {
     setViewMode('board');
     openTicketModal(ticketId);
   }
+
+  // "Review on page" in the Approvals list asks for a Docs page from outside the Docs view
+  const openDocsPageRef = useRef(openDocsPage);
+  openDocsPageRef.current = openDocsPage;
+  useEffect(() => {
+    const open = (e: Event) => {
+      const pageId = (e as CustomEvent<{ pageId?: string }>).detail?.pageId;
+      if (!pageId) return;
+      setAiPage(null);
+      openDocsPageRef.current(pageId);
+    };
+    window.addEventListener(OPEN_DOC_EVENT, open);
+    return () => window.removeEventListener(OPEN_DOC_EVENT, open);
+  }, []);
 
   function openTicketModal(ticketId: string) {
     setModalState({ mode: 'view', ticketId });

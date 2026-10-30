@@ -8,12 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-### Added
-- **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 24 pages): setting up Claude Code and AI members, choosing the Board AI, how to write persona, instructions, tickets and extra instructions (with copy-paste samples), assigning and reviewing work, Board AI prompts, schedules, safety and cost, troubleshooting and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
-
----
-
-## [3.11.0] - 2026-10-29
+## [3.14.0] - 2026-10-30
 
 The new Idea Space, the Sketch tool and AI where you work ([#203](https://github.com/iamcaominhtien/kanban-board-mcp/issues/203)). Docs: `docs/specs/idea-space.md`, `docs/specs/sketch-tool.md`, `docs/specs/ai-where-you-work.md`.
 
@@ -34,6 +29,91 @@ The new Idea Space, the Sketch tool and AI where you work ([#203](https://github
 - The old Idea board, card and modal are replaced by the Idea Space screens. The `/api/idea-tickets` CRUD still answers.
 - One-shot AI calls (chat, drafts) now also count toward the board's daily cap; an AI name can no longer approve a request.
 - The Docs "Export" writes a sketch as a plain image of its PNG.
+
+## [3.13.0] - 2026-10-30
+
+Docs AI (issue 209, following `design/screens/docs-ai.md` and `docs-ai-care.md`), conversations that keep their memory, and one MCP tool for the AI team.
+
+### Added
+- **Docs AI**, on by default, and an admin can turn it off per project (Settings › Docs › AI): who answers (an AI member, else the Board AI), what AI may read (all / except hidden / only picked), a style guide page, freshness checks, how AI members' edits are handled (made directly, a proposal, or a draft) and how long a proposal waits. When it is off nothing in Docs shows AI.
+- **Hide from AI** and **Use as AI guidance** per page (page info; a lock and a small mark in the tree). One check (`services/docs_ai/access.py`) decides what any AI may read: Ask, summaries, checks, the Board AI chat, AI runs and the MCP `docs_read` of an AI run all skip a hidden page. Guidance pages (limit 8k tokens by default) are added to every AI run in the project and listed as "Read" on the run.
+- **Ask the docs**: an Ask tab in the Docs search palette (This space / This page / All my projects). It answers from published pages the asker can see, cites the section (each citation is checked against the page), says "the docs do not say" with the closest pages, or shows both pages when they disagree. A question that matches nothing is answered without calling the model. Open as chat, Copy, Was this right?, Report as out of date. Keywords work for English and Vietnamese questions.
+- **The page AI menu** (Ask this page, Summarise, Check if up to date, Create tickets, Suggest links, Translate view, Edit with AI): a summary is a dashed block above the page and is never saved; selecting text offers Explain / Summarise / Ask; Translate view keeps code, links and ticket keys byte for byte and leaves the page unchanged. In the editor `/ai` has a Docs-only group and **Check this page** (unclear text, gaps, unknown links, style guide), with Fix as draft and Ignore.
+- **Write with AI**: a page from a ticket, an idea, notes or a prompt, written only from the sources you pick (a "what will be sent" list first; code changes off by default). It opens as your private draft marked "Drafted with AI" with visible `[Needs input: …]` markers, a Gaps list and numbered sources; Publish warns while markers remain. Import Markdown can tidy while importing (split by heading, heading levels, "see X" candidates shown for review). History gets an AI summary of a range and a "with AI" mark; Publish suggests a change note.
+- **AI members edit pages directly by default** (still within each member's own permissions; the version shows "with AI"). Choose "Proposal to review" or "Draft only" in Settings › Docs › AI to hold their edits instead: a proposal has a banner, per-change Accept / Reject / Edit, "made against vN", expiry, a purple dot in the tree, a row in Approvals with **Review on page**, and the blocks it would change are marked "Proposed by …" in the page (click to review). Accepting writes into the reviewer's draft; an AI cannot decide its own proposal; a page an AI member creates stays an unpublished draft. Freshness checks and **Suggest an edit** always make proposals. A page hidden from AI is never edited by an AI member.
+- **Draw a diagram** (`/ai`): the AI member draws the selected text or the page as an editable draw.io diagram and adds it to your draft, or, with a diagram selected, changes it as a new version. The XML is checked before anything is saved.
+- **One Claude Code session for each (page, AI member)**: Ask this page, a tag in a thread, Suggest an edit, summaries, Check this page and the chat about the page all continue the same conversation, so the AI remembers what was said and done on that page. Everyone shares it and the prompt names who is asking. The board's own background freshness checks and questions about the whole space are one-shot.
+- **@AI in Docs comment threads**: tag an AI member (Ask / Ask and suggest an edit / Just notify). It answers inside the thread with its sources and cost; a second tag in the same thread continues the same conversation (the thread is the memory; a long thread is summarised; Claude Code continues the member's session for that page). **Suggest an edit** turns a reply into a proposal; long threads get a summary. It never resolves a thread and never answers another AI's reply.
+- **Keeping docs true**: a daily and on-demand check compares a page with the tickets and pages it links to (every reason names what was compared and quotes the page), a banner for editors, Still correct (30 days), suggested edits one at a time. **Docs health** lists out of date pages, Done tickets no page mentions, broken links and overlaps.
+- **Create tickets from a page**: unchecked items and action items become reviewed drafts (suggested assignee, never set); nothing exists before the button; links the tickets to the page, adds the key to your draft, Undo (kept for 30 minutes, also after a restart).
+- **MCP `ai_team`** (the 12th tool, one tool and no more): list AI members with status and spend, usage, ask or give work (a ticket, or a Docs page or thread), runs and one run's steps, cancel / retry / answer, pause / resume, create and update AI members (no key, folder, Bypass permissions or ceiling above Review over MCP), pending approvals (read only), recent Docs AI jobs. Refused inside an AI run except for reads; approvals are decided in the board.
+
+### Changed
+- **The Board AI chat keeps its memory with an API key too**: older messages are summarised into the chat (shown as "Earlier messages summarised"), the question is sent once, failed or stopped turns are not sent again. "Ask this page" and ticket asks continue your latest chat on that page or ticket instead of opening a new one; "+" starts a new one, and switching scope adds a divider.
+- **API-key AI members remember their work**: the "Activity since your last run" block (their own runs and other members') is in their prompt, the work done before a question is kept when they are answered, and a long run is compacted (step "Long session compacted") like a Claude Code session. A resumed run no longer restarts its token and cost counters at 0.
+- The Board AI chat never reads a page hidden from AI, even when a person includes a private doc for the chat, and an AI member's `docs_write` on a hidden page is refused. A page the Board AI chat lists as private is still read by Docs AI, AI runs and MCP.
+
+### Fixed
+- Purging a page leaves no Docs AI rows behind.
+- **@AI in the first comment of a page**: the @ list offered no AI members on a page that had no comment thread yet (Docs AI looked off there), so a thread could not be started with @AI.
+- **Docs lines of the Monday digest** are shown in Board health ("Docs that may be out of date", one line per page); they were stored but never rendered.
+- **Tables in "Proposed by …" marks**: a waiting proposal that changes a table row now marks the whole table in the page (it was left unmarked).
+- **Import tidy** starts as drawn: split by top-level section, ticket-key chips and heading levels are ticked; "see X" links stay off until you tick them.
+- **"Changes since you last viewed"** now sits in the bottom right corner instead of covering the page's Edit and Share buttons, and the history and comments drawers open over it.
+
+Demo: `docs/demo/docs-ai-demo.pdf`: screenshots of the running app with real Claude Code (Haiku) answers.
+
+---
+
+## [3.12.0] - 2026-10-29
+
+One viewer for every image and file (issue 191, following `design/screens/preview-viewer.md` and `preview-types.md`).
+
+### Added
+- **One viewer** (`ui/src/components/preview/`) that opens any image or file from the description, comments, Docs pages, attachments and the ticket workspace. Anything that shows a file only says "open this" together with the files around it, so next / previous (arrow keys, buttons, swipe) and the thumbnail strip always make sense there. Header with name, type, size, counter and actions, a details panel (I) with facts and "Used in", full screen (F), Download (D), focus kept inside and returned to what opened it, Esc always closes.
+- **Images**: fit, zoom to the pointer (wheel, pinch, + / −), drag to pan, rotate, copy, double-click for Fit / actual size, a map when zoomed in, and a checkerboard / light / dark background for transparent images. SVG is shown as a picture, never as page code.
+- **Readers**: text, logs and code (colour, line numbers, search with Ctrl+F, wrap, copy; only the rows in view are drawn, so a long log opens at once; the first 1 MB with a note for larger files); JSON (formatted, tree, raw); Markdown (rendered like Docs, or source); CSV, TSV and Excel (sheets, search, frozen header, first 500 rows, values only); PDF (page thumbnails, zoom, page jump, search); zip, tar and gz (browse folders, preview a file inside; entry and size caps); Word (simplified reading view) and PowerPoint (slide outline with speaker notes), read in the browser without a converter; audio and video; a card with the file facts and Download for everything else.
+- **HTML** opens as the real page in a locked frame: empty `sandbox` (no scripts, forms, pop-ups or same-origin access), a CSP that blocks every outside request, scripts, embedded content, event handlers and link targets removed first, notices for blocked content and scripts, Desktop / Tablet / Phone width, and a Source view. The server still serves HTML as plain text.
+- **States** that always leave Download as a way out: loading, too large (first part shown), password protected, damaged, missing or no access, a text name with binary data, offline with Retry (files already opened in the session stay available), and a broken file inside a gallery.
+- Docs images are clickable (Enter and Space on a focused image too); in the editor, double-click an image or a link to an uploaded file, or press Space on a selected image.
+- Attachment cards show a real thumbnail for images.
+- Desktop: **Show in folder** next to Open in app; files that can run (`.exe .bat .cmd .ps1 .sh .command .app .msi .jar`) ask first ("Open anyway"). On the web the actions are Download and open and Copy link, and Open in app is shown greyed out with "Only in the desktop app".
+
+### Fixed
+- **Open in app on desktop**: the app found a file's place on disk through the `X-File-Path` header of a `HEAD` request, but the server answered `HEAD` with 405 and the CORS layer hid the header from the desktop page (`file://`), so nothing opened. The app now asks `GET /upload-info/<file>`, which returns the path as JSON.
+- Serving an upload crashed (500) when the uploads folder has non-latin-1 characters, e.g. a Windows user folder such as `C:\Users\Tiến`, because the path went into a response header. The header is now sent only when it can carry the path.
+
+### Changed
+- Replaces `FilePreviewModal`, the workspace `PreviewPanel` and the markdown renderer's own image modal.
+- The server sends `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` with every SVG, so an SVG opened on its own cannot run or load anything.
+
+### Not in this version
+- 7z and rar listing, slide pictures for PowerPoint (needs a converter), and Word fonts, page layout, comments and tracked changes.
+- Editing a file in another app and saving it back, "Open with…", and a dedicated phone layout (the same viewer works full screen with swipe and pinch).
+
+---
+
+## [3.11.0] - 2026-10-29
+
+### Changed
+- **AI keeps one conversation per ticket.** An AI member (Claude Code) resumes its own last session on a ticket instead of starting fresh at every @mention, assignment or re-run; a different AI, or a different ticket, has its own. Each run also gets an "Activity since your last run" block with what the other AI members did on the ticket (who, result, files, status), so a PM asked "what has Dev done?" can answer. If the old session is gone or the CLI cannot resume it, a new one starts with a note on the run. Two runs of the same AI on the same ticket never run at the same time.
+- **Run limits only guard automatic runs.** "Max runs per day" is now **Scheduled runs per day** and counts runs a schedule starts; the board's "runs per day" (default 100, was 60) and "runs per ticket a day" (default 15, was 6) count scheduled and AI-started (@mention chain) runs. A run a person starts (@mention, assignment, Run, reply, question) is never limited by them. Settings still at the old defaults move to the new ones.
+- **Board AI chat is one session per chat** for a local Claude Code Board AI, so earlier messages are not sent again.
+- The number between the +/− buttons of the add-member dialog can be typed; Shift+click moves in bigger steps.
+
+Demo: `docs/demo/ai-sessions-demo.pdf` (14 pages, real Claude Code runs): a PM and a Dev on one ticket, the Dev resuming its session, the run limits not stopping a person, the Ask AI chat session, a real compaction trace and Bypass permissions (the same `touch` refused with it off and run with it on).
+
+Demo: `docs/demo/ai-member-assistant-demo.pdf` (10 pages, real Claude Code runs): the dialog's Ask AI panel and presets, the Board AI asks what it needs, proposes a PM, a Dev and a Reviewer in Vietnamese, revises the whole list on request, and creates them on one click with Undo and an audit trail; plus the stand-in AI when no Board AI is chosen.
+
+### Added
+- **The Board AI can set up AI members for you.** Describe the team you want in Ask AI (Ctrl/Cmd + J, from anywhere) or press **✦ Draft with AI** on Members → AI. The Board AI asks what it needs, then shows a card with the proposed members (name, description, persona in your language, role template, ceiling, limits); edit any field or keep chatting to refine it (each answer returns the whole updated list). Nothing exists until an admin or the owner presses **Create**; members are then created as that person through the same code as the Add AI member dialog, audited as created via Board AI, with Undo. A proposal can never carry a key, Bypass permissions, a ceiling past Review or a folder, and an API-key Board AI cannot create members (keys are not copied). Without a chosen Board AI, Ask AI is answered by a stand-in AI member of the project (not saved as the Board AI).
+- **Ask AI to fill this in, inside the Add AI member dialog.** Step 3 (Identity & limits) has a new panel above the Start from presets (PM, Dev, Reviewer, Blank): describe the member, the Board AI fills the name, description, persona, limits, ceiling, role template and (Claude Code) model, and you keep prompting to refine it. Every message carries the form as it is now, so hand edits survive. It only fills fields; nothing is created until you press Add AI member, and the same checks apply (ceiling clamped to Review, no key, folder or Bypass taken from the AI). Shown when the project has a Board AI or a stand-in AI member.
+- **Ready-made AI members in the Add AI member dialog.** Step 3 has a **Start from** row with **PM**, **Dev** and **Reviewer** (or **Blank**). A role fills in the name, short description, persona (English or Tiếng Việt), parallel runs, scheduled runs per day, status ceiling, the approval switches, the role template (Reviewer uses the Reviewer template) and, for PM and Reviewer, CLI Allow rules without `Edit` and `Write`. Everything stays editable. The roles live in `ui/src/components/ai/memberPresets.json`, which the guideline also reads.
+- **Bypass permissions** for Claude Code AI members: Configuration → Permissions → Permission mode. Allow list only stays the default; Bypass lets a work run use any CLI tool without the Allow list (`--permission-mode bypassPermissions`). Only the project owner can turn it on, by typing `bypass permissions`; turning it on or off is audited and the member shows a red chip. Deny rules, the status ceiling, approvals and Safe mode still apply, ask runs stay read-only and the web stays off. New members always start on Allow list only.
+- **Auto-compact**: "Auto-compact at" (default 60% of the context window, 10 to 95) per AI member, also used for the Board AI chat, passed to Claude Code as `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`. A compaction shows as a step on the run.
+- **AI guideline** (`docs/guideline/ai/huong-dan-dung-ai.pdf`, Vietnamese, 33 pages, also covers sessions, run limits, Auto-compact and Bypass permissions): the AI team to set up (PM, Dev, Reviewer, General as the Board AI) and how they hand work to each other; every field of the Add AI member dialog with the values for each AI; what to do after creating (Role template on the Permissions tab, CLI rules, what an existing `CLAUDE.md` / `.claude/` in the working folder affects, one AI in several projects); the rest of the setup (Board AI, Board assistant, allowed test commands, limits); and copy-paste prompts (persona, instructions, @mentions, style guide, a weekly PM report schedule) for each AI. Also: how to write prompts and tickets, assigning and reviewing work, schedules, safety and cost, 13 common problems and a one-page checklist. The source (`build.py`, screenshots) lives next to the PDF and `docs/guideline/README.md` says how to rebuild it.
+
+---
 
 ## [3.10.0] - 2026-10-29
 

@@ -7,7 +7,8 @@ export interface AskRequest {
   docId?: string | null;
   /** Sent right away when the dock opens. */
   text?: string;
-  /** New chat instead of continuing the current one. */
+  /** New chat instead of continuing the current one (the "New chat" button). Without it, a question about a ticket
+   * or a page continues the person's latest chat about it (the server does that, for 24 hours). */
   fresh?: boolean;
 }
 
@@ -26,10 +27,16 @@ interface AssistValue {
   ticketId: string | null;
   docId: string | null;
   chatId: string | null;
+  /** The next chat the dock creates must be new, not a continuation ("New chat"). */
+  fresh: boolean;
   pending: AskRequest | null;
   filters: BoardFilters;
   healthOpen: boolean;
   ask: (req?: AskRequest) => void;
+  /** Open the dock on an existing chat (Ask the docs "Open as chat"). */
+  openChat: (id: string, opts?: { scope?: AssistScope; docId?: string | null }) => void;
+  /** Start an empty chat that will not continue an older one. */
+  startFresh: () => void;
   toggle: () => void;
   close: () => void;
   setScope: (scope: AssistScope) => void;
@@ -72,9 +79,15 @@ export function AssistProvider({
   const [scope, setScope] = useState<AssistScope>('project');
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [docId, setDocId] = useState<string | null>(null);
-  const [chatId, setChatId] = useState<string | null>(null);
+  const [chatId, setChatIdState] = useState<string | null>(null);
+  const [fresh, setFresh] = useState(false);
   const [pending, setPending] = useState<AskRequest | null>(null);
   const [healthOpen, setHealthOpen] = useState(false);
+
+  const setChatId = useCallback((id: string | null) => {
+    setChatIdState(id);
+    setFresh(false);
+  }, []);
 
   // A new project starts a new conversation
   useEffect(() => {
@@ -82,7 +95,7 @@ export function AssistProvider({
     setTicketId(null);
     setDocId(null);
     setScope('project');
-  }, [projectId]);
+  }, [projectId, setChatId]);
 
   // The open ticket is the "This ticket" scope (context attached: current ticket if one is open)
   useEffect(() => {
@@ -95,9 +108,28 @@ export function AssistProvider({
     if (req.scope) setScope(req.scope);
     if (req.ticketId !== undefined) setTicketId(req.ticketId);
     if (req.docId !== undefined) setDocId(req.docId);
-    if (req.fresh || req.scope) setChatId(null);
+    // a scope asks again through the server, which continues the latest chat about the same ticket or page
+    if (req.fresh || req.scope) {
+      setChatIdState(null);
+      setFresh(!!req.fresh);
+    }
     setPending(req);
   }, []);
+
+  const startFresh = useCallback(() => {
+    setChatIdState(null);
+    setFresh(true);
+  }, []);
+
+  const openChat = useCallback(
+    (id: string, opts?: { scope?: AssistScope; docId?: string | null }) => {
+      setOpen(true);
+      if (opts?.scope) setScope(opts.scope);
+      if (opts?.docId !== undefined) setDocId(opts.docId);
+      setChatId(id);
+    },
+    [setChatId],
+  );
 
   const toggle = useCallback(() => setOpen((v) => !v), []);
   const close = useCallback(() => setOpen(false), []);
@@ -116,10 +148,13 @@ export function AssistProvider({
       ticketId,
       docId,
       chatId,
+      fresh,
       pending,
       filters,
       healthOpen,
       ask,
+      openChat,
+      startFresh,
       toggle,
       close,
       setScope,
@@ -141,12 +176,16 @@ export function AssistProvider({
       ticketId,
       docId,
       chatId,
+      fresh,
       pending,
       filters,
       healthOpen,
       ask,
+      openChat,
+      startFresh,
       toggle,
       close,
+      setChatId,
       consumePending,
       onOpenTicket,
       onOpenSettings,

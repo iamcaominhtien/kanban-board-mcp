@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { FileAttachmentCard } from './FileAttachmentCard';
-import { FilePreviewModal } from './FilePreviewModal';
+import { galleryAround, previewAttrs, usePreview } from './preview/PreviewContext';
 import { useResolveRefs, useRestorePage } from '../api/docs';
 import { useToast } from './Toast';
 import { RefChip } from './docs/RefChip';
@@ -62,7 +62,7 @@ interface MarkdownRendererProps {
 }
 
 function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const preview = usePreview();
   if (!src || src.startsWith('uploading:')) return null;
   const resolvedSrc = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
 
@@ -82,32 +82,39 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
     }
   }
 
+  const name = cleanAlt || src.split('/').pop() || 'image';
+
+  function open(el: HTMLElement) {
+    const { items, index } = galleryAround(el);
+    preview.open(items, index);
+  }
+
   return (
-    <>
-      <img
-        src={resolvedSrc}
-        alt={cleanAlt}
-        loading="lazy"
-        style={{
-          cursor: 'pointer',
-          width: imageWidth,
-          maxWidth: '100%',
-          height: 'auto',
-          borderRadius: '6px',
-        }}
-        onClick={() => setIsPreviewOpen(true)}
-        title="Click to preview"
-        {...props}
-      />
-      {isPreviewOpen && (
-        <FilePreviewModal
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          url={src}
-          fileName={cleanAlt || src.split('/').pop()}
-        />
-      )}
-    </>
+    <img
+      src={resolvedSrc}
+      alt={cleanAlt}
+      loading="lazy"
+      {...previewAttrs(src, name)}
+      tabIndex={0}
+      role="button"
+      aria-label={`Open ${name}`}
+      style={{
+        cursor: 'zoom-in',
+        width: imageWidth,
+        maxWidth: '100%',
+        height: 'auto',
+        borderRadius: '6px',
+      }}
+      onClick={(e) => open(e.currentTarget)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open(e.currentTarget);
+        }
+      }}
+      title="Click to preview"
+      {...props}
+    />
   );
 }
 
@@ -174,7 +181,7 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
   });
 
   return (
-    <Wrapper className={styles.markdown} style={inline ? { display: 'inline' } : undefined}>
+    <Wrapper className={styles.markdown} style={inline ? { display: 'inline' } : undefined} data-preview-scope>
       <ReactMarkdown
         remarkPlugins={docs ? [remarkGfm, remarkDocs] : [remarkGfm]}
         rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}

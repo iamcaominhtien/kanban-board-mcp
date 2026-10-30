@@ -17,6 +17,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
@@ -39,6 +40,7 @@ from . import approvals, audit, budget, cli, config_service, guard, safety
 from .context import (
     STATUS_LABELS,
     RunContext,
+    activity_block,
     instruction_block,
     rules_block,
     ticket_block,
@@ -375,24 +377,28 @@ async def create_run(
                 )
             behind = held[0].id
         settings = await get_settings(session, ticket.project_id)
-        since = budget.today_start().isoformat()
-        today = (
-            await session.exec(
-                select(AiRun).where(
-                    AiRun.ticket_id == ticket_id,
-                    AiRun.mode == "work",
-                    AiRun.queued_at >= since,
+        # The per-ticket limit is a loop guard: it stops scheduled and AI-started runs, never a person's
+        auto = bool(chain) or trigger == "schedule"
+        if auto:
+            since = budget.today_start().isoformat()
+            today = (
+                await session.exec(
+                    select(AiRun).where(
+                        AiRun.ticket_id == ticket_id,
+                        AiRun.mode == "work",
+                        AiRun.queued_at >= since,
+                        or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
+                    )
                 )
+            ).all()
+            allowed = settings.runs_per_ticket_per_day + await safety.extra_runs_today(
+                session, ticket_id
             )
-        ).all()
-        allowed = settings.runs_per_ticket_per_day + await safety.extra_runs_today(
-            session, ticket_id
-        )
-        if len(today) >= allowed:
-            raise RunError(
-                f"Run limit reached: {ticket_id} has used {len(today)} of "
-                f"{allowed} runs today."
-            )
+            if len(today) >= allowed:
+                raise RunError(
+                    f"Run limit reached: {ticket_id} has used {len(today)} of "
+                    f"{allowed} scheduled or AI-started runs today."
+                )
     last = (
         await session.exec(
             select(AiRun)
@@ -580,6 +586,9 @@ async def _blocking_reason(
         return (
             f"Waiting for a free slot ({len(running)} of {profile.max_parallel} in use)"
         )
+    if any(r.ticket_id == run.ticket_id and r.id != run.id for r in running):
+        # One conversation per member and ticket: a second run would resume the session while it is in use
+        return "Waiting for this AI's earlier run on the same ticket to finish"
     if run.queue_after_current and running and not skip_queue:
         # "Queue": wait behind the work the member is doing, even when a slot is free (design A2)
         return f"Queued behind {running[0].ticket_id}"
@@ -596,7 +605,7 @@ async def _blocking_reason(
             f"Waiting for a free slot on the board ({len(board_running)} of "
             f"{settings.board_max_parallel} in use)"
         )
-    hit = await budget.blocked_detail(session, profile, settings)
+    hit = await budget.blocked_detail(session, profile, settings, budget.run_kind(run))
     if hit:
         policy = (
             settings.board_at_cap
@@ -836,6 +845,36 @@ async def requeue_rate_limited(run_id: str, wait_s: float, detail: str) -> bool:
     return True
 
 
+async def _requeue_fresh(run_id: str) -> bool:
+    """The CLI could not resume the earlier session (it was made in another folder, or is gone): queue the run
+    again and let it start a new session. Only once per run; False when it already did."""
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state in ENDED:
+            return True
+        if any(st.get("kind") == "fresh_session" for st in loads(run.steps, [])):
+            return False
+        run.session_id = None
+        run.token_hash = None
+        run.pid = None
+        session.add(run)
+        await session.commit()
+    await _append(
+        run_id,
+        steps=[
+            {
+                "kind": "fresh_session",
+                "text": "The CLI could not resume the earlier session: starting a new one.",
+            }
+        ],
+        state="queued",
+        started_at=None,
+    )
+    RT.wake.set()
+    await _publish(force=True)
+    return True
+
+
 async def _start(session, run: AiRun) -> None:
     token = "kbr_" + pysecrets.token_urlsafe(24)
     ticket = await session.get(Ticket, run.ticket_id)
@@ -1051,7 +1090,84 @@ async def _note_flagged(run: AiRun, ticket: Ticket, humans: set[str], names: set
     )
 
 
+ACTIVITY_RUNS = 10
+
+
+async def _activity_for(session, run: AiRun, names: set[str]) -> str:
+    """Runs of the other AI members on this ticket since this member's last run on it (the latest few when it has
+    none), as the board's own record: a resumed session only remembers what its own agent did."""
+    mine = (
+        await session.exec(
+            select(AiRun)
+            .where(
+                AiRun.ticket_id == run.ticket_id,
+                AiRun.member_id == run.member_id,
+                AiRun.id != run.id,
+                AiRun.queued_at < run.queued_at,
+            )
+            .order_by(col(AiRun.queued_at).desc())
+            .limit(1)
+        )
+    ).first()
+    stmt = select(AiRun).where(
+        AiRun.ticket_id == run.ticket_id,
+        AiRun.member_id != run.member_id,
+        AiRun.id != run.id,
+    )
+    if mine is not None:
+        stmt = stmt.where(AiRun.queued_at > mine.queued_at)
+    others = list(
+        reversed(
+            (
+                await session.exec(
+                    stmt.order_by(col(AiRun.queued_at).desc()).limit(ACTIVITY_RUNS)
+                )
+            ).all()
+        )
+    )
+    if not others:
+        return ""
+    member_names = {
+        m.id: m.name
+        for m in (
+            await session.exec(
+                select(Member).where(col(Member.id).in_({r.member_id for r in others}))
+            )
+        ).all()
+    }
+    return activity_block(
+        others, member_names, since=mine.queued_at if mine is not None else None
+    )
+
+
 async def _build_prompt(
+    session, run: AiRun, profile: AiMember, member: Member, *, resume_note: str | None
+):
+    """(system, user message, config) of a run, with the project's AI guidance pages added to the system prompt."""
+    system, prompt, config = await _build_prompt_base(
+        session, run, profile, member, resume_note=resume_note
+    )
+    from services.docs_ai import access as docs_ai_access
+
+    text, reads = await docs_ai_access.guidance_block(session, run.project_id)
+    if text:
+        system += "\n\n" + text
+        if not any(s.get("kind") == "read" for s in loads(run.steps, [])):
+            await _append(
+                run.id,
+                steps=[
+                    {
+                        "kind": "read",
+                        "text": "Read guidance: "
+                        + ", ".join(r["title"] for r in reads),
+                        "detail": {"pages": reads},
+                    }
+                ],
+            )
+    return system, prompt, config
+
+
+async def _build_prompt_base(
     session, run: AiRun, profile: AiMember, member: Member, *, resume_note: str | None
 ):
     ticket = await session.get(Ticket, run.ticket_id)
@@ -1114,6 +1230,9 @@ async def _build_prompt(
                 ),
             )
         )
+        activity = await _activity_for(session, run, names)
+        if activity:
+            parts.append(activity)
     else:
         parts.append(f'<ticket id="{ticket.id}" trusted>Title: {ticket.title}</ticket>')
     # A mention from another AI member (a chain hop) is data only, never instructions
@@ -1151,6 +1270,37 @@ def cli_tool_rules(
     return allowed, denied
 
 
+async def _session_for(session, run: AiRun) -> tuple[str | None, str | None]:
+    """The CLI session this run continues: the one already on the run (a run resumed after a question, a re-run
+    after "Request changes"), else the last session this member used on this ticket, so one agent keeps one
+    conversation per ticket. Returns (session id or None, a note for the run when a new session starts although
+    an older one existed)."""
+    wanted = run.session_id
+    if not wanted:
+        prev = (
+            await session.exec(
+                select(AiRun)
+                .where(
+                    AiRun.ticket_id == run.ticket_id,
+                    AiRun.member_id == run.member_id,
+                    AiRun.id != run.id,
+                    col(AiRun.session_id).is_not(None),
+                    col(AiRun.started_at).is_not(None),
+                )
+                .order_by(col(AiRun.queued_at).desc())
+                .limit(1)
+            )
+        ).first()
+        if prev is None or any(
+            st.get("kind") == "fresh_session" for st in loads(run.steps, [])
+        ):
+            return None, None
+        wanted = prev.session_id
+    if wanted and cli.session_exists(wanted):
+        return wanted, None
+    return None, "Earlier session not found on this computer: starting a new one"
+
+
 async def _execute_claude(
     run_id: str, token: str, resume_note: str | None = None
 ) -> None:
@@ -1185,8 +1335,9 @@ async def _execute_claude(
         system, prompt, config = await _build_prompt(
             session, run, profile, member, resume_note=resume_note
         )
-        resume = bool(run.session_id)
-        session_id = run.session_id or str(uuid.uuid4())
+        session_id, fresh_note = await _session_for(session, run)
+        resume = session_id is not None
+        session_id = session_id or str(uuid.uuid4())
         mcp = {
             "mcpServers": {
                 "kanban": {
@@ -1226,12 +1377,23 @@ async def _execute_claude(
                     allowed.append(f"mcp__{server}")
             denied = list(config.get("deny_rules") or [])
         settings = await get_settings(session, run.project_id)
+        safe = settings.safe_mode or profile.safe_mode
         allowed, denied = cli_tool_rules(
             allowed,
             denied,
-            safe=settings.safe_mode or profile.safe_mode,
+            safe=safe,
             domains=loads(settings.allowed_domains, []),
         )
+        # An owner's "Bypass permissions": work runs only, never in safe mode. Deny rules and the board's own
+        # checks (status ceiling, approvals) still apply; the web stays off because its domain list needs the
+        # allow list the mode skips.
+        bypass = (
+            config.get("permission_mode") == "bypass"
+            and run.mode == "work"
+            and not safe
+        )
+        if bypass:
+            denied += [d for d in _WEB_TOOLS if d not in denied]
         args = cli.claude_args(
             path,
             prompt=prompt,
@@ -1247,17 +1409,19 @@ async def _execute_claude(
             extra_flags=[
                 f for f in (config.get("extra_flags") or []) if isinstance(f, str)
             ],
+            bypass=bypass,
         )
         run.session_id = session_id
         session.add(run)
         await session.commit()
         ceiling_ok = _should_start_move(run, profile) and not resume_note
+        compact_at = config.get("compact_at_pct")
     if run_id in RT.cancelled:
         return  # cancelled while starting: never launch the CLI
     if ceiling_ok:
         await move_status(run_id, "in-progress")
 
-    proc = cli.CliProcess(args, cwd=cwd)
+    proc = cli.CliProcess(args, cwd=cwd, env=cli.child_env(compact_at))
     RT.procs[run_id] = proc
     pid = await proc.start()
     if run_id in RT.cancelled:
@@ -1272,7 +1436,18 @@ async def _execute_claude(
                 else (
                     "Read the ticket" if run.mode == "work" else "Reading the question"
                 ),
-            }
+            },
+            *([{"kind": "start", "text": fresh_note}] if fresh_note else []),
+            *(
+                [
+                    {
+                        "kind": "start",
+                        "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops (web off)",
+                    }
+                ]
+                if bypass
+                else []
+            ),
         ],
         pid=pid,
     )
@@ -1382,6 +1557,9 @@ async def _execute_claude(
     if rate_wait is not None and await requeue_rate_limited(
         run_id, rate_wait, "The provider is rate-limiting the CLI (429)."
     ):
+        return
+    said = ((result or {}).get("text") or " ".join(proc.stderr_tail[-5:])).lower()
+    if resume and "no conversation found" in said and await _requeue_fresh(run_id):
         return
     reason = None
     if result and result.get("subtype") == "error_max_turns":

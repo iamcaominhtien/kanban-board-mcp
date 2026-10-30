@@ -105,10 +105,37 @@ def excluded_docs(row: AiAssistSettings) -> set[str]:
     return set(loads(row.excluded_docs, []))
 
 
+async def fallback_ai(session: AsyncSession, project_id: str) -> Member | None:
+    """An AI member that can answer chat while no Board AI is chosen: a Claude Code runner first, then one with an API
+    key; never an inbox-only client and never a paused member. It is used for the request only and not saved."""
+    rows = (
+        await session.exec(
+            select(Member).where(Member.project_id == project_id, Member.kind == "ai")
+        )
+    ).all()
+    best: tuple[int, str, Member] | None = None
+    for m in rows:
+        p = await session.get(AiMember, m.id)
+        if p is None or p.paused or p.connection not in ("local", "api_key"):
+            continue
+        if p.connection == "local" and p.provider != "claude-code":
+            continue
+        rank = 0 if p.connection == "local" else 1
+        key = (rank, m.created_at or "", m)
+        if best is None or key[:2] < best[:2]:
+            best = key
+    return best[2] if best else None
+
+
 async def _info_for(
-    session: AsyncSession, member: Member | None, profile: AiMember | None, settings
+    session: AsyncSession,
+    member: Member | None,
+    profile: AiMember | None,
+    settings,
+    used_fallback: bool = False,
 ) -> dict:
-    """{"state": "ready" | "not_configured" | "unavailable", "member", "profile", "status"} for one AI member."""
+    """{"state": "ready" | "not_configured" | "unavailable", "member", "profile", "status", "fallback"} for one AI
+    member."""
     from .. import members as svc_members
 
     if member is None or profile is None or member.kind != "ai":
@@ -117,6 +144,7 @@ async def _info_for(
             "member": None,
             "profile": None,
             "status": None,
+            "fallback": False,
         }
     described = await svc_members.describe(session, member, profile, settings)
     status = described["status"]
@@ -138,21 +166,32 @@ async def _info_for(
         "member": member,
         "profile": profile,
         "status": status,
+        "fallback": used_fallback,
     }
 
 
-async def board_ai(session: AsyncSession, project_id: str) -> dict:
-    """The project's Board AI and whether it can answer now.
+async def board_ai(
+    session: AsyncSession, project_id: str, *, fallback: bool = False
+) -> dict:
+    """The project's Board AI and whether it can answer now. With `fallback`, a project without a Board AI answers
+    with another AI member (`fallback_ai`) and the result says so.
 
     Returns:
-        {"state": "ready" | "not_configured" | "unavailable", "member", "profile", "status"}
+        {"state": "ready" | "not_configured" | "unavailable", "member", "profile", "status", "fallback"}
     """
     settings = await get_settings(session, project_id)
-    if not settings.board_ai_id:
-        return await _info_for(session, None, None, settings)
-    member = await session.get(Member, settings.board_ai_id)
-    profile = await session.get(AiMember, settings.board_ai_id)
-    return await _info_for(session, member, profile, settings)
+    member = profile = None
+    used_fallback = False
+    if settings.board_ai_id:
+        member = await session.get(Member, settings.board_ai_id)
+        profile = await session.get(AiMember, settings.board_ai_id)
+    if member is None or profile is None or member.kind != "ai":
+        member = profile = None
+        if fallback:
+            member = await fallback_ai(session, project_id)
+            profile = await session.get(AiMember, member.id) if member else None
+            used_fallback = member is not None
+    return await _info_for(session, member, profile, settings, used_fallback)
 
 
 async def member_ai(session: AsyncSession, project_id: str, member_id: str) -> dict:
@@ -274,7 +313,7 @@ async def guard_request(
     info = (
         await member_ai(session, project_id, member_id)
         if member_id
-        else await board_ai(session, project_id)
+        else await board_ai(session, project_id, fallback=feature == "chat")
     )
     if info["state"] == "not_configured":
         raise AssistError(
@@ -363,6 +402,11 @@ async def describe(session: AsyncSession, project_id: str) -> dict:
     excluded docs, limits and usage."""
     row = await get(session)
     info = await board_ai(session, project_id)
+    standby = (
+        await fallback_ai(session, project_id)
+        if info["state"] == "not_configured"
+        else None
+    )
     feats = features(row)
     costs = {}
     for key in FEATURES:
@@ -429,6 +473,8 @@ async def describe(session: AsyncSession, project_id: str) -> dict:
             "connection": profile.connection if profile else None,
             "metered": bool(profile and profile.connection == "api_key"),
             "status": info["status"],
+            # No Board AI is chosen, but Ask AI still answers with this AI member until one is
+            "fallback": {"id": standby.id, "name": standby.name} if standby else None,
         },
         "features": [
             {

@@ -178,8 +178,10 @@ export function assistError(err: unknown): AssistErrorBody | null {
 export const assistApi = {
   updateSettings: async (projectId: string, body: Record<string, unknown>) =>
     (await client.patch<AssistState>(`/projects/${projectId}/ai/assist`, body)).data,
-  createChat: async (projectId: string, body: { scope: string; ticketId?: string | null; docId?: string | null }) =>
-    (await client.post<ChatDetail>(`/projects/${projectId}/ai/assist/chats`, body)).data,
+  createChat: async (
+    projectId: string,
+    body: { scope: string; ticketId?: string | null; docId?: string | null; fresh?: boolean },
+  ) => (await client.post<ChatDetail>(`/projects/${projectId}/ai/assist/chats`, body)).data,
   patchChat: async (
     id: string,
     body: { scope?: string; ticketId?: string | null; docId?: string | null; includeDoc?: string },
@@ -201,6 +203,7 @@ export const assistApi = {
       /** "ask" only answers (the default); "work" starts a run on the chat's ticket. */
       mode?: 'ask' | 'work';
       memberId?: string | null;
+      memberForm?: Record<string, unknown>;
     },
   ) => (await client.post<{ user: ChatMessage; ai: ChatMessage }>(`/ai/assist/chats/${chatId}/messages`, body)).data,
   /** Share a ticket chat answer with the team as a comment (the AI badge, who asked). */

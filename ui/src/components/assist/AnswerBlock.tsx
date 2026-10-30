@@ -7,6 +7,7 @@ import { AiAvatar, hhmm, secondsSince, useAiBoardState } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
 import { BoardAiAvatar, CostChip, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
+import { DraftAiMembers } from './DraftAiMembers';
 
 const SLOW_AFTER_S = 15;
 
@@ -279,13 +280,16 @@ export function AnswerBlock({
         )}
         {draft && (
           <div style={{ marginTop: 8 }}>
-            {panel?.renderDraft?.(draft) ?? (
-              <DraftChanges
-                draftId={draft.id}
-                initial={draft}
-                onRefresh={() => void act(() => assistApi.retry(msg.id))}
-              />
-            )}
+            {panel?.renderDraft?.(draft) ??
+              (draft.kind === 'ai_members' ? (
+                <DraftAiMembers draftId={draft.id} initial={draft} />
+              ) : (
+                <DraftChanges
+                  draftId={draft.id}
+                  initial={draft}
+                  onRefresh={() => void act(() => assistApi.retry(msg.id))}
+                />
+              ))}
           </div>
         )}
         {panel && !ctxInfo.run && msg.text && (

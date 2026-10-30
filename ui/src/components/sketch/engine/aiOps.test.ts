@@ -1,6 +1,5 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { MAX_AI_OPS, aiTexts, cleanAiOps, describeAiOps, drawAiShapes, type AiOp, type OpsContext } from './aiOps.ts';
+import { expect, test } from 'vitest';
+import { MAX_AI_OPS, aiTexts, cleanAiOps, describeAiOps, drawAiShapes, type AiOp, type OpsContext } from './aiOps';
 
 /** A context that writes down what it was asked to do. */
 function recorder() {
@@ -25,9 +24,18 @@ test('ops are clamped to the canvas and rounded', () => {
     100,
     80,
   );
-  assert.equal(dropped, 0);
-  assert.deepEqual(ops[0], { op: 'line', x1: 0, y1: 11, x2: 100, y2: 20, color: '#e8441a', size: 60, arrow: false });
-  assert.deepEqual([ops[1].op, (ops[1] as { w: number }).w, (ops[1] as { h: number }).h], ['rect', 10, 30]);
+  expect(dropped).toBe(0);
+  expect(ops[0]).toStrictEqual({
+    op: 'line',
+    x1: 0,
+    y1: 11,
+    x2: 100,
+    y2: 20,
+    color: '#e8441a',
+    size: 60,
+    arrow: false,
+  });
+  expect([ops[1].op, (ops[1] as { w: number }).w, (ops[1] as { h: number }).h]).toStrictEqual(['rect', 10, 30]);
 });
 
 test('unusable ops are dropped and counted', () => {
@@ -46,25 +54,25 @@ test('unusable ops are dropped and counted', () => {
     100,
     100,
   );
-  assert.equal(ops.length, 1);
-  assert.equal(dropped, 8);
-  assert.equal(cleanAiOps({ op: 'line' }, 10, 10).ops.length, 0);
+  expect(ops.length).toBe(1);
+  expect(dropped).toBe(8);
+  expect(cleanAiOps({ op: 'line' }, 10, 10).ops.length).toBe(0);
 });
 
 test('there are at most 60 ops and 120 points', () => {
   const many = Array.from({ length: 100 }, (_, i) => ({ op: 'line', x1: 0, y1: 0, x2: 10, y2: i + 1 }));
-  assert.equal(cleanAiOps(many, 100, 100).ops.length, MAX_AI_OPS);
+  expect(cleanAiOps(many, 100, 100).ops.length).toBe(MAX_AI_OPS);
   const [p] = cleanAiOps(
     [{ op: 'path', points: Array.from({ length: 500 }, (_, i) => [i % 100, (i * 7) % 100]) }],
     100,
     100,
   ).ops;
-  assert.ok(p.op === 'path' && p.points.length <= 120);
+  expect(p.op === 'path' && p.points.length <= 120).toBeTruthy();
 });
 
 test('text loses tags and control characters and keeps three lines', () => {
   const [t] = cleanAiOps([{ op: 'text', x: 0, y: 0, text: 'a<b>bold</b>\u0000 x\n\n\ntwo\nthree\nfour' }], 50, 50).ops;
-  assert.equal(t.op === 'text' && t.text, 'abold x\ntwo\nthree');
+  expect(t.op === 'text' && t.text).toBe('abold x\ntwo\nthree');
 });
 
 test('shapes are drawn with the op colour and size; an arrow adds a filled head', () => {
@@ -88,14 +96,14 @@ test('shapes are drawn with the op colour and size; an arrow adds a filled head'
   const { ctx, calls } = recorder();
   drawAiShapes(ctx, ops);
   const text = calls.join(' ');
-  assert.match(text, /strokeStyle=#112233 fillStyle=#112233 lineWidth=5/);
-  assert.match(text, /moveTo\(0,0\) lineTo\(100,0\) stroke/);
-  assert.match(text, /closePath fill restore/); // the arrow head
-  assert.match(text, /rect\(10,20,30,40\) fill/);
-  assert.match(text, /ellipse\(10,5,10,5,0,0,6\.3\) stroke/);
-  assert.match(text, /moveTo\(0,0\) lineTo\(5,5\) lineTo\(9,1\) closePath stroke/);
-  assert.equal((text.match(/save/g) ?? []).length, 4); // the text op is not a shape
-  assert.equal((text.match(/save/g) ?? []).length, (text.match(/restore/g) ?? []).length);
+  expect(text).toMatch(/strokeStyle=#112233 fillStyle=#112233 lineWidth=5/);
+  expect(text).toMatch(/moveTo\(0,0\) lineTo\(100,0\) stroke/);
+  expect(text).toMatch(/closePath fill restore/); // the arrow head
+  expect(text).toMatch(/rect\(10,20,30,40\) fill/);
+  expect(text).toMatch(/ellipse\(10,5,10,5,0,0,6\.3\) stroke/);
+  expect(text).toMatch(/moveTo\(0,0\) lineTo\(5,5\) lineTo\(9,1\) closePath stroke/);
+  expect((text.match(/save/g) ?? []).length).toBe(4); // the text op is not a shape
+  expect((text.match(/save/g) ?? []).length).toBe((text.match(/restore/g) ?? []).length);
 });
 
 test('text ops become editable text objects with unique ids', () => {
@@ -109,13 +117,10 @@ test('text ops become editable text objects with unique ids', () => {
     50,
   ).ops;
   const texts = aiTexts(ops, 'q');
-  assert.deepEqual(
-    texts.map((t) => [t.id, t.text, t.size, t.bold]),
-    [
-      ['q1', 'One', 24, true],
-      ['q2', 'Two', 28, undefined],
-    ],
-  );
+  expect(texts.map((t) => [t.id, t.text, t.size, t.bold])).toStrictEqual([
+    ['q1', 'One', 24, true],
+    ['q2', 'Two', 28, undefined],
+  ]);
 });
 
 test('a plain phrase says what was drawn', () => {
@@ -129,6 +134,6 @@ test('a plain phrase says what was drawn', () => {
     50,
     50,
   ).ops;
-  assert.equal(describeAiOps(ops), '2 shapes, 1 arrow and 1 label');
-  assert.equal(describeAiOps([]), 'nothing');
+  expect(describeAiOps(ops)).toBe('2 shapes, 1 arrow and 1 label');
+  expect(describeAiOps([])).toBe('nothing');
 });

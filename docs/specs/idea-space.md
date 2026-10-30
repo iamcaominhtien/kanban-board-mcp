@@ -21,7 +21,7 @@ Readiness is computed, never stored (`models.idea_readiness`): only high-impact 
 
 ### The conversion of existing ideas
 
-Migration `e8f9a0b1c2d3` converts the old ideas once, after saving a copy of the database next to it (`kanban.before-idea-space-<date>.db`, only when there are ideas). See [the migration table](../../design/screens/idea-promote-migration.md) and its "As shipped" notes. Nothing is deleted: the old columns stay.
+Migration `f4a6b8c0d2e4` converts the old ideas once, after saving a copy of the database next to it (`kanban.before-idea-space-<date>.db`, only when there are ideas). See [the migration table](../../design/screens/idea-promote-migration.md) and its "As shipped" notes. Nothing is deleted: the old columns stay.
 
 ## Rules (kept from the design)
 

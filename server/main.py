@@ -31,6 +31,8 @@ from api.ai import router as ai_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
 from api.assist import assist_error_handler
+from api.docs_ai import docs_ai_error_handler
+from api.docs_ai import router as docs_ai_router
 from api.assist import router as assist_router
 from api.ai_editor import router as ai_editor_router
 from api.ai_sketch import router as ai_sketch_router
@@ -40,6 +42,10 @@ from api.schedules import schedule_error_handler
 from services.ai.assist import chat as assist_chat
 from services.ai.assist import health as assist_health
 from services.ai.assist.settings import AssistError
+from services.docs_ai import DocsAiError
+from services.docs_ai import freshness as docs_ai_freshness
+from services.docs_ai import jobs as docs_ai_jobs
+from services.docs_ai import proposals as docs_ai_proposals
 from services.ai import schedules as ai_schedules
 from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
@@ -90,13 +96,18 @@ async def lifespan(app: FastAPI):
         )
         await ai_runs.start_scheduler()
         await assist_chat.recover()
+        await docs_ai_jobs.recover()
         assist_health.start_scheduler()
+        docs_ai_freshness.start_scheduler()
         ai_schedules.start_scheduler()
+        docs_ai_proposals.start_scheduler()
         try:
             yield
         finally:
             # No CLI process outlives the board: cancel the AI runs and kill their process trees
             await assist_health.stop_scheduler()
+            await docs_ai_freshness.stop_scheduler()
+            await docs_ai_proposals.stop_scheduler()
             await ai_schedules.stop_scheduler()
             await ai_runs.stop_scheduler()
             sweeper.cancel()
@@ -197,6 +208,7 @@ app.include_router(assist_router)
 app.include_router(ai_editor_router)
 app.include_router(ai_sketch_router)
 app.add_exception_handler(AssistError, assist_error_handler)
+app.add_exception_handler(DocsAiError, docs_ai_error_handler)
 app.include_router(schedules_router)
 app.add_exception_handler(ScheduleError, schedule_error_handler)
 app.include_router(tickets_router)
@@ -208,6 +220,7 @@ app.include_router(idea_space_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
 app.include_router(docs_router)
+app.include_router(docs_ai_router)
 app.include_router(diagrams_router)
 app.include_router(sketches_router)
 app.include_router(logs_router)
@@ -227,6 +240,31 @@ async def health() -> dict[str, str]:
 async def version() -> dict[str, str]:
     """Server version and the oldest UI build it supports (no auth, like /health)."""
     return version_info()
+
+
+@app.get("/upload-info/{file_path:path}")
+async def upload_info(file_path: str) -> dict[str, str | int]:
+    """Where an uploaded file is stored on this computer, for the desktop app's "Open in app".
+
+    Args:
+        file_path: Path inside the uploads folder (what follows `/uploads/` in the file's URL).
+
+    Returns:
+        The absolute path, the stored name and the size in bytes.
+
+    Raises:
+        HTTPException: 400 for an invalid path; 404 if the file does not exist.
+    """
+    resolved = resolve_upload_path(file_path)
+    if resolved is None:
+        raise HTTPException(status_code=400, detail="Invalid path")
+    if not resolved.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    return {
+        "path": str(resolved.resolve()),
+        "name": resolved.name,
+        "size": resolved.stat().st_size,
+    }
 
 
 @app.get("/uploads/{file_path:path}")
@@ -254,11 +292,16 @@ async def serve_upload(
         raise HTTPException(status_code=400, detail="Invalid path")
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="File not found")
-    headers = {
-        "X-Content-Type-Options": "nosniff",
-        "X-File-Path": str(resolved.resolve()),
-        "Access-Control-Expose-Headers": "X-File-Path, Content-Disposition",
-    }
+    headers = {"X-Content-Type-Options": "nosniff"}
+    local_path = str(resolved.resolve())
+    try:
+        local_path.encode("latin-1")
+    except UnicodeEncodeError:
+        # A header can only carry latin-1; a folder such as C:\Users\Tiến would crash the response.
+        # The desktop app asks GET /upload-info/... for the path instead.
+        pass
+    else:
+        headers["X-File-Path"] = local_path
     ext = resolved.suffix.lower()
     media_type = MIME_BY_EXTENSION.get(ext, "application/octet-stream")
 
@@ -271,6 +314,12 @@ async def serve_upload(
     wants_inline = (
         (inline or view) and ext in VIEWABLE_INLINE_EXTENSIONS and ext != ".html"
     )
+
+    if ext == ".svg":
+        # An SVG is a picture, never a page: if it is opened on its own, nothing in it can run or load
+        headers["Content-Security-Policy"] = (
+            "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        )
 
     if not download and (is_image or wants_inline):
         return FileResponse(

@@ -1,0 +1,37 @@
+{
+ "sessions": [
+  {
+   "scope": "page:199b104d-1151-4e44-ba8b-2fd3d77b5843",
+   "member": "fffe272c-2f74-43c2-8dea-cd6e22b55fd5",
+   "session_id": "1ddbd927-410d-45e5-83a9-016b940c0e3a",
+   "calls": 4
+  }
+ ],
+ "jobs": [
+  {
+   "kind": "ask",
+   "session_id": "1ddbd927-410d-45e5-83a9-016b940c0e3a"
+  },
+  {
+   "kind": "thread_reply",
+   "session_id": "1ddbd927-410d-45e5-83a9-016b940c0e3a"
+  },
+  {
+   "kind": "freshness",
+   "session_id": null
+  },
+  {
+   "kind": "freshness",
+   "session_id": "243f2908-cf37-4183-9f23-cd35331a7001"
+  },
+  {
+   "kind": "freshness_suggest",
+   "session_id": "1ddbd927-410d-45e5-83a9-016b940c0e3a"
+  }
+ ],
+ "chat_answer": "The thread comment you posted, \"Is the Limits section still true? @Reviewer\", does not name a ticket. The only ticket key in the page is KAN-1, which appears in the Limits section: \"Failed webhook deliveries are retried by hand (KAN-1).\" (API › # Limits)",
+ "freshness_reasons": [
+  "KAN-1 is Done and its comment says rate limits are now enforced on all public endpoints (60 requests per minute per token) as of 1.4, but the page says they are not enforced yet.",
+  "KAN-1 is Done and describes automatic retries of failed webhook deliveries (5 times with exponential backoff), but the page says they are retried by hand."
+ ]
+}

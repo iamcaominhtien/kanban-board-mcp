@@ -10,8 +10,11 @@ import { resolveOrigin } from '../../api/resolveOrigin';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
+import { markNeedsInput, NEEDS_INPUT_SCHEME } from '../../utils/writeRules';
+import type { ProposedMark } from '../../utils/docsProposalRules';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
+import { galleryAround, previewAttrs, usePreview } from '../preview/PreviewContext';
 import { highlight } from './docsHighlight';
 import { useDocsPeek } from './DocsRefsContext';
 import { Icon } from './Icon';
@@ -41,7 +44,7 @@ const SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram', 'sketch'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram', 'sketch', 'needsinput'],
     src: ['http', 'https', 'diagram', 'sketch'],
   },
 };
@@ -65,6 +68,14 @@ const METHOD_COLORS: Record<string, string> = {
 
 const NO_REFS: DocsRefRequest[] = [];
 
+/** Props that mark a block: changed since the viewer last looked, or changed by a waiting AI proposal. */
+interface BlockMark {
+  className?: string;
+  'data-changed-in'?: string;
+  'data-proposal-id'?: string;
+  'data-proposed-by'?: string;
+}
+
 export interface DocsMarkdownProps {
   children: string;
   projectId: string;
@@ -76,6 +87,8 @@ export interface DocsMarkdownProps {
   onReplaceSection?: RefChipProps['onReplaceSection'];
   /** Source line text -> version that added it: marks those blocks "Changed in vN" (since last viewed). */
   changedIn?: Map<string, number>;
+  /** Source line text -> the waiting AI proposal that would replace it: marks those blocks "Proposed by …". */
+  proposed?: Map<string, ProposedMark>;
 }
 
 function textOf(node: ReactNode): string {
@@ -147,6 +160,35 @@ function Checkbox({ checked }: { checked: boolean }) {
   );
 }
 
+/** An image in a page: click (or Enter / Space) to open it in the viewer with the other images on the page. */
+function DocsImage({ src, alt }: { src: string; alt: string }) {
+  const preview = usePreview();
+  const name = alt || src.split('/').pop() || 'image';
+  function open(el: HTMLElement) {
+    const { items, index } = galleryAround(el);
+    preview.open(items, index);
+  }
+  return (
+    <img
+      src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src}
+      alt={alt}
+      loading="lazy"
+      {...previewAttrs(src, name)}
+      tabIndex={0}
+      role="button"
+      aria-label={`Open ${name}`}
+      style={{ cursor: 'zoom-in' }}
+      onClick={(e) => open(e.currentTarget)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open(e.currentTarget);
+        }
+      }}
+    />
+  );
+}
+
 /**
  * Reader for a Docs page: the board's dk-md typography with callouts, tables, code, task lists and reference chips.
  * @param props.children - Markdown source of the page.
@@ -169,9 +211,10 @@ export function DocsMarkdown({
   onRestorePage,
   onReplaceSection,
   changedIn,
+  proposed,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
-  const linked = useMemo(() => linkifyDocs(escapeStrayDollars(cleaned)), [cleaned]);
+  const linked = useMemo(() => linkifyDocs(markNeedsInput(escapeStrayDollars(cleaned))), [cleaned]);
   const resolved = useResolveRefs(projectId, linked.refs.length ? linked.refs : NO_REFS);
   const pages = new Map<string, NonNullable<typeof resolved.data>[number]>();
   const tickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
@@ -197,6 +240,7 @@ export function DocsMarkdown({
     pages,
     tickets,
     changedIn,
+    proposed,
     lines: cleaned.split('\n'),
   });
   live.current = {
@@ -211,17 +255,39 @@ export function DocsMarkdown({
     pages,
     tickets,
     changedIn,
+    proposed,
     lines: cleaned.split('\n'),
   };
-  // Props that flag a block as changed since the viewer last looked, from its source lines (hast position).
-  const changedProps = (node: Element | undefined): { className?: string; 'data-changed-in'?: string } => {
-    const { changedIn: map, lines } = live.current;
+  // Props that flag a block as changed since the viewer last looked, or as one a waiting AI proposal would change,
+  // from its source lines (hast position).
+  const changedProps = (node: Element | undefined): BlockMark => {
+    const { changedIn: map, proposed: marks, lines } = live.current;
     const start = node?.position?.start.line;
     const end = node?.position?.end.line;
-    if (!map?.size || !start || !end) return {};
+    if (!start || !end) return {};
     let version = 0;
-    for (let n = start; n <= end; n += 1) version = Math.max(version, map.get((lines[n - 1] ?? '').trim()) ?? 0);
-    return version ? { className: 'dk-changed', 'data-changed-in': `Changed in v${version}` } : {};
+    let mark: ProposedMark | undefined;
+    for (let n = start; n <= end; n += 1) {
+      const line = (lines[n - 1] ?? '').trim();
+      version = Math.max(version, map?.get(line) ?? 0);
+      // a proposal replaces a sentence or a block: the block that contains it is the one to mark
+      marks?.forEach((m, text) => {
+        if (!mark && line.includes(text)) mark = m;
+      });
+    }
+    const out: BlockMark = {};
+    const classes: string[] = [];
+    if (version) {
+      classes.push('dk-changed');
+      out['data-changed-in'] = `Changed in v${version}`;
+    }
+    if (mark) {
+      classes.push('dk-proposed');
+      out['data-proposal-id'] = mark.proposalId;
+      out['data-proposed-by'] = `Proposed by ${mark.by} · review`;
+    }
+    if (classes.length) out.className = classes.join(' ');
+    return out;
   };
   const components = useMemo<Components>(
     () => ({
@@ -286,7 +352,13 @@ export function DocsMarkdown({
         const lang = /language-([\w-]+)/.exec(code?.props.className ?? '')?.[1];
         return <CodeBlock code={textOf(code?.props.children).replace(/\n$/, '')} lang={lang} />;
       },
-      table: ({ node: _n, children: inner }) => <table className="dk-table">{inner}</table>,
+      table: ({ node, children: inner }) => {
+        // a table is one block: a row a waiting proposal would change (or one edited since last viewed) marks the whole
+        // table. The mark sits on a wrapper because the table clips its own overflow.
+        const own = changedProps(node);
+        const table = <table className="dk-table">{inner}</table>;
+        return own.className ? <div {...own}>{table}</div> : table;
+      },
       th: ({ node: _n, children: inner, style }) => {
         const t = textOf(inner).trim();
         const width = t === 'Method' ? 78 : t === 'Auth' ? 70 : undefined;
@@ -319,6 +391,8 @@ export function DocsMarkdown({
           <li
             className={own.className ? `dk-task ${own.className}` : 'dk-task'}
             data-changed-in={own['data-changed-in']}
+            data-proposal-id={own['data-proposal-id']}
+            data-proposed-by={own['data-proposed-by']}
           >
             <Checkbox checked={checked} />
             <span
@@ -341,15 +415,14 @@ export function DocsMarkdown({
         const sketchId = sketchIdOf(src);
         if (sketchId) return <SketchEmbed id={sketchId} label={alt ?? ''} />;
         if (!src || src.startsWith('uploading:')) return null;
-        return (
-          <img src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src} alt={alt ?? ''} loading="lazy" />
-        );
+        return <DocsImage src={src} alt={alt ?? ''} />;
       },
       a: ({ href, children: inner, ...props }) => {
         const diagramId = diagramIdOf(href);
         if (diagramId) return <DiagramEmbed id={diagramId} label={textOf(inner)} />;
         const sketchId = sketchIdOf(href);
         if (sketchId) return <SketchEmbed id={sketchId} label={textOf(inner)} />;
+        if (href?.startsWith(NEEDS_INPUT_SCHEME)) return <span className="dk-needs-input">{inner}</span>;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
           return (
@@ -397,7 +470,7 @@ export function DocsMarkdown({
   );
 
   return (
-    <div className="dk-md">
+    <div className="dk-md" data-preview-scope>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkDocs]}
         // KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
@@ -409,7 +482,8 @@ export function DocsMarkdown({
           url.startsWith(REF_SCHEME) ||
           url.startsWith(TICKET_SCHEME) ||
           url.startsWith(DIAGRAM_SCHEME) ||
-          url.startsWith(SKETCH_SCHEME)
+          url.startsWith(SKETCH_SCHEME) ||
+          url.startsWith(NEEDS_INPUT_SCHEME)
             ? url
             : defaultUrlTransform(url)
         }

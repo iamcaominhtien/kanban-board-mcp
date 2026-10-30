@@ -5,6 +5,8 @@ import { extractError } from '../../api/extractError';
 import type { AiApproval, AiMember } from '../../types/ai';
 import type { Member } from '../../types';
 import { useToast } from '../Toast';
+import { requestOpenDoc } from '../../utils/openDoc';
+import { setPendingReview } from '../../utils/docsProposalRules';
 import { AiAvatar, ago, hhmm } from './aiUi';
 import { ChipChoice, Pill, RISK, RadioRow, RiskChip, SafetyCard, TrustChip, expiresIn, shown } from './aiSafetyUi';
 
@@ -483,6 +485,22 @@ export function ApprovalCard({
       </div>
       <div style={{ fontSize: 13 }}>
         <b>{a.summary}</b>
+        {a.proposalId && a.pageId && (
+          <>
+            {' '}
+            <button
+              type="button"
+              className="ai-link"
+              data-testid="approval-review-on-page"
+              onClick={() => {
+                setPendingReview(a.proposalId!);
+                requestOpenDoc(a.pageId!);
+              }}
+            >
+              Review on page
+            </button>
+          </>
+        )}
         {a.ticketId && onOpenTicket && (
           <>
             {' '}

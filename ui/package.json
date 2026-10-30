@@ -1,7 +1,7 @@
 {
   "name": "kanban-board-ui",
   "private": true,
-  "version": "3.11.0",
+  "version": "3.14.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "lint": "eslint src",
     "format": "prettier --write src",
     "format:check": "prettier --check src",
-    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -29,8 +29,10 @@
     "@tiptap/suggestion": "^3.31.4",
     "axios": "^1.15.0",
     "camelcase-keys": "^10.0.2",
+    "fflate": "^0.8.3",
     "katex": "^0.16.11",
     "lowlight": "^3.3.0",
+    "pdfjs-dist": "^6.4.299",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
@@ -53,6 +55,7 @@
     "prettier": "^3.9.9",
     "typescript": "^5.3.0",
     "typescript-eslint": "^8.71.1",
-    "vite": "^8.0.8"
+    "vite": "^8.0.8",
+    "vitest": "^2.1.9"
   }
 }

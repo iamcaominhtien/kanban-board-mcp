@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './components/Toast';
 import { DiagramsProvider } from './components/diagrams/DiagramsProvider';
 import { SketchProvider } from './components/sketch/SketchProvider';
+import { PreviewProvider } from './components/preview/PreviewContext';
 import App from './App.tsx';
 import './index.css';
 import { installClientLogging } from './utils/clientLog';
@@ -18,7 +19,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ToastProvider>
         <DiagramsProvider>
           <SketchProvider>
-            <App />
+            <PreviewProvider>
+              <App />
+            </PreviewProvider>
           </SketchProvider>
         </DiagramsProvider>
       </ToastProvider>

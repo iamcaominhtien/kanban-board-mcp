@@ -5,6 +5,27 @@ import { useTickets } from '../../api/tickets';
 import { extractError } from '../../api/extractError';
 import type { AiMember, AiProvider, DetectResult } from '../../types/ai';
 import { AiAvatar, AvatarPicker, DEFAULT_LOOK, PROVIDERS, STATUS_NAMES } from './aiUi';
+import presetData from './memberPresets.json';
+import { AiFillPanel, type AiFilled } from './AiFillPanel';
+
+interface MemberPreset {
+  id: string;
+  name: string;
+  model: string;
+  template: string;
+  ceiling: string;
+  maxParallel: number;
+  maxRunsPerDay: number;
+  approvals: Record<string, boolean>;
+  cliAllow?: string[];
+  tagline: Record<'en' | 'vi', string>;
+  description: Record<'en' | 'vi', string>;
+  persona: Record<'en' | 'vi', string>;
+}
+/** What a member that never edits files may run (the same list as the PM and Reviewer presets). */
+const READ_ONLY_ALLOW = ['Read', 'Glob', 'Grep', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)'];
+/** Ready-made AI members from the guideline (PM, Dev, Reviewer). The same file feeds the guideline PDF. */
+const PRESETS = presetData as MemberPreset[];
 
 interface Props {
   projectId: string;
@@ -97,6 +118,13 @@ export function AddAiMemberModal({
   const [nameCheck, setNameCheck] = useState<{ message: string | null; suggestion: string | null } | null>(null);
   const [description, setDescription] = useState('');
   const [persona, setPersona] = useState('');
+  const [presetId, setPresetId] = useState<string | null>(null);
+  // What "Ask AI to fill this in" chose, when no preset is on: a role template and the CLI allow list
+  const [aiTemplate, setAiTemplate] = useState<'reviewer' | 'read_only' | null>(null);
+  const [aiCliAllow, setAiCliAllow] = useState<string[] | null>(null);
+  const [presetLang, setPresetLang] = useState<'en' | 'vi'>(() =>
+    typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('vi') ? 'vi' : 'en',
+  );
   const [maxParallel, setMaxParallel] = useState(2);
   const [dailyBudget, setDailyBudget] = useState('5.00');
   const [monthlyCap, setMonthlyCap] = useState('120.00');
@@ -119,6 +147,52 @@ export function AddAiMemberModal({
   const [savedKeyPrefix, setSavedKeyPrefix] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const create = useAiMutation((body: Record<string, unknown>) => aiApi.create(projectId, body));
+  const preset = PRESETS.find((p) => p.id === presetId) ?? null;
+  // A preset on another role template (Reviewer) lets the template decide; the approval switches do not apply
+  const fixedTemplate = preset && preset.template !== 'developer' ? preset.template : aiTemplate;
+  const roleName = preset?.name ?? (aiTemplate === 'reviewer' ? 'Reviewer' : 'Read-only');
+
+  /** Fill the form from a preset (or clear it for "Blank"); every field stays editable afterwards. */
+  function applyPreset(id: string | null) {
+    const p = PRESETS.find((x) => x.id === id) ?? null;
+    setPresetId(p ? p.id : null);
+    setAiTemplate(null);
+    setAiCliAllow(null);
+    setDescription(p ? p.description[presetLang] : '');
+    setPersona(p ? p.persona[presetLang] : '');
+    if (!p) return;
+    setName(p.name);
+    setMaxParallel(p.maxParallel);
+    if (local) setRunsPerDay(p.maxRunsPerDay);
+    setCeiling(p.ceiling);
+    setConfirmDone(false);
+    setApprovals({ ...p.approvals });
+  }
+
+  /** Fill the form from the member the AI proposed; the person still reviews it and presses Create. */
+  function fillFromAi(m: AiFilled) {
+    setPresetId(null);
+    setName(m.name);
+    setDescription(m.description);
+    setPersona(m.persona);
+    setMaxParallel(m.maxParallel);
+    if (local) setRunsPerDay(m.maxRunsPerDay);
+    setCeiling(m.ceiling);
+    setConfirmDone(false);
+    setAiTemplate(m.template === 'developer' ? null : m.template);
+    setAiCliAllow(provider === 'claude-code' && m.readOnlyCli ? READ_ONLY_ALLOW : null);
+    const wanted = m.model.toLowerCase();
+    if (spec.models.includes(wanted)) setModel(wanted);
+  }
+
+  /** Switch the language of the preset text, unless it was edited by hand. */
+  function changePresetLang(lang: 'en' | 'vi') {
+    if (preset) {
+      if (persona === preset.persona[presetLang]) setPersona(preset.persona[lang]);
+      if (description === preset.description[presetLang]) setDescription(preset.description[lang]);
+    }
+    setPresetLang(lang);
+  }
 
   useEffect(() => {
     setModel(spec.defaultModel ?? '');
@@ -235,8 +309,10 @@ export function AddAiMemberModal({
     if (approvals.edit_docs === false) overrides.edit_docs = 'allowed';
     // Delete is Blocked unless an owner turns it on, and then it needs approval (never Allowed)
     if (approvals.delete_tickets) overrides.delete_tickets = 'approval';
-    const template = Object.values(overrides).includes('allowed') ? 'custom' : 'developer';
-    if (template === 'custom') {
+    const template = fixedTemplate ?? (Object.values(overrides).includes('allowed') ? 'custom' : 'developer');
+    if (fixedTemplate) {
+      for (const k of Object.keys(overrides)) delete overrides[k];
+    } else if (template === 'custom') {
       // Custom starts wide: put back the approvals that stay on
       if (approvals.change_assignee) overrides.change_assignee = 'approval';
       if (approvals.edit_docs) overrides.edit_docs = 'approval';
@@ -263,6 +339,10 @@ export function AddAiMemberModal({
         confirmDone: beyondReview(ceiling) ? confirmDone : undefined,
         template,
         permissions: overrides,
+        config:
+          (aiCliAllow ?? preset?.cliAllow) && provider === 'claude-code'
+            ? { allowRules: aiCliAllow ?? preset?.cliAllow }
+            : undefined,
       });
       setSavedKeyPrefix(apiKey ? keyPrefix(key) : '');
       setKey('');
@@ -589,6 +669,70 @@ export function AddAiMemberModal({
 
           {step === 3 && (
             <>
+              {provider !== 'mcp-client' && (
+                <AiFillPanel
+                  projectId={projectId}
+                  form={{
+                    name,
+                    description,
+                    persona,
+                    template: fixedTemplate ?? 'developer',
+                    ceiling,
+                    maxParallel,
+                    maxRunsPerDay: runsPerDay,
+                    model,
+                  }}
+                  onFill={fillFromAi}
+                />
+              )}
+              {provider !== 'mcp-client' && (
+                <div className="ai-field" data-testid="ai-presets">
+                  <span className="ai-label ai-label-dark">Start from</span>
+                  <div className="ai-preset-row">
+                    {PRESETS.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`ai-preset ${presetId === p.id ? 'is-on' : ''}`}
+                        onClick={() => applyPreset(p.id)}
+                        data-testid={`ai-preset-${p.id}`}
+                      >
+                        <b>{p.name}</b>
+                        <span>{p.tagline[presetLang]}</span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={`ai-preset ${presetId === null ? 'is-on' : ''}`}
+                      onClick={() => applyPreset(null)}
+                      data-testid="ai-preset-blank"
+                    >
+                      <b>Blank</b>
+                      <span>Set it up yourself.</span>
+                    </button>
+                  </div>
+                  <div className="ai-preset-meta">
+                    <span className="ai-hint">
+                      {preset
+                        ? `Filled in the name, description, persona, limits and permissions. Everything stays editable. Suggested model: ${preset.model}.`
+                        : 'Pick a ready-made role to fill in the form, or keep it blank.'}
+                    </span>
+                    <span className="ai-seg ai-seg-small" role="group" aria-label="Preset language">
+                      {(['en', 'vi'] as const).map((l) => (
+                        <button
+                          key={l}
+                          type="button"
+                          className={presetLang === l ? 'ai-seg-on' : ''}
+                          onClick={() => changePresetLang(l)}
+                          data-testid={`ai-preset-lang-${l}`}
+                        >
+                          {l === 'en' ? 'English' : 'Tiếng Việt'}
+                        </button>
+                      ))}
+                    </span>
+                  </div>
+                </div>
+              )}
               <div className="ai-field">
                 <span className="ai-label ai-label-dark">Name</span>
                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
@@ -675,15 +819,18 @@ export function AddAiMemberModal({
                   </>
                 ) : (
                   local && (
-                    <div className="ai-field" style={{ width: 150 }}>
-                      <span className="ai-label ai-label-dark">Max runs per day</span>
+                    <div className="ai-field" style={{ width: 190 }}>
+                      <span className="ai-label ai-label-dark" style={{ whiteSpace: 'nowrap' }}>
+                        Scheduled runs per day
+                      </span>
                       <Stepper value={runsPerDay} min={1} max={500} onChange={setRunsPerDay} />
                     </div>
                   )
                 )}
               </div>
               <span className="ai-hint">
-                At the limit it pauses and says why. Local runners get “Max runs per day” instead.
+                At the limit it pauses and says why. Local runners get “Scheduled runs per day” instead. It only counts
+                runs a schedule starts.
                 {apiKey ? ' Costs are estimated in US dollars from the built-in price table.' : ''}
               </span>
             </>
@@ -719,40 +866,50 @@ export function AddAiMemberModal({
                   </label>
                 )}
               </div>
-              <div className="ai-field">
-                <span className="ai-label ai-label-dark">Ask a person first before it can…</span>
-                <div className="ai-card">
-                  {APPROVAL_TOGGLES.map((t, i) => (
-                    <div
-                      key={t.action}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: '10px 12px',
-                        borderTop: i ? '1px solid #EEF3EF' : undefined,
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}</div>
-                        <div className="ai-muted">{approvals[t.action] ? t.on : t.off}</div>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label={t.label}
-                        className={`ai-toggle ${approvals[t.action] ? 'ai-toggle-on' : ''}`}
-                        disabled={t.locked || (t.action === 'delete_tickets' && me.data?.role !== 'owner')}
-                        title={
-                          t.action === 'delete_tickets' && me.data?.role !== 'owner'
-                            ? 'Only the owner can enable this'
-                            : undefined
-                        }
-                        onClick={() => setApprovals({ ...approvals, [t.action]: !approvals[t.action] })}
-                      />
-                    </div>
-                  ))}
+              {fixedTemplate ? (
+                <div className="ai-notice ai-notice-info" data-testid="ai-fixed-template">
+                  <span>
+                    The <b>{roleName}</b> role template decides what it may do on tickets: it reads, comments and
+                    changes status up to the ceiling; edits and new tickets wait for approval; it cannot change
+                    assignees or edit docs. You can change the template later on the Permissions tab.
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="ai-field">
+                  <span className="ai-label ai-label-dark">Ask a person first before it can…</span>
+                  <div className="ai-card">
+                    {APPROVAL_TOGGLES.map((t, i) => (
+                      <div
+                        key={t.action}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          padding: '10px 12px',
+                          borderTop: i ? '1px solid #EEF3EF' : undefined,
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}</div>
+                          <div className="ai-muted">{approvals[t.action] ? t.on : t.off}</div>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={t.label}
+                          className={`ai-toggle ${approvals[t.action] ? 'ai-toggle-on' : ''}`}
+                          disabled={t.locked || (t.action === 'delete_tickets' && me.data?.role !== 'owner')}
+                          title={
+                            t.action === 'delete_tickets' && me.data?.role !== 'owner'
+                              ? 'Only the owner can enable this'
+                              : undefined
+                          }
+                          onClick={() => setApprovals({ ...approvals, [t.action]: !approvals[t.action] })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="ai-card" style={{ padding: 12, background: '#F6FAF7' }}>
                 <div className="ai-label" style={{ marginBottom: 8 }}>
                   Summary
@@ -778,7 +935,8 @@ export function AddAiMemberModal({
                   </dd>
                   <dt>Permissions</dt>
                   <dd>
-                    Up to {STATUS_NAMES[ceiling]} · {approvalsOn} approvals
+                    Up to {STATUS_NAMES[ceiling]} ·{' '}
+                    {fixedTemplate ? `${roleName} role template` : `${approvalsOn} approvals`}
                   </dd>
                 </dl>
               </div>
@@ -953,6 +1111,9 @@ export function Stepper({
   max: number;
   onChange: (v: number) => void;
 }) {
+  const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n)));
+  // Shift + click moves by a tenth of the range (at least 5), so 20 → 50 is a few clicks, or just type the number
+  const jump = (e: { shiftKey: boolean }) => (e.shiftKey ? Math.max(5, Math.round((max - min) / 10)) : 1);
   return (
     <div
       style={{
@@ -966,17 +1127,37 @@ export function Stepper({
       <button
         type="button"
         className="ai-icobtn"
-        onClick={() => onChange(Math.max(min, value - 1))}
+        onClick={(e) => onChange(clamp(value - jump(e)))}
         aria-label="Decrease"
+        title="Shift + click: bigger steps"
       >
         −
       </button>
-      <span style={{ minWidth: 34, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{value}</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={Number.isFinite(value) ? String(value) : ''}
+        aria-label="Value"
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, '');
+          onChange(digits === '' ? NaN : Number(digits));
+        }}
+        onBlur={() => onChange(Number.isFinite(value) ? clamp(value) : min)}
+        style={{
+          width: 52,
+          border: 'none',
+          background: 'transparent',
+          textAlign: 'center',
+          fontSize: 13,
+          fontWeight: 700,
+        }}
+      />
       <button
         type="button"
         className="ai-icobtn"
-        onClick={() => onChange(Math.min(max, value + 1))}
+        onClick={(e) => onChange(clamp(value + jump(e)))}
         aria-label="Increase"
+        title="Shift + click: bigger steps"
       >
         +
       </button>

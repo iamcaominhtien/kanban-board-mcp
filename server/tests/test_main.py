@@ -180,6 +180,76 @@ async def test_upload_and_serve_all_file_types(
         ] or pdf_res.status_code in (200, 404)
 
 
+async def test_html_and_svg_uploads_cannot_run_in_the_app_origin(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(tmp_path))
+    page = b"<html><body><script>alert(1)</script></body></html>"
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        html_up = await client.post(
+            "/uploads/files", files={"file": ("report.html", page, "text/html")}
+        )
+        assert html_up.status_code == 201
+        for params in ({}, {"inline": "1"}, {"view": "1"}):
+            res = await client.get(html_up.json()["url"], params=params)
+            # never a page: either a download or plain text, so the viewer has to put it in its locked frame
+            assert not res.headers["content-type"].startswith("text/html")
+            assert res.headers["x-content-type-options"] == "nosniff"
+
+        svg_up = await client.post(
+            "/uploads/files", files={"file": ("logo.svg", svg, "image/svg+xml")}
+        )
+        assert svg_up.status_code == 201
+        res = await client.get(svg_up.json()["url"])
+        assert res.headers["content-type"].startswith("image/svg+xml")
+        policy = res.headers["content-security-policy"]
+        assert "default-src 'none'" in policy
+        assert "sandbox" in policy
+
+
+async def test_upload_info_names_the_local_path_for_open_in_app(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # A folder with accents, like a Windows user name such as "Tiến": a header cannot carry it, JSON can
+    uploads = tmp_path / "Tiến" / "uploads"
+    uploads.mkdir(parents=True)
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(uploads))
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        up = await client.post(
+            "/uploads/files", files={"file": ("notes.txt", b"hello", "text/plain")}
+        )
+        assert up.status_code == 201
+        url = up.json()["url"]
+
+        # the file itself still downloads (the path header must not break the response)
+        res = await client.get(url, params={"download": "1"})
+        assert res.status_code == 200
+        assert res.content == b"hello"
+
+        # the desktop app asks for the path here; the page's origin (file://) cannot read custom headers
+        info = await client.get(f"/upload-info{url.removeprefix('/uploads')}")
+        assert info.status_code == 200
+        body = info.json()
+        assert Path(body["path"]) == (uploads / Path(url).name).resolve()
+        assert body["name"] == Path(url).name
+        assert body["size"] == 5
+
+        assert (await client.get("/upload-info/missing.txt")).status_code == 404
+        assert (
+            await client.get("/upload-info/..%2F..%2Fetc%2Fpasswd")
+        ).status_code in (
+            400,
+            404,
+        )
+
+
 def test_main_emits_ready_signal_and_serves_health(tmp_path: Path) -> None:
     server_dir = Path(__file__).resolve().parents[1]
     env = os.environ.copy()

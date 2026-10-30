@@ -9,6 +9,7 @@ import kanban_mcp
 import services.tickets as svc_tickets
 from main import mcp
 from kanban_mcp.tools import CORE_TOOL_TABLE
+from kanban_mcp.tools.ai_team import AI_TEAM_OPS
 from kanban_mcp.tools.branches import BRANCH_OPS
 from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_OPS
 from kanban_mcp.tools.items import ITEM_OPS
@@ -50,7 +51,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     assert not core & ideas
     assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(core) == 11 and len(ideas) == 5
+    assert len(core) == 12 and len(ideas) == 5
 
 
 async def test_every_operation_is_reachable_through_a_tool():
@@ -131,7 +132,7 @@ async def test_every_tool_has_annotations_that_match_its_name():
             "ticket_branches",
             "docs_write",
             "ai_schedules",
-        }:
+        }:  # ai_team acts but never deletes: not destructive
             assert a.destructiveHint is True, name
         else:
             assert a.destructiveHint is not True, name
@@ -188,10 +189,11 @@ async def test_the_tool_list_stays_compact():
     # ai_run (AI member runs) ~700 characters and ai_schedules ~1,600 in 3.8.0, on top of Docs comments (3.7.0)
     # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters, the sketch actions (3.11.0) about
     # 1,900 more
-    assert default < 37_500, (
+    # ai_team adds about 2,600 characters (measured 2,612) to the 11-tool list
+    assert default < 40_000, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 43_800, (
+    assert full < 43_000, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
@@ -242,6 +244,7 @@ async def test_schema_enums_match_the_services():
         ("ticket_branches", BRANCH_OPS),
         ("docs_read", DOCS_READ_OPS),
         ("docs_write", DOCS_WRITE_OPS),
+        ("ai_team", AI_TEAM_OPS),
     ):
         assert enum(tool, "action") == set(table), tool
     pairs = set(ITEM_OPS)

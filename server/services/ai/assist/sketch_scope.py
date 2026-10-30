@@ -891,7 +891,7 @@ async def _history_text(
     session: AsyncSession, chat_id: str, person: str
 ) -> tuple[str, int]:
     """The earlier messages the engine would send (its window), for the size shown before sending."""
-    from .chat import HISTORY
+    from .chat import HISTORY_TOKENS, _line, _memory_rows, _tokens
 
     chat = await session.get(AiChat, chat_id)
     if chat is None or chat.owner != person or chat.scope != KIND:
@@ -902,12 +902,16 @@ async def _history_text(
             .where(
                 AiChatMessage.chat_id == chat_id, col(AiChatMessage.state) != "thinking"
             )
-            .order_by(col(AiChatMessage.created_at).desc())
-            .limit(HISTORY * 2)
+            .order_by(col(AiChatMessage.created_at))
         )
     ).all()
-    rows = list(reversed(rows))
-    return "\n".join(m.text[:1500] for m in rows), len(rows)
+    # what the chat sends: its rolling summary, then the newest messages that fit the memory budget
+    rows = _memory_rows(list(rows), chat.summary_upto)
+    summary = chat.summary or ""
+    while len(rows) > 1 and _tokens(rows, summary) > HISTORY_TOKENS:
+        rows = rows[1:]
+    text = "\n".join([summary, *(_line(m) for m in rows)]).strip()
+    return text, len(rows) + (1 if summary else 0)
 
 
 # --------------------------------------------------------------------------- the kept files

@@ -23,6 +23,13 @@ import { markOwnPublish } from './useDocsNotifications';
 import './docs.css';
 import { DocsAi, startSelectionDraft } from '../assist/DocsAi';
 import { useAssist } from '../assist/AssistContext';
+import { useDocsAiState } from '../../api/docsAi';
+import { aiGate } from '../../utils/docsAiRules';
+import { CreateTicketsDialog } from './ai/CreateTicketsDialog';
+import { AiDraftChip, AiDraftPanel, goToText } from './ai/NeedsInput';
+import { stripCitations } from '../../utils/writeRules';
+import { consumeAiOnEdit } from './ai/editIntent';
+import type { AiSlashId } from './editor/slashItems';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
@@ -71,6 +78,15 @@ export function DocsEditScreen({
   const assist = useAssist();
   const qc = useQueryClient();
   const [aiMenu, setAiMenu] = useState(false);
+  const [aiCommand, setAiCommand] = useState<{ id: AiSlashId; n: number } | null>(null);
+  const [ticketsFrom, setTicketsFrom] = useState<string | null>(null);
+  const docsAiState = useDocsAiState(projectId);
+  const docsAiNow = aiGate(docsAiState.data, { hidden: !!page.aiHidden });
+  const docsAiOn = docsAiNow.show && docsAiNow.reason === null;
+  // "Edit with AI…" in the reader opens the editor with the AI menu ready
+  useEffect(() => {
+    if (consumeAiOnEdit(page.id)) setAiMenu(true);
+  }, [page.id]);
   const saveDraft = useSaveDraft(projectId);
   const publish = usePublishPage(projectId);
   const markSeen = useMarkDocsSeen();
@@ -562,6 +578,11 @@ export function DocsEditScreen({
         {!online && <OfflineBanner onRetry={() => void flush().then((ok) => ok && setOnline(true))} />}
         {online && justBack && <BackOnlineBanner onDismiss={clearJustBack} />}
         <HeadingRenameNote pageId={page.id} published={page.headings} markdown={markdown} />
+        {docsAiOn && page.draft?.aiSource && (
+          <div style={{ padding: '8px 24px', borderBottom: '1px solid #E3E8E5' }}>
+            <AiDraftChip source={page.draft.aiSource} />
+          </div>
+        )}
         {error && !publishOpen && (
           <div role="alert" style={{ padding: '8px 24px', background: '#FBE7E4', color: '#A5321E', fontSize: 12.5 }}>
             {error}
@@ -602,12 +623,13 @@ export function DocsEditScreen({
               inlineAi={{ surface: 'doc', projectId }}
               ai={{
                 onAsk: () => setAiMenu((v) => !v),
+                onSlash: (id) => setAiCommand((c) => ({ id, n: (c?.n ?? 0) + 1 })),
+                docsAi: docsAiOn,
                 onSelection: (action, text) => {
                   if (action === 'ask') {
                     assist?.ask({
                       scope: 'doc',
                       docId: page.id,
-                      fresh: true,
                       text: `About this passage of the page: “${text.slice(0, 600)}” — what does it mean, and is anything missing?`,
                     });
                     return;
@@ -647,6 +669,9 @@ export function DocsEditScreen({
                     pageTitle={title}
                     menuOpen={aiMenu}
                     setMenuOpen={setAiMenu}
+                    hidden={!!page.aiHidden}
+                    command={aiCommand}
+                    onCreateTickets={setTicketsFrom}
                     ed={{
                       getEditor: () => editor.current?.getEditor() ?? null,
                       getMarkdown: () => editor.current?.flush() ?? latest.current.markdown,
@@ -664,6 +689,22 @@ export function DocsEditScreen({
               }
             />
           </div>
+          {docsAiOn && page.draft?.aiSource && (
+            <AiDraftPanel
+              source={page.draft.aiSource}
+              markdown={markdown}
+              onGoTo={(text) => goToText(editor.current?.getEditor() ?? null, text)}
+              onStripCitations={() => {
+                const next = stripCitations(editor.current?.flush() ?? markdown);
+                editor.current
+                  ?.getEditor()
+                  ?.commands.setContent(next, { contentType: 'markdown', emitUpdate: true } as never);
+                userInput.current = true;
+                setMarkdown(next);
+                touch();
+              }}
+            />
+          )}
           {cc.open && (
             <CommentsPanel
               pageId={page.id}
@@ -687,9 +728,23 @@ export function DocsEditScreen({
         <EditorRootBridge editor={editor} onEditorRoot={onEditorRoot} mode={mode} />
       </div>
 
+      {ticketsFrom !== null && (
+        <CreateTicketsDialog
+          projectId={projectId}
+          page={page}
+          selection={ticketsFrom || undefined}
+          onClose={() => setTicketsFrom(null)}
+          onOpenTicket={onOpenTicket}
+        />
+      )}
       {publishOpen && (
         <PublishDialog
           projectId={projectId}
+          pageId={page.id}
+          onGoToMarker={(text) => {
+            setPublishOpen(false);
+            window.setTimeout(() => goToText(editor.current?.getEditor() ?? null, text), 60);
+          }}
           pageTitle={title || page.title}
           fromVersion={baseVersion}
           baseMarkdown={baseMarkdown}

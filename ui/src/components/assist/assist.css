@@ -570,3 +570,41 @@
   color: #b8c3bc;
   cursor: not-allowed;
 }
+
+/* A proposed AI member inside the Board AI dock */
+.as-member {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #dbe5de;
+  border-radius: 10px;
+  background: #fff;
+}
+.as-member-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.as-member-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.as-member-tpl {
+  background: #eef3ef;
+  color: #3f5247;
+  white-space: nowrap;
+}
+.as-member-more {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+.as-member-grid {
+  align-items: end;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}

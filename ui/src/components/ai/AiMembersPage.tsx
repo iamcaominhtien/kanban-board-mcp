@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { aiApi, useAiApprovals, useAiMutation, useAiOverview, useRunnerInfo } from '../../api/ai';
+import { useAssist } from '../assist/AssistContext';
 import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
 import type { AiMember, AiProvider } from '../../types/ai';
@@ -58,6 +59,7 @@ export function AiMembersPage({
   onOpenSettings,
   onViewOnBoard,
 }: Props) {
+  const assist = useAssist();
   const [tab, setTab] = useState<Tab>(initialTab ?? 'ai');
   const [profileId, setProfileId] = useState<string | null>(initialMemberId ?? null);
   // “Edit” in a row's menu opens its profile straight on Configuration
@@ -129,6 +131,24 @@ export function AiMembersPage({
                   People and AI who can be assigned tickets and @mentioned in {projectName}.
                 </div>
               </div>
+              {assist && members.length > 0 && (
+                <button
+                  type="button"
+                  className="ai-btn"
+                  style={{ padding: '10px 16px', fontSize: 13 }}
+                  title="Describe the team you want; the Board AI asks what it needs and proposes the members for you to approve"
+                  onClick={() =>
+                    assist.ask({
+                      scope: 'project',
+                      fresh: true,
+                      text: 'I want to set up AI members for this project. Ask me what you need to know, then propose them for me to approve.',
+                    })
+                  }
+                  data-testid="ai-draft-members"
+                >
+                  ✦ Draft with AI
+                </button>
+              )}
               <button
                 type="button"
                 className="ai-btn ai-btn-primary"

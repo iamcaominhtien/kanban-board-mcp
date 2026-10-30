@@ -395,12 +395,13 @@ async def test_the_model_gets_the_earlier_turns_and_what_became_of_a_proposal(
     fake.queue.append("Fine.")
     await ask(c, chat["id"], "Thanks")
     assert "the person accepted it and it is on the drawing" in fake.prompts[-1]
-    # the window is the engine's: long chats send the newest messages only
+    # the memory is the engine's: while the chat fits its budget every earlier message is sent (a long chat is folded
+    # into a rolling summary instead, as in every chat)
     for i in range(8):
         fake.queue.append(f"answer {i}")
         await ask(c, chat["id"], f"question number {i}")
     last = fake.prompts[-1]
-    assert "question number 6" in last and "What do you see?" not in last
+    assert "question number 6" in last and "What do you see?" in last
 
 
 async def test_every_turn_sends_the_current_picture_and_the_canvas_size(env, fake):
@@ -1370,7 +1371,7 @@ async def test_the_claude_code_runner_reads_the_picture_from_a_file(env, monkeyp
     class FakeProc:
         stderr_tail: list[str] = []
 
-        def __init__(self, args, cwd):
+        def __init__(self, args, cwd, env=None):
             self.args, self.cwd = args, cwd
             names = [n for n in os.listdir(cwd) if n.startswith("picture-")]
             runs.append(
@@ -1470,7 +1471,7 @@ async def test_the_claude_code_runner_gets_several_pictures_as_files(env, monkey
     class FakeProc:
         stderr_tail: list[str] = []
 
-        def __init__(self, args, cwd):
+        def __init__(self, args, cwd, env=None):
             runs.append({"args": args, "files": sorted(os.listdir(cwd))})
 
         async def start(self):

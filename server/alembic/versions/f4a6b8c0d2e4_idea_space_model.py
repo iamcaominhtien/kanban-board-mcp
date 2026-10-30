@@ -1,7 +1,7 @@
 """idea_space_model: stages, assumption records, evidence, votes; existing ideas converted once
 
-Revision ID: e8f9a0b1c2d3
-Revises: d7e8f9a0b1c2
+Revision ID: f4a6b8c0d2e4
+Revises: b3e5f7a9c1d2
 Create Date: 2026-10-29 00:00:00.000000
 
 """
@@ -18,8 +18,8 @@ import sqlalchemy as sa
 import sqlmodel
 from alembic import op
 
-revision: str = "e8f9a0b1c2d3"
-down_revision: Union[str, Sequence[str], None] = "d7e8f9a0b1c2"
+revision: str = "f4a6b8c0d2e4"
+down_revision: Union[str, Sequence[str], None] = "b3e5f7a9c1d2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

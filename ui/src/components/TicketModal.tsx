@@ -35,7 +35,7 @@ import { resolveOrigin } from '../api/resolveOrigin';
 import { ActivitySection } from './ActivitySection';
 import { CommentsSection } from './CommentsSection';
 import { MarkdownEditor } from './MarkdownEditor';
-import { FilePreviewModal } from './FilePreviewModal';
+import { itemFromUpload, usePreview } from './preview/PreviewContext';
 import { SketchOwnerContext } from './sketch/SketchContext';
 import { sketchIdOf } from './sketch/sketchRefs';
 import { FileCategoryIcon, getFileTypeMeta, formatFileSize } from '../utils/fileIcons';
@@ -362,11 +362,7 @@ function TicketModalInner({
   }
 
   const [isBranchPopoverOpen, setIsBranchPopoverOpen] = useState(false);
-  const [previewAttachment, setPreviewAttachment] = useState<{
-    url: string;
-    fileName?: string;
-    fileSize?: number;
-  } | null>(null);
+  const preview = usePreview();
   const attFileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleDirectAttachmentUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -2194,6 +2190,11 @@ function TicketModalInner({
 
                           if (allAttachments.length === 0) return null;
 
+                          // Next and previous in the viewer walk through the ticket's attachments
+                          const attItems = allAttachments.map((att) =>
+                            itemFromUpload(att.src, att.name, att.size, { usedIn: [`${ticket.id} ${att.origin}`] }),
+                          );
+
                           return (
                             <div className={styles.attachmentsZone}>
                               <div className={styles.attachmentsLabel}>ATTACHMENTS · {allAttachments.length}</div>
@@ -2207,7 +2208,7 @@ function TicketModalInner({
                                       <div key={`att-${i}`} className={styles.attThumbBox}>
                                         <div
                                           className={styles.attThumb}
-                                          onClick={() => setPreviewAttachment({ url: att.src, fileName: att.name })}
+                                          onClick={() => preview.open(attItems, i)}
                                           title={`Click to view ${att.name}`}
                                         >
                                           <img src={resolvedSrc} alt={att.name} />
@@ -2224,7 +2225,7 @@ function TicketModalInner({
                                     <div key={`att-${i}`} className={styles.attThumbBox}>
                                       <div
                                         className={styles.attFileChip}
-                                        onClick={() => setPreviewAttachment({ url: att.src, fileName: att.name })}
+                                        onClick={() => preview.open(attItems, i)}
                                         title={`Click to preview ${att.name}`}
                                       >
                                         <div className={styles.attFileIcon} style={{ backgroundColor: meta.bgColor }}>
@@ -2343,16 +2344,6 @@ function TicketModalInner({
                             restoreCommentMutation.mutateAsync({ ticketId: ticket.id, commentId: cId })
                           }
                         />
-
-                        {previewAttachment && (
-                          <FilePreviewModal
-                            isOpen={Boolean(previewAttachment)}
-                            onClose={() => setPreviewAttachment(null)}
-                            url={previewAttachment.url}
-                            fileName={previewAttachment.fileName}
-                            fileSize={previewAttachment.fileSize}
-                          />
-                        )}
                       </>
                     </div>
 

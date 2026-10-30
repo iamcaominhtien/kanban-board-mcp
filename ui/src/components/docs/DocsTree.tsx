@@ -36,6 +36,16 @@ interface Props {
   filterRequest?: { q: string; n: number } | null;
   /** Slot in the header, next to the collapse button (Follow space). */
   headerExtra?: ReactNode;
+  /** Docs AI is on for the project: two rows above the page list, and the hidden / guidance marks on pages. */
+  aiOn?: boolean;
+  /** "Ask the docs" row (opens the search palette in Ask mode). */
+  onAskDocs?: () => void;
+  /** "Docs health" row, with the number of things to look at. */
+  onHealth?: () => void;
+  healthActive?: boolean;
+  healthCount?: number;
+  /** Pages with a proposal from an AI member waiting (a purple dot). */
+  proposalPageIds?: Set<string>;
 }
 
 interface Row {
@@ -237,6 +247,12 @@ export function DocsTree({
   onOpenSearch,
   filterRequest,
   headerExtra,
+  aiOn,
+  onAskDocs,
+  onHealth,
+  healthActive,
+  healthCount,
+  proposalPageIds,
 }: Props) {
   const storageKey = `docsTreeClosed:${projectId}`;
   const [closed, setClosed] = useState<Set<string>>(() => {
@@ -690,6 +706,32 @@ export function DocsTree({
               {highlight(n.title, q)}
             </TitleTip>
           )}
+          {!renaming && aiOn && n.aiHidden && (
+            <span title="Hidden from AI" aria-label="Hidden from AI" style={{ display: 'flex', color: '#9AA8A0' }}>
+              <Icon name="lock" size={11} strokeWidth={2} />
+            </span>
+          )}
+          {!renaming && aiOn && n.aiGuidance && (
+            <span
+              title="AI guidance: read by every AI run"
+              aria-label="AI guidance"
+              style={{ width: 7, height: 7, borderRadius: 2, background: '#6B5BD2', flexShrink: 0, margin: '0 3px' }}
+            />
+          )}
+          {!renaming && proposalPageIds?.has(n.id) && (
+            <span
+              title="An AI member proposed changes"
+              aria-label="Proposal waiting"
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: '#6B5BD2',
+                flexShrink: 0,
+                margin: '0 3px',
+              }}
+            />
+          )}
           {!renaming && n.status === 'draft' && (
             <span
               title="Draft"
@@ -916,6 +958,28 @@ export function DocsTree({
       {q && (
         <div role="status" style={{ padding: '0 14px 6px', fontSize: 11.5, color: '#5B6B60', minHeight: 18 }}>
           {matchCount === 0 ? '0 pages' : matchCount === 1 ? '1 page matches' : `${matchCount} pages match`}
+        </div>
+      )}
+      {aiOn && (
+        <div
+          style={{ padding: '0 8px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}
+          data-testid="docs-ai-rows"
+        >
+          <button type="button" className="dk-tree-airow" onClick={onAskDocs} data-testid="tree-ask-docs">
+            <Icon name="comment" size={14} strokeWidth={1.9} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Ask the docs</span>
+          </button>
+          <button
+            type="button"
+            className="dk-tree-airow"
+            aria-current={healthActive ? 'page' : undefined}
+            onClick={onHealth}
+            data-testid="tree-docs-health"
+          >
+            <Icon name="check" size={14} strokeWidth={1.9} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Docs health</span>
+            {!!healthCount && <span className="dc-btn-count">{healthCount}</span>}
+          </button>
         </div>
       )}
       <div ref={bodyRef} role="tree" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>

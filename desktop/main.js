@@ -217,6 +217,17 @@ ipcMain.handle('open-path', async (_event, filePath) => {
   }
 });
 
+// IPC: reveal a file in Finder / Explorer
+ipcMain.handle('show-item-in-folder', async (_event, filePath) => {
+  if (!filePath || typeof filePath !== 'string') return { success: false, error: 'Invalid path' };
+  try {
+    shell.showItemInFolder(filePath);
+    return { success: true, error: null };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 // IPC: open external URL in default browser
 ipcMain.handle('open-external', async (_event, url) => {
   if (!url || typeof url !== 'string') return { error: 'Invalid URL' };

@@ -176,6 +176,7 @@ export function AssistDock() {
           scope,
           ticketId: scope === 'ticket' ? ctx.ticketId : null,
           docId: scope === 'doc' ? ctx.docId : null,
+          fresh: ctx.fresh,
         });
         id = created.id;
         ctx.setChatId(id);
@@ -209,6 +210,17 @@ export function AssistDock() {
     const p = ctx.consumePending();
     setView('chat');
     if (p?.text) void send(p.text);
+    else if (p && !p.fresh && (p.scope === 'doc' || p.scope === 'ticket') && projectId) {
+      // "Ask this page" / "Ask about this ticket" pick up the latest chat about it (the server decides)
+      void assistApi
+        .createChat(projectId, {
+          scope: p.scope,
+          ticketId: p.scope === 'ticket' ? (p.ticketId ?? ctx.ticketId) : null,
+          docId: p.scope === 'doc' ? (p.docId ?? ctx.docId) : null,
+        })
+        .then((c) => ctx.setChatId(c.id))
+        .catch((e: unknown) => setError(extractError(e)));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx?.pending]);
 
@@ -237,7 +249,8 @@ export function AssistDock() {
   };
 
   const b = state?.boardAi;
-  const notConfigured = b?.state === 'not_configured';
+  const standby = b?.fallback ?? null;
+  const notConfigured = b?.state === 'not_configured' && !standby;
   const chatFeature = state?.features.find((f) => f.key === 'chat');
   const chatOff = chatFeature ? !chatFeature.on : false;
   const offline = b?.state === 'unavailable';
@@ -264,11 +277,15 @@ export function AssistDock() {
           <div className="as-head-title">Board AI</div>
           <div className="as-head-sub">
             <span
-              className={`as-dot ${b?.state === 'ready' ? '' : b?.state === 'unavailable' ? 'as-dot-red' : 'as-dot-grey'}`}
+              className={`as-dot ${b?.state === 'ready' || standby ? '' : b?.state === 'unavailable' ? 'as-dot-red' : 'as-dot-grey'}`}
             />
             {b?.name ? (
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {b.name} · {b.state === 'ready' ? 'online' : (b.status?.label?.toLowerCase() ?? 'unavailable')}
+              </span>
+            ) : standby ? (
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {standby.name} · stand-in (no Board AI chosen)
               </span>
             ) : (
               'Not configured'
@@ -290,7 +307,7 @@ export function AssistDock() {
           title="New chat"
           aria-label="New chat"
           onClick={() => {
-            ctx.setChatId(null);
+            ctx.startFresh();
             setView('chat');
           }}
         >
@@ -308,7 +325,7 @@ export function AssistDock() {
             setView('chat');
           }}
           onNew={() => {
-            ctx.setChatId(null);
+            ctx.startFresh();
             setView('chat');
           }}
         />
@@ -531,9 +548,25 @@ export function AssistDock() {
                 )}
               </div>
             )}
+            {(chat.data?.compactions ?? 0) > 0 && (
+              <div className="ai-muted" style={{ textAlign: 'center' }} data-testid="assist-summarised">
+                Earlier messages summarised
+              </div>
+            )}
             {chat.data &&
               messages.map((m) =>
-                m.role === 'user' ? (
+                m.role === 'note' ? (
+                  <div
+                    key={m.id}
+                    className="ai-muted"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    data-testid="assist-divider"
+                  >
+                    <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
+                    <span>{m.text}</span>
+                    <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
+                  </div>
+                ) : m.role === 'user' ? (
                   <div key={m.id} className="as-user">
                     {m.text}
                   </div>

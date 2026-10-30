@@ -19,8 +19,8 @@ import services.idea_tickets as svc
 from models import IdeaVote, Project, Ticket
 from tests.fast_db import fresh_tables
 
-OLD_HEAD = "d7e8f9a0b1c2"
-NEW_HEAD = "e8f9a0b1c2d3"
+OLD_HEAD = "b3e5f7a9c1d2"
+NEW_HEAD = "f4a6b8c0d2e4"
 PAST, FUTURE = "2020-01-01", "2999-01-01"
 
 

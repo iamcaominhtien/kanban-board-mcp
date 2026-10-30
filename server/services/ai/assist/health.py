@@ -446,11 +446,20 @@ async def write_digest(project_id: str) -> dict | None:
             )
         except (AssistError, llm.LlmError) as exc:
             log.info("Board health summary skipped for %s: %s", project_id, exc)
+        try:  # Docs AI: one line per page that may be out of date, on Mondays (docs-ai-care A)
+            from services.docs_ai import freshness as docs_freshness
+
+            docs_lines = await docs_freshness.digest_lines(session, project_id)
+        except Exception:  # noqa: BLE001 - the digest must not fail because of Docs
+            log.exception("Docs digest lines skipped for %s", project_id)
+            docs_lines = []
         dg = AiDigest(
             id=str(uuid.uuid4()),
             project_id=project_id,
             day=day,
-            summary=json.dumps({**stand, "text": text, "tickets": len(tickets)}),
+            summary=json.dumps(
+                {**stand, "text": text, "tickets": len(tickets), "docs": docs_lines}
+            ),
             member_id=member_id,
             cost=cost,
             tokens=tokens,

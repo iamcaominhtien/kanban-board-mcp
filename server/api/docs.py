@@ -441,6 +441,10 @@ async def post_publish(
             title=body.title,
         )
     )
+    # Needs input markers that went out with the text (the publish dialog warned about them first)
+    from services.docs_ai.write import find_markers
+
+    page["needs_input_markers"] = len(find_markers(page["markdown"]))
     if body.notify:
         await _announce(page, body.note)
     return page
@@ -525,12 +529,42 @@ class ThreadCreate(BaseModel):
     kind: str = "inline"
     body: str
     anchor: AnchorBody | None = None
+    # What a mention of an AI member means (Docs AI): ask | suggest (work) | notify
+    ai_intent: str | None = None
 
 
 class CommentBody(BaseModel):
     """Request body to reply to or edit a comment."""
 
     body: str
+    ai_intent: str | None = None
+
+
+async def _deliver_ai(
+    session: AsyncSession, out: dict[str, Any], intent: str | None
+) -> dict[str, Any]:
+    """Deliver the AI members mentioned in the comment just saved (Docs AI); the thread comes back with
+    `ai_delivery` and any note an AI member posted."""
+    from services import activity
+    from services.docs_ai import DocsAiError
+    from services.docs_ai import threads as ai_threads
+
+    if not out.get("comments"):
+        return out
+    intent = {"work": "suggest", None: "ask", "": "ask"}.get(intent, intent)
+    try:
+        delivered = await ai_threads.deliver(
+            session,
+            thread_id=out["id"],
+            comment_id=out["comments"][-1]["id"],
+            by=activity.current_actor(),
+            intent=intent or "ask",
+        )
+    except DocsAiError as exc:
+        delivered = [{"result": "not_delivered", "reason": str(exc)}]
+    if any(d["result"] in ("job", "refused") for d in delivered):
+        out = await docs_comments.get_thread(session, out["id"])
+    return {**out, "ai_delivery": delivered}
 
 
 class AnchorPreviewBody(BaseModel):
@@ -560,7 +594,7 @@ async def post_thread(
         anchor=body.anchor.model_dump() if body.anchor else None,
     )
     await board_events.publish("invalidate")
-    return out
+    return await _deliver_ai(session, out, body.ai_intent)
 
 
 @router.post("/docs/pages/{page_id}/comments/anchor-preview")
@@ -578,7 +612,7 @@ async def post_reply(
     """Reply in a thread."""
     out = await docs_comments.add_reply(session, thread_id, body.body)
     await board_events.publish("invalidate")
-    return out
+    return await _deliver_ai(session, out, body.ai_intent)
 
 
 @router.post("/docs/comments/threads/{thread_id}/resolve")

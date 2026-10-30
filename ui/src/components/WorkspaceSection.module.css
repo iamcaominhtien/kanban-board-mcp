@@ -331,9 +331,6 @@
   border-color: #2e6f40;
 }
 
-.wsRowActive {
-  background: #f1f7f3;
-}
 .wsRowSelected {
   background: #eaf4ec;
 }
@@ -391,54 +388,6 @@
 .dangerBtn:hover {
   background: #fdeeec;
   color: #c0392b;
-}
-
-.previewPanel {
-  border: 1px solid #e3e8e5;
-  border-radius: 8px;
-  background: #ffffff;
-  overflow: hidden;
-}
-.previewHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: #f6faf7;
-  border-bottom: 1px solid #e3e8e5;
-}
-.previewName {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: #1e2a22;
-}
-.previewText {
-  margin: 0;
-  padding: 12px 14px;
-  max-height: 320px;
-  overflow: auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  line-height: 1.55;
-  color: #1e2a22;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.previewImageWrap {
-  padding: 12px;
-  display: flex;
-  justify-content: center;
-  background: #fafbfa;
-}
-.previewImage {
-  max-width: 100%;
-  max-height: 360px;
-  object-fit: contain;
 }
 
 .dropHint {

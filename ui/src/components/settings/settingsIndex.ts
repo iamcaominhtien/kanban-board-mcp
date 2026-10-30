@@ -155,6 +155,14 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     keywords: 'permission role viewer member admin access',
   },
   {
+    id: 'docs-ai',
+    page: 'docs',
+    section: 'AI in Docs',
+    name: 'AI in Docs',
+    description: 'Ask the docs, check pages and write drafts: who answers, what AI may read, edits by AI members.',
+    keywords: 'ai ask hide guidance style guide freshness proposal',
+  },
+  {
     id: 'board-ai',
     page: 'ai',
     section: 'Board AI',
@@ -190,8 +198,9 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     id: 'ai-limits',
     page: 'ai',
     section: 'Limits and budgets',
-    name: 'Runs per ticket a day',
-    description: 'How often AI may work on one ticket in a day.',
+    name: 'Scheduled and AI-started runs per ticket a day',
+    description:
+      'A loop guard: how many runs a schedule or another AI may start on one ticket in a day. A person’s runs are not counted.',
     keywords: 'runs limit',
   },
   {

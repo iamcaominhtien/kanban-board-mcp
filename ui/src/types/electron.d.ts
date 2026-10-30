@@ -24,6 +24,7 @@ interface Window {
     getBackendPort: () => Promise<number | null>;
     selectFolder?: () => Promise<string | null>;
     openPath?: (filePath: string) => Promise<{ success: boolean; error?: string | null }>;
+    showItemInFolder?: (filePath: string) => Promise<{ success: boolean; error?: string | null }>;
     openExternal?: (url: string) => Promise<{ success: boolean; error?: string }>;
     onBackendReady?: (callback: (port: number) => void) => () => void;
     onBackendError?: (callback: (message: string) => void) => () => void;

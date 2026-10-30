@@ -11,6 +11,7 @@ import { DocImage } from './DocImage';
 import { DocRef } from './DocRef';
 import { HeadingAnchors } from './HeadingAnchors';
 import { MathBlock, MathInline } from './Math';
+import { NeedsInput } from './NeedsInput';
 import { Placeholder } from './Placeholder';
 import { Shortcuts } from './Shortcuts';
 import { Sketch } from './Sketch';
@@ -77,6 +78,7 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     CommentHighlights.configure({ onSelect: (id) => opts.onCommentSelect?.(id) }),
     TableMethods,
     Placeholder,
+    NeedsInput,
     Shortcuts.configure({ onLink: opts.onLink }),
   ];
 }

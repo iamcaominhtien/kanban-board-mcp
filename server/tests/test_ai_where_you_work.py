@@ -732,7 +732,9 @@ async def test_an_ai_never_approves_its_own_request(env):
     assert len(pending) == 1
     from services.ai import approvals as ai_approvals
 
-    with pytest.raises(ai_approvals.ApprovalForbidden, match="AI members can't decide"):
+    with pytest.raises(
+        ai_approvals.ApprovalForbidden, match="cannot decide a proposal"
+    ):
         await ai_approvals.decide(pending[0]["id"], by=m["name"], approve=True)
     still = (
         await c.get(f"/projects/{pid}/ai/approvals", params={"status": "pending"})

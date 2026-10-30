@@ -104,7 +104,7 @@ Source: [IdeaPromote.dc.html](../source/IdeaPromote.dc.html) › block "H. What 
 
 ---
 
-### As shipped (3.11.0)
+### As shipped (3.14.0)
 
 The conversion follows the table above, with these details where the design leaves a choice:
 

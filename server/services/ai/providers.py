@@ -89,6 +89,15 @@ PRICES: dict[str, tuple[float, float]] = {
 DEFAULT_PRICE = (3.0, 15.0)
 PRICES_UPDATED = "2026-10-01"
 
+# Context window in tokens (longest matching prefix, like PRICES): when an API agent's chat fills a share of it
+# (`compact_at_pct`) the board summarises the oldest tool turns
+CONTEXT_WINDOWS: dict[str, int] = {
+    "claude": 200_000,
+    "gpt-4.1": 1_000_000,
+    "gemini": 1_000_000,
+}
+DEFAULT_WINDOW = 128_000
+
 # The nine option groups of the Configuration tab and how each adapter handles them (design/screens/ai-provider-config.md,
 # A2): "synced" = the board stores it and writes it (for the API agent: uses it directly), "documented" = the board
 # only shows steps, "not_supported" = hidden for this adapter.
@@ -195,6 +204,27 @@ def price_for(model: str | None) -> tuple[float, float]:
     return PRICES[best] if best else DEFAULT_PRICE
 
 
+def context_window(model: str | None) -> int:
+    """Context window of a model in tokens (a conservative default for an unknown one)."""
+    name = (model or "").lower()
+    best = None
+    for key in CONTEXT_WINDOWS:
+        if name.startswith(key) or key in name:
+            if best is None or len(key) > len(best):
+                best = key
+    return CONTEXT_WINDOWS[best] if best else DEFAULT_WINDOW
+
+
+def cheap_model(provider: str, model: str | None) -> str | None:
+    """The cheapest model the provider lists when it is cheaper than `model` (for small helper calls such as
+    summarising a long session), else `model` itself."""
+    listed = PROVIDERS.get(provider, {}).get("models") or []
+    if not listed:
+        return model
+    best = min(listed, key=lambda m: sum(price_for(m)))
+    return best if sum(price_for(best)) < sum(price_for(model)) else model
+
+
 def cost_of(model: str | None, tokens_in: int, tokens_out: int) -> float:
     """Estimated USD cost of a call."""
     pin, pout = price_for(model)
@@ -230,6 +260,11 @@ DEFAULT_CONFIG: dict = {
     "max_turns": 40,
     "run_timeout_min": 30,
     "idle_timeout_min": 10,
+    # What the CLI may do without asking: "allowlist" (only the Allow rules, the default) or "bypass" (every tool
+    # except what the Deny rules and the board's own checks stop; owner-only, typed confirmation)
+    "permission_mode": "allowlist",
+    # Claude Code compacts a long session by itself once it fills this share of its context window
+    "compact_at_pct": 60,
     # API agents (D5–D7)
     "max_steps": 12,
     "max_tokens_per_run": 60000,

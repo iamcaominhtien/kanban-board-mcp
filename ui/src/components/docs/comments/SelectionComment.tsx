@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { CommentAnchorInput } from '../../../types/docs';
 import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { anchorFromRange } from './anchorDom';
+import type { SuggestMember } from '../RefSuggester';
 
 export interface Pick {
   anchor: CommentAnchorInput;
@@ -60,11 +61,17 @@ export function SelectionToolbar({
   label,
   enabled,
   onPick,
+  extra,
+  hideComment,
 }: {
   root: HTMLElement | null;
   label: string;
   enabled: boolean;
   onPick: (p: Pick) => void;
+  /** More buttons after Comment (Docs AI: Explain, Summarise, Ask…). `close` hides the bar. */
+  extra?: (pick: Pick, close: () => void) => ReactNode;
+  /** Show only `extra` (a person who cannot comment can still use AI). */
+  hideComment?: boolean;
 }) {
   const [pick, setPick] = useState<Pick | null>(null);
 
@@ -82,29 +89,35 @@ export function SelectionToolbar({
     };
   }, [root, enabled]);
 
-  useCommentShortcut(() => {
-    const p = pickFromSelection(root);
-    if (p) onPick(p);
-  }, enabled && !!root);
+  useCommentShortcut(
+    () => {
+      const p = pickFromSelection(root);
+      if (p) onPick(p);
+    },
+    enabled && !hideComment && !!root,
+  );
 
   if (!enabled || !pick) return null;
   const left = Math.max(8, Math.min(window.innerWidth - 130, (pick.rect.left + pick.rect.right) / 2 - 55));
   const top = pick.rect.top > 56 ? pick.rect.top - 44 : pick.rect.bottom + 8;
   return (
     <div className="dc-selbar" style={{ left, top }} data-testid="selection-toolbar" data-nocomment>
-      <button
-        type="button"
-        data-testid="selection-comment"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => {
-          onPick(pick);
-          setPick(null);
-        }}
-      >
-        <Icon name="comment" size={14} strokeWidth={1.9} />
-        {label}
-        <kbd>{SHORTCUT_LABEL}</kbd>
-      </button>
+      {!hideComment && (
+        <button
+          type="button"
+          data-testid="selection-comment"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            onPick(pick);
+            setPick(null);
+          }}
+        >
+          <Icon name="comment" size={14} strokeWidth={1.9} />
+          {label}
+          <kbd>{SHORTCUT_LABEL}</kbd>
+        </button>
+      )}
+      {extra?.(pick, () => setPick(null))}
     </div>
   );
 }
@@ -126,7 +139,7 @@ export function ComposePopover({
 }: {
   pick: Pick;
   projectId: string;
-  members: { id: string; name: string; bg: string; color: string }[];
+  members: SuggestMember[];
   onSubmit: (text: string) => Promise<unknown>;
   onCancel: () => void;
 }) {

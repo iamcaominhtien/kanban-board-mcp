@@ -114,6 +114,8 @@ export interface AiConfig {
   maxTurns: number;
   runTimeoutMin: number;
   idleTimeoutMin: number;
+  compactAtPct: number;
+  permissionMode: 'allowlist' | 'bypass';
   maxSteps: number;
   maxTokensPerRun: number;
   temperature: number;
@@ -216,6 +218,7 @@ export interface AiMember {
   assigned: { id: string; title: string; status: string }[];
   usage: {
     runsToday: number;
+    scheduledRunsToday: number;
     runsLastHour: number;
     tokensInToday: number;
     tokensOutToday: number;
@@ -413,6 +416,9 @@ export interface AiApproval {
   risk: 'low' | 'medium' | 'high';
   status: 'pending' | 'approved' | 'denied' | 'expired' | 'failed' | 'run_ended';
   onBehalfOf: string | null;
+  /** A Docs AI proposal: the proposal and the page it changes. */
+  proposalId?: string | null;
+  pageId?: string | null;
   requestedAt: string;
   expiresAt: string | null;
   decidedBy: string | null;

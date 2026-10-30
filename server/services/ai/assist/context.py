@@ -256,6 +256,11 @@ async def build(
             )
         )
     ).all()
+    # Pages hidden from AI (or outside "only picked") are never read, not even when a person includes a private doc
+    from services.docs_ai import access as docs_ai_access
+
+    for pid in pids:
+        excluded |= await docs_ai_access.denied_page_ids(session, pid)
     wanted = list(doc_ids or [])
     if scope == "ticket" and ticket_id:
         # Linked docs: [[Page]] references in the ticket's description

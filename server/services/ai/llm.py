@@ -26,6 +26,16 @@ Delta = Callable[[str], Awaitable[None] | None]
 
 
 @dataclass
+class SessionUse:
+    """A local Claude Code conversation a call belongs to: `resume` continues it, otherwise it starts with `id`.
+    `compact_at_pct` is the share of the context window at which the CLI compacts it."""
+
+    id: str
+    resume: bool = False
+    compact_at_pct: int | None = None
+
+
+@dataclass
 class Completion:
     """What came back."""
 
@@ -37,10 +47,13 @@ class Completion:
     stop_reason: str | None = None  # end | max_tokens
     model: str | None = None
     elapsed_s: float = 0.0
+    compacted: bool = (
+        False  # the CLI summarized the older part of a long session during this call
+    )
 
 
 class LlmError(Exception):
-    """A call failed. `kind`: auth | rate | model | outage | bad_request | timeout | runner | unsupported."""
+    """A call failed. `kind`: auth | rate | model | outage | bad_request | timeout | runner | session | unsupported."""
 
     def __init__(
         self,
@@ -265,9 +278,11 @@ async def _claude_cli(
     prompt: str,
     on_delta: Delta | None,
     images: list[bytes] | None = None,
+    session: "SessionUse | None" = None,
 ) -> Completion:
     """Run the CLI headless. With `images` the pictures are written to a private temp folder (picture-1.png ...), which
-    becomes the working folder, and the CLI gets the read-only `Read` tool and nothing else, so it can look at them."""
+    becomes the working folder, and the CLI gets the read-only `Read` tool and nothing else, so it can look at them.
+    A `session` is ignored then: the CLI keeps sessions per working folder and this one is new every time."""
     if images:
         folder = tempfile.mkdtemp(prefix="kanban-picture-")
         try:
@@ -293,7 +308,9 @@ async def _claude_cli(
             )
         finally:
             shutil.rmtree(folder, ignore_errors=True)
-    return await _claude_cli_run(profile, system, prompt, on_delta, None, tools="")
+    return await _claude_cli_run(
+        profile, system, prompt, on_delta, None, tools="", session=session
+    )
 
 
 async def _claude_cli_run(
@@ -304,6 +321,7 @@ async def _claude_cli_run(
     cwd_override: str | None,
     *,
     tools: str,
+    session: "SessionUse | None" = None,
 ) -> Completion:
     spec = PROVIDERS.get(profile.provider) or {}
     path, _ = cli.find_cli(spec.get("binary") or "claude", profile.cli_path)
@@ -323,7 +341,11 @@ async def _claude_cli_run(
         "--strict-mcp-config",
         "--mcp-config",
         json.dumps({"mcpServers": {}}),
-        "--no-session-persistence",
+        *(
+            ["--resume" if session.resume else "--session-id", session.id]
+            if session
+            else ["--no-session-persistence"]
+        ),
         "--setting-sources",
         "",
         "--system-prompt",
@@ -336,7 +358,11 @@ async def _claude_cli_run(
         if profile.working_dir and os.path.isdir(profile.working_dir)
         else tempfile.gettempdir()
     )
-    proc = cli.CliProcess(args, cwd)
+    proc = cli.CliProcess(
+        args,
+        cwd,
+        env=cli.child_env(session.compact_at_pct if session else None),
+    )
     out = Completion(model=model, metered=False)
     await proc.start()
     result: dict | None = None
@@ -357,6 +383,8 @@ async def _claude_cli_run(
                 elif e.get("type") == "message_delta":
                     sr = (e.get("delta") or {}).get("stop_reason")
                     out.stop_reason = "max_tokens" if sr == "max_tokens" else "end"
+            elif t == "system" and ev.get("subtype") == "compact_boundary":
+                out.compacted = True
             elif t == "result":
                 result = ev
         code = await proc.wait()
@@ -371,6 +399,8 @@ async def _claude_cli_run(
     if result.get("is_error"):
         msg = str(result.get("result") or "The CLI reported an error.")
         low = msg.lower()
+        if "no conversation found" in low:
+            raise LlmError("session", "The CLI could not resume the chat's session.")
         if "login" in low or "logged in" in low:
             raise LlmError(
                 "auth",
@@ -401,12 +431,14 @@ async def complete(
     temperature: float = 0.2,
     on_delta: Delta | None = None,
     images: list[bytes] | None = None,
+    session: "SessionUse | None" = None,
 ) -> Completion:
     """One answer from the member. Raises `LlmError`; `asyncio.CancelledError` stops the call (and the CLI).
 
     `images` are pictures (PNG, JPEG, GIF or WebP, as bytes) the model should look at: Anthropic and OpenAI-compatible
     members get them all in the request, Claude Code reads them from a temporary folder. Leave it out for a text-only
-    call."""
+    call.
+    A `session` keeps a local Claude Code conversation going (the CLI remembers it); other connections ignore it."""
     started = time.monotonic()
     if profile.connection == "local":
         if profile.provider != "claude-code":
@@ -414,7 +446,7 @@ async def complete(
                 "unsupported",
                 "Only Claude Code can answer as the Board AI among local runners.",
             )
-        coro = _claude_cli(profile, system, prompt, on_delta, images)
+        coro = _claude_cli(profile, system, prompt, on_delta, images, session)
     elif profile.connection == "api_key":
         key = secrets.decrypt(profile.key_enc)
         if not key:

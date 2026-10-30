@@ -30,6 +30,7 @@ STATUS = {
     "no_criteria": 422,
     "viewer": 403,
     "forbidden": 403,
+    "hidden": 403,
     "conflict": 409,
     "apply_failed": 409,
     "feature_off": 409,
@@ -129,11 +130,13 @@ class ChatBody(BaseModel):
     doc_id: Optional[str] = None
     scope_id: Optional[str] = None
     member_id: Optional[str] = None
+    # "New chat": do not continue the latest chat about the same ticket or page
+    fresh: bool = False
 
 
 @router.post("/projects/{project_id}/ai/assist/chats", status_code=201)
 async def post_chat(project_id: str, body: ChatBody, session: Session) -> dict:
-    """New chat."""
+    """New chat, or the person's latest chat about the same ticket or page."""
     c = await svc_chat.create_chat(
         session,
         project_id,
@@ -143,6 +146,7 @@ async def post_chat(project_id: str, body: ChatBody, session: Session) -> dict:
         doc_id=body.doc_id,
         scope_id=body.scope_id,
         member_id=body.member_id,
+        fresh=body.fresh,
     )
     return await svc_chat.chat_detail(session, c.id, _by())
 
@@ -227,6 +231,7 @@ class MessageBody(BaseModel):
     # "ask" only answers; "work" starts a run on the chat's ticket (never the default)
     mode: str = "ask"
     member_id: Optional[str] = None
+    member_form: Optional[dict[str, Any]] = None
 
 
 @router.post("/ai/assist/chats/{chat_id}/messages")
@@ -243,6 +248,7 @@ async def post_message(chat_id: str, body: MessageBody, session: Session) -> dic
         filters=body.filters,
         mode=body.mode,
         member_id=body.member_id,
+        member_form=body.member_form,
     )
 
 

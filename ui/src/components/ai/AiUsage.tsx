@@ -682,7 +682,7 @@ function EditBudgetDialog({
               </div>
             </>
           ) : (
-            <NumberField label="Runs per day" value={runsDay} onChange={setRunsDay} step="1" />
+            <NumberField label="Scheduled runs per day" value={runsDay} onChange={setRunsDay} step="1" />
           )}
           <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div className="ai-field">
@@ -842,7 +842,13 @@ function BoardLimitsDialog({ projectId, onClose }: { projectId: string; onClose:
               placeholder="No limit"
             />
             <NumberField label="Parallel runs (total)" value={v.parallel} onChange={set('parallel')} step="1" />
-            <NumberField label="Runs per day" value={v.runs} onChange={set('runs')} step="1" placeholder="No limit" />
+            <NumberField
+              label="Scheduled and AI-started runs per day"
+              value={v.runs}
+              onChange={set('runs')}
+              step="1"
+              placeholder="No limit"
+            />
           </div>
           <div className="ai-field">
             <span className="ai-label ai-label-dark">When a board limit is reached</span>

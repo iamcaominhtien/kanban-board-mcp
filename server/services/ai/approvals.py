@@ -51,6 +51,14 @@ TRIGGERS = {
 }
 
 
+PROPOSAL_TOOL = "docs_proposal"  # an AI member's page edit, reviewed as a Docs AI proposal (services/docs_ai/proposals)
+
+
+def is_proposal(a: AiApproval) -> bool:
+    """The approval stands for a Docs AI proposal (decided by accepting or rejecting its changes)."""
+    return loads(a.payload, {}).get("tool") == PROPOSAL_TOOL
+
+
 class ApprovalError(ValueError):
     """An approval or revert request was refused."""
 
@@ -83,6 +91,10 @@ def to_dict(a: AiApproval, member_name: str | None = None) -> dict:
         "action": a.action,
         "summary": a.summary,
         "params": payload.get("params") or {},
+        "proposal_id": payload.get("proposal_id"),
+        "page_id": (payload.get("params") or {}).get("page_id")
+        if payload.get("proposal_id")
+        else None,
         "reason": a.reason,
         "risk": a.risk,
         "status": a.status,
@@ -254,6 +266,8 @@ async def expire(session: AsyncSession) -> int:
     n = 0
     stop: list[AiApproval] = []
     for a in rows:
+        if is_proposal(a):
+            continue  # a proposal expires with its own time (services/docs_ai/proposals.expire_due)
         exp = parse_iso(a.expires_at)
         if exp and exp < now:
             a.status = "expired"
@@ -289,6 +303,8 @@ async def mark_run_ended(run_id: str) -> int:
                 )
             )
         ).all()
+        # a proposal outlives its run: a person can still accept it into a draft
+        rows = [a for a in rows if not is_proposal(a)]
         for a in rows:
             a.status = "run_ended"
             a.decision_note = "The run ended before anyone decided"
@@ -452,6 +468,7 @@ async def decide(
         ApprovalError: Not found, already decided, run ended, or the person may not decide this risk.
         ApprovalStale: The ticket changed since the request and `accept_updated` is not set.
     """
+    proposal = False
     async with database.async_session() as session:
         await expire(session)
         a = await session.get(AiApproval, approval_id)
@@ -464,6 +481,7 @@ async def decide(
                 )
         elif a.status != "pending":
             raise ApprovalError(f"This request is already {a.status}.")
+        await _forbid_ai(session, a.project_id, by)
         settings = await get_settings(session, a.project_id)
         if enforce_roles:
             ok, why = await safety.can_decide(
@@ -476,13 +494,17 @@ async def decide(
             )
             if not ok:
                 raise ApprovalForbidden(why)
-        if approve and not accept_updated:
+        if is_proposal(a):
+            proposal = True
+        elif approve and not accept_updated:
             ticket = await session.get(Ticket, a.ticket_id) if a.ticket_id else None
             stale = await _stale_of(session, a, ticket, {})
             if stale:
                 raise ApprovalStale(stale)
         member = await session.get(Member, a.member_id)
         name = member.name if member else "AI member"
+        if proposal:
+            return await _decide_proposal(a, name, by=by, approve=approve, note=note)
         a.decided_by = by
         a.decided_at = now_iso()
         a.decision_note = (note or "").strip()[:500] or None
@@ -560,6 +582,39 @@ async def decide(
     async with database.async_session() as session:
         a = await session.get(AiApproval, approval_id)
         return {**to_dict(a, name), "error": error}
+
+
+async def _forbid_ai(session: AsyncSession, project_id: str, by: str) -> None:
+    """An AI member never decides an approval (its own proposal included)."""
+    from services.docs_ai import DocsAiError
+    from services.docs_ai.proposals import forbid_ai
+
+    try:
+        await forbid_ai(session, project_id, by)
+    except DocsAiError as exc:
+        raise ApprovalForbidden(str(exc)) from exc
+
+
+async def _decide_proposal(
+    a: AiApproval, name: str, *, by: str, approve: bool, note: str | None
+) -> dict:
+    """Approve = accept every change that still applies into `by`'s draft of the page; deny = reject the proposal."""
+    from services.docs_ai import DocsAiError
+    from services.docs_ai.proposals import decide_from_approval
+
+    error = None
+    try:
+        await decide_from_approval(a.id, by=by, approve=approve, note=note)
+    except DocsAiError as exc:
+        if exc.code in ("forbidden", "viewer"):
+            raise ApprovalForbidden(str(exc)) from exc
+        if exc.code == "conflict":
+            raise ApprovalError(str(exc)) from exc
+        error = str(exc)
+    await board_events.publish(board_events.INVALIDATE)
+    async with database.async_session() as session:
+        row = await session.get(AiApproval, a.id)
+        return {**to_dict(row, name), "error": error}
 
 
 async def bulk_decide(
