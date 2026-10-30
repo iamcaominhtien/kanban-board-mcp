@@ -91,6 +91,7 @@
 
 /* panel */
 .dc-panel {
+  position: relative;
   width: 340px;
   flex-shrink: 0;
   border-left: 1px solid #e3e8e5;

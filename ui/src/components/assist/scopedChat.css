@@ -1,7 +1,7 @@
 /* The chat panel of one thing: a ticket, an idea (design/screens/ai-where-you-work.md, B). Builds on assist.css. */
 
 .sc-panel {
-  width: 400px;
+  width: 400px; /* the default; the panel sets its own width (components/PanelResizer.tsx) */
   flex-shrink: 0;
   min-height: 0;
   display: flex;

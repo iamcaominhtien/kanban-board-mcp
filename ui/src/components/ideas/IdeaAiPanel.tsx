@@ -10,6 +10,8 @@ import {
 } from '../../api/ideas';
 import type { Idea } from '../../types/idea';
 import { MarkdownRenderer } from '../MarkdownRenderer';
+import { useResizablePanel } from '../../hooks/useResizablePanel';
+import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import { useToast } from '../Toast';
 import { AiChip } from './ideaShared';
 
@@ -64,6 +66,8 @@ interface Props {
 /** "Shape with AI": a chat docked beside the idea. Everything it proposes is a draft with an Add button. */
 export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSettings }: Props) {
   const toast = useToast();
+  const panel = useResizablePanel('shape-ai', 380, { min: 320 });
+  const sizing = panelSizing(panel);
   const status = useIdeaAiStatus(idea.projectId).data;
   const shape = useShapeIdea();
   const edit = useEditIdeaPage();
@@ -336,11 +340,18 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
   const hint = (k: 'shape' | 'exists') => (status ? ` · about ${money(status.hints[k])}` : '');
 
   return (
-    <aside className="is-ai-panel" aria-label="Shape with AI" data-testid="shape-panel">
+    <aside
+      className={`is-ai-panel ${sizing.className}`}
+      style={sizing.style}
+      aria-label="Shape with AI"
+      data-testid="shape-panel"
+    >
+      <PanelResizer panel={panel} label="Resize Shape with AI" />
       <header className="is-ai-head">
         <b>Shape with AI</b>
         {status?.member && <span className="is-muted">{status.member}</span>}
         <span style={{ flex: 1 }} />
+        <PanelMaxButton panel={panel} className="is-btn is-btn-ghost is-btn-sm" />
         <button type="button" className="is-btn is-btn-ghost is-btn-sm" onClick={onClose} aria-label="Close">
           ×
         </button>

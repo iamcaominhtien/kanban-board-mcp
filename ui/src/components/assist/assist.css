@@ -1,7 +1,7 @@
 /* Board AI assistant (design/screens/ai-board-assistant.md). Builds on components/ai/ai.css. */
 
 .as-dock {
-  width: 420px;
+  width: 420px; /* the default; the panel sets its own width (components/PanelResizer.tsx) */
   flex-shrink: 0;
   height: 100vh;
   display: flex;
