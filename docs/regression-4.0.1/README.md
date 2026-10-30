@@ -25,7 +25,7 @@ Severity: **S1** blocks the release (data loss, crash, migration failure, a main
 
 ## The pipeline
 
-Ready-made prompts for each phase are in [`PROMPTS.md`](PROMPTS.md).
+Each phase is a GitHub issue under one umbrella issue. Give an AI one issue and tell it to read and do it; [`PROMPTS.md`](PROMPTS.md) has the short prompts.
 
 ```
 0 gate → 1 test (logs only) → 2 triage → 3 fix + test → 4 verify → 5 cleanup
@@ -36,7 +36,7 @@ Every phase works on files in `bugs/` and the `Status` field of each entry.
 | Phase | Who | What | Status after |
 | --- | --- | --- | --- |
 | 0 Gate | one AI | Pin the commit under test. Run `ruff`, `pytest`, `npm run format:check`, `npm run lint`, `npm test`, `npm run build` and `npm test` in `desktop/`, as in `.github/workflows/ci.yml`. Fix nothing here except a failing gate. Record the pinned SHA in [`PINNED.md`](PINNED.md). | |
-| 1 Test | one AI per charter, in parallel | Follow its charter in [`charters/`](charters/README.md). Log bugs only in its own file in `bugs/`. **Do not fix code.** Do not edit another charter's file. | `open` |
+| 1 Test | one AI per charter, in parallel, each on its own branch and PR | Follow its charter in [`charters/`](charters/README.md). Log bugs only in its own file in `bugs/`. **Do not fix code.** Do not edit another charter's file. | `open` |
 | 2 Triage | one AI, after all testers finish | Read every entry, reproduce it, merge duplicates, reject what is not a bug, set the real severity and type, decide `fix` or `deferred`. | `confirmed`, `rejected`, `duplicate`, `deferred` |
 | 3 Fix | AIs, grouped by area | Fix each `confirmed` bug in the smallest change. **Add a test that fails before the fix and passes after** (pytest, vitest, desktop test). If it cannot be tested (purely visual), say why in `Fix`. Link bugs to commits. | `fixed` |
 | 4 Verify | a different AI than the fixer | Re-run the original steps in the app on the fixed build. Look next to the fix too: did it break the neighbours? | `verified` or back to `confirmed` |
@@ -48,7 +48,7 @@ Release rule: **no `S1` and no `S2` may be left in `open`, `confirmed` or `fixed
 
 ## Rules for testers
 
-1. **Test the pinned commit.** Code must not change under the testers. Fixes start only after phase 2.
+1. **Test the pinned commit.** Product code must not change under the testers (`git diff <pinned SHA> -- server ui desktop` is empty). Fixes start only after phase 2. If the diff is not empty, stop and say so in your issue.
 2. **Use the app as a user.** Click, type, drag, press keys. Use the API or the database only to set up data or to check a result. Do not report bugs seen only by calling the API.
 3. **For every feature, go beyond the happy path:** wrong or empty input, very long input, Vietnamese text with diacritics and emoji, cancel and Esc, undo, doing it twice quickly, reload in the middle, two tabs on the same data, the server stopped and restarted.
 4. **Look at it, don't only check it.** Take a screenshot of each screen in the light and the dark theme, and at about 1440, 1024 and 390 px wide. Name what a first-time user would not understand, even when it is "as designed".
@@ -64,7 +64,8 @@ Release rule: **no `S1` and no `S2` may be left in `open`, `confirmed` or `fixed
 Use a clean profile and a fresh data folder. A data folder chosen in Settings overrides `KANBAN_DB_PATH`, so do not run on a machine that has one.
 
 ```bash
-git checkout <the SHA in docs/regression-4.0.1/PINNED.md>
+# Product code on the umbrella branch must equal the pinned commit until phase 3 starts. Check it:
+git diff --stat <the SHA in docs/regression-4.0.1/PINNED.md> -- server ui desktop     # must print nothing
 export KANBAN_DB_PATH="$PWD/.regression-data/kanban.db"
 export KANBAN_UPLOADS_DIR="$PWD/.regression-data/uploads"
 
@@ -102,17 +103,22 @@ Add an entry to the end of your own file in `bugs/`. The id is the charter numbe
 
 The fields `Status`, `Type`, `Severity` and `Area` must be present and spelled like this: `status.py` reads them. Put screenshots in `evidence/` named after the bug id.
 
-Testers commit only their own `bugs/` file and their own `evidence/` files, with `git pull --rebase` before every push so parallel testers do not collide:
+## Branches and pull requests
 
-```bash
-git add docs/regression-4.0.1/bugs/07-docs.md docs/regression-4.0.1/evidence/C07-*
-git commit -m "test(4.0.1): C07 docs findings"
-git pull --rebase origin claude/adoring-ride-jgq060 && git push origin HEAD:claude/adoring-ride-jgq060
-```
+The whole regression lives in one PR (the **umbrella PR**, from branch `claude/adoring-ride-jgq060`). Every issue of the regression is done by one AI on its own branch and its own PR into the umbrella branch:
+
+1. Start from the current head of the umbrella branch: `git fetch origin claude/adoring-ride-jgq060 && git checkout -b regression/<issue-number>-<slug> origin/claude/adoring-ride-jgq060`.
+2. Do only what your issue says. A tester commits only its own `bugs/` file and its own `evidence/` files. A fixer commits code, tests and the `Status` and `Fix` lines of its own bugs.
+3. Do not commit `STATUS.md` (the status script prints it; only the triage and cleanup issues write it) and do not touch `PINNED.md` unless your issue is the gate.
+4. Open a PR with **base = `claude/adoring-ride-jgq060`** (never `main`). Title: `regression: <issue title>`. Put `Refs #<issue-number>` in the body.
+5. When the checks pass, merge it into the umbrella branch (squash). If another PR was merged first, `git pull --rebase` onto the umbrella branch and push again. Testers write separate files, so conflicts should not happen. If one does, resolve it by keeping both sides' bug entries.
+6. After the merge, **close your issue** with a comment that says what was done (a tester: the bug count by severity). GitHub only closes issues automatically when a PR reaches `main`, so this is done by hand.
+
+Never push to the umbrella branch directly, and never merge the umbrella PR: the owner does that at the end.
 
 ## Status
 
-`python3 docs/regression-4.0.1/status.py` rewrites [`STATUS.md`](STATUS.md) from the bug files: counts per charter and status, and the list of everything not yet `verified`. `--check` exits with an error when the release rule is not met or an entry is malformed.
+`python3 docs/regression-4.0.1/status.py` prints the counts per charter and status, and the list of everything not yet finished. `--check` exits with an error when the release rule is not met or an entry is malformed. `--write` also stores the result in [`STATUS.md`](STATUS.md); only the triage and cleanup issues do that, so parallel PRs never conflict on it.
 
 ## Cleanup
 

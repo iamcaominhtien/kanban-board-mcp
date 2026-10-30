@@ -2,7 +2,8 @@
 """Summarise the regression bug log and check the release rule.
 
 Usage:
-    python3 docs/regression-4.0.1/status.py           rewrite STATUS.md
+    python3 docs/regression-4.0.1/status.py           print the summary
+    python3 docs/regression-4.0.1/status.py --write   also store it in STATUS.md
     python3 docs/regression-4.0.1/status.py --check   also exit 1 when the release rule fails
 """
 
@@ -109,10 +110,12 @@ def render(bugs: list[dict]) -> str:
 
 
 def main() -> int:
-    """Rewrite STATUS.md and, with --check, enforce the release rule."""
+    """Print the summary, store it with --write and enforce the release rule with --check."""
     bugs = [b for p in sorted((HERE / "bugs").glob("[0-9][0-9]-*.md")) for b in parse(p)]
-    (HERE / "STATUS.md").write_text(render(bugs), encoding="utf-8")
-    print((HERE / "STATUS.md").read_text(encoding="utf-8"))
+    text = render(bugs)
+    if "--write" in sys.argv:
+        (HERE / "STATUS.md").write_text(text, encoding="utf-8")
+    print(text)
     if "--check" not in sys.argv:
         return 0
     bad = problems(bugs)
