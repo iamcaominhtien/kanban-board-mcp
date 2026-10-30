@@ -1796,6 +1796,7 @@ function TicketModalInner({
                             diagramProjectId={ticket.projectId}
                             diagramSaveTo={`${ticket.id} description`}
                             diagramItem={{ kind: 'ticket', id: ticket.id }}
+                            ai={{ surface: 'ticket_description', projectId: ticket.projectId, ticketId: ticket.id }}
                           />
                         </div>
 
@@ -2059,6 +2060,7 @@ function TicketModalInner({
                           onDelete={(id) => {
                             deleteACMutation.mutate({ ticketId: ticket.id, criterionId: id });
                           }}
+                          ai={{ projectId: ticket.projectId, ticketId: ticket.id }}
                         />
 
                         {/* Relations */}

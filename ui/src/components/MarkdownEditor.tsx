@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { markdownToHtml, htmlToMarkdown, diagramBlockElement } from '../utils/markdownWysiwyg';
+import type { EditorSurface } from '../api/editorAi';
+import { contentEditableAdapter } from './ai/editor/adapters';
+import { EditorAiSelectionBar, useEditorAi } from './ai/editor/useEditorAi';
 import { useDiagrams } from './diagrams/DiagramsContext';
 import { DiagramIcon } from './diagrams/DiagramIcon';
 import { useDiagramStarter } from './diagrams/useDiagramStarter';
@@ -61,6 +64,11 @@ interface Props {
   diagramSaveTo?: string;
   /** The ticket or comment the diagrams belong to. */
   diagramItem?: { kind: 'ticket' | 'comment'; id?: string };
+  /**
+   * AI in this field (/ai, Ctrl+J, the selection bar). `surface` says what kind of text it is; the server decides what
+   * each kind offers. Left out, the field has no AI.
+   */
+  ai?: { surface: EditorSurface; projectId?: string; ticketId?: string | null };
 }
 
 /**
@@ -102,6 +110,7 @@ export function MarkdownEditor({
   diagramProjectId,
   diagramSaveTo,
   diagramItem,
+  ai: aiProp,
 }: Props) {
   const docsRefs = useDocsRefs();
   const diagrams = useDiagrams();
@@ -126,6 +135,14 @@ export function MarkdownEditor({
 
   const wysiwygRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const aiAdapter = useMemo(() => contentEditableAdapter(() => wysiwygRef.current), []);
+  const editorAi = useEditorAi({
+    surface: aiProp?.surface ?? 'ticket_description',
+    projectId: aiProp?.projectId ?? docsProjectIdProp ?? docsRefs?.projectId,
+    ticketId: aiProp?.ticketId,
+    adapter: aiAdapter,
+    enabled: !!aiProp && isEditing && !readOnly,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const allFileInputRef = useRef<HTMLInputElement>(null);
   const linkBtnRef = useRef<HTMLButtonElement>(null);
@@ -219,7 +236,7 @@ export function MarkdownEditor({
     function handleClickOutside(e: MouseEvent) {
       if (isFilePickerOpenRef.current) return;
       // the draw.io editor layer and viewer sit outside this field but belong to it
-      if ((e.target as HTMLElement).closest?.('[data-diagram-layer]')) return;
+      if ((e.target as HTMLElement).closest?.('[data-diagram-layer], [data-ai-layer]')) return;
       if (isLinkPopoverOpen) {
         // If clicking inside link popover, don't close
         const popover = document.querySelector(`.${styles.linkPopover}`);
@@ -886,6 +903,8 @@ export function MarkdownEditor({
 
   return (
     <div ref={containerRef} style={{ width: '100%' }}>
+      {editorAi.layer}
+      {aiProp && <EditorAiSelectionBar ai={editorAi} adapter={aiAdapter} />}
       <div className={`${styles.editContainer} ${compact ? styles.editContainerCompact : ''}`}>
         {/* Toolbar Header (no Write/Preview tabs in Approach B) */}
         <div className={`${styles.toolbarHeader} ${compact ? styles.toolbarHeaderCompact : ''}`}>
@@ -1473,14 +1492,21 @@ export function MarkdownEditor({
           suppressContentEditableWarning
           className={`${styles.wysiwygArea} ${compact ? styles.wysiwygAreaCompact : ''}`}
           data-placeholder={placeholderText}
+          data-ai-editor={aiProp ? true : undefined}
           onInput={() => {
             if (wysiwygRef.current && snapRefTokens(wysiwygRef.current)) updateToolbarState();
             syncContent();
             updateToolbarState();
+            editorAi.onInput();
           }}
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
           onKeyDown={(e) => {
+            if (editorAi.onKeyDown(e)) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
             const root = wysiwygRef.current;
             if (root && (e.key === 'Escape' || e.key === 'ArrowRight') && tokenAtCaret(root)) {
               // leaving a raw [[token]] with Esc or → snaps it back to a pill

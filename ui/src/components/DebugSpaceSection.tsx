@@ -4,6 +4,9 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { TicketRefSuggester } from './docs/RefSuggester';
 import { uploadAttachment, uploadUrl } from '../api/tickets';
 import { extractError } from '../api/extractError';
+import { useAiBoardState } from './ai/aiUi';
+import { textareaAdapter } from './ai/editor/adapters';
+import { EditorAiSelectionBar, useEditorAi } from './ai/editor/useEditorAi';
 import styles from './DebugSpaceSection.module.css';
 
 export interface DebugTestCaseOption {
@@ -155,6 +158,8 @@ interface EntryFormValues {
 }
 
 interface EntryFormProps {
+  /** The ticket the journal belongs to: what AI in the note can read. */
+  ticketId?: string;
   mode: 'add' | 'edit';
   initial: EntryFormValues;
   branchNames: string[];
@@ -164,13 +169,26 @@ interface EntryFormProps {
   onCancel: () => void;
 }
 
-function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmit, onCancel }: EntryFormProps) {
+function EntryForm({
+  ticketId,
+  mode,
+  initial,
+  branchNames,
+  testCases,
+  memberNames,
+  onSubmit,
+  onCancel,
+}: EntryFormProps) {
   const [v, setV] = useState<EntryFormValues>(initial);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // AI in the note: /ai or Ctrl+J, and a selection bar (Improve, Summarise, Translate)
+  const { projectId } = useAiBoardState();
+  const noteAdapter = useMemo(() => textareaAdapter(() => noteRef.current), []);
+  const noteAi = useEditorAi({ surface: 'debug_note', projectId, ticketId, adapter: noteAdapter });
   const set = <K extends keyof EntryFormValues>(key: K, value: EntryFormValues[K]) =>
     setV((prev) => ({ ...prev, [key]: value }));
 
@@ -272,12 +290,24 @@ function EntryForm({ mode, initial, branchNames, testCases, memberNames, onSubmi
           ref={noteRef}
           className={styles.noteTextarea}
           value={v.note}
-          onChange={(e) => set('note', e.target.value)}
+          data-ai-editor
+          onChange={(e) => {
+            set('note', e.target.value);
+            noteAi.onInput();
+          }}
+          onKeyDown={(e) => {
+            if (noteAi.onKeyDown(e)) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
           placeholder="Write what you found, tried, or ran into… (Markdown supported)"
           aria-label="Note"
           required
         />
         <TicketRefSuggester targetRef={noteRef} />
+        {noteAi.layer}
+        <EditorAiSelectionBar ai={noteAi} adapter={noteAdapter} />
       </div>
 
       <div className={styles.extraLinksRow}>
@@ -574,6 +604,7 @@ export function DebugSpaceSection({
 
       {showAddForm && (
         <EntryForm
+          ticketId={ticketId}
           mode="add"
           initial={initialAdd}
           branchNames={branchNames}
@@ -708,6 +739,7 @@ export function DebugSpaceSection({
 
                   {isEditing ? (
                     <EntryForm
+                      ticketId={ticketId}
                       mode="edit"
                       initial={{
                         kind,

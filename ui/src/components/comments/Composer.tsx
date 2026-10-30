@@ -11,6 +11,8 @@ import { mentionedAi, type MentionIntent, type SendOpts } from '../ai/MentionInt
 import { MentionPlan } from '../ai/MentionPlan';
 import { useAiBoardState } from '../ai/aiUi';
 import { AskSplit } from '../ai/ComposerAi';
+import { EditorAiSelectionBar, useEditorAi } from '../ai/editor/useEditorAi';
+import { textareaAdapter } from '../ai/editor/adapters';
 import { COUNTER_FROM, MAX_COMMENT_CHARS, draftKey, readJson, writeJson, type Person } from './commentUtils';
 
 interface Chip {
@@ -141,6 +143,9 @@ export function Composer({
   const [saved, setSaved] = useState(!editing && !!readJson<string>(draftKey(ticketId), ''));
   const ta = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // AI in the comment box: /ai or Ctrl+J, and a selection bar (design/screens/ai-where-you-work.md, D)
+  const adapter = useMemo(() => textareaAdapter(() => ta.current), []);
+  const ai = useEditorAi({ surface: 'comment', projectId, ticketId, adapter, enabled: tab === 'write' });
 
   useEffect(() => {
     if (autoFocus) ta.current?.focus();
@@ -436,8 +441,17 @@ export function Composer({
             data-testid="comment-textarea"
             aria-label="Comment"
             placeholder="Add a comment…"
-            onChange={(e) => setText(e.target.value)}
+            data-ai-editor
+            onChange={(e) => {
+              setText(e.target.value);
+              ai.onInput();
+            }}
             onKeyDown={(e) => {
+              if (ai.onKeyDown(e)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.shiftKey && !editing) {
                 e.preventDefault();
                 ask();
@@ -697,6 +711,8 @@ export function Composer({
         )}
       </div>
       <RefSuggester targetRef={ta} projectId={projectId} keyPrefix={ticketId.split('-')[0]} members={members} />
+      {ai.layer}
+      <EditorAiSelectionBar ai={ai} adapter={adapter} />
     </div>
   );
 }
