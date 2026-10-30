@@ -34,9 +34,9 @@ The server speaks MCP, so an agent can read and change your boards, Docs and AI 
 
 ### The easy way
 
-Open {menu:Settings › Integrations} and use **MCP integrations**.
+Open {menu:Settings › Integrations} and use **MCP integrations**. Press **Install** for **Claude Code** (it runs `claude mcp add` in the User, Project or Local scope) or **Antigravity** (it adds a `kanban` entry to its MCP config). Each row also has Copy command, Copy JSON, Test connection and Remove, and only touches the `kanban` entry. In the desktop app, {menu:Help › Set Up MCP…} opens this page.
 
-@figure settings-integrations "Settings › Integrations: install the MCP server into Claude Code or Antigravity, and set the draw.io editor." Press **Install** for **Claude Code** (it runs `claude mcp add` in the User, Project or Local scope) or **Antigravity** (it adds a `kanban` entry to its MCP config). Each row also has Copy command, Copy JSON, Test connection and Remove, and only touches the `kanban` entry. In the desktop app, {menu:Help › Set Up MCP…} opens this page.
+@figure settings-integrations "Settings › Integrations: install the MCP server into Claude Code or Antigravity, and set the draw.io editor."
 
 ### Stdio, for VS Code and Claude Desktop
 

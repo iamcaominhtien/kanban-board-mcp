@@ -190,7 +190,10 @@ def transform(ch: Chapter) -> str:
     placeholders: dict[str, str] = {}
 
     def fig(m: re.Match) -> str:
-        name, caption, markers = m.group(1), m.group(2), m.group(3) or ""
+        name, caption, extras = m.group(1), m.group(2), m.group(3) or ""
+        mk = re.search(r"markers=([\d.,;]+)", extras)
+        markers = mk.group(1) if mk else ""
+        wd = re.search(r"width=(\d+)", extras)
         find_image(name)
         ch.figures += 1
         label = f"Figure {ch.label}.{ch.figures}"
@@ -199,7 +202,7 @@ def transform(ch: Chapter) -> str:
             for i, xy in enumerate(markers.split(";"), 1):
                 x, y = xy.split(",")
                 dots += f'<span class="mk" style="left:{x}%;top:{y}%">{i}</span>'
-        width = "86%"
+        width = f"{wd.group(1)}%" if wd else "86%"
         key = f"@@FIG{len(placeholders)}@@"
         placeholders[key] = (
             f'<figure id="fig-{ch.id}-{ch.figures}"><div class="shot" style="width:{width}">'
@@ -241,7 +244,7 @@ def transform(ch: Chapter) -> str:
         if seg.startswith("```"):
             out.append(seg)
             continue
-        seg = re.sub(r"^@figure\s+(\S+)\s+\"([^\"]+)\"(?:\s+markers=([\d.,;]+))?\s*$", fig, seg, flags=re.M)
+        seg = re.sub(r"^@figure\s+(\S+)\s+\"([^\"]+)\"((?:\s+(?:markers|width)=[\d.,;]+)*)\s*$", fig, seg, flags=re.M)
         seg = re.sub(r"^@preset\s+(\w+)\s+(\w+)\s*$", preset, seg, flags=re.M)
         seg = re.sub(r"\{fact:([\w]+)\}", fact, seg)
         seg = re.sub(r"\{(ch|Ch|num):([\w-]+)\}", ref, seg)
@@ -263,6 +266,10 @@ def transform(ch: Chapter) -> str:
     body = markdown.markdown(text, extensions=["admonition", "tables", "fenced_code", "attr_list", "sane_lists"])
     for key, value in placeholders.items():
         body = body.replace(f"<p>{key}</p>", value).replace(key, value)
+    # a directive that did not turn into anything (for example a figure in the middle of a paragraph) must not reach the page
+    stray = re.search(r"@figure|@preset|\{(?:fact|menu|ch|Ch|num|confirm):", body)
+    if stray:
+        raise BuildError(f"{ch.file}: '{stray.group(0)}' was not understood; a directive must be alone on its line")
 
     k = 0
 
