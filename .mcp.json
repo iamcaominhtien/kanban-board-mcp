@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "bash",
+      "args": [".claude/scripts/codegraph.sh", "serve"],
+      "env": { "CODEGRAPH_TELEMETRY": "0" },
+      "alwaysLoad": true
+    }
+  }
+}
