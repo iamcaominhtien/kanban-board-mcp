@@ -38,7 +38,7 @@ interface Props {
   /** The project you were last in: the space opens on it. */
   currentProjectId: string;
   /** Open this idea's page (a link from a ticket, a toast, a mention). */
-  requestedIdeaId?: string | null;
+  requestedIdea?: { id: string; tab?: string } | null;
   onRequestHandled?: () => void;
   onOpenTicket: (ticketId: string) => void;
   /** Open Settings › Idea Space (from the AI states). */
@@ -143,7 +143,7 @@ function Switcher({
 export function IdeaSpace({
   projects,
   currentProjectId,
-  requestedIdeaId,
+  requestedIdea,
   onRequestHandled,
   onOpenTicket,
   onOpenSettings,
@@ -159,6 +159,8 @@ export function IdeaSpace({
   const [sort, setSort] = useState<NonNullable<IdeaListParams['sort']>>('readiness');
   const [triage, setTriage] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  // the tab a link asked for (the idea log from a ticket)
+  const [openTab, setOpenTab] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [promoting, setPromoting] = useState<IdeaRow | null>(null);
   const [askOpen, setAskOpen] = useState(false);
@@ -176,12 +178,13 @@ export function IdeaSpace({
     return () => clearTimeout(t);
   }, [query]);
   useEffect(() => {
-    if (requestedIdeaId) {
-      setOpenId(requestedIdeaId);
+    if (requestedIdea) {
+      setOpenId(requestedIdea.id);
+      setOpenTab(requestedIdea.tab ?? null);
       setTriage(false);
       onRequestHandled?.();
     }
-  }, [requestedIdeaId, onRequestHandled]);
+  }, [requestedIdea, onRequestHandled]);
   // a project that no longer exists falls back to the one you are in
   useEffect(() => {
     if (scope.scope === 'project' && !projects.some((p) => p.id === scope.projectId))
@@ -252,6 +255,7 @@ export function IdeaSpace({
       <div className="is-root" data-testid="idea-space">
         <IdeaPage
           ideaId={openId}
+          initialTab={openTab ?? undefined}
           projects={projects}
           onBack={() => setOpenId(null)}
           onOpenIdea={setOpenId}

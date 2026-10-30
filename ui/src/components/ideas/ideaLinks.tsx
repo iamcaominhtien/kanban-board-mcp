@@ -5,8 +5,8 @@ import { BulbIcon } from './ideaShared';
 import './ideas.css';
 
 interface IdeaLinks {
-  /** Open the idea's page in the Idea Space. */
-  openIdea: (ideaId: string) => void;
+  /** Open the idea's page in the Idea Space, optionally on a tab (page, assumptions, evidence, comments, log, workspace, activity). */
+  openIdea: (ideaId: string, tab?: string) => void;
 }
 
 const Ctx = createContext<IdeaLinks>({ openIdea: () => undefined });
@@ -160,10 +160,10 @@ export function StartedAsIdea({
         <button type="button" className="is-link" onClick={() => openIdea(idea.id)}>
           Open the idea
         </button>
-        <button type="button" className="is-link" onClick={() => openIdea(idea.id)}>
+        <button type="button" className="is-link" onClick={() => openIdea(idea.id, 'log')}>
           Idea log ({idea.logCount})
         </button>
-        <button type="button" className="is-link" onClick={() => openIdea(idea.id)}>
+        <button type="button" className="is-link" onClick={() => openIdea(idea.id, 'activity')}>
           Idea activity
         </button>
       </div>

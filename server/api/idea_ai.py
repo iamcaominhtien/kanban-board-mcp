@@ -101,6 +101,14 @@ class AdviceBody(BaseModel):
     idea_ids: list[str] = Field(min_length=1, max_length=30)
 
 
+_ERROR_TEXT = {
+    "not_member": "Only members of the project can ask for advice.",
+    "failed": "The AI could not answer. Try again.",
+    "bad_answer": "The AI gave an answer that could not be used.",
+    "no_repo": "This project has no linked repository.",
+}
+
+
 @router.post("/advice")
 async def post_advice(body: AdviceBody, session: Session) -> dict[str, Any]:
     """Read the ideas and suggest Keep, Park, Merge or Archive for each. Nothing is applied. An idea the AI is not
@@ -119,7 +127,15 @@ async def post_advice(body: AdviceBody, session: Session) -> dict[str, Any]:
         except idea_ai.IdeaAiError as exc:
             if exc.code in ("off", "no_member", "unavailable", "cap"):
                 _ai_error(exc)  # nothing else can work either
-            errors.append({"idea_id": idea_id, "code": exc.code, "message": str(exc)})
+            errors.append(
+                {
+                    "idea_id": idea_id,
+                    "code": exc.code,
+                    "message": _ERROR_TEXT.get(
+                        exc.code, "The AI could not finish this idea."
+                    ),
+                }
+            )
             continue
         (none.append(idea_id) if found is None else advice.append(found.id))
     return {

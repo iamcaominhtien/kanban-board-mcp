@@ -100,7 +100,7 @@ function BoardProviders({
   ai: AiBoardState;
   schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
   /** Idea Space: Quick add (Alt+N, "Make idea") and the links from tickets to their idea. */
-  ideas: { projectId: string | null; openIdea: (id: string) => void };
+  ideas: { projectId: string | null; openIdea: (id: string, tab?: string) => void };
   children: ReactNode;
 }) {
   return (
@@ -149,7 +149,7 @@ export default function App() {
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
   // An idea to open on its page (a link from a ticket or a toast)
-  const [ideaRequest, setIdeaRequest] = useState<string | null>(null);
+  const [ideaRequest, setIdeaRequest] = useState<{ id: string; tab?: string } | null>(null);
   const ideaInbox = useIdeaCounts().data?.totalInbox ?? 0;
   // The card of an AI's ticket was dropped on another column: a dialog asks before its run is cancelled
   const [dragConfirm, setDragConfirm] = useState<{
@@ -433,10 +433,10 @@ export default function App() {
   }
 
   /** Open an idea's page in the Idea Space. */
-  function openIdea(ideaId: string) {
+  function openIdea(ideaId: string, tab?: string) {
     closeModal();
     setActiveBoard('idea');
-    setIdeaRequest(ideaId);
+    setIdeaRequest({ id: ideaId, tab });
   }
 
   /** Open a ticket from the Idea Space: switch to its project and the board first when needed. */
@@ -877,7 +877,7 @@ export default function App() {
                   <IdeaSpace
                     projects={apiProjects}
                     currentProjectId={currentProjectId ?? ''}
-                    requestedIdeaId={ideaRequest}
+                    requestedIdea={ideaRequest}
                     onRequestHandled={() => setIdeaRequest(null)}
                     onOpenTicket={(id) => void openTicketFromIdeas(id)}
                     onOpenSettings={() => setSettingsTarget({ page: 'ideas' })}

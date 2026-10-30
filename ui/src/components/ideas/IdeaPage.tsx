@@ -38,6 +38,8 @@ export function currentActor(): string {
 
 interface Props {
   ideaId: string;
+  /** The tab to open on (a link from a ticket to the idea log); the page tab by default. */
+  initialTab?: string;
   projects: Project[];
   onBack: () => void;
   onOpenIdea: (id: string) => void;
@@ -58,7 +60,16 @@ const MOVES: Record<IdeaStage, IdeaStage[]> = {
 };
 
 /** The idea as a page: writing, assumptions, evidence, comments, research log, workspace and activity. */
-export function IdeaPage({ ideaId, projects, onBack, onOpenIdea, onOpenTicket, onPromote, onOpenSettings }: Props) {
+export function IdeaPage({
+  ideaId,
+  initialTab,
+  projects,
+  onBack,
+  onOpenIdea,
+  onOpenTicket,
+  onPromote,
+  onOpenSettings,
+}: Props) {
   const toast = useToast();
   const { data: idea, isLoading, isError, refetch } = useIdea(ideaId);
   const edit = useEditIdeaPage();
@@ -72,9 +83,13 @@ export function IdeaPage({ ideaId, projects, onBack, onOpenIdea, onOpenTicket, o
   const moves = useIdeaMoves({ onPromote });
 
   useEffect(() => {
-    setTab('page');
+    setTab(
+      (['page', 'assumptions', 'evidence', 'comments', 'log', 'workspace', 'activity'] as Tab[]).find(
+        (t) => t === initialTab,
+      ) ?? 'page',
+    );
     setShapeOpen(false);
-  }, [ideaId]);
+  }, [ideaId, initialTab]);
 
   if (isLoading) return <div className="is-empty">Loading the idea…</div>;
   if (isError || !idea) {

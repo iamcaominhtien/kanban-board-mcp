@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ideaRuleError, usePromoteIdea, usePromotePreview } from '../../api/ideas';
 import { useIdeaAiStatus, usePrepareTicket } from '../../api/ideaAi';
+import { useTicketWorkspace } from '../../api/tickets';
 import type { Project } from '../../types';
 import type { Idea } from '../../types/idea';
 import { FooterNote, ModalShell, Spacer, plural } from '../docs/docsShared';
@@ -42,6 +43,9 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
   const [subs, setSubs] = useState<string[]>(['']);
   const [ack, setAck] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<'move' | 'copy' | 'leave'>('move');
+  const idea_ws = useTicketWorkspace(idea.id).data;
+  const wsFiles = idea_ws?.exists ? idea_ws.fileCount : 0;
   const aiStatus = useIdeaAiStatus(idea.projectId).data;
   const prepare = usePrepareTicket();
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +103,7 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
         description: description ?? undefined,
         subTickets: createAs === 'split' ? cleanSubs : [],
         acknowledgeNotReady: ack,
+        workspace: wsFiles > 0 ? workspace : 'leave',
       });
       toast.success(`Created ${res.ticket.id}`, `The idea is Building and follows ${res.ticket.id}.`, 7000, {
         label: 'Open ticket',
@@ -298,6 +303,31 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
               aria-label="Ticket description"
             />
           </div>
+          {wsFiles > 0 && (
+            <div className="is-field" data-testid="workspace-choice">
+              <span className="is-label">
+                This idea has a workspace with {wsFiles} {wsFiles === 1 ? 'file' : 'files'}. What should happen to it?
+              </span>
+              {(
+                [
+                  [
+                    'move',
+                    'Move it to the ticket',
+                    `The folder becomes the ticket’s workspace. Files are not copied twice.`,
+                  ],
+                  ['copy', 'Copy it to the ticket', 'The idea keeps its own folder too.'],
+                  ['leave', 'Leave it with the idea', 'The ticket gets an empty workspace.'],
+                ] as const
+              ).map(([v, label, hint]) => (
+                <label key={v} className="is-check">
+                  <input type="radio" name="ws" checked={workspace === v} onChange={() => setWorkspace(v)} />
+                  <span>
+                    <b>{label}</b> <span className="is-muted">{hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
           {extra}
           {p.draft.checklist.length > 0 && (
             <div className="is-field">

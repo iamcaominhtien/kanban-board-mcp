@@ -29,7 +29,7 @@
 - **Real git branches**: link a ticket to a branch, see its commit graph against `main`, check it out, and use git worktrees.
 - **Per-ticket Workspace** (a scratch folder with a file manager) and **Debug Space** (a journal of attempts, blockers and fixes).
 - **Activity log** of who changed what (you, an AI agent, or a named member), with filters.
-- **Idea Space** for early ideas, assumptions and micro-thoughts, promoted to tickets when ready.
+- **Idea Space** (workspace level, with a project switcher): quick capture (Alt+N, or "Make idea" on highlighted text), an Inbox with keyboard triage (Keep, Park, Merge, Archive) and duplicate suggestions, ideas as pages with assumptions, evidence, a research log, a workspace folder and activity, readiness worked out from the assumptions, list / stages / matrix views, and a promote preview that carries what the idea learned into the ticket. Optional AI help (triage advice, shape an idea, ask, weekly digest) is off until you switch it on in Settings › Idea Space.
 - **AI members**: add Claude Code (your signed-in CLI) or an API-key model as a member, assign it tickets or @mention it; it works through a real run with live steps, asks back when it needs a decision, stops at Review, and every action goes through permissions, approvals, budgets, a kill switch and an audit log.
 - **Board AI**: an Ask AI dock (Ctrl/Cmd+J) that answers about the board, a ticket or a doc and proposes changes as drafts you apply yourself; Draft with AI for new tickets, Improve description, Split with AI, test cases tied to acceptance criteria, a daily board-health digest, and Docs AI (summaries, sections, links, rewrite a selection).
 - **AI schedules**: let an AI member work on a ticket at a set time, once or on repeat, with "done when" checks (criteria, a test command, summary, branch) and a second AI that reviews the result; a pass moves the ticket to Review, never further. Shown in a Schedules tab (list and week), on the ticket and on its card.
@@ -92,7 +92,7 @@ uv run uvicorn main:app --reload --port 8000
 
 ## MCP Tools
 
-The server exposes **11 tools** for AI agents over MCP (24 with the Idea Space tools enabled); `ai_run` only works inside a run the board started for an AI member, and `ai_schedules` refuses calls from inside a run. The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/kanban_mcp/` package: `tools/` (the 9 tools), `operations/` (one function per verb, grouped by area), `common.py`, `registry.py`, `instructions.py`. AI members live in `server/services/ai/` (members, runs and the CLI runner, the API agent loop, the permission guard, approvals, audit).
+The server exposes **11 tools** for AI agents over MCP (16 with the Idea Space tools enabled); `ai_run` only works inside a run the board started for an AI member, and `ai_schedules` refuses calls from inside a run. The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/kanban_mcp/` package: `tools/` (the 9 tools), `operations/` (one function per verb, grouped by area), `common.py`, `registry.py`, `instructions.py`. AI members live in `server/services/ai/` (members, runs and the CLI runner, the API agent loop, the permission guard, approvals, audit).
 
 | Tool | Read / write | What it does |
 |---|---|---|
@@ -110,9 +110,9 @@ The server exposes **11 tools** for AI agents over MCP (24 with the Idea Space t
 
 **Diagram previews.** A diagram an agent saves gets its picture from the draw.io editor itself, in a hidden browser: the desktop app's own executable (`KANBAN_EXPORT_CMD`, set for you), or a Chrome / Chromium / Edge on the machine (`KANBAN_CHROME_PATH` to point at one). It needs the editor address from Settings › Diagrams (the self-hosted draw.io); the public diagrams.net is never used unless `KANBAN_DIAGRAM_EXPORT=public`, and `KANBAN_DIAGRAM_EXPORT=off` switches this off. Without either, the server draws a plain preview and the diagram footer says "Simple preview" until someone opens it in the editor and saves.
 
-**Idea Space** (hidden from MCP for now: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 13 tools; the web UI and REST API are unaffected)
-- `list_idea_tickets`, `get_idea_ticket`, `get_idea_activity_trail`, `create_idea_ticket`, `update_idea_ticket`, `update_idea_status`, `promote_idea_to_ticket`, `delete_idea_ticket`
-- `add_assumption`, `update_assumption_status`, `delete_assumption`, `add_microthought`, `delete_microthought`
+**Idea Space** (hidden from MCP by default: set `KANBAN_MCP_IDEA_TOOLS=1` to expose these 5 tools; the web UI and REST API are unaffected)
+- `list_idea_tickets`, `get_idea_ticket`, `list_idea_assumptions`, `get_idea_activity_trail`: read ideas, their assumptions and their history.
+- `create_idea_ticket`: suggest an idea. It lands in the Inbox, marked as suggested by AI with your reason and the ticket you were working on. AI members cannot move, edit, merge, archive, delete or promote an idea; a person does that in the app.
 
 **Conventions agents can rely on**
 - The server sends usage instructions on connect (IDs, statuses, flow), and every tool carries read-only / destructive annotations (a write tool that has a `delete` action is marked destructive as a whole).
