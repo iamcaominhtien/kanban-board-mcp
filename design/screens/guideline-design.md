@@ -105,3 +105,17 @@ Source: [GuidelineDesign.dc.html](../source/GuidelineDesign.dc.html) › block "
 ![D. Rules for writing and building: Proposed.](../images/guideline-design/18-d-rules-for-writing-and-building.png)
 
 - Text in the frames: "Writing" · "Plain English. Short sentences. Name things as the app does (“Settings”, “Idea Space”, “Export Logs”)." · "Headings say what you can do (“Create a ticket”), not what the feature is called." · "One screenshot per step at most, with numbered markers. No screenshot of a screen that only has text." · "Each chapter starts with what it is for and what you need, and ends with where to go next and what to do if it fails." · "Do not state a fact that comes from code without a check (limits, defaults). A page marked “to confirm” is not released." · "Making the PDF" · "A4 portrait. 20 mm margins. Body 10 pt on 15 pt lines. Tagged PDF with bookmarks and alt text; fonts embedded." · "Prints well in black and white and on Letter paper (the page area is the same)." · "Screenshots are taken by a script from a demo project, at 1440 × 900, so they can be redone when the UI changes. JPEG, about 1500 px wide." · "The version on the cover, footer and back cover is read from the code. A build fails if a figure is missing." · "Chapters for features that are not released are left out of the printed guide and kept in the source as drafts." · "One source, several outputs" · "Each chapter is one source file with a list of audience tags." · "Outputs: the full PDF, the web version, and the stand-alone PDFs (quick start, shortcut sheet, administration, MCP, privacy, troubleshooting)." · "The shortcut sheet and the Keyboard Shortcuts window read one list." · "The PDF is attached to every release. The “Documentation” item in the Help menu opens the web version."
+
+---
+
+## Implementation notes (3.15.0)
+
+The guide is built by `docs/guideline/guide/` (see `docs/guideline/README.md`).
+
+- The MCP chapter says **12 tools** (the count in the code, `CORE_TOOL_TABLE`), not the 11 of section A; the guide reads the number from the code.
+- Chapters are numbered 1 to 25 as in section A. Page counts are smaller than the 166-page budget: the first full build is about 85 A4 pages including the chapter openers.
+- The quick start and the shortcut sheet are chapters 3 and 20 (`kind: sheet`) and one-page stand-alone PDFs. Administration, self-hosting, MCP, privacy and troubleshooting also have stand-alone PDFs.
+- The privacy chapter (24) is marked **to confirm**: the lists of what each AI feature puts in a prompt are not yet checked against `server/services/ai/`, so a release build leaves the chapter out.
+- The page header shows `chapter number · TITLE` and `KANBAN BOARD USER GUIDE` (no part name). Chapter openers have no header.
+- Numbered markers on a figure are given as percent positions in the source; only the Board screenshot has them so far.
+- The Idea Space, Sketch, AI on tickets and in editors and the desktop menu are all released (3.14.0 and 3.15.0), so no chapter is a draft today. `status: draft` stays available for the next feature.

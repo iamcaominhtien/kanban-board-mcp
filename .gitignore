@@ -43,3 +43,7 @@ desktop/build/*
 # Playwright & test artifacts
 .playwright-mcp/
 comments_*.png
+
+# Guide build output (the PDF is attached to each release, not committed)
+docs/guideline/guide/dist/
+docs/guideline/guide/node_modules/

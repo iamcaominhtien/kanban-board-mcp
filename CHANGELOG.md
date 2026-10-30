@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.15.0] - 2026-10-30
+
+The desktop menu bar and the user and administrator guide ([#207](https://github.com/iamcaominhtien/kanban-board-mcp/issues/207)). Designs: `design/screens/desktop-menu.md` and `design/screens/guideline-design.md`.
+
+### Added
+- **Desktop menu bar** (macOS, Windows and Linux): an app menu on macOS (About, Check for Updates…, Settings… ⌘,, Services, Hide, Quit) and File, Edit, View, Window and Help on every platform, in place of Electron's default menu. File has New Ticket (Ctrl/⌘+N), New Idea (Ctrl/⌘+Shift+N), New Doc Page (Ctrl/⌘+Alt+N), New Project…, Import Data… and Export Data… (Settings › Storage & backup); View switches Board, List, Timeline, Docs, Schedules and Idea Space (Ctrl/⌘+1 to 6, the current view is ticked) and opens Ask AI (Ctrl/⌘+J); Edit has Find in Board (Ctrl/⌘+Shift+F). Help has Keyboard Shortcuts (Ctrl/⌘+/), Documentation, What's New, Set Up AI…, Set Up MCP…, Report an Issue…, Request a Feature…, Open Logs Folder, Export Logs…, Open Data Folder and Copy Diagnostics Info (versions and system facts only, never tickets, Docs, paths, keys or logs); on Windows and Linux Check for Updates… and About are at the bottom of Help. On macOS Help is the system Help menu, so it has the menu search box. All links go to this project's own pages.
+- **Four small windows** in the page: Keyboard Shortcuts (searches commands and keys), What's New (the release notes of the running version, from `CHANGELOG.md`), Report an Issue (shows what will be filled in, then opens a new GitHub issue in the browser; the app sends nothing) and About (the system About window on macOS).
+- **Check for Updates… from the menu** reuses the existing update flow (the corner notice and Settings › Updates) and adds a toast for a manual check ("You're up to date", or "Couldn't check for updates" with "Open releases page"); the item is greyed while a check runs and reads "Install Update x.y.z…" when one is found. Automatic checks stay silent.
+- Items that need data are greyed while the backend is not running (Help keeps working); on macOS with no window open only File › New Window is live.
+- **The guide** (`docs/guideline/guide/`): one English user and administrator guide built from one source file per chapter with audience tags (Everyone, Admin, Developer, Desktop app, AI): a full PDF with cover, contents with page numbers and links, bookmarks, a tagged structure and embedded Plus Jakarta Sans and JetBrains Mono, a web version, and stand-alone PDFs (quick start, keyboard shortcut sheet, administration, self-hosting, MCP, privacy, troubleshooting). Values stated from the code (tool count, defaults, statuses, settings pages, environment variables) are read from the code when the guide is built, and the build fails when a figure is missing, a documented variable is gone, or (with `--release`) a chapter is marked "to confirm". Screenshots are taken by `shots/take_screenshots.js` from a demo project. The AI chapters rewrite the Vietnamese AI guide in English.
+- **One list of keyboard shortcuts** (`ui/src/components/shortcuts/shortcuts.json`) read by the Keyboard Shortcuts window, the shortcut sheet in the guide and a test that keeps the menu accelerators in line with it.
+
+### Changed
+- **Developer tools** are View › Toggle Developer Tools (Ctrl/⌘+Shift+I), active only while the app is in front. The system-wide shortcut is gone.
+- Find in Board is Ctrl/⌘+Shift+F, not Ctrl/⌘+F: that key already finds text in a Docs page.
+
+### Notes
+- The privacy chapter is marked "to confirm" and is left out of release builds of the guide until what each AI feature puts in a prompt is checked against the code. The guide states 12 MCP tools (the code's count), not the 11 of the design.
+- The menu was tested as data per platform; it has not been run in a packaged app on macOS or Windows yet.
+
 ## [3.14.0] - 2026-10-30
 
 The new Idea Space, the Sketch tool and AI where you work ([#203](https://github.com/iamcaominhtien/kanban-board-mcp/issues/203)). Docs: `docs/specs/idea-space.md`, `docs/specs/sketch-tool.md`, `docs/specs/ai-where-you-work.md`.
