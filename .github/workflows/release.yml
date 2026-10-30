@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # needed for git push (README update) and gh release create
+  contents: write  # needed for gh release create
 
 env:
   NODE_VERSION: '20'

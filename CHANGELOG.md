@@ -19,6 +19,9 @@ Hotfix for Board AI, Docs AI and AI comments on Windows, and a switch for the "C
 ### Added
 - **Docs: a switch for the change markers.** An eye button in the "Changes since you last viewed" banner hides or shows the green bars and "Changed in vN" labels in the page (a slashed eye means hidden). The choice is kept in the browser for every page; the banner and "Show changes" stay.
 
+### Changed
+- **README**: a release badge and a `releases/latest` download link replace the fixed `v1.4.5` link and the out-of-date platform status, so the README no longer needs an edit for each release. The release instructions drop their README step.
+
 ## [3.14.0] - 2026-10-30
 
 The new Idea Space, the Sketch tool and AI where you work ([#203](https://github.com/iamcaominhtien/kanban-board-mcp/issues/203)). Docs: `docs/specs/idea-space.md`, `docs/specs/sketch-tool.md`, `docs/specs/ai-where-you-work.md`.

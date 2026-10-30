@@ -89,8 +89,8 @@ Otherwise, auto-approve and proceed immediately to the next phase.
    **For app changes, complete this checklist BEFORE merging — no exceptions:**
    - Bump version in `desktop/package.json` AND `desktop/package-lock.json` to the next patch (or minor/major if justified)
    - Add `## [X.Y.Z] - YYYY-MM-DD` entry to `CHANGELOG.md` summarizing what changed
-   - Update all version references in `README.md` (badge URLs, download links, version strings) to the new version
-   - Only after all three are committed and pushed, instruct the developer to merge
+   - Leave `README.md` alone: its release badge and `/releases/latest` link follow the newest release
+   - Only after both are committed and pushed, instruct the developer to merge
 
    > **Sequencing rule:** The version bump and CHANGELOG commits must be pushed to the branch **before** `gh pr merge` is called — not in a post-merge commit. A post-merge bump with `[skip ci]` will not re-trigger the pipeline, and the release will silently fail.
 
