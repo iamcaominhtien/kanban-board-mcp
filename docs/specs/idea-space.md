@@ -52,6 +52,8 @@ AI helpers (`server/api/idea_ai.py`, `/api/idea-ai`): `status`, `settings`, `adv
 
 They use the project's Board AI member, so its limits, permissions and cost display apply, plus a daily cap of its own (Settings › Idea Space). Each call is metered (`idea_*` usage features) and written to the audit log. The ideas, comments and questions the model reads are fenced as data. Triage advice says nothing when the AI is not sure, and a merge target the local search did not offer is dropped. The effort guess reads file names of the linked repository only, never contents, and is refused for an idea with no project. The weekly digest is computed locally (stale, similar, tests with no owner, parked due, waiting); when grooming is on the AI adds one sentence. Mondays from 9:00, once a week.
 
+**Ask AI** is the shared chat panel (`ScopedChat`, scope `idea`) docked on the idea page next to Shape with AI; only one of the two is open at a time. It reads the page, assumptions with evidence, comments and research log, and can draft new assumptions and a paragraph for the page, which a person adds with one click and can undo. It never moves, merges, archives or promotes. The Docs editor of the page also has `/ai`, Ctrl+J and the selection bar. Both honour this page's Idea Space switch and daily cap. Details in [`ai-where-you-work.md`](./ai-where-you-work.md).
+
 ## Where it differs from the boards
 
 - **Shape with AI** is its own docked panel on the idea page (drafts with Add buttons, an AI chip until a person edits), not the shared ticket chat dock.
