@@ -14,7 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from database import get_session
 from models import DocsPage
 from services import docs as svc_docs
-from services.docs_ai import DocsAiError, access, check, engine, jobs, reader  # noqa: F401 - register the handlers
+from services.docs_ai import DocsAiError, access, check, diagram, engine, jobs, reader  # noqa: F401 - register the handlers
 from services.docs_ai import settings as svc_settings
 
 from .settings import by
@@ -202,3 +202,33 @@ async def post_ignore(
     await svc_settings.require_enabled(session, page.project_id)
     await check.ignore(session, page.id, body.key, by())
     return {"ok": True, "key": body.key.strip()}
+
+
+class DiagramBody(BaseModel):
+    """Draw a diagram of a passage (or the page), or change a diagram the page shows (`diagram_id`)."""
+
+    selection: Optional[str] = None
+    instruction: Optional[str] = None
+    diagram_id: Optional[str] = None
+    label: Optional[str] = None
+    markdown: Optional[str] = None
+
+
+@router.post("/docs/pages/{page_id}/ai/diagram", status_code=202)
+async def post_diagram(
+    page_id: str, body: DiagramBody, session: Session
+) -> dict[str, Any]:
+    """Draw the selection (or the page) as an editable draw.io diagram, or change one. The page is not touched:
+    result `{diagram_id, label, version, markdown, changed, cost, metered}`; put `markdown` in the draft."""
+    page = await gate(session, page_id, edit=True)
+    return await launch(
+        session,
+        page,
+        "diagram",
+        (body.instruction or "Draw a diagram")[:200],
+        selection=body.selection,
+        request=body.instruction,
+        diagram_id=body.diagram_id,
+        label=body.label,
+        markdown=body.markdown,
+    )
