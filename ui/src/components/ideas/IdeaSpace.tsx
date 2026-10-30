@@ -3,6 +3,7 @@ import { useIdeaCounts, useIdeaList, type IdeaListParams } from '../../api/ideas
 import type { Project } from '../../types';
 import type { IdeaBucketCounts, IdeaRow, IdeaScope, IdeaSource } from '../../types/idea';
 import { useIdeaCapture } from './IdeaCapture';
+import { useAppCommand } from '../../utils/appCommands';
 import { IdeaList, StageChips, type StageFilter } from './IdeaList';
 import { IdeaMatrix } from './IdeaMatrix';
 import { IdeaPage } from './IdeaPage';
@@ -165,6 +166,8 @@ export function IdeaSpace({
   const [promoting, setPromoting] = useState<IdeaRow | null>(null);
   const [askOpen, setAskOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  // Desktop menu: Edit › Find in Board
+  useAppCommand('find-board', () => searchRef.current?.focus());
 
   useEffect(() => {
     try {

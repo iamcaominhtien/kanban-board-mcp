@@ -19,6 +19,24 @@ interface UpdateStatus {
   info: UpdateInfo | null;
 }
 
+interface AppCommandMessage {
+  command: string;
+  [key: string]: unknown;
+}
+
+interface AppInfo {
+  appName: string;
+  version: string;
+  backendRunning: boolean;
+  osName: string;
+  osVersion: string;
+  arch: string;
+  electron: string;
+  chrome: string;
+  language: string;
+  window?: number[] | null;
+}
+
 interface Window {
   electronAPI?: {
     getBackendPort: () => Promise<number | null>;
@@ -37,6 +55,12 @@ interface Window {
     installUpdate?: (filePath: string) => Promise<{ success: boolean; error?: string }>;
     onUpdateAvailable?: (callback: (info: UpdateInfo) => void) => () => void;
     onUpdateProgress?: (callback: (fraction: number) => void) => () => void;
+    /** A command from the application menu (Settings page, New Ticket, a window, a toast…). Desktop only. */
+    onAppCommand?: (callback: (message: AppCommandMessage) => void) => () => void;
+    /** Tells the menu which view is on screen, for its check mark. */
+    setAppState?: (state: { view: string }) => void;
+    /** Versions and system facts, for About and Report an Issue. */
+    getAppInfo?: () => Promise<AppInfo>;
     platform: string;
   };
 }

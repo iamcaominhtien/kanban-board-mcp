@@ -1,10 +1,12 @@
-const { app, BrowserWindow, ipcMain, dialog, globalShortcut, shell } = require('electron');
+const { app, BrowserWindow, Menu, clipboard, ipcMain, dialog, shell } = require('electron');
+const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
 const { parseExportArgs, runExportCli } = require('./export-svg');
-const { setupUpdater } = require('./updater');
+const { setupUpdater, getUpdateState, checkNow } = require('./updater');
+const { buildMenuTemplate, buildDiagnosticsText, resolveCommand, VIEWS } = require('./menu');
 const {
   StartupProfiler,
   buildBackendLaunchSpec,
@@ -24,6 +26,8 @@ const profiler = new StartupProfiler();
 let mainWindow = null;
 let backendPort = null;
 let backendProcess = null;
+// What the page tells the menu so the check mark follows the view on screen
+let currentView = null;
 
 function startBackend() {
   profiler.mark('backend-spawn-start');
@@ -75,6 +79,7 @@ function startBackend() {
         clearTimeout(timeoutId);
         backendPort = port;
         profiler.mark('backend-ready');
+        refreshMenu();
         resolve(backendPort);
       }
     });
@@ -97,6 +102,7 @@ function startBackend() {
       console.log(`Backend exited with code ${code} signal ${signal}`);
       backendProcess = null;
       backendPort = null;
+      refreshMenu();
       if (!settled) {
         settled = true;
         clearTimeout(timeoutId);
@@ -174,8 +180,122 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    refreshMenu();
   });
+  refreshMenu();
 }
+
+// ── Application menu ────────────────────────────────────────────────────────────────────────────────────────────
+// The template is built in menu.js (pure, tested per platform); this part applies it and runs the commands.
+
+function refreshMenu() {
+  if (exportArgs) return; // the headless `--export-svg` run has no menu
+  const template = buildMenuTemplate({
+    platform: process.platform,
+    appName: app.name || 'Kanban Board',
+    version: app.getVersion(),
+    backendRunning: Boolean(backendPort && backendProcess),
+    windowOpen: Boolean(mainWindow && !mainWindow.isDestroyed()),
+    currentView,
+    update: getUpdateState(),
+    dispatch: handleMenuCommand,
+  });
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function sendToPage(message) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  mainWindow.webContents.send('app-command', message);
+}
+
+const toastInPage = (variant, title, message, action) =>
+  sendToPage({ command: 'toast', variant, title, message, action });
+
+/** Opens a link in the browser; when that fails the address is copied instead (and a toast says so). */
+async function openLink(url) {
+  try {
+    await shell.openExternal(url);
+  } catch {
+    clipboard.writeText(url);
+    toastInPage('warning', 'Could not open the browser', 'The address is copied instead. Paste it in a browser.');
+  }
+}
+
+function logsDir() {
+  return process.env.KANBAN_LOG_DIR || path.join(os.homedir(), '.kanban-board', 'logs');
+}
+
+/** Versions and system facts only. Used by Copy Diagnostics Info and the Report an Issue and About windows. */
+function collectDiagnostics() {
+  return {
+    appName: app.name || 'Kanban Board',
+    version: app.getVersion(),
+    backendRunning: Boolean(backendPort && backendProcess),
+    osName: { darwin: 'macOS', win32: 'Windows', linux: 'Linux' }[process.platform] || process.platform,
+    osVersion: os.release(),
+    arch: process.arch,
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    language: app.getLocale(),
+  };
+}
+
+async function openFolder(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+  const error = await shell.openPath(dir);
+  if (error) toastInPage('error', 'Could not open the folder', error);
+}
+
+async function checkForUpdatesFromMenu() {
+  const result = await checkNow();
+  if (result.error) {
+    toastInPage('error', "Couldn't check for updates", result.error, { label: 'Open releases page', command: 'open-releases' });
+  } else if (!result.info) {
+    toastInPage('success', "You're up to date", `Kanban Board ${app.getVersion()} is the latest version.`);
+  } // else: the corner notice was sent by the updater
+}
+
+function handleMenuCommand(id, payload) {
+  const action = resolveCommand(id, payload);
+  if (action.type === 'link') return void openLink(action.url);
+  if (action.type === 'renderer') return sendToPage(action.message);
+  switch (action.name) {
+    case 'open-logs':
+      return void openFolder(logsDir());
+    case 'open-data':
+      return void openFolder(app.getPath('userData'));
+    case 'copy-diagnostics':
+      clipboard.writeText(buildDiagnosticsText(collectDiagnostics()));
+      return toastInPage('success', 'Copied', 'Diagnostics info is on the clipboard.');
+    case 'new-window':
+      return void (mainWindow ? mainWindow.show() : createWindow());
+    case 'maximize':
+      if (mainWindow) mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
+      return undefined;
+    case 'check-updates':
+      return void checkForUpdatesFromMenu();
+    default:
+      return undefined;
+  }
+}
+
+// IPC: the page reports which view is on screen (for the check mark in View)
+ipcMain.on('app-state', (_event, state) => {
+  const view = state && typeof state.view === 'string' && VIEWS.some((v) => v.id === state.view) ? state.view : null;
+  if (view !== currentView) {
+    currentView = view;
+    refreshMenu();
+  }
+});
+
+// IPC: facts for the About and Report an Issue windows (the same as Copy Diagnostics Info)
+ipcMain.handle('get-app-info', () => ({
+  ...collectDiagnostics(),
+  window: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getSize() : null,
+}));
 
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
@@ -298,15 +418,20 @@ if (exportArgs) {
 } else {
   app.whenReady().then(() => {
     profiler.mark('app-ready');
+    // macOS shows the system About window (Linux uses these too); Windows gets the in-app one
+    app.setAboutPanelOptions({
+      applicationName: app.name || 'Kanban Board',
+      applicationVersion: app.getVersion(),
+      copyright: '© 2026 Cao Minh Tiến · MIT licence',
+      website: 'https://github.com/iamcaominhtien/kanban-board-mcp',
+    });
+    setupUpdater(() => mainWindow, refreshMenu);
+    // The menu is set before the window opens. Developer tools are View › Toggle Developer Tools, which only
+    // works while this app is in front (it used to be a system-wide shortcut)
+    refreshMenu();
     createWindow();
-    setupUpdater(() => mainWindow);
 
     launchBackend();
-
-    globalShortcut.register('CommandOrControl+Shift+I', () => {
-      const focused = BrowserWindow.getFocusedWindow();
-      if (focused) focused.webContents.toggleDevTools();
-    });
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
