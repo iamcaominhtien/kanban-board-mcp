@@ -91,3 +91,51 @@ export function statesLegend(days: number): { key: string; label: string; text: 
     },
   ];
 }
+
+/** A block of the page that a waiting proposal wants to change (shown with a purple mark in the page). */
+export interface ProposedMark {
+  proposalId: string;
+  n: number;
+  by: string;
+}
+
+/**
+ * The page lines a waiting proposal would replace, by trimmed source line: a block that contains one of them is
+ * marked "Proposed by <AI>" in the page (click to review). Stale and decided changes are not marked.
+ */
+export function proposedLines(
+  proposals: {
+    id: string;
+    status: string;
+    memberName: string | null;
+    changes: { n: number; kind: string; old: string; status: string; stale: boolean }[];
+  }[],
+): Map<string, ProposedMark> {
+  const out = new Map<string, ProposedMark>();
+  for (const p of proposals) {
+    if (p.status !== 'waiting') continue;
+    for (const c of p.changes) {
+      if (c.kind !== 'text' || c.status !== 'pending' || c.stale) continue;
+      for (const line of c.old.split('\n')) {
+        const key = line.trim();
+        if (key.length >= 6 && !out.has(key))
+          out.set(key, { proposalId: p.id, n: c.n, by: p.memberName ?? 'An AI member' });
+      }
+    }
+  }
+  return out;
+}
+
+let pendingReview: string | null = null;
+
+/** A proposal to open for review as soon as its page is shown (the Approvals list's "Review on page"). */
+export function setPendingReview(proposalId: string | null): void {
+  pendingReview = proposalId;
+}
+
+/** The proposal waiting to be opened, once. */
+export function takePendingReview(): string | null {
+  const id = pendingReview;
+  pendingReview = null;
+  return id;
+}

@@ -3,7 +3,7 @@ import { useDocsAiState } from '../../../api/docsAi';
 import { usePageProposals } from '../../../api/docsAiProposals';
 import type { DocsPage } from '../../../types/docs';
 import { aiGate } from '../../../utils/docsAiRules';
-import { bannerMeta, memberLabel, REVIEW_PROPOSAL_EVENT } from '../../../utils/docsProposalRules';
+import { bannerMeta, memberLabel, REVIEW_PROPOSAL_EVENT, takePendingReview } from '../../../utils/docsProposalRules';
 import { Icon } from '../Icon';
 import { ProposalReview } from './ProposalReview';
 
@@ -29,7 +29,7 @@ export function ProposalBanner({ projectId, page, canEdit }: { projectId: string
     window.addEventListener(REVIEW_PROPOSAL_EVENT, open);
     return () => window.removeEventListener(REVIEW_PROPOSAL_EVENT, open);
   }, []);
-  useEffect(() => setOpenId(null), [page.id]);
+  useEffect(() => setOpenId(takePendingReview()), [page.id]);
 
   if (!on || !canEdit || !q.data?.canReview) return null;
   const all = q.data.proposals;

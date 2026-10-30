@@ -556,6 +556,36 @@ input:focus-visible {
   font-family: var(--font-body, inherit);
 }
 
+.dk-md .dk-proposed {
+  position: relative;
+  margin-top: 22px;
+  cursor: pointer;
+  background: #faf7ff;
+  box-shadow: 0 0 0 4px #faf7ff;
+  border-radius: 4px;
+}
+.dk-md .dk-proposed::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: -19px;
+  bottom: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: #8b6fdb;
+}
+.dk-md .dk-proposed::after {
+  content: attr(data-proposed-by);
+  position: absolute;
+  left: 0;
+  top: -19px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #6b4fc4;
+  font-family: var(--font-body, inherit);
+}
+
 .dk-md li {
   margin: 2px 0;
 }

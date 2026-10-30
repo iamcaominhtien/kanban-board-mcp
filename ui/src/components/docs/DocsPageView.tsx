@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DocsPage } from '../../types/docs';
 import { useDocsAiState } from '../../api/docsAi';
+import { usePageProposals } from '../../api/docsAiProposals';
 import { aiGate } from '../../utils/docsAiRules';
+import { proposedLines, REVIEW_PROPOSAL_EVENT } from '../../utils/docsProposalRules';
 import { absoluteTime, actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
 import { OfflineBanner } from './DocsStates';
@@ -111,6 +113,17 @@ export function DocsPageView({
   const aiNow = aiGate(aiState.data, { hidden: !!page.aiHidden });
   const aiOn = !offline && page.version > 0 && aiNow.show && aiNow.reason === null;
   const translated = useTranslatedMarkdown(aiView);
+  // blocks a waiting AI proposal would change are marked in the page; a click opens the review
+  const waiting = usePageProposals(page.id, aiOn && !readOnly && page.version > 0);
+  const proposed = useMemo(
+    () => (waiting.data?.canReview ? proposedLines(waiting.data.proposals) : undefined),
+    [waiting.data],
+  );
+  const reviewMarked = useCallback((e: { target: EventTarget }) => {
+    const mark = (e.target as HTMLElement).closest?.('[data-proposal-id]');
+    const proposalId = mark?.getAttribute('data-proposal-id');
+    if (proposalId) window.dispatchEvent(new CustomEvent(REVIEW_PROPOSAL_EVENT, { detail: { proposalId } }));
+  }, []);
   const commentsData = cc.query.data;
   const inlineThreads = useMemo(() => (commentsData?.threads ?? []).filter((t) => t.kind === 'inline'), [commentsData]);
   const suggest = useCommentSuggest(commentsData);
@@ -632,18 +645,21 @@ export function DocsPageView({
                 </div>
               )}
               {(published || page.draft) && (
-                <DocsMarkdown
-                  projectId={projectId}
-                  projectName={projectName}
-                  onOpenPage={onOpenPage}
-                  onOpenTicket={onOpenTicket}
-                  onCreatePage={onCreatePage}
-                  onRestorePage={onRestorePage}
-                  onReplaceSection={published && !translated ? onReplaceSection : undefined}
-                  changedIn={published && since.behind && !translated ? since.changedIn : undefined}
-                >
-                  {translated ?? (published ? page.markdown : page.draft!.markdown)}
-                </DocsMarkdown>
+                <div style={{ display: 'contents' }} onClick={reviewMarked}>
+                  <DocsMarkdown
+                    projectId={projectId}
+                    projectName={projectName}
+                    onOpenPage={onOpenPage}
+                    onOpenTicket={onOpenTicket}
+                    onCreatePage={onCreatePage}
+                    onRestorePage={onRestorePage}
+                    onReplaceSection={published && !translated ? onReplaceSection : undefined}
+                    changedIn={published && since.behind && !translated ? since.changedIn : undefined}
+                    proposed={published && !translated ? proposed : undefined}
+                  >
+                    {translated ?? (published ? page.markdown : page.draft!.markdown)}
+                  </DocsMarkdown>
+                </div>
               )}
             </div>
             {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}

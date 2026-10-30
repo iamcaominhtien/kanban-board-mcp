@@ -11,6 +11,7 @@ import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
 import { markNeedsInput, NEEDS_INPUT_SCHEME } from '../../utils/writeRules';
+import type { ProposedMark } from '../../utils/docsProposalRules';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
 import { galleryAround, previewAttrs, usePreview } from '../preview/PreviewContext';
@@ -65,6 +66,14 @@ const METHOD_COLORS: Record<string, string> = {
 
 const NO_REFS: DocsRefRequest[] = [];
 
+/** Props that mark a block: changed since the viewer last looked, or changed by a waiting AI proposal. */
+interface BlockMark {
+  className?: string;
+  'data-changed-in'?: string;
+  'data-proposal-id'?: string;
+  'data-proposed-by'?: string;
+}
+
 export interface DocsMarkdownProps {
   children: string;
   projectId: string;
@@ -76,6 +85,8 @@ export interface DocsMarkdownProps {
   onReplaceSection?: RefChipProps['onReplaceSection'];
   /** Source line text -> version that added it: marks those blocks "Changed in vN" (since last viewed). */
   changedIn?: Map<string, number>;
+  /** Source line text -> the waiting AI proposal that would replace it: marks those blocks "Proposed by …". */
+  proposed?: Map<string, ProposedMark>;
 }
 
 function textOf(node: ReactNode): string {
@@ -198,6 +209,7 @@ export function DocsMarkdown({
   onRestorePage,
   onReplaceSection,
   changedIn,
+  proposed,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
   const linked = useMemo(() => linkifyDocs(markNeedsInput(escapeStrayDollars(cleaned))), [cleaned]);
@@ -226,6 +238,7 @@ export function DocsMarkdown({
     pages,
     tickets,
     changedIn,
+    proposed,
     lines: cleaned.split('\n'),
   });
   live.current = {
@@ -240,17 +253,36 @@ export function DocsMarkdown({
     pages,
     tickets,
     changedIn,
+    proposed,
     lines: cleaned.split('\n'),
   };
-  // Props that flag a block as changed since the viewer last looked, from its source lines (hast position).
-  const changedProps = (node: Element | undefined): { className?: string; 'data-changed-in'?: string } => {
-    const { changedIn: map, lines } = live.current;
+  // Props that flag a block as changed since the viewer last looked, or as one a waiting AI proposal would change,
+  // from its source lines (hast position).
+  const changedProps = (node: Element | undefined): BlockMark => {
+    const { changedIn: map, proposed: marks, lines } = live.current;
     const start = node?.position?.start.line;
     const end = node?.position?.end.line;
-    if (!map?.size || !start || !end) return {};
+    if (!start || !end) return {};
     let version = 0;
-    for (let n = start; n <= end; n += 1) version = Math.max(version, map.get((lines[n - 1] ?? '').trim()) ?? 0);
-    return version ? { className: 'dk-changed', 'data-changed-in': `Changed in v${version}` } : {};
+    let mark: ProposedMark | undefined;
+    for (let n = start; n <= end; n += 1) {
+      const line = (lines[n - 1] ?? '').trim();
+      version = Math.max(version, map?.get(line) ?? 0);
+      mark = mark ?? marks?.get(line);
+    }
+    const out: BlockMark = {};
+    const classes: string[] = [];
+    if (version) {
+      classes.push('dk-changed');
+      out['data-changed-in'] = `Changed in v${version}`;
+    }
+    if (mark) {
+      classes.push('dk-proposed');
+      out['data-proposal-id'] = mark.proposalId;
+      out['data-proposed-by'] = `Proposed by ${mark.by} · review`;
+    }
+    if (classes.length) out.className = classes.join(' ');
+    return out;
   };
   const components = useMemo<Components>(
     () => ({
@@ -348,6 +380,8 @@ export function DocsMarkdown({
           <li
             className={own.className ? `dk-task ${own.className}` : 'dk-task'}
             data-changed-in={own['data-changed-in']}
+            data-proposal-id={own['data-proposal-id']}
+            data-proposed-by={own['data-proposed-by']}
           >
             <Checkbox checked={checked} />
             <span

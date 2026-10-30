@@ -11,6 +11,7 @@ import { cleanEditorMarkdown } from '../../utils/docsMarkdown';
 import { aiGate } from '../../utils/docsAiRules';
 import type { AiSlashId } from '../docs/editor/slashItems';
 import { CheckThisPage } from '../docs/ai/CheckThisPage';
+import { DrawDiagram } from '../docs/ai/DrawDiagram';
 import './assist.css';
 
 export interface DocsAiEditor {
@@ -326,6 +327,7 @@ export function DocsAi({
   const [ticketPick, setTicketPick] = useState(false);
   const [ticketId, setTicketId] = useState('');
   const [checking, setChecking] = useState(false);
+  const [drawing, setDrawing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const block = featureBlock(st.data, 'docs');
   const start = async (kind: 'doc_summary' | 'doc_section' | 'doc_links', data: Record<string, unknown> = {}) => {
@@ -378,7 +380,8 @@ export function DocsAi({
         break;
       case 'diagram':
         setMenuOpen(false);
-        setError('Drawing from the text is not available yet. Type /diagram to start a blank draw.io diagram.');
+        setError(null);
+        setDrawing(true);
         break;
       case 'tickets':
         setMenuOpen(false);
@@ -507,6 +510,14 @@ export function DocsAi({
         </div>
       )}
       {error && <div className="ai-notice ai-notice-error">{error}</div>}
+      {drawing && docsOn && (
+        <DrawDiagram
+          pageId={pageId}
+          getEditor={ed.getEditor}
+          getMarkdown={ed.getMarkdown}
+          onClose={() => setDrawing(false)}
+        />
+      )}
       {checking && docsOn && (
         <CheckThisPage
           pageId={pageId}

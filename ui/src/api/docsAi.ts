@@ -15,7 +15,7 @@ export interface DocsAiState {
   readScope: 'all' | 'except_hidden' | 'picked';
   pickedPages: string[];
   stylePageId: string | null;
-  editsMode: 'proposal' | 'draft';
+  editsMode: 'direct' | 'proposal' | 'draft';
   proposalDays: number;
   freshnessOn: boolean;
   guidanceLimit: number;

@@ -165,7 +165,10 @@ export function DocsAiSettings({ project }: { project: Project }) {
             onChange={(e) => save({ freshnessOn: e.target.checked })}
           />
         </Row>
-        <Row title="Edits by AI members" text="What happens when an AI member wants to change a page.">
+        <Row
+          title="Edits by AI members"
+          text="What happens when an AI member wants to change a page. “Make the change” follows each member’s own permissions."
+        >
           <select
             style={select}
             value={d.editsMode}
@@ -173,6 +176,7 @@ export function DocsAiSettings({ project }: { project: Project }) {
             onChange={(e) => save({ editsMode: e.target.value as DocsAiSettingsPatch['editsMode'] })}
             aria-label="Edits by AI members"
           >
+            <option value="direct">Make the change</option>
             <option value="proposal">Proposal to review</option>
             <option value="draft">Draft only</option>
           </select>

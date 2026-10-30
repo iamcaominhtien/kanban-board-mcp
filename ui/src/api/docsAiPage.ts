@@ -61,6 +61,18 @@ export interface FixResult {
   metered: boolean;
 }
 
+export interface DiagramResult {
+  diagramId: string;
+  label: string;
+  version: number;
+  /** `[name](diagram:dg_…)`: the line that shows the diagram in a page. */
+  markdown: string;
+  /** True when an existing diagram got a new version. */
+  changed: boolean;
+  cost: number;
+  metered: boolean;
+}
+
 export const pageAiKeys = { page: (pageId: string) => ['docs-ai', 'page', pageId] as const };
 
 const post = async (path: string, body?: unknown) => (await client.post<DocsAiJob>(path, body)).data;
@@ -90,11 +102,21 @@ export function usePageAiStart(pageId: string) {
       post(`/docs/pages/${pageId}/ai/check/${v.findingId}/fix`, { markdown: v.markdown, jobId: v.jobId }),
     onSuccess: done,
   });
+  const diagram = useMutation({
+    mutationFn: (v: { selection?: string; instruction?: string; diagramId?: string; markdown?: string }) =>
+      post(`/docs/pages/${pageId}/ai/diagram`, {
+        selection: v.selection,
+        instruction: v.instruction,
+        diagram_id: v.diagramId,
+        markdown: v.markdown,
+      }),
+    onSuccess: done,
+  });
   const ignore = useMutation({
     mutationFn: async (key: string) =>
       (await client.post<{ ok: boolean; key: string }>(`/docs/pages/${pageId}/ai/check/ignore`, { key })).data,
   });
-  return { summary, explain, translate, check, fix, ignore };
+  return { summary, explain, translate, check, fix, diagram, ignore };
 }
 
 /** A running page job and its typed result (null until it finishes). */
