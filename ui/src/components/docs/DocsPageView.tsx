@@ -645,7 +645,11 @@ export function DocsPageView({
                 </div>
               )}
               {(published || page.draft) && (
-                <div style={{ display: 'contents' }} onClick={reviewMarked}>
+                <div
+                  style={{ display: 'contents' }}
+                  onClick={reviewMarked}
+                  data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
+                >
                   <DocsMarkdown
                     projectId={projectId}
                     projectName={projectName}

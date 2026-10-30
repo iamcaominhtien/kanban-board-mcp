@@ -4,6 +4,7 @@ import type { TestCase, TestCaseStatus, TestCaseFileData } from '../types';
 import { uploadAttachment, uploadUrl, uploadAnyFile } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { MarkdownEditor } from './MarkdownEditor';
+import { useAiBoardState } from './ai/aiUi';
 import { useMembers } from '../api/members';
 import { useDocsRefs } from './docs/DocsRefsContext';
 import { TestCaseMention } from './ai/TestCaseMention';
@@ -94,6 +95,11 @@ function TestCaseRowItem({
   const [expanded, setExpanded] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(tc.title);
+  // AI in the notes of a case (/ai, Ctrl+J, the selection bar)
+  const { projectId: aiProjectId } = useAiBoardState();
+  const aiNote = askTicketId
+    ? { surface: 'test_case' as const, projectId: aiProjectId, ticketId: askTicketId }
+    : undefined;
 
   const [fileBusy, setFileBusy] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -302,6 +308,7 @@ function TestCaseRowItem({
               value={tc.description || ''}
               onChange={(val) => onUpdate({ ...tc, description: val, updatedAt: new Date().toISOString() })}
               placeholderText="What does this test case cover?"
+              ai={aiNote}
               readOnly={readOnly || disabled}
               compact={true}
               onUploadFile={uploadAnyFile}
@@ -316,6 +323,7 @@ function TestCaseRowItem({
               value={tc.expectedResult || ''}
               onChange={(val) => onUpdate({ ...tc, expectedResult: val, updatedAt: new Date().toISOString() })}
               placeholderText="What is the expected behavior or pass bar?"
+              ai={aiNote}
               readOnly={readOnly || disabled}
               compact={true}
               onUploadFile={uploadAnyFile}
@@ -443,6 +451,7 @@ function TestCaseRowItem({
               value={tc.notes || tc.note || ''}
               onChange={(val) => onUpdate({ ...tc, notes: val, note: val, updatedAt: new Date().toISOString() })}
               placeholderText="Additional notes, screenshots, or environment details..."
+              ai={aiNote}
               readOnly={readOnly || disabled}
               compact={true}
               mentionMembers={mentionMembers}

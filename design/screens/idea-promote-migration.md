@@ -104,6 +104,18 @@ Source: [IdeaPromote.dc.html](../source/IdeaPromote.dc.html) › block "H. What 
 
 ---
 
+### As shipped (3.14.0)
+
+The conversion follows the table above, with these details where the design leaves a choice:
+
+- An idea with a revisit date that would be Inbox, Exploring or Ready becomes **Parked** until that date. A date that has already passed returns it to the Inbox the first time ideas are read.
+- A promoted idea whose ticket is set to Won’t do becomes **Exploring** (as in section E); one whose ticket no longer exists becomes **Ready** and the link is cleared.
+- Every converted idea gets a last activity entry (“Converted to the new Idea Space”, author `system`) and the source `import`.
+- The problem statement and description become the page body (`## Problem`, then the description). The old fields are left in place, so nothing is lost; microthoughts stay on the idea until the comments of step 5 take them over.
+- The backup is a copy of the database next to it, `kanban.before-idea-space-<date>.db`, made only when there are ideas to convert.
+
+---
+
 ## I. What this means for the product (for planning)
 
 A summary for whoever builds it. The ticket plan lives in the issue tracker.

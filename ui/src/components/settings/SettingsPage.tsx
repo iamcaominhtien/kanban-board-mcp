@@ -4,6 +4,7 @@ import { McpIntegrations } from '../McpIntegrations';
 import { AiSettingsSection } from '../ai/AiSettingsSection';
 import { UpdateSettingsSection } from '../UpdateSettingsSection';
 import { DocsSettingsRow } from '../docs/DocsSettingsRow';
+import { IdeaSpaceSettings } from '../ideas/IdeaSpaceSettings';
 import { DocsAiSettings } from '../docs/ai/DocsAiSettings';
 import { DiagramSettingsSection } from '../diagrams/DiagramSettingsSection';
 import { AssistSettings } from '../assist/AssistSettings';
@@ -189,6 +190,9 @@ export function SettingsPage({ onClose, theme, onToggleTheme, projectId, onManag
           <AssistSettings projectId={project.id} onOpenAudit={onManageAi} />
         </div>
       ) : null;
+      break;
+    case 'ideas':
+      body = project ? <IdeaSpaceSettings projectId={project.id} onManageAi={onManageAi} /> : null;
       break;
     case 'appearance':
       body = (

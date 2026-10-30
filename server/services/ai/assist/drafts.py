@@ -1,7 +1,8 @@
 """Board AI drafts: generated in the background, reviewed by a person, applied as that person with Activity saying
 "suggested by <AI>", and undone from the result line (design/screens/ai-board-assistant.md, B2, B10, C, D, E, G, I).
 
-Kinds: changes · ticket · description · split · test_cases · doc_summary · doc_section · doc_links · doc_text.
+Kinds: changes · ticket · description · split · test_cases · doc_summary · doc_section · doc_links · doc_text · editor ·
+editor_doc · sketch.
 """
 
 import asyncio
@@ -24,7 +25,7 @@ from .. import llm
 from ..context import STATUS_LABELS
 from ..store import loads, now_iso, parse_iso
 from . import context as ctxb
-from . import match, prompts
+from . import match, prompts, scopes
 from . import settings as svc_settings
 from .settings import AssistError
 
@@ -43,6 +44,9 @@ FEATURE_OF = {
     "doc_links": "docs",
     "doc_text": "docs",
     "nudge": "health",
+    "editor": "drafting",
+    "editor_doc": "docs",
+    "sketch": "sketch",
 }
 TIMEOUT_S = 30.0  # I: "30 s draft timeout"
 SPLIT_DAYS = 7
@@ -130,6 +134,11 @@ async def _ticket_state(session: AsyncSession, project_id: str) -> tuple[dict, d
             "due_date": t.due_date,
             "estimate": t.estimate,
             "title": t.title,
+            "criteria": [
+                a.get("text", "")
+                for a in loads(t.acceptance_criteria, [])
+                if isinstance(a, dict)
+            ],
         }
         for t in tickets
     }
@@ -262,11 +271,24 @@ async def regenerate(
     d = await _get(session, draft_id)
     if d.status in ("applied",):
         raise AssistError("invalid", "This draft was already applied.")
+    if d.kind == "sketch":
+        # a drawing proposal belongs to a message of the sketch chat: Try again sends the message again
+        raise AssistError("invalid", "Send your message again to get a new drawing.")
+    editor_draft = d.kind in ("editor", "editor_doc")
     await svc_settings.guard_request(
-        session, d.project_id, FEATURE_OF[d.kind], person=d.owner
+        session,
+        d.project_id,
+        FEATURE_OF[d.kind],
+        person=d.owner,
+        member_id=d.member_id if editor_draft else None,
+        require_member=editor_draft,
     )
     payload = loads(d.payload, {})
     inp = dict(payload.get("input") or {})
+    if editor_draft:
+        inp.pop(
+            "continue_from", None
+        )  # Try again starts over; Continue is its own action
     if feedback:
         inp["feedback"] = feedback.strip()[:1000]
     if field:
@@ -357,8 +379,14 @@ async def _run(draft_id: str, allow_more: bool = False) -> None:
         session.add(d)
         await session.commit()
         if out:
+            feature = FEATURE_OF[d.kind]
+            if (
+                d.kind == "editor_doc"
+                and (old.get("input") or {}).get("surface") == "idea"
+            ):
+                feature = "idea_editor"  # counts toward the Idea Space's own daily cap
             await svc_settings.record_usage(
-                session, d.project_id, FEATURE_OF[d.kind], d.member_id, d.owner, out
+                session, d.project_id, feature, d.member_id, d.owner, out
             )
     await _publish()
 
@@ -1087,7 +1115,16 @@ async def _gen_nudge(d: AiDraft, profile, row, project, allow_more):
     return {"changes": [{"op": "comment", "ticket": t.id, "text": text}]}, out, out.text
 
 
+async def _gen_editor(d: AiDraft, profile, row, project, allow_more):
+    """Text help in an editor (the /ai menu, the selection bar); see `editor.py`."""
+    from . import editor
+
+    return await editor.generate(d, profile, row, project, allow_more)
+
+
 GENERATORS = {
+    "editor": _gen_editor,
+    "editor_doc": _gen_editor,
     "ticket": _gen_ticket,
     "description": _gen_description,
     "split": _gen_split,
@@ -1212,6 +1249,43 @@ async def apply_changes(
                 continue
             tid = ch["ticket"]
             try:
+                if ch.get("scope"):
+                    provider = scopes.get(ch["scope"])
+                    if provider is None:
+                        raise ValueError(f"No chat about {ch['scope']} here.")
+                    done = await provider.apply_change(
+                        session, ch, person, d.member_name
+                    )
+                    applied.append(
+                        {
+                            "i": i,
+                            "op": ch["op"],
+                            "ticket": tid,
+                            "undo_with": ch["scope"],
+                            **done,
+                        }
+                    )
+                    continue
+                if ch["op"] == "add_criteria":
+                    raw = (edits or {}).get(str(i))
+                    items = (
+                        [x.strip() for x in raw.splitlines() if x.strip()]
+                        if raw is not None
+                        else list(ch["items"])
+                    )
+                    ids: list[str] = []
+                    for text in items:
+                        t = await svc_tickets.add_acceptance_criterion(
+                            session, tid, text
+                        )
+                        if t is not None:
+                            ids.append(loads(t.acceptance_criteria, [])[-1]["id"])
+                    if not ids:
+                        raise ValueError("Write at least one criterion.")
+                    applied.append(
+                        {"i": i, "op": "add_criteria", "ticket": tid, "ids": ids}
+                    )
+                    continue
                 if ch["op"] == "comment":
                     text = (edits or {}).get(str(i)) or ch["text"]
                     t = await svc_tickets.add_comment(
@@ -1552,6 +1626,22 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
     with _As(person, d.member_name):
         if d.kind in ("changes", "nudge", "assignee"):
             for a in reversed(res.get("applied") or []):
+                if a["op"] == "add_criteria":
+                    for cid in a.get("ids") or []:
+                        await svc_tickets.delete_acceptance_criterion(
+                            session, a["ticket"], cid
+                        )
+                        undone += 1
+                    continue
+                if a.get("undo_with"):
+                    provider = scopes.get(a["undo_with"])
+                    if provider is not None and await provider.undo_change(
+                        session, a, person
+                    ):
+                        undone += 1
+                    else:
+                        skipped.append(f"{a['ticket']} {a['op']} was changed since")
+                    continue
                 if a["op"] == "comment":
                     if a.get("comment_id"):
                         await svc_tickets.delete_comment(

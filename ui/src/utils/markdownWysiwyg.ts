@@ -6,6 +6,7 @@
 import { keyChipHtml, keyPattern, refChipHtml } from './docRefTokens';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { DIAGRAM_LINE } from '../components/diagrams/diagramRefs';
+import { SKETCH_LINE } from '../components/sketch/sketchRefs';
 
 function escapeHtml(text: string): string {
   return text
@@ -87,6 +88,55 @@ export function diagramBlockElement(id: string, label: string): HTMLElement {
   edit.setAttribute('type', 'button');
   edit.setAttribute('data-diagram-edit', '');
   edit.textContent = 'Edit';
+  foot.append(chip, title, grow, edit);
+  block.append(stage, foot);
+  return block;
+}
+
+/**
+ * The editor's stand-in for a sketch line: a non-editable block with the picture and an "Edit sketch" button.
+ * `htmlToMarkdown` turns it back into `![label](sketch:id)`.
+ * @param id - Sketch id.
+ * @param label - Sketch title.
+ * @param version - Version to show; adds a cache key to the picture address.
+ */
+export function sketchBlockElement(id: string, label: string, version?: number): HTMLElement {
+  const name = label || 'Sketch';
+  const el = (tag: string, style?: string) => {
+    const e = document.createElement(tag);
+    if (style) e.setAttribute('style', style);
+    return e;
+  };
+  const block = el('div', BLOCK_STYLE);
+  block.setAttribute('data-sketch', id);
+  block.setAttribute('data-label', name);
+  block.setAttribute('contenteditable', 'false');
+  const stage = el('div', 'display:flex;justify-content:center;padding:12px');
+  const img = el('img', 'max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in') as HTMLImageElement;
+  img.setAttribute('data-sketch-img', '');
+  img.src = `${resolveOrigin()}/sketches/${encodeURIComponent(id)}/png${version ? `?v=${Number(version)}` : ''}`;
+  img.alt = name;
+  stage.appendChild(img);
+  const foot = el(
+    'div',
+    'display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid #EEF2EF;background:#FAFCFA;font-size:13px;color:#5B6B60',
+  );
+  const chip = el(
+    'span',
+    'padding:1px 8px;border-radius:6px;background:#ECE8FB;color:#5A49C2;font-weight:600;font-size:12px',
+  );
+  chip.textContent = 'Sketch';
+  const title = el('b', 'color:#1E2A22');
+  title.setAttribute('data-sketch-name', '');
+  title.textContent = name;
+  const grow = el('span', 'flex:1');
+  const edit = el(
+    'button',
+    'border:1px solid #DCE6DF;border-radius:7px;background:#fff;padding:3px 10px;font:600 12px inherit;cursor:pointer',
+  );
+  edit.setAttribute('type', 'button');
+  edit.setAttribute('data-sketch-edit', '');
+  edit.textContent = 'Edit sketch';
   foot.append(chip, title, grow, edit);
   block.append(stage, foot);
   return block;
@@ -361,6 +411,13 @@ export function markdownToHtml(md: string): string {
     // Blank line
     if (!line.trim()) continue;
 
+    // A sketch on its own line: ![label](sketch:sk_…)
+    const sketchLine = SKETCH_LINE.exec(line.trim());
+    if (sketchLine) {
+      htmlParts.push(sketchBlockElement(sketchLine[2], sketchLine[1]).outerHTML);
+      continue;
+    }
+
     // A diagram on its own line: [label](diagram:dg_…)
     const diagramLine = DIAGRAM_LINE.exec(line.trim());
     if (diagramLine) {
@@ -471,6 +528,11 @@ export function htmlToMarkdown(root: HTMLElement): string {
       ? `[${(el.getAttribute('data-label') || 'Diagram').replace(/[<>"'[\]\n]+/g, ' ')}](diagram:${id})`
       : '';
 
+  const sketchLink = (el: HTMLElement, id: string) =>
+    /^sk_[0-9a-f]{8}$/.test(id)
+      ? `![${(el.getAttribute('data-label') || 'Sketch').replace(/[<>"'[\]\n]+/g, ' ')}](sketch:${id})`
+      : '';
+
   function serializeInline(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) {
       // eslint-disable-next-line no-irregular-whitespace -- non-breaking space is matched on purpose
@@ -485,6 +547,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
     const tag = el.tagName.toLowerCase();
     const inlineDiagramId = el.getAttribute('data-diagram');
     if (inlineDiagramId) return diagramLink(el, inlineDiagramId);
+    const inlineSketchId = el.getAttribute('data-sketch');
+    if (inlineSketchId) return sketchLink(el, inlineSketchId);
 
     const childrenText = Array.from(el.childNodes).map(serializeInline).join('');
 
@@ -638,6 +702,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
     const textAlign = el.style.textAlign;
     const diagramId = el.getAttribute('data-diagram');
     if (diagramId) return `${diagramLink(el, diagramId)}\n\n`;
+    const sketchId = el.getAttribute('data-sketch');
+    if (sketchId) return `${sketchLink(el, sketchId)}\n\n`;
 
     switch (tag) {
       case 'h1':

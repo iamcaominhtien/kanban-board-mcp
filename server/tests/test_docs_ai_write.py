@@ -5,9 +5,12 @@ import json
 import subprocess
 
 import database
+import services.idea_space as idea_space
+import services.idea_tickets as idea_tickets
 from models import DocsDraft
 from services.docs_ai import jobs, tidy, write
 from sqlmodel import select
+from sqlalchemy import text as sql
 from tests.docs_ai_helpers import H, env, fake, page, setup  # noqa: F401
 
 MIA = {"X-Actor": "Mia"}
@@ -664,3 +667,66 @@ async def test_the_write_job_is_recorded_and_metered(env, fake):
         and job["started_by"] == "An Nguyen"
     )
     assert jobs.HANDLERS["write"] and jobs.HANDLERS["since_viewed"]
+
+
+async def test_a_page_from_an_idea_space_idea_reads_its_page_assumptions_and_evidence(
+    env, fake
+):
+    c, pid, member = await setup(env)
+    async with database.async_session() as session:
+        await session.execute(
+            sql(
+                "INSERT INTO idea_counter (id, counter) VALUES (1, 0) ON CONFLICT DO NOTHING"
+            )
+        )
+        idea = await idea_tickets.create_idea_ticket(
+            session, pid, "Dark mode", description="old description"
+        )
+        idea_id = idea.id
+        await idea_space.update_page(
+            session, idea_id, body="## Why\n\nNight owls ask for it.", author="Hoa"
+        )
+        idea = await idea_tickets.add_assumption(
+            session, idea_id, "Most users work at night", impact="high"
+        )
+        await idea_space.add_evidence(
+            session,
+            idea_id,
+            [idea.assumption_records[0].id],
+            "note",
+            "Three interviews said so",
+            "Interviews",
+        )
+        loose = await idea_tickets.create_idea_ticket(session, None, "No project yet")
+        other = await session.get(type(idea), loose.id)
+        assert other.project_id is None
+    r = await c.post(
+        f"/projects/{pid}/docs/ai/write/preview",
+        json={"source": {"kind": "idea", "idea_id": idea_id}, "page_kind": "howto"},
+        headers=H,
+    )
+    assert r.status_code == 200, r.text
+    async with database.async_session() as session:
+        g = await write.gather(
+            session,
+            pid,
+            {"source": {"kind": "idea", "idea_id": idea_id}, "page_kind": "howto"},
+        )
+    text = "\n".join(s.text for s in g.sources)
+    assert "Night owls ask for it." in text  # the page body, not the old description
+    assert "old description" not in text
+    assert "[high impact, untested] Most users work at night" in text
+    assert "evidence (note): Interviews Three interviews said so" in text
+    # an idea that belongs to no project yet can be written from; one of another project cannot
+    ok = await c.post(
+        f"/projects/{pid}/docs/ai/write/preview",
+        json={"source": {"kind": "idea", "idea_id": loose.id}, "page_kind": "howto"},
+        headers=H,
+    )
+    assert ok.status_code == 200, ok.text
+    missing = await c.post(
+        f"/projects/{pid}/docs/ai/write",
+        json={"source": {"kind": "idea", "idea_id": "IDEA-9999"}},
+        headers=H,
+    )
+    assert missing.status_code == 404

@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
+import { IdeaBulb } from './ideas/ideaLinks';
 import type { Ticket } from '../types';
 import { useProjectActivities, useUpdateTicket } from '../api/tickets';
 import type { ActivityEvent } from '../api/tickets';
@@ -296,7 +297,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
               return (
                 <div key={ticket.id} className={styles.ganttLabelRow} onClick={() => onCardClick(ticket)}>
                   <span className={`${styles.ganttTicketId} ${isDone ? styles.ganttTicketIdDone : ''}`}>
-                    {ticket.id}
+                    {ticket.fromIdeaId && <IdeaBulb ticketId={ticket.id} ideaId={ticket.fromIdeaId} />} {ticket.id}
                   </span>
                   <span className={styles.ganttTicketTitle} title={ticket.title}>
                     {ticket.title}

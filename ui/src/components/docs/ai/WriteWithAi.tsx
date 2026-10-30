@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchIdeaTickets } from '../../../api/ideaTickets';
+import { useIdeaList } from '../../../api/ideas';
 import { docsAiError } from '../../../api/docsAi';
 import { useTickets } from '../../../api/tickets';
 import { useWritePreview, type WritePreview } from '../../../api/docsAiWrite';
@@ -131,12 +130,8 @@ function Picker<T extends { id: string; title: string }>({
  */
 export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props) {
   const tickets = useTickets(projectId);
-  const ideas = useQuery({
-    queryKey: ['docs-ai', 'ideas', projectId],
-    queryFn: () => fetchIdeaTickets(projectId),
-    enabled: form.kind === 'idea',
-    retry: false,
-  });
+  // the project's ideas from the Idea Space
+  const ideas = useIdeaList({ scope: 'project', projectId }, form.kind === 'idea');
   const ready = form.kind === 'ticket' ? !!form.ticketId : form.kind === 'idea' ? !!form.ideaId : !!form.text.trim();
   const body = ready ? writeRequest(form, '', null) : null;
   const preview = useWritePreview(projectId, body);

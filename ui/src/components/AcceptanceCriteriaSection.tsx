@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { AcceptanceCriterion } from '../types';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { TicketRefSuggester } from './docs/RefSuggester';
+import { textareaAdapter } from './ai/editor/adapters';
+import { EditorAiSelectionBar, useEditorAi } from './ai/editor/useEditorAi';
 import styles from './AcceptanceCriteriaSection.module.css';
 
 interface AcceptanceCriteriaSectionProps {
@@ -9,6 +11,8 @@ interface AcceptanceCriteriaSectionProps {
   onAdd: (text: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  /** AI on the criteria (Improve, Split, Draft more): the project and ticket they belong to. Left out, no AI. */
+  ai?: { projectId: string; ticketId: string };
 }
 
 /**
@@ -16,12 +20,14 @@ interface AcceptanceCriteriaSectionProps {
  * @param props.onAdd - Called with the text of a new criterion.
  * @param props.onToggle - Called with the id of the criterion whose done state is flipped.
  * @param props.onDelete - Called with the id of the criterion to delete.
+ * @param props.ai - Turns on AI help (Improve, Split, Draft more) for the criteria of this ticket.
  */
 export function AcceptanceCriteriaSection({
   acceptanceCriteria,
   onAdd,
   onToggle,
   onDelete,
+  ai: aiProp,
 }: AcceptanceCriteriaSectionProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newText, setNewText] = useState('');
@@ -30,6 +36,32 @@ export function AcceptanceCriteriaSection({
 
   const addInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  // AI on the criterion being written or edited: Improve, Split; "Draft more" asks for criteria that are missing
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const aiAdapter = useMemo(
+    () =>
+      textareaAdapter(
+        () => editInputRef.current ?? addInputRef.current,
+        () => sectionRef.current,
+      ),
+    [],
+  );
+  const editingRef = useRef<string | null>(null);
+  editingRef.current = editingId;
+  const editorAi = useEditorAi({
+    surface: 'acceptance_criteria',
+    projectId: aiProp?.projectId,
+    ticketId: aiProp?.ticketId,
+    adapter: aiAdapter,
+    enabled: !!aiProp,
+    onAccepted: (action) => {
+      // a split criterion is replaced by the smaller ones
+      if (action === 'split' && editingRef.current) {
+        onDelete(editingRef.current);
+        setEditingId(null);
+      }
+    },
+  });
 
   useEffect(() => {
     if (isAdding) {
@@ -77,8 +109,35 @@ export function AcceptanceCriteriaSection({
   }
 
   return (
-    <div className={styles.section}>
-      <div className={styles.label}>Acceptance Criteria</div>
+    <div className={styles.section} ref={sectionRef}>
+      <div className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>Acceptance Criteria</span>
+        {aiProp && editorAi.available && (
+          <button
+            type="button"
+            data-testid="ac-draft-more"
+            title="Draft more criteria with AI"
+            onClick={() => editorAi.run('more_criteria')}
+            style={{
+              border: '1px solid #D9D1F6',
+              background: '#F6F3FE',
+              color: '#5A3FD0',
+              borderRadius: 999,
+              padding: '1px 9px',
+              fontFamily: 'inherit',
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: 'pointer',
+              textTransform: 'none',
+              letterSpacing: 0,
+            }}
+          >
+            ✦ Draft more
+          </button>
+        )}
+      </div>
+      {editorAi.layer}
+      {aiProp && <EditorAiSelectionBar ai={editorAi} adapter={aiAdapter} />}
 
       <div className={styles.list}>
         {acceptanceCriteria.map((item) => {
@@ -90,8 +149,17 @@ export function AcceptanceCriteriaSection({
                   ref={editInputRef}
                   className={styles.inputField}
                   value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
+                  data-ai-editor={aiProp ? true : undefined}
+                  onChange={(e) => {
+                    setEditText(e.target.value);
+                    editorAi.onInput();
+                  }}
                   onKeyDown={(e) => {
+                    if (editorAi.onKeyDown(e)) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
                     if (e.key === 'Enter') handleSaveEdit(item.id);
                     if (e.key === 'Escape') handleCancelEdit();
                   }}
@@ -230,8 +298,17 @@ export function AcceptanceCriteriaSection({
               className={styles.inputField}
               placeholder="New criterion…"
               value={newText}
-              onChange={(e) => setNewText(e.target.value)}
+              data-ai-editor={aiProp ? true : undefined}
+              onChange={(e) => {
+                setNewText(e.target.value);
+                editorAi.onInput();
+              }}
               onKeyDown={(e) => {
+                if (editorAi.onKeyDown(e)) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return;
+                }
                 if (e.key === 'Enter') handleSaveNew();
                 if (e.key === 'Escape') handleCancelNew();
               }}

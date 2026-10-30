@@ -20,10 +20,13 @@ from api.members import router as members_router
 from api.settings import router as settings_router
 from api.data import router as data_router
 from api.logs import router as logs_router
+from api.idea_ai import router as idea_ai_router
+from api.idea_space import router as idea_space_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
 from api.docs import docs_error_handler, router as docs_router
 from api.diagrams import router as diagrams_router
+from api.sketches import router as sketches_router
 from api.ai import router as ai_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
@@ -31,6 +34,8 @@ from api.assist import assist_error_handler
 from api.docs_ai import docs_ai_error_handler
 from api.docs_ai import router as docs_ai_router
 from api.assist import router as assist_router
+from api.ai_editor import router as ai_editor_router
+from api.ai_sketch import router as ai_sketch_router
 from api import ai_roles
 from api.schedules import router as schedules_router
 from api.schedules import schedule_error_handler
@@ -49,6 +54,7 @@ import database
 from version import version_info
 from database import init_db
 from services import activity as svc_activity
+from services import idea_ai as svc_idea_ai
 from services import workspace as svc_workspace
 from uploads import (
     MIME_BY_EXTENSION,
@@ -85,6 +91,9 @@ async def lifespan(app: FastAPI):
         sweeper = asyncio.create_task(
             svc_workspace.sweep_loop(lambda: database.async_session())
         )
+        digests = asyncio.create_task(
+            svc_idea_ai.digest_loop(lambda: database.async_session())
+        )
         await ai_runs.start_scheduler()
         await assist_chat.recover()
         await docs_ai_jobs.recover()
@@ -102,10 +111,12 @@ async def lifespan(app: FastAPI):
             await ai_schedules.stop_scheduler()
             await ai_runs.stop_scheduler()
             sweeper.cancel()
-            try:
-                await sweeper
-            except asyncio.CancelledError:
-                pass
+            digests.cancel()
+            for task in (sweeper, digests):
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
 
 app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
@@ -194,6 +205,8 @@ app.mount("/mcp", mcp.streamable_http_app())
 
 app.include_router(projects_router)
 app.include_router(assist_router)
+app.include_router(ai_editor_router)
+app.include_router(ai_sketch_router)
 app.add_exception_handler(AssistError, assist_error_handler)
 app.add_exception_handler(DocsAiError, docs_ai_error_handler)
 app.include_router(schedules_router)
@@ -202,11 +215,14 @@ app.include_router(tickets_router)
 app.include_router(members_router)
 app.include_router(settings_router)
 app.include_router(data_router)
+app.include_router(idea_ai_router)
+app.include_router(idea_space_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
 app.include_router(docs_router)
 app.include_router(docs_ai_router)
 app.include_router(diagrams_router)
+app.include_router(sketches_router)
 app.include_router(logs_router)
 app.include_router(ai_router)
 app.include_router(ai_safety_router)

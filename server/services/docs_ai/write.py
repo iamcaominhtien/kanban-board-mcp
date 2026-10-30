@@ -336,19 +336,26 @@ async def gather(
     if src["kind"] == "ticket":
         await _ticket_sources(session, project_id, src["ticket_id"], inc, g)
     elif src["kind"] == "idea":
-        idea = await session.get(IdeaTicket, src["idea_id"])
-        if idea is None or idea.project_id != project_id:
-            raise DocsAiError("not_found", "That idea is not in this project.")
-        parts = [idea.title, "", idea.description or ""]
+        idea = await _idea(session, project_id, src["idea_id"])
+        parts = [idea.title, ""]
+        # the idea page (Markdown body; an idea without a page yet has its description), then what is recorded around it
+        page = (idea.body or idea.description or "").strip()
+        if page:
+            parts.append(page)
         if idea.problem_statement:
             parts += ["", f"Problem: {idea.problem_statement}"]
-        assumptions = [
-            a.get("text", "")
-            for a in _json_list(idea.assumptions)
-            if isinstance(a, dict)
-        ]
-        if assumptions:
-            parts += ["", "Assumptions:"] + [f"- {a}" for a in assumptions]
+        if (idea.details or "").strip():
+            parts += ["", f"Notes: {idea.details.strip()}"]
+        if idea.assumption_records:
+            parts += ["", "Assumptions:"]
+            for a in idea.assumption_records:
+                parts.append(f"- [{a.impact} impact, {a.status}] {a.text}")
+                for ev in a.evidence:
+                    ref = ev.ref if ev.kind in ("note", "link", "comment") else ""
+                    parts.append(
+                        f"    evidence ({ev.kind}): {ev.title or ev.kind}"
+                        + (f" {ref}" if ref else "")
+                    )
         g.add("idea", f"Idea {idea.title}", "\n".join(parts))
         g.from_label = f"idea “{idea.title}”"
         g.suggested_title = idea.title
@@ -599,9 +606,16 @@ async def _check_source(
                 "not_found", f"{src['ticket_id']} is not a ticket in this project."
             )
     elif src["kind"] == "idea":
-        idea = await session.get(IdeaTicket, src["idea_id"])
-        if idea is None or idea.project_id != project_id:
-            raise DocsAiError("not_found", "That idea is not in this project.")
+        await _idea(session, project_id, src["idea_id"])
+
+
+async def _idea(session: AsyncSession, project_id: str, idea_id: str) -> IdeaTicket:
+    """An Idea Space idea the job may read: one of this project, or one that belongs to no project yet."""
+    idea = await session.get(IdeaTicket, idea_id)
+    if idea is None or idea.project_id not in (None, project_id):
+        raise DocsAiError("not_found", "That idea is not in this project.")
+    await session.refresh(idea)  # with its assumptions and their evidence
+    return idea
 
 
 async def start(

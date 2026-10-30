@@ -23,6 +23,7 @@ class FakeLLM:
         """Empty queue."""
         self.queue: list = []
         self.prompts: list[str] = []
+        self.systems: list[str] = []
         self.sessions: list = []
         self.delay = 0.0
 
@@ -40,6 +41,7 @@ class FakeLLM:
     ):
         """One fake completion, streamed in small pieces."""
         self.prompts.append(prompt)
+        self.systems.append(system)
         self.sessions.append(session)
         item = self.queue.pop(0) if self.queue else "OK."
         if isinstance(item, Exception):

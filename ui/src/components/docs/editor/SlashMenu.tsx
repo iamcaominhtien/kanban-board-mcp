@@ -86,7 +86,8 @@ interface Props {
  */
 export function SlashMenu({ host, state, ctx }: Props) {
   const slashAi = ctx.ai;
-  const items = useMemo(() => filterSlash(state.query, { ai: slashAi }), [state.query, slashAi]);
+  const withAi = !!ctx.openAi;
+  const items = useMemo(() => filterSlash(state.query, { ai: slashAi, withAi }), [state.query, slashAi, withAi]);
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const { ref, pos } = useMenuPosition(state.rect, 380);

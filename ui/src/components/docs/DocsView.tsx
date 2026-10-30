@@ -51,6 +51,7 @@ import { RenameDialog } from './RenameDialog';
 import { SearchResults } from './SearchResults';
 import { useDocsOffline } from './useDocsOffline';
 import './docs.css';
+import { sketchesAsImages } from '../sketch/sketchRefs';
 
 interface Props {
   projectId: string;
@@ -422,7 +423,8 @@ export function DocsView({
     if (action === 'move') setMoveFor(full);
     else if (action === 'duplicate') setDupFor(full);
     else if (action === 'copy-markdown') await copy(`# ${full.title}\n\n${full.markdown}`, 'Markdown copied');
-    else if (action === 'export') download(`${full.slug}.md`, `# ${full.title}\n\n${full.markdown}\n`);
+    else if (action === 'export')
+      download(`${full.slug}.md`, `# ${full.title}\n\n${sketchesAsImages(full.markdown)}\n`);
   }
 
   const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor);

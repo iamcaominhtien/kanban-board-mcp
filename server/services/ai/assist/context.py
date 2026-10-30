@@ -46,6 +46,8 @@ class Context:
     private_skipped: list[dict] = field(default_factory=list)
     steps: list[str] = field(default_factory=list)
     names: dict[str, str] = field(default_factory=dict)  # member id -> name
+    # A scope that is not made of tickets and docs (an idea) words its own "Based on …" line
+    label: str = ""
 
     def summary(self) -> dict:
         """Stored on the answer: the context line, "See what was sent" and the state chips."""
@@ -57,7 +59,8 @@ class Context:
         if self.docs:
             parts.append(f"{self.docs} doc{'s' if self.docs != 1 else ''}")
         return {
-            "label": "Based on " + (" · ".join(parts) if parts else "no board data"),
+            "label": self.label
+            or "Based on " + (" · ".join(parts) if parts else "no board data"),
             "tickets": self.tickets,
             "docs": self.docs,
             "comments": self.comments,
@@ -472,6 +475,13 @@ async def _ticket_full(
                     else ""
                 )
             )
+    branches = [
+        b
+        for b in _list(t.branches)
+        if isinstance(b, dict) and b.get("name") and not b.get("deleted_at")
+    ]
+    if branches:
+        lines.append("Branches: " + ", ".join(redact(str(b["name"])) for b in branches))
     subs = (await session.exec(select(Ticket).where(Ticket.parent_id == t.id))).all()
     if subs:
         lines.append("Sub-tickets:")

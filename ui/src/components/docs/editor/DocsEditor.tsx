@@ -30,9 +30,13 @@ import { EditorToolbar } from './EditorToolbar';
 import { buildExtensions } from './extensions';
 import { anchorFromState, commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
 import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
+import { tiptapAdapter } from '../../ai/editor/adapters';
+import { EditorAiSelectionBar, useEditorAi } from '../../ai/editor/useEditorAi';
 import { createSuggest } from './extensions/suggest';
 import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from '../../diagrams/diagramRefs';
+import { SKETCH_LINE } from '../../sketch/sketchRefs';
+import { useSketchStarter } from '../../sketch/useSketchStarter';
 import { firstDiagramFile } from '../../diagrams/diagramFile';
 import { DiagramDropZone, isDiagramDrag } from '../../diagrams/DiagramDropZone';
 import { MarkdownPane } from './MarkdownPane';
@@ -54,6 +58,14 @@ export interface EditorComments {
   onPick: (pick: Pick) => void;
 }
 
+/** AI where you write (design/screens/ai-where-you-work.md, D): `/ai`, Ctrl+J, the selection bar and drafts over the text. */
+export interface InlineAi {
+  /** A Docs page or an idea page; the server decides what each offers. */
+  surface: 'doc' | 'idea';
+  /** The project the request is booked on. Undefined switches the helpers off (e.g. an idea with no project, yet). */
+  projectId?: string;
+}
+
 export interface DocsEditorHandle {
   /** Push pending edits to onChange and return the current markdown. */
   flush: () => string;
@@ -70,6 +82,8 @@ interface Props {
   onChange: (markdown: string) => void;
   nodes: DocsTreeNode[];
   currentPageId: string;
+  /** Idea pages save their drawings as the idea's; everything else is a Docs page. */
+  sketchOwnerKind?: 'doc' | 'idea';
   pageTitle: string;
   /** File name shown in the Markdown view (e.g. "api.md"). */
   filename: string;
@@ -93,6 +107,8 @@ interface Props {
     /** Docs AI is on for the project: `/ai` adds the Docs-only group. */
     docsAi?: boolean;
   };
+  /** AI in the text itself: the /ai command, Ctrl+J, a selection bar and drafts you accept. */
+  inlineAi?: InlineAi;
 }
 
 const EMIT_MS = 180;
@@ -129,6 +145,7 @@ const PANE_LABEL: React.CSSProperties = {
  * @param props.readOnly - Disable editing.
  * @param props.comments - Inline comments: highlights, Comment button and shortcut.
  * @param props.ai - Board AI entry points (toolbar Ask AI, selection actions).
+ * @param props.inlineAi - AI in the text: `/ai`, Ctrl+J, the selection bar and drafts (a Docs page or an idea page).
  * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
  */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
@@ -139,6 +156,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     onChange,
     nodes,
     currentPageId,
+    sketchOwnerKind = 'doc',
     pageTitle,
     filename,
     header,
@@ -150,6 +168,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     readOnly,
     comments,
     ai,
+    inlineAi,
   },
   ref,
 ) {
@@ -228,6 +247,26 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   });
   const starterRef = useRef(diagramStarter);
   starterRef.current = diagramStarter;
+
+  // Sketch: /draw opens the paint-style editor and puts the saved drawing on its own line
+  const insertSketch = useCallback((md: string) => {
+    const parts = SKETCH_LINE.exec(md);
+    if (!parts || !editorRef.current) return;
+    editorRef.current
+      .chain()
+      .focus()
+      .insertContent({ type: 'sketch', attrs: { id: parts[2], label: parts[1] } })
+      .run();
+  }, []);
+  const sketchStarter = useSketchStarter({
+    ownerKind: sketchOwnerKind,
+    ownerId: currentPageId ?? undefined,
+    projectId,
+    ownerLabel: pageTitle || 'Untitled',
+    onInsert: insertSketch,
+  });
+  const sketchRef = useRef(sketchStarter);
+  sketchRef.current = sketchStarter;
   const [diagramDrag, setDiagramDrag] = useState(false);
   const dragDepth = useRef(0);
 
@@ -248,6 +287,23 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     }
   }, []);
 
+  // AI in the text: /ai (a slash item), Ctrl+J, the selection bar. The hook is told how to read and write this editor.
+  const aiAdapter = useMemo(() => tiptapAdapter(() => editorRef.current), []);
+  const aiSurface = inlineAi?.surface ?? 'doc';
+  const textAi = useEditorAi({
+    surface: aiSurface,
+    projectId: inlineAi?.projectId,
+    docId: aiSurface === 'doc' ? currentPageId : undefined,
+    ideaId: aiSurface === 'idea' ? currentPageId : undefined,
+    adapter: aiAdapter,
+    enabled: !!inlineAi?.projectId && !readOnly,
+    insertDiagramLine: insertDiagram,
+    diagramSaveTo: `${aiSurface === 'idea' ? 'Idea' : 'Docs'} › ${pageTitle || 'Untitled'}`,
+  });
+  const textAiRef = useRef(textAi);
+  textAiRef.current = textAi;
+  const openAi = useCallback(() => window.setTimeout(() => textAiRef.current.openMenu(), 0), []);
+
   const extensions = useMemo(() => {
     const slash = createSuggest({
       name: 'slashMenu',
@@ -255,9 +311,11 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       host: slashHost,
       command: ({ editor, range, payload }) =>
         (payload as SlashItem).run(editor, range, {
+          openAi: textAiRef.current.available ? openAi : undefined,
           ai: live.current.ai,
           pickImage,
           newDiagram: () => starterRef.current.startNew(),
+          newSketch: () => void sketchRef.current.start(),
           importDiagram: () => starterRef.current.pickFile(),
           ticketPrefix: live.current.ticketPrefix,
           pageTitle: live.current.pageTitle,
@@ -351,7 +409,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       ref,
       bareKey,
     ];
-  }, [slashHost, refHost, keyHost, pickImage, projectId, qc, resolver]);
+  }, [slashHost, refHost, keyHost, pickImage, openAi, projectId, qc, resolver]);
 
   const emit = useCallback(() => {
     const ed = editorRef.current;
@@ -397,8 +455,14 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           return true;
         },
       },
-      // Space on a selected image opens the viewer too
       handleKeyDown: (view, event) => {
+        // Ctrl+J belongs to the editor's /ai menu while it has focus, not to the board-wide dock
+        const textAiNow = textAiRef.current;
+        if (textAiNow.available && textAiNow.onKeyDown(event)) {
+          event.stopPropagation();
+          return true;
+        }
+        // Space on a selected image opens the viewer
         if (event.key !== ' ' || event.ctrlKey || event.metaKey || event.altKey) return false;
         const sel = view.state.selection as { node?: { type: { name: string } }; from: number };
         if (sel.node?.type.name !== 'image') return false;
@@ -469,6 +533,16 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   useEffect(() => {
     if (editor && !editor.isDestroyed) editor.setEditable(!readOnly);
   }, [editor, readOnly]);
+
+  // the editor says it has AI, so the board-wide Ctrl+J leaves the key to it
+  const hasTextAi = textAi.available;
+  useEffect(() => {
+    const dom = editor && !editor.isDestroyed ? (editor.view.dom as HTMLElement) : null;
+    if (!dom) return undefined;
+    if (hasTextAi) dom.setAttribute('data-ai-editor', 'true');
+    else dom.removeAttribute('data-ai-editor');
+    return () => dom.removeAttribute('data-ai-editor');
+  }, [editor, hasTextAi]);
 
   useImperativeHandle(
     ref,
@@ -553,6 +627,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             disabled={readOnly}
             onLink={openLink}
             onPickImage={pickImage}
+            onSketch={sketchStarter.available ? () => void sketchStarter.start() : undefined}
             ticketPrefix={ticketPrefix}
             onAskAi={ai?.onAsk}
           />
@@ -681,17 +756,26 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             setLinkOpen={setLinkOpen}
             ticketPrefix={ticketPrefix}
             onComment={comments ? startComment : undefined}
-            onAi={ai?.onSelection}
+            // the selection bar of the AI layer (Improve, Shorten, Fix spelling, Explain, Ask…) replaces these three
+            onAi={hasTextAi ? undefined : ai?.onSelection}
           />
+        )}
+        {inlineAi && (
+          <>
+            {textAi.layer}
+            <EditorAiSelectionBar ai={textAi} adapter={aiAdapter} />
+          </>
         )}
         {slashState && (
           <SlashMenu
             host={slashHost}
             state={slashState}
             ctx={{
+              openAi: hasTextAi ? openAi : undefined,
               ai: aiSlash,
               pickImage,
               newDiagram: diagramStarter.startNew,
+              newSketch: () => void sketchStarter.start(),
               importDiagram: diagramStarter.pickFile,
               ticketPrefix,
               pageTitle,

@@ -15,7 +15,7 @@ from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_OPS
 from kanban_mcp.tools.items import ITEM_OPS
 from kanban_mcp.tools.projects import PROJECT_OPS
 from kanban_mcp.tools.tickets import TICKET_OPS
-from models import IDEA_COLORS, IDEA_STATUSES
+from models import IDEA_STAGES
 from tests.test_activity import _ticket, client, setup_db  # noqa: F401  (fixtures)
 
 
@@ -51,7 +51,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     assert not core & ideas
     assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(core) == 12 and len(ideas) == 13
+    assert len(core) == 12 and len(ideas) == 5
 
 
 async def test_every_operation_is_reachable_through_a_tool():
@@ -97,7 +97,7 @@ async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(
     from mcp.server.fastmcp import FastMCP
 
     ideas = {f.__name__ for f, _ in kanban_mcp.IDEA_TOOL_TABLE}
-    assert len(ideas) == 13
+    assert len(ideas) == 5
     assert not ideas & set(await _tools())  # the real server: hidden
     assert (
         "IDEA-N" not in (mcp.instructions or "")
@@ -187,12 +187,13 @@ async def test_the_tool_list_stays_compact():
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
     # ai_run (AI member runs) ~700 characters and ai_schedules ~1,600 in 3.8.0, on top of Docs comments (3.7.0)
-    # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters
-    # ai_team adds about 2,600 characters (measured 2,612) to the 35,500 of the 11-tool list
-    assert default < 38_150, (
+    # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters, the sketch actions (3.11.0) about
+    # 1,900 more
+    # ai_team adds about 2,600 characters (measured 2,612) to the 11-tool list
+    assert default < 40_000, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 46_450, (
+    assert full < 43_000, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
@@ -206,7 +207,7 @@ async def test_server_instructions_explain_the_ids_and_conventions():
         ),
         (
             kanban_mcp.build_instructions(True),
-            ("IAM-12", "IDEA-N", "explicit null", "dropped"),
+            ("IAM-12", "IDEA-N", "Inbox", "cannot move"),
         ),
     ):
         for must in musts:
@@ -226,14 +227,7 @@ async def test_schema_enums_match_the_services():
         svc_tickets.VALID_RELATION_TYPES
     )
     assert enum("ticket_branches", "status") == set(svc_tickets.VALID_BRANCH_STATUSES)
-    assert enum("update_idea_status", "new_status") == set(IDEA_STATUSES)
-    assert enum("create_idea_ticket", "idea_color") == set(IDEA_COLORS)
-    assert enum("create_idea_ticket", "idea_energy") == {
-        "seed",
-        "concept",
-        "hot",
-        "big_bet",
-    }
+    assert enum("list_idea_tickets", "stage") == set(IDEA_STAGES)
     assert enum("manage_ticket", "status") == {
         "backlog",
         "todo",
@@ -361,7 +355,7 @@ async def test_failures_are_raised_for_idea_tools_too():
     with pytest.raises(ValueError, match="not found"):
         await ops.get_idea_ticket("IDEA-999")
     with pytest.raises(ValueError, match="not found"):
-        await ops.update_idea_status("IDEA-999", "in_review")
+        await ops.list_idea_assumptions("IDEA-999")
     with pytest.raises(ValueError, match="not found"):
         await ops.get_idea_activity_trail("IDEA-999")
 
@@ -475,3 +469,19 @@ async def test_default_activity_is_capped_and_long_texts_are_shortened(client):
     cutoff = full["activity_log"][-2]["at"]
     tail = await ops.get_ticket(i, activity_limit=-5, activity_since=cutoff)
     assert tail["activity_log"] == [e for e in full["activity_log"] if e["at"] > cutoff]
+
+
+async def test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own():
+    tools = await _tools(_full_mcp())
+    assert not [n for n in tools if "sketch" in n]  # the tool count stays the same
+    read, write = tools["docs_read"], tools["docs_write"]
+    for action in ("sketches", "sketch"):
+        assert action in DOCS_READ_OPS and f"- {action}:" in read.description
+    for action in ("sketch_create", "sketch_save"):
+        assert action in DOCS_WRITE_OPS and f"- {action}:" in write.description
+    # the limits an agent must respect are in front of it
+    assert "base_version" in write.description and "stale" in write.description
+    props = write.inputSchema["properties"]
+    assert "10 layers" in props["source_path"]["description"]
+    assert "4096" in props["path"]["description"]
+    assert "sketch_id" in read.inputSchema["properties"]
