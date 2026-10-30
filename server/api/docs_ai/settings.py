@@ -31,7 +31,9 @@ async def require_admin(session: AsyncSession, project_id: str) -> None:
         raise DocsAiError("not_found", "Project not found.")
     info = await docs_access.access_of(session, project)
     if not info["access"] or info["role"] != "admin":
-        raise DocsAiError("forbidden", "Only project admins can change Docs AI settings.")
+        raise DocsAiError(
+            "forbidden", "Only project admins can change Docs AI settings."
+        )
 
 
 class DocsAiBody(BaseModel):
@@ -56,7 +58,9 @@ async def get_docs_ai(project_id: str, session: Session) -> dict[str, Any]:
 
 
 @router.patch("/projects/{project_id}/docs/ai")
-async def patch_docs_ai(project_id: str, body: DocsAiBody, session: Session) -> dict[str, Any]:
+async def patch_docs_ai(
+    project_id: str, body: DocsAiBody, session: Session
+) -> dict[str, Any]:
     """Change the switches (project admins)."""
     await require_admin(session, project_id)
     await svc.update(session, project_id, body.model_dump(exclude_unset=True), by())
@@ -72,12 +76,16 @@ class PageFlagsBody(BaseModel):
 
 
 @router.patch("/docs/pages/{page_id}/ai")
-async def patch_page_flags(page_id: str, body: PageFlagsBody, session: Session) -> dict[str, Any]:
+async def patch_page_flags(
+    page_id: str, body: PageFlagsBody, session: Session
+) -> dict[str, Any]:
     """Hide a page from AI and/or mark it as guidance every AI run reads (people who can edit the page)."""
     from services import docs as svc_docs
 
     await svc_docs.get_page(session, page_id, edit=True)
-    page = await svc.set_page_flags(session, page_id, hidden=body.hidden, guidance=body.guidance)
+    page = await svc.set_page_flags(
+        session, page_id, hidden=body.hidden, guidance=body.guidance
+    )
     await board_events.publish(board_events.INVALIDATE)
     return {"id": page.id, "ai_hidden": page.ai_hidden, "ai_guidance": page.ai_guidance}
 
@@ -94,7 +102,13 @@ async def list_docs_ai_jobs(
 ) -> list[dict[str, Any]]:
     """Docs AI calls of the project, newest first (progress, pages read, cost)."""
     rows = await jobs.list_jobs(
-        session, project_id, page_id=page_id, thread_id=thread_id, kind=kind, state=state, limit=limit
+        session,
+        project_id,
+        page_id=page_id,
+        thread_id=thread_id,
+        kind=kind,
+        state=state,
+        limit=limit,
     )
     return [jobs.to_dict(j) for j in rows]
 
@@ -109,4 +123,3 @@ async def get_docs_ai_job(job_id: str, session: Session) -> dict[str, Any]:
 async def cancel_docs_ai_job(job_id: str, session: Session) -> dict[str, Any]:
     """Stop a running Docs AI call."""
     return jobs.to_dict(await jobs.cancel(session, job_id, by()))
-

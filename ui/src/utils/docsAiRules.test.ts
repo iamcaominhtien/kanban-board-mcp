@@ -25,9 +25,7 @@ describe('menuRows', () => {
   it('hides the writing rows from people who cannot edit', () => {
     const viewer = menuRows(false).map((r) => r.id);
     expect(viewer).toEqual(['ask', 'summarise', 'check', 'translate']);
-    expect(menuRows(true).map((r) => r.id)).toEqual(
-      expect.arrayContaining(['tickets', 'links', 'edit', 'ask']),
-    );
+    expect(menuRows(true).map((r) => r.id)).toEqual(expect.arrayContaining(['tickets', 'links', 'edit', 'ask']));
   });
 });
 

@@ -629,8 +629,27 @@ async def guarded(tool: str, action: str, given: dict, call):
     try:
         if tool == "ticket_items" and action == "comment.add":
             given = {**given, "author": ctx.member_name}
+        if tool == "docs_write" and _approved.get() is None:
+            # Docs AI on: a page edit becomes a proposal (or a private draft); the published page is never touched
+            from services.docs_ai import proposals as docs_proposals
+
+            redirected = await docs_proposals.intercept(ctx, action, given)
+            if redirected is not None:
+                return redirected
         detail = await check(ctx, tool, action, given)
         result = await call(given)
+        if (
+            tool == "docs_read"
+            and action == "get"
+            and isinstance(result, dict)
+            and result.get("id")
+        ):
+            # The AI member sees what happened to its proposals for this page (a rejection and its reason)
+            from services.docs_ai import proposals as docs_proposals
+
+            notes = await docs_proposals.notes_for_read(ctx, result["id"])
+            if notes:
+                result = {**result, "your_proposals": notes}
         await after(ctx, detail, result)
         if isinstance(result, dict) and ctx.mode == "work":
             # A person edited the ticket during the run: a CLI run hears it on its next board call (T, context refresh)

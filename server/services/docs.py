@@ -935,6 +935,7 @@ async def _commit_version(
             author=author,
             note=(note or "").strip() or None,
             diagram_versions=await diagrams.pin_versions(session, markdown),
+            with_ai=bool(draft is not None and draft.ai_source),
         )
     )
     if draft is not None:
@@ -1011,6 +1012,7 @@ async def list_versions(session: AsyncSession, page_id: str) -> list[dict[str, A
             "note": v.note,
             "created_at": v.created_at,
             "words": len(v.markdown.split()),
+            "with_ai": v.with_ai,
         }
         for v in result.all()
     ]
@@ -1048,6 +1050,7 @@ async def get_version(session: AsyncSession, page_id: str, n: int) -> dict[str, 
         "note": v.note,
         "created_at": v.created_at,
         "diagram_versions": diagrams.parse_pins(v.diagram_versions),
+        "with_ai": v.with_ai,
     }
 
 

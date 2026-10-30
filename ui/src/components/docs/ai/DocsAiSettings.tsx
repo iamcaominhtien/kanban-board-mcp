@@ -54,10 +54,7 @@ export function DocsAiSettings({ project }: { project: Project }) {
       <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
         {project.name} ({project.prefix}) · Docs › AI
       </span>
-      <Row
-        title="Use AI in Docs"
-        text="Ask the docs, the AI menu, Check this page and Docs health. Off by default."
-      >
+      <Row title="Use AI in Docs" text="Ask the docs, the AI menu, Check this page and Docs health. Off by default.">
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600 }}>
           <input
             type="checkbox"
@@ -155,7 +152,10 @@ export function DocsAiSettings({ project }: { project: Project }) {
             {d.guidancePages.length ? d.guidancePages.map((p) => p.title).join(', ') : 'None'}
           </span>
         </Row>
-        <Row title="Freshness checks" text="Compare pages with their tickets every day. A digest goes out on Mondays at 09:00.">
+        <Row
+          title="Freshness checks"
+          text="Compare pages with their tickets every day. A digest goes out on Mondays at 09:00."
+        >
           <input
             type="checkbox"
             role="switch"

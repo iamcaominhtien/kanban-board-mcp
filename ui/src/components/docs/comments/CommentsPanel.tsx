@@ -5,7 +5,7 @@ import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
 import { personOf } from './people';
 import { ThreadCard } from './ThreadCard';
-import { getAvatarColors } from '../../MemberAvatar';
+import { useCommentSuggest } from './commentAi';
 
 export type CommentTab = 'all' | 'open' | 'resolved';
 
@@ -73,10 +73,7 @@ export function CommentsPanel({
   const events = useDocsCommentEvents(projectId);
   const inline = useMemo(() => (data?.threads ?? []).filter((t) => t.kind === 'inline'), [data]);
   const shown = inline.filter((t) => tab === 'all' || t.status === tab);
-  const suggest = useMemo(
-    () => (data?.members ?? []).map((m) => ({ id: m.id, name: m.name, ...getAvatarColors(m.color) })),
-    [data],
-  );
+  const suggest = useCommentSuggest(data);
   const c = data?.counts;
   const pageEvents = (events.data ?? []).filter((e) => e.pageId === pageId).slice(0, 8);
 

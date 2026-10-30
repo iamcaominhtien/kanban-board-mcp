@@ -10,6 +10,7 @@ import { resolveOrigin } from '../../api/resolveOrigin';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
+import { markNeedsInput, NEEDS_INPUT_SCHEME } from '../../utils/writeRules';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
 import { galleryAround, previewAttrs, usePreview } from '../preview/PreviewContext';
@@ -40,7 +41,7 @@ const SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram', 'needsinput'],
     src: ['http', 'https', 'diagram'],
   },
 };
@@ -199,7 +200,7 @@ export function DocsMarkdown({
   changedIn,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
-  const linked = useMemo(() => linkifyDocs(escapeStrayDollars(cleaned)), [cleaned]);
+  const linked = useMemo(() => linkifyDocs(markNeedsInput(escapeStrayDollars(cleaned))), [cleaned]);
   const resolved = useResolveRefs(projectId, linked.refs.length ? linked.refs : NO_REFS);
   const pages = new Map<string, NonNullable<typeof resolved.data>[number]>();
   const tickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
@@ -372,6 +373,7 @@ export function DocsMarkdown({
       a: ({ href, children: inner, ...props }) => {
         const diagramId = diagramIdOf(href);
         if (diagramId) return <DiagramEmbed id={diagramId} label={textOf(inner)} />;
+        if (href?.startsWith(NEEDS_INPUT_SCHEME)) return <span className="dk-needs-input">{inner}</span>;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
           return (
@@ -428,7 +430,10 @@ export function DocsMarkdown({
           [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
         ]}
         urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) || url.startsWith(TICKET_SCHEME) || url.startsWith(DIAGRAM_SCHEME)
+          url.startsWith(REF_SCHEME) ||
+          url.startsWith(TICKET_SCHEME) ||
+          url.startsWith(DIAGRAM_SCHEME) ||
+          url.startsWith(NEEDS_INPUT_SCHEME)
             ? url
             : defaultUrlTransform(url)
         }

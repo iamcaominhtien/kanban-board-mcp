@@ -20,7 +20,9 @@ async def test_docs_ai_is_off_until_an_admin_turns_it_on(env):
             raise AssertionError("expected docs_ai_off")
         except DocsAiError as exc:
             assert exc.code == "docs_ai_off"
-    r = await c.patch(f"/projects/{pid}/docs/ai", json={"enabled": True, "member_id": member["id"]})
+    r = await c.patch(
+        f"/projects/{pid}/docs/ai", json={"enabled": True, "member_id": member["id"]}
+    )
     assert r.status_code == 200 and r.json()["state"] == "ready"
     assert r.json()["member"]["name"] == member["name"]
 
@@ -28,9 +30,16 @@ async def test_docs_ai_is_off_until_an_admin_turns_it_on(env):
 async def test_only_admins_change_settings_and_values_are_validated(env):
     c, pid, member = await setup(env)
     await c.post(f"/projects/{pid}/members", json={"name": "Mia", "role": "member"})
-    r = await c.patch(f"/projects/{pid}/docs/ai", json={"enabled": False}, headers={"X-Actor": "Mia"})
+    r = await c.patch(
+        f"/projects/{pid}/docs/ai", json={"enabled": False}, headers={"X-Actor": "Mia"}
+    )
     assert r.status_code == 403 and r.json()["code"] == "forbidden"
-    for bad in ({"read_scope": "nope"}, {"edits_mode": "x"}, {"proposal_days": 0}, {"guidance_limit": 5}):
+    for bad in (
+        {"read_scope": "nope"},
+        {"edits_mode": "x"},
+        {"proposal_days": 0},
+        {"guidance_limit": 5},
+    ):
         r = await c.patch(f"/projects/{pid}/docs/ai", json=bad)
         assert r.status_code == 422, (bad, r.text)
     r = await c.patch(f"/projects/{pid}/docs/ai", json={"member_id": "nobody"})
@@ -55,7 +64,10 @@ async def test_read_scope_picked_limits_the_space(env):
     c, pid, member = await setup(env)
     await page(c, pid, "A", "x")
     b = await page(c, pid, "B", "y")
-    await c.patch(f"/projects/{pid}/docs/ai", json={"read_scope": "picked", "picked_pages": [b["id"]]})
+    await c.patch(
+        f"/projects/{pid}/docs/ai",
+        json={"read_scope": "picked", "picked_pages": [b["id"]]},
+    )
     async with database.async_session() as s:
         assert [p.title for p in await access.readable_pages(s, pid)] == ["B"]
 
@@ -70,7 +82,9 @@ async def test_a_hidden_page_cannot_be_guidance_and_guidance_is_capped(env):
         text, reads = await access.guidance_block(s, pid)
     assert "Guidance page: Rules" in text and reads[0]["cut"] is True
     assert len(text) < 1000 * 4 + 600
-    r = await c.patch(f"/docs/pages/{a['id']}/ai", json={"hidden": True, "guidance": True}, headers=H)
+    r = await c.patch(
+        f"/docs/pages/{a['id']}/ai", json={"hidden": True, "guidance": True}, headers=H
+    )
     assert r.status_code == 422
     r = await c.patch(f"/docs/pages/{a['id']}/ai", json={"hidden": True}, headers=H)
     assert r.json() == {"id": a["id"], "ai_hidden": True, "ai_guidance": False}
@@ -91,7 +105,9 @@ async def test_engine_call_meters_the_usage_and_the_job(env, fake):
     fake.queue.append("Hello.")
     async with database.async_session() as s:
         job = await jobs.create(s, project_id=pid, kind="ask", started_by="An Nguyen")
-    out = await engine.call(pid, system="s", prompt="p", job_id=job.id, person="An Nguyen")
+    out = await engine.call(
+        pid, system="s", prompt="p", job_id=job.id, person="An Nguyen"
+    )
     assert out.text == "Hello."
     async with database.async_session() as s:
         j = await s.get(DocsAiJob, job.id)
@@ -116,7 +132,11 @@ async def test_verify_refs_drops_links_to_pages_that_do_not_exist(env):
     t = await _ticket_key(c, pid)
     text = f"See [[Auth#Rotation]], [[Nowhere]] and {t} and KAN-999."
     out = await engine.verify_refs(pid, text)
-    assert "[[Auth#Rotation]]" in out.text and "[[Nowhere]]" not in out.text and "Nowhere" in out.text
+    assert (
+        "[[Auth#Rotation]]" in out.text
+        and "[[Nowhere]]" not in out.text
+        and "Nowhere" in out.text
+    )
     assert out.unknown_tickets == ["KAN-999"] and out.unknown_pages == ["Nowhere"]
     assert len(out.problems) == 2
 
@@ -148,7 +168,11 @@ async def test_jobs_run_a_registered_handler_and_record_failures(env):
         if r["state"] != "queued" and r["state"] != "running":
             break
         await asyncio.sleep(0.05)
-    assert r["state"] == "finished" and r["result"] == {"answer": 42} and r["steps"][0]["text"] == "Reading"
+    assert (
+        r["state"] == "finished"
+        and r["result"] == {"answer": 42}
+        and r["steps"][0]["text"] == "Reading"
+    )
     r = (await c.get(f"/docs/ai/jobs/{bad.id}")).json()
     assert r["state"] == "failed" and r["error"]["code"] == "not_found"
     listed = (await c.get(f"/projects/{pid}/docs/ai/jobs", headers=H)).json()
@@ -166,11 +190,18 @@ async def test_ai_runs_never_see_hidden_pages_through_mcp(env):
     secret = await page(c, pid, "Secret", "## B\n\nhidden")
     await c.patch(f"/docs/pages/{secret['id']}/ai", json={"hidden": True}, headers=H)
     # a person (no run) still sees both
-    assert {p["title"] for p in await docs_read(action="list", project_id=pid)} == {"Open", "Secret"}
+    assert {p["title"] for p in await docs_read(action="list", project_id=pid)} == {
+        "Open",
+        "Secret",
+    }
     tokens = guard.enter(ctx)
     try:
-        assert [p["title"] for p in await docs_read(action="list", project_id=pid)] == ["Open"]
-        assert (await docs_read(action="get", page_id=open_page["id"]))["title"] == "Open"
+        assert [p["title"] for p in await docs_read(action="list", project_id=pid)] == [
+            "Open"
+        ]
+        assert (await docs_read(action="get", page_id=open_page["id"]))[
+            "title"
+        ] == "Open"
         try:
             await docs_read(action="get", page_id=secret["id"])
             raise AssertionError("a hidden page was read by an AI run")
@@ -197,18 +228,29 @@ async def test_guidance_pages_are_added_to_every_run_and_listed_as_read(env):
     async with env["maker"]() as s:
         run = await s.get(AiRun, ctx.run_id)
         system, prompt, _ = await runs._build_prompt(
-            s, run, await s.get(AiMember, m["id"]), await s.get(Member, m["id"]), resume_note=None
+            s,
+            run,
+            await s.get(AiMember, m["id"]),
+            await s.get(Member, m["id"]),
+            resume_note=None,
         )
     assert "Guidance page: Conventions" in system and "snake_case" in system
     async with env["maker"]() as s:
         steps = json.loads((await s.get(AiRun, ctx.run_id)).steps)
-    assert steps[0]["kind"] == "read" and steps[0]["detail"]["pages"][0]["title"] == "Conventions"
+    assert (
+        steps[0]["kind"] == "read"
+        and steps[0]["detail"]["pages"][0]["title"] == "Conventions"
+    )
     # hiding the page removes it from the next run
     await c.patch(f"/docs/pages/{rules['id']}/ai", json={"hidden": True}, headers=H)
     async with env["maker"]() as s:
         run = await s.get(AiRun, ctx.run_id)
         system, _, _ = await runs._build_prompt(
-            s, run, await s.get(AiMember, m["id"]), await s.get(Member, m["id"]), resume_note=None
+            s,
+            run,
+            await s.get(AiMember, m["id"]),
+            await s.get(Member, m["id"]),
+            resume_note=None,
         )
     assert "Conventions" not in system
 
@@ -222,7 +264,11 @@ async def test_the_board_ai_chat_context_skips_hidden_pages(env, fake):
     await c.patch(f"/docs/pages/{b['id']}/ai", json={"hidden": True}, headers=H)
     async with env["maker"]() as s:
         built = await ctxb.build(
-            s, project_id=pid, scope="doc", person="An Nguyen", doc_ids=[a["id"], b["id"]],
+            s,
+            project_id=pid,
+            scope="doc",
+            person="An Nguyen",
+            doc_ids=[a["id"], b["id"]],
             include_docs=[b["id"]],
         )
     assert "visible" in built.text and "never" not in built.text

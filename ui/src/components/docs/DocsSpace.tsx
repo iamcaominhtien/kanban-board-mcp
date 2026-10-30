@@ -108,6 +108,7 @@ export function DocsSpace({
           projectName={projectName}
           pageId={current ?? undefined}
           initialQuery={palette.q}
+          mode={palette.mode}
           onClose={() => setPalette(null)}
           onOpenPage={(id, anchor) => {
             setPalette(null);

@@ -13,6 +13,7 @@ import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
 import { useDocsAccess, useRequestDocsAccess } from '../../api/docsAccess';
 import { useDocsAiState } from '../../api/docsAi';
+import { useDocsHealthCount } from '../../api/docsAiCare';
 import { useWaitingProposalPages } from '../../api/docsAiProposals';
 import { DocsHealthView } from './ai/DocsHealthView';
 import { extractError } from '../../api/extractError';
@@ -25,6 +26,7 @@ import { DocsPeekProvider } from './DocsRefsContext';
 import { DocsEditScreen } from './DocsEditScreen';
 import { DocsFollowToggle } from './DocsFollowToggle';
 import { DocsHero } from './DocsHero';
+import { SinceViewedDigest } from './ai/SinceViewedDigest';
 import { DocsPageView, type PageAction } from './DocsPageView';
 import { DocsRail } from './DocsRail';
 import {
@@ -232,7 +234,13 @@ export function DocsView({
   const nodes = tree.data ? liveNodes : (cachedTree ?? liveNodes);
   const [selectedId, setSelectedId] = useState<string | null>(() => localStorage.getItem(`docsPage:${projectId}`));
   const [editing, setEditing] = useState(false);
-  const [newPage, setNewPage] = useState<{ parentId: string | null; template?: string; title?: string } | null>(null);
+  const [newPage, setNewPage] = useState<{
+    parentId: string | null;
+    template?: string;
+    title?: string;
+    /** Opens the dialog with Write with AI preselected. */
+    aiFrom?: { kind: 'ticket' | 'idea' | 'notes' | 'prompt'; ticketId?: string; text?: string };
+  } | null>(null);
   const [moveFor, setMoveFor] = useState<DocsPage | null>(null);
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
   const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);
@@ -291,6 +299,7 @@ export function DocsView({
   const access = useDocsAccess(projectId);
   const aiState = useDocsAiState(projectId);
   const aiOn = aiState.data?.state === 'ready' || aiState.data?.state === 'no_member';
+  const healthCount = useDocsHealthCount(projectId, aiState.data?.state === 'ready');
   const [healthOpen, setHealthOpen] = useState(false);
   const proposalPageIds = useWaitingProposalPages(projectId);
   const requestAccess = useRequestDocsAccess(projectId);
@@ -548,6 +557,7 @@ export function DocsView({
       onAskDocs={onAskDocs}
       onHealth={() => setHealthOpen(true)}
       healthActive={healthOpen}
+      healthCount={healthCount}
       proposalPageIds={proposalPageIds}
       renderMenu={(node, close) => (
         <TreePageMenu
@@ -595,6 +605,10 @@ export function DocsView({
           select(id);
         }}
         onOpenTicket={onOpenTicket}
+        onWritePage={(ticketId) => {
+          setHealthOpen(false);
+          setNewPage({ parentId: null, aiFrom: { kind: 'ticket', ticketId } });
+        }}
         onClose={() => setHealthOpen(false)}
       />
     );
@@ -823,6 +837,9 @@ export function DocsView({
       >
         {left}
         {content}
+        {!editing && !empty && !docsDisabled && (
+          <SinceViewedDigest projectId={projectId} nodes={nodes} onOpenPage={select} />
+        )}
 
         {dragFiles != null && (
           <div
@@ -869,6 +886,7 @@ export function DocsView({
             initialParentId={newPage.parentId}
             initialTemplate={newPage.template}
             initialTitle={newPage.title}
+            aiFrom={newPage.aiFrom}
             onClose={() => setNewPage(null)}
             onCreated={(p) => {
               setNewPage(null);

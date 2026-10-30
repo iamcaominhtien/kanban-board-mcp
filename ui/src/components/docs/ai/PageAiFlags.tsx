@@ -49,7 +49,9 @@ export function PageAiFlags({ page }: { page: DocsPage }) {
           </div>
         </span>
       </label>
-      {!canEdit && <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>Only people who can edit the page change this.</div>}
+      {!canEdit && (
+        <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>Only people who can edit the page change this.</div>
+      )}
       {err && (
         <div role="alert" style={{ fontSize: 12, color: '#C4432A' }}>
           {err}

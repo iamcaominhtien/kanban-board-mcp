@@ -926,3 +926,23 @@ mark.docs-find-mark.docs-find-cur {
 .dk-tree-airow svg {
   color: #6b5bd2;
 }
+
+/* Needs input markers an AI draft leaves (editor decoration and reader chip) */
+.dk-needs-input {
+  display: inline;
+  padding: 1px 7px;
+  border-radius: 7px;
+  border: 1px solid #e8c879;
+  background: #fef1d6;
+  color: #7a4f08;
+  font-size: 0.9em;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: normal;
+}
+.dk-needs-input::before {
+  content: '\26A0\00a0';
+}
+.dk-ai-draft-panel mark {
+  background: #fef1d6;
+}

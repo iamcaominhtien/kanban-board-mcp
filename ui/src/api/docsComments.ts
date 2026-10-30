@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { CommentAnchorInput, DocsCommentEvent, DocsCommentsResult, DocsCommentThread } from '../types/docs';
+import type { DocsAiJob } from './docsAi';
+import { aiBusy, type DocsMentionIntent } from '../utils/docsThreadAiRules';
 
 export const commentKeys = {
   page: (pageId: string) => ['docs', 'comments', pageId] as const,
@@ -17,6 +19,8 @@ export function useDocsComments(pageId: string | null) {
     queryFn: async () => (await client.get<DocsCommentsResult>(`/docs/pages/${pageId}/comments`)).data,
     enabled: !!pageId,
     retry: 1,
+    // while an AI member answers in a thread, its reply shows up without a reload
+    refetchInterval: (q) => (aiBusy(q.state.data?.threads) ? 1500 : false),
   });
 }
 
@@ -46,13 +50,23 @@ export function useCommentActions(pageId: string) {
   const opts = { onSuccess: refresh };
   return {
     createThread: useMutation({
-      mutationFn: async (v: { kind: 'inline' | 'page'; body: string; anchor?: CommentAnchorInput }) =>
-        (await client.post<DocsCommentThread>(`/docs/pages/${pageId}/comments`, v)).data,
+      mutationFn: async (v: {
+        kind: 'inline' | 'page';
+        body: string;
+        anchor?: CommentAnchorInput;
+        /** What a mention of an AI member means (Docs AI). */
+        aiIntent?: DocsMentionIntent;
+      }) => (await client.post<DocsCommentThread>(`/docs/pages/${pageId}/comments`, v)).data,
       ...opts,
     }),
     reply: useMutation({
-      mutationFn: async (v: { threadId: string; body: string }) =>
-        (await client.post<DocsCommentThread>(`/docs/comments/threads/${v.threadId}/replies`, { body: v.body })).data,
+      mutationFn: async (v: { threadId: string; body: string; aiIntent?: DocsMentionIntent }) =>
+        (
+          await client.post<DocsCommentThread>(`/docs/comments/threads/${v.threadId}/replies`, {
+            body: v.body,
+            aiIntent: v.aiIntent,
+          })
+        ).data,
       ...opts,
     }),
     edit: useMutation({
@@ -97,4 +111,22 @@ export async function previewOrphans(
   markdown: string,
 ): Promise<{ count: number; orphaned: { id: string; quote: string }[] }> {
   return (await client.post(`/docs/pages/${pageId}/comments/anchor-preview`, { markdown })).data;
+}
+
+/** Docs AI in a thread: "Suggest an edit" on an AI answer, and the summary of a long thread. */
+export function useThreadAiActions(pageId: string) {
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: ['docs', 'comments', pageId] });
+  return {
+    suggestEdit: useMutation({
+      mutationFn: async (v: { threadId: string; commentId: string }) =>
+        (await client.post<DocsAiJob>(`/docs/ai/threads/${v.threadId}/suggest-edit`, { commentId: v.commentId })).data,
+      onSuccess: refresh,
+    }),
+    summarise: useMutation({
+      mutationFn: async (threadId: string) =>
+        (await client.post<DocsAiJob>(`/docs/ai/threads/${threadId}/summary`)).data,
+      onSuccess: refresh,
+    }),
+  };
 }

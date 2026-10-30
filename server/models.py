@@ -520,6 +520,19 @@ class DocsAiHealth(SQLModel, table=True):
     digest_at: Optional[str] = Field(default=None)
 
 
+class DocsAiIgnore(SQLModel, table=True):
+    """A "Check this page" finding a person chose to ignore for a page (the key is a hash of kind + quote)."""
+
+    __tablename__ = "docs_ai_ignore"
+
+    page_id: str = Field(
+        primary_key=True
+    )  # no foreign key: a purged page must not be blocked by it
+    key: str = Field(primary_key=True)
+    by: str = Field(default="user")
+    at: str = Field(default_factory=_now_iso)
+
+
 class Diagram(SQLModel, table=True):
     """A draw.io diagram referenced from markdown as ``[label](diagram:id)``.
 

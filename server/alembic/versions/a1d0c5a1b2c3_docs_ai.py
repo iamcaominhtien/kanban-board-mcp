@@ -151,8 +151,18 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("project_id"),
     )
 
+    op.create_table(
+        "docs_ai_ignore",
+        sa.Column("page_id", _S(), nullable=False),
+        sa.Column("key", _S(), nullable=False),
+        sa.Column("by", _S(), nullable=False, server_default="user"),
+        sa.Column("at", _S(), nullable=False),
+        sa.PrimaryKeyConstraint("page_id", "key"),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table("docs_ai_ignore")
     op.drop_table("docs_ai_health")
     op.drop_index("ix_docs_ai_check_project_id", table_name="docs_ai_check")
     op.drop_table("docs_ai_check")

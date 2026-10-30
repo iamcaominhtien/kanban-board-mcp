@@ -28,6 +28,7 @@ STATUS = {
     "no_criteria": 422,
     "viewer": 403,
     "forbidden": 403,
+    "hidden": 403,
     "conflict": 409,
     "apply_failed": 409,
     "feature_off": 409,
@@ -123,11 +124,13 @@ class ChatBody(BaseModel):
     scope: str = "project"
     ticket_id: Optional[str] = None
     doc_id: Optional[str] = None
+    # "New chat": do not continue the latest chat about the same ticket or page
+    fresh: bool = False
 
 
 @router.post("/projects/{project_id}/ai/assist/chats", status_code=201)
 async def post_chat(project_id: str, body: ChatBody, session: Session) -> dict:
-    """New chat."""
+    """New chat, or the person's latest chat about the same ticket or page from the last 24 hours."""
     c = await svc_chat.create_chat(
         session,
         project_id,
@@ -135,6 +138,7 @@ async def post_chat(project_id: str, body: ChatBody, session: Session) -> dict:
         scope=body.scope,
         ticket_id=body.ticket_id,
         doc_id=body.doc_id,
+        fresh=body.fresh,
     )
     return await svc_chat.chat_detail(session, c.id, _by())
 

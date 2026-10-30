@@ -90,7 +90,10 @@ async def answering_member(
         if member and profile and profile.paused and paused is None:
             paused = member.name
     if paused:
-        raise DocsAiError("paused", f"{paused} is paused. Resume it in Members, or pick another AI member.")
+        raise DocsAiError(
+            "paused",
+            f"{paused} is paused. Resume it in Members, or pick another AI member.",
+        )
     raise DocsAiError(
         "no_member",
         "No AI member can read this space. Pick an AI member in Settings › Docs, or add one in Members.",

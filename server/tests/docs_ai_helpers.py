@@ -28,7 +28,8 @@ async def setup(env, *, enabled=True, name="Reviewer"):
     member = await _runner(c, pid, env["repo"], name=name)
     if enabled:
         r = await c.patch(
-            f"/projects/{pid}/docs/ai", json={"enabled": True, "member_id": member["id"]}
+            f"/projects/{pid}/docs/ai",
+            json={"enabled": True, "member_id": member["id"]},
         )
         assert r.status_code == 200, r.text
     return c, pid, member
@@ -36,13 +37,19 @@ async def setup(env, *, enabled=True, name="Reviewer"):
 
 async def page(c, pid, title, markdown, *, parent_id=None):
     """Create and publish a page; returns its JSON."""
-    r = await c.post(f"/projects/{pid}/docs/pages", json={"title": title, "parent_id": parent_id}, headers=H)
+    r = await c.post(
+        f"/projects/{pid}/docs/pages",
+        json={"title": title, "parent_id": parent_id},
+        headers=H,
+    )
     assert r.status_code == 201, r.text
     p = r.json()
     await c.put(f"/docs/pages/{p['id']}/draft", json={"markdown": markdown}, headers=H)
     cur = (await c.get(f"/docs/pages/{p['id']}", headers=H)).json()
     r = await c.post(
-        f"/docs/pages/{p['id']}/publish", json={"base_version": cur["version"]}, headers=H
+        f"/docs/pages/{p['id']}/publish",
+        json={"base_version": cur["version"]},
+        headers=H,
     )
     assert r.status_code == 200, r.text
     return (await c.get(f"/docs/pages/{p['id']}", headers=H)).json()

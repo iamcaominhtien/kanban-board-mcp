@@ -38,7 +38,9 @@ from services.ai.assist import chat as assist_chat
 from services.ai.assist import health as assist_health
 from services.ai.assist.settings import AssistError
 from services.docs_ai import DocsAiError
+from services.docs_ai import freshness as docs_ai_freshness
 from services.docs_ai import jobs as docs_ai_jobs
+from services.docs_ai import proposals as docs_ai_proposals
 from services.ai import schedules as ai_schedules
 from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
@@ -87,12 +89,16 @@ async def lifespan(app: FastAPI):
         await assist_chat.recover()
         await docs_ai_jobs.recover()
         assist_health.start_scheduler()
+        docs_ai_freshness.start_scheduler()
         ai_schedules.start_scheduler()
+        docs_ai_proposals.start_scheduler()
         try:
             yield
         finally:
             # No CLI process outlives the board: cancel the AI runs and kill their process trees
             await assist_health.stop_scheduler()
+            await docs_ai_freshness.stop_scheduler()
+            await docs_ai_proposals.stop_scheduler()
             await ai_schedules.stop_scheduler()
             await ai_runs.stop_scheduler()
             sweeper.cancel()

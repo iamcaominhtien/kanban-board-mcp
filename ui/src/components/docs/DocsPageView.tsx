@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DocsPage } from '../../types/docs';
+import { useDocsAiState } from '../../api/docsAi';
+import { aiGate } from '../../utils/docsAiRules';
 import { absoluteTime, actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
 import { OfflineBanner } from './DocsStates';
 import { DocsAiBanners } from './ai/DocsAiBanners';
+import { ExplainCard } from './ai/ExplainCard';
 import { PageAiMenu } from './ai/PageAiMenu';
+import { SelectionAi } from './ai/SelectionAi';
+import { SummaryBlock } from './ai/SummaryBlock';
+import { TranslateBanner, useTranslatedMarkdown } from './ai/TranslateView';
+import { usePageAiView } from './ai/usePageAiView';
 import { CommentsPanel } from './comments/CommentsPanel';
 import { PageComments } from './comments/PageComments';
 import { ComposePopover, SelectionToolbar, type Pick } from './comments/SelectionComment';
 import { useCommentsController } from './comments/useCommentsController';
 import { CommentBadges, useCommentHighlights } from './comments/useCommentHighlights';
-import { getAvatarColors } from '../MemberAvatar';
 import './comments/comments.css';
 import { avatarColors, pageFullTime } from './docsUi';
 import { Icon } from './Icon';
@@ -19,6 +25,7 @@ import { PageMenu, type PageMenuAction } from './PageMenu';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
 import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
+import { useCommentSuggest } from './comments/commentAi';
 
 export type PageAction = PageMenuAction | 'edit' | 'share';
 
@@ -99,12 +106,14 @@ export function DocsPageView({
   const [bodyEl, setBodyEl] = useState<HTMLDivElement | null>(null);
   const [compose, setCompose] = useState<Pick | null>(null);
   const cc = useCommentsController(page.id);
+  const aiView = usePageAiView(page.id);
+  const aiState = useDocsAiState(projectId);
+  const aiNow = aiGate(aiState.data, { hidden: !!page.aiHidden });
+  const aiOn = !offline && page.version > 0 && aiNow.show && aiNow.reason === null;
+  const translated = useTranslatedMarkdown(aiView);
   const commentsData = cc.query.data;
   const inlineThreads = useMemo(() => (commentsData?.threads ?? []).filter((t) => t.kind === 'inline'), [commentsData]);
-  const suggest = useMemo(
-    () => (commentsData?.members ?? []).map((m) => ({ id: m.id, name: m.name, ...getAvatarColors(m.color) })),
-    [commentsData],
-  );
+  const suggest = useCommentSuggest(commentsData);
   const commentTotal = commentsData ? commentsData.counts.all + commentsData.counts.page : 0;
   const anyUnread = !!commentsData?.threads.some((t) => t.unread);
   const canComment = !offline && commentsData?.role !== 'viewer' && page.version > 0;
@@ -271,7 +280,9 @@ export function DocsPageView({
                 <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
               </div>
             )}
-            {!offline && <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} />}
+            {!offline && (
+              <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
                 <nav
@@ -365,7 +376,16 @@ export function DocsPageView({
                     flexShrink: 0,
                   }}
                 >
-                  {!offline && <PageAiMenu projectId={projectId} page={page} canEdit={!readOnly} />}
+                  {!offline && (
+                    <PageAiMenu
+                      projectId={projectId}
+                      page={page}
+                      canEdit={!readOnly}
+                      view={aiView}
+                      onEdit={() => onAction('edit')}
+                      onOpenTicket={onOpenTicket}
+                    />
+                  )}
                   {!offline && (
                     <button
                       type="button"
@@ -580,6 +600,12 @@ export function DocsPageView({
               </div>
             </div>
             <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 4px' }} />
+            {!offline && aiOn && (
+              <div style={{ marginTop: 16 }}>
+                <SummaryBlock view={aiView} />
+                <TranslateBanner view={aiView} markdown={published ? page.markdown : (page.draft?.markdown ?? '')} />
+              </div>
+            )}
             <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
               <CommentBadges badges={badges} activeId={cc.activeId} onSelect={cc.activate} />
               {!published && (
@@ -613,10 +639,10 @@ export function DocsPageView({
                   onOpenTicket={onOpenTicket}
                   onCreatePage={onCreatePage}
                   onRestorePage={onRestorePage}
-                  onReplaceSection={published ? onReplaceSection : undefined}
-                  changedIn={published && since.behind ? since.changedIn : undefined}
+                  onReplaceSection={published && !translated ? onReplaceSection : undefined}
+                  changedIn={published && since.behind && !translated ? since.changedIn : undefined}
                 >
-                  {published ? page.markdown : page.draft!.markdown}
+                  {translated ?? (published ? page.markdown : page.draft!.markdown)}
                 </DocsMarkdown>
               )}
             </div>
@@ -671,9 +697,14 @@ export function DocsPageView({
       <SelectionToolbar
         root={bodyEl}
         label={cc.reattachId ? 'Attach here' : 'Comment'}
-        enabled={canComment && !compose}
+        enabled={(canComment || aiOn) && !compose}
         onPick={onPick}
+        hideComment={!canComment}
+        extra={
+          aiOn ? (pick, close) => <SelectionAi pick={pick} pageId={page.id} view={aiView} done={close} /> : undefined
+        }
       />
+      {aiOn && <ExplainCard view={aiView} />}
       {compose && (
         <ComposePopover
           pick={compose}

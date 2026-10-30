@@ -722,7 +722,14 @@ export function DocsTree({
             <span
               title="An AI member proposed changes"
               aria-label="Proposal waiting"
-              style={{ width: 7, height: 7, borderRadius: '50%', background: '#6B5BD2', flexShrink: 0, margin: '0 3px' }}
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: '#6B5BD2',
+                flexShrink: 0,
+                margin: '0 3px',
+              }}
             />
           )}
           {!renaming && n.status === 'draft' && (
@@ -954,7 +961,10 @@ export function DocsTree({
         </div>
       )}
       {aiOn && (
-        <div style={{ padding: '0 8px 6px', display: 'flex', flexDirection: 'column', gap: 1 }} data-testid="docs-ai-rows">
+        <div
+          style={{ padding: '0 8px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}
+          data-testid="docs-ai-rows"
+        >
           <button type="button" className="dk-tree-airow" onClick={onAskDocs} data-testid="tree-ask-docs">
             <Icon name="comment" size={14} strokeWidth={1.9} />
             <span style={{ flex: 1, textAlign: 'left' }}>Ask the docs</span>

@@ -1,4 +1,4 @@
-"""The 11 tools the agent sees (9, plus ai_run for runs the board started and ai_schedules). Each is a family of related operations picked with `action`.
+"""The 12 tools the agent sees (9, plus ai_run for runs the board started, ai_schedules and ai_team). Each is a family of related operations picked with `action`.
 
 Why so few: an agent pays for every tool description and schema on every session. Grouping by noun keeps all the
 capabilities while the tool list shrinks to a fraction of its size. The operations themselves live in
@@ -13,6 +13,7 @@ from mcp.types import ToolAnnotations
 
 from .. import operations as ops
 from .ai_run import ai_run
+from .ai_team import ai_team
 from .branches import ticket_branches
 from .docs import docs_read, docs_write
 from .items import ticket_items
@@ -58,8 +59,16 @@ def _hide_from_ai(fn: Callable) -> Callable:
         if isinstance(result, list):
             return [r for r in result if r.get("id") not in hidden]
         if isinstance(result, dict) and isinstance(result.get("pages"), list):
-            kept = [r for r in result["pages"] if r.get("page_id", r.get("id")) not in hidden]
-            return {**result, "pages": kept, "total": len(kept)} if "total" in result else {**result, "pages": kept}
+            kept = [
+                r
+                for r in result["pages"]
+                if r.get("page_id", r.get("id")) not in hidden
+            ]
+            return (
+                {**result, "pages": kept, "total": len(kept)}
+                if "total" in result
+                else {**result, "pages": kept}
+            )
         return result
 
     return wrapper
@@ -87,4 +96,5 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (docs_write, _DESTRUCTIVE),  # delete
     (ai_run, _WRITE),  # only inside a run the board started for an AI member
     (ai_schedules, _DESTRUCTIVE),  # delete
+    (ai_team, _WRITE),  # acts on AI members and runs; nothing is deleted
 ]

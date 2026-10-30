@@ -85,6 +85,8 @@ export interface DocsVersionSummary {
   note: string | null;
   createdAt: string;
   words: number;
+  /** The author accepted AI text in this version (History marks it; the page itself is never stamped) */
+  withAi?: boolean;
 }
 
 export interface DocsVersionDetail {
@@ -197,6 +199,67 @@ export interface DocsCommentItem {
   editedAt: string | null;
   canEdit: boolean;
   canDelete: boolean;
+  /** Set on an AI member's reply (Docs AI). */
+  ai?: DocsCommentAi | null;
+}
+
+/** What an AI member's reply in a thread carries: its job, cost, sources and whether it can offer an edit. */
+export interface DocsCommentAi {
+  memberId: string;
+  jobId?: string;
+  cost?: number;
+  sources?: { pageId: string; title: string; heading: string | null }[];
+  /** The answer says something on the page is wrong or out of date: "Suggest an edit" is offered. */
+  canSuggest?: boolean;
+  /** `note` (paused, over budget, hidden page), `error` (couldn't answer), `proposal` (Suggest an edit made one). */
+  kind?: 'note' | 'error' | 'proposal';
+  code?: string;
+  proposalId?: string;
+  problems?: string[];
+}
+
+/** AI work going on in a thread (the "thinking" placeholder). */
+export interface DocsThreadAiJob {
+  id: string;
+  kind: 'thread_reply' | 'suggest_edit' | 'thread_summary';
+  state: 'queued' | 'running';
+  memberId: string | null;
+  memberName: string;
+  step: string | null;
+}
+
+/** The summary of a long thread, shown above the replies (it does not resolve the thread). */
+export interface DocsThreadSummary {
+  text: string;
+  count: number;
+  cost: number;
+  jobId: string;
+  memberName: string;
+  at: string | null;
+}
+
+/** A member in the comments payload; AI members carry their status for the @ picker while Docs AI is on. */
+export interface DocsCommentMember {
+  id: string;
+  name: string;
+  color: string;
+  role: CommentRole;
+  kind?: 'human' | 'ai';
+  ai?: {
+    status: 'ready' | 'paused' | 'over_budget' | 'unavailable';
+    usable: boolean;
+    note: string;
+    provider: string | null;
+  };
+}
+
+/** What happened to each AI member mentioned in a comment just posted. */
+export interface DocsAiDelivery {
+  memberId?: string;
+  result: 'job' | 'notified' | 'refused' | 'not_delivered';
+  jobId?: string;
+  reason?: string;
+  code?: string;
 }
 
 export interface DocsCommentThread {
@@ -215,6 +278,11 @@ export interface DocsCommentThread {
   comments: DocsCommentItem[];
   canReply: boolean;
   canResolve: boolean;
+  /** Docs AI: work going on in the thread, and the latest summary. */
+  aiJobs?: DocsThreadAiJob[];
+  aiSummary?: DocsThreadSummary | null;
+  /** Only on the response to a new comment: what happened to the AI members it mentions. */
+  aiDelivery?: DocsAiDelivery[];
 }
 
 export interface DocsCommentsResult {
@@ -222,7 +290,9 @@ export interface DocsCommentsResult {
   counts: { all: number; open: number; resolved: number; orphaned: number; page: number };
   role: CommentRole;
   me: string;
-  members: { id: string; name: string; color: string; role: CommentRole }[];
+  members: DocsCommentMember[];
+  /** Docs AI is on for the project (AI members can be asked in threads). */
+  docsAi?: boolean;
 }
 
 /** The selected text a comment is attached to. */

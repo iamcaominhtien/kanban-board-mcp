@@ -1158,7 +1158,8 @@ async def _build_prompt(
                 steps=[
                     {
                         "kind": "read",
-                        "text": "Read guidance: " + ", ".join(r["title"] for r in reads),
+                        "text": "Read guidance: "
+                        + ", ".join(r["title"] for r in reads),
                         "detail": {"pages": reads},
                     }
                 ],

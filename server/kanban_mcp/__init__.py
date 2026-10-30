@@ -1,7 +1,7 @@
 """The Kanban MCP server's tools.
 
 - `operations`: one function per verb (create a ticket, add a comment, ...), the building blocks.
-- `tools`: the 10 tools the agent sees (9 plus `ai_run` for board-started AI runs); each routes an `action` to one of the operations.
+- `tools`: the 12 tools the agent sees (9 plus `ai_run` for board-started AI runs, `ai_schedules` and `ai_team`); each routes an `action` to one of the operations.
 - `registry`: puts the tools on a FastMCP server. `instructions`: what the server tells the agent on connect.
 """
 
