@@ -26,6 +26,7 @@ STATUS = {
     "not_found": 404,
     "invalid": 422,
     "invalid_output": 422,
+    "too_large": 413,
     "no_criteria": 422,
     "viewer": 403,
     "forbidden": 403,

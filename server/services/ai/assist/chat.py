@@ -92,9 +92,17 @@ async def purge(session: AsyncSession) -> int:
     for c in old:
         await session.exec(delete(AiChatMessage).where(AiChatMessage.chat_id == c.id))
         await session.delete(c)
+        _forget(c)
     if old:
         await session.commit()
     return len(old)
+
+
+def _forget(c: AiChat) -> None:
+    """A chat is gone: the scope removes what it kept for it outside the database (the sketch chat's pictures and files)."""
+    provider = scopes.get(c.scope)
+    if provider is not None:
+        provider.forget(c.id)
 
 
 async def list_chats(
@@ -201,6 +209,9 @@ async def scope_chat(
     if provider is None:
         raise AssistError("invalid", f"Nothing to chat about called {kind!r}.")
     info = await provider.info(session, scope_id, owner)
+    await purge(
+        session
+    )  # a chat older than the retention is gone before it could be picked up again
     if not fresh:
         row = (
             await session.exec(
@@ -300,6 +311,7 @@ async def delete_chat(session: AsyncSession, chat_id: str, owner: str) -> None:
     await session.exec(delete(AiChatMessage).where(AiChatMessage.chat_id == c.id))
     await session.delete(c)
     await session.commit()
+    _forget(c)
 
 
 def _scoped(c: AiChat) -> bool:
@@ -338,11 +350,14 @@ async def send(
     filters: dict | None = None,
     mode: str = "ask",
     member_id: str | None = None,
+    turn: dict | None = None,
 ) -> dict:
     """Post the person's message and start the answer (it streams into the AI message).
 
     `mode` "ask" (the default) only ever answers: nothing is run and nothing changes. "work" starts a run of an AI
-    member on the chat's ticket, with the same limits, permissions and approvals as an assignment."""
+    member on the chat's ticket, with the same limits, permissions and approvals as an assignment. `turn` is what a
+    scope's message carries besides its text (the sketch chat: the picture of the drawing and attached files); the
+    scope checks it after the access rules and the caps, and keeps it with the chat."""
     c = await get_chat(session, chat_id, owner)
     text = (text or "").strip()
     if not text:
@@ -352,11 +367,16 @@ async def send(
     if member_id is not None and member_id != c.member_id:
         c.member_id = member_id or None
     scope_info = None
+    provider = None
     if _scoped(c):
         provider = scopes.get(c.scope)
         scope_info = await provider.info(
             session, c.scope_id or "", owner
         )  # unknown or not yours: refused here
+    if provider is not None and provider.needs_turn and turn is None:
+        raise AssistError("invalid", "Send this message from the panel it belongs to.")
+    if turn is not None and provider is None:
+        raise AssistError("invalid", "This chat does not take pictures or files.")
     if mode == "work":
         return await _send_work(session, c, owner, text)
     feature = _feature(c)
@@ -376,11 +396,18 @@ async def send(
         if exc.code != "over_budget":
             raise
         over, info = exc, None
+    user_ctx: dict = {}
+    request_extra: dict = {}
+    if turn is not None and provider is not None and scope_info is not None:
+        user_ctx, request_extra = await provider.prepare_turn(
+            session, c, scope_info, turn, owner
+        )
     user = AiChatMessage(
         id=str(uuid.uuid4()),
         chat_id=c.id,
         role="user",
         text=text[:8000],
+        context=json.dumps(user_ctx),
         created_at=now_iso(),
     )
     ai = AiChatMessage(
@@ -398,6 +425,7 @@ async def send(
                     "doc_ids": doc_ids or [],
                     "filters": filters or {},
                     "mode": "ask",
+                    **request_extra,
                 }
             }
         ),
@@ -583,6 +611,8 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         scope = c.scope
         provider = scopes.get(scope) if scope not in ("project", "all") else None
         scope_info = None
+        turn_in = None
+        notes: dict[str, str] = {}
         if provider is not None:
             scope_info = await provider.info(session, c.scope_id or "", c.owner)
             built = await provider.context(
@@ -594,6 +624,15 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 include_docs=loads(c.include_docs, []),
                 doc_ids=list(req.get("doc_ids") or []),
             )
+            # what this message brings (a picture, attached files) and a note under each earlier message
+            turn_in = await provider.turn_inputs(
+                session, chat=c, request=req, info=scope_info
+            )
+            built.injections.extend(turn_in.injections)
+            for h in history:
+                note = await provider.history_note(session, h)
+                if note:
+                    notes[h.id] = note
         else:
             built = await ctxb.build(
                 session,
@@ -611,7 +650,10 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             await session.exec(select(Member).where(Member.project_id == c.project_id))
         ).all()
         tickets_state, names = await svc_drafts._ticket_state(session, c.project_id)
-    steps = [{"text": s, "at": now_iso()} for s in built.steps]
+    steps = [
+        {"text": s, "at": now_iso()}
+        for s in [*built.steps, *(turn_in.steps if turn_in else [])]
+    ]
     steps.append({"text": "Writing the answer", "at": now_iso()})
     await _set(
         message_id,
@@ -636,7 +678,9 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         if h.id == message_id:
             continue
         who = "Person" if h.role == "user" else "You"
-        convo.append(f"{who}: {h.text[:1500]}")
+        convo.append(
+            f"{who}: {h.text[:1500]}" + (f"\n  {notes[h.id]}" if h.id in notes else "")
+        )
     if provider is not None and scope_info is not None:
         scope_line = provider.scope_line(scope_info)
     else:
@@ -662,6 +706,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             f"Members of the project: {people}",
             "Board context:\n" + built.text,
             ("Earlier in this chat:\n" + "\n".join(convo)) if convo else "",
+            turn_in.text if turn_in else "",
             "The person asks:\n" + ctxb.fence("question", question),
             ("Your answer so far:\n" + partial[-3000:]) if partial else "",
         ]
@@ -679,15 +724,20 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             if int(now) % 2 == 0:
                 await _publish()
 
-    max_tokens = svc_settings.max_tokens_for(row, profile, 1800)
+    max_tokens = svc_settings.max_tokens_for(
+        row, profile, provider.answer_tokens if provider else 1800
+    )
+    pictures = {"images": turn_in.images} if turn_in and turn_in.images else {}
     try:
         out = await llm.complete(
             profile,
             system=system,
             prompt=prompt,
             max_tokens=max_tokens,
-            timeout=TIMEOUT_S,
+            timeout=TIMEOUT_S
+            * (3 if pictures and profile.connection == "local" else 1),
             on_delta=on_delta,
+            **pictures,
         )
     except asyncio.CancelledError:
         partial = "".join(buf)
@@ -755,7 +805,10 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         return
 
     raw_text = partial + out.text if partial else out.text
-    text, block = prompts.split_actions(raw_text)
+    if provider is not None:
+        text, block = provider.split_answer(raw_text)
+    else:
+        text, block = prompts.split_actions(raw_text)
     if out.stop_reason == "max_tokens" and not block:
         text = raw_text  # keep the cut exactly, so Continue can pick up mid-sentence
     raw_changes = block.get("changes") or []
@@ -785,6 +838,21 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             problems.append(f"Unknown change {ch.get('op')!r}")
     suggestions = prompts.check_suggestions(block.get("suggestions") or [])
     draft_id = None
+    done: dict = {}
+    if provider is not None and scope_info is not None:
+        async with database.async_session() as session:
+            done = await provider.finish_answer(
+                session,
+                chat=c,
+                member=member,
+                message_id=message_id,
+                block=block,
+                request=req,
+                info=scope_info,
+                out=out,
+                problems=problems,
+            )
+        draft_id = done.get("draft_id")
     if changes:
         async with database.async_session() as session:
             base = {}
@@ -813,7 +881,9 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     await _set(
         message_id,
         state="done",
-        text=text or ("Here is what I would change." if changes else out.text),
+        text=text
+        or done.get("text")
+        or ("Here is what I would change." if changes else out.text),
         actions=suggestions,
         draft_id=draft_id,
         cost=out.cost,
@@ -825,14 +895,20 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             **built.summary(),
             "request": req,
             "scope": scope,
+            **(done.get("context") or {}),
             **({"cut_short": True} if cut_short else {}),
         },
+    )
+    label = (
+        provider.usage_label(scope_info, done, _feature(c))
+        if provider is not None and scope_info is not None
+        else _feature(c)
     )
     async with database.async_session() as session:
         await svc_settings.record_usage(
             session,
             c.project_id,
-            _feature(c),
+            label,
             member.id,
             c.owner,
             out,

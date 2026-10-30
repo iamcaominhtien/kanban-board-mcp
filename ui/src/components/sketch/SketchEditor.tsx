@@ -20,6 +20,7 @@ import { relativeTime } from '../../utils/relativeTime';
 import { byteLength, parseSource, serializeSource, SourceError } from './engine/sourceFormat';
 import { checkLimits, formatBytes, nearLimit, MAX_BYTES, type Problem } from './engine/limits';
 import { deleteDraft, draftKey, getDraft, putDraft, type SketchDraft } from './draftStore';
+import { chatScopeId, newChatKey } from './engine/chatFiles';
 import { NewSketchDialog } from './NewSketchDialog';
 import { SketchAiPanel, sketchAiVisible } from './SketchAiPanel';
 import { ColourPanel, LayersPanel, OptionsBar, TOOLS } from './SketchPanels';
@@ -91,6 +92,10 @@ export function SketchEditor({ request, onClose }: Props) {
   const [sourceBytes, setSourceBytes] = useState(0);
   const [sheet, setSheet] = useState<'colour' | 'layers' | null>(null);
   const [aiOpen, setAiOpen] = useState(!!request.openAi);
+  // the AI chat of a drawing that has no id yet is kept under this key (and in its draft); the server moves it on first save
+  const [chatKey, setChatKey] = useState(() => newChatKey());
+  const chatKeyRef = useRef(chatKey);
+  chatKeyRef.current = chatKey;
   const narrow = useMedia('(max-width: 760px)');
   const savedTitle = saved?.title;
   // AI help: asked of the server once; nothing is shown to a viewer, a stranger, or where AI is off
@@ -185,6 +190,7 @@ export function SketchEditor({ request, onClose }: Props) {
           await sketcher.openSource(parseSource(draft.source));
           sketcher.markDirty();
           setTitle(draft.title);
+          if (draft.chatKey) setChatKey(draft.chatKey);
         } else if (baseImageUrl) {
           const img = new Image();
           img.crossOrigin = 'anonymous';
@@ -215,34 +221,38 @@ export function SketchEditor({ request, onClose }: Props) {
   }, [sketcher, key, sketchId, baseImageUrl, startSize, restoreDraft, request.title, queryClient, say]);
 
   // --- autosave: a draft on this computer every few seconds ---------------------------------------
-  const writeDraft = useCallback(async () => {
-    const s = sketcher;
-    const st = stateRef.current;
-    if (!s || !st || phase !== 'ready' || !st.dirty || s.busy) return;
-    if (st.revision === lastDraftRevision.current) return;
-    lastDraftRevision.current = st.revision;
-    const text = serializeSource(s.exportSource());
-    setSourceBytes(byteLength(text));
-    const ok = await putDraft({
-      key: draftKey({ ownerKind: request.ownerKind, ownerId: request.ownerId, sketchId: current.current.id }),
-      ownerKind: request.ownerKind,
-      ownerId: request.ownerId,
-      projectId: request.projectId,
-      sketchId: current.current.id,
-      baseVersion: current.current.version,
-      title,
-      ownerLabel: request.ownerLabel,
-      savedAt: Date.now(),
-      source: text,
-    });
-    setDraftStatus(ok ? 'saved' : 'failed');
-  }, [sketcher, phase, request.ownerKind, request.ownerId, request.projectId, request.ownerLabel, title]);
+  const writeDraft = useCallback(
+    async (force = false) => {
+      const s = sketcher;
+      const st = stateRef.current;
+      if (!s || !st || phase !== 'ready' || s.busy) return;
+      if (!force && (!st.dirty || st.revision === lastDraftRevision.current)) return;
+      lastDraftRevision.current = st.revision;
+      const text = serializeSource(s.exportSource());
+      setSourceBytes(byteLength(text));
+      const ok = await putDraft({
+        key: draftKey({ ownerKind: request.ownerKind, ownerId: request.ownerId, sketchId: current.current.id }),
+        ownerKind: request.ownerKind,
+        ownerId: request.ownerId,
+        projectId: request.projectId,
+        sketchId: current.current.id,
+        baseVersion: current.current.version,
+        title,
+        ownerLabel: request.ownerLabel,
+        savedAt: Date.now(),
+        source: text,
+        chatKey: current.current.id ? undefined : chatKeyRef.current,
+      });
+      setDraftStatus(ok ? 'saved' : 'failed');
+    },
+    [sketcher, phase, request.ownerKind, request.ownerId, request.projectId, request.ownerLabel, title],
+  );
   const writeDraftRef = useRef(writeDraft);
   writeDraftRef.current = writeDraft;
   useEffect(() => {
-    const t = window.setInterval(() => void writeDraftRef.current(), AUTOSAVE_MS);
+    const t = window.setInterval(() => void writeDraftRef.current(false), AUTOSAVE_MS);
     const flush = () => {
-      if (document.visibilityState === 'hidden') void writeDraftRef.current();
+      if (document.visibilityState === 'hidden') void writeDraftRef.current(false);
     };
     document.addEventListener('visibilitychange', flush);
     window.addEventListener('pagehide', flush);
@@ -303,6 +313,12 @@ export function SketchEditor({ request, onClose }: Props) {
           out = await createSketch(
             { ownerKind: request.ownerKind, ownerId: request.ownerId, projectId: request.projectId },
             files,
+            chatScopeId({
+              chatKey: chatKeyRef.current,
+              ownerKind: request.ownerKind,
+              ownerId: request.ownerId,
+              projectId: request.projectId,
+            }),
           );
         } else if (mode === 'copy') {
           // a copy with the same name as the first would be hard to tell apart
@@ -473,6 +489,7 @@ export function SketchEditor({ request, onClose }: Props) {
             sketcher?.markDirty();
             setTitle(draftFound.title);
             setTitleChanged(true);
+            if (draftFound.chatKey && !draftFound.sketchId) setChatKey(draftFound.chatKey);
           } catch {
             say('The draft could not be opened.');
           }
@@ -495,6 +512,13 @@ export function SketchEditor({ request, onClose }: Props) {
   );
 
   const ready = phase === 'ready' && sketcher && state;
+  const aiScope = chatScopeId({
+    sketchId: saved?.id ?? request.sketchId,
+    chatKey,
+    ownerKind: request.ownerKind,
+    ownerId: request.ownerId,
+    projectId: request.projectId,
+  });
 
   return createPortal(
     <div
@@ -895,10 +919,14 @@ export function SketchEditor({ request, onClose }: Props) {
             <SketchAiPanel
               sketcher={sketcher}
               state={state}
-              owner={aiOwner}
+              key={aiScope}
+              owner={{ ...aiOwner, sketchId: saved?.id ?? request.sketchId }}
               title={title}
               ai={aiState}
-              sketchId={saved?.id ?? request.sketchId}
+              scopeId={aiScope}
+              onFirstMessage={() => {
+                if (!current.current.id) void writeDraftRef.current(true);
+              }}
               onClose={() => setAiOpen(false)}
             />
           )}

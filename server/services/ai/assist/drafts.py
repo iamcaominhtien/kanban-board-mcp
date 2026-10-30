@@ -263,7 +263,10 @@ async def regenerate(
     d = await _get(session, draft_id)
     if d.status in ("applied",):
         raise AssistError("invalid", "This draft was already applied.")
-    editor_draft = d.kind in ("editor", "editor_doc", "sketch")
+    if d.kind == "sketch":
+        # a drawing proposal belongs to a message of the sketch chat: Try again sends the message again
+        raise AssistError("invalid", "Send your message again to get a new drawing.")
+    editor_draft = d.kind in ("editor", "editor_doc")
     await svc_settings.guard_request(
         session,
         d.project_id,
@@ -374,10 +377,6 @@ async def _run(draft_id: str, allow_more: bool = False) -> None:
                 and (old.get("input") or {}).get("surface") == "idea"
             ):
                 feature = "idea_editor"  # counts toward the Idea Space's own daily cap
-            elif d.kind == "sketch":
-                from . import sketch_ai
-
-                feature = sketch_ai.usage_feature(old.get("input") or {})
             await svc_settings.record_usage(
                 session, d.project_id, feature, d.member_id, d.owner, out
             )
@@ -1102,15 +1101,7 @@ async def _gen_editor(d: AiDraft, profile, row, project, allow_more):
     return await editor.generate(d, profile, row, project, allow_more)
 
 
-async def _gen_sketch(d: AiDraft, profile, row, project, allow_more):
-    """Ask, ideas or ops for a sketch; see `sketch_ai.py`."""
-    from . import sketch_ai
-
-    return await sketch_ai.generate(d, profile, row, project, allow_more)
-
-
 GENERATORS = {
-    "sketch": _gen_sketch,
     "editor": _gen_editor,
     "editor_doc": _gen_editor,
     "ticket": _gen_ticket,

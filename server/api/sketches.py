@@ -5,6 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
+from services import activity as svc_activity
 from services import sketches as svc
 
 router = APIRouter(tags=["sketches"])
@@ -54,8 +55,10 @@ async def post_sketch(
     source: Annotated[UploadFile, File()],
     title: Annotated[str | None, Form()] = None,
     project_id: Annotated[str | None, Form()] = None,
+    draft_chat: Annotated[str | None, Form()] = None,
 ) -> dict[str, Any]:
-    """Save a new sketch: the PNG and the editable source (4096 px and 10 MB per file, 10 layers)."""
+    """Save a new sketch: the PNG and the editable source (4096 px and 10 MB per file, 10 layers). `draft_chat` is the
+    scope id the editor kept the AI chat of this not yet saved drawing under; the person's chat moves to the new id."""
     out = await svc.create_sketch(
         session,
         owner_kind=owner_kind,
@@ -65,8 +68,25 @@ async def post_sketch(
         source=await _need(source, "editable source"),
         project_id=project_id,
     )
+    if draft_chat:
+        await _rebind_chat(session, draft_chat, out["id"])
     await board_events.publish("invalidate")
     return out
+
+
+async def _rebind_chat(session: AsyncSession, draft_chat: str, sketch_id: str) -> None:
+    """Move the AI chat kept for a drawing that had no id to the saved sketch. Saving never fails because of it."""
+    from models import Sketch
+    from services.ai.assist import sketch_scope
+
+    try:
+        sketch = await session.get(Sketch, sketch_id)
+        if sketch is not None:
+            await sketch_scope.rebind(
+                session, draft_chat, sketch, svc_activity.current_actor() or "user"
+            )
+    except Exception:  # noqa: BLE001 - the chat is a convenience, the drawing is saved
+        await session.rollback()
 
 
 @router.get("/sketches/{sketch_id}")

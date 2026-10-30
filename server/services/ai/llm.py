@@ -57,6 +57,18 @@ class LlmError(Exception):
         self.retry_after = retry_after
 
 
+def image_type(data: bytes) -> tuple[str, str]:
+    """The media type and file extension of a picture, from its first bytes (never from a name): PNG, JPEG, GIF or
+    WebP; anything else is sent as PNG, which is what the editor's own picture is."""
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg", "jpg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif", "gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", "webp"
+    return "image/png", "png"
+
+
 def _classify(status: int, body: str, retry_after: str | None) -> LlmError:
     low = body.lower()
     if status in (401, 403):
@@ -125,7 +137,7 @@ async def _anthropic(
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": "image/png",
+                    "media_type": image_type(img)[0],
                     "data": base64.b64encode(img).decode("ascii"),
                 },
             }
@@ -202,7 +214,7 @@ async def _openai(
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": "data:image/png;base64,"
+                    "url": f"data:{image_type(img)[0]};base64,"
                     + base64.b64encode(img).decode("ascii")
                 },
             }
@@ -261,15 +273,20 @@ async def _claude_cli(
         try:
             names = []
             for n, img in enumerate(images, 1):
-                name = f"picture-{n}.png"
+                name = f"picture-{n}.{image_type(img)[1]}"
                 with open(os.path.join(folder, name), "wb") as fh:
                     fh.write(img)
                 names.append(name)
             note = (
-                "The picture is the file "
+                (
+                    "The picture is the file "
+                    if len(names) == 1
+                    else "The pictures are the files "
+                )
                 + ", ".join(names)
-                + " in your working folder: open it with the Read tool before you answer. "
-                "Read no other file.\n\n"
+                + " in your working folder: open "
+                + ("it" if len(names) == 1 else "them")
+                + " with the Read tool before you answer. Read no other file.\n\n"
             )
             return await _claude_cli_run(
                 profile, system, note + prompt, on_delta, folder, tools="Read"
@@ -387,8 +404,9 @@ async def complete(
 ) -> Completion:
     """One answer from the member. Raises `LlmError`; `asyncio.CancelledError` stops the call (and the CLI).
 
-    `images` are PNG files the model should look at (Anthropic and OpenAI-compatible members send them in the request;
-    Claude Code reads them from a temporary folder). Leave it out for a text-only call."""
+    `images` are pictures (PNG, JPEG, GIF or WebP, as bytes) the model should look at: Anthropic and OpenAI-compatible
+    members get them all in the request, Claude Code reads them from a temporary folder. Leave it out for a text-only
+    call."""
     started = time.monotonic()
     if profile.connection == "local":
         if profile.provider != "claude-code":

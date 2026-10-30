@@ -181,39 +181,63 @@ exist, the AI only **suggests** and a person accepts, and everything works with 
   is off (project switch, "Sketch AI" feature switch, project not shared). A temporary reason (no AI member set up, a cap
   reached, Pause all AI) keeps the button and the panel says why it cannot answer.
 * An embedded sketch has an **Ask AI** button next to *Edit sketch* (people who can edit, where AI is available). It opens
-  the editor with the panel already open.
-* **Ask**: discuss the drawing in a short conversation (the last 4 exchanges are sent along, as data).
-* **Ideas**: a list of ideas around the drawing, each with **Add as label**: a text label on the selected layer, one
-  undoable step, editable like any text.
-* **Draw**: describe what to add. The shapes appear **as a preview** on the drawing with a card ("3 shapes, 1 arrow and
-  1 label on a new layer “AI”") and **Accept / Discard / Try again**. Accept puts them on a **new layer named “AI”** on top
-  (“AI 2” if that name is taken) as **one undo step** (Ctrl+Z removes the layer, Ctrl+Shift+Z brings it back). Esc or
-  Discard throws the preview away; the person's own layers are never touched. If the drawing already has 10 layers the
-  preview is refused with the usual layer-limit message.
-* Before sending, the panel shows **the cost** ("About $0.01 per answer", "Not metered" for a local runner) and
-  **What will be sent**: the question, the title of the sketch, the flattened picture (size shown; a checkbox sends words
-  only) and, for Draw, the canvas size; and what is never sent (layers and the editable source, the text of the ticket,
-  page or idea the sketch is in, other sketches, comments, attachments, secrets).
+  the editor with the panel already open **on the same conversation**.
+* **One conversation, one thread.** There are no tabs. The person asks in words ("what is missing?", "brainstorm ideas",
+  "draw a retry button next to the error"). Quick-start chips in the empty thread (What is missing? / Brainstorm ideas /
+  Draw an arrow to… / Draw a retry button next to the error) send a question or put the start of a sentence in the box.
+  The thread is **private to the person, kept 30 days** (like the ticket and idea chats), and found again when the editor
+  is closed and opened again, or opened from the embed. **New chat** (the + in the panel header) starts another. Every
+  earlier message and proposal stays in the thread.
+* The answer is **words** and, when drawing was asked for, a **proposal card** in the thread: "3 shapes, 1 arrow and 1
+  label on a new layer “AI”". The newest proposal is shown as a preview on the drawing; **Accept / Discard / Try again**
+  are on the card. Accept puts the shapes on a **new layer named “AI”** on top (“AI 2” if that name is taken) as **one undo
+  step** (Ctrl+Z removes the layer, Ctrl+Shift+Z brings it back). Esc or Discard throws the preview away; the person's own
+  layers are never touched. Older cards say **Accepted** or **Discarded**; an undecided older card has **Show on the
+  drawing**. Try again discards the card and sends the same words again with the picture as it is now. If the drawing
+  already has 10 layers the preview is refused with the usual layer-limit message.
+* **Ideas** in an answer (when asked for ideas) are a list, each with **Add as label**: a text label on the selected
+  layer, one undoable step, editable like any text; the thread remembers which were added.
+* **Pictures and files.** Paste a picture (Ctrl+V in the box), drop files on the panel, or use the paperclip. Pending
+  attachments show as chips with a thumbnail and an x; a refused file shows its reason in red and the others still go.
+  Sent attachments appear on the person's message in the thread. A sent picture has **Put on the drawing**: it goes on a
+  **new layer** named after the file, centred and scaled to fit the canvas (never enlarged), as one undo step.
+* Before sending, the panel shows **the cost** ("About $0.01 per answer", with a drawing a little more; "Not metered" for a
+  local runner) and **What will be sent**, a list that now includes the attachments: the message, the sketch title, the
+  flattened picture (size shown; a checkbox "Send the drawing" sends words only), the title and text of the ticket, page or
+  idea the sketch is in, the canvas size, the earlier messages of the chat, each attached picture and file; and what is
+  never sent (layers and the editable source, private Docs pages, other sketches, other comments, secrets, files that were
+  not attached to the message).
 
 ### What the model sees
 
-The editor uploads the **flattened picture of what is on screen** (every visible layer, an unaccepted preview excluded),
-scaled so its longest side is at most 1280 px (PNG, 4 MB at most), so unsaved work is what is discussed. The title, the
-question and the earlier exchanges are fenced as `<untrusted>` data and checked for wording that reads like instructions
-(flagged on the answer, never obeyed); text inside the picture is told to be part of the drawing. The model gets no
-tools and no layer data.
+Every message goes with the **current flattened picture of what is on screen** (every visible layer, an unaccepted preview
+excluded), scaled so its longest side is at most 1280 px (PNG, 4 MB at most), so unsaved work and a drawing that changed
+between two questions are what is discussed. On top of that, the engine's history window sends the earlier turns of the
+chat (the last 14 messages, each cut at 1,500 characters, with a note under them about what was attached and what became of
+a proposal: accepted, discarded, undecided). There is no summary of older turns: older ones fall out of the window.
 
-Image input in the LLM layer (`server/services/ai/llm.py`, `complete(..., images=[png_bytes])`): Anthropic members send
-an `image` content block, OpenAI-compatible members an `image_url` data URL, and a Claude Code member gets the PNG written
-to a private temporary folder (`picture-1.png`) that becomes its working folder, with only the read-only `Read` tool
-turned on (text-only calls still run with no tools). Leaving `images` out gives exactly the old request.
+* The title of the sketch, the question and the earlier turns are fenced as `<untrusted>` data and checked for wording that
+  reads like instructions (flagged on the answer, never obeyed). Text inside the picture or an attachment is told to be data.
+* **The text the sketch sits in**: a ticket's title and description, a Docs page's title and text, an idea's title and page
+  (3,000 characters each), fenced as untrusted data. A **private Docs page is left out** (the chip says so), and only a thing
+  of the project the request is booked on is read. A comment's sketch reads the ticket or page it is written on.
+* **Attached pictures** follow the picture of the drawing as further pictures; **text files** are added to the message as
+  fenced text (named `attached file <name>`). Files of earlier turns are not sent again, only their names in the history.
+* The model gets no tools and no layer data.
 
-### The ops format (Draw)
+Image input in the LLM layer (`server/services/ai/llm.py`, `complete(..., images=[bytes, ...])`, any number of PNG, JPEG,
+WebP or GIF, the type read from the bytes): Anthropic members send an `image` block each, OpenAI-compatible members an
+`image_url` data URL each, and a Claude Code member gets the pictures written to a private temporary folder
+(`picture-1.png`, `picture-2.jpg`, …) that becomes its working folder, with only the read-only `Read` tool turned on
+(text-only calls still run with no tools). Leaving `images` out gives exactly the old request.
 
-The model answers with JSON `{"ops": [...], "note": "one sentence"}`. The server validates and clamps it
-(`services/ai/assist/sketch_ai.py`, `clean_ops`) and the editor checks it **again** before drawing
-(`engine/aiOps.ts`, `cleanAiOps`); only these shapes exist, coordinates are integer canvas pixels inside
-`0..width` and `0..height`, `color` is `#rrggbb` (anything else becomes `#2b2b2b`):
+### The ops format (drawing proposals)
+
+The model ends a drawing answer with a ```` ```kanban-actions ```` block `{"draw": {"ops": [...], "note": "one sentence"},
+"ideas": [...]}`. The server validates and clamps it (`services/ai/assist/sketch_ai.py`, `clean_ops`; a block cut short by
+the token limit is repaired as far as it goes) and the editor checks it **again** before drawing (`engine/aiOps.ts`,
+`cleanAiOps`); only these shapes exist, coordinates are integer canvas pixels inside `0..width` and `0..height`, `color` is
+`#rrggbb` (anything else becomes `#2b2b2b`):
 
 | `op` | Fields | Drawn as |
 |---|---|---|
@@ -225,36 +249,75 @@ The model answers with JSON `{"ops": [...], "note": "one sentence"}`. The server
 Limits: at most **60 ops** per answer; stroke width 1 to 60; text at most 120 characters and 3 lines, control characters
 and tags removed; a text with `<script`, `javascript:`, `data:text/html` or an `on…=` handler drops the whole op; unknown
 `op`s, non-numbers (strings, booleans, NaN), zero-length lines and empty boxes are dropped, extra keys are never passed
-on. The answer says how many ops were dropped ("2 shapes could not be drawn and were left out"); an answer with nothing
-usable fails with "Nothing was changed". The pure mapping is tested without a canvas (`engine/aiOps.test.ts`).
+on. The card says how many ops were dropped ("2 shapes could not be drawn and were left out"); an answer that asked to
+draw but had nothing usable says "Nothing was changed and nothing was drawn" under the words and has no card. The pure
+mapping is tested without a canvas (`engine/aiOps.test.ts`).
+
+### The chat: scope, ids, retention
+
+The chat is the `sketch` scope of the scoped-chat engine (`services/ai/assist/sketch_scope.py`, registered like the `idea`
+scope; kind `sketch`, id = the sketch id). It is stored in `ai_chat` / `ai_chat_message` like every scoped chat, one per
+person and sketch, and kept 30 days from the last message (`chat.purge`, run whenever chats are listed or opened).
+
+* **A sketch that is not saved yet has no id.** The editor makes a key (kept in the draft in IndexedDB, so restoring the
+  draft finds the chat again) and keeps the chat under the scope id `new~<key>~<owner kind>~<owner id>~<project id or ->`.
+  The first message of an unsaved drawing also writes the draft, so closing the app does not lose the thread. When the
+  sketch is first saved the editor sends that scope id as `draft_chat` with `POST /sketches`, and the server **moves the
+  person's own chat to the real sketch id** (`rebind`; only a chat of the same owner and person moves, and a failure never
+  fails the save). **Save a copy** makes another sketch, which starts a **new chat**; the original keeps its own.
+* **Attachments** are kept in the uploads folder under `_private/ai-chat/<chat id>/<message id>/` (the picture of the
+  drawing of every message as `picture.png`, attachments as `a1.png`, `a2.txt`, …), so a backup of the data folder
+  carries them. `/uploads/_private/...` is never served (`uploads.resolve_upload_path` refuses it), the files are read only
+  through `GET /ai/sketch/chats/{chat}/files/{message}/{file}` by the person whose chat it is (everyone else, members,
+  viewers and strangers included, gets 404), and a text file is always stored as `.txt` and served as a download. The folder
+  is removed when the chat expires or is deleted.
+
+### What may be attached
+
+Checked from the bytes, not from the name or the type the browser claims, in the browser first (to say why) and again on
+the server (`services/ai/assist/attachments.py`):
+
+| | Accepted | Limits |
+|---|---|---|
+| Pictures | PNG, JPEG, WebP, GIF | 4 per message, 5 MB each, 8000 px on a side at most (the browser scales a picture to 1600 px before sending, so a large photo usually fits) |
+| Text files | txt, md, markdown, csv, tsv, json, log, xml, yaml, toml, ini, html, css, svg and common source code (py, js, ts, tsx, java, c, cpp, go, rs, sh, sql …) | 4 per message, 200 KB each, valid UTF-8 without NUL bytes |
+| Everything else | PDF, office files, archives, audio and video, other pictures (BMP, HEIC, AVIF) | refused with ““report.pdf” is a PDF, which cannot be read here. Pictures (PNG, JPEG, WebP or GIF, 5 MB at most) and text files (…) can be attached.” |
+
+There is **no PDF text extraction**: no PDF library is a dependency and none was added.
 
 ### API
 
 Errors use the AI assistant shape `{detail, code}` (`ai_off`, `viewer`, `forbidden`, `not_configured`, `unavailable`,
-`over_budget`, `feature_off`, `invalid`, `invalid_output`, `not_found`). The request is booked on the project of the
-owner (ticket, page, idea, or the `project_id` a comment passes); an idea with no project is booked on a project of the
-caller that has an AI member ready, like the idea chat.
+`over_budget`, `feature_off`, `invalid`, `too_large` (413), `invalid_output`, `not_found`). The request is booked on the
+project of the owner (ticket, page, idea, or the `project_id` a comment passes); an idea with no project is booked on a
+project of the caller that has an AI member ready, like the idea chat.
 
 | Route | Purpose |
 |---|---|
-| `GET /ai/sketch/state?owner_kind&owner_id&project_id&sketch_id` | `availability` (`code` ok / viewer / forbidden / ai_off / …, never an error), the answering member, `estimates` per mode, `limits` (60 ops …) and what is never sent. Sends nothing. |
-| `POST /ai/sketch/preview` | JSON: the same fields as a request without the picture (only its size). Returns the pieces ("What will be sent"), tokens, cost. Sends nothing. |
-| `POST /ai/sketch/drafts` | Multipart: `owner_kind owner_id mode(ask\|ideas\|draw) prompt title width height project_id sketch_id history image`. Returns a draft (`kind: "sketch"`); poll `GET /ai/assist/drafts/{id}`. `payload.result` is `{kind: "answer", text}`, `{kind: "ideas", items}` or `{kind: "ops", ops, dropped, note, layer: "AI", width, height}`. |
-| `POST /ai/sketch/drafts/{id}/accept` | The editor drew the shapes on the AI layer: records it (audit `sketch_edit`) and closes the draft. Only the asker, never a viewer. |
-| `POST /ai/assist/drafts/{id}/discard` | Discard (the existing route). |
+| `GET /ai/sketch/state?owner_kind&owner_id&project_id&sketch_id` | `availability` (`code` ok / viewer / forbidden / ai_off / …, never an error), the answering member, `estimates` (`answer`, `draw`), `limits` (60 ops, attachment limits) and what is never sent. Sends nothing. |
+| `GET /ai/scopes/sketch/{scope id}` | The shared scope state: what the chat reads (chips), the quick-start chips (`starting_points`, `prefill` for the ones that are the start of a sentence), `availability`, the members, the saved `chat_id`. `scope id` is the sketch id or a draft scope id. |
+| `POST /ai/scopes/sketch/{scope id}/chat` | The person's saved chat (with its messages and drafts), or a new one with `{"fresh": true}`. |
+| `POST /ai/sketch/preview` | JSON: the place, `prompt`, `title`, canvas size, the picture's size, `attachments` (`[{name, kind, bytes, chars}]`) and `chat_id`. Returns the pieces ("What will be sent"), tokens, `estimate` and `draw_estimate`. Sends nothing. |
+| `POST /ai/sketch/chats/{chat id}/messages` | Multipart: `text`, `title`, `width`, `height` (the canvas), `with_image`, `image` (the current picture, PNG, 4 MB), `files` (the attachments), `member_id`. Returns `{user, ai}`; the answer streams into the `ai` message (poll `GET /ai/assist/messages/{id}` or the chat). The plain `POST /ai/assist/chats/{id}/messages` refuses a sketch chat. |
+| `GET /ai/sketch/chats/{chat id}/files/{message id}/{file}` | A kept picture or file of the person's own chat. |
+| `POST /ai/sketch/drafts/{id}/accept` | The editor drew the proposal on the AI layer: records it (audit `sketch_edit`) and closes it. Only the asker, never a viewer. |
+| `POST /ai/sketch/drafts/{id}/idea` | `{index}`: idea number `index` was added as a label; the thread remembers it. |
+| `POST /ai/assist/drafts/{id}/discard`, `POST /ai/assist/messages/{id}/stop`, `…/retry` | The existing routes: discard a proposal, stop an answer, try a failed answer again (with its own picture). |
+| `POST /sketches` (`draft_chat` field) | Also moves the draft chat to the new sketch id (see above). |
 
-Rules enforced in `sketch_ai.py`: a stranger gets `403 forbidden`, a viewer `403 viewer`, AI off for the project `409
-ai_off`, the "Sketch AI" switch off `409 feature_off`, Pause all / a paused member `409 unavailable`, a reached per-member,
-board daily or monthly cap `409 over_budget`; for a sketch in an idea the **Idea Space's own switch and daily cap** apply
-too. Nothing reaches the provider in any of these cases. The picture is kept in a temporary file only while the draft is
-written and deleted afterwards (also when it fails or is stopped), so **Try again sends a fresh picture** (the editor
-makes a new request; the generic regenerate route answers "send it again").
+Rules enforced by the engine and the scope: a stranger gets `403 forbidden`, a viewer `403 viewer`, AI off for the project
+`409 ai_off`, the "Sketch AI" switch off `409 feature_off`, Pause all / a paused member `409 unavailable`, a reached
+per-member, board daily or monthly cap leaves the thread readable and the message as `over_budget` (nothing is sent); for a
+sketch in an idea the **Idea Space's own switch and daily cap** apply too. Nothing reaches the provider in any of these
+cases, and a refused attachment writes nothing (no message, no file). A proposal is an `ai_draft` of kind `sketch`
+(`open`, `applied`, `discarded`) the answer links to.
 
-Usage is metered under its own labels: `sketch_chat` (ask, ideas) and `sketch_draw`; a sketch in an idea is booked as
-`idea_sketch_chat` / `idea_sketch_draw`, which the Idea Space daily cap counts with its other helpers (`idea_` prefix).
-All of them count toward the member's daily budget and the board's daily and monthly caps like any one-shot call, and the
-Settings → AI page shows their month cost under the **Sketch AI** switch. The audit log gets `sketch_help` when an answer is
-written and `sketch_edit` when a person accepts shapes.
+Usage is metered under its own labels: `sketch_chat` (a message without a drawing) and `sketch_draw` (an answer that
+carries shapes); a sketch in an idea is booked as `idea_sketch_chat` / `idea_sketch_draw`, which the Idea Space daily cap
+counts with its other helpers (`idea_` prefix). All of them count toward the member's daily budget and the board's daily
+and monthly caps, and the Settings → AI page shows their month cost under the **Sketch AI** switch. The audit log gets
+`sketch_help` when an answer is written (drawing or chat, whether a picture was sent, number of attachments, ops, cost) and
+`sketch_edit` when a person accepts shapes.
 
 ## AI agents over MCP (the Claude Code CLI path)
 
@@ -285,13 +348,19 @@ the AI member. Reading needs nothing beyond the read permission.
 
 * `server/tests/test_sketches.py`: create/read/files in the uploads folder, limits (canvas, PNG, source, layers),
   conflict 409 and "replace theirs", save as copy, roles (viewer, member, free idea), delete/restore, ETag.
-* `server/tests/test_sketch_ai.py`: validation and clamping of ops (limits, bad numbers, script text, unknown ops),
-  who may ask (viewer refused, stranger 403, member ok), AI off per project, feature switch, kill switch, monthly cap,
-  the Idea Space switch and cap, usage labels and audit entries, "What will be sent", the fenced title and question, the
-  picture reaching the provider (Anthropic block, OpenAI `image_url`, Claude Code temp file), Accept / Discard.
+* `server/tests/test_sketch_ai.py`: validation and clamping of ops, the answer block (found, repaired, bare), who may
+  ask (viewer 403, stranger 403, member ok), AI off per project, feature switch, kill switch, monthly cap, the Idea Space
+  switch and cap, the thread kept and found again on reopen, the history and what became of a proposal sent to the model,
+  the current picture of every turn, Try again with its own picture, proposals (clamped ops, Accept, Discard, only the
+  asker), ideas and their added state, the text of a ticket, page and idea fenced (injection flagged, private page left
+  out, another project's ticket not read), "What will be sent", attached pictures and text files (accepted by their bytes,
+  fenced, flagged), refused kinds and limits (PDF, office, archive, binary, too large, too many), private storage and 404
+  for everyone else, removal when the chat expires or is deleted, rebind on first save and a copy starting a new chat, usage
+  labels and audit entries, the provider layer with several pictures (Anthropic block, OpenAI `image_url`, Claude Code files).
 * `server/tests/test_sketch_mcp.py`: export, edit and save as files, stale `base_version`, a picture without a source,
   limits and messages, an AI run (ask run, approval, blocked, allowed, another project).
-* `ui/src/components/sketch/engine/*.test.ts` (`aiOps.test.ts` covers the ops mapping with a recording context): flood fill, tile undo, history (>= 100 steps, memory cap), layer
+* `ui/src/components/sketch/engine/*.test.ts` (`aiOps.test.ts` covers the ops mapping with a recording context,
+  `chatFiles.test.ts` what can be attached, scaling, where a picture goes on the drawing and the chat's scope id): flood fill, tile undo, history (>= 100 steps, memory cap), layer
   limits, limits and size checks, source format round trip and refusal of bad files, brush spacing/pressure,
   geometry, colours. Run with `npm test` in `ui/` (the Node test runner, no framework; CI runs it).
 
@@ -301,12 +370,22 @@ the AI member. Reading needs nothing beyond the read permission.
 * **AI**: the model cannot edit or move the person's own layers or strokes (by design: it only adds an "AI" layer), cannot
   change colours of existing marks, curves with handles, gradients or fills of arbitrary regions, and does not draw
   pixels. Ops are lines, arrows, rectangles, ellipses, text and freehand polylines; 60 per answer.
-* **AI**: one answer at a time, no streaming of the answer into the panel, and the conversation in the Ask tab lives in
-  the open editor only (it is not saved with the sketch or the ticket; the last 4 exchanges are sent). Ideas added as
-  labels are a person's edit and are not audited separately.
-* **AI**: the Claude Code runner path (picture as a file read with the `Read` tool) is covered by a test of the command it
+* **AI**: one answer at a time, no streaming of the answer into the panel as formatted text (it streams as plain text; no
+  Markdown rendering in the thread), no "Post as comment" or sharing of a chat (a chat is private to its asker), no
+  Do the work. Ideas added as labels are a person's edit and are not audited separately.
+* **AI**: older turns are not summarised: the engine sends the last 14 messages, older ones fall out. Attachments of earlier
+  turns are not sent again (only their names), so the person attaches a file again to talk about it again. An old
+  proposal shown after the canvas was resized is clamped to the new size by the editor's own check.
+* **AI**: attachments are pictures and text only. **No PDF or office text extraction** (no library, none added); a PDF is
+  refused with advice to paste its text or a screenshot. A GIF is read as a still picture. The browser scales pictures
+  down to 1600 px (a re-encode to PNG or JPEG), so fine print in a huge screenshot may be lost.
+* **AI**: a chat of a drawing that was never saved and whose draft was discarded or lost (browser data cleared, another
+  browser) stays on the server until it expires and cannot be reopened; the scope id of a draft is not guessable but is not
+  a secret either (only its owner can read the chat). Opening a sketch's chat from a deleted sketch is "not found".
+* **AI**: the Claude Code runner path (pictures as files read with the `Read` tool) is covered by a test of the command it
   builds, not run against a real `claude` binary here; Anthropic and OpenAI-compatible requests are tested against a mock
-  transport, not a live provider. The picture is scaled to 1280 px and a very detailed drawing may lose fine detail.
+  transport, not a live provider. The picture of the drawing is scaled to 1280 px and a very detailed drawing may lose fine
+  detail.
 * **AI**: no "Ask AI" for a sketch shown in the large viewer (it opens in the editor only), and no AI help for a sketch
   that is only readable (viewer).
 * **MCP**: agents cannot delete or restore a sketch, cannot list sketches of a project-less idea, and `sketch_create` does

@@ -1057,7 +1057,7 @@
 .ai {
   display: flex;
   flex-direction: column;
-  width: 320px;
+  width: 340px;
   flex-shrink: 0;
   min-height: 0;
   border-left: 1px solid #e3e8e5;
@@ -1073,26 +1073,6 @@
 }
 .aiHead b {
   font: 700 14px var(--font-body);
-  color: #1e2a22;
-}
-.aiTabs {
-  display: flex;
-  gap: 4px;
-  padding: 8px 12px 0;
-}
-.aiTab {
-  flex: 1;
-  height: 32px;
-  border: 1px solid #dce6df;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  background: #f1f5f2;
-  color: #4d5f53;
-  font: 600 13px var(--font-body);
-  cursor: pointer;
-}
-.aiTabOn {
-  background: #fff;
   color: #1e2a22;
 }
 .aiBody {
@@ -1116,30 +1096,195 @@
   font: 400 12px var(--font-body);
   line-height: 1.45;
 }
-.aiThread {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 .aiQ {
   align-self: flex-end;
-  max-width: 92%;
+  max-width: 94%;
   padding: 7px 10px;
   border-radius: 10px 10px 2px 10px;
   background: #e7f1ea;
   font: 500 13px var(--font-body);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .aiA {
-  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   font: 400 13px var(--font-body);
   line-height: 1.5;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.aiText {
+  white-space: pre-wrap;
+}
+.aiAttachments {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+}
+.aiFileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #cfe0d4;
+  color: #3d4f44;
+  font: 500 11px var(--font-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aiPic {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 112px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #cfe0d4;
+  background: #fff;
+}
+.aiPic img {
+  width: 100%;
+  height: 72px;
+  object-fit: contain;
+  background: repeating-conic-gradient(#f0f3f1 0 25%, #fff 0 50%) 0 0 / 12px 12px;
+  border-radius: 4px;
+}
+.aiPicEmpty {
+  height: 72px;
+  display: grid;
+  place-items: center;
+  font: 400 11px var(--font-body);
+  color: #6a7b70;
+}
+.aiPicName {
+  font: 500 11px var(--font-body);
+  color: #3d4f44;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aiPicBtn {
+  border: 1px solid #b9d6c1;
+  border-radius: 6px;
+  background: #f1f8f3;
+  color: #2e6f40;
+  font: 600 11px var(--font-body);
+  padding: 3px 4px;
+  cursor: pointer;
+}
+.aiPicBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.aiReading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.aiChip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #e7f1ea;
+  color: #2e6f40;
+  font: 600 11px var(--font-body);
+}
+.aiChipSkip {
+  background: #f1f1f1;
+  color: #777;
+  text-decoration: line-through;
+}
+.aiWelcome {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aiChips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aiStart {
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid #cfe0d4;
+  border-radius: 10px;
+  background: #fff;
+  color: #1e2a22;
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+.aiStart:hover {
+  background: #f1f8f3;
+}
+.aiStatusOk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #2e6f40;
+  font: 600 12px var(--font-body);
+}
+.aiTray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.aiPending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 6px;
+  border: 1px solid #cfe0d4;
+  border-radius: 8px;
+  background: #fff;
+  font: 500 11px var(--font-body);
+}
+.aiPending img {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.aiPendingName {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aiPending button {
+  border: 0;
+  background: none;
+  color: #6a7b70;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+}
+.aiBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aiDrag {
+  outline: 2px dashed #2e6f40;
+  outline-offset: -4px;
+  background: #f1f8f3;
+}
+.aiThread {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 .aiIdeas {
   list-style: none;

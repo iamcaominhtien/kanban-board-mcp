@@ -18,6 +18,8 @@ export interface SketchDraft {
   savedAt: number;
   /** The editable source as JSON text. */
   source: string;
+  /** The key the AI chat of a sketch without an id is kept under; the chat is found again when the draft is restored. */
+  chatKey?: string;
 }
 
 /**

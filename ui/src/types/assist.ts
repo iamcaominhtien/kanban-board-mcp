@@ -394,6 +394,8 @@ export interface StartingPoint {
   request: string;
   /** The answer is a draft to apply (criteria, an idea note…), not just text. */
   draft?: boolean;
+  /** The request is the start of a sentence: put it in the box for the person to finish instead of sending it. */
+  prefill?: boolean;
 }
 
 export interface ChatScopeInfo {

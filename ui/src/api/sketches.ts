@@ -150,12 +150,15 @@ function formOf(files: Partial<SketchFiles>): FormData {
  * Save a new sketch.
  * @param owner - Who owns it, and the project when the owner does not say.
  * @param files - The picture, the editable source and the title.
+ * @param draftChat - The scope id the AI chat of this unsaved drawing is kept under; the server moves it to the new id.
  */
 export async function createSketch(
   owner: { ownerKind: SketchOwnerKind; ownerId: string; projectId?: string },
   files: SketchFiles,
+  draftChat?: string,
 ): Promise<Sketch> {
   const f = formOf(files);
+  if (draftChat) f.append('draft_chat', draftChat);
   f.append('owner_kind', owner.ownerKind);
   f.append('owner_id', owner.ownerId);
   if (owner.projectId) f.append('project_id', owner.projectId);

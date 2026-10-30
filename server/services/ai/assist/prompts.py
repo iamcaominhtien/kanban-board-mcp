@@ -147,7 +147,9 @@ def split_actions(text: str) -> tuple[str, dict]:
             data = json.loads(m.group(1))
         except ValueError:
             continue
-        if isinstance(data, dict) and ("changes" in data or "suggestions" in data):
+        if isinstance(data, dict) and any(
+            k in data for k in ("changes", "suggestions", "draw", "ideas")
+        ):
             clean = (text[: m.start()] + text[m.end() :]).strip()
             return clean, data
     return (text or "").strip(), {}

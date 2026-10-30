@@ -3,7 +3,7 @@
 cost line are the same for every scope; a scope only supplies the facts that differ.
 
 Built in: `ticket` and `doc`. Another feature adds its own with `register(provider)`, e.g. the idea page registers an
-`IdeaScope` whose `kind` is "idea". A provider says:
+`IdeaScope` whose `kind` is "idea" and the Sketch editor a `SketchScope` ("sketch"). A provider says:
 
 - `info()`: the project, a title, the "Reading" chips, the starting points and the draft kinds it understands;
 - `context()`: the text the model reads (fenced as data) and what it was made of;
@@ -11,7 +11,10 @@ Built in: `ticket` and `doc`. Another feature adds its own with `register(provid
   The board's own kinds (status, priority, comment, acceptance criteria…) work in every scope unless `core_ops` is
   False (an idea can only receive its own kinds);
 - optionally `feature` (the usage label and switch of its chats) and `check_available()` (switches and caps of the
-  feature that owns the scope, on top of the board's).
+  feature that owns the scope, on top of the board's);
+- optionally the hooks of a scope whose messages carry more than text (the sketch scope: a picture and attached files
+  each turn, an answer that may carry a drawing): `prepare_turn`, `turn_inputs`, `history_note`, `split_answer`,
+  `finish_answer`, `usage_label` and `forget`.
 
 Access, privacy and cost rules are not part of a scope: the chat service applies them to every provider.
 """
@@ -22,10 +25,11 @@ from dataclasses import dataclass, field
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import DocsPage, Member, Ticket
+from models import AiChat, AiChatMessage, DocsPage, Member, Ticket
 
 from ..store import loads
 from . import context as ctxb
+from . import prompts
 from . import settings as svc_settings
 from .settings import AssistError
 
@@ -75,6 +79,20 @@ class ScopeInfo:
             "work": self.work,
             "draft_kinds": self.draft_kinds,
         }
+
+
+@dataclass
+class TurnInputs:
+    """What one message brings along besides its text: pictures for the model, text for the prompt."""
+
+    # Pictures sent with the message, in the order `text` names them
+    images: list[bytes] = field(default_factory=list)
+    # Added to the prompt before the question (fenced where it came from outside)
+    text: str = ""
+    # Wording that reads like instructions inside it: [{"source", "quote"}]
+    injections: list[dict] = field(default_factory=list)
+    # "Reading" steps shown while the answer is written
+    steps: list[str] = field(default_factory=list)
 
 
 class ScopeProvider:
@@ -133,6 +151,81 @@ class ScopeProvider:
         """Take back what `apply_change` returned (it names this provider in `undo_with`); False when a person
         changed the thing since, which is then left as they set it."""
         return False
+
+    # --- scopes whose messages carry more than text -------------------------------------------------
+
+    # Messages must come with a turn (`chat.send(..., turn=...)`): the plain message route refuses them
+    needs_turn: bool = False
+    # Output token budget of one answer (before the per-request cap)
+    answer_tokens: int = 1800
+
+    async def prepare_turn(
+        self,
+        session: AsyncSession,
+        chat: AiChat,
+        info: ScopeInfo,
+        turn: dict,
+        person: str,
+    ) -> tuple[dict, dict]:
+        """Check what the person sent with a message (pictures, files) and keep it. Called after the access rules and
+        the caps, before anything is written; raise `AssistError` to refuse the message.
+
+        Returns:
+            ``(user_context, request_extra)``: stored on the person's message, and merged into the request the answer
+            is written from.
+        """
+        return {}, {}
+
+    async def turn_inputs(
+        self,
+        session: AsyncSession,
+        *,
+        chat: AiChat,
+        request: dict,
+        info: ScopeInfo,
+    ) -> TurnInputs:
+        """The pictures and text one message brings, read again each time its answer is written (also on Try again)."""
+        return TurnInputs()
+
+    async def history_note(self, session: AsyncSession, message: AiChatMessage) -> str:
+        """A short note added under an earlier message of the chat in "Earlier in this chat" (what was attached, what
+        was proposed and what became of it). Empty for none."""
+        return ""
+
+    def split_answer(self, text: str) -> tuple[str, dict]:
+        """The answer's words, and the block of structured results the model put at its end (``{}`` for none)."""
+        return prompts.split_actions(text)
+
+    async def finish_answer(
+        self,
+        session: AsyncSession,
+        *,
+        chat: AiChat,
+        member: Member,
+        message_id: str,
+        block: dict,
+        request: dict,
+        info: ScopeInfo,
+        out,
+        problems: list[str],
+    ) -> dict:
+        """Turn the structured part of an answer into the scope's own result (a draft). Append anything the person
+        should be told to ``problems``.
+
+        Returns:
+            ``{"draft_id", "context", "usage", "text"}``, each optional: the draft the message links to, facts merged into
+            the answer's stored context, the usage label to book the call under, and words to show when the model wrote
+            none.
+        """
+        return {}
+
+    def usage_label(self, info: ScopeInfo, done: dict, default: str) -> str:
+        """The label the call is metered under (the scope's feature by default)."""
+        return default
+
+    def forget(self, chat_id: str) -> None:
+        """A chat expired or was deleted: remove whatever the scope kept for it outside the database."""
+        return None
 
 
 _REGISTRY: dict[str, ScopeProvider] = {}
@@ -401,5 +494,6 @@ class DocScope(ScopeProvider):
 register(TicketScope())
 register(DocScope())
 
-# The idea page registers its own scope (imported last: it builds on the classes above)
+# The idea page and the Sketch editor register their own scopes (imported last: they build on the classes above)
 from . import idea_scope  # noqa: E402,F401
+from . import sketch_scope  # noqa: E402,F401

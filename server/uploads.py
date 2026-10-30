@@ -5,6 +5,9 @@ from pathlib import Path
 from uuid import uuid4
 
 UPLOADS_DIR_ENV_VAR = "KANBAN_UPLOADS_DIR"
+# Files kept in the uploads folder (so a backup carries them) that are never served: `/uploads/...` answers "invalid
+# path" for anything under it. The AI chats keep the pictures and files people attach there.
+PRIVATE_DIR = "_private"
 MAX_DESCRIPTION_IMAGE_BYTES = 5 * 1024 * 1024
 MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024
 
@@ -147,6 +150,8 @@ def resolve_upload_path(file_path: str) -> Path | None:
     safe_parts = [part for part in path_obj.parts if part not in ("", ".")]
     if any(part == ".." for part in safe_parts):
         return None
+    if safe_parts and safe_parts[0].lower() == PRIVATE_DIR:
+        return None
 
     try:
         resolved = uploads_dir.joinpath(*safe_parts).resolve()
@@ -155,6 +160,13 @@ def resolve_upload_path(file_path: str) -> Path | None:
         return None
 
     return resolved
+
+
+def get_private_dir() -> Path:
+    """The folder inside the uploads folder whose files are never served over `/uploads/...`."""
+    path = get_uploads_dir() / PRIVATE_DIR
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def sanitize_filename(filename: str) -> tuple[str, str]:

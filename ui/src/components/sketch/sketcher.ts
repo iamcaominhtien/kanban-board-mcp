@@ -9,6 +9,7 @@ import {
 } from './engine/brush.ts';
 import { SWATCHES, hexToRgb, normaliseHex, pushRecent, rgbToHex } from './engine/colour.ts';
 import { AI_LAYER_NAME, aiTexts, drawAiShapes, type AiOp } from './engine/aiOps.ts';
+import { fitInside } from './engine/chatFiles.ts';
 import { floodMask, growMask, maskToPatch } from './engine/floodFill.ts';
 import { arrowHead, clampZoom, fitZoom, snapAngle, squareCorner } from './engine/geometry.ts';
 import { History } from './engine/history.ts';
@@ -781,6 +782,62 @@ export class Sketcher {
         this.activeId = layer.id;
       },
     );
+  }
+
+  /**
+   * Put a picture (one attached in the AI chat, say) on a new layer above the selected one, centred and scaled down to
+   * fit the canvas, never enlarged. One undoable step; the other layers are not touched.
+   * @param image - The picture.
+   * @param name - Name for the layer.
+   * @returns False when the drawing already has 10 layers (a notice says so).
+   */
+  addImageLayer(image: HTMLImageElement, name = 'Picture'): boolean {
+    if (!canAddLayer(this.layers.length)) {
+      this.hooks.notice(`A drawing can have ${MAX_LAYERS} layers. Merge or delete one first.`);
+      return false;
+    }
+    this.commitSelection();
+    const before = this.layers;
+    const beforeActive = this.activeId;
+    const canvas = makeCanvas(this.width, this.height);
+    const ctx = ctxOf(canvas);
+    const box = fitInside(image.naturalWidth, image.naturalHeight, this.width, this.height);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(image, box.x, box.y, box.w, box.h);
+    const layer: Layer = {
+      id: nextLayerId(before),
+      name: name.replace(/\s+/g, ' ').trim().slice(0, 40) || 'Picture',
+      kind: 'layer',
+      visible: true,
+      opacity: 1,
+      locked: false,
+      canvas,
+      ctx,
+      texts: [],
+      blank: false,
+      rev: 1,
+      cache: null,
+    };
+    try {
+      this.layers = insertLayer(before, layer, this.activeId);
+    } catch (e) {
+      if (e instanceof LayerLimitError) this.hooks.notice(e.message);
+      return false;
+    }
+    const after = this.layers;
+    this.activeId = layer.id;
+    this.pushToggle(
+      'Add picture',
+      () => {
+        this.layers = before;
+        this.activeId = beforeActive;
+      },
+      () => {
+        this.layers = after;
+        this.activeId = layer.id;
+      },
+    );
+    return true;
   }
 
   // --- AI help ------------------------------------------------------------------------

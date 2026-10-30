@@ -50,6 +50,8 @@ const PATHS: Record<string, string> = {
   expand: '<path d="M4 9V4H9"/><path d="M20 9V4H15"/><path d="M4 15V20H9"/><path d="M20 15V20H15"/>',
   spark:
     '<path d="M12 3L13.8 9.2L20 11L13.8 12.8L12 19L10.2 12.8L4 11L10.2 9.2Z"/><path d="M19 3.5V6.5"/><path d="M17.5 5H20.5"/>',
+  clip: '<path d="M20 11.5L12 19.5A5 5 0 0 1 5 12.5L13 4.5A3.3 3.3 0 0 1 17.7 9.2L9.7 17.2A1.7 1.7 0 0 1 7.3 14.8L14.8 7.3"/>',
+  send: '<path d="M4 12L20 4L14 20L11 13Z"/>',
   bold: '<path d="M7 4H13A4 4 0 0 1 13 12H7Z"/><path d="M7 12H14A4 4 0 0 1 14 20H7Z"/>',
 };
 
