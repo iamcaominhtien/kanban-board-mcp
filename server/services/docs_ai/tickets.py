@@ -8,22 +8,20 @@ DRAFT of the page, never the published page. One undo removes the tickets and re
 """
 
 import re
-import time
-import uuid
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
-from models import DocsPage, Member, Project
+from models import DocsAiJob, DocsPage, Member, Project
 from services import activity
 from services import docs as svc_docs
 from services import tickets as svc_tickets
 from services.ai.assist import settings as assist
-from services.ai.store import loads
+from services.ai.store import loads, parse_iso
 from services.docs_text import _FENCE, _HEADING, _TICKET, strip_block_prefix
 from services.docs_text import _strip_inline as plain_inline
 
@@ -36,7 +34,6 @@ TYPES = ("task", "bug", "feature", "chore")
 COLUMNS = ("backlog", "todo", "in-progress", "review", "testing", "done", "wont_do")
 MAX_ITEMS = 30
 UNDO_SECONDS = 30 * 60
-UNDO: dict[str, dict[str, Any]] = {}
 
 _TASK = re.compile(r"^\s*(?:>\s*)*(?:[*+-]|\d{1,9}\.)\s+\[( |x|X)\][ \t]+(\S.*)$")
 _BULLET = re.compile(r"^\s*(?:>\s*)*(?:[*+-]|\d{1,9}\.)\s+(\S.*)$")
@@ -515,19 +512,27 @@ async def create(
             await svc_docs.save_draft(session, page.id, markdown=after)
         else:
             after = None
-    token = uuid.uuid4().hex
-    now = time.time()
-    for k in [k for k, v in UNDO.items() if now - v["at"] > UNDO_SECONDS]:
-        UNDO.pop(k, None)
-    UNDO[token] = {
-        "by": by,
-        "page_id": page.id,
-        "tickets": [t.id for t in made],
-        "project_ids": [t.project_id for t in made],
-        "draft_before": before,
-        "draft_after": after,
-        "at": now,
-    }
+    # the undo is kept in the job row, so it survives a restart (the token is the job id)
+    job = await jobs.create(
+        session,
+        project_id=page.project_id,
+        kind="tickets",
+        started_by=by,
+        page_id=page.id,
+        instruction="Create tickets from the page",
+        result={
+            "undo": {
+                "by": by,
+                "page_id": page.id,
+                "tickets": [t.id for t in made],
+                "draft_before": before,
+                "draft_after": after,
+            },
+            "ticket_ids": [t.id for t in made],
+        },
+    )
+    await jobs.finish(job.id, state="finished")
+    token = job.id
     return {
         "tickets": [
             {
@@ -550,16 +555,24 @@ async def create(
 
 
 async def undo(session: AsyncSession, token: str, by: str) -> dict[str, Any]:
-    """Delete the tickets a creation made and put the draft text back when it was not changed since."""
-    entry = UNDO.get(token)
-    if entry is None or time.time() - entry["at"] > UNDO_SECONDS:
-        UNDO.pop(token, None)
+    """Delete the tickets a creation made and put the draft text back when it was not changed since.
+
+    The token is the id of the job that recorded the creation; it works for 30 minutes, also after a restart.
+    """
+    job = await session.get(DocsAiJob, token)
+    entry = loads(job.result, {}).get("undo") if job and job.kind == "tickets" else None
+    started = parse_iso(job.queued_at) if job else None
+    if (
+        not entry
+        or started is None
+        or (datetime.now(UTC) - started).total_seconds() > UNDO_SECONDS
+    ):
         raise DocsAiError("not_found", "There is nothing to undo any more.")
     if entry["by"] != by:
         raise DocsAiError(
             "forbidden", "Only the person who created the tickets can undo it."
         )
-    UNDO.pop(token, None)
+    await jobs.update(job.id, result={**loads(job.result, {}), "undo": None, "undone": True})
     deleted = 0
     for tid in entry["tickets"]:
         await svc_docs.unlink_ticket_doc(session, tid, entry["page_id"])

@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlmodel import select
 
 import database
-from models import AiDigest, DocsAiCheck, DocsAiProposal
+from models import AiDigest, DocsAiCheck, DocsAiJob, DocsAiProposal
 from services.ai.assist import health as assist_health
 from services.docs_ai import access, freshness, health
 from services.docs_ai import tickets as ticket_svc
@@ -814,3 +814,33 @@ async def test_create_rejects_bad_drafts_without_leaving_tickets_behind(env, fak
         f"/docs/pages/{p['id']}/ai/tickets/create", json={"drafts": []}, headers=H
     )
     assert r.status_code == 422
+
+
+async def test_undo_survives_a_restart_and_expires_after_half_an_hour(env, fake):
+    from datetime import UTC, datetime, timedelta
+
+    c, pid, member = await setup(env)
+    p = await page(c, pid, "Plan", "- [ ] Write the docs\n")
+    r = await c.post(
+        f"/docs/pages/{p['id']}/ai/tickets/create",
+        json={"drafts": [{"title": "Write the docs", "type": "task"}]},
+        headers=H,
+    )
+    assert r.status_code == 200, r.text
+    out = r.json()
+    # the token is a job row; no in-memory state is needed and the job view never shows the draft text
+    async with database.async_session() as s:
+        job = await s.get(DocsAiJob, out["undo_token"])
+        assert job is not None and job.kind == "tickets"
+    shown = (await c.get(f"/docs/ai/jobs/{out['undo_token']}", headers=H)).json()
+    assert "undo" not in shown["result"]
+    # older than 30 minutes: nothing to undo
+    async with database.async_session() as s:
+        job = await s.get(DocsAiJob, out["undo_token"])
+        job.queued_at = (datetime.now(UTC) - timedelta(minutes=31)).isoformat()
+        s.add(job)
+        await s.commit()
+    r = await c.post(
+        "/docs/ai/tickets/undo", json={"undo_token": out["undo_token"]}, headers=H
+    )
+    assert r.status_code == 404

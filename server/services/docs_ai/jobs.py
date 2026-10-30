@@ -60,7 +60,7 @@ def to_dict(j: DocsAiJob) -> dict[str, Any]:
         "instruction": j.instruction,
         "reads": loads(j.reads, []),
         "steps": loads(j.steps, []),
-        "result": loads(j.result, {}),
+        "result": {k: v for k, v in loads(j.result, {}).items() if k != "undo"},
         "error": loads(j.error, {}),
         "tokens_in": j.tokens_in,
         "tokens_out": j.tokens_out,
