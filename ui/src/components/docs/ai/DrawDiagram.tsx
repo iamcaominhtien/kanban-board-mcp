@@ -46,7 +46,8 @@ export function DrawDiagram({
 }) {
   const qc = useQueryClient();
   const start = usePageAiStart(pageId);
-  const target = diagramTarget(getEditor());
+  // what the cursor was on when the panel opened: the inserted diagram becomes the selection afterwards
+  const [target] = useState(() => diagramTarget(getEditor()));
   const [instruction, setInstruction] = useState('');
   const [jobId, setJobId] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);

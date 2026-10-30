@@ -268,7 +268,10 @@ export function DocsMarkdown({
     for (let n = start; n <= end; n += 1) {
       const line = (lines[n - 1] ?? '').trim();
       version = Math.max(version, map?.get(line) ?? 0);
-      mark = mark ?? marks?.get(line);
+      // a proposal replaces a sentence or a block: the block that contains it is the one to mark
+      marks?.forEach((m, text) => {
+        if (!mark && line.includes(text)) mark = m;
+      });
     }
     const out: BlockMark = {};
     const classes: string[] = [];

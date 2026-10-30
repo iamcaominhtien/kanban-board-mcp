@@ -286,10 +286,10 @@ export function DocsView({
 
   // open the first top-level page when nothing is selected yet
   useEffect(() => {
-    if (!tree.isSuccess || nodes.length === 0 || selectedId) return;
+    if (!tree.isSuccess || nodes.length === 0 || selectedId || requestedPageId) return;
     const first = nodes.filter((n) => !n.parentId).sort((x, y) => x.position - y.position)[0];
     if (first) setSelectedId(first.id);
-  }, [tree.isSuccess, nodes, selectedId]);
+  }, [tree.isSuccess, nodes, selectedId, requestedPageId]);
 
   useEffect(() => {
     if (selectedId) localStorage.setItem(`docsPage:${projectId}`, selectedId);
