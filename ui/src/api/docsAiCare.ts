@@ -281,15 +281,23 @@ export interface TicketDraftsResult {
 }
 
 /** Draft tickets from the unchecked items of a page or a selection. Creates nothing. */
-export function useDraftTickets(pageId: string) {
-  return useMutation({
-    mutationFn: async (selection?: string): Promise<TicketDraftsResult> => {
+export function useDraftTickets(pageId: string, selection?: string) {
+  // A query, not a mutation started from an effect: React StrictMode runs that effect twice in development, and
+  // a mutation's per-call callbacks are dropped when the component re-subscribes. The query is shared by both runs
+  // (one job) and only lives while the dialog is open.
+  return useQuery({
+    queryKey: ['docs-ai', 'ticket-drafts', pageId, selection ?? ''],
+    queryFn: async (): Promise<TicketDraftsResult> => {
       const job = (
         await client.post<DocsAiJob>(`/docs/pages/${pageId}/ai/tickets/draft`, { selection: selection ?? null })
       ).data;
       const done = await waitForJob(job.id);
       return { ...(done.result as unknown as Omit<TicketDraftsResult, 'metered'>), metered: done.metered };
     },
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

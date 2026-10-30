@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useProjects } from '../../../api/projects';
 import { docsAiError } from '../../../api/docsAi';
@@ -61,31 +61,23 @@ export function CreateTicketsDialog({
   useEscape(onClose);
   const toast = useToast();
   const projects = useProjects();
-  const draftJob = useDraftTickets(page.id);
+  const draftJob = useDraftTickets(page.id, selection);
   const create = useCreateTickets(page.id);
   const undo = useUndoTickets();
   const [drafts, setDrafts] = useState<EditableDraft[]>([]);
-  const [info, setInfo] = useState<TicketDraftsResult | null>(null);
+  const info: TicketDraftsResult | null = draftJob.data ?? null;
   const [replaceText, setReplaceText] = useState(true);
   const [link, setLink] = useState(true);
-  const started = useRef(false);
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    draftJob.mutate(selection, {
-      onSuccess: (r) => {
-        setInfo(r);
-        setDrafts(toEditable(r.drafts));
-      },
-    });
-  }, [draftJob, selection]);
+    if (draftJob.data) setDrafts(toEditable(draftJob.data.drafts));
+  }, [draftJob.data]);
   const err = [draftJob.error, create.error]
     .map((e) => (e ? (docsAiError(e)?.detail ?? 'Could not do that.') : null))
     .find(Boolean);
   const set = (n: number, patch: Partial<EditableDraft>) =>
     setDrafts((ds) => ds.map((d) => (d.n === n ? { ...d, ...patch } : d)));
   const picked = drafts.filter((d) => d.include);
-  const loading = draftJob.isPending;
+  const loading = draftJob.isPending || draftJob.isFetching;
   const projectName = (id: string) => projects.data?.find((p) => p.id === id)?.name ?? '';
 
   const submit = () =>
