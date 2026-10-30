@@ -10,7 +10,7 @@ from sqlmodel import select
 import database
 from models import AiProjectSettings, DocsAiJob, DocsAiProposal, DocsCommentThread
 from services.ai import budget, guard
-from services.docs_ai import engine, threads
+from services.docs_ai import sessions, threads
 from tests.docs_ai_helpers import H, env, fake, page, setup  # noqa: F401
 
 TEXT = "## Limits\n\nRate limits are not enforced yet.\n\n## Other\n\nTokens last 30 days.\n"
@@ -85,7 +85,7 @@ async def test_a_mention_starts_a_job_and_the_ai_replies_in_the_thread(env, fake
 
 
 async def test_a_second_tag_continues_the_conversation(env, fake, monkeypatch):
-    monkeypatch.setattr(engine, "session_exists", lambda _sid: True)
+    monkeypatch.setattr(sessions, "session_exists", lambda _sid: True)
     c, pid, m = await setup(env)
     p = await page(c, pid, "API", TEXT)
     fake.queue += [

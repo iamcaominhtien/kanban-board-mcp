@@ -477,10 +477,24 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         profile, member = info["profile"], info["member"]
         # A local Claude Code Board AI keeps one conversation per chat: the CLI remembers the earlier messages
         session_use = None
+        page_scope = None
         if profile.connection == "local" and profile.provider == "claude-code":
-            resume = bool(c.session_id) and cli.session_exists(c.session_id)
+            # a chat about a Docs page shares the AI member's one session on that page (Ask, threads, summaries...)
+            session_id = c.session_id
+            if c.scope == "doc" and c.doc_id:
+                from models import DocsPage
+                from services.docs_ai import access as docs_access
+                from services.docs_ai import sessions as docs_sessions
+
+                page_row = await session.get(DocsPage, c.doc_id)
+                if page_row is not None and await docs_access.ai_can_read(
+                    session, page_row
+                ):
+                    page_scope = docs_sessions.page_scope(c.doc_id)
+                    session_id = None  # looked up under the lock, below
+            resume = bool(session_id) and cli.session_exists(session_id)
             session_use = llm.SessionUse(
-                c.session_id if resume else str(uuid.uuid4()),
+                session_id if resume else str(uuid.uuid4()),
                 resume,
                 merged_config(loads(profile.config, {})).get("compact_at_pct"),
             )
@@ -670,7 +684,22 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             )
 
     try:
-        out = await ask()
+        if page_scope:
+            from services.docs_ai import sessions as docs_sessions
+
+            async with docs_sessions.exclusive(page_scope, profile.id):
+                found = await docs_sessions.lookup(page_scope, profile.id)
+                session_use = llm.SessionUse(
+                    found or str(uuid.uuid4()), bool(found), session_use.compact_at_pct
+                )
+                # the page's session already holds what was said on the page, but not who is asking now
+                prompt = docs_sessions.asked_by(c.owner, build_prompt(not found))
+                out = await ask()
+                await docs_sessions.remember(
+                    page_scope, profile.id, c.project_id, session_use.id
+                )
+        else:
+            out = await ask()
     except asyncio.CancelledError:
         partial = "".join(buf)
         n = llm.estimate_tokens(partial)

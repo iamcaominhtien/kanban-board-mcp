@@ -11,17 +11,16 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import database
-from models import AiMember, Member, Project
+from models import AiMember, DocsAiJob, DocsPage, Member, Project
 from services import docs as svc_docs
 from services.ai import budget, llm
 from services.ai.assist import prompts
 from services.ai.assist import settings as assist
 from services.ai.assist.context import fence, looks_like_instructions
-from services.ai.cli import session_exists
 from services.ai.store import get_settings, loads
 from services.docs_text import parse_references
 
-from . import jobs
+from . import jobs, sessions
 from . import settings as svc_settings
 from .errors import DocsAiError
 
@@ -31,6 +30,8 @@ DOCS_RULES = (
     "never guess and never invent ticket keys or page links. Cite a page as Page › # Heading."
 )
 
+# Checks the board runs by itself for every page: they do not join the conversation people have with the AI
+BACKGROUND_KINDS = ("freshness",)
 _LLM_CODES = {"rate": "rate_limited", "timeout": "unavailable", "auth": "unavailable"}
 
 
@@ -122,6 +123,69 @@ async def check_ready(project_id: str, who: Resolved) -> None:
                 )
 
 
+async def _session_scope(job_id: str | None, page_id: str | None) -> str | None:
+    """The session key of a call about a page that AI may read (None: the call has no page, or the page is closed)."""
+    if not page_id and job_id:
+        async with database.async_session() as session:
+            job = await session.get(DocsAiJob, job_id)
+            if job is not None and job.kind in BACKGROUND_KINDS:
+                return None
+            page_id = job.page_id if job else None
+    if not page_id:
+        return None
+    from . import access
+
+    async with database.async_session() as session:
+        page = await session.get(DocsPage, page_id)
+        if page is None or not await access.ai_can_read(session, page):
+            await sessions.forget(sessions.page_scope(page_id))
+            return None
+    return sessions.page_scope(page_id)
+
+
+async def _complete(
+    profile: AiMember,
+    system: str,
+    prompt: str,
+    max_tokens: int,
+    timeout: float,
+    on_delta: Any,
+    resume_id: str | None,
+) -> tuple[llm.Completion, llm.SessionUse | None]:
+    """One model call. A Claude Code member always runs in a CLI session: `resume_id` continues it, else a new one
+    starts; if the CLI lost the one to resume, a new one starts and the prompt carries what it needs."""
+    use = None
+    if profile.connection == "local" and profile.provider == "claude-code":
+        from services.ai.providers import merged_config
+
+        use = llm.SessionUse(
+            resume_id or str(uuid.uuid4()),
+            bool(resume_id),
+            merged_config(loads(profile.config, {})).get("compact_at_pct"),
+        )
+    for attempt in (0, 1):
+        try:
+            out = await llm.complete(
+                profile,
+                system=system,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                timeout=timeout,
+                on_delta=on_delta,
+                session=use,
+            )
+            return out, use
+        except llm.LlmError as exc:
+            if exc.kind == "session" and use is not None and use.resume and attempt == 0:
+                use = llm.SessionUse(str(uuid.uuid4()), False, use.compact_at_pct)
+                continue
+            code = _LLM_CODES.get(exc.kind, "unavailable")
+            raise DocsAiError(
+                code, str(exc), kind=exc.kind, retry_after=exc.retry_after
+            ) from exc
+    raise DocsAiError("unavailable", "The model did not answer.")  # pragma: no cover
+
+
 async def call(
     project_id: str,
     *,
@@ -134,15 +198,15 @@ async def call(
     max_tokens: int = 1800,
     timeout: float = 120.0,
     on_delta: Any = None,
-    session_key: str | None = None,
+    page_id: str | None = None,
     feature: str = "docs",
 ) -> llm.Completion:
     """Ask the AI member and meter the call.
 
     Args:
         who: The resolved member (else resolved from `member_id` or the project's choice).
-        session_key: Keeps a local Claude Code conversation going across calls with the same key (a Docs thread):
-            the session id is stored on the job; pass `job_session` of the previous job to resume it.
+        page_id: The Docs page the call is about (else the page of `job_id`). A local Claude Code member keeps one
+            session per (page, member): every call about the page continues it (see `sessions`).
         job_id: A job to add tokens, cost and the session to.
 
     Raises:
@@ -151,47 +215,30 @@ async def call(
     who = who or await resolve(project_id, member_id)
     await check_ready(project_id, who)
     profile = who.profile
-    use = None
-    if profile.connection == "local" and profile.provider == "claude-code":
-        from services.ai.providers import merged_config
-
-        resume_id = session_key if session_key and session_exists(session_key) else None
-        use = llm.SessionUse(
-            resume_id or str(uuid.uuid4()),
-            bool(resume_id),
-            merged_config(loads(profile.config, {})).get("compact_at_pct"),
-        )
     async with database.async_session() as session:
         row = await assist.get(session)
     max_tokens = assist.max_tokens_for(row, profile, max_tokens)
-    try:
-        out = await llm.complete(
-            profile,
-            system=system,
-            prompt=prompt,
-            max_tokens=max_tokens,
-            timeout=timeout,
-            on_delta=on_delta,
-            session=use,
-        )
-    except llm.LlmError as exc:
-        if exc.kind == "session" and use is not None and use.resume:
-            # the CLI lost the conversation: start a new one (the prompt carries what it needs)
-            use = llm.SessionUse(str(uuid.uuid4()), False, use.compact_at_pct)
-            out = await llm.complete(
+    scope = None
+    if profile.connection == "local" and profile.provider == "claude-code":
+        scope = await _session_scope(job_id, page_id)
+    if scope:
+        prompt = sessions.asked_by(person, prompt)
+        async with sessions.exclusive(scope, who.member.id):
+            out, use = await _complete(
                 profile,
-                system=system,
-                prompt=prompt,
-                max_tokens=max_tokens,
-                timeout=timeout,
-                on_delta=on_delta,
-                session=use,
+                system,
+                prompt,
+                max_tokens,
+                timeout,
+                on_delta,
+                await sessions.lookup(scope, who.member.id),
             )
-        else:
-            code = _LLM_CODES.get(exc.kind, "unavailable")
-            raise DocsAiError(
-                code, str(exc), kind=exc.kind, retry_after=exc.retry_after
-            ) from exc
+            if use is not None:
+                await sessions.remember(scope, who.member.id, project_id, use.id)
+    else:
+        out, use = await _complete(
+            profile, system, prompt, max_tokens, timeout, on_delta, None
+        )
     async with database.async_session() as session:
         await assist.record_usage(
             session, project_id, feature, who.member.id, person, out

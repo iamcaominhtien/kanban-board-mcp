@@ -407,6 +407,20 @@ class DocsAiSettings(SQLModel, table=True):
     updated_at: str = Field(default_factory=_now_iso)
 
 
+class DocsAiSession(SQLModel, table=True):
+    """The one Claude Code session of an AI member on a Docs page (`scope` is `page:<id>`): every Docs AI call and
+    chat about the page by that member continues it."""
+
+    __tablename__ = "docs_ai_session"
+
+    scope: str = Field(primary_key=True)
+    member_id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="project.id", index=True)
+    session_id: str
+    calls: int = Field(default=0)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
 class DocsAiJob(SQLModel, table=True):
     """One Docs AI call (ask, thread reply, check, translate, summary, freshness...). The Docs counterpart of an
     AI run: who asked, which AI answered, which pages it read, what it cost."""

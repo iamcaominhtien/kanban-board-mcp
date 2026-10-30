@@ -499,25 +499,6 @@ def _ticket_block(tickets: list[Ticket]) -> str:
     return "Tickets mentioned in the thread:\n" + "\n".join(parts)
 
 
-async def _previous_session(job: DocsAiJob) -> str | None:
-    """The CLI session of the last answer of this member in this thread (a second tag continues it)."""
-    async with database.async_session() as s:
-        prev = (
-            await s.exec(
-                select(DocsAiJob)
-                .where(
-                    DocsAiJob.thread_id == job.thread_id,
-                    DocsAiJob.member_id == job.member_id,
-                    DocsAiJob.kind == "thread_reply",
-                    DocsAiJob.id != job.id,
-                    col(DocsAiJob.session_id).is_not(None),
-                )
-                .order_by(col(DocsAiJob.queued_at).desc())
-            )
-        ).first()
-    return prev.session_id if prev else None
-
-
 async def _job_cost(job_id: str) -> float:
     async with database.async_session() as s:
         j = await s.get(DocsAiJob, job_id)
@@ -641,7 +622,6 @@ async def thread_reply(job: DocsAiJob) -> dict[str, Any]:
         job_id=job.id,
         person=job.started_by,
         max_tokens=900,
-        session_key=await _previous_session(job),
     )
     raw = out.text.strip()
     m = _VERDICT.search(raw)
