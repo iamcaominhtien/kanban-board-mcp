@@ -843,7 +843,7 @@ async def create_test_ticket(
         project_id=idea.project_id,
         title=(title or f"Test: {a.text}")[:200],
         description=(
-            f"Tests an assumption of idea {idea.id} “{idea.title}”:\n\n> {a.text}\n\n"
+            f"Tests an assumption of idea `{idea.id}` “{idea.title}”:\n\n> {a.text}\n\n"
             "When this ticket is Done, say whether the assumption is validated or disproved."
         ),
         type="task",
