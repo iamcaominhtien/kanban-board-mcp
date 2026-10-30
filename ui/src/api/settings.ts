@@ -122,3 +122,22 @@ export async function openMcpConfigFile(target: McpTarget) {
     folder: target.folder || null,
   });
 }
+
+/** Whether MCP clients may act on the AI team with a person's full rights (Settings > Integrations). */
+export function useMcpControl() {
+  return useQuery<{ enabled: boolean }>({
+    queryKey: ['settings', 'mcp-control'],
+    queryFn: async () => (await client.get('/settings/mcp-control')).data,
+  });
+}
+
+/** Mutation: turn "Full control over MCP" on (needs `acceptRisks`) or off. */
+export function useSetMcpControl() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { enabled: boolean; acceptRisks?: boolean }) =>
+      (await client.post('/settings/mcp-control', { enabled: v.enabled, accept_risks: !!v.acceptRisks }))
+        .data as { enabled: boolean },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'mcp-control'] }),
+  });
+}

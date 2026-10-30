@@ -8,6 +8,7 @@ import { useToast } from '../Toast';
 import { AiAvatar, RunStateChip, fmtElapsed, money, secondsSince, useAiBoardState, useNow } from './aiUi';
 import { useAiTicket } from './AiTicketContext';
 import './ticketWork.css';
+import { ContextMeter } from '../assist/ContextMeter';
 
 const IC = {
   fill: 'none',
@@ -32,19 +33,34 @@ function ThumbDown({ on }: { on?: boolean }) {
   );
 }
 
+/** The small dark "AI" mark after an AI member's name (design C2: 16px, square corners, sparkle). */
+export function AiBadge() {
+  return (
+    <span className="tw-ai-badge">
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+      </svg>
+      AI
+    </span>
+  );
+}
+
 /** Status of one comment of an ask thread, shown as a chip at the right of its header (design C2). */
 export type ThreadState =
   'asked' | 'thinking' | 'streaming' | 'answered' | 'error' | 'asks_again' | 'answer' | 'blocked';
 
-const STATE_STYLE: Record<ThreadState, { bg: string; color: string; label: string }> = {
-  asked: { bg: '#F6FAF7', color: '#5B6B60', label: 'Asked' },
-  thinking: { bg: '#F6FAF7', color: '#3A4A3E', label: 'Thinking' },
-  streaming: { bg: '#F1F8F3', color: '#2E6F40', label: 'Streaming' },
-  answered: { bg: '#F1F8F3', color: '#2E6F40', label: 'Answered' },
-  error: { bg: '#FBEEEA', color: '#C4432A', label: 'Error' },
-  asks_again: { bg: '#F6FAF7', color: '#5B6B60', label: 'Reply asks again' },
-  answer: { bg: '#EEF2F6', color: '#34455A', label: 'Answer' },
-  blocked: { bg: '#FBEEEA', color: '#C4432A', label: 'Move blocked' },
+// colours as the design draws them (AiTicketWork C2): neutral until answered (green) or failed (red)
+const NEUTRAL = { bg: '#F6FAF7', color: '#5B6B60', border: '#E3E8E5' };
+const BAD = { bg: '#FDF1EE', color: '#C4432A', border: '#F0C4B8' };
+const STATE_STYLE: Record<ThreadState, { bg: string; color: string; border: string; label: string }> = {
+  asked: { ...NEUTRAL, label: 'Asked' },
+  thinking: { ...NEUTRAL, label: 'Thinking' },
+  streaming: { ...NEUTRAL, label: 'Streaming' },
+  answered: { bg: '#F1F8F3', color: '#2E6F40', border: '#BFDCC7', label: 'Answered' },
+  error: { ...BAD, label: 'Error' },
+  asks_again: { ...NEUTRAL, label: 'Reply asks again' },
+  answer: { bg: '#EEF2F6', color: '#34455A', border: '#34455A33', label: 'Answer' },
+  blocked: { ...BAD, label: 'Move blocked' },
 };
 
 /** The small uppercase state chip of a thread comment (“ASKED CLAUDE CODE · BACKEND”, “THINKING”, “ERROR”). */
@@ -53,7 +69,7 @@ export function ThreadChip({ state, label }: { state: ThreadState; label?: strin
   return (
     <span
       className="tw-state"
-      style={{ background: s.bg, color: s.color, borderColor: s.color + '33' }}
+      style={{ background: s.bg, color: s.color, borderColor: s.border }}
       data-testid={`thread-${state}`}
     >
       {label ?? s.label}
@@ -195,16 +211,14 @@ export function AskPlaceholder({ run }: { run: AiRun }) {
       {streaming && (
         <div className="cm-row tw-thread-row" style={{ marginTop: 6 }}>
           {ai ? (
-            <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={32} title={ai.name} />
+            <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={28} title={ai.name} />
           ) : (
-            <span style={{ width: 32 }} />
+            <span style={{ width: 28 }} />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="tw-head">
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{run.memberName}</span>
-              <span className="ai-chip" style={{ height: 18, background: '#1E2A22', color: '#fff' }}>
-                AI
-              </span>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{run.memberName}</span>
+              <AiBadge />
               <span style={{ flex: 1 }} />
               <ThreadChip state="streaming" />
             </div>
@@ -269,10 +283,12 @@ export function AnswerFooter({
           {meta.durationS != null ? ` · ${fmtElapsed(meta.durationS)}` : ''}
         </button>
         <span className="tw-pillbox ai-mono">{meta.metered ? money(meta.costUsd) : 'Ⓢ Not metered'}</span>
-        {meta.model && <span className="tw-pillbox">{meta.model}</span>}
-        <span style={{ flex: 1 }} />
+        {meta.model && <span className="tw-pillbox tw-model">{meta.model}</span>}
+        {run?.contextUsed && run.contextWindow ? (
+          <ContextMeter used={run.contextUsed} size={run.contextWindow} inline />
+        ) : null}
         {canAct && run && (
-          <>
+          <span className="tw-acts">
             <button
               type="button"
               className={`tw-icon ${rating === 'up' ? 'tw-icon-on' : ''}`}
@@ -282,7 +298,6 @@ export function AnswerFooter({
               onClick={() => void send({ rating: rating === 'up' ? 'none' : 'up' })}
             >
               <ThumbUp on={rating === 'up'} />
-              <span style={{ marginLeft: 5, fontSize: 12.5, fontWeight: 600 }}>Helpful</span>
             </button>
             <button
               type="button"
@@ -321,7 +336,7 @@ export function AnswerFooter({
                 ↩ Reply
               </button>
             )}
-          </>
+          </span>
         )}
       </div>
       {run?.feedback?.rating === 'down' && run.feedback.reasons.length > 0 && !reasons && (

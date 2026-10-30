@@ -201,7 +201,6 @@ export interface CommentFlag {
   author: string;
   trust: 'trusted' | 'data_only' | 'untrusted';
   phrases: string[];
-  hidden: boolean;
 }
 
 export interface BlockedBanner {
@@ -519,8 +518,6 @@ export const safetyApi = {
     (await client.put<Defaults>(`/projects/${projectId}/ai/workspace-defaults`, body)).data,
   tickChecklist: async (projectId: string, body: { tick?: string; dismiss?: boolean }) =>
     (await client.post<Checklist>(`/projects/${projectId}/ai/checklist`, body)).data,
-  hideComment: async (ticketId: string, commentId: string, hidden: boolean) =>
-    (await client.post(`/tickets/${ticketId}/ai/comments/${commentId}/hide`, { hidden })).data,
   allowMoreRuns: async (ticketId: string) =>
     (await client.post<RunLimit>(`/tickets/${ticketId}/ai/allow-more-runs`)).data,
   auditEntry: async (id: string) => (await client.get<AuditDetail>(`/ai/audit/${id}`)).data,

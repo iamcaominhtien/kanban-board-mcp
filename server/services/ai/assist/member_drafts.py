@@ -140,9 +140,14 @@ def check_ai_members(raw: list, taken: set[str]) -> tuple[list[dict], list[str]]
 
 
 async def taken_names(session: AsyncSession, project_id: str) -> set[str]:
-    """Names of every member of the project, lower case."""
+    """Names the project's members use now, lower case. A removed AI member keeps its row (its history) but gives its
+    name back: the Add dialog's own name check (`members.check_name`) skips it too."""
     rows = (
-        await session.exec(select(Member).where(Member.project_id == project_id))
+        await session.exec(
+            select(Member).where(
+                Member.project_id == project_id, Member.kind != "ai_removed"
+            )
+        )
     ).all()
     return {m.name.strip().lower() for m in rows}
 

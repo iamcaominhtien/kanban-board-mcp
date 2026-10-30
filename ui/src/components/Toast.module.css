@@ -121,27 +121,30 @@
   color: #5b6b60;
 }
 
-/* Optional action button (Undo, Open, Review links, Retry rest), matches the board's st-btn-sm */
+/* Actions (Undo, Open, Review and Deny, Retry rest): links in a row under the text (design ai-safety-cost B4) */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 8px;
+}
+
 .actionButton {
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  border: 1px solid #e3e8e5;
-  background: #ffffff;
-  color: #1e2a22;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #2e6f40;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
   white-space: nowrap;
   cursor: pointer;
-  flex-shrink: 0;
 }
 
 .actionButton:hover {
-  background: #f6faf7;
+  color: #1f5230;
 }
 
 /* Inline Banner Variant */

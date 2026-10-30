@@ -1021,19 +1021,13 @@ async def test_connection(
                 "message": "The CLI is installed but not signed in. Run it in a terminal and sign in.",
                 **info,
             }
-        elif profile.provider != "claude-code":
-            result = {
-                "ok": True,
-                "health": "ok",
-                "message": "CLI found. Runs are not supported for this CLI yet.",
-                **info,
-            }
         elif full:
             folder = os.path.expanduser(profile.working_dir or "") or None
             run = await cli.test_run(
                 info["path"],
                 profile.model,
                 folder if folder and Path(folder).is_dir() else None,
+                profile.provider,
             )
             if run["ok"]:
                 result = {
@@ -1055,7 +1049,9 @@ async def test_connection(
             result = {
                 "ok": True,
                 "health": "ok",
-                "message": "CLI found and signed in.",
+                "message": "CLI found and signed in."
+                if info.get("logged_in")
+                else "CLI found. Use Test run to check it answers.",
                 **info,
             }
     else:
@@ -1136,6 +1132,8 @@ async def health_check() -> int:
             binary = (PROVIDERS.get(profile.provider) or {}).get("binary") or ""
             before = profile.health
             if profile.health in ("runner_missing", "not_logged_in"):
+                # no write lock while the CLI is asked (it takes seconds)
+                await session.commit()
                 info = await detect_local(profile.provider, profile.cli_path)
             else:
                 path, _ = cli.find_cli(binary, profile.cli_path)
@@ -1145,6 +1143,8 @@ async def health_check() -> int:
                 )
                 if path and (not stale or profile.provider != "claude-code"):
                     continue
+                # no write lock while the CLI is asked (it takes seconds)
+                await session.commit()
                 info = (
                     await detect_local(profile.provider, profile.cli_path)
                     if path

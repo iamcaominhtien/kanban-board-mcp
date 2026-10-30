@@ -371,6 +371,9 @@ export interface AiRun {
   stepCount?: number;
   files: { path: string; added: number; removed: number; new: boolean }[];
   tokensIn: number;
+  /** What the conversation held at the run's last model call, and the model's window (tokens). */
+  contextUsed?: number | null;
+  contextWindow?: number | null;
   tokensOut: number;
   costUsd: number;
   metered: boolean;

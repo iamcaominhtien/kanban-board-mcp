@@ -8,7 +8,7 @@ from sqlmodel import select
 from models import AiAudit
 from services.ai.assist import member_drafts
 from tests.test_ai_assist import H, _answer, _setup, fake  # noqa: F401
-from tests.test_ai import _api_member, _project, env  # noqa: F401
+from tests.test_ai import _api_member, _project, _runner, env  # noqa: F401
 
 ADMIN = {"X-Actor": "An Nguyen"}
 
@@ -254,3 +254,29 @@ async def test_a_plain_chat_has_no_member_form(env, fake):
     c, pid, an, m = await _setup(env)
     chat, msg = await _propose(c, pid, fake, members=[{"name": "Solo"}])
     assert "member_form" not in msg["context"] and msg["draft"]["kind"] == "ai_members"
+
+
+async def test_the_name_of_a_removed_ai_member_is_free_again(env, fake):
+    from models import Member
+    from services.ai.assist import member_drafts
+
+    c, pid, an, m = await _setup(env)
+    gone = await _runner(c, pid, env["repo"], name="General")
+    async with env["maker"]() as s:
+        row = await s.get(Member, gone["id"])
+        row.kind = (
+            "ai_removed"  # what removing an AI member leaves: its row, for the history
+        )
+        s.add(row)
+        await s.commit()
+        taken = await member_drafts.taken_names(s, pid)
+    assert (
+        "general" not in taken
+    )  # the Add dialog's own check lets this name through too
+    assert {"an nguyen", "reviewer"} <= taken
+    members, notes = member_drafts.check_ai_members(
+        [{"name": "General", "template": "developer"}], taken
+    )
+    assert members[0]["name"] == "General" and not any(
+        "already taken" in n for n in notes
+    )

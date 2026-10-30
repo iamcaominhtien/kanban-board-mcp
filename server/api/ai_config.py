@@ -244,6 +244,8 @@ async def get_models(member_id: str, session: Session) -> dict:
             "models": [{"id": i, "label": labels.get(i, i)} for i in ids],
             "error": None,
         }
+    if profile.provider == "antigravity":
+        return {"source": "builtin", "models": builtin, "error": None}
     if profile.connection != "api_key":
         return {"source": "none", "models": [], "error": None}
     key = secrets.decrypt(profile.key_enc)

@@ -153,7 +153,7 @@ async def test_a_queued_run_starts_when_the_current_run_ends(env, monkeypatch):
     await c.post(f"/ai/runs/{(await _runs(c, second))[0]['id']}/cancel", json={})
 
 
-async def test_start_now_says_what_blocks_it(env, monkeypatch):
+async def test_start_now_lets_a_cli_member_run_two_at_once(env, monkeypatch):
     c = env["c"]
     monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")
     pid, _ = await _project(c)
@@ -164,8 +164,10 @@ async def test_start_now_says_what_blocks_it(env, monkeypatch):
     running = await _wait(c, first, ("running",))
     await _assign(c, second, m["id"], start="queue")
     queued = (await _runs(c, second))[0]
+    # a CLI member has no slot limit, so "Start now" is allowed: the second run goes beside the first
     r = await c.post(f"/ai/runs/{queued['id']}/start-now")
-    assert r.status_code == 409 and "free slot" in r.json()["detail"]
+    assert r.status_code == 200, r.text
+    await _wait(c, second, ("running",))
     await c.post(f"/ai/runs/{running['id']}/cancel", json={})
     await c.post(f"/ai/runs/{queued['id']}/cancel", json={})
 

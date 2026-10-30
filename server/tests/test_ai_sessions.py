@@ -184,7 +184,9 @@ def test_a_compaction_shows_up_as_a_step():
     ]
 
 
-async def test_the_ticket_run_limit_only_guards_scheduled_and_ai_started_runs(env):
+async def test_the_ticket_run_limit_guards_scheduled_runs_not_a_persons_own_cli_chain(
+    env,
+):
     c = env["c"]
     pid, _ = await _project(c)
     a = await _runner(c, pid, env["repo"], name="A")
@@ -211,19 +213,23 @@ async def test_the_ticket_run_limit_only_guards_scheduled_and_ai_started_runs(en
                 )
             )
         await s.commit()
-        # three person runs are no problem; the one AI-started run used the limit of 1
+        # a scheduled run is held back once the limit of 1 is used up
         with pytest.raises(runs.RunError, match="scheduled or AI-started"):
             await runs.create_run(
                 s,
                 ticket_id=tid,
                 member_id=b["id"],
                 mode="work",
-                trigger="mention",
-                chain=[a["id"]],
+                trigger="schedule",
             )
-        # but a person can still start another run
+        # a chain between Claude Code or Antigravity members is not: they run on the person's own CLI
         await runs.create_run(
-            s, ticket_id=tid, member_id=b["id"], mode="work", trigger="assign"
+            s,
+            ticket_id=tid,
+            member_id=b["id"],
+            mode="work",
+            trigger="mention",
+            chain=[a["id"]],
         )
 
 

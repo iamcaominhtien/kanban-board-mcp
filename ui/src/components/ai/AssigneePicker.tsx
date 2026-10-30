@@ -15,7 +15,11 @@ import { ACTIVE_RUN_STATES, AiAvatar, StatusLabel, useAiBoardState } from './aiU
 function aiNote(m: AiMember): { disabled: boolean; note: string; tag?: string; grey?: boolean } {
   switch (m.status.code) {
     case 'running':
-      return { disabled: false, note: `· ${m.slotsInUse} of ${m.maxParallel} slots` };
+      // a CLI on a person's own computer has no slot limit
+      return {
+        disabled: false,
+        note: m.connection === 'api_key' ? `· ${m.slotsInUse} of ${m.maxParallel} slots` : `· ${m.slotsInUse} running`,
+      };
     case 'runner_missing':
       // greyed, with its label on the right; it can still be picked: the ticket waits in its queue
       return { disabled: false, note: '', tag: 'offline', grey: true };
@@ -240,7 +244,8 @@ export function AssignStartPopover({
   onCancel: () => void;
 }) {
   const inbox = member.connection === 'inbox';
-  const free = member.maxParallel - member.slotsInUse;
+  const limited = member.connection === 'api_key';
+  const free = limited ? member.maxParallel - member.slotsInUse : Number.POSITIVE_INFINITY;
   const { runsByTicket } = useAiBoardState();
   // Another AI holds this ticket: this one can only queue behind it (design H1)
   const held = runsByTicket.get(ticket.id);
@@ -281,7 +286,7 @@ export function AssignStartPopover({
       sub: heldBy
         ? `${heldBy.memberName} holds ${ticket.id} right now. Only one agent works on a ticket at a time.`
         : member.connection === 'local'
-          ? `Launches a run in ${member.workingDir ?? 'its folder'} on this computer. ${Math.max(free, 0)} of ${member.maxParallel} slots free.`
+          ? `Launches a run in ${member.workingDir ?? 'its folder'} on this computer.`
           : `The board starts its agent loop. ${Math.max(free, 0)} of ${member.maxParallel} slots free.`,
       chip: !heldBy && free > 0 ? 'Starts in a few seconds' : undefined,
       disabled: !!heldBy,

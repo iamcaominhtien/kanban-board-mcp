@@ -222,7 +222,7 @@ export function AskPanel({
             <div className="is-turn-you">{t.q}</div>
             {t.a ? (
               <>
-                <MarkdownRenderer>{t.a.answer}</MarkdownRenderer>
+                <MarkdownRenderer docs={projectId ? { projectId } : undefined}>{t.a.answer}</MarkdownRenderer>
                 {t.a.sources.length > 0 && (
                   <div className="is-row-sub">
                     {t.a.sources.map((s) => (
@@ -311,7 +311,7 @@ export function DigestCard({
       <div style={{ flex: 1 }}>
         {digest ? (
           <>
-            <MarkdownRenderer>{digest.text}</MarkdownRenderer>
+            <MarkdownRenderer docs={projectId ? { projectId } : undefined}>{digest.text}</MarkdownRenderer>
             <div className="is-muted" style={{ fontSize: 11.5 }}>
               {relativeTime(digest.createdAt)} · read {digest.ideasRead} ideas
               {digest.ai ? ` · ${money(digest.cost)} ` : ' · no AI cost '}

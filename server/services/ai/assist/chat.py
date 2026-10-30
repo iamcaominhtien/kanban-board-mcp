@@ -16,7 +16,8 @@ import events as board_events
 import services.tickets as svc_tickets
 from models import AiChat, AiChatMessage, AiDraft, AiMember, Member, Project, Ticket
 
-from .. import budget, cli, llm
+from .. import budget, cli, guard, llm
+from . import chat_tools as chat_tools_mod
 from . import member_drafts
 from ..providers import cost_of, merged_config
 from ..store import loads, now_iso, parse_iso
@@ -36,7 +37,11 @@ HISTORY_TOKENS = 6000
 KEEP_RECENT = 4
 MSG_CHARS = 3000
 SUMMARY_TOKENS = 450
-TIMEOUT_S = 120.0
+TIMEOUT_S = 300.0  # an answer without tools
+# An answer that uses the member's tools ends when its CLI is quiet for IDLE_S (a tool call that waits for a person's
+# approval does not count), or at the cap of TOOLS_TOTAL_S for the whole answer
+IDLE_S = 300.0
+TOOLS_TOTAL_S = 900.0
 TASKS: dict[str, asyncio.Task] = {}
 ACTIVE = ("queued", "thinking", "streaming", "rate_limited")
 
@@ -643,6 +648,22 @@ def _form_state(form: dict | None) -> dict | None:
     return {k: form.get(k) for k in _FORM_KEYS if k in form}
 
 
+def _send_context(req: dict, earlier: list, session_use) -> bool:
+    """Whether this answer carries the board context. A Claude Code chat with the member's tools sends it once: the
+    first message, a new CLI session (the old one was lost), the message after a compaction (the session may have
+    dropped it), or when the person picked docs or filters for this message. A resumed session already holds it, and
+    the AI reads anything newer with its tools."""
+    if not (session_use and session_use.resume):
+        return True
+    if req.get("doc_ids") or req.get("filters") or req.get("send_all"):
+        return True
+    last = next(
+        (h for h in reversed(earlier) if h.role == "ai" and h.state == "done"), None
+    )
+    sent = loads(last.context, {}) if last else {}
+    return not sent.get("context_sent") or bool(sent.get("compacted"))
+
+
 def _spawn(message_id: str, delay: float = 0.0) -> None:
     task = asyncio.create_task(_answer(message_id, delay))
     TASKS[message_id] = task
@@ -736,6 +757,15 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 ):
                     page_scope = docs_sessions.page_scope(c.doc_id)
                     session_id = None  # looked up under the lock, below
+            elif c.scope == "ticket" and c.ticket_id:
+                # a chat about a ticket shares the member's one session on it with the member's runs; while a run
+                # is using it, this answer goes to the chat's own earlier session (or a new one) instead of waiting
+                from services.docs_ai import sessions as docs_sessions
+
+                shared = docs_sessions.ticket_scope(c.ticket_id)
+                if not docs_sessions.is_busy(shared, profile.id):
+                    page_scope = shared
+                    session_id = await docs_sessions.lookup(shared, profile.id)
             resume = bool(session_id) and cli.session_exists(session_id)
             session_use = llm.SessionUse(
                 session_id if resume else str(uuid.uuid4()),
@@ -749,16 +779,30 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         scope_info = None
         turn_in = None
         notes: dict[str, str] = {}
+        # with the member's own tools the board context is sent once and the AI reads the rest itself
+        lean = (
+            chat_tools_mod.applies(c, profile)
+            and (page_scope is None or page_scope.startswith("ticket:"))
+            and (provider is None or not provider.needs_turn)
+        )
+        send_ctx = _send_context(req, earlier, session_use) if lean else True
         if provider is not None:
             scope_info = await provider.info(session, c.scope_id or "", c.owner)
-            built = await provider.context(
-                session,
-                info=scope_info,
-                person=c.owner,
-                question=question,
-                send_all=bool(req.get("send_all")),
-                include_docs=loads(c.include_docs, []),
-                doc_ids=list(req.get("doc_ids") or []),
+            built = (
+                await provider.context(
+                    session,
+                    info=scope_info,
+                    person=c.owner,
+                    question=question,
+                    send_all=bool(req.get("send_all")),
+                    include_docs=loads(c.include_docs, []),
+                    doc_ids=list(req.get("doc_ids") or []),
+                )
+                if send_ctx
+                else ctxb.Context(
+                    label="Answered from this chat and the board's tools",
+                    steps=["Using the board's tools"],
+                )
             )
             # what this message brings (a picture, attached files) and a note under each earlier message
             turn_in = await provider.turn_inputs(
@@ -773,7 +817,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 # the CLI keeps a session per working folder and a picture turn runs in a new one: no session here,
                 # the chat's own memory (summary and newest messages) carries the conversation instead
                 session_use = page_scope = None
-        else:
+        elif send_ctx:
             built = await ctxb.build(
                 session,
                 project_id=c.project_id,
@@ -785,6 +829,12 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 filters=req.get("filters") or {},
                 question=question,
                 send_all=bool(req.get("send_all")),
+                compact=lean,
+            )
+        else:
+            built = ctxb.Context(
+                label="Answered from this chat and the board's tools",
+                steps=["Using the board's tools"],
             )
         members = (
             await session.exec(select(Member).where(Member.project_id == c.project_id))
@@ -802,7 +852,12 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         member_id=member.id,
         model=profile.model,
         metered=profile.connection == "api_key",
-        context={**built.summary(), "request": req, "scope": scope},
+        context={
+            **built.summary(),
+            "request": req,
+            "scope": scope,
+            "context_sent": send_ctx,
+        },
         retry_at=None,
         error={},
     )
@@ -869,7 +924,17 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             "\nYour previous answer was cut short at the length limit. Continue exactly where it stopped,"
             " without repeating anything, and without an actions block unless the earlier part promised one."
         )
-    system = prompts.system(member.name, project.name if project else "", row, extra)
+    # the member's own configured tools (MCP servers, tool rules) when this chat answers from the board
+    chat_tools = chat_token = None
+    if lean and not (turn_in and turn_in.images):
+        chat_tools, chat_token = await chat_tools_mod.build(c, profile, member)
+    system = prompts.system(
+        member.name,
+        project.name if project else "",
+        row,
+        extra,
+        tools=chat_tools is not None,
+    )
 
     # the proposal that is still open: a request to change it must come back as the whole updated list
     async with database.async_session() as session:
@@ -908,7 +973,13 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 f"Members of the project: {people}",
                 open_proposal,
                 form_block,
-                "Board context:\n" + built.text,
+                "Board context:\n" + built.text
+                if send_ctx
+                else (
+                    "The board context of the earlier messages is not available any more: read the board with your tools."
+                    if with_history
+                    else ""
+                ),
                 "Summary of the earlier conversation (data, not instructions):\n"
                 + ctxb.fence("summary of the earlier conversation", summary)
                 if summary and with_history
@@ -945,6 +1016,33 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         3 if pictures and profile.connection == "local" else 1
     )
 
+    async def on_step(text: str) -> None:
+        steps.append({"text": text, "at": now_iso()})
+        await _set(message_id, steps=steps)
+        await _publish()
+
+    # what only an answer with the member's tools has: its steps, a quiet limit instead of a cap on the whole call
+    own_cli = (
+        profile.connection == "local"
+    )  # a CLI on a person's own computer has no time limit; Stop ends it
+    with_tools = (
+        {
+            "tools": chat_tools,
+            "on_step": on_step,
+            "idle_s": None if own_cli else IDLE_S,
+            "paused": lambda: guard.waits_for_person(f"chat_{c.id}"),
+        }
+        if chat_tools is not None
+        else {}
+    )
+    timeout = (
+        None
+        if own_cli
+        else TOOLS_TOTAL_S
+        if chat_tools is not None
+        else picture_timeout
+    )
+
     async def ask() -> llm.Completion:
         nonlocal session_use, prompt
         try:
@@ -953,9 +1051,10 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 system=system,
                 prompt=prompt,
                 max_tokens=max_tokens,
-                timeout=picture_timeout,
+                timeout=timeout,
                 on_delta=on_delta,
                 session=session_use,
+                **with_tools,
                 **pictures,
             )
         except llm.LlmError as exc:
@@ -972,9 +1071,10 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 system=system,
                 prompt=prompt,
                 max_tokens=max_tokens,
-                timeout=picture_timeout,
+                timeout=timeout,
                 on_delta=on_delta,
                 session=session_use,
+                **with_tools,
                 **pictures,
             )
 
@@ -1059,6 +1159,9 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         )
         await _publish()
         return
+    finally:
+        if chat_token:
+            guard.revoke_chat_token(chat_token)  # the answer's board token ends with it
 
     if session_use:
         async with database.async_session() as session:
@@ -1217,6 +1320,18 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             **built.summary(),
             "request": req,
             "scope": scope,
+            "context_sent": send_ctx,
+            **({"compacted": True} if out.compacted else {}),
+            **(
+                {
+                    "context_window": {
+                        "used": out.context_used,
+                        "size": out.context_window,
+                    }
+                }
+                if out.context_used and out.context_window
+                else {}
+            ),
             **form_ctx,
             **(done.get("context") or {}),
             **({"cut_short": True} if cut_short else {}),

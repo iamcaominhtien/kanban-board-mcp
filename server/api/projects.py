@@ -71,7 +71,7 @@ async def patch_project(
 
 @router.delete("/{project_id}", status_code=204)
 async def del_project(project_id: str, session: Session) -> None:
-    """Delete an empty project."""
+    """Delete a project with its tickets and everything else in it."""
     try:
         found = await delete_project(session, project_id)
     except ValueError as exc:

@@ -58,7 +58,7 @@ def test_capability_matrix_follows_the_design():
     ag = providers.capabilities("antigravity")
     assert (
         len([m for m in ag.values() if m != "not_supported"]) == 6
-        and ag["instructions"] == "documented"
+        and ag["instructions"] == "synced"
     )
     api = providers.capabilities("anthropic")
     assert (

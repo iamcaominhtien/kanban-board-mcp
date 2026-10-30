@@ -4,8 +4,10 @@ audit and permissions are the same; what only a person may do (keys, folders, By
 Review, deciding approvals) is not available here."""
 
 import json
+import re
 from typing import Any
 
+import config as app_config
 import events as board_events
 import services.activity as svc_activity
 import services.tickets as svc_tickets
@@ -734,3 +736,93 @@ async def update_member(member_id: str, fields: dict) -> dict:
         out = await _described(session, member_id)
     await board_events.publish("invalidate")
     return out
+
+
+# --------------------------------------------------------------------------- full control (Settings > Integrations)
+
+# Only the AI team's endpoints: AI members, runs, approvals, safety, audit, schedules, role library.
+FULL_CONTROL_PATH = re.compile(
+    r"^/(ai/|projects/[^/?#]+/ai/|tickets/[^/?#]+/ai/)[^?#]*(\?[^#]*)?$"
+)
+FULL_CONTROL_OFF = (
+    "Full control over MCP is off. A person turns it on in Settings > Integrations > MCP integrations; "
+    "until then use the other ai_team actions."
+)
+BODY_LIMIT = 60_000
+
+
+def _need_full_control() -> None:
+    if not app_config.get_flag(app_config.MCP_FULL_CONTROL):
+        raise ValueError(FULL_CONTROL_OFF)
+
+
+async def endpoints(text: str | None = None) -> list[str]:
+    """The AI-team endpoints `api` can call (METHOD path: what it does), optionally only those containing `text`."""
+    _need_full_control()
+    from main import app
+
+    rows = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        if not FULL_CONTROL_PATH.match(path):
+            continue
+        doc = (getattr(route.endpoint, "__doc__", "") or "").strip().split("\n")[0]
+        for method in sorted(route.methods or ()):
+            if method in ("HEAD", "OPTIONS"):
+                continue
+            rows.append(f"{method} {path}" + (f": {_short(doc, 90)}" if doc else ""))
+    needle = (text or "").strip().lower()
+    return sorted(r for r in rows if needle in r.lower())
+
+
+async def api(path: str, body: dict | None = None) -> Any:
+    """Call one AI-team endpoint of the board as the person (the same rights and checks as the app, the same
+    audit). `path` is "METHOD /path"; only paths under /ai/, /projects/<id>/ai/ and /tickets/<id>/ai/."""
+    _need_full_control()
+    import httpx
+
+    method, _, path = (path or "").strip().partition(" ")
+    method = method.upper()
+    if method not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+        raise ValueError(
+            "path is 'METHOD /endpoint', the method being GET, POST, PUT, PATCH or DELETE."
+        )
+    path = (path or "").strip()
+    if ".." in path or not FULL_CONTROL_PATH.match(path):
+        raise ValueError(
+            "The endpoint must be an AI-team one: /ai/..., /projects/<id>/ai/... or /tickets/<id>/ai/... "
+            "(see action 'endpoints')."
+        )
+    from main import app
+
+    # the board remembers the address a request came in on to hand it to CLI runs; this one is not a real address
+    seen_url = svc_runs.RT.board_url
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url=seen_url or "http://127.0.0.1",
+            timeout=120,
+        ) as client:
+            reply = await client.request(
+                method,
+                path,
+                json=body if method in ("POST", "PUT", "PATCH") else None,
+                headers={"X-Actor": _by()},
+            )
+    finally:
+        svc_runs.RT.board_url = seen_url
+    try:
+        data: Any = reply.json()
+    except ValueError:
+        data = reply.text
+    if reply.status_code >= 400:
+        detail = data.get("detail") if isinstance(data, dict) else data
+        raise ValueError(f"{method} {path} -> {reply.status_code}: {detail}")
+    data = redact_obj(data)
+    if len(json.dumps(data, default=str)) > BODY_LIMIT:
+        return {
+            "status": reply.status_code,
+            "truncated": True,
+            "body": json.dumps(data, default=str)[:BODY_LIMIT],
+        }
+    return data

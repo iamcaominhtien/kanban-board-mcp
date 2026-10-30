@@ -503,8 +503,8 @@ export function AddAiMemberModal({
                       <span className="ai-error-text">{folderError}</span>
                     ) : (
                       <span className="ai-hint">
-                        Every run starts here with <span className="ai-code">claude -p</span> (headless). The runner can
-                        only touch this folder and below.
+                        Every run works on this folder with <span className="ai-code">{provider === 'antigravity' ? 'antigravity -p' : 'claude -p'}</span>{' '}
+                        (headless). The runner can only touch this folder and below.
                       </span>
                     )}
                   </div>
@@ -533,9 +533,10 @@ export function AddAiMemberModal({
                     </div>
                   )}
                   {provider === 'antigravity' && (
-                    <div className="ai-notice ai-notice-warn">
-                      Antigravity has no headless mode the board can start yet: it gets its assigned tickets and
-                      mentions through MCP, and runs are marked as not supported.
+                    <div className="ai-notice">
+                      Each run starts in a scratch folder with the Kanban MCP server added for that run, and may only
+                      use what this member is allowed. Bypass permissions is not available, and Antigravity uses your
+                      own account's quota.
                     </div>
                   )}
                 </>

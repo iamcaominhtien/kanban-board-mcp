@@ -1096,6 +1096,11 @@ class AiRun(SQLModel, table=True):
     tokens_out: int = Field(default=0)
     cost_usd: float = Field(default=0.0)
     metered: bool = Field(default=False)
+    # What the run's conversation held at its last model call, and the model's window (tokens): the "Context %"
+    context_used: Optional[int] = Field(default=None)
+    context_window: Optional[int] = Field(default=None)
+    # JSON {member_id, ticket_id}: when this run ends without passing the work on, that member is woken on that ticket
+    report_back: Optional[str] = Field(default=None)
     status_before: Optional[str] = Field(default=None)
     status_changes: str = Field(default="[]")  # JSON list of {from, to, at}
     pid: Optional[int] = Field(default=None)
