@@ -6,6 +6,8 @@ import { Icon } from '../Icon';
 import { personOf } from './people';
 import { ThreadCard } from './ThreadCard';
 import { useCommentSuggest } from './commentAi';
+import { useResizablePanel } from '../../../hooks/useResizablePanel';
+import { PanelMaxButton, PanelResizer, panelSizing } from '../../PanelResizer';
 
 export type CommentTab = 'all' | 'open' | 'resolved';
 
@@ -70,6 +72,8 @@ export function CommentsPanel({
   onClose,
 }: Props) {
   const [showActivity, setShowActivity] = useState(false);
+  const panel = useResizablePanel('doc-comments', 340, { min: 280 });
+  const sizing = panelSizing(panel);
   const events = useDocsCommentEvents(projectId);
   const inline = useMemo(() => (data?.threads ?? []).filter((t) => t.kind === 'inline'), [data]);
   const shown = inline.filter((t) => tab === 'all' || t.status === tab);
@@ -78,18 +82,27 @@ export function CommentsPanel({
   const pageEvents = (events.data ?? []).filter((e) => e.pageId === pageId).slice(0, 8);
 
   return (
-    <aside className="dc-panel" aria-label="Inline comments" data-testid="comments-panel">
+    <aside
+      className={`dc-panel ${sizing.className}`}
+      style={sizing.style}
+      aria-label="Inline comments"
+      data-testid="comments-panel"
+    >
+      <PanelResizer panel={panel} label="Resize comments" />
       <header className="dc-panel-head">
         <h2>Inline comments</h2>
-        <button
-          type="button"
-          className="dc-icon"
-          aria-label="Close comments"
-          onClick={onClose}
-          data-testid="comments-close"
-        >
-          <Icon name="close" size={16} strokeWidth={1.9} />
-        </button>
+        <div style={{ display: 'flex', gap: 2 }}>
+          <PanelMaxButton panel={panel} className="dc-icon" />
+          <button
+            type="button"
+            className="dc-icon"
+            aria-label="Close comments"
+            onClick={onClose}
+            data-testid="comments-close"
+          >
+            <Icon name="close" size={16} strokeWidth={1.9} />
+          </button>
+        </div>
       </header>
       <div className="dc-tabs" role="tablist">
         {(

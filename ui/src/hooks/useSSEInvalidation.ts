@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { resolveOrigin } from '../api/resolveOrigin';
 
+/** How long events are gathered into one refetch. */
+const FLUSH_MS = 150;
+
 /** Subscribe to server events and invalidate React Query caches, reconnecting on failure. */
 export function useSSEInvalidation() {
   const queryClient = useQueryClient();
@@ -10,9 +13,26 @@ export function useSSEInvalidation() {
     let es: EventSource | undefined;
     let retryTimeout: ReturnType<typeof setTimeout>;
     let mounted = true;
+    let flush: ReturnType<typeof setTimeout> | undefined;
 
+    // An AI editing the board fires a burst of events; refetch once per burst, not once per event.
     function handleMessage(_event: MessageEvent<string>) {
-      queryClient.invalidateQueries();
+      if (flush) return;
+      flush = setTimeout(() => {
+        flush = undefined;
+        queryClient.invalidateQueries();
+      }, FLUSH_MS);
+    }
+
+    // A tab that slept (laptop lid, background throttling) may hold a dead stream and miss changes.
+    function handleVisible() {
+      if (document.visibilityState !== 'visible' || !mounted) return;
+      if (!es || es.readyState === EventSource.CLOSED) {
+        clearTimeout(retryTimeout);
+        connect();
+      } else {
+        queryClient.invalidateQueries();
+      }
     }
 
     function connect() {
@@ -34,10 +54,13 @@ export function useSSEInvalidation() {
     }
 
     connect();
+    document.addEventListener('visibilitychange', handleVisible);
 
     return () => {
       mounted = false;
+      document.removeEventListener('visibilitychange', handleVisible);
       clearTimeout(retryTimeout);
+      clearTimeout(flush);
       if (es) {
         es.close();
         // @ts-expect-error: intentionally nulling to prevent late callbacks

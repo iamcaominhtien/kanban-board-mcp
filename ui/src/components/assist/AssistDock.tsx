@@ -7,6 +7,8 @@ import type { AssistScope, AssistState, Chat } from '../../types/assist';
 import { useAssist } from './AssistContext';
 import { AnswerBlock } from './AnswerBlock';
 import { BoardAiAvatar, dayOrTime, usd } from './assistUi';
+import { useResizablePanel } from '../../hooks/useResizablePanel';
+import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 
 const SCOPES: { key: AssistScope; label: string; reads: string; size: string }[] = [
@@ -162,6 +164,7 @@ export function AssistDock() {
   const tree = useDocsTree(projectId);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const scope = ctx?.scope ?? 'project';
+  const panel = useResizablePanel('board-ai', 420, { min: 340 });
 
   const send = async (raw: string, opts?: { draft?: boolean; sendAll?: boolean }) => {
     if (!ctx || !projectId) return;
@@ -266,11 +269,18 @@ export function AssistDock() {
           : 'Ask about this project…';
   const loadFailed = st.isError && !state;
   const disabled = notConfigured || chatOff || offline || overBudget || loadFailed;
+  const sizing = panelSizing(panel);
   const f = ctx.filters;
   const filterLabel = f.assignee || f.type || f.priority || f.q ? 'Filtered' : 'No filters';
 
   return (
-    <aside className="as-dock ai-root" data-testid="assist-dock" aria-label="Board AI">
+    <aside
+      className={`as-dock ai-root ${sizing.className}`}
+      style={sizing.style}
+      data-testid="assist-dock"
+      aria-label="Board AI"
+    >
+      <PanelResizer panel={panel} label="Resize Board AI" />
       <div className="as-head">
         <BoardAiAvatar provider={b?.provider} size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -313,6 +323,7 @@ export function AssistDock() {
         >
           +
         </button>
+        <PanelMaxButton panel={panel} />
         <button type="button" className="ai-icobtn" title="Close" aria-label="Close Board AI" onClick={ctx.close}>
           ✕
         </button>

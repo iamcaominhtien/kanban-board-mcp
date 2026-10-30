@@ -6,6 +6,8 @@ import type { AssistDraft, ChatMessage, ChatScope, ScopeMember, ScopeState, Star
 import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
 import { AnswerBlock, type AnswerPanel } from './AnswerBlock';
 import { usd } from './assistUi';
+import { useResizablePanel } from '../../hooks/useResizablePanel';
+import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import './scopedChat.css';
 
@@ -184,6 +186,7 @@ export function ScopedChat({
   const state = st.data;
   const [chatId, setChatId] = useState<string | null>(null);
   const [tab, setTab] = useState<'chat' | 'runs'>('chat');
+  const size = useResizablePanel(`chat-${scope.kind}`, 400, { min: 340 });
   const [mode, setMode] = useState<'ask' | 'work'>('ask');
   const [memberId, setMemberId] = useState<string | null>(null);
   const [text, setText] = useState('');
@@ -280,10 +283,12 @@ export function ScopedChat({
   const placeholder = info?.placeholder ?? 'Ask…';
   const memberName = state?.members.find((m) => m.id === chosen)?.name ?? 'the AI';
   const runsHere = !!runsTab;
+  const sizing = panelSizing(size);
 
   return (
     <aside
-      className="sc-panel ai-root"
+      className={`sc-panel ai-root ${sizing.className}`}
+      style={sizing.style}
       data-testid="scoped-chat"
       aria-label={title ?? 'AI chat'}
       onKeyDown={(e) => {
@@ -294,6 +299,7 @@ export function ScopedChat({
         }
       }}
     >
+      <PanelResizer panel={size} label="Resize chat" />
       <div className="sc-head">
         <Who state={state} onPick={(id) => setMemberId(id)} />
         {runsHere && (
@@ -337,6 +343,7 @@ export function ScopedChat({
         >
           +
         </button>
+        <PanelMaxButton panel={size} />
         <button type="button" className="ai-icobtn" aria-label="Close" title="Close" onClick={onClose}>
           ✕
         </button>
