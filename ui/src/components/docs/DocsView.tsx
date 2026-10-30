@@ -51,6 +51,7 @@ import { RenameDialog } from './RenameDialog';
 import { SearchResults } from './SearchResults';
 import { useDocsOffline } from './useDocsOffline';
 import './docs.css';
+import { useAppCommand } from '../../utils/appCommands';
 import { sketchesAsImages } from '../sketch/sketchRefs';
 
 interface Props {
@@ -246,6 +247,8 @@ export function DocsView({
     /** Opens the dialog with Write with AI preselected. */
     aiFrom?: { kind: 'ticket' | 'idea' | 'notes' | 'prompt'; ticketId?: string; text?: string };
   } | null>(null);
+  // Desktop menu: File › New Doc Page
+  useAppCommand('new-doc', () => setNewPage({ parentId: null }));
   const [moveFor, setMoveFor] = useState<DocsPage | null>(null);
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
   const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);

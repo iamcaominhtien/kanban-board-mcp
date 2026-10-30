@@ -27,6 +27,7 @@
     "files": [
       "main.js",
       "main-helpers.js",
+      "menu.js",
       "updater.js",
       "updater-helpers.js",
       "preload.js",

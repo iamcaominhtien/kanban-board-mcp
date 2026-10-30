@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Project } from '../types';
 import { AppLogo } from './icons';
+import { useAppCommand } from '../utils/appCommands';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
 
@@ -63,6 +64,8 @@ export function ProjectSidebar({
   onRetryProjects,
 }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
+  // Desktop menu: File › New Project…
+  useAppCommand('new-project', () => setShowForm(true));
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);

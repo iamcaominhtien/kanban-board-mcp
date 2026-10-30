@@ -1,0 +1,75 @@
+{
+  "_comment": "The one list of keyboard shortcuts. The Keyboard Shortcuts window (Help menu), the desktop menu accelerators check and the guide's shortcut sheet all read this file. Keys: Mod = Ctrl (⌘ on a Mac), Alt = Alt (⌥ on a Mac). `where` says what the shortcut works on; `source` is the code that handles it, so the entry can be re-checked.",
+  "groups": [
+    {
+      "id": "go-to",
+      "title": "Go to",
+      "items": [
+        { "id": "view-board", "label": "Board", "keys": ["Mod", "1"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "view-list", "label": "List", "keys": ["Mod", "2"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "view-timeline", "label": "Timeline", "keys": ["Mod", "3"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "view-docs", "label": "Docs", "keys": ["Mod", "4"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "view-schedules", "label": "Schedules", "keys": ["Mod", "5"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "view-ideas", "label": "Idea Space", "keys": ["Mod", "6"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "settings", "label": "Settings", "keys": ["Mod", ","], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "shortcuts", "label": "Keyboard Shortcuts", "keys": ["Mod", "/"], "where": "desktop menu", "source": "desktop/menu.js" }
+      ]
+    },
+    {
+      "id": "create",
+      "title": "Create",
+      "items": [
+        { "id": "new-ticket", "label": "New ticket", "keys": ["Mod", "N"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "new-idea", "label": "New idea", "keys": ["Mod", "Shift", "N"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "new-doc", "label": "New Doc page", "keys": ["Mod", "Alt", "N"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "quick-add-idea", "label": "Quick add an idea", "keys": ["Alt", "N"], "where": "everywhere", "source": "ui/src/components/ideas/IdeaCapture.tsx" },
+        { "id": "idea-new", "label": "New idea (in the Idea Space)", "keys": ["C"], "where": "Idea Space", "source": "ui/src/components/ideas/IdeaSpace.tsx" }
+      ]
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "items": [
+        { "id": "find-board", "label": "Find in board (focus Search tickets)", "keys": ["Mod", "Shift", "F"], "where": "desktop menu", "source": "desktop/menu.js" },
+        { "id": "find-docs", "label": "Find in a Docs page", "keys": ["Mod", "F"], "where": "Docs", "source": "ui/src/components/docs/FindInPage.tsx" },
+        { "id": "focus-search", "label": "Focus the search box", "keys": ["/"], "where": "Idea Space, Settings", "source": "ui/src/components/ideas/IdeaSpace.tsx, ui/src/components/settings/SettingsPage.tsx" }
+      ]
+    },
+    {
+      "id": "ai",
+      "title": "AI",
+      "items": [
+        { "id": "ask-ai", "label": "Ask AI (open or close the Board AI)", "keys": ["Mod", "J"], "where": "everywhere, desktop menu", "source": "ui/src/components/assist/AssistContext.tsx, desktop/menu.js" }
+      ]
+    },
+    {
+      "id": "editor",
+      "title": "Docs editor",
+      "items": [
+        { "id": "editor-save", "label": "Save draft", "keys": ["Mod", "S"], "where": "Docs editor", "source": "ui/src/components/docs/DocsEditScreen.tsx" },
+        { "id": "editor-publish", "label": "Publish", "keys": ["Mod", "Enter"], "where": "Docs editor", "source": "ui/src/components/docs/DocsEditScreen.tsx" },
+        { "id": "editor-mode", "label": "Switch between visual and Markdown", "keys": ["Mod", "Shift", "M"], "where": "Docs editor", "source": "ui/src/components/docs/DocsEditScreen.tsx" },
+        { "id": "editor-comment", "label": "Comment on the selection", "keys": ["Ctrl", "Alt", "M"], "where": "Docs", "source": "ui/src/components/docs/comments/SelectionComment.tsx" }
+      ]
+    },
+    {
+      "id": "tickets",
+      "title": "On a ticket",
+      "items": [
+        { "id": "ticket-reopen", "label": "Reopen a Done or Won't do ticket", "keys": ["R"], "where": "ticket window, not typing", "source": "ui/src/components/TicketModal.tsx" },
+        { "id": "ticket-pending", "label": "Set pending (or resume)", "keys": ["P"], "where": "ticket window, not typing", "source": "ui/src/components/TicketModal.tsx" }
+      ]
+    },
+    {
+      "id": "triage",
+      "title": "Idea Inbox triage",
+      "items": [
+        { "id": "triage-keep", "label": "Keep", "keys": ["K"], "where": "Idea Inbox", "source": "ui/src/components/ideas/Triage.tsx" },
+        { "id": "triage-park", "label": "Park", "keys": ["P"], "where": "Idea Inbox", "source": "ui/src/components/ideas/Triage.tsx" },
+        { "id": "triage-merge", "label": "Merge", "keys": ["M"], "where": "Idea Inbox", "source": "ui/src/components/ideas/Triage.tsx" },
+        { "id": "triage-archive", "label": "Archive", "keys": ["X"], "where": "Idea Inbox", "source": "ui/src/components/ideas/Triage.tsx" },
+        { "id": "triage-undo", "label": "Undo the last move", "keys": ["Z"], "where": "Idea Inbox", "source": "ui/src/components/ideas/Triage.tsx" }
+      ]
+    }
+  ]
+}

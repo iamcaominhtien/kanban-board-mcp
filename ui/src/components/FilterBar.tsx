@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority } from '../types';
+import { useAppCommand } from '../utils/appCommands';
 import styles from './FilterBar.module.css';
 
 interface FilterBarProps {
@@ -83,6 +84,12 @@ export function FilterBar({
 }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<'type' | 'priority' | 'assignee' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Desktop menu: Edit › Find in Board
+  useAppCommand('find-board', () => {
+    searchInputRef.current?.focus();
+    searchInputRef.current?.select();
+  });
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -254,6 +261,7 @@ export function FilterBar({
             <path d="M21 21L16.65 16.65" />
           </svg>
           <input
+            ref={searchInputRef}
             className={styles.searchInput}
             type="text"
             aria-label="Search tickets"
