@@ -414,6 +414,9 @@ export interface AiApproval {
   risk: 'low' | 'medium' | 'high';
   status: 'pending' | 'approved' | 'denied' | 'expired' | 'failed' | 'run_ended';
   onBehalfOf: string | null;
+  /** A Docs AI proposal: the proposal and the page it changes. */
+  proposalId?: string | null;
+  pageId?: string | null;
   requestedAt: string;
   expiresAt: string | null;
   decidedBy: string | null;

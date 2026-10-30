@@ -4,6 +4,10 @@ import { Icon } from './Icon';
 import { useToast } from '../Toast';
 import { importDryRun, importFiles, importResolve } from '../../api/docsFx';
 import { docsErrorDetail } from '../../api/docs';
+import { useDocsAiState } from '../../api/docsAi';
+import type { TidyResult } from '../../api/docsAiWrite';
+import { aiGate } from '../../utils/docsAiRules';
+import { TidyOptions } from './ai/TidyOptions';
 import type { DocsTreeNode } from '../../types/docs';
 import type { DocsImportConflict, DocsImportDryFile, DocsImportDryRun, DocsImportEntry } from '../../types/docsFx';
 
@@ -297,9 +301,29 @@ export function ImportDialog({
   onReviewLinks,
 }: ImportDialogProps) {
   const toast = useToast();
-  const [entries, setEntries] = useState<DocsImportEntry[]>(
+  const [rawEntries, setEntries] = useState<DocsImportEntry[]>(
     () => initialEntries ?? entriesFromFileList(initialFiles ?? []),
   );
+  // Tidy while importing (Docs AI): the tidied pages replace the one file; nothing is imported until Import
+  const aiState = useDocsAiState(projectId);
+  const aiReady = aiGate(aiState.data).show && aiState.data?.state === 'ready';
+  const [tidied, setTidied] = useState<TidyResult | null>(null);
+  const tidyFile = aiReady && rawEntries.length === 1 && isMd(rawEntries[0].path) ? rawEntries[0] : null;
+  const tidiedEntries = useMemo<DocsImportEntry[] | null>(
+    () =>
+      tidyFile && tidied
+        ? tidied.pages.map((pg) => ({
+            path: pg.file.path,
+            file: new File([pg.file.content], pg.file.path, { type: 'text/markdown' }),
+          }))
+        : null,
+    [tidyFile, tidied],
+  );
+  // another file starts from its own preview
+  const tidyFileRef = tidyFile?.file;
+  useEffect(() => setTidied(null), [tidyFileRef]);
+  const entries = tidiedEntries ?? rawEntries;
+  const changesByPath = useMemo(() => new Map((tidied?.pages ?? []).map((pg) => [pg.file.path, pg.changes])), [tidied]);
   const [parentId, setParentId] = useState<string | null>(initialParentId);
   const [conflict, setConflict] = useState<DocsImportConflict>('copy');
   const [dry, setDry] = useState<DocsImportDryRun | null>(null);
@@ -700,6 +724,11 @@ export function ImportDialog({
           >
             {r.path}
           </div>
+          {changesByPath.get(r.path)?.map((c) => (
+            <div key={c} style={{ fontSize: 11.5, color: '#5B3FBF' }}>
+              {c}
+            </div>
+          ))}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#9AA8A0' }}>
             <Icon name="i00" size={12} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
             {r.status === 'error'
@@ -996,6 +1025,7 @@ export function ImportDialog({
                 Folder…
               </button>
             </div>
+            {tidyFile && <TidyOptions projectId={projectId} file={tidyFile.file} onResult={setTidied} />}
             <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span className="st-field-label" style={{ fontSize: 11 }}>

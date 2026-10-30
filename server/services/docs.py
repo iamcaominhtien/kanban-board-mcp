@@ -215,6 +215,8 @@ async def list_tree(session: AsyncSession, project_id: str) -> list[dict[str, An
             "version": p.version,
             "has_draft": p.id in drafted,
             "updated_at": p.updated_at,
+            "ai_hidden": p.ai_hidden,
+            "ai_guidance": p.ai_guidance,
         }
         for p in pages
     ]
@@ -325,6 +327,8 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
         "created_at": page.created_at,
         "stats": await page_stats(session, page, markdown),
         "has_unpublished_changes": unpublished,
+        "ai_hidden": page.ai_hidden,
+        "ai_guidance": page.ai_guidance,
         "draft": (
             {
                 "title": draft.title,
@@ -333,6 +337,7 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "saves": draft.saves,
                 "updated_at": draft.updated_at,
                 "author": draft.author,
+                "ai_source": _json_or_none(draft.ai_source),
             }
             if draft
             else None
@@ -640,6 +645,14 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
             await session.delete(row)
+    # Docs AI rows that belong to the pages (proposals and the freshness check have a foreign key to the page)
+    from models import DocsAiCheck, DocsAiIgnore, DocsAiJob, DocsAiProposal
+
+    for ai_model in (DocsAiProposal, DocsAiCheck, DocsAiIgnore, DocsAiJob):
+        for row in (
+            await session.exec(select(ai_model).where(ai_model.page_id.in_(ids)))  # type: ignore[attr-defined]
+        ).all():
+            await session.delete(row)
     # children first so the parent foreign key never dangles
     for p in sorted(pages, key=lambda p: 0 if p.parent_id in ids else 1):
         await session.delete(p)
@@ -930,6 +943,7 @@ async def _commit_version(
             author=author,
             note=(note or "").strip() or None,
             diagram_versions=await diagrams.pin_versions(session, markdown),
+            with_ai=bool(draft is not None and draft.ai_source) or _ai_acting(),
         )
     )
     if draft is not None:
@@ -1006,6 +1020,7 @@ async def list_versions(session: AsyncSession, page_id: str) -> list[dict[str, A
             "note": v.note,
             "created_at": v.created_at,
             "words": len(v.markdown.split()),
+            "with_ai": v.with_ai,
         }
         for v in result.all()
     ]
@@ -1043,6 +1058,7 @@ async def get_version(session: AsyncSession, page_id: str, n: int) -> dict[str, 
         "note": v.note,
         "created_at": v.created_at,
         "diagram_versions": diagrams.parse_pins(v.diagram_versions),
+        "with_ai": v.with_ai,
     }
 
 
@@ -1452,6 +1468,22 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
         if new_target != link.target_page_id:
             link.target_page_id = new_target
             session.add(link)
+
+
+def _ai_acting() -> bool:
+    """Whether an AI run makes the change (its version shows the "with AI" mark)."""
+    from services.ai import guard
+
+    return guard.current() is not None
+
+
+def _json_or_none(raw: str | None) -> Any:
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return None
 
 
 def _json_list(raw: str | None) -> list[Any]:

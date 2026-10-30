@@ -1,0 +1,221 @@
+/* Docs AI on a page: the AI menu, the summary block, the explain card, the translate banner and Check this page. */
+.pai-btn {
+  border: 1px solid #c9c2ee;
+  background: #f3f0fe;
+  color: #4a3fb0;
+}
+.pai-btn:hover {
+  background: #ebe6fc;
+}
+.pai-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 45;
+  width: 400px;
+  padding: 6px;
+}
+.pai-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font: inherit;
+  cursor: pointer;
+  color: #1e2a22;
+}
+.pai-row:hover:not(:disabled),
+.pai-row[data-active='true'] {
+  background: #eef6ef;
+}
+.pai-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.pai-row-ico {
+  color: #6b5bd2;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.pai-row-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pai-row-hint {
+  font-size: 12.5px;
+  color: #5b6b60;
+  line-height: 1.35;
+}
+.pai-rule {
+  height: 1px;
+  background: #eef3ef;
+  margin: 5px 4px;
+}
+.pai-reads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 2px;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.pai-chip {
+  border: 1px solid #e3e8e5;
+  background: #f6f8f6;
+  border-radius: 7px;
+  padding: 2px 8px;
+  color: #3a4a3e;
+}
+.pai-summary {
+  border: 1.5px dashed #b9aeee;
+  background: #faf9ff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pai-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.pai-head b {
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  color: #4a3fb0;
+}
+.pai-tag {
+  background: #e9e4fb;
+  color: #4a3fb0;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-weight: 700;
+  font-size: 11.5px;
+}
+.pai-link {
+  border: none;
+  background: none;
+  font: inherit;
+  color: #4a3fb0;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.pai-explain {
+  position: fixed;
+  z-index: 65;
+  width: 380px;
+  max-width: calc(100vw - 16px);
+  background: #f6f3ff;
+  border: 1px solid #d9d2f6;
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(30, 42, 34, 0.2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pai-foot {
+  font-size: 12px;
+  color: #6b7a70;
+}
+.pai-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #d9d2f6;
+  background: #f6f3ff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin: 0 0 14px;
+}
+.pai-skel {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #ece8fb, #f6f4fe, #ece8fb);
+  background-size: 200% 100%;
+  animation: pai-shimmer 1.2s linear infinite;
+}
+@keyframes pai-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.pai-err {
+  color: #a5321e;
+  font-size: 13px;
+}
+.pai-check {
+  border: 1px solid #dcd5f7;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+  max-width: 560px;
+}
+.pai-finding {
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13.5px;
+}
+.pai-kind {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+.pai-kind[data-kind='unclear'] {
+  background: #fcefd9;
+  color: #7a4f08;
+}
+.pai-kind[data-kind='missing'] {
+  background: #fbe7e4;
+  color: #a5321e;
+}
+.pai-kind[data-kind='unknown_link'] {
+  background: #e1eefb;
+  color: #1f5a8e;
+}
+.pai-kind[data-kind='style'] {
+  background: #e9e4fb;
+  color: #4a3fb0;
+}
+.pai-quote {
+  font-style: italic;
+  color: #3a4a3e;
+  overflow-wrap: anywhere;
+}
+.pai-diff del {
+  background: #fbe7e4;
+  color: #a5321e;
+  text-decoration: line-through;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.pai-diff ins {
+  background: #dceee1;
+  color: #1f5a31;
+  text-decoration: none;
+  border-radius: 3px;
+  padding: 0 2px;
+}

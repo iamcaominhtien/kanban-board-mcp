@@ -1,0 +1,118 @@
+"""The AI team tool: look at the board's AI members, runs, cost and approvals; wake an AI; steer a run or a member."""
+
+from typing import Annotated, Any, Literal
+
+from pydantic import Field
+
+from ..operations import ai_team as ops
+from .routing import Op, dispatch, params_of
+
+AI_TEAM_OPS: dict[str, Op] = {
+    "members": Op(ops.members, ("project_id",)),
+    "member": Op(ops.member, ("member_id",)),
+    "usage": Op(ops.usage, ("project_id",), ("range",), {"range": "span"}),
+    "runs": Op(
+        ops.runs,
+        (),
+        ("project_id", "ticket_id", "member_id", "active_only", "limit"),
+    ),
+    "run": Op(ops.run, ("run_id",), ("limit",)),
+    "approvals": Op(ops.approvals, ("project_id",), ("status", "limit")),
+    "docs_jobs": Op(ops.docs_jobs, ("project_id",), ("page_id", "limit")),
+    "ask": Op(
+        ops.ask,
+        ("member_id", "text"),
+        ("ticket_id", "page_id", "thread_id", "intent"),
+    ),
+    "cancel": Op(ops.cancel, ("run_id",), ("text",)),
+    "retry": Op(ops.retry, ("run_id",)),
+    "answer": Op(ops.answer, ("run_id", "text")),
+    "pause": Op(ops.pause, ("member_id",), ("text",)),
+    "resume": Op(ops.resume, ("member_id",)),
+    "create_member": Op(ops.create_member, ("project_id", "fields")),
+    "update_member": Op(ops.update_member, ("member_id", "fields")),
+}
+READS = {"members", "member", "usage", "runs", "run", "approvals", "docs_jobs"}
+
+
+async def ai_team(
+    action: Literal[
+        "members",
+        "member",
+        "usage",
+        "runs",
+        "run",
+        "approvals",
+        "docs_jobs",
+        "ask",
+        "cancel",
+        "retry",
+        "answer",
+        "pause",
+        "resume",
+        "create_member",
+        "update_member",
+    ],
+    project_id: Annotated[
+        str | None,
+        Field(description="members, usage, runs, approvals, docs_jobs, create_member."),
+    ] = None,
+    member_id: Annotated[
+        str | None,
+        Field(
+            description="AI member: member, ask, pause, resume, update_member, runs."
+        ),
+    ] = None,
+    ticket_id: Annotated[str | None, Field(description="ask, runs: IAM-12.")] = None,
+    page_id: Annotated[str | None, Field(description="ask in Docs, docs_jobs.")] = None,
+    thread_id: Annotated[
+        str | None, Field(description="ask in Docs: reply in this thread.")
+    ] = None,
+    run_id: Annotated[
+        str | None, Field(description="run, cancel, retry, answer.")
+    ] = None,
+    text: Annotated[
+        str | None,
+        Field(description="ask, answer: the message; cancel, pause: a reason."),
+    ] = None,
+    intent: Annotated[
+        Literal["ask", "work", "notify"] | None,
+        Field(
+            description="ask: ask (default), work (assign + work), notify (comment only)."
+        ),
+    ] = None,
+    range: Annotated[
+        Literal["today", "7d", "month"] | None,
+        Field(description="usage; default month."),
+    ] = None,
+    status: Annotated[
+        str | None, Field(description="approvals: pending, approved, denied.")
+    ] = None,
+    active_only: Annotated[
+        bool | None, Field(description="runs: only queued or running.")
+    ] = None,
+    limit: Annotated[
+        int | None,
+        Field(ge=1, le=100, description="Rows (run: steps)."),
+    ] = None,
+    fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="create/update_member: name, description, persona, template developer|reviewer|read_only, "
+            "ceiling none..review, max_parallel, max_runs_per_day, model; create: provider claude-code|antigravity|"
+            "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run."
+        ),
+    ] = None,
+) -> dict | list:
+    """The board's AI team. Read: members, member, usage, runs, run, approvals, docs_jobs. Act: ask wakes an AI (an
+    @mention in a comment posted through MCP does not); cancel, retry, answer a run; pause, resume a member;
+    create_member, update_member (never keys, folders, Bypass or a ceiling past Review). Approvals are decided in
+    the board. Acts are refused inside an AI run."""
+    from services.ai import guard
+
+    if action not in READS and await guard.resolve() is not None:
+        raise ValueError(
+            "An AI run cannot start AIs or change AI members or runs; a person does."
+        )
+    given = params_of({k: v for k, v in locals().items() if k != "guard"})
+    return await dispatch("ai_team", AI_TEAM_OPS, action, given)

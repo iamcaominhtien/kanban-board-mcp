@@ -23,6 +23,9 @@ import {
 } from './searchShared';
 import type { DocsSearchPage, DocsSearchResponse } from '../../types/docsFx';
 import { openRefCheatSheet } from './RefCheatSheet';
+import { AskPanel } from './ai/AskPanel';
+import { useDocsAiState } from '../../api/docsAi';
+import { askTabAvailable } from '../../utils/askRules';
 
 // ─── recents + hotkey (exported helpers) ──────────────────────────────────────
 
@@ -109,6 +112,10 @@ export interface SearchPaletteProps {
   /** Optional: "Filter the tree instead" in the error state. */
   onFilterTree?: (q: string) => void;
   initialQuery?: string;
+  /** Open on the Ask tab (the tree row "Ask the docs"). Ignored when Docs AI is off. */
+  mode?: 'ask';
+  /** "Draft a page from this question" in Ask. Left out, the button is hidden. */
+  onWritePage?: (question: string) => void;
 }
 
 type Row =
@@ -187,6 +194,8 @@ export function SearchPalette({
   onCreatePage,
   onFilterTree,
   initialQuery = '',
+  mode: initialMode,
+  onWritePage,
 }: SearchPaletteProps) {
   const toast = useToast();
   const online = useDocsOnline();
@@ -196,6 +205,9 @@ export function SearchPalette({
   const [sel, setSel] = useState(0);
   const [syntaxOpen, setSyntaxOpen] = useState(false);
   const [recents, setRecents] = useState<string[]>(() => getRecentSearches());
+  const docsAi = useDocsAiState(projectId);
+  const askAvailable = askTabAvailable(docsAi.data);
+  const [tab, setTab] = useState<'search' | 'ask'>(initialMode === 'ask' ? 'ask' : 'search');
   const forceOffline = false;
   const inputRef = useRef<HTMLInputElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
@@ -556,6 +568,8 @@ export function SearchPalette({
       if (flat.length) setSel((s) => (s - 1 + flat.length) % flat.length);
     } else if (e.key === 'Tab') {
       e.preventDefault();
+      // Ask is never run by switching to it: Tab only changes the tab, Enter asks
+      if (askAvailable) return setTab('ask');
       if (mode === 'ticket') return;
       nextScope(e.shiftKey ? -1 : 1);
     } else if (e.key === 'Enter') {
@@ -628,6 +642,29 @@ export function SearchPalette({
         />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        {askAvailable && (
+          <div style={{ display: 'flex', gap: 4 }} role="tablist" aria-label="Search or Ask">
+            <button
+              type="button"
+              role="tab"
+              aria-selected
+              className="dk-tabs-btn dk-tabs-btn-on"
+              style={{ padding: '4px 11px' }}
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={false}
+              className="dk-tabs-btn"
+              style={{ padding: '4px 11px' }}
+              onClick={() => setTab('ask')}
+            >
+              Ask
+            </button>
+          </div>
+        )}
         {loading && <span className="mc-spin" />}
         {!loading && modeChip(mode, hasPhrase, hasExclude, parsed.excludes.length)}
         {!loading && mode === 'plain' && !hasPhrase && !hasExclude && trimmed !== '' && !syntaxOpen && <Kbd>Esc</Kbd>}
@@ -1579,7 +1616,7 @@ export function SearchPalette({
             'Navigate',
           )}
           {hint(<Kbd>Enter</Kbd>, 'Open')}
-          {hint(<Kbd>Tab</Kbd>, 'Scope')}
+          {hint(<Kbd>Tab</Kbd>, askAvailable ? 'Ask' : 'Scope')}
           {hint(<Kbd>Esc</Kbd>, 'Close')}
         </>,
         <button
@@ -1647,6 +1684,30 @@ export function SearchPalette({
       count,
     );
   })();
+
+  if (tab === 'ask' && askAvailable) {
+    return (
+      <AskPanel
+        projectId={projectId}
+        projectName={projectName}
+        pageId={pageId}
+        initialQuestion={q}
+        onSwitchToSearch={(text) => {
+          setQ(text);
+          setDq(text);
+          setTab('search');
+        }}
+        onClose={onClose}
+        onOpenPage={onOpenPage}
+        onSearchWords={(text) => {
+          setQ(text);
+          setDq(text);
+          setTab('search');
+        }}
+        onWritePage={onWritePage}
+      />
+    );
+  }
 
   return (
     <div

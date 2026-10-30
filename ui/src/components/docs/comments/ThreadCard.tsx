@@ -5,7 +5,10 @@ import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { CommentText } from './CommentText';
 import { personOf, threadLink, type CommentPerson } from './people';
-import type { useCommentActions } from '../../../api/docsComments';
+import { useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
+import type { SuggestMember } from '../RefSuggester';
+import { aiCostLabel, aiReplyKind, canSuggestEdit, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
+import { REVIEW_PROPOSAL_EVENT } from '../../../utils/docsProposalRules';
 
 type Actions = ReturnType<typeof useCommentActions>;
 
@@ -22,8 +25,8 @@ interface Props {
   reattaching: boolean;
   onActivate: (id: string) => void;
   onReattach: (id: string | null) => void;
-  /** Look up an author's avatar. */
-  suggestMembers: { id: string; name: string; bg: string; color: string }[];
+  /** Members offered after `@` (people, and AI members while Docs AI is on). */
+  suggestMembers: SuggestMember[];
 }
 
 const FOLD_AFTER = 4;
@@ -33,7 +36,14 @@ function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
     <span
       className="dc-avatar"
       title={p.name}
-      style={{ width: size, height: size, background: p.bg, color: p.color, fontSize: size < 26 ? 10 : 11 }}
+      style={{
+        width: size,
+        height: size,
+        background: p.bg,
+        color: p.color,
+        fontSize: size < 26 ? 10 : 11,
+        borderRadius: p.ai ? Math.round(size / 4) : undefined,
+      }}
     >
       {p.initials}
     </span>
@@ -76,6 +86,9 @@ export function ThreadCard({
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLElement>(null);
   const { me, members } = data;
+  const docsAi = !!data.docsAi;
+  const ai = useThreadAiActions(thread.pageId);
+  const working = thinking(thread);
   const orphaned = thread.anchor?.state === 'orphaned';
   const resolved = thread.status === 'resolved';
 
@@ -97,10 +110,61 @@ export function ThreadCard({
     try {
       await p;
     } catch (e) {
-      const detail = (e as { response?: { data?: { detail?: { message?: string } } } }).response?.data?.detail;
-      setError(detail?.message ?? 'Something went wrong. Try again.');
+      const data = (e as { response?: { data?: { detail?: { message?: string } | string } } }).response?.data;
+      const detail = data?.detail;
+      setError((typeof detail === 'string' ? detail : detail?.message) ?? 'Something went wrong. Try again.');
     }
   };
+
+  function renderAiExtras(c: DocsCommentItem) {
+    const kind = aiReplyKind(c);
+    if (!kind || !c.ai) return null;
+    if (kind === 'proposal' && c.ai.proposalId) {
+      const id = c.ai.proposalId;
+      return (
+        <div className="dc-ai-proposal" data-testid="ai-proposal-link">
+          <span>A proposal waits for review. Nothing on the page changed.</span>
+          <button
+            type="button"
+            className="dc-plain dc-bordered"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent(REVIEW_PROPOSAL_EVENT, { detail: { proposalId: id } }));
+            }}
+          >
+            <Icon name="eye" size={13} strokeWidth={1.9} /> Review
+          </button>
+        </div>
+      );
+    }
+    if (kind !== 'answer') return null;
+    return (
+      <div className="dc-ai-chips">
+        {(c.ai.sources ?? []).map((src) => (
+          <span key={src.pageId + (src.heading ?? '')} className="dc-ai-chip" title="Read for this answer">
+            <Icon name="page" size={12} strokeWidth={1.8} /> {src.title}
+            {src.heading ? ` › ${src.heading}` : ''}
+          </span>
+        ))}
+        <span className="dc-ai-cost">{aiCostLabel(c.ai.cost)}</span>
+        <span style={{ flex: 1 }} />
+        {canSuggestEdit(c, thread, docsAi) && (
+          <button
+            type="button"
+            className="dc-ai-suggest"
+            data-testid="ai-suggest-edit"
+            disabled={ai.suggestEdit.isPending}
+            onClick={(e) => {
+              e.stopPropagation();
+              void run(ai.suggestEdit.mutateAsync({ threadId: thread.id, commentId: c.id }));
+            }}
+          >
+            <Icon name="i15" size={13} strokeWidth={1.9} /> Suggest an edit
+          </button>
+        )}
+      </div>
+    );
+  }
 
   function renderComment(c: DocsCommentItem, first: boolean) {
     const p = personOf(c.author, members, me);
@@ -131,11 +195,20 @@ export function ThreadCard({
       );
     }
     return (
-      <div key={c.id} className="dc-comment" data-testid="comment-item">
+      <div
+        key={c.id}
+        className={`dc-comment${c.ai && aiReplyKind(c) !== 'answer' && aiReplyKind(c) !== 'proposal' ? ' dc-ai-note' : ''}`}
+        data-testid="comment-item"
+      >
         <Avatar p={p} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="dc-meta">
             <b>{p.name}</b>
+            {(c.ai || p.ai) && (
+              <span className="dc-ai-badge" data-testid="ai-badge">
+                ✦ AI
+              </span>
+            )}
             <span title={absoluteTime(c.createdAt)}>{relativeTime(c.createdAt)}</span>
             {c.editedAt && (
               <span className="dc-edited" title={absoluteTime(c.editedAt)} data-testid="comment-edited">
@@ -219,6 +292,7 @@ export function ThreadCard({
             }
           </div>
           <CommentText text={c.body} mentions={c.mentions} projectId={projectId} />
+          {renderAiExtras(c)}
           {deleting === c.id && renderDelete(c, first)}
         </div>
       </div>
@@ -322,6 +396,35 @@ export function ThreadCard({
           <span>“{thread.anchor.quote}”</span>
         </div>
       )}
+      {thread.aiSummary && (
+        <div className="dc-ai-summary" data-testid="ai-thread-summary">
+          <div className="dc-ai-summary-head">Summary of {thread.aiSummary.count} comments</div>
+          <p>{thread.aiSummary.text}</p>
+          <div className="dc-ai-summary-foot">
+            {aiCostLabel(thread.aiSummary.cost)} · read all {thread.aiSummary.count} comments · it does not resolve the
+            thread
+          </div>
+        </div>
+      )}
+      {(canSummarise(thread, docsAi) || (thread.aiJobs ?? []).some((j) => j.kind === 'thread_summary')) && (
+        <button
+          type="button"
+          className="dc-fold"
+          data-testid="ai-summarise"
+          disabled={(thread.aiJobs ?? []).some((j) => j.kind === 'thread_summary') || ai.summarise.isPending}
+          onClick={(e) => {
+            e.stopPropagation();
+            void run(ai.summarise.mutateAsync(thread.id));
+          }}
+        >
+          ✦{' '}
+          {(thread.aiJobs ?? []).some((j) => j.kind === 'thread_summary')
+            ? 'Summarising…'
+            : thread.aiSummary
+              ? 'Summarise again'
+              : 'Summarise this thread'}
+        </button>
+      )}
       {hidden > 0 && (
         <button
           type="button"
@@ -337,6 +440,21 @@ export function ThreadCard({
         </button>
       )}
       {(folded ? list.slice(-1) : list).map((c) => renderComment(c, c.id === list[0].id))}
+      {working.map((w) => (
+        <div key={w.name + w.kind} className="dc-comment dc-ai-thinking" data-testid="ai-thinking" aria-live="polite">
+          <Avatar p={{ name: w.name, initials: '✦', bg: '#F1ECFB', color: '#6B4FBB', ai: true }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="dc-meta">
+              <b>{w.name}</b>
+              <span className="dc-ai-badge">✦ AI</span>
+            </div>
+            <div className="dc-ai-dots">
+              {w.kind === 'suggest_edit' ? 'Writing a suggested edit' : (w.step ?? 'Reading the page and the thread')}
+              <span>…</span>
+            </div>
+          </div>
+        </div>
+      ))}
       {orphaned && !resolved && (
         <div className="dc-orphan" data-testid="orphan-notice">
           <p>

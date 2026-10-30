@@ -28,6 +28,8 @@ from api.ai import router as ai_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
 from api.assist import assist_error_handler
+from api.docs_ai import docs_ai_error_handler
+from api.docs_ai import router as docs_ai_router
 from api.assist import router as assist_router
 from api import ai_roles
 from api.schedules import router as schedules_router
@@ -35,6 +37,10 @@ from api.schedules import schedule_error_handler
 from services.ai.assist import chat as assist_chat
 from services.ai.assist import health as assist_health
 from services.ai.assist.settings import AssistError
+from services.docs_ai import DocsAiError
+from services.docs_ai import freshness as docs_ai_freshness
+from services.docs_ai import jobs as docs_ai_jobs
+from services.docs_ai import proposals as docs_ai_proposals
 from services.ai import schedules as ai_schedules
 from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
@@ -81,13 +87,18 @@ async def lifespan(app: FastAPI):
         )
         await ai_runs.start_scheduler()
         await assist_chat.recover()
+        await docs_ai_jobs.recover()
         assist_health.start_scheduler()
+        docs_ai_freshness.start_scheduler()
         ai_schedules.start_scheduler()
+        docs_ai_proposals.start_scheduler()
         try:
             yield
         finally:
             # No CLI process outlives the board: cancel the AI runs and kill their process trees
             await assist_health.stop_scheduler()
+            await docs_ai_freshness.stop_scheduler()
+            await docs_ai_proposals.stop_scheduler()
             await ai_schedules.stop_scheduler()
             await ai_runs.stop_scheduler()
             sweeper.cancel()
@@ -184,6 +195,7 @@ app.mount("/mcp", mcp.streamable_http_app())
 app.include_router(projects_router)
 app.include_router(assist_router)
 app.add_exception_handler(AssistError, assist_error_handler)
+app.add_exception_handler(DocsAiError, docs_ai_error_handler)
 app.include_router(schedules_router)
 app.add_exception_handler(ScheduleError, schedule_error_handler)
 app.include_router(tickets_router)
@@ -193,6 +205,7 @@ app.include_router(data_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
 app.include_router(docs_router)
+app.include_router(docs_ai_router)
 app.include_router(diagrams_router)
 app.include_router(logs_router)
 app.include_router(ai_router)

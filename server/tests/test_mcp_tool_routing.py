@@ -1,4 +1,4 @@
-"""The 9 MCP tools end to end: every action is reached through `call_tool` (so the published schema is what is
+"""The MCP tools end to end: every action is reached through `call_tool` (so the published schema is what is
 validated), with the parameter checks and fix-it errors the tool descriptions promise."""
 
 import json

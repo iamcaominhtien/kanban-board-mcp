@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import type { useCommentActions } from '../../../api/docsComments';
 import type { DocsCommentsResult } from '../../../types/docs';
-import { getAvatarColors } from '../../MemberAvatar';
 import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { personOf } from './people';
 import { ThreadCard } from './ThreadCard';
+import { useCommentSuggest } from './commentAi';
 
 /**
  * Comments at the bottom of a page that are not tied to any text, oldest first, with a composer.
@@ -23,10 +23,7 @@ export function PageComments({
   actions: ReturnType<typeof useCommentActions>;
 }) {
   const threads = useMemo(() => (data?.threads ?? []).filter((t) => t.kind === 'page'), [data]);
-  const suggest = useMemo(
-    () => (data?.members ?? []).map((m) => ({ id: m.id, name: m.name, ...getAvatarColors(m.color) })),
-    [data],
-  );
+  const suggest = useCommentSuggest(data);
   if (!data) return null;
   const me = personOf(data.me, data.members, data.me);
   return (

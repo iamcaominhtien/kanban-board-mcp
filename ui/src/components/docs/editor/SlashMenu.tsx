@@ -3,7 +3,13 @@ import { Icon } from '../Icon';
 import type { MenuHost, MenuState } from './menuHost';
 import { filterSlash, type SlashCtx, type SlashItem } from './slashItems';
 
-const GROUP_LABEL = { Text: 'Text', Blocks: 'Blocks', 'Link to': 'Link to' } as const;
+const GROUP_LABEL = {
+  Text: 'Text',
+  Blocks: 'Blocks',
+  'Link to': 'Link to',
+  AI: 'AI',
+  'Docs only': 'Docs only',
+} as const;
 const HEAD: React.CSSProperties = {
   padding: '8px 10px 3px',
   fontSize: 11,
@@ -79,7 +85,8 @@ interface Props {
  * @param props.ctx - Editor context passed to the chosen item.
  */
 export function SlashMenu({ host, state, ctx }: Props) {
-  const items = useMemo(() => filterSlash(state.query), [state.query]);
+  const slashAi = ctx.ai;
+  const items = useMemo(() => filterSlash(state.query, { ai: slashAi }), [state.query, slashAi]);
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const { ref, pos } = useMenuPosition(state.rect, 380);
@@ -122,7 +129,7 @@ export function SlashMenu({ host, state, ctx }: Props) {
   }, [active]);
 
   void ctx;
-  const filtered = state.query.trim().length > 0;
+  const filtered = state.query.trim().length > 0 && state.query.trim().toLowerCase() !== 'ai';
   let lastGroup = '';
   return (
     <div

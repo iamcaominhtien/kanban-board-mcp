@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { assistApi, assistError, useAssistState, useDocDrafts } from '../../api/assist';
+import { useDocsAiState } from '../../api/docsAi';
+import { markAiAccepted } from '../../api/docsAiWrite';
 import { extractError } from '../../api/extractError';
 import type { AssistDraft } from '../../types/assist';
 import { useAssist } from './AssistContext';
 import { CostChip, DraftTag, featureBlock } from './assistUi';
 import { cleanEditorMarkdown } from '../../utils/docsMarkdown';
+import { aiGate } from '../../utils/docsAiRules';
+import type { AiSlashId } from '../docs/editor/slashItems';
+import { CheckThisPage } from '../docs/ai/CheckThisPage';
+import { DrawDiagram } from '../docs/ai/DrawDiagram';
 import './assist.css';
 
 export interface DocsAiEditor {
@@ -38,6 +44,37 @@ export function linkPhrase(md: string, phrase: string, ref: string): string {
   return md;
 }
 
+const LIST_TYPES = ['bulletList', 'orderedList', 'taskList'];
+
+/** The list the cursor is in as Markdown, else the selected text, else null ("Table from this list"). */
+export function listAtCursor(ed: Editor | null): string | null {
+  if (!ed) return null;
+  const { $from, from, to } = ed.state.selection;
+  for (let d = $from.depth; d > 0; d--) {
+    const n = $from.node(d);
+    if (LIST_TYPES.includes(n.type.name)) {
+      const lines: string[] = [];
+      n.forEach((item) => lines.push(`- ${item.textContent.trim()}`));
+      return lines.join('\n');
+    }
+  }
+  return from !== to ? ed.state.doc.textBetween(from, to, '\n') : null;
+}
+
+/** The code block the cursor is in (its text), else null ("Explain this code block"). */
+export function codeAtCursor(ed: Editor | null): string | null {
+  if (!ed) return null;
+  const { $from } = ed.state.selection;
+  return $from.parent.type.name === 'codeBlock' ? $from.parent.textContent : null;
+}
+
+const SELECTION_TAG: Record<string, string> = {
+  rewrite: 'Rewrite of the selection',
+  ask: 'Answer about the selection',
+  table: 'Table from the list',
+  explain_code: 'Explanation of the code',
+};
+
 function DraftBlock({ d, ed, onDone }: { d: AssistDraft; ed: DocsAiEditor; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +94,11 @@ function DraftBlock({ d, ed, onDone }: { d: AssistDraft; ed: DocsAiEditor; onDon
       setBusy(false);
     }
   };
-  const used = (detail: Record<string, unknown>) => assistApi.apply(d.id, { detail });
+  const used = (detail: Record<string, unknown>) => {
+    // accepting AI text marks the draft, so History shows the version "with AI" once it is published
+    if (d.docId) void markAiAccepted(d.docId);
+    return assistApi.apply(d.id, { detail });
+  };
   const discard = () => run(() => assistApi.discard(d.id));
   const copy = () => {
     void navigator.clipboard?.writeText(d.kind === 'doc_section' ? `## ${d.payload.heading}\n\n${text}` : text);
@@ -155,7 +196,7 @@ function DraftBlock({ d, ed, onDone }: { d: AssistDraft; ed: DocsAiEditor; onDon
           {isSection
             ? 'Section draft'
             : isSelection
-              ? `${d.payload.action === 'rewrite' ? 'Rewrite' : d.payload.action === 'ask' ? 'Answer' : 'Summary'} of the selection`
+              ? (SELECTION_TAG[String(d.payload.action)] ?? 'Summary of the selection')
               : 'Summary draft'}
         </DraftTag>
         <span className="ai-muted">
@@ -260,6 +301,9 @@ export function DocsAi({
   menuOpen,
   setMenuOpen,
   ed,
+  hidden,
+  command,
+  onCreateTickets,
 }: {
   projectId: string;
   pageId: string;
@@ -267,12 +311,23 @@ export function DocsAi({
   menuOpen: boolean;
   setMenuOpen: (v: boolean) => void;
   ed: DocsAiEditor;
+  /** The page is hidden from AI: the Docs-only rows are not offered. */
+  hidden?: boolean;
+  /** A row of the `/ai` slash menu that was picked (run once per `n`). */
+  command?: { id: AiSlashId; n: number } | null;
+  /** Create tickets from a list or the page (the editor screen opens the dialog). */
+  onCreateTickets?: (text: string) => void;
 }) {
   const ctx = useAssist();
   const st = useAssistState(projectId);
+  const docsAi = useDocsAiState(projectId);
+  const gate = aiGate(docsAi.data, { hidden: !!hidden });
+  const docsOn = gate.show && gate.reason === null;
   const drafts = useDocDrafts(projectId, pageId);
   const [ticketPick, setTicketPick] = useState(false);
   const [ticketId, setTicketId] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [drawing, setDrawing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const block = featureBlock(st.data, 'docs');
   const start = async (kind: 'doc_summary' | 'doc_section' | 'doc_links', data: Record<string, unknown> = {}) => {
@@ -289,6 +344,60 @@ export function DocsAi({
       setError(assistError(e)?.detail ?? extractError(e));
     }
   };
+  const fromCursor = async (action: 'table' | 'explain_code', text: string | null, missing: string) => {
+    setMenuOpen(false);
+    setError(null);
+    if (!text?.trim()) return setError(missing);
+    try {
+      await startSelectionDraft(projectId, pageId, action, text);
+      await drafts.refetch();
+    } catch (e) {
+      setError(assistError(e)?.detail ?? extractError(e));
+    }
+  };
+  /** Run a row of the AI menu or of `/ai`. */
+  const runRow = (id: AiSlashId) => {
+    const editor = ed.getEditor();
+    switch (id) {
+      case 'ask':
+        setMenuOpen(true);
+        break;
+      case 'section':
+        setMenuOpen(false);
+        setTicketPick(true);
+        break;
+      case 'links':
+        void start('doc_links');
+        break;
+      case 'summary':
+        void start('doc_summary');
+        break;
+      case 'table':
+        void fromCursor('table', listAtCursor(editor), 'Put the cursor in a list (or select it) first.');
+        break;
+      case 'explain_code':
+        void fromCursor('explain_code', codeAtCursor(editor), 'Put the cursor in a code block first.');
+        break;
+      case 'diagram':
+        setMenuOpen(false);
+        setError(null);
+        setDrawing(true);
+        break;
+      case 'tickets':
+        setMenuOpen(false);
+        onCreateTickets?.(listAtCursor(editor) ?? '');
+        break;
+      case 'check':
+        setMenuOpen(false);
+        setChecking(true);
+        break;
+    }
+  };
+  const runRowRef = useRef(runRow);
+  runRowRef.current = runRow;
+  useEffect(() => {
+    if (command) runRowRef.current(command.id);
+  }, [command]);
   const open = (drafts.data ?? []).filter((d) => ['pending', 'open', 'failed'].includes(d.status));
   return (
     <div
@@ -308,9 +417,11 @@ export function DocsAi({
               {block.reason}
             </div>
           )}
-          <button type="button" disabled={!!block} onClick={() => void start('doc_summary')}>
-            Summarise this page
-          </button>
+          {!docsOn && (
+            <button type="button" disabled={!!block} onClick={() => void start('doc_summary')}>
+              Summarise this page
+            </button>
+          )}
           <button type="button" disabled={!!block} onClick={() => setTicketPick(true)}>
             Draft a section from a ticket…
           </button>
@@ -322,11 +433,50 @@ export function DocsAi({
             disabled={!!featureBlock(st.data, 'chat') && !!block}
             onClick={() => {
               setMenuOpen(false);
-              ctx?.ask({ scope: 'doc', docId: pageId, fresh: true });
+              ctx?.ask({ scope: 'doc', docId: pageId });
             }}
           >
             Ask this page
           </button>
+          {docsOn && (
+            <>
+              <div
+                style={{
+                  padding: '8px 10px 2px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  color: '#6B5BD2',
+                }}
+              >
+                DOCS ONLY
+              </div>
+              {(
+                [
+                  ['summary', 'Summary at the top', 'A short summary block, as a draft'],
+                  ['table', 'Table from this list', 'Turns the list above into a table'],
+                  ['explain_code', 'Explain this code block', 'Plain-language notes under the code'],
+                  ['diagram', 'Draw a diagram', 'From this section, as an editable draw.io diagram'],
+                  ['tickets', 'Create tickets from this list', 'Drafts to review first'],
+                  ['check', 'Check this page', 'Unclear text, gaps, broken or unknown references'],
+                ] as [AiSlashId, string, string][]
+              ).map(([id, title, hint]) => (
+                <button
+                  key={id}
+                  type="button"
+                  data-testid={`docs-only-${id}`}
+                  disabled={id !== 'check' && id !== 'diagram' && !!block}
+                  onClick={() => runRow(id)}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+                >
+                  <span>{title}</span>
+                  <span className="ai-hint" style={{ fontWeight: 400 }}>
+                    {hint}
+                  </span>
+                </button>
+              ))}
+            </>
+          )}
           <button type="button" onClick={() => setMenuOpen(false)} style={{ color: '#9AA8A0' }}>
             Close
           </button>
@@ -360,6 +510,22 @@ export function DocsAi({
         </div>
       )}
       {error && <div className="ai-notice ai-notice-error">{error}</div>}
+      {drawing && docsOn && (
+        <DrawDiagram
+          pageId={pageId}
+          getEditor={ed.getEditor}
+          getMarkdown={ed.getMarkdown}
+          onClose={() => setDrawing(false)}
+        />
+      )}
+      {checking && docsOn && (
+        <CheckThisPage
+          pageId={pageId}
+          getMarkdown={ed.getMarkdown}
+          setMarkdown={ed.setMarkdown}
+          onClose={() => setChecking(false)}
+        />
+      )}
       {open.map((d) => (
         <DraftBlock key={`${d.id}-${d.status}`} d={d} ed={ed} onDone={() => void drafts.refetch()} />
       ))}
@@ -374,7 +540,7 @@ export function DocsAi({
 export async function startSelectionDraft(
   projectId: string,
   pageId: string,
-  action: 'summarise' | 'rewrite' | 'ask',
+  action: 'summarise' | 'rewrite' | 'ask' | 'table' | 'explain_code',
   text: string,
   question?: string,
 ) {
