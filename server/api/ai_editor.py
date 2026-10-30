@@ -51,10 +51,13 @@ async def get_editor_state(
     session: Session,
     surface: str = Query(...),
     ticket_id: Optional[str] = None,
+    idea_id: Optional[str] = None,
 ) -> dict:
     """Whether the person may use AI in this editor, the /ai menu and the selection bar for it, and the cost."""
     await _project(session, project_id)
-    return await svc_editor.state(session, project_id, surface, _by(), ticket_id)
+    return await svc_editor.state(
+        session, project_id, surface, _by(), ticket_id, idea_id
+    )
 
 
 @router.post("/projects/{project_id}/ai/editor/preview")

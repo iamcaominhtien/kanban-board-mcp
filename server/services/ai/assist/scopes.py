@@ -8,7 +8,10 @@ Built in: `ticket` and `doc`. Another feature adds its own with `register(provid
 - `info()`: the project, a title, the "Reading" chips, the starting points and the draft kinds it understands;
 - `context()`: the text the model reads (fenced as data) and what it was made of;
 - optionally `format_extra`, `validate_change()` and `apply_change()`: extra kinds of draft the chat may propose.
-  The board's own kinds (status, priority, comment, acceptance criteria…) work in every scope.
+  The board's own kinds (status, priority, comment, acceptance criteria…) work in every scope unless `core_ops` is
+  False (an idea can only receive its own kinds);
+- optionally `feature` (the usage label and switch of its chats) and `check_available()` (switches and caps of the
+  feature that owns the scope, on top of the board's).
 
 Access, privacy and cost rules are not part of a scope: the chat service applies them to every provider.
 """
@@ -56,6 +59,8 @@ class ScopeInfo:
     work: bool = False
     # Draft kinds the scope can propose beyond the board's own (idea scopes list theirs here)
     draft_kinds: list[str] = field(default_factory=list)
+    # Facts the provider keeps for its own later calls (never sent to the client)
+    extra: dict = field(default_factory=dict, repr=False)
 
     def describe(self) -> dict:
         """The scope as the API returns it."""
@@ -78,6 +83,10 @@ class ScopeProvider:
     kind: str = ""
     # Added to the chat's answer format: the extra ops of `validate_change`
     format_extra: str = ""
+    # Usage label of the scope's chats, and the feature switch they answer to; "" keeps the board's ("chat")
+    feature: str = ""
+    # May the chat propose the board's own kinds of change (status, comment…)? False: only the scope's own kinds
+    core_ops: bool = True
 
     async def info(
         self, session: AsyncSession, scope_id: str, person: str
@@ -102,6 +111,11 @@ class ScopeProvider:
     def scope_line(self, info: ScopeInfo) -> str:
         """The first line of the prompt."""
         return f"Scope: {info.title}."
+
+    async def check_available(self, session: AsyncSession, info: ScopeInfo) -> None:
+        """Switches and caps of the feature that owns the scope, checked after the board's own. Raises `AssistError`
+        (`ai_off`, `over_budget`…) when the person cannot ask now."""
+        return None
 
     def validate_change(self, raw: dict, info: ScopeInfo) -> dict | None:
         """A change of the scope's own kind as the model wrote it, checked; None to drop it."""
@@ -386,3 +400,6 @@ class DocScope(ScopeProvider):
 
 register(TicketScope())
 register(DocScope())
+
+# The idea page registers its own scope (imported last: it builds on the classes above)
+from . import idea_scope  # noqa: E402,F401

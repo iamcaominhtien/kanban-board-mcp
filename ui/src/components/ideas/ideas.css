@@ -1283,6 +1283,22 @@
   font: 13px/1.5 var(--font-body);
   color: var(--color-text-pri);
 }
+/* "Ask AI": the shared chat panel, docked where Shape with AI is (only one of them is open) */
+.is-chat-dock {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 100vw;
+  display: flex;
+  box-shadow: -10px 0 30px rgba(30, 42, 34, 0.14);
+  background: #fff;
+}
+.is-chat-dock .sc-panel {
+  width: 100%;
+}
 .is-ai-head {
   display: flex;
   align-items: center;

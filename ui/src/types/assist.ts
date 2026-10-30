@@ -167,6 +167,8 @@ export interface DraftChange {
   items?: string[];
   /** Set when the change belongs to a scope's own kind (e.g. "idea"). */
   scope?: string;
+  /** idea_assumption: how much the idea depends on it. */
+  impact?: 'low' | 'medium' | 'high';
   fromName?: string | null;
   toName?: string | null;
 }

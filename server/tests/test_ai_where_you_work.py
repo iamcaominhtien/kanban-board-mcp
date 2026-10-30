@@ -564,6 +564,9 @@ class _FakeIdeaScope(ScopeProvider):
 async def test_another_feature_can_register_a_scope_for_the_same_chat(env, fake):
     c, pid, an, m = await _setup(env)
     prov = _FakeIdeaScope(pid)
+    real = scopes.get(
+        "idea"
+    )  # the idea page registers its own; the fake stands in for it here
     scopes.register(prov)
     try:
         s = (await c.get("/ai/scopes/idea/idea-1", headers=H)).json()
@@ -594,8 +597,8 @@ async def test_another_feature_can_register_a_scope_for_the_same_chat(env, fake)
         )
         assert r.status_code == 422
     finally:
-        scopes._REGISTRY.pop("idea", None)
-    assert (await c.get("/ai/scopes/idea/idea-1", headers=H)).status_code == 422
+        scopes.register(real) if real else scopes._REGISTRY.pop("idea", None)
+    assert (await c.get("/ai/scopes/idea/idea-1", headers=H)).status_code == 404
 
 
 # --------------------------------------------------------------------------- @ in a comment

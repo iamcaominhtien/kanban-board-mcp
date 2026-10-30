@@ -2,6 +2,8 @@ import type { Editor, JSONContent, Range } from '@tiptap/core';
 import type { CalloutKind } from './constants';
 
 export interface SlashCtx {
+  /** Opens the AI menu at the cursor; undefined when the editor has no AI (the "Ask AI" item is then left out). */
+  openAi?: () => void;
   pickImage: () => void;
   newDiagram: () => void;
   newSketch: () => void;
@@ -170,6 +172,18 @@ export const SLASH_ITEMS: SlashItem[] = [
     run: callout('success'),
   },
   {
+    id: 'ai',
+    group: 'Blocks',
+    label: 'Ask AI…',
+    desc: 'Write, continue, summarise or translate',
+    kbd: '/ai',
+    tile: { text: '✦' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      ctx.openAi?.();
+    },
+  },
+  {
     id: 'image',
     group: 'Blocks',
     label: 'Image',
@@ -243,9 +257,17 @@ export const SLASH_ITEMS: SlashItem[] = [
   },
 ];
 
-/** Return the slash-menu items matching a query. */
-export function filterSlash(query: string): SlashItem[] {
+/**
+ * Return the slash-menu items matching a query. Items whose name starts with the query come first, so "/ai" offers
+ * Ask AI before "Sketch" (whose description has "paint" in it).
+ * @param query - What was typed after "/".
+ * @param withAi - False leaves out "Ask AI…" (the editor has no AI).
+ */
+export function filterSlash(query: string, withAi = true): SlashItem[] {
   const q = query.trim().toLowerCase();
-  if (!q) return SLASH_ITEMS;
-  return SLASH_ITEMS.filter((i) => `${i.label} ${i.desc} ${i.kbd ?? ''} ${i.id}`.toLowerCase().includes(q));
+  const all = withAi ? SLASH_ITEMS : SLASH_ITEMS.filter((i) => i.id !== 'ai');
+  if (!q) return all;
+  const hits = all.filter((i) => `${i.label} ${i.desc} ${i.kbd ?? ''} ${i.id}`.toLowerCase().includes(q));
+  const starts = (i: SlashItem) => i.id.startsWith(q) || i.label.toLowerCase().startsWith(q);
+  return [...hits.filter(starts), ...hits.filter((i) => !starts(i))];
 }

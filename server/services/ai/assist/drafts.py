@@ -366,8 +366,14 @@ async def _run(draft_id: str, allow_more: bool = False) -> None:
         session.add(d)
         await session.commit()
         if out:
+            feature = FEATURE_OF[d.kind]
+            if (
+                d.kind == "editor_doc"
+                and (old.get("input") or {}).get("surface") == "idea"
+            ):
+                feature = "idea_editor"  # counts toward the Idea Space's own daily cap
             await svc_settings.record_usage(
-                session, d.project_id, FEATURE_OF[d.kind], d.member_id, d.owner, out
+                session, d.project_id, feature, d.member_id, d.owner, out
             )
     await _publish()
 

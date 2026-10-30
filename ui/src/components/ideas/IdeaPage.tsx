@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useScopeState } from '../../api/assist';
 import { useDocsTree } from '../../api/docs';
 import {
   ideaRuleError,
@@ -9,6 +10,7 @@ import {
   useSetIdeaProject,
   useVote,
 } from '../../api/ideas';
+import { useIdeaAiStatus } from '../../api/ideaAi';
 import type { Project } from '../../types';
 import type { Idea, IdeaStage } from '../../types/idea';
 import { STAGE_LABELS } from '../../types/idea';
@@ -24,6 +26,7 @@ import { AiChip, Demand, ReadinessBadge, StagePill, sourceLine } from './ideaSha
 import { ProjectSelect } from './TriageDialogs';
 import { useIdeaMoves } from './useIdeaMoves';
 import { AiRailCard, ShapeButton, ShapePanel } from './IdeaAiPanel';
+import { AskAiButton, AskAiShortcut, IdeaChat } from './IdeaChat';
 
 type Tab = 'page' | 'assumptions' | 'evidence' | 'comments' | 'log' | 'workspace' | 'activity';
 
@@ -80,6 +83,8 @@ export function IdeaPage({
   const [tab, setTab] = useState<Tab>('page');
   const [menuOpen, setMenuOpen] = useState(false);
   const [shapeOpen, setShapeOpen] = useState(false);
+  // Shape with AI and Ask AI are both docked on the right: only one is open at a time
+  const [askOpen, setAskOpen] = useState(false);
   const moves = useIdeaMoves({ onPromote });
 
   useEffect(() => {
@@ -89,6 +94,7 @@ export function IdeaPage({
       ) ?? 'page',
     );
     setShapeOpen(false);
+    setAskOpen(false);
   }, [ideaId, initialTab]);
 
   if (isLoading) return <div className="is-empty">Loading the idea…</div>;
@@ -135,7 +141,22 @@ export function IdeaPage({
         <StagePill stage={idea.stage} />
         <ReadinessBadge readiness={idea.readiness} />
         <span className="is-grow" />
-        <ShapeButton projectId={idea.projectId} active={shapeOpen} onClick={() => setShapeOpen(!shapeOpen)} />
+        <AskAiButton
+          projectId={idea.projectId}
+          active={askOpen}
+          onClick={() => {
+            setShapeOpen(false);
+            setAskOpen(!askOpen);
+          }}
+        />
+        <ShapeButton
+          projectId={idea.projectId}
+          active={shapeOpen}
+          onClick={() => {
+            setAskOpen(false);
+            setShapeOpen(!shapeOpen);
+          }}
+        />
         {!closed && idea.stage !== 'building' && (
           <button type="button" className="is-btn" onClick={() => moves.request(idea, 'parked')}>
             Park
@@ -409,9 +430,23 @@ export function IdeaPage({
               </div>
             )}
           </section>
-          <AiRailCard idea={idea} onOpen={() => setShapeOpen(true)} />
+          <AiRailCard
+            idea={idea}
+            onOpen={() => {
+              setAskOpen(false);
+              setShapeOpen(true);
+            }}
+          />
         </aside>
       </div>
+      <AskAiShortcut
+        projectId={idea.projectId}
+        onToggle={() => {
+          setShapeOpen(false);
+          setAskOpen((v) => !v);
+        }}
+      />
+      {askOpen && <IdeaChat idea={idea} onClose={() => setAskOpen(false)} />}
       {shapeOpen && (
         <ShapePanel
           idea={idea}
@@ -607,6 +642,11 @@ function PageTab({
   const editor = useRef<DocsEditorHandle>(null);
   const projectId = idea.projectId ?? projects[0]?.id ?? '';
   const tree = useDocsTree(projectId);
+  // AI in the page text: the project of the idea; an idea with no project is asked from a project of the person
+  const aiStatus = useIdeaAiStatus(idea.projectId).data;
+  const aiOn = !!aiStatus && aiStatus.state !== 'off';
+  const askScope = useScopeState(aiOn && !idea.projectId ? { kind: 'idea', id: idea.id } : null);
+  const aiProjectId = aiOn ? (idea.projectId ?? askScope.data?.scope.projectId) : undefined;
   const [value, setValue] = useState(idea.body);
   const [status, setStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const latest = useRef({ value: idea.body, id: idea.id, saved: idea.body });
@@ -673,6 +713,7 @@ function PageTab({
         nodes={tree.data ?? []}
         currentPageId={idea.id}
         sketchOwnerKind="idea"
+        inlineAi={{ surface: 'idea', projectId: aiProjectId }}
         pageTitle={idea.title}
         filename={`${idea.id}.md`}
         toc={null}

@@ -599,6 +599,7 @@ export function DocsEditScreen({
                 // the editor reports changes after a short debounce: flag the draft as behind right away
                 setSaveState((s) => (s === 'saved' ? 'dirty' : s));
               }}
+              inlineAi={{ surface: 'doc', projectId }}
               ai={{
                 onAsk: () => setAiMenu((v) => !v),
                 onSelection: (action, text) => {

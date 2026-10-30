@@ -224,7 +224,7 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
   const toast = useToast();
   const diagrams = useDiagrams();
   const { openAiPage, openAiTab } = useAiBoardState();
-  const st = useEditorAiState(projectId, surface, ticketId, enabled && !!projectId);
+  const st = useEditorAiState(projectId, surface, ticketId, enabled && !!projectId, ideaId);
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
   const phaseRef = useRef<Phase>(phase);
   phaseRef.current = phase;
@@ -445,10 +445,10 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
     (title: string, text = 'Ctrl+Z takes it back.') => {
       toast.success(title, text);
       void qc.invalidateQueries({ queryKey: ['tickets'] });
-      void qc.invalidateQueries({ queryKey: editorKeys.state(projectId ?? '', surface, ticketId) });
+      void qc.invalidateQueries({ queryKey: editorKeys.state(projectId ?? '', surface, ticketId, ideaId) });
       close();
     },
-    [toast, qc, projectId, surface, ticketId, close],
+    [toast, qc, projectId, surface, ticketId, ideaId, close],
   );
 
   const accept = useCallback(
@@ -472,7 +472,7 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
             label: res.diagram.title,
             saveTo: d.diagramSaveTo,
             itemKind: d.surface === 'doc' || d.surface === 'idea' ? 'doc' : 'ticket',
-            itemId: (d.docId ?? d.ticketId) || undefined,
+            itemId: (d.docId ?? d.ideaId ?? d.ticketId) || undefined,
             onSaved: (saved) => {
               d.insertDiagramLine?.(diagramMarkdown(saved));
               void editorAiApi.accept(p.draft.id).catch(() => undefined);
@@ -610,7 +610,7 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
           projectId={projectId ?? ''}
           body={body}
           hasTicket={!!ticketId}
-          hasPage={!!docId}
+          hasPage={!!docId || !!ideaId}
           onCancel={close}
           onGenerate={(extra) => void startDraft(phase.action, body(phase.action, phase.cap, extra), phase.cap)}
         />

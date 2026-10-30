@@ -54,7 +54,7 @@ async def state(session: AsyncSession, kind: str, scope_id: str, person: str) ->
     chosen = await svc_settings.resolve_member(
         session, info.project_id, existing.member_id if existing else None, prefer
     )
-    feature = "docs" if kind in ("doc", "idea") else "chat"
+    feature = provider.feature or ("docs" if kind == "doc" else "chat")
     availability: dict = {"code": "ok"}
     profile = None
     try:
@@ -67,6 +67,7 @@ async def state(session: AsyncSession, kind: str, scope_id: str, person: str) ->
             require_member=True,
         )
         profile = got["profile"]
+        await provider.check_available(session, info)
     except AssistError as exc:
         availability = {"code": exc.code, "message": str(exc), **exc.extra}
         if exc.code == "over_budget":

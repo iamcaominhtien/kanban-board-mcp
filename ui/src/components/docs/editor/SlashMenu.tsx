@@ -79,7 +79,8 @@ interface Props {
  * @param props.ctx - Editor context passed to the chosen item.
  */
 export function SlashMenu({ host, state, ctx }: Props) {
-  const items = useMemo(() => filterSlash(state.query), [state.query]);
+  const withAi = !!ctx.openAi;
+  const items = useMemo(() => filterSlash(state.query, withAi), [state.query, withAi]);
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const { ref, pos } = useMenuPosition(state.rect, 380);

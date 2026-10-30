@@ -88,23 +88,31 @@ export interface EditorResult {
 }
 
 export const editorKeys = {
-  state: (projectId: string, surface: string, ticketId?: string | null) =>
-    ['assist', 'editor-state', projectId, surface, ticketId ?? ''] as const,
+  state: (projectId: string, surface: string, ticketId?: string | null, ideaId?: string | null) =>
+    ['assist', 'editor-state', projectId, surface, ticketId ?? '', ideaId ?? ''] as const,
 };
 
-/** Whether AI is available in this editor, plus its /ai menu and selection bar. Nothing is sent. */
+/**
+ * Whether AI is available in this editor, plus its /ai menu and selection bar. Nothing is sent.
+ * @param projectId - The project the request is booked on (an idea with no project uses a project of the person).
+ * @param surface - Where the editor is.
+ * @param ticketId - The ticket the text belongs to.
+ * @param enabled - False skips the request.
+ * @param ideaId - The idea the text belongs to: the Idea Space's own switch and cap then apply.
+ */
 export function useEditorAiState(
   projectId: string | undefined,
   surface: EditorSurface,
   ticketId?: string | null,
   enabled = true,
+  ideaId?: string | null,
 ) {
   return useQuery({
-    queryKey: editorKeys.state(projectId ?? '', surface, ticketId),
+    queryKey: editorKeys.state(projectId ?? '', surface, ticketId, ideaId),
     queryFn: async () =>
       (
         await client.get<EditorAiState>(`/projects/${projectId}/ai/editor/state`, {
-          params: { surface, ticket_id: ticketId ?? undefined },
+          params: { surface, ticket_id: ticketId ?? undefined, idea_id: ideaId ?? undefined },
         })
       ).data,
     enabled: !!projectId && enabled,

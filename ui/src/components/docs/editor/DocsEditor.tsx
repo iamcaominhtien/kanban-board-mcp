@@ -29,6 +29,8 @@ import { EditorToolbar } from './EditorToolbar';
 import { buildExtensions } from './extensions';
 import { anchorFromState, commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
 import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
+import { tiptapAdapter } from '../../ai/editor/adapters';
+import { EditorAiSelectionBar, useEditorAi } from '../../ai/editor/useEditorAi';
 import { createSuggest } from './extensions/suggest';
 import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from '../../diagrams/diagramRefs';
@@ -53,6 +55,14 @@ export interface EditorComments {
   onSelect: (threadId: string) => void;
   /** Called with the current selection when Comment (button or Ctrl+Alt+M) is used. */
   onPick: (pick: Pick) => void;
+}
+
+/** AI where you write (design/screens/ai-where-you-work.md, D): `/ai`, Ctrl+J, the selection bar and drafts over the text. */
+export interface InlineAi {
+  /** A Docs page or an idea page; the server decides what each offers. */
+  surface: 'doc' | 'idea';
+  /** The project the request is booked on. Undefined switches the helpers off (e.g. an idea with no project, yet). */
+  projectId?: string;
 }
 
 export interface DocsEditorHandle {
@@ -89,6 +99,8 @@ interface Props {
   comments?: EditorComments;
   /** Board AI: the toolbar "Ask AI" and the selection's Summarise / Rewrite / Ask AI… */
   ai?: { onAsk: () => void; onSelection: (action: 'summarise' | 'rewrite' | 'ask', text: string) => void };
+  /** AI in the text itself: the /ai command, Ctrl+J, a selection bar and drafts you accept. */
+  inlineAi?: InlineAi;
 }
 
 const EMIT_MS = 180;
@@ -125,6 +137,7 @@ const PANE_LABEL: React.CSSProperties = {
  * @param props.readOnly - Disable editing.
  * @param props.comments - Inline comments: highlights, Comment button and shortcut.
  * @param props.ai - Board AI entry points (toolbar Ask AI, selection actions).
+ * @param props.inlineAi - AI in the text: `/ai`, Ctrl+J, the selection bar and drafts (a Docs page or an idea page).
  * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
  */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
@@ -147,6 +160,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     readOnly,
     comments,
     ai,
+    inlineAi,
   },
   ref,
 ) {
@@ -259,6 +273,23 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     }
   }, []);
 
+  // AI in the text: /ai (a slash item), Ctrl+J, the selection bar. The hook is told how to read and write this editor.
+  const aiAdapter = useMemo(() => tiptapAdapter(() => editorRef.current), []);
+  const aiSurface = inlineAi?.surface ?? 'doc';
+  const textAi = useEditorAi({
+    surface: aiSurface,
+    projectId: inlineAi?.projectId,
+    docId: aiSurface === 'doc' ? currentPageId : undefined,
+    ideaId: aiSurface === 'idea' ? currentPageId : undefined,
+    adapter: aiAdapter,
+    enabled: !!inlineAi?.projectId && !readOnly,
+    insertDiagramLine: insertDiagram,
+    diagramSaveTo: `${aiSurface === 'idea' ? 'Idea' : 'Docs'} › ${pageTitle || 'Untitled'}`,
+  });
+  const textAiRef = useRef(textAi);
+  textAiRef.current = textAi;
+  const openAi = useCallback(() => window.setTimeout(() => textAiRef.current.openMenu(), 0), []);
+
   const extensions = useMemo(() => {
     const slash = createSuggest({
       name: 'slashMenu',
@@ -266,6 +297,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       host: slashHost,
       command: ({ editor, range, payload }) =>
         (payload as SlashItem).run(editor, range, {
+          openAi: textAiRef.current.available ? openAi : undefined,
           pickImage,
           newDiagram: () => starterRef.current.startNew(),
           newSketch: () => void sketchRef.current.start(),
@@ -362,7 +394,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       ref,
       bareKey,
     ];
-  }, [slashHost, refHost, keyHost, pickImage, projectId, qc, resolver]);
+  }, [slashHost, refHost, keyHost, pickImage, openAi, projectId, qc, resolver]);
 
   const emit = useCallback(() => {
     const ed = editorRef.current;
@@ -392,6 +424,13 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           live.current.onUserInput?.();
           return false;
         },
+      },
+      // Ctrl+J belongs to the editor's /ai menu while it has focus, not to the board-wide dock
+      handleKeyDown: (_view, event) => {
+        const textAiNow = textAiRef.current;
+        if (!textAiNow.available || !textAiNow.onKeyDown(event)) return false;
+        event.stopPropagation();
+        return true;
       },
       handlePaste: (_view, event) => {
         live.current.onUserInput?.();
@@ -451,6 +490,16 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   useEffect(() => {
     if (editor && !editor.isDestroyed) editor.setEditable(!readOnly);
   }, [editor, readOnly]);
+
+  // the editor says it has AI, so the board-wide Ctrl+J leaves the key to it
+  const hasTextAi = textAi.available;
+  useEffect(() => {
+    const dom = editor && !editor.isDestroyed ? (editor.view.dom as HTMLElement) : null;
+    if (!dom) return undefined;
+    if (hasTextAi) dom.setAttribute('data-ai-editor', 'true');
+    else dom.removeAttribute('data-ai-editor');
+    return () => dom.removeAttribute('data-ai-editor');
+  }, [editor, hasTextAi]);
 
   useImperativeHandle(
     ref,
@@ -664,14 +713,22 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             setLinkOpen={setLinkOpen}
             ticketPrefix={ticketPrefix}
             onComment={comments ? startComment : undefined}
-            onAi={ai?.onSelection}
+            // the selection bar of the AI layer (Improve, Shorten, Fix spelling, Explain, Ask…) replaces these three
+            onAi={hasTextAi ? undefined : ai?.onSelection}
           />
+        )}
+        {inlineAi && (
+          <>
+            {textAi.layer}
+            <EditorAiSelectionBar ai={textAi} adapter={aiAdapter} />
+          </>
         )}
         {slashState && (
           <SlashMenu
             host={slashHost}
             state={slashState}
             ctx={{
+              openAi: hasTextAi ? openAi : undefined,
               pickImage,
               newDiagram: diagramStarter.startNew,
               newSketch: () => void sketchStarter.start(),

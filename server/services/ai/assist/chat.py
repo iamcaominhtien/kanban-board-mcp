@@ -320,6 +320,9 @@ async def _member_for(session: AsyncSession, c: AiChat) -> str | None:
 
 
 def _feature(c: AiChat) -> str:
+    provider = scopes.get(c.scope)
+    if provider is not None and provider.feature:
+        return provider.feature
     return "docs" if c.scope in ("doc", "idea") else "chat"
 
 
@@ -348,9 +351,10 @@ async def send(
         raise AssistError("invalid", "Mode: ask only, or do the work.")
     if member_id is not None and member_id != c.member_id:
         c.member_id = member_id or None
+    scope_info = None
     if _scoped(c):
         provider = scopes.get(c.scope)
-        await provider.info(
+        scope_info = await provider.info(
             session, c.scope_id or "", owner
         )  # unknown or not yours: refused here
     if mode == "work":
@@ -366,6 +370,8 @@ async def send(
             member_id=await _member_for(session, c),
             require_member=_scoped(c),
         )
+        if scope_info is not None:
+            await provider.check_available(session, scope_info)
     except AssistError as exc:
         if exc.code != "over_budget":
             raise
@@ -557,6 +563,11 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 member_id=await _member_for(session, c),
                 require_member=_scoped(c),
             )
+            if _scoped(c):
+                owner_of = scopes.get(c.scope)
+                await owner_of.check_available(
+                    session, await owner_of.info(session, c.scope_id or "", c.owner)
+                )
         except AssistError as exc:
             await _set(
                 message_id,
@@ -757,7 +768,15 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         and ch.get("op") not in ("status", "priority")
     ]
     core = [ch for ch in raw_changes if ch not in own]
+    refused: list[str] = []
+    if provider is not None and not provider.core_ops:
+        # a scope that takes only its own kinds of draft (an idea): the board's kinds are not offered here
+        refused = [
+            f"Not offered here: {ch.get('op')!r}" for ch in core if isinstance(ch, dict)
+        ]
+        core = []
     changes, problems = prompts.check_changes(core, tickets_state, names)
+    problems.extend(refused)
     for ch in own:
         ok = provider.validate_change(ch, scope_info) if scope_info else None
         if ok:

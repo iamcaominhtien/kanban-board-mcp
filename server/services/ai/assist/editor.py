@@ -22,12 +22,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import database
 import services.activity as act
 import services.tickets as svc_tickets
-from models import AiDraft, AiMember, DocsPage, Ticket
+from models import AiDraft, AiMember, DocsPage, IdeaTicket, Ticket
 
 from .. import audit, llm
 from ..store import loads, now_iso
 from . import context as ctxb
-from . import cost, prompts, scopes
+from . import cost, idea_scope, prompts, scopes
 from . import drafts as svc_drafts
 from . import settings as svc_settings
 from .settings import AssistError
@@ -327,7 +327,32 @@ async def build(
                 text,
             )
         )
-    if spec["context"] == "page" and req.doc_id and req.wants("page", wants_context):
+    if (
+        spec["context"] == "page"
+        and req.surface == "idea"
+        and req.idea_id
+        and req.wants("page", wants_context)
+    ):
+        title, text = await idea_scope.editor_context(
+            session, project_id, req.idea_id, person
+        )
+        material.append(
+            f"This idea ({req.idea_id}):\n"
+            + ctxb.fence(f"idea {req.idea_id}", text[:MAX_PAGE])
+        )
+        pieces.append(
+            _piece(
+                "page",
+                f"This idea: {title} (page, assumptions, comments)",
+                text[:MAX_PAGE],
+            )
+        )
+    elif (
+        spec["context"] == "page"
+        and req.surface != "idea"
+        and req.doc_id
+        and req.wants("page", wants_context)
+    ):
         page = await session.get(DocsPage, req.doc_id)
         if page is None or page.project_id != project_id or page.deleted_at:
             raise AssistError("not_found", "Page not found in this project.")
@@ -532,6 +557,18 @@ def _diagram(value) -> dict | None:
     }
 
 
+async def _check_idea(
+    session: AsyncSession, project_id: str, idea_id: str, person: str
+) -> None:
+    """An idea page is edited with AI only where the Idea Space allows AI (its switch and daily cap), by someone who
+    belongs to the project the request is booked on. A project-less idea is booked on a project of the caller."""
+    idea = await idea_scope.load(session, idea_id)
+    if idea.project_id not in (None, project_id):
+        raise AssistError("not_found", "Idea not found in this project.")
+    await scopes.ensure_access(session, project_id, person)
+    await idea_scope.check_idea_ai(session, idea.project_id)
+
+
 def _feature(surface: str) -> str:
     return "docs" if surface in DOC_SURFACES else "drafting"
 
@@ -550,6 +587,7 @@ async def state(
     surface: str,
     person: str,
     ticket_id: str | None = None,
+    idea_id: str | None = None,
 ) -> dict:
     """What the editor shows before anyone asks: whether the person may, the /ai menu, the selection bar and the cost
     of a typical request. Nothing is sent."""
@@ -570,6 +608,8 @@ async def state(
         )
         profile = got["profile"]
         availability["member"] = got["member"].name
+        if surface == "idea" and idea_id:
+            await _check_idea(session, project_id, idea_id, person)
     except AssistError as exc:
         availability = {"code": exc.code, "message": str(exc), **exc.extra}
         profile = await session.get(AiMember, member_id) if member_id else None
@@ -630,6 +670,8 @@ async def start(
         member_id=member_id,
         require_member=True,
     )
+    if req.surface == "idea" and req.idea_id:
+        await _check_idea(session, project_id, req.idea_id, person)
     await build(
         session, project_id, req, person
     )  # refuses an unknown ticket or page before anything is written
@@ -829,6 +871,22 @@ async def accept(
             session.add(t)
             await session.commit()
         out["ticket_id"] = ticket_id
+    elif surface == "idea" and inp.get("idea_id"):
+        from services import idea_tickets
+
+        idea = await session.get(IdeaTicket, inp["idea_id"])
+        if idea is not None:
+            idea_tickets.add_trail(
+                idea,
+                f"Page edited with AI by {person}",
+                now_iso(),
+                person,
+                kind="page",
+                ai=True,
+            )
+            session.add(idea)
+            await session.commit()
+        out["idea_id"] = inp["idea_id"]
     d.status = "applied"
     d.applied_at = now_iso()
     d.applied_by = person
