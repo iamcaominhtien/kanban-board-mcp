@@ -1,6 +1,6 @@
 """Per-project Docs AI settings and who answers (Settings > Docs > AI; design/screens/docs-ai-care.md, F, G).
 
-Docs AI is off until `enabled`. The board-wide "Docs AI" feature switch (Settings > AI > Features) stays the master
+Docs AI is on until an admin turns it off (`enabled`). The board-wide "Docs AI" feature switch (Settings > AI > Features) stays the master
 switch: when it is off, Docs AI is off everywhere.
 """
 
@@ -17,12 +17,12 @@ from services.ai.store import loads, now_iso
 from .errors import DocsAiError
 
 READ_SCOPES = ("all", "except_hidden", "picked")
-EDIT_MODES = ("proposal", "draft")
+EDIT_MODES = ("direct", "proposal", "draft")
 GUIDANCE_LIMIT_RANGE = (1000, 32000)
 
 
 async def get(session: AsyncSession, project_id: str) -> DocsAiSettings:
-    """The project's Docs AI settings, created with defaults (off) on first use."""
+    """The project's Docs AI settings, created with defaults (on) on first use."""
     row = await session.get(DocsAiSettings, project_id)
     if row is None:
         row = DocsAiSettings(project_id=project_id)
@@ -233,7 +233,7 @@ async def update(
     if data.get("edits_mode") is not None:
         if data["edits_mode"] not in EDIT_MODES:
             raise DocsAiError(
-                "invalid", "Edits by AI members: proposal to review, or draft only."
+                "invalid", "Edits by AI members: made directly, a proposal to review, or a draft only."
             )
         row.edits_mode = data["edits_mode"]
     if data.get("proposal_days") is not None:

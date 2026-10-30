@@ -51,6 +51,12 @@ _STOP = frozenset(
     "when where which who whom why will with would you your about after also any been being both each more most "
     "other some such only own same too very".split()
 )
+_STOP_VI = frozenset(
+    "và của là có không được cho với các những một này đó để trong khi thì mà như về từ đã sẽ đang cũng hay hoặc nào "
+    "gì sao thế bao nhiêu ở tại bị rất lại vẫn còn nên vì nếu do bởi trên dưới ra vào lên xuống theo qua khác mỗi tất "
+    "cả làm cần phải muốn biết xin vui lòng hãy ai đâu giờ bây tôi mình bạn chúng ta họ anh chị em ạ nhé nhỉ ơi "
+    "đây kia ấy thế nào sao lúc nữa thêm chỉ mới".split()
+)
 _STEMS = ("ations", "ation", "ings", "ing", "ed", "es", "s", "e")
 _MARKER = re.compile(r"(?<!\[)\[(\d{1,2})\](?!\])")
 _JSON = re.compile(r"\{.*\}", re.DOTALL)
@@ -99,20 +105,33 @@ class Found:
 
 
 def keywords(question: str) -> list[str]:
-    """Stemmed content words of a question (stop words and one-letter noise dropped), most specific first."""
+    """Content words of a question, most specific first.
+
+    English and Vietnamese stop words are dropped; English words are stemmed (a Vietnamese word is a syllable and is
+    kept as written). A two-letter word counts only when it is written as an acronym (DB, UI, CI, QA).
+    """
+    acronyms = {a.casefold() for a in re.findall(r"(?<!\w)[A-Z0-9]{2}(?!\w)", question)}
     out: list[str] = []
     for word in re.findall(r"\w+", question.casefold(), flags=re.UNICODE):
-        if len(word) < 3 or word in _STOP:
+        if word in _STOP or word in _STOP_VI:
+            continue
+        if len(word) < 3 and word not in acronyms:
             continue
         stem = word
-        for suffix in _STEMS:
-            if stem.endswith(suffix) and len(stem) - len(suffix) >= 4:
-                stem = stem[: -len(suffix)]
-                break
+        if word.isascii():
+            for suffix in _STEMS:
+                if stem.endswith(suffix) and len(stem) - len(suffix) >= 4:
+                    stem = stem[: -len(suffix)]
+                    break
         if stem not in out:
             out.append(stem)
     out.sort(key=lambda w: -len(w))
     return out[:MAX_KEYWORDS]
+
+
+def _has(stem: str, text: str) -> bool:
+    """Whether a word that starts with `stem` is in the (casefolded) text: "use" does not match "because"."""
+    return re.search(r"(?<!\w)" + re.escape(stem), text) is not None
 
 
 def split_sections(page: DocsPage, markdown: str) -> list[Section]:
@@ -180,11 +199,11 @@ def _score(section: Section, stems: list[str]) -> float:
     )
     total = 0.0
     for stem in stems:
-        if stem in body:
+        if _has(stem, body):
             total += 1
-        if stem in head:
+        if _has(stem, head):
             total += 1.5
-        if stem in title:
+        if _has(stem, title):
             total += 1
     return total
 

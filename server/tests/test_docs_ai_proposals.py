@@ -42,12 +42,11 @@ NEW = (
 async def _setup(env, *, template="developer", enabled=True, mode="proposal"):
     ctx, pid, an, m, tid = await _ctx(env, template=template)
     c = env["c"]
-    if enabled:
-        r = await c.patch(
-            f"/projects/{pid}/docs/ai",
-            json={"enabled": True, "member_id": m["id"], "edits_mode": mode},
-        )
-        assert r.status_code == 200, r.text
+    r = await c.patch(
+        f"/projects/{pid}/docs/ai",
+        json={"enabled": enabled, "member_id": m["id"], "edits_mode": mode},
+    )
+    assert r.status_code == 200, r.text
     p = await page(c, pid, "API", TEXT)
     return c, ctx, pid, m, tid, p
 
@@ -131,6 +130,27 @@ async def test_docs_ai_off_keeps_the_old_behaviour(env):
     assert (await _published(c, p["id"]))["markdown"] == NEW
     async with database.async_session() as s:
         assert (await s.exec(select(DocsAiProposal))).all() == []
+
+
+async def test_direct_mode_is_the_default_and_the_ai_edit_is_made(env):
+    c, ctx, pid, m, tid, p = await _setup(env, template="custom", mode="direct")
+    out = await _ai_update(ctx, p["id"])
+    assert out["published"] is True and out["version"] == 2
+    cur = await _published(c, p["id"])
+    assert cur["markdown"] == NEW
+    versions = (await c.get(f"/docs/pages/{p['id']}/versions", headers=H)).json()
+    assert [v["with_ai"] for v in versions if v["version"] == 2] == [True]
+    async with database.async_session() as s:
+        assert (await s.exec(select(DocsAiProposal))).all() == []
+
+
+async def test_direct_mode_still_refuses_a_page_hidden_from_ai(env):
+    c, ctx, pid, m, tid, p = await _setup(env, template="custom", mode="direct")
+    await c.patch(f"/docs/pages/{p['id']}/ai", json={"hidden": True}, headers=H)
+    with pytest.raises(Exception) as exc:
+        await _ai_update(ctx, p["id"])
+    assert "hidden from AI" in str(exc.value)
+    assert (await _published(c, p["id"]))["markdown"] == TEXT
 
 
 async def test_draft_mode_saves_a_private_draft_for_the_person(env):

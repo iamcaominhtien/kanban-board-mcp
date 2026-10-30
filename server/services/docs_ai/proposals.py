@@ -905,8 +905,18 @@ async def docs_ai_on(session: AsyncSession, project_id: str) -> bool:
     return bool(row.enabled and await svc_settings.master_on(session))
 
 
+async def holds_ai_edits(session: AsyncSession, project_id: str) -> bool:
+    """Whether an AI member's page edit is held back (a proposal or a private draft) instead of made directly."""
+    if not await docs_ai_on(session, project_id):
+        return False
+    return (await svc_settings.get(session, project_id)).edits_mode != "direct"
+
+
 async def intercept(ctx, action: str, params: dict[str, Any]) -> dict[str, Any] | None:
-    """Turn an AI run's page edit into a proposal (or a private draft) when Docs AI is on for the page's project.
+    """Turn an AI run's page edit into a proposal (or a private draft) when Docs AI holds AI edits for the page's project.
+
+    With edits "direct" (the default) the edit is made as the AI member's permissions allow, like any other change;
+    only a page hidden from AI is refused.
 
     Returns the tool result for the AI, or None when the call goes on as before (Docs AI off, another action, an
     unknown page). Raises `AiActionError` when the edit is refused (Ask run, blocked, hidden page, approvals full).
@@ -937,6 +947,16 @@ async def intercept(ctx, action: str, params: dict[str, Any]) -> dict[str, Any] 
             "op": action,
             "request": {k: v for k, v in params.items() if k != "markdown"},
         }
+        if not await holds_ai_edits(session, page.project_id):
+            if not await access.ai_can_read(session, page):
+                raise await guard._refuse(
+                    ctx,
+                    "edit_docs",
+                    page.id,
+                    detail,
+                    "This page is hidden from AI, so AI members cannot change it.",
+                )
+            return None
         if action in REFUSED_ACTIONS:
             raise await guard._refuse(
                 ctx, "edit_docs", page.id, detail, REFUSED_ACTIONS[action]

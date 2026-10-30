@@ -9,13 +9,32 @@ from services.ai import guard
 from tests.docs_ai_helpers import H, env, fake, page, setup  # noqa: F401
 
 
-async def test_a_page_an_ai_member_creates_is_never_published(env):
+async def test_a_page_an_ai_member_creates_is_published_by_default(env):
     from kanban_mcp.tools import docs_write
     from tests.test_ai import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env, template="custom")
     c = env["c"]
-    await c.patch(f"/projects/{pid}/docs/ai", json={"enabled": True})
+    assert (await c.get(f"/projects/{pid}/docs/ai")).json()["edits_mode"] == "direct"
+    tokens = guard.enter(ctx)
+    try:
+        out = await docs_write(
+            action="create", project_id=pid, title="From the AI", markdown="Text"
+        )
+    finally:
+        guard.leave(tokens)
+    assert out["version"] == 1
+
+
+async def test_a_page_an_ai_member_creates_stays_a_draft_when_edits_are_held(env):
+    from kanban_mcp.tools import docs_write
+    from tests.test_ai import _ctx
+
+    ctx, pid, an, m, tid = await _ctx(env, template="custom")
+    c = env["c"]
+    await c.patch(
+        f"/projects/{pid}/docs/ai", json={"enabled": True, "edits_mode": "proposal"}
+    )
     tokens = guard.enter(ctx)
     try:
         out = await docs_write(

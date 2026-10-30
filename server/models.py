@@ -382,12 +382,12 @@ class DocsCommentEvent(SQLModel, table=True):
 
 
 class DocsAiSettings(SQLModel, table=True):
-    """Per-project Docs AI settings. Docs AI is off until `enabled` (Settings > Docs > AI)."""
+    """Per-project Docs AI settings. Docs AI is on by default; an admin can turn it off (Settings > Docs > AI)."""
 
     __tablename__ = "docs_ai_settings"
 
     project_id: str = Field(foreign_key="project.id", primary_key=True)
-    enabled: bool = Field(default=False)
+    enabled: bool = Field(default=True)
     member_id: Optional[str] = Field(
         default=None
     )  # the AI member that answers and checks
@@ -395,8 +395,8 @@ class DocsAiSettings(SQLModel, table=True):
     picked_pages: str = Field(default="[]")  # JSON page ids, for read_scope "picked"
     style_page_id: Optional[str] = Field(default=None)
     edits_mode: str = Field(
-        default="proposal"
-    )  # proposal | draft: what an AI member's page edit becomes
+        default="direct"
+    )  # direct | proposal | draft: what an AI member's page edit becomes (direct: the edit is made)
     proposal_days: int = Field(default=7)
     freshness_on: bool = Field(default=True)
     guidance_limit: int = Field(

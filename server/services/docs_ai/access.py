@@ -2,7 +2,8 @@
 through (design/screens/docs-ai-care.md, F and H).
 
 Rules: a page hidden from AI is never read by any AI; a page in the Recycle Bin is never read; "only picked" limits the
-space to the picked pages; a page the Board AI's data scope marks private (`excluded_docs`) stays private. Draft text
+space to the picked pages. A page the Board AI chat's data scope marks private (`excluded_docs`) is a rule of that chat
+alone: Docs AI, AI runs and MCP read it. Draft text
 is never read: AI reads the published text, and only a page's own author-drafts are ever given to it on purpose by the
 feature that asks for them (Check this page reads the draft the person is editing).
 """
@@ -11,14 +12,13 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import DocsPage, DocsVersion
-from services.ai.assist import settings as assist
 from services.ai.assist.context import doc_text
 
 from . import settings as svc_settings
 
 
 async def _blocked_ids(session: AsyncSession, project_id: str) -> set[str]:
-    """Pages no AI may read in this project (hidden, or private in the Board AI's data scope)."""
+    """Pages no AI may read in this project (hidden from AI)."""
     hidden = (
         await session.exec(
             select(DocsPage.id).where(
@@ -27,7 +27,7 @@ async def _blocked_ids(session: AsyncSession, project_id: str) -> set[str]:
             )
         )
     ).all()
-    return set(hidden) | assist.excluded_docs(await assist.get(session))
+    return set(hidden)
 
 
 async def ai_can_read(session: AsyncSession, page: DocsPage) -> bool:
@@ -63,7 +63,7 @@ async def readable_pages(
 
 async def denied_page_ids(session: AsyncSession, project_id: str) -> set[str]:
     """Pages Docs AI settings keep every AI away from: hidden pages and, for "only picked", every page not picked.
-    Unlike a private doc (`excluded_docs`), a person cannot include one of these for a single chat."""
+    A person cannot include one of these for a single chat."""
     row = await svc_settings.get(session, project_id)
     pages = (
         await session.exec(

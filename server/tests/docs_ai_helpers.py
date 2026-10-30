@@ -1,5 +1,5 @@
 """Shared fixtures for the Docs AI tests: a project with an AI member that answers through a fake model, Docs AI
-switched on, and published pages. Import `env`, `fake` and the helpers; see test_docs_ai_foundation.py."""
+switched on (or off), and published pages. Import `env`, `fake` and the helpers; see test_docs_ai_foundation.py."""
 
 import pytest
 
@@ -26,12 +26,11 @@ async def setup(env, *, enabled=True, name="Reviewer"):
     c = env["c"]
     pid, _an = await _project(c)
     member = await _runner(c, pid, env["repo"], name=name)
-    if enabled:
-        r = await c.patch(
-            f"/projects/{pid}/docs/ai",
-            json={"enabled": True, "member_id": member["id"]},
-        )
-        assert r.status_code == 200, r.text
+    r = await c.patch(
+        f"/projects/{pid}/docs/ai",
+        json={"enabled": enabled, "member_id": member["id"]},
+    )
+    assert r.status_code == 200, r.text
     return c, pid, member
 
 

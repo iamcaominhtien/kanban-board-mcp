@@ -594,3 +594,52 @@ async def test_all_my_projects_reads_each_through_its_own_access(env, fake):
         and "vault" not in prompt
     )
     assert job["result"]["citations"][0]["project_id"] == other["id"]
+
+
+def test_keywords_drop_english_and_vietnamese_filler_and_keep_acronyms():
+    from services.docs_ai import ask as svc_ask
+
+    # filler words and one-syllable words written in lower case are dropped
+    assert set(svc_ask.keywords("Làm thế nào để đăng nhập vào hệ thống?")) == {
+        "đăng",
+        "nhập",
+        "thống",
+    }
+    assert "db" in svc_ask.keywords("Where is the DB password stored?")
+    assert "db" not in svc_ask.keywords("where is it db")  # not written as an acronym
+    assert set(svc_ask.keywords("How do tokens rotate?")) == {"token", "rotat"}
+
+
+def test_a_stem_matches_the_start_of_a_word_not_the_middle_of_one():
+    from services.docs_ai import ask as svc_ask
+
+    assert svc_ask._has("rotat", "tokens can be rotated")
+    assert not svc_ask._has("use", "because of the weather")
+    assert svc_ask._has("đăng", "cách đăng nhập")
+
+
+async def test_ask_finds_an_answer_in_a_vietnamese_page(env, fake):
+    c, pid, member = await setup(env)
+    p = await page(
+        c,
+        pid,
+        "Đăng nhập",
+        "## Quên mật khẩu\n\nBấm vào liên kết Quên mật khẩu, hệ thống gửi thư đặt lại trong vòng 15 phút.",
+    )
+    fake.queue.append(
+        reply(
+            answer="Thư đặt lại được gửi trong 15 phút [1].",
+            citations=[
+                {
+                    "n": 1,
+                    "page_id": "$Đăng nhập",
+                    "heading": "Quên mật khẩu",
+                    "quote": "gửi thư đặt lại trong vòng 15 phút",
+                }
+            ],
+            verdict="answer",
+        )
+    )
+    job = await ask(c, pid, "Sau bao lâu thì nhận được thư đặt lại mật khẩu?")
+    result = job["result"]
+    assert result["verdict"] == "answer" and result["citations"][0]["page_id"] == p["id"]

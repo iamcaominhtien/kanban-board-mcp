@@ -44,12 +44,12 @@ def upgrade() -> None:
     op.create_table(
         "docs_ai_settings",
         sa.Column("project_id", _S(), nullable=False),
-        _bool("enabled"),
+        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("member_id", _S(), nullable=True),
         sa.Column("read_scope", _S(), nullable=False, server_default="except_hidden"),
         sa.Column("picked_pages", _S(), nullable=False, server_default="[]"),
         sa.Column("style_page_id", _S(), nullable=True),
-        sa.Column("edits_mode", _S(), nullable=False, server_default="proposal"),
+        sa.Column("edits_mode", _S(), nullable=False, server_default="direct"),
         sa.Column("proposal_days", sa.Integer(), nullable=False, server_default="7"),
         sa.Column(
             "freshness_on", sa.Boolean(), nullable=False, server_default=sa.true()

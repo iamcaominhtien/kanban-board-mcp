@@ -9,8 +9,10 @@ from services.docs_ai import settings as svc_settings
 from tests.docs_ai_helpers import H, env, fake, page, setup  # noqa: F401
 
 
-async def test_docs_ai_is_off_until_an_admin_turns_it_on(env):
-    c, pid, member = await setup(env, enabled=False)
+async def test_docs_ai_is_on_by_default_and_an_admin_can_turn_it_off(env):
+    c, pid, member = await setup(env)
+    r = await c.patch(f"/projects/{pid}/docs/ai", json={"enabled": False})
+    assert r.status_code == 200
     d = (await c.get(f"/projects/{pid}/docs/ai")).json()
     assert d["enabled"] is False and d["state"] == "off"
     assert any(x["id"] == member["id"] for x in d["candidates"])
@@ -273,3 +275,13 @@ async def test_the_board_ai_chat_context_skips_hidden_pages(env, fake):
         )
     assert "visible" in built.text and "never" not in built.text
     assert [x["title"] for x in built.private_skipped] == ["Secret"]
+
+
+async def test_a_page_private_to_the_board_ai_chat_is_still_read_by_docs_ai(env):
+    c, pid, member = await setup(env)
+    a = await page(c, pid, "Private notes", "text")
+    await c.patch(f"/projects/{pid}/ai/assist", json={"excluded_docs": [a["id"]]})
+    async with database.async_session() as s:
+        page_row = await s.get(DocsPage, a["id"])
+        assert await access.ai_can_read(s, page_row)
+        assert a["id"] in [p.id for p in await access.readable_pages(s, pid)]

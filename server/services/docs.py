@@ -943,7 +943,7 @@ async def _commit_version(
             author=author,
             note=(note or "").strip() or None,
             diagram_versions=await diagrams.pin_versions(session, markdown),
-            with_ai=bool(draft is not None and draft.ai_source),
+            with_ai=bool(draft is not None and draft.ai_source) or _ai_acting(),
         )
     )
     if draft is not None:
@@ -1468,6 +1468,13 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
         if new_target != link.target_page_id:
             link.target_page_id = new_target
             session.add(link)
+
+
+def _ai_acting() -> bool:
+    """Whether an AI run makes the change (its version shows the "with AI" mark)."""
+    from services.ai import guard
+
+    return guard.current() is not None
 
 
 def _json_or_none(raw: str | None) -> Any:
