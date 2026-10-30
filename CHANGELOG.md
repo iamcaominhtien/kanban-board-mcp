@@ -28,6 +28,20 @@ The desktop menu bar and the user and administrator guide ([#207](https://github
 - The privacy chapter is marked "to confirm" and is left out of release builds of the guide until what each AI feature puts in a prompt is checked against the code. The guide states 12 MCP tools (the code's count), not the 11 of the design.
 - The menu was tested as data per platform; it has not been run in a packaged app on macOS or Windows yet.
 
+## [3.14.1] - 2026-10-30
+
+Hotfix for Board AI, Docs AI and AI comments on Windows, and a switch for the "Changed in vN" markers in Docs.
+
+### Fixed
+- **Board AI chat, Docs AI (Ask, Ask on a selection), AI comments on a ticket and ticket runs failed on Windows** with "The command line is too long" (exit 1), `[WinError 206] The filename or extension is too long`, or "Exit code 0." with no answer. The CLI got the prompt and the system prompt as command-line arguments: a long ticket or chat went over cmd.exe's 8191 and Windows' 32767 characters, and cmd.exe (the `claude.cmd` shim) cut a multi-line prompt at its first line break. Past a size limit, and always behind a `.cmd` or `.bat` shim, the prompt now goes to the CLI by stdin and the system prompt by `--system-prompt-file` / `--append-system-prompt-file` (a temporary file, removed when the CLI ends). Short commands elsewhere are unchanged.
+- **Docs: the green "Changed in vN" and "Proposed by" bars sat on the bullets of list items**; they are now drawn left of the bullets.
+
+### Added
+- **Docs: a switch for the change markers.** An eye button in the "Changes since you last viewed" banner hides or shows the green bars and "Changed in vN" labels in the page (a slashed eye means hidden). The choice is kept in the browser for every page; the banner and "Show changes" stay.
+
+### Changed
+- **README**: a release badge and a `releases/latest` download link replace the fixed `v1.4.5` link and the out-of-date platform status, so the README no longer needs an edit for each release. The release instructions drop their README step.
+
 ## [3.14.0] - 2026-10-30
 
 The new Idea Space, the Sketch tool and AI where you work ([#203](https://github.com/iamcaominhtien/kanban-board-mcp/issues/203)). Docs: `docs/specs/idea-space.md`, `docs/specs/sketch-tool.md`, `docs/specs/ai-where-you-work.md`.

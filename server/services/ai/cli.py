@@ -12,6 +12,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -115,7 +116,7 @@ async def run_capture(
     )
     try:
         out, err = await asyncio.wait_for(proc.communicate(), timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         kill_tree(proc.pid)
         await proc.wait()
         return -1, "", f"Timed out after {int(timeout)} s"
@@ -139,7 +140,7 @@ async def detect(provider: str, binary: str, explicit: str | None = None) -> dic
     }
     if not path:
         return info
-    code, out, err = await run_capture([path, "--version"], 20)
+    code, out, _ = await run_capture([path, "--version"], 20)
     if code == 0:
         info["version"] = out.strip().split("\n")[0][:80]
     if provider == "claude-code":
@@ -207,7 +208,8 @@ async def test_run(path: str, model: str | None, cwd: str | None) -> dict:
 
 
 _RATE_LIMITED = re.compile(
-    r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests)", re.I
+    r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests)",
+    re.IGNORECASE,
 )
 RATE_WAIT_DEFAULT = 45.0
 RATE_WAIT_MAX = 6 * 3600.0
@@ -222,7 +224,7 @@ def rate_limit_wait(text: str | None) -> float | None:
     if reset:
         wait = int(reset.group(1)) - time.time()
     else:
-        after = re.search(r"retry[- ]after\D{0,10}(\d+)", text, re.I)
+        after = re.search(r"retry[- ]after\D{0,10}(\d+)", text, re.IGNORECASE)
         wait = float(after.group(1)) if after else RATE_WAIT_DEFAULT
     return max(5.0, min(wait, RATE_WAIT_MAX))
 
@@ -316,6 +318,63 @@ def looks_like_cli(pid: int, binary: str = "claude") -> bool:
     return binary in cmd and "--output-format" in cmd
 
 
+# Windows runs the CLI through its `claude.cmd` shim, and cmd.exe refuses a command line over 8191 characters
+# ("The command line is too long", exit 1); CreateProcess itself stops at 32767 (WinError 206). Linux and macOS
+# cap one argument at 128 KB. A long ticket or chat history in the prompt or system prompt goes over, so past
+# these sizes they travel by stdin and a file instead. Through that shim they always do: cmd.exe cuts an argument at
+# its first line break (the CLI then exits 0 without an answer) and reads `&`, `|` and `%` in it as commands.
+_MAX_COMMAND_CHARS = 6000 if sys.platform == "win32" else 100_000
+
+# flag -> the flag that takes the same text from a file
+_FILE_FLAGS = {
+    "--system-prompt": "--system-prompt-file",
+    "--append-system-prompt": "--append-system-prompt-file",
+}
+
+
+def _through_cmd_exe(args: list[str]) -> bool:
+    """Whether Windows starts this command through cmd.exe (a `.cmd` or `.bat` shim such as npm's claude.cmd)."""
+    return (
+        sys.platform == "win32"
+        and bool(args)
+        and args[0].lower().endswith((".cmd", ".bat"))
+    )
+
+
+def spill_long_args(args: list[str]) -> tuple[list[str], str | None, str | None]:
+    """Move a long prompt and system prompt off the command line.
+
+    Returns:
+        (args to run, text for stdin or None, temp folder holding the system prompt file or None). Short commands come
+        back unchanged, except behind a Windows `.cmd` shim. `-p <text>` becomes a bare `-p` (the CLI then reads the prompt from stdin); `--system-prompt
+        <text>` becomes `--system-prompt-file <path>`.
+    """
+    if (
+        not _through_cmd_exe(args)
+        and len(subprocess.list2cmdline(args)) <= _MAX_COMMAND_CHARS
+    ):
+        return args, None, None
+    out = list(args)
+    stdin_text: str | None = None
+    folder: str | None = None
+    for flag, file_flag in (("-p", None), *_FILE_FLAGS.items()):
+        if flag not in out or out.index(flag) + 1 >= len(out):
+            continue
+        i = out.index(flag)
+        text = out[i + 1]
+        if file_flag is None:
+            stdin_text = text
+            del out[i + 1]
+            continue
+        if folder is None:
+            folder = tempfile.mkdtemp(prefix="kanban-cli-")
+        path = os.path.join(folder, flag.lstrip("-") + ".txt")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        out[i : i + 2] = [file_flag, path]
+    return out, stdin_text, folder
+
+
 class CliProcess:
     """One running CLI: yields its stdout lines; `kill()` stops the whole tree."""
 
@@ -326,21 +385,42 @@ class CliProcess:
         self.env = env or child_env()
         self.proc: asyncio.subprocess.Process | None = None
         self.stderr_tail: list[str] = []
+        self._temp: str | None = None
 
     async def start(self) -> int:
         """Launch; returns the pid."""
-        self.proc = await asyncio.create_subprocess_exec(
-            *self.args,
-            cwd=self.cwd,
-            stdin=asyncio.subprocess.DEVNULL,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=self.env,
-            limit=16 * 1024 * 1024,
-            **_popen_kwargs(),
-        )
+        args, stdin_text, self._temp = spill_long_args(self.args)
+        try:
+            self.proc = await asyncio.create_subprocess_exec(
+                *args,
+                cwd=self.cwd,
+                stdin=asyncio.subprocess.DEVNULL
+                if stdin_text is None
+                else asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=self.env,
+                limit=16 * 1024 * 1024,
+                **_popen_kwargs(),
+            )
+        except BaseException:
+            self._cleanup()
+            raise
+        if stdin_text is not None and self.proc.stdin:
+            self.proc.stdin.write(stdin_text.encode("utf-8"))
+            try:
+                await self.proc.stdin.drain()
+                self.proc.stdin.close()
+            except (ConnectionError, OSError):
+                pass  # the CLI already exited; its exit code and stderr say why
         asyncio.create_task(self._drain_stderr())
         return self.proc.pid
+
+    def _cleanup(self) -> None:
+        """Remove the temp folder of a spilled system prompt."""
+        if self._temp:
+            shutil.rmtree(self._temp, ignore_errors=True)
+            self._temp = None
 
     async def _drain_stderr(self) -> None:
         assert self.proc and self.proc.stderr
@@ -358,12 +438,16 @@ class CliProcess:
     async def wait(self) -> int:
         """Exit code."""
         assert self.proc
-        return await self.proc.wait()
+        try:
+            return await self.proc.wait()
+        finally:
+            self._cleanup()
 
     def kill(self) -> None:
         """Stop the CLI and its children."""
         if self.proc and self.proc.returncode is None:
             kill_tree(self.proc.pid)
+        self._cleanup()
 
 
 # ---------------------------------------------------------------------------
@@ -420,9 +504,9 @@ def describe_tool(name: str, inp: dict, cwd: str) -> tuple[str, str, dict | None
     return "tool", f"{name} {_short(json.dumps(inp)[:200], 80)}", None
 
 
-_PASSED = re.compile(r"\b(\d+) (?:passed|passing)\b", re.I)
-_FAILED = re.compile(r"\b(\d+) (?:failed|failing)\b", re.I)
-_FAILING_NAME = re.compile(r"^(?:FAILED|FAIL|✗|×)\s+(\S.{0,120})$", re.M)
+_PASSED = re.compile(r"\b(\d+) (?:passed|passing)\b", re.IGNORECASE)
+_FAILED = re.compile(r"\b(\d+) (?:failed|failing)\b", re.IGNORECASE)
+_FAILING_NAME = re.compile(r"^(?:FAILED|FAIL|✗|×)\s+(\S.{0,120})$", re.MULTILINE)
 
 
 def parse_tests(output: str) -> dict | None:
