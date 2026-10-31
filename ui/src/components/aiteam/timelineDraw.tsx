@@ -198,6 +198,8 @@ export interface DrawProps {
   /** Kinds hidden by the Show filter. */
   hidden: ReadonlySet<string>;
   ticketOf: (id: string | null | undefined) => string;
+  /** One ticket on show: bars say "run 3" and arrows leave the ticket out, as in the design */
+  scoped?: boolean;
   /** Ids of runs and arrows that just arrived: they are drawn in, once. */
   fresh?: ReadonlySet<string>;
 }
@@ -367,7 +369,8 @@ export function TimelineGutter({ axis }: { axis: Axis }) {
 
 /** The diagram: pauses, lifelines, folds, waits, runs, arrows, your marks, Docs nodes and the now line. */
 export function TimelineBody(props: DrawProps) {
-  const { data, axis, lifelines, now, detailed, selected, onPick, onHover, hidden, ticketOf } = props;
+  const { data, axis, lifelines, now, detailed, selected, onPick, onHover, hidden } = props;
+  const ticketOf = props.scoped ? () => '' : props.ticketOf;
   const fresh = props.fresh ?? new Set<string>();
   const motion = { left: MOTION_BUDGET };
   const may = () => motion.left-- > 0;
@@ -502,29 +505,23 @@ export function TimelineBody(props: DrawProps) {
         />
       ))}
       {axis.breaks.map((b) => {
-        const bw = Math.min(W - 40, 560);
-        const cxm = W / 2;
+        // the pill is as wide as its words and sits in the middle of the lanes, with the zigzag running out on both sides
+        const bw = Math.min(W - 12, Math.max(150, b.label.length * 6.4 + 34));
+        const px = (W - bw) / 2;
+        const zy = TOP + b.y + 20;
         return (
           <g key={`br-${b.from}`} data-testid="tl-break">
             <rect x={0} y={TOP + b.y} width={W} height={b.h} fill={b.paused ? 'rgba(180,87,31,0.06)' : '#FBFCFB'} />
-            <polyline points={zigzag(0, W, TOP + b.y + b.h - 6)} fill="none" stroke="#D5DED8" />
-            <rect
-              x={cxm - bw / 2 + 120}
-              y={TOP + b.y + 9}
-              width={Math.max(bw - 240, 190)}
-              height={22}
-              rx={11}
-              fill="#fff"
-              stroke="#D5DED8"
-            />
+            {px > 10 && <polyline points={zigzag(0, px - 4, zy)} fill="none" stroke="#D5DED8" />}
+            {px > 10 && <polyline points={zigzag(px + bw + 4, W, zy)} fill="none" stroke="#D5DED8" />}
+            <rect x={px} y={TOP + b.y + 9} width={bw} height={22} rx={11} fill="#fff" stroke="#D5DED8" />
             <text
-              x={cxm + 120 - 0}
-              y={TOP + b.y + 24}
+              x={W / 2}
+              y={zy + 4}
               fontSize={11}
               fontWeight={600}
               fill={b.paused ? PAUSE_COLOR : '#5B6B60'}
               textAnchor="middle"
-              style={{ transform: 'translateX(0)' }}
             >
               {b.label}
             </text>
@@ -569,7 +566,7 @@ export function TimelineBody(props: DrawProps) {
         const top = queued ? qy : sy;
         const bottom = queued ? TOP + axis.y(now) : Math.max(ey, top + 6);
         const failed = b.endKind === 'failed' || b.endKind === 'memory';
-        const label = `${ticketOf(b.ticketId)} · run ${b.number}`;
+        const label = `${props.ticketOf(b.ticketId)} · run ${b.number}`;
         return (
           <g
             key={b.id}
@@ -649,7 +646,7 @@ export function TimelineBody(props: DrawProps) {
                 textAnchor={lanes.get(b.memberId)?.get(b.id) ? 'end' : 'start'}
                 className="tl-halo"
               >
-                {ticketOf(b.ticketId)}
+                {props.scoped ? `run ${b.number}` : ticketOf(b.ticketId)}
               </text>
             )}
             {detailed && b.steps > 0 && !queued && <StepTicks b={b} x={x + w} top={top} bottom={bottom} />}
@@ -1068,7 +1065,7 @@ export function arrowLabel(
     case 'returned':
       return { text: 'returned, round 1', important: false };
     case 'ask':
-      return { text: `question on ${ticketOf(a.ticketId)}`, important: true };
+      return { text: ticketOf(a.ticketId) ? `question on ${ticketOf(a.ticketId)}` : 'question', important: true };
     case 'perm':
       return { text: a.label ?? 'needs a permission', important: false };
     case 'auto':

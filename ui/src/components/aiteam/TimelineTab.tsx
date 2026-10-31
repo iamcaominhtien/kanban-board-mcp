@@ -536,6 +536,7 @@ export function TimelineTab({
                 onHover={(p, at) => setHover(p && at ? { pick: p, x: at.x, y: at.y } : null)}
                 hidden={hidden}
                 ticketOf={ticketOf}
+                scoped={!!scope}
                 fresh={fresh}
               />
             </div>
