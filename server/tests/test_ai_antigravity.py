@@ -179,7 +179,14 @@ async def test_a_question_runs_in_a_scratch_workspace_with_the_board_endpoint(ag
     )
     assert {"mcp(kanban/*)", "write_file(*)", "command(*)"} <= set(perms["deny"])
     # a scratch folder holds the endpoint with this run's token; the work folder is untouched and the scratch is gone
-    assert call["cwd"] != repo and not Path(call["cwd"]).exists()
+    assert call["cwd"] != repo
+    for _ in range(
+        100
+    ):  # the run is marked finished just before its scratch folder is removed
+        if not Path(call["cwd"]).exists():
+            break
+        await asyncio.sleep(0.1)
+    assert not Path(call["cwd"]).exists()
     assert not (Path(repo) / ".agents").exists()
     board = call["mcp"]["mcpServers"]["board"]
     assert board["url"].endswith("/mcp/") and board["headers"][
