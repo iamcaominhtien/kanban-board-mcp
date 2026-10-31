@@ -6,6 +6,7 @@ import { extractError } from '../../api/extractError';
 import type { Timeline, TimelineBar, TimelineLifeline, TimelineRange } from '../../types/aiTeam';
 import { useToast } from '../Toast';
 import { PAUSE_COLOR, PauseGlyph, clockTime } from '../ai/pausedUi';
+import { AUTO_RESTARTS, fmtMb } from './resourcesFormat';
 import { fmtShort } from './teamFormat';
 import {
   COL,
@@ -653,7 +654,7 @@ function DayBands({ data, onPick }: { data: Timeline; onPick: (since: string, un
     const d = days.get(new Date(ms(b.queuedAt) ?? 0).toDateString());
     if (!d) continue;
     d.runs += 1;
-    if (b.endKind === 'failed' || b.endKind === 'timeout') d.failed += 1;
+    if (b.endKind === 'failed' || b.endKind === 'memory' || b.endKind === 'timeout') d.failed += 1;
   }
   for (const w of data.waits) {
     const d = days.get(new Date(ms(w.from) ?? 0).toDateString());
@@ -789,6 +790,18 @@ function factsOf(data: Timeline, pick: Pick, names: Map<string, string>, now: nu
         `${Math.round(b.tokensIn / 1000)}k tokens in, ${Math.round(b.tokensOut / 1000)}k out${b.metered ? ` · $${b.costUsd.toFixed(2)}` : ' · Not metered'}`,
       );
     if (b.summary) lines.push(b.summary);
+    if (b.peakRssMb)
+      lines.push(
+        `Peak RAM ${fmtMb(b.peakRssMb)}${b.lastRssMb ? ` · ${b.endedAt ? 'last' : 'now'} ${fmtMb(b.lastRssMb)}` : ''}`,
+      );
+    for (const r of b.restarts) {
+      const when = clock(ms(r.at) ?? 0);
+      lines.push(
+        r.by === 'system'
+          ? `Restarted at ${when}${r.rssMb && r.limitMb ? `, ${fmtMb(r.rssMb)} over the ${fmtMb(r.limitMb)} limit` : ''}, restart ${r.n} of ${AUTO_RESTARTS}`
+          : `Restarted at ${when} by ${r.by}`,
+      );
+    }
     if (b.endedReason && b.endKind !== 'ok') lines.push(b.endedReason);
     return {
       title: `${who(b.memberId)} · run #${b.number}`,
@@ -879,6 +892,8 @@ function endWord(b: TimelineBar): string {
       return 'finished';
     case 'failed':
       return 'failed';
+    case 'memory':
+      return 'stopped: out of memory';
     case 'timeout':
       return 'timed out';
     case 'stopped':
@@ -1053,6 +1068,10 @@ function Legend() {
           <b style={{ color: arrowColor(i.k) }}>{arrowGlyph(i.k)}</b> {i.t}
         </span>
       ))}
+      <span>
+        <b style={{ color: '#E8821A' }}>●</b> restarted by the system (memory) · <b style={{ color: '#C4432A' }}>RAM</b>{' '}
+        stopped by the system
+      </span>
       <span>Hatched amber: waiting for you · hatched grey: waiting for an AI or a runner</span>
     </div>
   );

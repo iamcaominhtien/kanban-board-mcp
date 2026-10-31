@@ -6,7 +6,7 @@ import type { CardMemory } from '../../types/aiResources';
 import type { Handoff, NeedsItem, TeamCard, TeamNow, TeamRange } from '../../types/aiTeam';
 import { useToast } from '../Toast';
 import { Badge, ICONS, Icon, KIND_LOOK, Spark, STATE_ORDER, StateChip, TicketChip, stateLine } from './teamUi';
-import { LEVEL_COLOR, fmtMb, levelOf, limitPct } from './resourcesFormat';
+import { AUTO_RESTARTS, LEVEL_COLOR, fmtMb, levelOf, limitPct } from './resourcesFormat';
 import { fmtAgo, fmtClock, fmtDuration, fmtUsd, usageText } from './teamFormat';
 
 export interface NowActions {
@@ -61,6 +61,7 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
     }
     return safetyApi.deny(v.id);
   });
+  const retry = useAiMutation((runId: string) => aiApi.retry(runId));
   const wait = item.waitingS != null ? `waiting ${fmtDuration(item.waitingS)}` : '';
   const who = item.memberName ?? 'An AI';
   const open = actions.onOpenTicket;
@@ -157,6 +158,37 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
         >
           Fix connection
         </button>
+      );
+      break;
+    case 'memory_stop':
+      icon = ICONS.plug;
+      red = true;
+      title = `${who}’s run was stopped: memory`;
+      body = (
+        <>
+          <b>{who}</b> on {ticket}: the CLI went over {item.limitMb ? `its ${fmtMb(item.limitMb)}` : 'the memory'} limit
+          again after {AUTO_RESTARTS} restarts{item.peakRssMb ? ` (peak ${fmtMb(item.peakRssMb)})` : ''}. Partial work
+          in the folder is kept.
+        </>
+      );
+      hint = `stopped ${fmtDuration(item.waitingS)} ago · the ticket stays assigned to ${who}`;
+      buttons = (
+        <>
+          <button
+            type="button"
+            className="st-btn st-btn-primary st-btn-sm"
+            disabled={retry.isPending}
+            onClick={() => retry.mutate(item.runId, { onError: (e) => toast.error("Couldn't retry", extractError(e)) })}
+          >
+            Retry
+          </button>
+          <button type="button" className="st-btn st-btn-sm" onClick={() => open(item.ticketId!)}>
+            Open run
+          </button>
+          <button type="button" className="st-btn st-btn-sm" onClick={actions.onSeeResources}>
+            See resources
+          </button>
+        </>
       );
       break;
     case 'docs_proposal':

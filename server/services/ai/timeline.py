@@ -49,12 +49,12 @@ def _iso(at: datetime | None) -> str | None:
 
 
 def _end_kind(r: AiRun) -> str | None:
-    """How a finished run ended, in the words the diagram draws: ok, failed, timeout, stopped (a person), pause_all,
+    """How a finished run ended, in the words the diagram draws: ok, failed, memory (stopped by the system over the RAM limit), timeout, stopped (a person), pause_all,
     budget; None while it is live."""
     if r.state == "finished":
         return "ok"
     if r.state == "failed":
-        return "failed"
+        return "memory" if r.stop_code == "memory" else "failed"
     if r.state == "timed_out":
         return "timeout"
     if r.state == "cancelled":
@@ -98,6 +98,9 @@ def _bar(r: AiRun, now: datetime, held: bool) -> dict:
         # a queued run while the whole project is paused is held, not waiting for an AI or a runner
         "held_by_pause": bool(held and r.state == "queued"),
         "model": r.model,
+        "peak_rss_mb": r.peak_rss_mb,
+        "last_rss_mb": r.last_rss_mb,
+        "restarts": loads(r.restarts, []),
     }
 
 

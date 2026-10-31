@@ -86,6 +86,22 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
               onClick={() => setTab(t.id)}
             >
               {t.label}
+              {t.id === 'resources' && data && data.restartedRuns > 0 ? (
+                <span
+                  data-testid="resources-dot"
+                  role="img"
+                  aria-label={`${data.restartedRuns} run${data.restartedRuns === 1 ? '' : 's'} restarted for memory`}
+                  title={`${data.restartedRuns} run${data.restartedRuns === 1 ? '' : 's'} restarted for memory`}
+                  style={{
+                    display: 'inline-block',
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    background: '#E8821A',
+                    marginLeft: 6,
+                  }}
+                />
+              ) : null}
               {t.id === 'stepped' && stepped.data ? (
                 <b style={{ fontWeight: 700, color: '#7A5A06' }}>{stepped.data.totals.touches}</b>
               ) : null}

@@ -342,6 +342,47 @@ async def needs_you(
                 "blocks": p.ticket_id,
             }
         )
+    # a run the system stopped for memory stays here for a day, until someone retries it
+    day_ago = (now - timedelta(hours=24)).isoformat()
+    stopped = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id,
+                AiRun.state == "failed",
+                AiRun.stop_code == "memory",
+                col(AiRun.ended_at) > day_ago,
+            )
+        )
+    ).all()
+    for r in stopped:
+        newer = (
+            await session.exec(
+                select(AiRun.id).where(
+                    AiRun.ticket_id == r.ticket_id,
+                    AiRun.member_id == r.member_id,
+                    AiRun.number > r.number,
+                )
+            )
+        ).first()
+        if newer:
+            continue
+        t = tickets.get(r.ticket_id) or await session.get(Ticket, r.ticket_id)
+        restarts = loads(r.restarts, [])
+        items.append(
+            {
+                "kind": "memory_stop",
+                "since": r.ended_at,
+                "member_id": r.member_id,
+                "member_name": names.get(r.member_id),
+                "ticket_id": r.ticket_id,
+                "ticket_title": t.title if t else None,
+                "run_id": r.id,
+                "text": r.ended_reason,
+                "peak_rss_mb": r.peak_rss_mb,
+                "limit_mb": (restarts[-1].get("limit_mb") if restarts else None),
+                "blocks": r.ticket_id,
+            }
+        )
     items.sort(key=lambda i: i["since"] or "")
     for i in items:
         i["waiting_s"] = _ago_s(i["since"], now)
@@ -563,6 +604,12 @@ async def now_view(
         "members": cards,
         "counts": counts,
         "needs_you": items,
+        # live runs the system restarted for memory (a dot on the AI Team tab until they end)
+        "restarted_runs": sum(
+            1
+            for r in active
+            if any(x.get("by") == "system" for x in loads(r.restarts, []))
+        ),
         "handoffs": _handoffs(in_window, tickets, people, now, RECENT_HANDOFFS),
         "totals": total,
         # Docs proposals only exist when Docs AI holds the AI's edits for review: the screen leaves them out otherwise

@@ -1,6 +1,6 @@
 /** The AI Team view, Now tab (GET /projects/{id}/ai/team/now; keys are camel-cased by the API client). */
 
-import type { CardMemory } from './aiResources';
+import type { CardMemory, RestartEntry } from './aiResources';
 
 export type TeamRange = 'today' | '7d' | '30d';
 
@@ -89,6 +89,7 @@ export type NeedsItem =
       alwaysAllowed: boolean;
     })
   | (ItemBase & { kind: 'offline'; label: string; ticketsWaiting: string[] })
+  | (ItemBase & { kind: 'memory_stop'; runId: string; peakRssMb: number | null; limitMb: number | null })
   | (ItemBase & {
       kind: 'docs_proposal';
       pageId: string;
@@ -126,6 +127,8 @@ export interface TeamNow {
   members: TeamCard[];
   counts: Partial<Record<CardState, number>>;
   needsYou: NeedsItem[];
+  /** Live runs the system restarted for memory: a dot on the tab until they end. */
+  restartedRuns: number;
   handoffs: Handoff[];
   totals: {
     runs: number;
@@ -469,7 +472,7 @@ export interface TimelineLifeline {
   quiet?: boolean;
 }
 
-export type RunEnd = 'ok' | 'failed' | 'timeout' | 'stopped' | 'pause_all' | 'budget' | null;
+export type RunEnd = 'ok' | 'failed' | 'memory' | 'timeout' | 'stopped' | 'pause_all' | 'budget' | null;
 
 export interface TimelineBar {
   id: string;
@@ -487,6 +490,9 @@ export interface TimelineBar {
   endedReason: string | null;
   endedBy: string | null;
   stopCode: string | null;
+  peakRssMb: number | null;
+  lastRssMb: number | null;
+  restarts: RestartEntry[];
   steps: number;
   tokensIn: number;
   tokensOut: number;

@@ -28,6 +28,9 @@ from .store import get_settings, loads, now_iso, parse_iso
 
 RAISE_CAP = "raise_cap"  # approval action created at the cap with the "Ask an owner first" policy
 RAISE_CAP_USD = 2.0
+RUN_CONTROL = (
+    "run_control"  # an AI with Control asks to restart or stop another AI's run
+)
 
 FIELD_LABELS = {
     "title": "Title",
@@ -275,7 +278,9 @@ async def enrich(
         d["cannot_reason"] = why
         d["always_allowed"] = always_allowed(a)
         d["remember_allowed"] = (
-            a.risk != "high" and bool(a.ticket_id) and a.action != RAISE_CAP
+            a.risk != "high"
+            and bool(a.ticket_id)
+            and a.action not in (RAISE_CAP, RUN_CONTROL)
         )
         out.append(d)
     return out
@@ -417,6 +422,8 @@ async def _apply(approval: AiApproval, member_name: str, by: str = "user"):
 
     if approval.action == RAISE_CAP:
         return await _apply_raise_cap(approval, by)
+    if approval.action == RUN_CONTROL:
+        return await _apply_run_control(approval, member_name, by)
     payload = loads(approval.payload, {})
     tool, action, params = (
         payload.get("tool"),
@@ -455,6 +462,18 @@ async def _apply(approval: AiApproval, member_name: str, by: str = "user"):
     finally:
         guard.reset_approved(scope)
         guard.leave(tokens)
+
+
+async def _apply_run_control(approval: AiApproval, member_name: str, by: str) -> None:
+    """Approving "restart" or "stop" does it now, in the name of the AI that asked and the person who approved."""
+    from . import runs
+
+    params = loads(approval.payload, {}).get("params") or {}
+    who = f"{member_name} (approved by {by})"
+    if params.get("what") == "restart":
+        await runs.restart_run(params["run_id"], by=who)
+    else:
+        await runs.cancel(params["run_id"], by=who, reason=params.get("reason"))
 
 
 async def _apply_raise_cap(approval: AiApproval, by: str) -> None:
@@ -579,6 +598,21 @@ async def decide(
                 a.decision_note = f"Approved but could not be applied: {error}"[:500]
                 session.add(a)
                 await session.commit()
+        if a.action == RUN_CONTROL and not error:
+            await audit.record(
+                a.project_id,
+                RUN_CONTROL,
+                "approved",
+                member_id=a.member_id,
+                member_name=name,
+                on_behalf_of=by,
+                run_id=a.run_id,
+                target=a.ticket_id,
+                detail={
+                    "approval_id": a.id,
+                    **(loads(a.payload, {}).get("params") or {}),
+                },
+            )
         if a.action == RAISE_CAP and not error:
             await audit.record(
                 a.project_id,
@@ -707,6 +741,70 @@ async def bulk_decide(
         except ApprovalError as exc:
             out.append({"id": approval_id, "result": "skipped", "reason": str(exc)})
     return out
+
+
+async def request_run_control(
+    session: AsyncSession,
+    profile: AiMember,
+    ctx: RunContext,
+    target: AiRun,
+    what: str,
+    reason: str | None = None,
+) -> AiApproval:
+    """An AI with Control asks to restart or stop someone else's run: a medium-risk approval (the project's
+    Autopilot delegate may decide it within its ceiling). One pending request per run and kind."""
+    rows = (
+        await session.exec(
+            select(AiApproval).where(
+                AiApproval.project_id == target.project_id,
+                AiApproval.action == RUN_CONTROL,
+                AiApproval.status == "pending",
+                AiApproval.member_id == profile.id,
+            )
+        )
+    ).all()
+    for r in rows:
+        p = loads(r.payload, {}).get("params") or {}
+        if p.get("run_id") == target.id and p.get("what") == what:
+            return r
+    settings = await get_settings(session, target.project_id)
+    member = await session.get(Member, profile.id)
+    name = member.name if member else "AI member"
+    verb = "Restart" if what == "restart" else "Stop"
+    approval = AiApproval(
+        project_id=target.project_id,
+        member_id=profile.id,
+        run_id=ctx.run_id or None,
+        ticket_id=target.ticket_id,
+        action=RUN_CONTROL,
+        summary=f"{verb} the run on {target.ticket_id}",
+        payload=json.dumps(
+            {
+                "tool": "ai_team",
+                "action": what,
+                "params": {"run_id": target.id, "what": what, "reason": reason},
+            }
+        ),
+        reason=reason,
+        risk="medium",
+        on_behalf_of=ctx.on_behalf_of,
+        expires_at=(
+            datetime.now(UTC) + timedelta(hours=settings.approval_expiry_hours or 24)
+        ).isoformat(),
+    )
+    session.add(approval)
+    await session.commit()
+    await session.refresh(approval)
+    await safety.notify(
+        target.project_id,
+        "approval_requested",
+        f"{verb} a run?",
+        f"{name} asks to {verb.lower()} the run on {target.ticket_id}.",
+        ref_kind="approval",
+        ref_id=approval.id,
+        member_id=profile.id,
+    )
+    return approval
 
 
 async def request_cap_raise(

@@ -30,6 +30,7 @@ import services.tickets as svc_tickets
 from models import (
     AiAudit,
     AiMember,
+    AiNotification,
     AiProjectSettings,
     AiRun,
     Member,
@@ -2041,6 +2042,43 @@ async def restart_run(run_id: str, *, by: str) -> AiRun:
     return run
 
 
+async def _tell_restart(run: AiRun, entry: dict) -> None:
+    """One notice per run for the restarts of the last 10 minutes; a further restart only raises its count."""
+    async with database.async_session() as session:
+        recent = (
+            await session.exec(
+                select(AiNotification)
+                .where(
+                    AiNotification.project_id == run.project_id,
+                    AiNotification.event == "run_restarted",
+                    AiNotification.ref_id == run.id,
+                    col(AiNotification.created_at)
+                    > (datetime.now(UTC) - timedelta(minutes=10)).isoformat(),
+                )
+                .order_by(col(AiNotification.created_at).desc())
+            )
+        ).first()
+        if recent is not None:
+            data = loads(recent.data, {})
+            data["count"] = int(data.get("count", 1)) + 1
+            recent.data = json.dumps(data)
+            recent.title = f"{run.ticket_id}: restarted {data['count']} times (memory)"
+            session.add(recent)
+            await session.commit()
+            return
+    rss, limit = entry.get("rss_mb"), entry.get("limit_mb")
+    await safety.notify(
+        run.project_id,
+        "run_restarted",
+        f"{run.ticket_id}: restarted (memory)",
+        f"The CLI reached {rss / 1024:.2f} GB, over the {limit / 1024:.1f} GB limit, and started again in the same run.",
+        ref_kind="run",
+        ref_id=run.id,
+        member_id=run.member_id,
+        data={"count": 1, "rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
+    )
+
+
 async def _restart_inside_run(
     run_id: str, token: str, request: dict, scratch: list[str] | None
 ) -> None:
@@ -2065,6 +2103,17 @@ async def _restart_inside_run(
                 run_id=run_id,
                 target=run.ticket_id,
                 detail={"rss_mb": rss, "limit_mb": limit, "restarts": len(log)},
+            )
+            await safety.notify(
+                run.project_id,
+                "run_stopped_memory",
+                f"{run.ticket_id}: stopped, out of memory",
+                f"The CLI went over {limit / 1024:.1f} GB again after {resources.AUTO_RESTARTS} restarts. "
+                "Partial work is kept; retry it or raise the limit.",
+                ref_kind="run",
+                ref_id=run_id,
+                member_id=run.member_id,
+                data={"rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
             )
             await _end(
                 run_id,
@@ -2094,6 +2143,8 @@ async def _restart_inside_run(
             target=run.ticket_id,
             detail=entry,
         )
+        if by == "system":
+            await _tell_restart(run, entry)
     if by == "system":
         text = (
             f"Restarted automatically: the CLI reached {rss / 1024:.2f} GB, over the {limit / 1024:.1f} GB limit "

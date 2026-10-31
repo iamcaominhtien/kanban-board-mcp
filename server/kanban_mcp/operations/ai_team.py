@@ -601,9 +601,37 @@ async def resources(project_id: str) -> dict:
     return snap
 
 
+async def _ask_for_run_control(
+    run_id: str, what: str, reason: str | None = None
+) -> dict | None:
+    """An AI run (not the Autopilot delegate, which has the owner's rights) acting on another AI's run only asks;
+    returns the "pending approval" answer, or None when the caller may act now."""
+    ctx = guard.current()
+    if ctx is None:
+        return None
+    async with common.async_session() as session:
+        run = await _run_row(session, run_id)
+        settings = await get_settings(session, ctx.project_id)
+        _, profile = await get_profile(session, ctx.member_id)
+        if profile is None or run.member_id == ctx.member_id:
+            return None
+        if full_rights_member(settings) == profile.id:
+            return None
+        approval = await svc_approvals.request_run_control(
+            session, profile, ctx, run, what, reason
+        )
+    return {
+        "pending_approval": approval.id,
+        "message": f"Asked a person to approve this ({what} run {run_id}). Carry on with your work meanwhile.",
+    }
+
+
 async def restart(run_id: str) -> dict:
     """Start a running run's CLI again inside the same run: it resumes its conversation and its memory is released."""
     await _need_resource_level("control")
+    asked = await _ask_for_run_control(run_id, "restart")
+    if asked:
+        return asked
     async with common.async_session() as session:
         await _run_row(session, run_id)
     try:
@@ -620,6 +648,9 @@ async def cancel(run_id: str, text: str | None = None) -> dict:
         await _need_resource_level("control")
         if ctx.run_id == run_id:
             raise ValueError("An AI cannot stop its own run.")
+        asked = await _ask_for_run_control(run_id, "stop", (text or "").strip() or None)
+        if asked:
+            return asked
     async with common.async_session() as session:
         await _run_row(session, run_id)
     row = await svc_runs.cancel(run_id, by=_by(), reason=(text or "").strip() or None)

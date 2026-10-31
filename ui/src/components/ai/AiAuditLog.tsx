@@ -39,6 +39,7 @@ const ACTIONS = [
   'manage_test_cases',
   'create_branches',
   'raise_cap',
+  'run_control',
   'mention',
   'kill_switch',
   'resume_all',

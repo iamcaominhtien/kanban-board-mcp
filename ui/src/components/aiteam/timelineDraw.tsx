@@ -538,7 +538,7 @@ export function TimelineBody(props: DrawProps) {
         const fill = queued ? (held ? 'url(#tlhG)' : 'url(#tlhG)') : b.autopilot ? '#FAF7FF' : look.fill;
         const top = queued ? qy : sy;
         const bottom = queued ? TOP + axis.y(now) : Math.max(ey, top + 6);
-        const failed = b.endKind === 'failed';
+        const failed = b.endKind === 'failed' || b.endKind === 'memory';
         const label = `${ticketOf(b.ticketId)} · run ${b.number}`;
         return (
           <g
@@ -571,7 +571,7 @@ export function TimelineBody(props: DrawProps) {
               strokeWidth={sel('bar', b.id) ? 2.6 : 1.5}
               strokeDasharray={queued ? '4 3' : b.paused ? '4 3' : undefined}
             />
-            {fresh.has(b.id) && b.endedAt && ['failed', 'timeout', 'budget'].includes(b.endKind ?? '') && (
+            {fresh.has(b.id) && b.endedAt && ['failed', 'memory', 'timeout', 'budget'].includes(b.endKind ?? '') && (
               <rect
                 className="tl-flash"
                 x={x}
@@ -603,6 +603,11 @@ export function TimelineBody(props: DrawProps) {
             )}
             {live && (pausedNow || motion.left < 0) && <circle cx={x + w / 2} cy={bottom} r={4} fill={look.stroke} />}
             <RunEnd b={b} x={x + w / 2} y={bottom} />
+            {b.restarts
+              .filter((r) => r.by === 'system')
+              .map((r) => (
+                <RestartMark key={r.n} x={x + w / 2} y={Math.min(Math.max(yy(r.at), top + 6), bottom - 6)} />
+              ))}
             {held && queued && <Glyph name="pause" x={x + w / 2} y={top + 10} color="#5B6B60" size={11} />}
             {(bottom - top >= 14 || detailed) && !(x0 < 0) && (
               <text
@@ -954,6 +959,20 @@ function RunEnd({ b, x, y }: { b: TimelineBar; x: number; y: number }) {
   switch (b.endKind) {
     case 'failed':
       return <Glyph name="cross" x={x} y={y - 8} color="#C4432A" size={12} />;
+    case 'memory':
+      return (
+        <text
+          x={x}
+          y={y - 3}
+          fontSize={9}
+          fontWeight={800}
+          fill="#C4432A"
+          textAnchor="middle"
+          data-testid="tl-ram-stop"
+        >
+          RAM
+        </text>
+      );
     case 'timeout':
       return <Glyph name="clock" x={x} y={y - 8} color="#C0661A" size={12} />;
     case 'stopped':
@@ -973,6 +992,24 @@ function RunEnd({ b, x, y }: { b: TimelineBar; x: number; y: number }) {
     default:
       return null;
   }
+}
+
+/** The system started the run's CLI again here (over the memory limit): an orange circle with an arrow. */
+function RestartMark({ x, y }: { x: number; y: number }) {
+  return (
+    <g data-testid="tl-restart" aria-hidden="true">
+      <circle cx={x} cy={y} r={6.5} fill="#E8821A" stroke="#FFFFFF" strokeWidth={1.5} />
+      <path
+        d="M-2.6 0.4 A2.7 2.7 0 1 1 0 2.7 M-2.6 -2.2 L-2.6 0.6 L0.2 0.6"
+        transform={`translate(${x} ${y})`}
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth={1.3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
+  );
 }
 
 /** The steps of a run as small ticks along its bar (Detailed). */

@@ -42,6 +42,8 @@ EVENTS: dict[str, tuple[str, bool, bool, bool]] = {
     "blocked": ("Blocked or injection attempt", False, True, False),
     "offline": ("Agent offline, token revoked", True, True, True),
     "question": ("An AI question is still unanswered", True, True, True),
+    "run_restarted": ("A run was restarted (memory)", True, True, False),
+    "run_stopped_memory": ("A run was stopped (memory)", True, True, True),
 }
 DIGESTS = ("off", "daily", "weekdays")
 DIGEST_HOUR = 9

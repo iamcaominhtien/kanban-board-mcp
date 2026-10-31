@@ -49,6 +49,7 @@ export const ACTION_LABEL: Record<string, string> = {
   auto_trip: 'Auto-paused',
   run_restarted: 'Run restarted',
   run_stopped_memory: 'Run stopped: memory',
+  run_control: 'Run control approved',
   mention: 'Mention',
   settings_updated: 'Project AI settings',
   autopilot_decision: 'Autopilot decided',

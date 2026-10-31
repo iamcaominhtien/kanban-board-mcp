@@ -9,6 +9,9 @@ export const LEVEL_COLOR: Record<Level, { bar: string; text: string }> = {
   bad: { bar: '#C4432A', text: '#A5321E' },
 };
 
+/** Restarts by the system before the next breach stops the run (the server's `AUTO_RESTARTS`). */
+export const AUTO_RESTARTS = 2;
+
 /** "200 MB", "1.52 GB". */
 export function fmtMb(mb: number | null | undefined): string {
   if (mb == null) return '—';

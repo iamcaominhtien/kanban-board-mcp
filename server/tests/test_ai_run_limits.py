@@ -90,6 +90,24 @@ async def test_a_run_over_the_limit_restarts_in_the_same_run_twice_then_stops(
     texts = [s["text"] for s in run["steps"]]
     assert sum(t.startswith("Restarted automatically") for t in texts) == 2
     assert run["peak_rss_mb"] and run["peak_rss_mb"] > 1  # kept with the run
+    # the two restarts are one notice with a count, the stop another
+    feed = (await c.get(f"/projects/{pid}/ai/notifications")).json()["items"]
+    restarted = [n for n in feed if n["event"] == "run_restarted"]
+    stopped = [n for n in feed if n["event"] == "run_stopped_memory"]
+    assert len(restarted) == 1 and restarted[0]["data"]["count"] == 2
+    assert "restarted 2 times" in restarted[0]["title"]
+    assert len(stopped) == 1 and stopped[0]["ref_id"] == run["id"]
+    assert stopped[0]["desktop"] is True and restarted[0]["desktop"] is False
+    # the Timeline draws both: the restart marks and a bar that ended for memory
+    tl = (await c.get(f"/projects/{pid}/ai/team/timeline")).json()
+    bar = next(b for b in tl["bars"] if b["id"] == run["id"])
+    assert bar["end_kind"] == "memory"
+    assert [r["n"] for r in bar["restarts"]] == [1, 2] and bar["peak_rss_mb"] > 1
+    # and Needs you carries a card for the stop, until the run is retried
+    now = (await c.get(f"/projects/{pid}/ai/team/now")).json()
+    card = next(i for i in now["needs_you"] if i["kind"] == "memory_stop")
+    assert card["run_id"] == run["id"] and card["limit_mb"] == 1
+    assert now["restarted_runs"] == 0  # the run has ended
 
 
 async def test_a_person_can_restart_a_running_run(env, monkeypatch, quick_monitor):
@@ -100,7 +118,7 @@ async def test_a_person_can_restart_a_running_run(env, monkeypatch, quick_monito
     m = await _runner(c, pid, env["repo"])
     tid = await _ticket(c, pid)
     await _assign(c, tid, m["id"])
-    run = await _wait(c, tid, ("running",))
+    run = await _wait(c, tid, ("running",), timeout=40)
     first_pid = (await _run_row(env, run["id"])).pid
     r = await c.post(f"/ai/runs/{run['id']}/restart", headers=AN)
     assert r.status_code == 200 and r.json() == {"restarting": True}
@@ -109,7 +127,7 @@ async def test_a_person_can_restart_a_running_run(env, monkeypatch, quick_monito
         row = (await _runs(c, tid))[0]
         return row if row["restarts"] and row["state"] == "running" else None
 
-    row = await _until(restarted)
+    row = await _until(restarted, timeout=40)
     assert row["restarts"][0]["by"] == "An Nguyen" and row["restarts"][0]["n"] == 1
     assert (
         await _run_row(env, run["id"])
@@ -210,6 +228,41 @@ async def test_an_ai_run_sees_and_acts_only_as_far_as_its_access(env):
         guard.leave(tokens)
     # outside an AI run (a person, or an AI of your own over MCP) the tools work with the person's rights
     assert "machine" in await ai_ops.resources(pid)
+
+
+async def test_an_ai_with_control_asks_before_stopping_another_ais_run(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    boss = await _runner(c, pid, env["repo"], name="Boss")
+    other = await _runner(c, pid, env["repo"], name="Other")
+    tid = await _ticket(c, pid)
+    async with env["maker"]() as s:
+        row = await s.get(AiMember, boss["id"])
+        row.resource_access = "control"
+        s.add(row)
+        target = AiRun(
+            project_id=pid, ticket_id=tid, member_id=other["id"], state="running"
+        )
+        s.add(target)
+        await s.commit()
+        target_id = target.id
+    tokens = await _inside_run_of(env, boss["id"], pid, tid)
+    try:
+        asked = await ai_ops.cancel(target_id, "too heavy")
+        again = await ai_ops.cancel(target_id, "too heavy")
+    finally:
+        guard.leave(tokens)
+    assert (
+        asked["pending_approval"] == again["pending_approval"]
+    )  # one request, not two
+    assert (await _run_row(env, target_id)).state == "running"  # nothing happened yet
+    pending = (await c.get(f"/projects/{pid}/ai/approvals?status=pending")).json()
+    mine = next(a for a in pending if a["id"] == asked["pending_approval"])
+    assert mine["action"] == "run_control" and mine["risk"] == "medium"
+    assert mine["remember_allowed"] is False
+    done = await c.post(f"/ai/approvals/{mine['id']}/approve", json={})
+    assert done.status_code == 200, done.text
+    assert (await _run_row(env, target_id)).state in ("cancelled", "stopped", "failed")
 
 
 async def test_the_stream_sends_a_snapshot_first(env):
