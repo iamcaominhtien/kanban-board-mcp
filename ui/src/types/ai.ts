@@ -1,4 +1,6 @@
+import type { RestartEntry } from './aiResources';
 import type { MemberAccountRef } from './aiAccounts';
+
 export type AiProvider =
   'claude-code' | 'codex' | 'opencode' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
 export type AiConnection = 'local' | 'api_key' | 'inbox';
@@ -172,6 +174,8 @@ export interface AiMember {
   keyLast4: string | null;
   persona: string;
   maxParallel: number;
+  /** The resource tools (RAM and CPU of the runs, restart a run) over MCP: none | view | control. */
+  resourceAccess?: 'none' | 'view' | 'control';
   dailyBudget: number | null;
   monthlyCap: number | null;
   maxRunsPerDay: number | null;
@@ -284,6 +288,7 @@ export interface AiSettings {
     factor?: number;
   }[];
   noRepeatChain: boolean;
+  docsEditsAsk: boolean;
   allowedDomains: string[];
   notify: { event: string; label: string; urgent: boolean; inapp: boolean; desktop: boolean }[];
   digest: 'off' | 'daily' | 'weekdays';
@@ -291,6 +296,31 @@ export interface AiSettings {
   pausedCancelled: number;
   pausedHeld: number;
   pausedTokensRevoked: boolean;
+  /** Pause all AI chose "Let them finish", and safe mode was already on (Resume preselects it). */
+  pausedLetFinish?: boolean;
+  pausedSafeBefore?: boolean;
+  /** Runs that started before the pause and are still going, counted live (the banner chip). */
+  pausedFinishing?: number;
+  /** RAM (MB) a run's CLI may use before the system restarts it; 0 = no limit. */
+  runMemoryLimitMb?: number;
+  /** The person's role in the project: only owners and admins resume. */
+  myRole?: 'owner' | 'admin' | 'member' | 'viewer';
+}
+
+/** Autopilot: the AI that decides requests for the owner (server/services/ai/autopilot.py). */
+export interface AiAutopilot {
+  enabled: boolean;
+  delegateId: string | null;
+  delegateName: string | null;
+  maxRisk: 'low' | 'medium' | 'high';
+  approvals: boolean;
+  questions: boolean;
+  graceMin: number;
+  perHourLimit: number;
+  fullRights: boolean;
+  enabledBy: string | null;
+  enabledAt: string | null;
+  usedLastHour: number;
 }
 
 export interface AiOverview {
@@ -377,6 +407,9 @@ export interface AiRun {
   stepCount?: number;
   files: { path: string; added: number; removed: number; new: boolean }[];
   tokensIn: number;
+  /** What the conversation held at the run's last model call, and the model's window (tokens). */
+  contextUsed?: number | null;
+  contextWindow?: number | null;
   tokensOut: number;
   costUsd: number;
   metered: boolean;
@@ -399,6 +432,10 @@ export interface AiRun {
   feedback: { rating: 'up' | 'down'; reasons: string[]; by: string; at: string } | null;
   /** Why the run ended when it was not its own doing: budget, archive, deleted, reassigned, takeover. */
   stopCode: string | null;
+  /** RAM of the run's CLI (MB): the highest and the last reading; restarts inside the run. */
+  peakRssMb?: number | null;
+  lastRssMb?: number | null;
+  restarts?: RestartEntry[];
   /** The status the AI tried to move the ticket to and was not allowed to. */
   blockedMove: string | null;
   contextNotes: ContextNote[];
@@ -447,6 +484,8 @@ export interface AiApproval {
   canDecide?: boolean;
   cannotReason?: string;
   rememberAllowed?: boolean;
+  /** "Always allow" is offered (a Docs edit that is not high risk). */
+  alwaysAllowed?: boolean;
 }
 
 export interface AiAuditEntry {

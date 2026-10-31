@@ -364,22 +364,6 @@ export function ModelCard() {
             />
             <IssueText issues={issues} path="working_dir" />
           </div>
-          <NumField
-            label="Run timeout"
-            unit="min"
-            value={cfg.runTimeoutMin}
-            onChange={(v) => setCfg({ runTimeoutMin: v })}
-            path="run_timeout_min"
-            issues={issues}
-          />
-          <NumField
-            label="No output timeout"
-            unit="min"
-            value={cfg.idleTimeoutMin}
-            onChange={(v) => setCfg({ idleTimeoutMin: v })}
-            path="idle_timeout_min"
-            issues={issues}
-          />
           {member.provider === 'codex' && (
             <NumField
               label="Auto-compact at"
@@ -482,29 +466,6 @@ export function ModelCard() {
           />
           <IssueText issues={issues} path="working_dir" />
         </div>
-        <NumField
-          label="Max turns per run"
-          value={cfg.maxTurns}
-          onChange={(v) => setCfg({ maxTurns: v })}
-          path="max_turns"
-          issues={issues}
-        />
-        <NumField
-          label="Run timeout"
-          unit="min"
-          value={cfg.runTimeoutMin}
-          onChange={(v) => setCfg({ runTimeoutMin: v })}
-          path="run_timeout_min"
-          issues={issues}
-        />
-        <NumField
-          label="No output timeout"
-          unit="min"
-          value={cfg.idleTimeoutMin}
-          onChange={(v) => setCfg({ idleTimeoutMin: v })}
-          path="idle_timeout_min"
-          issues={issues}
-        />
         <NumField
           label="Auto-compact at"
           unit="% of context"

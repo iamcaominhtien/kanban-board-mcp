@@ -210,8 +210,10 @@ async def build(
     filters: dict | None = None,
     question: str = "",
     send_all: bool = False,
+    compact: bool = False,
 ) -> Context:
-    """Read what the Board AI may read for this request."""
+    """Read what the Board AI may read for this request. `compact`: a project is sent as counts and the open tickets
+    only; an AI that has its own board tools reads the rest (comments, activity, closed tickets) when it needs it."""
     ctx = Context()
     row = await svc_settings.get(session)
     excluded = svc_settings.excluded_docs(row) - set(include_docs or [])
@@ -245,7 +247,7 @@ async def build(
         pass  # the page itself is added below
     else:
         for p in projects:
-            await _project_block(session, ctx, b, p, filters or {}, scope)
+            await _project_block(session, ctx, b, p, filters or {}, scope, compact)
 
     # Docs: the ones picked for this request first, then those the question names, then titles
     pages = (
@@ -352,6 +354,7 @@ async def _project_block(
     project: Project,
     filters: dict,
     scope: str,
+    compact: bool = False,
 ) -> None:
     stmt = select(Ticket).where(Ticket.project_id == project.id)
     if filters.get("status"):
@@ -393,8 +396,17 @@ async def _project_block(
         f'<project id="{project.id}" name="{project.name}" prefix="{project.prefix}">'
     )
     b.add(header, required=True)
+    if compact:
+        by_status = {s: sum(1 for t in tickets if t.status == s) for s in rank}
+        b.add(
+            "Tickets: "
+            + ", ".join(f"{STATUS_LABELS[s]} {n}" for s, n in by_status.items() if n)
+            + f" (total {len(tickets)}). The open ones are listed below; read the details, comments and activity of"
+            " any ticket, and the closed ones, with your tools.",
+            required=True,
+        )
     lines = []
-    for t in open_ + closed:
+    for t in open_ if compact else open_ + closed:
         line = ticket_line(t, ctx.names)
         flagged = looks_like_instructions(t.title)
         if flagged:
@@ -408,7 +420,7 @@ async def _project_block(
         ctx.items.append({"kind": "ticket", "id": t.id, "title": t.title})
     since = datetime.now(UTC) - timedelta(days=ACTIVITY_DAYS)
     changes = []
-    for t in tickets:
+    for t in [] if compact else tickets:
         changes.extend(recent_activity(t, ctx.names, since))
     changes.sort()
     if changes:
@@ -418,7 +430,7 @@ async def _project_block(
             label="activity",
         )
     # Short descriptions of open tickets while there is room
-    for t in open_:
+    for t in [] if compact else open_:
         if t.description:
             flagged = looks_like_instructions(t.description)
             if flagged:

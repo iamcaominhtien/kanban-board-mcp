@@ -63,6 +63,8 @@ import { aiApi } from '../api/ai';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
+import { TimelineTab } from './aiteam/TimelineTab';
+import { openTimeline } from './aiteam/timelineLink';
 import { TicketSafetyBlocks } from './ai/AiTicketSafety';
 import { SplitBadge, SuggestCasesButton, SuggestCasesPanel, TicketAiMenu } from './assist/TicketAi';
 import { TicketChat } from './assist/TicketChat';
@@ -219,6 +221,27 @@ function TicketModalInner({
   >('main');
   const [suggestCases, setSuggestCases] = useState(false);
   const [draftActive, setDraftActive] = useState(false);
+  // The ticket and the AI's work on it take turns on the main tab (a tall AI summary no longer hides the ticket)
+  const [mainView, setMainView] = useState<'ticket' | 'ai'>('ticket');
+  const [hasAiPane, setHasAiPane] = useState(false);
+  const [aiNeedsYou, setAiNeedsYou] = useState(false);
+  const aiPaneRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = aiPaneRef.current;
+    if (!el) {
+      setHasAiPane(false);
+      return;
+    }
+    const read = () => {
+      setHasAiPane(el.childElementCount > 0);
+      setAiNeedsYou(!!el.querySelector('[data-testid="ai-approve-done"]'));
+    };
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(el, { childList: true, subtree: true });
+    return () => watch.disconnect();
+  }, [activeTab, ticket?.id]);
+  useEffect(() => setMainView('ticket'), [ticket?.id]);
   // Which run the AI tab shows (set by the run links of the thread and the hover cards)
   const queryClient = useQueryClient();
   const mentionList = usePeopleAndAiSuggest(members);
@@ -1379,10 +1402,6 @@ function TicketModalInner({
                 <div key="main" className={styles.mainTabWrap}>
                   {/* Banners sit full width under the header (TicketReopen D1 / TicketPending D1) */}
                   <div className={styles.bannerStack}>
-                    <TicketAiPanel ticket={ticket} members={members} onOpenRun={() => setActiveTab('ai')} />
-                    <TicketPlan ticket={ticket} />
-                    <TicketSafetyBlocks ticketId={ticket.id} />
-                    <ScheduleTicketBlock ticket={ticket} />
                     {status === 'wont_do' && (
                       <div className={styles.wontDoBanner} role="status">
                         <div className={styles.wontDoBannerContent}>
@@ -1720,7 +1739,63 @@ function TicketModalInner({
                       </div>
                     )}
                   </div>
-                  <div className={`${styles.detailBody} ${styles.tabFadeSlide}`}>
+                  {/* The AI's work on this ticket (summary, plan, run limit, who woke whom) has a view of its own: the
+                      ticket and the AI take turns, each with the whole modal, so neither hides the other */}
+                  {hasAiPane && (
+                    <div className={styles.viewSwitch} role="tablist" aria-label="Ticket or AI activity">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={mainView === 'ticket'}
+                        onClick={() => setMainView('ticket')}
+                        data-testid="view-ticket"
+                      >
+                        Ticket
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={mainView === 'ai'}
+                        onClick={() => setMainView('ai')}
+                        data-testid="view-ai"
+                      >
+                        AI activity
+                        {aiNeedsYou && <span className={styles.attnDot} title="Waiting for your decision" />}
+                      </button>
+                    </div>
+                  )}
+                  <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
+                    <TicketAiPanel ticket={ticket} members={members} onOpenRun={() => setActiveTab('ai')} />
+                    {mainView === 'ai' && ticket.projectId && (
+                      <div data-testid="ticket-timeline">
+                        <button
+                          type="button"
+                          className="ai-btn ai-btn-sm"
+                          style={{ marginBottom: 8 }}
+                          data-testid="open-in-timeline"
+                          onClick={() => openTimeline({ scope: ticket.id })}
+                        >
+                          Open in Timeline
+                        </button>
+                        <TimelineTab
+                          projectId={ticket.projectId}
+                          scopeTicketId={ticket.id}
+                          compactChrome
+                          actions={{
+                            onOpenTicket: () => undefined,
+                            onOpenDocsPage: () => undefined,
+                          }}
+                        />
+                      </div>
+                    )}
+                    <TicketPlan ticket={ticket} />
+                    <TicketSafetyBlocks ticketId={ticket.id} />
+                    <ScheduleTicketBlock ticket={ticket} />
+                  </div>
+                  <div
+                    className={`${styles.detailBody} ${styles.tabFadeSlide}`}
+                    hidden={hasAiPane && mainView === 'ai'}
+                  >
                     {/* Main Column */}
                     <div className={styles.mainCol}>
                       <>

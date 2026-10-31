@@ -77,6 +77,8 @@ export interface ContextSummary {
   run?: { id: string; number: number; memberId: string; memberName: string };
   /** The answer hit its length limit; Continue goes on from where it stopped. */
   cutShort?: boolean;
+  /** Claude Code only: tokens the chat's CLI session holds after this answer, and the model's context window. */
+  contextWindow?: { used: number; size: number };
   /** Set once the answer was posted as a comment. */
   posted?: { commentId: string; at: string; by: string };
 }

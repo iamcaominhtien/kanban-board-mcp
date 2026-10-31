@@ -8,6 +8,7 @@ approval when one is needed, and writes the audit entry. The model never sees or
 import asyncio
 import hashlib
 import json
+import secrets
 from contextvars import ContextVar, Token
 from datetime import UTC, datetime, timedelta
 
@@ -19,7 +20,14 @@ from models import AiApproval, AiRun, Ticket
 
 from . import audit, safety
 from .context import STATUS_LABELS, RunContext
-from .permissions import ACTIONS, APPROVAL, BLOCKED, check_status_move, effective
+from .permissions import (
+    ACTIONS,
+    APPROVAL,
+    BLOCKED,
+    check_status_move,
+    effective,
+    full_rights_member,
+)
 from .store import get_profile, get_settings, loads, now_iso
 
 _ctx: ContextVar[RunContext | None] = ContextVar("ai_run_context", default=None)
@@ -27,8 +35,9 @@ _ctx: ContextVar[RunContext | None] = ContextVar("ai_run_context", default=None)
 _approved: ContextVar[str | None] = ContextVar("ai_approved", default=None)
 
 MAX_PENDING_PER_AGENT = 10
-# A tool call that needs approval waits this long for the decision, then the request stays parked (S, run states)
-APPROVAL_WAIT_S = 600
+# A tool call that needs approval waits this long for the decision, then the request stays parked (S, run states).
+# Kept under the 300 s Claude Code allows one MCP tool call, so the AI gets an answer instead of a timeout.
+APPROVAL_WAIT_S = 240
 APPROVAL_POLL_S = 1.0
 MAX_PENDING_PER_PROJECT = 25
 _FIELD_ACTIONS = {"status": "change_status", "assignee": "change_assignee"}
@@ -55,6 +64,30 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+# Board AI chat turns have no AiRun: each answer holds a short-lived token that stands for the asking context
+# (in memory only, gone when the answer ends or the app restarts).
+_chat_tokens: dict[str, RunContext] = {}
+
+
+def issue_chat_token(ctx: RunContext) -> str:
+    """A token for one chat answer: its MCP calls act as `ctx` under the member's permissions."""
+    token = "kbr_chat_" + secrets.token_urlsafe(24)
+    _chat_tokens[token_hash(token)] = ctx
+    return token
+
+
+def waits_for_person(run_id: str) -> bool:
+    """Whether a tool call of this run (or chat answer) is held until a person decides an approval."""
+    from . import runs
+
+    return run_id in runs.RT.waiting_approval
+
+
+def revoke_chat_token(token: str) -> None:
+    """The answer ended: its token stops working."""
+    _chat_tokens.pop(token_hash(token), None)
+
+
 def current() -> RunContext | None:
     """The run the current task acts for."""
     return _ctx.get()
@@ -75,6 +108,12 @@ def leave(tokens: tuple[Token, Token, Token]) -> None:
     _ctx.reset(tokens[0])
     svc_activity.reset_ai(tokens[1])
     svc_activity.reset_actor(tokens[2])
+
+
+def suspend() -> tuple[Token, Token, Token]:
+    """Act as nobody until `leave()` with the returned tokens: for work the board does for a person (a decision the
+    run's delegate made) that must not carry the run's attribution into the tasks it starts."""
+    return (_ctx.set(None), svc_activity.set_ai(None), svc_activity.set_actor(None))
 
 
 def _request_token() -> str | None:
@@ -100,6 +139,19 @@ async def context_for_token(token: str) -> RunContext:
     Raises:
         AiActionError: When the run ended (cancelled, finished, paused by the kill switch): its token is dead.
     """
+    chat = _chat_tokens.get(token_hash(token))
+    if chat is not None:
+        async with database.async_session() as session:
+            member, profile = await get_profile(session, chat.member_id)
+            if profile is None or profile.token_revoked_at:
+                raise AiActionError(
+                    "This AI member's token was revoked or the member was removed; the board no longer accepts "
+                    "its calls. Stop now."
+                )
+            profile.mcp_last_used_at = now_iso()
+            session.add(profile)
+            await session.commit()
+        return chat
     async with database.async_session() as session:
         run = (
             await session.exec(
@@ -148,6 +200,11 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
     if tool == "manage_project":
         return ["manage_project"]
     if tool == "docs_write":
+        # commenting on a page is a comment (a reviewer may), not an edit of it
+        if action in ("comment", "reply", "edit_comment", "delete_comment"):
+            return ["comment"]
+        if action in ("delete", "diagram_delete"):
+            return ["delete_docs"]
         return ["edit_docs"]
     if tool == "ticket_branches":
         return ["create_branches"]
@@ -214,7 +271,38 @@ def _describe(tool: str, action: str, params: dict) -> str:
         return f"Create ticket “{params.get('title', '')}”"
     if tool == "manage_ticket" and action == "delete":
         return f"Delete {target}"
-    return f"{tool}.{action} {target}".strip()
+    if tool == "docs_write":
+        return docs_summary(action, params)
+    return f"{tool.replace('_', ' ')}: {action.replace('_', ' ')} {target}".strip()
+
+
+_DOCS_VERBS = {
+    "create": "Create the page",
+    "update": "Edit the page",
+    "move": "Move the page",
+    "duplicate": "Copy the page",
+    "delete": "Delete the page",
+    "restore": "Restore the page",
+    "restore_version": "Restore an older version of the page",
+    "import": "Import pages",
+    "comment": "Comment on the page",
+    "reply": "Reply to a comment on the page",
+    "edit_comment": "Edit a comment on the page",
+    "delete_comment": "Delete a comment on the page",
+    "resolve": "Resolve a comment thread on the page",
+    "reopen": "Reopen a comment thread on the page",
+}
+
+
+def docs_summary(action: str, params: dict, page_title: str | None = None) -> str:
+    """A Docs change in words: "Edit the page “UX design”" instead of `docs_write.update <page id>`."""
+    title = (page_title or params.get("title") or "").strip()
+    verb = _DOCS_VERBS.get(action)
+    if verb is None:
+        return f"Change Docs: {action.replace('_', ' ')}"
+    if action == "import":
+        return verb
+    return f"{verb} “{title}”" if title else verb
 
 
 async def _in_scope(session, ctx: RunContext, profile, ticket_id: str | None) -> bool:
@@ -312,14 +400,24 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
         # Status ceiling: a hard rule, also for approved actions
         new_status = params.get("status") if tool == "manage_ticket" else None
         if new_status and ticket is not None and new_status != ticket.status:
-            why = check_status_move(profile, ticket.status, new_status)
+            why = check_status_move(
+                profile,
+                ticket.status,
+                new_status,
+                full=full_rights_member(settings) == profile.id,
+            )
             if why:
                 await _post_move_blocked(ctx, ticket, new_status, profile.ceiling)
                 raise await _refuse(
                     ctx, "change_status", target, detail, why, code="status_ceiling"
                 )
         if tool == "manage_ticket" and action == "create" and params.get("status"):
-            why = check_status_move(profile, "backlog", params["status"])
+            why = check_status_move(
+                profile,
+                "backlog",
+                params["status"],
+                full=full_rights_member(settings) == profile.id,
+            )
             if why:
                 raise await _refuse(
                     ctx, "change_status", target, detail, why, code="status_ceiling"
@@ -349,20 +447,24 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
                 detail["approval_id"] = f"remembered:{grants[0].id}"
                 detail["remembered"] = True
                 return detail
-            approval = await _request_approval(
-                session, ctx, settings, worst.action, tool, action, params, target
+            approval = await _pending_twin(
+                session, ctx, worst.action, tool, action, params
             )
-            await audit.record(
-                ctx.project_id,
-                worst.action,
-                "needs_approval",
-                member_id=ctx.member_id,
-                member_name=ctx.member_name,
-                on_behalf_of=ctx.on_behalf_of,
-                run_id=ctx.run_id,
-                target=target,
-                detail={**detail, "approval_id": approval.id},
-            )
+            if approval is None:
+                approval = await _request_approval(
+                    session, ctx, settings, worst.action, tool, action, params, target
+                )
+                await audit.record(
+                    ctx.project_id,
+                    worst.action,
+                    "needs_approval",
+                    member_id=ctx.member_id,
+                    member_name=ctx.member_name,
+                    on_behalf_of=ctx.on_behalf_of,
+                    run_id=ctx.run_id,
+                    target=target,
+                    detail={**detail, "approval_id": approval.id},
+                )
             parked = (approval.id, worst.action, approval.summary)
         else:
             detail["permission"] = needs
@@ -513,6 +615,43 @@ async def _post_move_blocked(
                 }
             },
         )
+
+
+def _asked(tool: str, action: str, params: dict) -> dict:
+    """What an approval asks for, without the free-text reason (that differs from one ask to the next)."""
+    return {
+        "tool": tool,
+        "action": action,
+        "params": {k: v for k, v in params.items() if k != "_reason"},
+    }
+
+
+async def _pending_twin(
+    session, ctx, perm: str, tool: str, action: str, params: dict
+) -> AiApproval | None:
+    """The request of this member for the very same change that still waits for a person, if any. Asking again (the
+    person closed the first card, or the AI retried) joins that request: a second one would only list it twice."""
+    wanted = _asked(tool, action, params)
+    pending = await session.exec(
+        select(AiApproval).where(
+            AiApproval.project_id == ctx.project_id,
+            AiApproval.member_id == ctx.member_id,
+            AiApproval.action == perm,
+            AiApproval.status == "pending",
+        )
+    )
+    for a in pending.all():
+        asked = loads(a.payload, {})
+        if (
+            _asked(
+                asked.get("tool", ""),
+                asked.get("action", ""),
+                asked.get("params") or {},
+            )
+            == wanted
+        ):
+            return a
+    return None
 
 
 async def _request_approval(

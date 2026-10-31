@@ -1,3 +1,4 @@
+import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type {
@@ -33,7 +34,7 @@ export function useAiOverview(projectId: string) {
     queryKey: aiKeys.overview(projectId),
     queryFn: async () => (await client.get<AiOverview>(`/projects/${projectId}/ai/overview`)).data,
     enabled: !!projectId,
-    refetchInterval: (q) => (q.state.data?.summary.runningNow ? 3000 : 15000),
+    refetchInterval: (q) => (q.state.data?.summary.runningNow ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
@@ -55,7 +56,9 @@ export function useAiBoard(projectId: string) {
       (await client.get<{ runs: AiRun[]; settings: AiSettings }>(`/projects/${projectId}/ai/board`)).data,
     enabled: !!projectId,
     refetchInterval: (q) =>
-      q.state.data?.runs.some((r) => ['queued', 'starting', 'running'].includes(r.state)) ? 2000 : 15000,
+      q.state.data?.runs.some((r) => ['queued', 'starting', 'running'].includes(r.state))
+        ? LIVE_POLL_MS
+        : SAFETY_POLL_MS,
   });
 }
 
@@ -65,7 +68,7 @@ export function useAiMember(id: string | null) {
     queryKey: aiKeys.member(id ?? ''),
     queryFn: async () => (await client.get<AiMember>(`/ai/members/${id}`)).data,
     enabled: !!id,
-    refetchInterval: 5000,
+    refetchInterval: LIVE_POLL_MS,
   });
 }
 
@@ -134,7 +137,7 @@ export function useTicketRuns(ticketId: string | undefined) {
     queryFn: async () => (await client.get<AiRun[]>(`/tickets/${ticketId}/ai/runs`)).data,
     enabled: !!ticketId,
     refetchInterval: (q) =>
-      q.state.data?.some((r) => ['queued', 'starting', 'running'].includes(r.state)) ? 1500 : 10000,
+      q.state.data?.some((r) => ['queued', 'starting', 'running'].includes(r.state)) ? LIVE_POLL_MS : SAFETY_POLL_MS,
   });
 }
 
@@ -326,6 +329,9 @@ export const aiApi = {
   /** Run again as run #n+1; `limitMin` gives that run a longer time limit ("Raise limit"). */
   retry: async (runId: string, limitMin?: number) =>
     (await client.post<AiRun>(`/ai/runs/${runId}/retry`, limitMin ? { limitMin } : undefined)).data,
+  /** Take a "stopped: memory" card out of Needs you without retrying the run. */
+  dismissStop: async (runId: string) =>
+    (await client.post<{ dismissed: boolean }>(`/ai/runs/${runId}/dismiss-stop`)).data,
   startNow: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/start-now`)).data,
   pauseRun: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/pause`)).data,
   resumeRun: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/resume`)).data,

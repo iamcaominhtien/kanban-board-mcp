@@ -414,7 +414,7 @@ async def test_cancel_kills_the_whole_process_tree_and_returns_the_status(
     await c.post(f"/ai/runs/{retry['id']}/cancel", json={})
 
 
-async def test_failure_and_idle_timeout(env, monkeypatch):
+async def test_failure_and_a_quiet_cli_is_not_timed_out(env, monkeypatch):
     c = env["c"]
     pid, _ = await _project(c)
     monkeypatch.setenv("FAKE_CLAUDE_MODE", "fail")
@@ -431,15 +431,16 @@ async def test_failure_and_idle_timeout(env, monkeypatch):
             break
         await asyncio.sleep(0.1)
     assert comments[-1]["ai"]["kind"] == "failed"
+    # A run on a person's own CLI has no time limit: however short the old limits are set, a quiet CLI keeps going
+    # until it ends or a person stops it
     monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")
     from models import AiMember
 
     async with env["maker"]() as s:
         p = await s.get(AiMember, m["id"])
         cfg = json.loads(p.config)
-        cfg["idle_timeout_min"] = (
-            0.02  # ~1 s, set directly: the API keeps at least 1 minute
-        )
+        cfg["idle_timeout_min"] = 0.02
+        cfg["run_timeout_min"] = 0.02
         p.config = json.dumps(cfg)
         s.add(p)
         await s.commit()
@@ -447,8 +448,12 @@ async def test_failure_and_idle_timeout(env, monkeypatch):
     await c.post(
         f"/tickets/{tid2}/ai/assign", json={"member_id": m["id"], "start": "now"}
     )
-    run = await _wait(c, tid2, ("timed_out",), timeout=20)
-    assert "No output" in run["ended_reason"]
+    quiet = await _wait(c, tid2, ("running",), timeout=20)
+    await asyncio.sleep(3)
+    again = (await c.get(f"/tickets/{tid2}/ai/runs")).json()[0]
+    assert again["state"] == "running", again
+    await runs.cancel(quiet["id"], by="test", reason="done")
+    assert (await _wait(c, tid2, ("cancelled",)))["state"] == "cancelled"
 
 
 async def test_needs_input_sets_pending_and_the_answer_resumes_the_session(
@@ -521,7 +526,11 @@ async def test_runs_wait_for_slots_pause_and_daily_limit(env, monkeypatch):
         r["ticket_id"]: r
         for r in (await c.get(f"/projects/{pid}/ai/board")).json()["runs"]
     }
-    assert board[t2]["state"] == "queued" and "free slot" in board[t2]["waiting_reason"]
+    # a CLI member has no slot limit: only the person's own "Queue" choice makes the second run wait
+    assert (
+        board[t2]["state"] == "queued"
+        and "Queued behind" in board[t2]["waiting_reason"]
+    )
     assert board[t2]["queue_position"] == 1
     await c.post(f"/ai/members/{m['id']}/pause", json={"cancel_current": True})
     await _wait(c, t1, ("cancelled",))
@@ -651,9 +660,12 @@ async def test_deny_posts_the_reason_and_approvals_expire(env):
     ctx, pid, an, m, tid = await _ctx(env)
     tokens = guard.enter(ctx)
     try:
-        for _ in range(2):
+        # two different changes: asking for the very same one again joins the request that waits
+        for extra in ({}, {"priority": "critical"}):
             with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
-                await manage_ticket(action="update", ticket_id=tid, assignee=an)
+                await manage_ticket(
+                    action="update", ticket_id=tid, assignee=an, **extra
+                )
     finally:
         guard.leave(tokens)
     c = env["c"]
@@ -724,8 +736,22 @@ async def test_mention_meanings_and_ai_chain_limit(env, monkeypatch):
     )
     from services.ai import mentions
 
+    # a member on a person's own CLI is woken whatever the chain looks like: no depth, repeat or cooldown rule
     await mentions.from_ai_comment(
         ctx, tid, {"id": "c1", "text": f"{pill} can you check?"}
+    )
+    last = (await c.get(f"/tickets/{tid}")).json()["comments"][-1]
+    assert last["author"] != "Board"
+    # a member billed by the call is held back: it is already in the chain
+    from models import AiMember
+
+    async with env["maker"]() as s:
+        prof = await s.get(AiMember, a["id"])
+        prof.connection = "api_key"
+        s.add(prof)
+        await s.commit()
+    await mentions.from_ai_comment(
+        ctx, tid, {"id": "c2", "text": f"{pill} can you check again?"}
     )
     note = (await c.get(f"/tickets/{tid}")).json()["comments"][-1]
     assert note["author"] == "Board" and "already in it" in note["text"]

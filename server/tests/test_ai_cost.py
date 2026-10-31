@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlmodel import select
 
-from models import AiGrant, AiMember, AiRun, AiUsage
+from models import AiGrant, AiMember, AiRun, AiUsage, Member
 from services.ai import api_agent, budget, runs, safety
 from services.ai.store import get_settings
 from tests.test_ai import (  # noqa: F401
@@ -131,9 +131,39 @@ async def test_board_runs_per_day_and_parallel_limits(env, monkeypatch):
     assert r.json()["board_max_parallel"] == 1
     await c.post(f"/tickets/{t1}/ai/run", json={"member_id": a["id"]})
     await _wait(c, t1, ("running",))
+    # runs on a person's own CLI are not held back by the board's slots
     await c.post(f"/tickets/{t2}/ai/run", json={"member_id": b["id"]})
-    waiting = await _blocked_reason(c, pid, t2)
-    assert "free slot on the board" in waiting["waiting_reason"]
+    assert (await _wait(c, t2, ("running",)))["state"] == "running"
+    await runs.cancel((await c.get(f"/tickets/{t2}/ai/runs")).json()[0]["id"], by="t")
+    # a member billed by the call waits for a board slot
+    async with env["maker"]() as s:
+        prof = await s.get(AiMember, b["id"])
+        prof.connection = "api_key"
+        s.add(prof)
+        await s.commit()
+    async with env["maker"]() as s:
+        queued = await runs.create_run(
+            s, ticket_id=t2, member_id=b["id"], mode="ask", trigger="ask"
+        )
+        run_t2 = queued.id
+    await runs.tick()
+    async with env["maker"]() as s:
+        blocked = await runs._blocking_reason(
+            s,
+            await s.get(AiRun, run_t2),
+            await s.get(AiMember, b["id"]),
+            await s.get(Member, b["id"]),
+            await get_settings(s, pid),
+        )
+    assert "free slot on the board" in (blocked or "")
+    async with env["maker"]() as s:
+        prof = await s.get(AiMember, b["id"])
+        prof.connection = "local"
+        s.add(prof)
+        run = await s.get(AiRun, run_t2)
+        run.state = "cancelled"
+        s.add(run)
+        await s.commit()
     # the board's runs per day stops scheduled and AI-started runs; a person's run goes on
     await c.patch(
         f"/projects/{pid}/ai/settings",

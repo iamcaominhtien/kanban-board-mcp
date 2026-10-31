@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { resolveOrigin } from '../api/resolveOrigin';
-
-/** How long events are gathered into one refetch. */
-const FLUSH_MS = 150;
+import { createBatcher } from './invalidationBatcher';
+import { keysFor, topicsOf } from './invalidationTopics';
 
 /** Subscribe to server events and invalidate React Query caches, reconnecting on failure. */
 export function useSSEInvalidation() {
@@ -13,15 +12,16 @@ export function useSSEInvalidation() {
     let es: EventSource | undefined;
     let retryTimeout: ReturnType<typeof setTimeout>;
     let mounted = true;
-    let flush: ReturnType<typeof setTimeout> | undefined;
 
-    // An AI editing the board fires a burst of events; refetch once per burst, not once per event.
-    function handleMessage(_event: MessageEvent<string>) {
-      if (flush) return;
-      flush = setTimeout(() => {
-        flush = undefined;
-        queryClient.invalidateQueries();
-      }, FLUSH_MS);
+    // An AI editing the board fires a burst of events: refetch once per burst, and while a run keeps streaming (an
+    // event a second) no more than once a second.
+    const batcher = createBatcher((topics) => {
+      const keys = keysFor(topics);
+      if (!keys) void queryClient.invalidateQueries();
+      else keys.forEach((queryKey) => void queryClient.invalidateQueries({ queryKey }));
+    });
+    function handleMessage(event: MessageEvent<string>) {
+      batcher.push(topicsOf(event.data));
     }
 
     // A tab that slept (laptop lid, background throttling) may hold a dead stream and miss changes.
@@ -60,7 +60,7 @@ export function useSSEInvalidation() {
       mounted = false;
       document.removeEventListener('visibilitychange', handleVisible);
       clearTimeout(retryTimeout);
-      clearTimeout(flush);
+      batcher.cancel();
       if (es) {
         es.close();
         // @ts-expect-error: intentionally nulling to prevent late callbacks

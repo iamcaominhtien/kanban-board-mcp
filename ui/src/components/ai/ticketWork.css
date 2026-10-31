@@ -155,11 +155,10 @@
 .tw-state {
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  padding: 0 10px;
+  padding: 1px 7px;
   border-radius: 999px;
   border: 1px solid;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -175,9 +174,23 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  padding: 8px 10px;
-  margin: 0 -10px;
+  padding: 8px 12px;
+  margin: 0 -12px;
   border-radius: 10px;
+}
+/* the dark "AI" mark after an AI member's name */
+.tw-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #1e2a22;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 .tw-live {
   display: flex;
@@ -217,7 +230,14 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: 8px;
+}
+.tw-acts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
 }
 .tw-run-link {
   display: inline-flex;
@@ -227,28 +247,38 @@
   background: none;
   padding: 0;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: #2e6f40;
   text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
 }
+/* the cost chip (design: 20px, 5px corners, mono) */
 .tw-pillbox {
   display: inline-flex;
   align-items: center;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
   border: 1px solid #e3e8e5;
   background: #f6faf7;
   color: #5b6b60;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 500;
   white-space: nowrap;
 }
+/* the model chip (design: the 22px pill) */
+.tw-model {
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
 .tw-icon {
-  width: 28px;
-  height: 28px;
+  height: 26px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -259,7 +289,7 @@
   cursor: pointer;
 }
 .tw-icon:hover {
-  background: #f1f4f2;
+  background: #f6faf7;
 }
 .tw-icon-on {
   color: #2e6f40;
@@ -271,8 +301,9 @@
 }
 .tw-sep {
   width: 1px;
-  height: 16px;
-  background: #dce6df;
+  height: 14px;
+  margin: 0 3px;
+  background: #e3e8e5;
 }
 .tw-act {
   display: inline-flex;
@@ -280,16 +311,17 @@
   gap: 5px;
   border: none;
   background: none;
-  padding: 4px 6px;
+  height: 26px;
+  padding: 0 8px;
   border-radius: 6px;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: #3a4a3e;
+  color: #5b6b60;
   cursor: pointer;
 }
 .tw-act:hover:not(:disabled) {
-  background: #f1f4f2;
+  background: #f6faf7;
 }
 .tw-act:disabled {
   opacity: 0.5;

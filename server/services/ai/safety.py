@@ -42,6 +42,8 @@ EVENTS: dict[str, tuple[str, bool, bool, bool]] = {
     "blocked": ("Blocked or injection attempt", False, True, False),
     "offline": ("Agent offline, token revoked", True, True, True),
     "question": ("An AI question is still unanswered", True, True, True),
+    "run_restarted": ("A run was restarted (memory)", True, True, False),
+    "run_stopped_memory": ("A run was stopped (memory)", True, True, True),
 }
 DIGESTS = ("off", "daily", "weekdays")
 DIGEST_HOUR = 9
@@ -195,26 +197,54 @@ async def remembered(
 ) -> list[AiGrant]:
     """Active remembered approvals covering every one of `actions` on the ticket (empty when one is missing). A
     grant ends when its ticket reaches Done or it is revoked."""
-    if not ticket_id or not actions:
+    if not actions:
         return []
     from models import Ticket
 
-    ticket = await session.get(Ticket, ticket_id)
-    if ticket is None or ticket.status in ("done", "wont_do"):
-        return []
+    ticket = await session.get(Ticket, ticket_id) if ticket_id else None
+    on_ticket = ticket is not None and ticket.status not in ("done", "wont_do")
+    # A grant made with "Always allow" belongs to no ticket and ends only when it is revoked
     rows = (
         await session.exec(
             select(AiGrant).where(
                 AiGrant.kind == "approval",
                 AiGrant.member_id == member_id,
-                AiGrant.ticket_id == ticket_id,
                 col(AiGrant.revoked_at).is_(None),
             )
         )
     ).all()
+    rows = [
+        g
+        for g in rows
+        if g.ticket_id is None or (on_ticket and g.ticket_id == ticket_id)
+    ]
     found = [g for a in actions for g in rows if g.action == a][: len(actions)]
     covered = {g.action for g in found}
     return found if all(a in covered for a in actions) else []
+
+
+async def limited_runs_today(session: AsyncSession, ticket_id: str) -> list:
+    """Runs today that count against a ticket's run limit: the scheduled or AI-started work runs of API-key members.
+    Claude Code and Antigravity run on the person's own CLI, so they are not limited and not counted."""
+    from sqlalchemy import or_
+
+    from models import AiRun
+
+    return list(
+        (
+            await session.exec(
+                select(AiRun)
+                .join(AiMember, col(AiMember.id) == col(AiRun.member_id))
+                .where(
+                    AiRun.ticket_id == ticket_id,
+                    AiRun.mode == "work",
+                    AiRun.queued_at >= today_start().isoformat(),
+                    AiMember.connection == "api_key",
+                    or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
+                )
+            )
+        ).all()
+    )
 
 
 async def extra_runs_today(session: AsyncSession, ticket_id: str) -> int:

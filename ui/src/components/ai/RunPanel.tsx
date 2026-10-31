@@ -13,6 +13,9 @@ import { QuestionCard } from './QuestionCard';
 import { SummaryCard } from './ReviewGate';
 import { RaiseLimitButton, TakeOverButton, UndoRunDialog } from './RunActions';
 import { BudgetStopBox, budgetStop } from './RunView';
+import { ResumeAllDialog } from './AiKillSwitch';
+import { FinalResources, MemoryStopNote, RestartNotice, RunResourcesStrip } from './RunResources';
+import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from './pausedUi';
 import { AccountNote } from './accounts/AccountBanner';
 import { ChangeAccountDialog } from './accounts/AccountPicker';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
@@ -236,9 +239,10 @@ export function TicketAiPanel({
   onOpenRun: () => void;
 }) {
   const runs = useTicketRuns(ticket.id);
-  const { projectId, members: aiMembers } = useAiBoardState();
+  const { projectId, members: aiMembers, runsByTicket, settings } = useAiBoardState();
   const approvals = useAiApprovals(projectId, 'pending');
   const [keepQueued, setKeepQueued] = useState(false);
+  const [resumeOpen, setResumeOpen] = useState(false);
   const list = runs.data ?? [];
   const work = list.filter((r) => r.mode === 'work');
   // The holder (or the last run when nobody holds it); a second AI waiting behind it is shown apart
@@ -246,7 +250,16 @@ export function TicketAiPanel({
   const next = work.find((r) => r.behindRunId && ACTIVE_RUN_STATES.includes(r.state));
   const ticketApprovals = (approvals.data ?? []).filter((a) => a.ticketId === ticket.id);
   const asks = list.filter((r) => r.mode === 'ask' && ACTIVE_RUN_STATES.includes(r.state));
-  if (!latest && !ticketApprovals.length && !asks.length) return null;
+  // Pause all AI: the strip opens the panel (design/screens/ai-paused.md, E2), the last run says why it ended
+  const aiAssignee = ticket.assignee ? aiMembers.get(ticket.assignee) : undefined;
+  const paused = !!settings?.pausedAll && !!aiAssignee && !['done', 'wont_do'].includes(ticket.status);
+  const stoppedByPause =
+    paused && latest?.state === 'cancelled' && (latest.endedReason ?? '').startsWith('Pause all AI');
+  const heldQueue = [...runsByTicket.values()]
+    .filter((r) => r.state === 'queued' && r.mode === 'work')
+    .sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
+  const heldPosition = latest ? heldQueue.findIndex((r) => r.id === latest.id) + 1 : 0;
+  if (!latest && !ticketApprovals.length && !asks.length && !paused) return null;
   const queuedMember = latest?.state === 'queued' ? aiMembers.get(latest.memberId) : undefined;
   const offline = queuedMember?.status.code === 'runner_missing' && !keepQueued;
   const accountOut = queuedMember?.accountRef?.status === 'needs_sign_in';
@@ -264,6 +277,47 @@ export function TicketAiPanel({
       }}
       data-testid="ticket-ai-panel"
     >
+      {paused && settings && (
+        <PausedStrip settings={settings} onResume={() => setResumeOpen(true)}>
+          {latest?.state === 'queued' ? 'Its next run is held.' : 'Nothing new starts on this ticket.'}
+        </PausedStrip>
+      )}
+      {stoppedByPause && latest && (
+        <div
+          className="ai-card"
+          style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}
+          data-testid="run-stopped-by-pause"
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
+            {latest.memberName} · run #{latest.number}
+            <span className="ai-chip" style={{ background: '#FDF0E6', color: PAUSE_COLOR, gap: 5 }}>
+              <PauseGlyph size={11} color={PAUSE_COLOR} />
+              Stopped by the pause
+            </span>
+          </span>
+          <span className="ai-muted" style={{ fontSize: 12.5 }}>
+            Cancelled at step {latest.stepCount ?? latest.steps?.length ?? 0}, {clockTime(latest.endedAt)}. Partial work
+            in the folder is kept.
+          </span>
+          <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
+              Open run
+            </button>
+            <button type="button" className="ai-btn ai-btn-sm" disabled title="Available after resume">
+              Run again
+            </button>
+            <span className="ai-muted" style={{ fontSize: 12 }}>
+              Available after resume
+            </span>
+          </span>
+        </div>
+      )}
+      {paused && latest?.state === 'queued' && heldPosition > 0 && (
+        <span className="ai-muted" style={{ fontSize: 12.5 }} data-testid="run-held-position">
+          Next run for this ticket is held. It starts after resume, in order: position {heldPosition} of{' '}
+          {heldQueue.length}.
+        </span>
+      )}
       {offline && latest && <OfflineBanner run={latest} ticketId={ticket.id} onKeep={() => setKeepQueued(true)} />}
       {accountOut && queuedMember && <AccountHeldBanner member={queuedMember} />}
       {latest && (latest.state === 'running' || latest.state === 'starting' || latest.state === 'queued') && (
@@ -295,6 +349,13 @@ export function TicketAiPanel({
         <ApprovalCard key={a.id} approval={a} />
       ))}
       {members.length < 0 && null}
+      {resumeOpen && (
+        <ResumeAllDialog
+          projectId={projectId}
+          members={[...aiMembers.values()].filter((m) => m.kind === 'ai')}
+          onClose={() => setResumeOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -498,6 +559,8 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
         </button>
         {run.state === 'running' && !run.paused && <div className="ai-progress" />}
       </div>
+      <RestartNotice run={run} />
+      {run.state === 'running' && <RunResourcesStrip run={run} />}
       {run.state === 'running' && (
         <div
           className="ai-hint"
@@ -542,54 +605,60 @@ function FailedCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ticket; on
   const [undo, setUndo] = useState(false);
   const canUndo = run.statusChanges.length > 0 || run.files.length > 0;
   return (
-    <div
-      className="ai-card"
-      style={{
-        padding: '10px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        flexWrap: 'wrap',
-        borderColor: '#F0C4B8',
-        background: '#FBEEEA',
-      }}
-      data-testid="failed-card"
-    >
-      <RunStateChip state={run.state} />
-      <div style={{ flex: 1, minWidth: 180 }}>
-        <div style={{ fontSize: 13, fontWeight: 700 }}>
-          Run #{run.number} · {run.memberName}
-        </div>
-        <div className="ai-muted">
-          {run.endedReason}
-          {run.files.length > 0 ? ` · ${run.files.length} file${run.files.length === 1 ? '' : 's'} changed so far` : ''}
-        </div>
-      </div>
-      <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
-        Open run
-      </button>
-      {failedMember && <SignInAgainButton member={failedMember} primary />}
-      <button
-        type="button"
-        className="ai-btn ai-btn-sm ai-btn-primary"
-        onClick={async () => {
-          try {
-            await retry.mutateAsync(undefined);
-          } catch (err) {
-            toast.error("Couldn't retry", extractError(err));
-          }
+    <div>
+      <div
+        className="ai-card"
+        style={{
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+          borderColor: '#F0C4B8',
+          background: '#FBEEEA',
         }}
+        data-testid="failed-card"
       >
-        Retry
-      </button>
-      <TakeOverButton ticketId={ticket.id} projectId={ticket.projectId} />
-      {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
-      {canUndo && (
-        <button type="button" className="ai-btn ai-btn-sm" onClick={() => setUndo(true)} data-testid="failed-undo">
-          ↶ Undo changes
+        <RunStateChip state={run.state} />
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>
+            Run #{run.number} · {run.memberName}
+          </div>
+          <div className="ai-muted">
+            {run.endedReason}
+            {run.files.length > 0
+              ? ` · ${run.files.length} file${run.files.length === 1 ? '' : 's'} changed so far`
+              : ''}
+          </div>
+        </div>
+        <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
+          Open run
         </button>
-      )}
-      {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
+        {failedMember && <SignInAgainButton member={failedMember} primary />}
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm ai-btn-primary"
+          onClick={async () => {
+            try {
+              await retry.mutateAsync(undefined);
+            } catch (err) {
+              toast.error("Couldn't retry", extractError(err));
+            }
+          }}
+        >
+          Retry
+        </button>
+        <TakeOverButton ticketId={ticket.id} projectId={ticket.projectId} />
+        {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
+        {canUndo && (
+          <button type="button" className="ai-btn ai-btn-sm" onClick={() => setUndo(true)} data-testid="failed-undo">
+            ↶ Undo changes
+          </button>
+        )}
+        {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
+      </div>
+      <MemoryStopNote run={run} />
+      <FinalResources run={run} />
     </div>
   );
 }
@@ -610,15 +679,24 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   useNow(1000, !!live);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
-  // Pause all AI (D1): queued runs are held, and AI-assigned tickets say why nothing moves
-  if (settings?.pausedAll && assignee && !['done', 'wont_do'].includes(ticket.status))
+  // Pause all AI (ai-paused.md, E1): one chip in the banner's colour. A ticket that needs your answer keeps its
+  // amber footer: a pause does not hide it.
+  if (settings?.pausedAll && assignee && !['done', 'wont_do'].includes(ticket.status) && run?.state !== 'needs_input') {
+    const stopped = run?.state === 'cancelled' && (run.endedReason ?? '').startsWith('Pause all AI');
     return (
-      <div className="ai-card-footer" data-testid="card-ai-paused">
-        <span className="ai-chip" style={{ background: '#FDF0E6', color: '#B4571F' }}>
-          {run?.state === 'queued' ? 'Held until resume' : '🔒 Paused: AI is paused'}
+      <div className="ai-card-footer" data-testid="card-ai-paused" title={pausedSummary(settings)}>
+        <span className="ai-chip" style={{ background: '#FDF0E6', color: PAUSE_COLOR, gap: 5 }}>
+          <PauseGlyph size={11} color={PAUSE_COLOR} />
+          {run?.state === 'queued' && run.mode === 'work' ? 'Held until resume' : 'AI paused'}
         </span>
+        {stopped && (
+          <span className="ai-muted" style={{ marginLeft: 'auto', fontSize: 12 }}>
+            Run stopped {clockTime(run.endedAt)}
+          </span>
+        )}
       </div>
     );
+  }
   if (run && live && run.waitingApproval)
     return (
       <div className="ai-card-footer ai-card-footer-slate" data-testid="card-ai-approval">

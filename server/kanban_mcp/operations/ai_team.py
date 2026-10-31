@@ -4,8 +4,10 @@ audit and permissions are the same; what only a person may do (keys, folders, By
 Review, deciding approvals) is not available here."""
 
 import json
+import re
 from typing import Any
 
+import config as app_config
 import events as board_events
 import services.activity as svc_activity
 import services.tickets as svc_tickets
@@ -13,11 +15,13 @@ from models import AiMember, AiRun, Member, Project, Ticket, TicketUpdate
 from services.ai import accounts as svc_accounts
 from services.ai import approvals as svc_approvals
 from services.ai import audit, budget, guard
+from services.ai import resources as svc_resources
 from services.ai import members as svc_members
 from services.ai import runs as svc_runs
 from services.ai import usage as svc_usage
 from services.ai.assist import member_drafts as drafts
 from services.ai.secrets import redact_obj
+from services.ai.permissions import full_rights_member
 from services.ai.store import active_runs, get_profile, get_settings, loads
 from sqlmodel import col, select
 
@@ -558,8 +562,96 @@ async def _fresh(run_id: str) -> dict:
         return _run_row_dict((await svc_runs.runs_to_dicts(session, [row]))[0])
 
 
+async def _resource_level() -> str:
+    """none | view | control for the caller. A person, or an AI outside the board's runs, acts with their own rights
+    (control); an AI run gets what its member's "Resource tools" setting says, and the Autopilot delegate (which has
+    the owner's rights) gets control."""
+    ctx = guard.current()
+    if ctx is None:
+        return "control"
+    async with common.async_session() as session:
+        _, profile = await get_profile(session, ctx.member_id)
+        settings = await get_settings(session, ctx.project_id)
+    if profile is None:
+        return "none"
+    if full_rights_member(settings) == profile.id:
+        return "control"
+    return svc_resources.access_of(profile)
+
+
+async def _need_resource_level(wanted: str) -> None:
+    """Refuse an AI run that was not given the resource tools (view) or the right to act on runs (control)."""
+    have = await _resource_level()
+    order = svc_resources.ACCESS_LEVELS
+    if order.index(have) < order.index(wanted):
+        raise ValueError(
+            "The resource tools are not turned on for this AI member."
+            if have == "none"
+            else "This AI member may look at the resources but not stop or restart runs."
+        )
+
+
+async def resources(project_id: str) -> dict:
+    """RAM and CPU of the running AIs (the CLI process, what it started, peak, restarts) and of the machine."""
+    await _need_resource_level("view")
+    async with common.async_session() as session:
+        await _project(session, project_id)
+    snap = await svc_resources.snapshot(project_id)
+    for row in snap["runs"]:
+        row.pop("history", None)
+    return snap
+
+
+async def _ask_for_run_control(
+    run_id: str, what: str, reason: str | None = None
+) -> dict | None:
+    """An AI run (not the Autopilot delegate, which has the owner's rights) acting on another AI's run only asks;
+    returns the "pending approval" answer, or None when the caller may act now."""
+    ctx = guard.current()
+    if ctx is None:
+        return None
+    async with common.async_session() as session:
+        run = await _run_row(session, run_id)
+        settings = await get_settings(session, ctx.project_id)
+        _, profile = await get_profile(session, ctx.member_id)
+        if profile is None or run.member_id == ctx.member_id:
+            return None
+        if full_rights_member(settings) == profile.id:
+            return None
+        approval = await svc_approvals.request_run_control(
+            session, profile, ctx, run, what, reason
+        )
+    return {
+        "pending_approval": approval.id,
+        "message": f"Asked a person to approve this ({what} run {run_id}). Carry on with your work meanwhile.",
+    }
+
+
+async def restart(run_id: str) -> dict:
+    """Start a running run's CLI again inside the same run: it resumes its conversation and its memory is released."""
+    await _need_resource_level("control")
+    asked = await _ask_for_run_control(run_id, "restart")
+    if asked:
+        return asked
+    async with common.async_session() as session:
+        await _run_row(session, run_id)
+    try:
+        await svc_runs.restart_run(run_id, by=_by())
+    except svc_runs.RunError as exc:
+        raise ValueError(str(exc)) from exc
+    return {"restarting": True, "run_id": run_id}
+
+
 async def cancel(run_id: str, text: str | None = None) -> dict:
     """Cancel an active run (text: the reason). Returns the run."""
+    ctx = guard.current()
+    if ctx is not None:
+        await _need_resource_level("control")
+        if ctx.run_id == run_id:
+            raise ValueError("An AI cannot stop its own run.")
+        asked = await _ask_for_run_control(run_id, "stop", (text or "").strip() or None)
+        if asked:
+            return asked
     async with common.async_session() as session:
         await _run_row(session, run_id)
     row = await svc_runs.cancel(run_id, by=_by(), reason=(text or "").strip() or None)
@@ -735,6 +827,96 @@ async def update_member(member_id: str, fields: dict) -> dict:
         out = await _described(session, member_id)
     await board_events.publish("invalidate")
     return out
+
+
+# --------------------------------------------------------------------------- full control (Settings > Integrations)
+
+# Only the AI team's endpoints: AI members, runs, approvals, safety, audit, schedules, role library.
+FULL_CONTROL_PATH = re.compile(
+    r"^/(ai/|projects/[^/?#]+/ai/|tickets/[^/?#]+/ai/)[^?#]*(\?[^#]*)?$"
+)
+FULL_CONTROL_OFF = (
+    "Full control over MCP is off. A person turns it on in Settings > Integrations > MCP integrations; "
+    "until then use the other ai_team actions."
+)
+BODY_LIMIT = 60_000
+
+
+def _need_full_control() -> None:
+    if not app_config.get_flag(app_config.MCP_FULL_CONTROL):
+        raise ValueError(FULL_CONTROL_OFF)
+
+
+async def endpoints(text: str | None = None) -> list[str]:
+    """The AI-team endpoints `api` can call (METHOD path: what it does), optionally only those containing `text`."""
+    _need_full_control()
+    from main import app
+
+    rows = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        if not FULL_CONTROL_PATH.match(path):
+            continue
+        doc = (getattr(route.endpoint, "__doc__", "") or "").strip().split("\n")[0]
+        for method in sorted(getattr(route, "methods", None) or ()):
+            if method in ("HEAD", "OPTIONS"):
+                continue
+            rows.append(f"{method} {path}" + (f": {_short(doc, 90)}" if doc else ""))
+    needle = (text or "").strip().lower()
+    return sorted(r for r in rows if needle in r.lower())
+
+
+async def api(path: str, body: dict | None = None) -> Any:
+    """Call one AI-team endpoint of the board as the person (the same rights and checks as the app, the same
+    audit). `path` is "METHOD /path"; only paths under /ai/, /projects/<id>/ai/ and /tickets/<id>/ai/."""
+    _need_full_control()
+    import httpx
+
+    method, _, path = (path or "").strip().partition(" ")
+    method = method.upper()
+    if method not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+        raise ValueError(
+            "path is 'METHOD /endpoint', the method being GET, POST, PUT, PATCH or DELETE."
+        )
+    path = (path or "").strip()
+    if ".." in path or not FULL_CONTROL_PATH.match(path):
+        raise ValueError(
+            "The endpoint must be an AI-team one: /ai/..., /projects/<id>/ai/... or /tickets/<id>/ai/... "
+            "(see action 'endpoints')."
+        )
+    from main import app
+
+    # the board remembers the address a request came in on to hand it to CLI runs; this one is not a real address
+    seen_url = svc_runs.RT.board_url
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url=seen_url or "http://127.0.0.1",
+            timeout=120,
+        ) as client:
+            reply = await client.request(
+                method,
+                path,
+                json=body if method in ("POST", "PUT", "PATCH") else None,
+                headers={"X-Actor": _by(), "X-Origin": "mcp"},
+            )
+    finally:
+        svc_runs.RT.board_url = seen_url
+    try:
+        data: Any = reply.json()
+    except ValueError:
+        data = reply.text
+    if reply.status_code >= 400:
+        detail = data.get("detail") if isinstance(data, dict) else data
+        raise ValueError(f"{method} {path} -> {reply.status_code}: {detail}")
+    data = redact_obj(data)
+    if len(json.dumps(data, default=str)) > BODY_LIMIT:
+        return {
+            "status": reply.status_code,
+            "truncated": True,
+            "body": json.dumps(data, default=str)[:BODY_LIMIT],
+        }
+    return data
 
 
 async def accounts(project_id: str | None = None) -> list[dict]:

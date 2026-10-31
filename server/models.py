@@ -946,6 +946,8 @@ class AiMember(SQLModel, table=True):
     key_enc: Optional[str] = Field(default=None)  # encrypted API key, never returned
     key_last4: Optional[str] = Field(default=None)
     persona: str = Field(default="")
+    # The resource tools (RAM and CPU of the runs, restart a run) this member may use: none | view | control
+    resource_access: str = Field(default="none")
     max_parallel: int = Field(default=2)
     daily_budget: Optional[float] = Field(default=5.0)  # USD, API-key members
     monthly_cap: Optional[float] = Field(default=None)
@@ -1126,8 +1128,16 @@ class AiRun(SQLModel, table=True):
     files: str = Field(default="[]")  # JSON list of {path, added, removed, new}
     tokens_in: int = Field(default=0)
     tokens_out: int = Field(default=0)
+    # Of `tokens_in`, what was read from or written to the prompt cache: only a runner that reports it (Claude Code);
+    # None when it does not, and `tokens_in` is then the one number it gives
+    tokens_cached: Optional[int] = Field(default=None)
     cost_usd: float = Field(default=0.0)
     metered: bool = Field(default=False)
+    # What the run's conversation held at its last model call, and the model's window (tokens): the "Context %"
+    context_used: Optional[int] = Field(default=None)
+    context_window: Optional[int] = Field(default=None)
+    # JSON {member_id, ticket_id}: when this run ends without passing the work on, that member is woken on that ticket
+    report_back: Optional[str] = Field(default=None)
     status_before: Optional[str] = Field(default=None)
     status_changes: str = Field(default="[]")  # JSON list of {from, to, at}
     pid: Optional[int] = Field(default=None)
@@ -1154,6 +1164,13 @@ class AiRun(SQLModel, table=True):
     blocked_move: Optional[str] = Field(default=None)
     # JSON [{at, by, field, step}]: edits a person made to the ticket while this run was working on it
     context_notes: str = Field(default="[]")
+    # "mcp" when a tool started the run for the person (MCP full control)
+    started_via: Optional[str] = Field(default=None)
+    # What the run's CLI process used (MB of RAM): the highest value and the last one read (services/ai/resources.py)
+    peak_rss_mb: Optional[float] = Field(default=None)
+    last_rss_mb: Optional[float] = Field(default=None)
+    # JSON [{at, rss_mb, limit_mb, by, n}]: every time the CLI was started again inside this run, by the system or a person
+    restarts: str = Field(default="[]")
 
 
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
@@ -1188,6 +1205,8 @@ class AiApproval(SQLModel, table=True):
     decided_by: Optional[str] = Field(default=None)
     decided_at: Optional[str] = Field(default=None)
     decision_note: Optional[str] = Field(default=None)
+    # "mcp" when a tool decided for the person (MCP full control)
+    decided_via: Optional[str] = Field(default=None)
 
 
 class AiAudit(SQLModel, table=True):
@@ -1238,6 +1257,8 @@ class AiProjectSettings(SQLModel, table=True):
     # Safety and cost (design/screens/ai-safety-cost.md, B5, C4, D, E3, F6, G, H1)
     board_tokens_per_day: Optional[int] = Field(default=1_000_000)
     board_max_parallel: int = Field(default=4)
+    # RAM (MB) a run's CLI may use before the system restarts it (twice) and then stops it; 0 = no limit
+    run_memory_limit_mb: int = Field(default=4096)
     board_runs_per_day: Optional[int] = Field(default=100)
     board_at_cap: str = Field(default="pause")  # pause | stop | ask
     approval_on_expiry: str = Field(default="skip")  # skip | stop
@@ -1249,6 +1270,10 @@ class AiProjectSettings(SQLModel, table=True):
     )  # None keeps entries forever
     loop_cooldown_s: int = Field(default=60)
     no_repeat_chain: bool = Field(default=True)
+    docs_edits_ask: bool = Field(default=False)  # True: AI Docs edits wait for approval
+    autopilot: str = Field(
+        default="{}"
+    )  # JSON delegation of approvals and answers to one AI (services/ai/autopilot.py)
     allowed_domains: str = Field(default='["github.com","developer.mozilla.org"]')
     notify: str = Field(default="{}")  # JSON event -> {inapp, desktop}
     digest: str = Field(default="daily")  # off | daily | weekdays
@@ -1265,6 +1290,11 @@ class AiProjectSettings(SQLModel, table=True):
     paused_cancelled: int = Field(default=0)
     paused_held: int = Field(default=0)
     paused_tokens_revoked: bool = Field(default=False)
+    # Saved with the pause: "Let them finish" was chosen, and safe mode was already on (Resume preselects it)
+    paused_let_finish: bool = Field(default=False)
+    paused_safe_before: bool = Field(default=False)
+    # JSON list of "What to fix" suggestions a person dismissed in AI Team › Health: [{key, at, by}]
+    team_dismissed: str = Field(default="[]")
 
 
 class AiGrant(SQLModel, table=True):

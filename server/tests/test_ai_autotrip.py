@@ -1,5 +1,6 @@
-"""Auto-trip rules (design/screens/ai-safety-cost.md, D6): failed runs, spend spike, repeated denials, loops and many
-agents tripped, with thresholds an admin edits."""
+"""Auto-trip rules (design/screens/ai-safety-cost.md, D6): failed runs, spend spike, repeated denials and many agents
+tripped, with thresholds an admin edits. (An agent calling the same board tool again and again is not a trip: the CLI
+runs its own loop, and the run's time limit and the guard's checks bound it.)"""
 
 from datetime import UTC, datetime, timedelta
 
@@ -42,6 +43,15 @@ async def _run(
         return run.id
 
 
+async def _billed(maker, mid) -> None:
+    """The member is billed by the call (the auto-trip rules hold back only those, not a person's own CLI)."""
+    async with maker() as s:
+        prof = await s.get(AiMember, mid)
+        prof.connection = "api_key"
+        s.add(prof)
+        await s.commit()
+
+
 async def _profile(maker, mid) -> AiMember:
     async with maker() as s:
         return await s.get(AiMember, mid)
@@ -55,10 +65,9 @@ async def test_rules_table_and_threshold_edits(env):
         "Failed runs",
         "Spend spike",
         "Repeated denials",
-        "Loop detected",
         "Many agents tripped",
     ]
-    assert [r["on"] for r in rules] == [True, True, True, True, False]
+    assert [r["on"] for r in rules] == [True, True, True, False]
     assert (
         rules[1]["when"] == "Spend 3× its 7-day norm for 15 min"
         and rules[2]["then"] == "Safe mode for agent"
@@ -82,6 +91,7 @@ async def test_failed_runs_and_denials_and_spend_spike(env):
     a = await _runner(c, pid, env["repo"])
     await c.patch(f"/ai/members/{a['id']}", json={"provider": "anthropic"})
     b = await _runner(c, pid, env["repo"], name="Reviewer")
+    await _billed(maker, b["id"])
     tid = await _ticket(c, pid)
     await c.patch(
         f"/projects/{pid}/ai/settings",
@@ -98,6 +108,7 @@ async def test_failed_runs_and_denials_and_spend_spike(env):
         "Auto-paused: 2 failed runs in 10 minutes"
     )
     # Repeated denials put the agent in safe mode
+    await _billed(maker, a["id"])
     for _ in range(6):
         await audit.record(
             pid, "delete_tickets", "blocked", member_id=a["id"], target=tid
@@ -125,49 +136,13 @@ async def test_failed_runs_and_denials_and_spend_spike(env):
     }
 
 
-async def test_different_calls_on_one_ticket_are_work_not_a_loop(env):
-    # a QA member writing four test cases on one ticket must not be stopped; the same call four times is a loop
+async def test_the_same_board_call_again_and_again_is_not_a_trip(env):
     c, maker = env["c"], env["maker"]
     pid, _ = await _project(c)
     a = await _runner(c, pid, env["repo"])
     tid = await _ticket(c, pid)
     run_id = await _run(maker, pid, a["id"], tid, state="running")
-    for i in range(4):
-        await audit.record(
-            pid,
-            "manage_test_cases",
-            "allowed",
-            member_id=a["id"],
-            run_id=run_id,
-            target=tid,
-            detail={"request": {"ticket_id": tid, "item": f"case {i}"}},
-        )
-    await autotrip.check()
-    async with maker() as s:
-        assert (await s.get(AiRun, run_id)).state == "running"
-    for _ in range(3):
-        await audit.record(
-            pid,
-            "manage_test_cases",
-            "allowed",
-            member_id=a["id"],
-            run_id=run_id,
-            target=tid,
-            detail={"request": {"ticket_id": tid, "item": "case 0"}},
-        )
-    await autotrip.check()
-    async with maker() as s:
-        run = await s.get(AiRun, run_id)
-    assert run.state == "cancelled" and "manage test cases" in run.ended_reason
-
-
-async def test_loop_stops_the_run_and_holds_the_ticket_and_many_agents_pause_all(env):
-    c, maker = env["c"], env["maker"]
-    pid, _ = await _project(c)
-    a = await _runner(c, pid, env["repo"])
-    tid = await _ticket(c, pid)
-    run_id = await _run(maker, pid, a["id"], tid, state="running")
-    for _ in range(4):
+    for _ in range(12):  # e.g. an agent adding test cases one by one
         await audit.record(
             pid, "edit_fields", "allowed", member_id=a["id"], run_id=run_id, target=tid
         )
@@ -175,16 +150,46 @@ async def test_loop_stops_the_run_and_holds_the_ticket_and_many_agents_pause_all
     async with maker() as s:
         run = await s.get(AiRun, run_id)
         ticket = await s.get(Ticket, tid)
-    assert run.state == "cancelled" and run.ended_reason.startswith(
-        "Loop detected: edit fields on KAN-1 4×"
-    )
-    assert ticket.pending
+    assert run.state == "running" and not ticket.pending
+
+
+async def test_a_cli_member_is_never_tripped(env):
+    c, maker = env["c"], env["maker"]
+    pid, _ = await _project(c)
+    a = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    for n in range(1, 8):
+        await _run(
+            maker, pid, a["id"], tid, state="failed", ended=_ago(minutes=1), number=n
+        )
+    await autotrip.on_run_failed(a["id"])
+    for _ in range(10):
+        await audit.record(
+            pid, "delete_tickets", "blocked", member_id=a["id"], target=tid
+        )
+    await autotrip.check()
+    prof = await _profile(maker, a["id"])
+    assert not prof.paused and not prof.safe_mode
+
+
+async def test_many_agents_pause_all(env):
+    c, maker = env["c"], env["maker"]
+    pid, _ = await _project(c)
+    a = await _runner(c, pid, env["repo"])
+    await _billed(maker, a["id"])
+    tid = await _ticket(c, pid)
+    for _ in range(6):
+        await audit.record(
+            pid, "delete_tickets", "blocked", member_id=a["id"], target=tid
+        )
+    await autotrip.check()
     # Many agents tripped (switched on): the third trip pauses all AI
     await c.patch(
         f"/projects/{pid}/ai/settings",
         json={"auto_trip": [{"key": "many_agents", "on": True, "count": 2}]},
     )
     b = await _runner(c, pid, env["repo"], name="Reviewer")
+    await _billed(maker, b["id"])
     for _ in range(6):
         await audit.record(
             pid, "delete_tickets", "denied", member_id=b["id"], target=tid

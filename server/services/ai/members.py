@@ -437,6 +437,19 @@ async def update(
             raise AiPermissionDenied(
                 "Only the project owner can switch to the Custom template."
             )
+    if data.get("resource_access") is not None:
+        if data["resource_access"] not in ("none", "view", "control"):
+            raise AiMemberError("Resource tools: none, view or control.")
+        if data["resource_access"] != profile.resource_access:
+            if role not in ("owner", "admin"):
+                raise AiPermissionDenied(
+                    "Only owners and admins can change access to the resource tools."
+                )
+            changes["resource_access"] = [
+                profile.resource_access,
+                data["resource_access"],
+            ]
+            profile.resource_access = data["resource_access"]
     merged = {
         "tokens_per_day": data.get("tokens_per_day", profile.tokens_per_day),
         "cap_per_run": data.get("cap_per_run", profile.cap_per_run),
@@ -1116,6 +1129,8 @@ async def test_connection(
                 else None
             )
             adapter = adapters.for_provider(profile.provider)
+            if profile.provider == "antigravity" and account is None:
+                adapter = None  # Antigravity on the person's own login runs the way a run does (cli.py)
             if adapter:
                 run = await adapters.test_run(
                     adapter,
@@ -1130,6 +1145,7 @@ async def test_connection(
                     profile.model,
                     folder if folder and Path(folder).is_dir() else None,
                     env=test_env,
+                    provider=profile.provider,
                 )
             if run["ok"]:
                 result = {
@@ -1151,7 +1167,9 @@ async def test_connection(
             result = {
                 "ok": True,
                 "health": "ok",
-                "message": "CLI found and signed in.",
+                "message": "CLI found and signed in."
+                if info.get("logged_in")
+                else "CLI found. Use Test run to check it answers.",
                 **info,
             }
     else:
@@ -1256,6 +1274,8 @@ async def health_check() -> int:
                         changed += 1
                     continue
             if profile.health in ("runner_missing", "not_logged_in"):
+                # no write lock while the CLI is asked (it takes seconds)
+                await session.commit()
                 info = await detect_local(profile.provider, profile.cli_path)
             else:
                 path, _ = cli.find_cli(binary, profile.cli_path)
@@ -1265,6 +1285,8 @@ async def health_check() -> int:
                 )
                 if path and (not stale or profile.provider != "claude-code"):
                     continue
+                # no write lock while the CLI is asked (it takes seconds)
+                await session.commit()
                 info = (
                     await detect_local(profile.provider, profile.cli_path)
                     if path
@@ -1561,6 +1583,7 @@ async def describe(
         "key_last4": profile.key_last4,
         "persona": profile.persona,
         "max_parallel": profile.max_parallel,
+        "resource_access": profile.resource_access,
         "daily_budget": profile.daily_budget,
         "monthly_cap": profile.monthly_cap,
         "max_runs_per_day": profile.max_runs_per_day,

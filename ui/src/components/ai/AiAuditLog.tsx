@@ -39,10 +39,15 @@ const ACTIONS = [
   'manage_test_cases',
   'create_branches',
   'raise_cap',
+  'run_control',
+  'run_stop_dismissed',
   'mention',
   'kill_switch',
   'resume_all',
   'member_updated',
+  'autopilot_decision',
+  'run_restarted',
+  'run_stopped_memory',
 ];
 const DATES = [
   ['today', 'Today'],

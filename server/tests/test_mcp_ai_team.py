@@ -651,7 +651,7 @@ async def test_the_tool_is_small_and_marked_write():
     size = len(tool.description or "") + len(
         json.dumps(tool.inputSchema, separators=(",", ":"))
     )
-    assert size < 2_800 and tool.annotations.readOnlyHint is False
+    assert size < 3_200 and tool.annotations.readOnlyHint is False
     assert tool.annotations.destructiveHint is not True
     assert set(tool.inputSchema["properties"]["action"]["enum"]) == set(AI_TEAM_OPS)
     assert ops.PROVIDERS_OK == ("claude-code", "antigravity", "mcp-client")

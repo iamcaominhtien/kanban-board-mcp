@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlmodel import select
 
-from models import AiApproval, AiAudit, AiProjectSettings, AiRun, Ticket
+from models import AiApproval, AiAudit, AiMember, AiProjectSettings, AiRun, Ticket
 from services.ai import audit, guard, runs, safety
 from services.ai.context import ticket_block
 from tests.test_ai import (  # noqa: F401
@@ -268,7 +268,10 @@ async def test_approval_limits_per_agent_and_per_project(env):
     tokens = guard.enter(ctx)
     try:
         with pytest.raises(ValueError, match="approvals_full"):
-            await manage_ticket(action="update", ticket_id=tid, assignee=an)
+            # a different change: the very same one would join the request that already waits
+            await manage_ticket(
+                action="update", ticket_id=tid, assignee=an, priority="critical"
+            )
     finally:
         guard.leave(tokens)
     backlog = (await c.get(f"/projects/{pid}/ai/approvals-backlog")).json()
@@ -629,7 +632,7 @@ async def test_retention_removes_old_entries_but_keeps_blocked_and_the_chain_val
 # --------------------------------------------------------------------------- injection, loops
 
 
-async def test_guest_comments_are_flagged_fenced_and_can_be_hidden_from_ai(env):
+async def test_guest_comments_are_flagged_and_fenced(env):
     c = env["c"]
     ctx, pid, an, m, tid = await _ctx(env)
     await c.post(
@@ -646,8 +649,6 @@ async def test_guest_comments_are_flagged_fenced_and_can_be_hidden_from_ai(env):
     flags = (await c.get(f"/tickets/{tid}/ai/flags")).json()
     assert len(flags) == 1 and flags[0]["trust"] == "untrusted"
     assert "ignore previous instructions" in [p.lower() for p in flags[0]["phrases"]]
-    t = (await c.get(f"/tickets/{tid}")).json()
-    guest = next(x for x in t["comments"] if x["author"] == "partner@vendor.io")
 
     async with env["maker"]() as s:
         ticket = await s.get(Ticket, tid)
@@ -662,16 +663,6 @@ async def test_guest_comments_are_flagged_fenced_and_can_be_hidden_from_ai(env):
         )
         fenced = ticket_block(ticket, ai, humans=humans, allow_external=True)
         assert '<untrusted source="comment · guest partner@vendor.io">' in fenced
-    r = await c.post(
-        f"/tickets/{tid}/ai/comments/{guest['id']}/hide", json={"hidden": True}
-    )
-    assert r.json()["hidden"] is True
-    async with env["maker"]() as s:
-        ticket = await s.get(Ticket, tid)
-        text = ticket_block(
-            ticket, {m["name"]}, humans={"An Nguyen"}, allow_external=True
-        )
-        assert "Ignore previous" not in text and "hidden from AI" in text
 
 
 async def test_blocked_action_after_flagged_text_names_its_source_and_shows_a_banner(
@@ -702,10 +693,6 @@ async def test_blocked_action_after_flagged_text_names_its_source_and_shows_a_ba
         guard.leave(tokens)
     banner = (await c.get(f"/tickets/{tid}/ai/blocked")).json()
     assert len(banner) == 1 and banner[0]["author"] == "guest@x.io"
-    t = (await c.get(f"/tickets/{tid}")).json()
-    cid = next(x for x in t["comments"] if x["author"] == "guest@x.io")["id"]
-    await c.post(f"/tickets/{tid}/ai/comments/{cid}/hide", json={"hidden": True})
-    assert (await c.get(f"/tickets/{tid}/ai/blocked")).json() == []
     entry = (
         await c.get(f"/projects/{pid}/ai/audit", params={"result": "blocked"})
     ).json()["entries"][0]
@@ -731,6 +718,13 @@ async def test_mention_cooldown_and_repeat_switch(env):
     b = await _runner(c, pid, env["repo"], name="Reviewer")
     from services.ai import mentions
 
+    # the cooldown, depth and repeat rules hold back a member that is billed by the call; one on a person's own CLI
+    # is never held back (see tests/test_ai_run_context.py)
+    async with env["maker"]() as s:
+        prof = await s.get(AiMember, b["id"])
+        prof.connection = "api_key"
+        s.add(prof)
+        await s.commit()
     settings = (await c.get(f"/projects/{pid}/ai/overview")).json()["settings"]
     assert settings["loop_cooldown_s"] == 60 and settings["no_repeat_chain"] is True
     comment = {"id": "c1", "text": f"@[Reviewer](member:{b['id']}) please look"}
@@ -761,6 +755,14 @@ async def test_run_limit_box_and_allow_three_more(env):
         run = (await s.exec(select(AiRun).where(AiRun.ticket_id == tid))).first()
         run.trigger = "schedule"
         s.add(run)
+        await s.commit()
+    # a Claude Code or Antigravity member is not limited, so its scheduled run is not counted either
+    box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
+    assert box["used"] == 0 and box["reached"] is False
+    async with env["maker"]() as s:
+        row = await s.get(AiMember, run.member_id)
+        row.connection = "api_key"  # only an API-key member is held to the limit
+        s.add(row)
         await s.commit()
     box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
     assert box["used"] == 1 and box["limit"] == 1 and box["reached"] is True
@@ -880,3 +882,84 @@ async def test_creating_a_member_follows_the_step_4_rules(env):
         headers=OWNER,
     )
     assert r.status_code == 201 and r.json()["ceiling"] == "testing"
+
+
+async def _docs_create(ctx, pid, title):
+    from kanban_mcp.tools.docs import docs_write
+
+    tokens = guard.enter(ctx)
+    try:
+        return await docs_write(action="create", project_id=pid, title=title)
+    finally:
+        guard.leave(tokens)
+
+
+async def test_docs_edits_are_allowed_by_default_and_deleting_a_page_still_asks(env):
+    from kanban_mcp.tools.docs import docs_write
+
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    page = await _docs_create(ctx, pid, "No request needed")
+    assert page["title"] == "No request needed" and await _pending(c, pid) == []
+    tokens = guard.enter(ctx)
+    try:
+        with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+            await docs_write(action="delete", page_id=page["id"])
+    finally:
+        guard.leave(tokens)
+    [a] = await _pending(c, pid)
+    assert a["action"] == "delete_docs" and a["summary"].startswith("Delete the page")
+    # "Always allow" is only for edits: a deletion is asked every time
+    assert a["always_allowed"] is False
+
+
+async def test_the_project_can_ask_before_every_docs_edit(env):
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    r = await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": True})
+    assert r.json()["docs_edits_ask"] is True
+    with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+        await _docs_create(ctx, pid, "Needs a yes")
+    await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": False})
+    assert (await _docs_create(ctx, pid, "Now it does not"))[
+        "title"
+    ] == "Now it does not"
+
+
+def test_an_approval_wait_ends_before_the_cli_gives_up_on_the_tool_call():
+    assert guard.APPROVAL_WAIT_S < 300
+
+
+async def test_always_allow_lets_an_ai_edit_docs_without_asking_again_until_revoked(
+    env,
+):
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": True})
+    with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+        await _docs_create(ctx, pid, "Brief")
+    [a] = await _pending(c, pid)
+    assert a["action"] == "edit_docs" and a["always_allowed"] is True
+    assert a["summary"] == "Create the page “Brief”"
+    r = await c.post(f"/ai/approvals/{a['id']}/approve", json={"always": True})
+    assert r.status_code == 200
+    [g] = (await c.get(f"/projects/{pid}/ai/grants")).json()
+    assert g["member_id"] == m["id"] and g["action"] == "edit_docs"
+    # the next edit, on any page, goes through without a request
+    assert (await _docs_create(ctx, pid, "Second page"))["title"] == "Second page"
+    assert await _pending(c, pid) == []
+    # revoking makes it ask again
+    assert (await c.delete(f"/ai/grants/{g['id']}")).status_code == 200
+    with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+        await _docs_create(ctx, pid, "Third page")
+    assert (await c.get(f"/projects/{pid}/ai/grants")).json() == []
+
+
+async def test_always_allow_is_only_offered_for_docs_edits(env):
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    await _ask_assignee(env, an, tid, ctx)
+    [a] = await _pending(c, pid)
+    assert a["always_allowed"] is False
+    await c.post(f"/ai/approvals/{a['id']}/approve", json={"always": True})
+    assert (await c.get(f"/projects/{pid}/ai/grants")).json() == []

@@ -8,6 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
 import events as board_events
+import services.activity as svc_activity
 import services.tickets as svc_tickets
 from models import (
     AiApproval,
@@ -15,6 +16,7 @@ from models import (
     AiGrant,
     AiMember,
     AiRun,
+    DocsPage,
     Member,
     Ticket,
     TicketUpdate,
@@ -26,6 +28,9 @@ from .store import get_settings, loads, now_iso, parse_iso
 
 RAISE_CAP = "raise_cap"  # approval action created at the cap with the "Ask an owner first" policy
 RAISE_CAP_USD = 2.0
+RUN_CONTROL = (
+    "run_control"  # an AI with Control asks to restart or stop another AI's run
+)
 
 FIELD_LABELS = {
     "title": "Title",
@@ -76,6 +81,15 @@ class ApprovalStale(ApprovalError):
             "The ticket changed since the request. Approve the updated change, or deny."
         )
         self.stale = stale
+
+
+# Actions a person may allow for good (not only until a ticket is Done): editing Docs pages
+ALWAYS_ALLOWED = ("edit_docs",)
+
+
+def always_allowed(a: AiApproval) -> bool:
+    """Whether "Always allow" is offered for this request: a Docs edit that is not high risk."""
+    return a.action in ALWAYS_ALLOWED and a.risk != "high" and not is_proposal(a)
 
 
 def to_dict(a: AiApproval, member_name: str | None = None) -> dict:
@@ -176,6 +190,19 @@ async def enrich(
     for a in rows:
         d = to_dict(a, names.get(a.member_id))
         payload = loads(a.payload, {})
+        if payload.get("tool") == "docs_write":
+            # older requests stored a raw tool name and page id as their summary
+            params_ = payload.get("params") or {}
+            page = (
+                await session.get(DocsPage, params_["page_id"])
+                if params_.get("page_id")
+                else None
+            )
+            d["summary"] = guard.docs_summary(
+                payload.get("action") or "",
+                params_,
+                page.title if page is not None else None,
+            )
         params = payload.get("params") or {}
         before = loads(a.before, {})
         ticket = await session.get(Ticket, a.ticket_id) if a.ticket_id else None
@@ -249,8 +276,11 @@ async def enrich(
         )
         d["can_decide"] = ok
         d["cannot_reason"] = why
+        d["always_allowed"] = always_allowed(a)
         d["remember_allowed"] = (
-            a.risk != "high" and bool(a.ticket_id) and a.action != RAISE_CAP
+            a.risk != "high"
+            and bool(a.ticket_id)
+            and a.action not in (RAISE_CAP, RUN_CONTROL)
         )
         out.append(d)
     return out
@@ -392,6 +422,8 @@ async def _apply(approval: AiApproval, member_name: str, by: str = "user"):
 
     if approval.action == RAISE_CAP:
         return await _apply_raise_cap(approval, by)
+    if approval.action == RUN_CONTROL:
+        return await _apply_run_control(approval, member_name, by)
     payload = loads(approval.payload, {})
     tool, action, params = (
         payload.get("tool"),
@@ -432,6 +464,18 @@ async def _apply(approval: AiApproval, member_name: str, by: str = "user"):
         guard.leave(tokens)
 
 
+async def _apply_run_control(approval: AiApproval, member_name: str, by: str) -> None:
+    """Approving "restart" or "stop" does it now, in the name of the AI that asked and the person who approved."""
+    from . import runs
+
+    params = loads(approval.payload, {}).get("params") or {}
+    who = f"{member_name} (approved by {by})"
+    if params.get("what") == "restart":
+        await runs.restart_run(params["run_id"], by=who)
+    else:
+        await runs.cancel(params["run_id"], by=who, reason=params.get("reason"))
+
+
 async def _apply_raise_cap(approval: AiApproval, by: str) -> None:
     """Approving "Raise cap" adds a few dollars to today's cap, for the agent or the board, until midnight."""
     params = loads(approval.payload, {}).get("params") or {}
@@ -459,10 +503,16 @@ async def decide(
     note: str | None = None,
     stop_run: bool = False,
     remember: bool = False,
+    always: bool = False,
     accept_updated: bool = False,
     enforce_roles: bool = True,
+    delegate: bool = False,
+    via: str | None = None,
 ) -> dict:
     """Approve once (the board applies the action now) or deny with a reason (sent to the run's ticket).
+
+    `delegate` is for Autopilot only: the project's delegate AI decides on the owner's behalf (services/ai/autopilot.py
+    checks everything first), which is the one case an AI member decides a request. `via` names that path.
 
     Raises:
         ApprovalError: Not found, already decided, run ended, or the person may not decide this risk.
@@ -481,9 +531,10 @@ async def decide(
                 )
         elif a.status != "pending":
             raise ApprovalError(f"This request is already {a.status}.")
-        await _forbid_ai(session, a.project_id, by)
+        if not delegate:
+            await _forbid_ai(session, a.project_id, by)
         settings = await get_settings(session, a.project_id)
-        if enforce_roles:
+        if enforce_roles and not delegate:
             ok, why = await safety.can_decide(
                 session,
                 settings,
@@ -506,13 +557,25 @@ async def decide(
         if proposal:
             return await _decide_proposal(a, name, by=by, approve=approve, note=note)
         a.decided_by = by
+        a.decided_via = via or svc_activity.current_origin()
         a.decided_at = now_iso()
         a.decision_note = (note or "").strip()[:500] or None
         a.status = "approved" if approve else "denied"
         session.add(a)
         await session.commit()
         await session.refresh(a)
-        if approve and remember and a.risk != "high" and a.ticket_id:
+        if approve and always and always_allowed(a):
+            # "Always allow": every later edit of this kind by this AI goes through, on any ticket or page
+            await safety.add_grant(
+                session,
+                project_id=a.project_id,
+                kind="approval",
+                member_id=a.member_id,
+                action=a.action,
+                created_by=by,
+                source_approval_id=a.id,
+            )
+        elif approve and remember and a.risk != "high" and a.ticket_id:
             await safety.add_grant(
                 session,
                 project_id=a.project_id,
@@ -535,6 +598,21 @@ async def decide(
                 a.decision_note = f"Approved but could not be applied: {error}"[:500]
                 session.add(a)
                 await session.commit()
+        if a.action == RUN_CONTROL and not error:
+            await audit.record(
+                a.project_id,
+                RUN_CONTROL,
+                "approved",
+                member_id=a.member_id,
+                member_name=name,
+                on_behalf_of=by,
+                run_id=a.run_id,
+                target=a.ticket_id,
+                detail={
+                    "approval_id": a.id,
+                    **(loads(a.payload, {}).get("params") or {}),
+                },
+            )
         if a.action == RAISE_CAP and not error:
             await audit.record(
                 a.project_id,
@@ -665,6 +743,70 @@ async def bulk_decide(
     return out
 
 
+async def request_run_control(
+    session: AsyncSession,
+    profile: AiMember,
+    ctx: RunContext,
+    target: AiRun,
+    what: str,
+    reason: str | None = None,
+) -> AiApproval:
+    """An AI with Control asks to restart or stop someone else's run: a medium-risk approval (the project's
+    Autopilot delegate may decide it within its ceiling). One pending request per run and kind."""
+    rows = (
+        await session.exec(
+            select(AiApproval).where(
+                AiApproval.project_id == target.project_id,
+                AiApproval.action == RUN_CONTROL,
+                AiApproval.status == "pending",
+                AiApproval.member_id == profile.id,
+            )
+        )
+    ).all()
+    for r in rows:
+        p = loads(r.payload, {}).get("params") or {}
+        if p.get("run_id") == target.id and p.get("what") == what:
+            return r
+    settings = await get_settings(session, target.project_id)
+    member = await session.get(Member, profile.id)
+    name = member.name if member else "AI member"
+    verb = "Restart" if what == "restart" else "Stop"
+    approval = AiApproval(
+        project_id=target.project_id,
+        member_id=profile.id,
+        run_id=ctx.run_id or None,
+        ticket_id=target.ticket_id,
+        action=RUN_CONTROL,
+        summary=f"{verb} the run on {target.ticket_id}",
+        payload=json.dumps(
+            {
+                "tool": "ai_team",
+                "action": what,
+                "params": {"run_id": target.id, "what": what, "reason": reason},
+            }
+        ),
+        reason=reason,
+        risk="medium",
+        on_behalf_of=ctx.on_behalf_of,
+        expires_at=(
+            datetime.now(UTC) + timedelta(hours=settings.approval_expiry_hours or 24)
+        ).isoformat(),
+    )
+    session.add(approval)
+    await session.commit()
+    await session.refresh(approval)
+    await safety.notify(
+        target.project_id,
+        "approval_requested",
+        f"{verb} a run?",
+        f"{name} asks to {verb.lower()} the run on {target.ticket_id}.",
+        ref_kind="approval",
+        ref_id=approval.id,
+        member_id=profile.id,
+    )
+    return approval
+
+
 async def request_cap_raise(
     session: AsyncSession, profile: AiMember, hit: dict
 ) -> bool:
@@ -722,6 +864,32 @@ async def request_cap_raise(
         member_id=profile.id,
     )
     return True
+
+
+async def always_grants(session: AsyncSession, project_id: str) -> list[dict]:
+    """ "Always allow" decisions of a project (not tied to a ticket), listed so they can be revoked."""
+    rows = (
+        await session.exec(
+            select(AiGrant).where(
+                AiGrant.project_id == project_id,
+                AiGrant.kind == "approval",
+                col(AiGrant.ticket_id).is_(None),
+                col(AiGrant.revoked_at).is_(None),
+            )
+        )
+    ).all()
+    names = await _names(session, [g.member_id or "" for g in rows])
+    return [
+        {
+            "id": g.id,
+            "member_id": g.member_id,
+            "member_name": names.get(g.member_id or ""),
+            "action": g.action,
+            "created_by": g.created_by,
+            "created_at": g.created_at,
+        }
+        for g in rows
+    ]
 
 
 async def grants_for_ticket(session: AsyncSession, ticket_id: str) -> list[dict]:

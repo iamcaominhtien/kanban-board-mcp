@@ -9,7 +9,7 @@ import { BoardAiAvatar, CostChip, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
 import { DraftAiMembers } from './DraftAiMembers';
 
-const SLOW_AFTER_S = 15;
+const SLOW_AFTER_S = 30;
 
 /** What a chat about one thing (a ticket, an idea) adds to an answer: sharing it, its run, its own draft kinds. */
 export interface AnswerPanel {
@@ -95,6 +95,9 @@ export function AnswerBlock({
   const goOn = () => act(() => assistApi.retry(msg.id, false, true));
   const elapsed = secondsSince(msg.createdAt) ?? 0;
   const ctxInfo = msg.context;
+  // the tool the member used last ("Using get_ticket · YU-12"), when it uses its own tools
+  const lastStep = msg.steps.length ? msg.steps[msg.steps.length - 1].text : '';
+  const usingTool = lastStep.startsWith('Using ');
 
   let body;
   if (msg.state === 'thinking' || msg.state === 'queued') {
@@ -111,7 +114,11 @@ export function AnswerBlock({
                 Slow
               </span>
             </div>
-            <div className="ai-hint">Usually a few seconds. The provider is busy. You can keep working meanwhile.</div>
+            <div className="ai-hint">
+              {usingTool
+                ? `${lastStep}… Reading the board with its tools can take a while. You can keep working meanwhile.`
+                : 'Usually a few seconds. The provider is busy. You can keep working meanwhile.'}
+            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="ai-btn ai-btn-sm" onClick={() => setKeepWaiting(true)}>
                 Keep waiting
@@ -143,6 +150,15 @@ export function AnswerBlock({
           <span className="ai-chip" style={{ background: '#EAF5ED', color: '#2E6F40' }}>
             <span className="ai-spin" style={{ width: 9, height: 9 }} /> Streaming
           </span>
+          {usingTool && (
+            <span
+              className="ai-muted"
+              title={lastStep}
+              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {lastStep}
+            </span>
+          )}
           {msg.metered && <span className="as-cost">{usd(soFar)} so far</span>}
           <span style={{ flex: 1 }} />
           <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={() => void stop()}>

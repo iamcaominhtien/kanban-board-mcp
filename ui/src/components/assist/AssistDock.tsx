@@ -10,6 +10,7 @@ import { BoardAiAvatar, dayOrTime, usd } from './assistUi';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
+import { ContextMeter } from './ContextMeter';
 
 const SCOPES: { key: AssistScope; label: string; reads: string; size: string }[] = [
   { key: 'ticket', label: 'This ticket', reads: 'Comments, sub-tickets, linked docs', size: '~4k tokens' },
@@ -234,6 +235,33 @@ export function AssistDock() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgCount, lastLen]);
 
+  // The dock floats over the board instead of pushing it: the board reads this width to leave room to scroll past it
+  const dockOpen = !!ctx?.open;
+  useEffect(() => {
+    if (!dockOpen) return undefined;
+    const root = document.documentElement;
+    root.style.setProperty('--as-dock-w', `${panel.maximized ? 0 : panel.width}px`);
+    return () => {
+      root.style.removeProperty('--as-dock-w');
+    };
+  }, [dockOpen, panel.maximized, panel.width]);
+
+  // Esc closes the dock, except while a text field has the focus (a draft is not lost), a dialog is open (Esc is
+  // for that dialog) or the dock is maximized (Esc first goes back to the normal size)
+  const closeDock = ctx?.close;
+  useEffect(() => {
+    if (!dockOpen || !closeDock) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing || panel.maximized) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector('[role="dialog"], [aria-modal="true"]')) return;
+      closeDock();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dockOpen, closeDock, panel.maximized]);
+
   if (!ctx || !ctx.open) return null;
 
   const switchScope = async (s: AssistScope) => {
@@ -267,6 +295,9 @@ export function AssistDock() {
         : scope === 'doc'
           ? 'Ask about this page…'
           : 'Ask about this project…';
+  // how full the CLI session of this chat is, as of the newest answer that says so
+  const sessionFill = [...messages].reverse().find((m) => m.role === 'ai' && m.context.contextWindow)
+    ?.context.contextWindow;
   const loadFailed = st.isError && !state;
   const disabled = notConfigured || chatOff || offline || overBudget || loadFailed;
   const sizing = panelSizing(panel);
@@ -632,6 +663,7 @@ export function AssistDock() {
               {scope === 'doc'
                 ? 'Only this page and linked tickets are sent.'
                 : 'AI proposes · you apply. Answers can be wrong.'}
+              {sessionFill && <ContextMeter used={sessionFill.used} size={sessionFill.size} />}
             </div>
           </div>
         </>

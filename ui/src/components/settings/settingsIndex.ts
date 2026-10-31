@@ -268,6 +268,14 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     keywords: 'claude code antigravity install tools',
   },
   {
+    id: 'mcp-full-control',
+    page: 'integrations',
+    section: 'Full control over MCP',
+    name: 'Full control over MCP',
+    description: 'Let a connected AI tool act on the AI team as you: approvals, members, safety.',
+    keywords: 'mcp full access permissions approve risk admin',
+  },
+  {
     id: 'drawio',
     page: 'integrations',
     section: 'Diagrams (draw.io)',

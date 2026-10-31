@@ -8,7 +8,6 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import or_
 from sqlmodel import col, select
 
 import events as board_events
@@ -164,6 +163,13 @@ async def get_approvals_backlog(project_id: str, session: Session) -> dict:
     """Pending approvals per agent against the limits (10 per agent, 25 per project)."""
     await _project(session, project_id)
     return await svc_approvals.backlog(session, project_id)
+
+
+@router.get("/projects/{project_id}/ai/grants")
+async def get_always_grants(project_id: str, session: Session) -> list[dict]:
+    """ "Always allow" decisions of the project: what an AI may do without asking again, revocable."""
+    await _project(session, project_id)
+    return await svc_approvals.always_grants(session, project_id)
 
 
 @router.get("/tickets/{ticket_id}/ai/grants")
@@ -354,14 +360,54 @@ async def get_resume_info(project_id: str, session: Session) -> dict:
             await session.exec(select(Member).where(Member.project_id == project_id))
         ).all()
     }
-    over = []
+    over: dict[str, tuple[str, str]] = {}
     for p in members:
         hit = await budget.blocked(session, p, settings)
         if hit:
-            over.append(p.id)
+            over[p.id] = hit
+    # What each AI has waiting, so the dialog can say what Resume does to it (design/screens/ai-paused.md, C)
+    runs = (
+        await session.exec(
+            select(AiRun)
+            .where(
+                AiRun.project_id == project_id,
+                col(AiRun.state).in_(["queued", "needs_input", "cancelled"]),
+            )
+            .order_by(col(AiRun.queued_at))
+        )
+    ).all()
+    paused_at = settings.paused_at or ""
+    held_order: list[dict] = []
+    per: dict[str, dict] = {
+        p.id: {"held": [], "waiting_for_you": [], "cancelled": []} for p in members
+    }
+    for r in runs:
+        row = per.get(r.member_id)
+        if row is None:
+            continue
+        if r.state == "queued" and r.mode == "work":
+            row["held"].append(r.ticket_id)
+            held_order.append({"ticket_id": r.ticket_id, "member_id": r.member_id})
+        elif r.state == "needs_input":
+            row["waiting_for_you"].append(r.ticket_id)
+        elif (
+            r.state == "cancelled"
+            and (r.ended_reason or "").startswith("Pause all AI")
+            and (r.ended_at or "") >= paused_at
+        ):
+            steps = loads(r.steps, [])
+            row["cancelled"].append(
+                {
+                    "ticket_id": r.ticket_id,
+                    "step": len(steps),
+                    "at": r.ended_at,
+                    "run_number": r.number,
+                }
+            )
     return {
         "paused_at": settings.paused_at,
         "paused_by": settings.paused_by,
+        "safe_before": settings.paused_safe_before,
         "window_start": start.isoformat(),
         "window_end": stop.isoformat(),
         "actions": [
@@ -380,12 +426,18 @@ async def get_resume_info(project_id: str, session: Session) -> dict:
         "daily_cap": settings.board_daily_cap,
         "budgets_ok": not over
         and (settings.board_daily_cap is None or spent < settings.board_daily_cap),
+        "held_order": held_order,
         "members": [
             {
                 "member_id": p.id,
                 "name": names.get(p.id, ""),
                 "over_budget": p.id in over,
+                "over_budget_reason": over[p.id][1] if p.id in over else None,
                 "token_revoked": bool(p.token_revoked_at),
+                "health": p.health,
+                "paused": p.paused,
+                "paused_reason": p.paused_reason,
+                **per[p.id],
             }
             for p in members
         ],
@@ -615,49 +667,10 @@ async def get_flags(ticket_id: str, session: Session) -> list[dict]:
     return injection.flags_for_comments(loads(ticket.comments, []), humans, ai_names)
 
 
-class HideBody(BaseModel):
-    """Hide a comment from AI agents, or keep it fenced (the default)."""
-
-    hidden: bool = True
-
-
-@router.post("/tickets/{ticket_id}/ai/comments/{comment_id}/hide")
-async def post_hide_comment(
-    ticket_id: str, comment_id: str, body: HideBody, session: Session
-) -> dict:
-    """Hide a comment from AI agents (the comment stays visible to people)."""
-    ticket = await _ticket(session, ticket_id)
-    comments = loads(ticket.comments, [])
-    hit = next((c for c in comments if c.get("id") == comment_id), None)
-    if hit is None:
-        raise HTTPException(status_code=404, detail="Comment not found")
-    if await safety.role_name(session, ticket.project_id, _by()) == "viewer":
-        raise HTTPException(
-            status_code=403, detail="Viewers can't hide comments from AI."
-        )
-    hit["ai_hidden"] = (
-        {"hidden": True, "by": _by(), "at": now_iso()} if body.hidden else None
-    )
-    ticket.comments = json.dumps(comments)
-    session.add(ticket)
-    await session.commit()
-    await svc_audit.record(
-        ticket.project_id,
-        "comment_hidden_from_ai" if body.hidden else "comment_unhidden",
-        "info",
-        member_name=_by(),
-        on_behalf_of=_by(),
-        target=ticket_id,
-        detail={"comment_id": comment_id},
-    )
-    await board_events.publish(board_events.INVALIDATE)
-    return {"comment_id": comment_id, "hidden": body.hidden}
-
-
 @router.get("/tickets/{ticket_id}/ai/blocked")
 async def get_blocked(ticket_id: str, session: Session) -> list[dict]:
     """“AI action blocked” on a ticket (F5): blocked actions of the last 24 hours that followed text flagged as
-    instructions, until the comment is hidden from AI."""
+    instructions."""
     ticket = await _ticket(session, ticket_id)
     since = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
     rows = await svc_audit.list_entries(
@@ -671,7 +684,7 @@ async def get_blocked(ticket_id: str, session: Session) -> list[dict]:
         if not isinstance(source, dict) or not source.get("comment_id"):
             continue
         c = comments.get(source["comment_id"])
-        if c is None or (c.get("ai_hidden") or {}).get("hidden"):
+        if c is None:
             continue
         out.append(
             {
@@ -698,18 +711,7 @@ async def get_run_limit(ticket_id: str, session: Session) -> dict:
     """Runs of a ticket today against the limit (G): the box with “Allow 3 more runs”."""
     ticket = await _ticket(session, ticket_id)
     settings = await get_settings(session, ticket.project_id)
-    used = len(
-        (
-            await session.exec(
-                select(AiRun).where(
-                    AiRun.ticket_id == ticket_id,
-                    AiRun.mode == "work",
-                    AiRun.queued_at >= budget.today_start().isoformat(),
-                    or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
-                )
-            )
-        ).all()
-    )
+    used = len(await safety.limited_runs_today(session, ticket_id))
     extra = await safety.extra_runs_today(session, ticket_id)
     limit = settings.runs_per_ticket_per_day + extra
     return {

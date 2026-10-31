@@ -1,0 +1,259 @@
+/* AI Team › Resources (design/screens/ai-resources.md). Values copied from design/source/AiResources.dc.html. */
+
+.rs-root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rs-livebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rs-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 13.5px;
+}
+.rs-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.rs-big {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.rs-box {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rs-boxhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+}
+.rs-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11.5px;
+  color: #3a4a3e;
+  flex-wrap: wrap;
+}
+.rs-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.rs-chart {
+  width: 100%;
+  height: auto;
+}
+.rs-table {
+  padding: 0;
+  gap: 0;
+}
+.rs-grid,
+.rs-row {
+  display: grid;
+  grid-template-columns: 150px 200px 70px 230px 72px 120px 150px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  font-size: 12.5px;
+}
+.rs-head {
+  padding: 9px 16px;
+}
+.rs-row {
+  border-top: 1px solid #eef3ef;
+  position: relative;
+}
+.rs-ended {
+  opacity: 0.55;
+}
+.rs-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rs-ramline {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12.5px;
+  font-size: 11px;
+}
+.rs-ramline b {
+  font-size: 12.5px;
+}
+.rs-starting {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #fef3d9;
+  color: #7a5a06;
+  font-size: 11px;
+  font-weight: 700;
+}
+.rs-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  position: relative;
+}
+.rs-pop {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  z-index: 20;
+  width: 300px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #d5ded8;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #3a4a3e;
+  text-align: left;
+}
+.rs-pop b {
+  font-size: 13px;
+  color: #1e2a22;
+}
+.rs-pop-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.rs-danger {
+  background: #c4432a;
+  border-color: #c4432a;
+  color: #fff;
+}
+.rs-primary {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+}
+.rs-empty {
+  border: 1px dashed #c7d2cb;
+  border-radius: 12px;
+  background: #fbfcfb;
+  padding: 22px;
+  text-align: center;
+  font-size: 13px;
+  color: #5b6b60;
+}
+.rs-skel {
+  height: 64px;
+  border-radius: 12px;
+  background: #eef3ef;
+  animation: rs-shim 1.4s ease-in-out infinite;
+}
+@keyframes rs-shim {
+  0% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-skel {
+    animation: none;
+  }
+}
+.rs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rs-chip-bar {
+  width: 34px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  display: inline-block;
+}
+.rs-chip-bar > i {
+  display: block;
+  height: 100%;
+}
+
+/* On a run: the notice and the Resources strip (design/screens/ai-resources.md, C2 and D1) */
+.rs-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 12.5px;
+  color: #3a2a1e;
+}
+.rs-strip {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rs-strip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.rs-minis {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rs-mini {
+  flex: 1;
+  min-width: 110px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rs-mini .rs-big {
+  font-size: 18px;
+}

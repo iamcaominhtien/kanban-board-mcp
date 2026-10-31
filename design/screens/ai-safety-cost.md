@@ -253,6 +253,8 @@ Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › block "D Kill
 
 ### D1. Header button, paused state
 
+> **Superseded for the banner and the top-bar state** by [ai-paused.md](ai-paused.md) (AI Team — AI paused). The wording and layout below are the earlier proposal; D2 to D6 still apply.
+
 ![Two header bars, the normal one with a red outlined Pause all AI button and a 1 running chip, and the paused one with a Safe mode chip, an orange AI paused · Resume button, an amber banner with Resume and View audit log, and two ticket cards held by the pause](../images/ai-safety-cost/17-d1-header-button-paused-state.png)
 
 - Caption: "D1. Header button, paused state" "— the same bar tops every screen".
@@ -310,14 +312,13 @@ Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › block "D Kill
 
 - Caption: "D6. Auto-trip" "— and what it does".
 - "Auto-trip rules"; "Thresholds are invented defaults. They protect against a runaway agent when nobody is watching."; link "Edit thresholds".
-- Table (first four switches on, last one off):
+- Table (first three switches on, last one off; the "Loop detected" rule of the first version was removed: a CLI agent runs its own loop, and the chain depth limit in G still stops AI-to-AI cycles):
 
 | Rule | Trips when | Then |
 |---|---|---|
 | "Failed runs" | "5 failed runs in 10 min" | "Pause that agent" |
 | "Spend spike" | "Spend 3× its 7-day norm for 15 min" | "Pause that agent" |
 | "Repeated denials" | "6 blocked or denied in 10 min" | "Safe mode for agent" |
-| "Loop detected" | "Same action 4× in 5 min, or a chain cycle" | "Stop run, hold ticket" |
 | "Many agents tripped" (off) | "3 agents in 30 min" | "Pause all AI" |
 
 - Banner: chip "Auto-paused" "Docs Writer (Gemini)" ": 5 failed runs in 10 minutes (429 from the provider)"; "Banner on the agent, toast, desktop and email per H2. The run stops, queued work is held, only an owner or admin can resume."

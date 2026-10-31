@@ -1,12 +1,18 @@
 """
 Manages runtime config (data folder path) persisted to a JSON file.
-Config file location: ~/.kanban-board/config.json
+Config file location: ~/.kanban-board/config.json (KANBAN_CONFIG_DIR picks another folder, so a test instance can
+keep its own settings and data folder while HOME stays the person's own).
 """
 
 import json
+import os
 from pathlib import Path
 
-_CONFIG_DIR = Path.home() / ".kanban-board"
+_CONFIG_DIR = (
+    Path(os.environ["KANBAN_CONFIG_DIR"]).expanduser()
+    if os.environ.get("KANBAN_CONFIG_DIR")
+    else Path.home() / ".kanban-board"
+)
 _CONFIG_FILE = _CONFIG_DIR / "config.json"
 
 
@@ -40,3 +46,19 @@ def set_data_folder(path: Path) -> None:
     data = _load()
     data["data_folder"] = str(path)
     _save(data)
+
+
+def get_flag(name: str) -> bool:
+    """Whether the app-wide switch `name` is on (off when never set)."""
+    return _load().get(name) is True
+
+
+def set_flag(name: str, on: bool) -> None:
+    """Persist an app-wide switch."""
+    data = _load()
+    data[name] = bool(on)
+    _save(data)
+
+
+# The switch behind "Full control over MCP" (Settings > Integrations)
+MCP_FULL_CONTROL = "mcp_full_control"

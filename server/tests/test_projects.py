@@ -120,7 +120,7 @@ async def test_delete_nonexistent_returns_404(client: httpx.AsyncClient):
     assert response.status_code == 404
 
 
-async def test_delete_project_with_tickets_returns_400():
+async def test_delete_project_with_tickets_deletes_the_tickets_too():
     from datetime import datetime, timezone
 
     from models import Ticket
@@ -148,8 +148,10 @@ async def test_delete_project_with_tickets_returns_400():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as c:
         del_resp = await c.delete(f"/projects/{project_id}")
-    assert del_resp.status_code == 400
-    assert "tickets" in del_resp.json()["detail"].lower()
+    # the UI asks "All its tickets will be lost?" and means it
+    assert del_resp.status_code == 204
+    async with test_async_session() as session:
+        assert await session.get(Ticket, "HAS-1") is None
 
 
 async def test_create_project_invalid_prefix_lowercase_returns_400(

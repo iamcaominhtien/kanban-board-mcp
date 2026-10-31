@@ -10,7 +10,7 @@
     "approvals": {
       "change_assignee": true,
       "create_tickets": true,
-      "edit_docs": true,
+      "edit_docs": false,
       "delete_tickets": false
     },
     "cliAllow": ["Read", "Glob", "Grep", "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)"],
@@ -38,7 +38,7 @@
     "approvals": {
       "change_assignee": true,
       "create_tickets": true,
-      "edit_docs": true,
+      "edit_docs": false,
       "delete_tickets": false
     },
     "tagline": {
@@ -65,7 +65,7 @@
     "approvals": {
       "change_assignee": true,
       "create_tickets": false,
-      "edit_docs": true,
+      "edit_docs": false,
       "delete_tickets": false
     },
     "tagline": {

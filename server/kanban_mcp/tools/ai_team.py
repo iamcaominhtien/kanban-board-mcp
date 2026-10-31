@@ -24,6 +24,8 @@ AI_TEAM_OPS: dict[str, Op] = {
         ("member_id", "text"),
         ("ticket_id", "page_id", "thread_id", "intent"),
     ),
+    "resources": Op(ops.resources, ("project_id",)),
+    "restart": Op(ops.restart, ("run_id",)),
     "cancel": Op(ops.cancel, ("run_id",), ("text",)),
     "retry": Op(ops.retry, ("run_id",)),
     "answer": Op(ops.answer, ("run_id", "text")),
@@ -31,6 +33,8 @@ AI_TEAM_OPS: dict[str, Op] = {
     "resume": Op(ops.resume, ("member_id",)),
     "create_member": Op(ops.create_member, ("project_id", "fields")),
     "update_member": Op(ops.update_member, ("member_id", "fields")),
+    "endpoints": Op(ops.endpoints, (), ("text",)),
+    "api": Op(ops.api, ("path",), ("fields",), {"fields": "body"}),
     "accounts": Op(ops.accounts, (), ("project_id",)),
     "assign_account": Op(ops.assign_account, ("member_id", "account_id")),
 }
@@ -42,8 +46,13 @@ READS = {
     "run",
     "approvals",
     "docs_jobs",
+    "resources",
     "accounts",
 }
+# Allowed inside an AI run when its member's "Resource tools" setting is Control (checked in the operation)
+RUN_CONTROL = {"restart", "cancel"}
+# Only exist for a member whose "Resource tools" setting is above None: an AI run without it gets "unknown action"
+RESOURCE_ONLY = {"resources", "restart"}
 
 
 async def ai_team(
@@ -55,7 +64,9 @@ async def ai_team(
         "run",
         "approvals",
         "docs_jobs",
+        "resources",
         "ask",
+        "restart",
         "cancel",
         "retry",
         "answer",
@@ -63,13 +74,15 @@ async def ai_team(
         "resume",
         "create_member",
         "update_member",
+        "endpoints",
+        "api",
         "accounts",
         "assign_account",
     ],
     project_id: Annotated[
         str | None,
         Field(
-            description="members, usage, accounts, approvals, docs_jobs, create_member."
+            description="members, usage, runs, accounts, approvals, docs_jobs, create_member."
         ),
     ] = None,
     member_id: Annotated[
@@ -83,55 +96,71 @@ async def ai_team(
         Field(description="assign_account: id, or none."),
     ] = None,
     ticket_id: Annotated[str | None, Field(description="ask, runs: IAM-12.")] = None,
-    page_id: Annotated[str | None, Field(description="ask in Docs, docs_jobs.")] = None,
-    thread_id: Annotated[
-        str | None, Field(description="ask in Docs: a thread.")
-    ] = None,
+    page_id: Annotated[str | None, Field(description="Docs: ask, docs_jobs.")] = None,
+    thread_id: Annotated[str | None, Field(description="ask in Docs.")] = None,
     run_id: Annotated[
         str | None, Field(description="run, cancel, retry, answer.")
     ] = None,
     text: Annotated[
         str | None,
-        Field(description="ask, answer: the message; cancel, pause: a reason."),
+        Field(description="ask, answer: message; cancel, pause: reason."),
     ] = None,
     intent: Annotated[
         Literal["ask", "work", "notify"] | None,
-        Field(description="ask: ask (default), work, notify."),
+        Field(
+            description="ask: ask (default), work (assign + work), notify (comment)."
+        ),
     ] = None,
     range: Annotated[
         Literal["today", "7d", "month"] | None,
         Field(description="usage (default month)."),
     ] = None,
     status: Annotated[
-        str | None, Field(description="approvals: pending, approved, denied.")
+        str | None, Field(description="approvals: pending|approved|denied.")
     ] = None,
     active_only: Annotated[
-        bool | None, Field(description="runs: only queued or running.")
+        bool | None, Field(description="runs: queued or running.")
     ] = None,
     limit: Annotated[
         int | None,
-        Field(ge=1, le=100, description="Rows (run: steps)."),
+        Field(ge=1, le=100, description="Rows."),
+    ] = None,
+    path: Annotated[
+        str | None,
+        Field(description="api: 'POST /ai/runs/<id>/cancel'."),
     ] = None,
     fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="create/update_member: name, description, persona, template, ceiling none..review, "
-            "max_parallel, max_runs_per_day, model; create: provider; update: daily_budget, monthly_cap, "
-            "tokens_per_day, cap_per_run."
+            description="create/update_member: name, description, persona, template developer|reviewer|read_only, "
+            "ceiling none..review, max_parallel, max_runs_per_day, model; create: provider claude-code|antigravity|"
+            "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run. api: JSON body."
         ),
     ] = None,
 ) -> dict | list:
-    """The board's AI team. Read: members, member, usage, runs, run, approvals, docs_jobs, accounts (separate logins;
-    only a person signs in). Act: assign_account; ask wakes an AI (an @mention in a posted comment does not);
-    cancel, retry, answer a run; pause, resume a member; create_member, update_member (never keys, folders or
-    Bypass). Refused inside an AI run."""
+    """AI team: read members, runs, usage, approvals, resources, accounts (separate logins; only a person signs in);
+    ask wakes an AI (an @mention via MCP does not); cancel, restart, retry, answer runs; assign_account; pause, resume,
+    create_member, update_member (no keys, folders, Bypass, ceiling past Review; approvals: in the board). With "Full
+    control over MCP" on in Settings: endpoints lists and api calls AI endpoints as the person. Not in AI runs."""
     from services.ai import guard
 
     ctx = await guard.resolve()
-    if action not in READS and ctx is not None:
+    if (
+        action in RESOURCE_ONLY
+        and ctx is not None
+        and await ops._resource_level() == "none"
+    ):
+        # the resource tools do not exist for this member
+        valid = sorted(k for k in AI_TEAM_OPS if k not in RESOURCE_ONLY)
         raise ValueError(
-            "An AI run cannot start AIs or change AI members or runs; a person does."
+            f"Unknown action '{action}'. Valid actions: {', '.join(valid)}."
         )
+    if action not in READS and ctx is not None:
+        # inside an AI run only a member with the Resource tools set to Control may restart or stop runs
+        if action not in RUN_CONTROL or await ops._resource_level() != "control":
+            raise ValueError(
+                "An AI run cannot start AIs or change AI members or runs; a person does."
+            )
     op = AI_TEAM_OPS.get(action)
     if (
         project_id is None

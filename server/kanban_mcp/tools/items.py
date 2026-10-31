@@ -1,6 +1,6 @@
 """The tool for the lists inside a ticket: comments, work log, acceptance criteria, sub-tasks, test cases."""
 
-from .routing import Op, params_of, route
+from .routing import Op, batch, params_of, route
 from pydantic import Field
 from typing import Annotated, Literal
 from .. import operations as ops
@@ -191,6 +191,12 @@ async def ticket_items(
             description="test_case: member id (UUID) who runs it; see get_projects(project_id)."
         ),
     ] = None,
+    items: Annotated[
+        list[dict] | None,
+        Field(
+            description="Many at once (max 25): one object of parameters per call; ticket_id, item, action apply to all. In order; failures are reported per item."
+        ),
+    ] = None,
 ) -> dict:
     """Work on the lists inside a ticket. Pick `item`, then `action`; each combination takes only the parameters shown.
     Returns the updated ticket (without its activity log); new sub-item ids are in its lists.
@@ -200,6 +206,18 @@ async def ticket_items(
     - sub_task, small checklist steps inside the ticket (not tickets; for real child tickets use manage_ticket with parent_id): add (text) | toggle (item_id) | delete (item_id).
     - test_case: add (title [, status, description, expected_result, notes, proof, assignee]) gets a code 'TC-<n>' | update (item_id [, same fields + title]; typically status and proof after running it) | delete (item_id). With the ticket's 'Done requires: all test cases passed' guard on, it cannot move to 'done' until every test case is 'pass'."""
     given = params_of(locals())
+    many = given.pop("items", None)
+    if many is not None:
+        return await batch(
+            lambda extra: _run_one(item, action, {**given, **extra}),
+            many,
+            keep_results=False,
+        )
+    return await _run_one(item, action, given)
+
+
+async def _run_one(item: str, action: str, given: dict) -> dict:
+    """One call: checked by the AI guard when an AI run makes it, then routed to its operation."""
     op = _item_op(item, action)
     from services.ai import guard
 

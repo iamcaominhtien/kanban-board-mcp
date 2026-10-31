@@ -27,6 +27,7 @@ export const ACTION_LABEL: Record<string, string> = {
   create_tickets: 'Create tickets',
   delete_tickets: 'Delete tickets',
   edit_docs: 'Edit docs',
+  delete_docs: 'Delete docs',
   comment: 'Comment',
   manage_test_cases: 'Test cases',
   create_branches: 'Branches',
@@ -46,8 +47,14 @@ export const ACTION_LABEL: Record<string, string> = {
   kill_switch: 'Pause all AI',
   resume_all: 'Resume AI',
   auto_trip: 'Auto-paused',
+  run_restarted: 'Run restarted',
+  run_stopped_memory: 'Run stopped: memory',
+  run_control: 'Run control approved',
+  run_stop_dismissed: 'Memory stop dismissed',
   mention: 'Mention',
   settings_updated: 'Project AI settings',
+  autopilot_decision: 'Autopilot decided',
+  autopilot_changed: 'Autopilot settings',
   token_revoked: 'Token revoked',
   token_reconnected: 'Token reconnected',
   injection_detected: 'Flagged text read',
@@ -55,8 +62,6 @@ export const ACTION_LABEL: Record<string, string> = {
   access_requested: 'Access requested',
   workspace_defaults_updated: 'Workspace defaults',
   extra_runs_allowed: 'More runs allowed',
-  comment_hidden_from_ai: 'Comment hidden from AI',
-  comment_unhidden: 'Comment shown to AI',
 };
 
 export const MODE_LABEL: Record<string, string> = {

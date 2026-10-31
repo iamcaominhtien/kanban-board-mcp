@@ -34,6 +34,34 @@ async def get_settings():
     }
 
 
+class McpControlRequest(BaseModel):
+    """Request body for the "Full control over MCP" switch."""
+
+    enabled: bool
+    accept_risks: bool = (
+        False  # turning it on needs the person to confirm in the dialog
+    )
+
+
+@router.get("/mcp-control")
+async def get_mcp_control() -> dict:
+    """Whether MCP clients may act on the AI team with a person's full rights."""
+    return {"enabled": app_config.get_flag(app_config.MCP_FULL_CONTROL)}
+
+
+@router.post("/mcp-control")
+async def set_mcp_control(req: McpControlRequest) -> dict:
+    """Turn "Full control over MCP" on (only with `accept_risks`) or off."""
+    if req.enabled and not req.accept_risks:
+        raise HTTPException(
+            status_code=400,
+            detail="Confirm that you accept the risks to turn on full control over MCP.",
+        )
+    app_config.set_flag(app_config.MCP_FULL_CONTROL, req.enabled)
+    logger.warning("MCP full control turned %s", "on" if req.enabled else "off")
+    return {"enabled": req.enabled}
+
+
 @router.post("/data-path")
 async def set_data_path(req: DataPathRequest):
     """

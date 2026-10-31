@@ -5,6 +5,7 @@ import re
 import services.tickets as svc_tickets
 import services.workspace as svc_workspace
 from services import activity as svc_activity
+from services.ai import comment_view
 from services.ai import runs as ai_runs
 from datetime import datetime, timezone
 from models import TicketUpdate
@@ -230,7 +231,7 @@ async def get_ticket(
     view: Annotated[
         Literal["full", "comments"],
         Field(
-            description="'full' (default): the whole ticket. 'comments': only the comment thread, cheaper when you just need the discussion."
+            description="'full' (default): the whole ticket. 'comments': just the comment thread (cheaper)."
         ),
     ] = "full",
     activity_limit: Annotated[
@@ -243,29 +244,46 @@ async def get_ticket(
     activity_since: Annotated[
         str | None,
         Field(
-            description="Only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z' ('what changed since I last looked'). Combine with activity_limit to cap how many."
+            description="Only activity entries after this ISO date/time, e.g. '2026-10-05T08:00:00Z' ('what changed since I last looked'). Combine with activity_limit."
         ),
+    ] = None,
+    comment_ids: Annotated[
+        list[str] | None,
+        Field(description="view='comments': only these ids."),
     ] = None,
 ) -> dict:
     """Get one ticket in full: Markdown description, acceptance criteria, test cases, comments, work log (debug notes),
-    branches, relations (blocks / blocked_by / links) and `workspace_path` when the Workspace feature is on.
-    `files`: uploaded images/files the ticket mentions, with absolute `path` on disk to read.
+    branches, relations (blocks / blocked_by / links), `workspace_path` if Workspace is on.
+    `files`: uploads the ticket mentions, with absolute `path` to read.
     Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
     `activity_log` holds the most recent changes (who changed what and when); `activity_total` is how many entries the
     ticket has in all, so you can tell when more exist (widen with activity_limit or narrow with activity_since).
-    view='comments' returns just the comment thread (oldest first: id, author, text, at, edited_at, notified)."""
+    view='comments': just the thread (oldest first), narrowed by comment_ids."""
     if view == "comments":
         if activity_limit is not None or activity_since is not None:
             raise ValueError(
                 "activity_limit / activity_since apply to view='full' only; view='comments' returns just the comment thread."
             )
-        return await list_comments(ticket_id)
+        return await list_comments(ticket_id, comment_ids=comment_ids)
+    if comment_ids is not None:
+        raise ValueError(
+            "comment_ids applies to view='comments' only; view='full' returns every comment."
+        )
     since = _parse_since(activity_since) if activity_since else None
     async with common.async_session() as session:
         ticket = await svc_tickets.get_ticket(session, ticket_id)
         if ticket is None:
             raise _missing_ticket(ticket_id)
         data = _ticket_to_dict(ticket, include_activity=True)
+        viewed = await comment_view.for_caller(
+            session, ticket.project_id, data.get("comments") or []
+        )
+        if (
+            viewed is not None
+        ):  # an AI run reads the comments as its prompt would show them
+            data["comments"] = viewed["comments"]
+            if viewed["held_back"]:
+                data["comments_held_back"] = viewed["held_back"]
         files = _upload_files(data)
         if files:
             data["files"] = files
@@ -453,10 +471,14 @@ async def update_ticket(
         if "assignee" in update_data
         else ai_runs._UNSET,
     )
-    return await _edit_ticket(
+    out = await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.update_ticket(s, ticket_id, TicketUpdate(**update_data)),
     )
+    if update_data.get("assignee"):
+        # an AI that gives a ticket to another AI has handed it over: the receiver is started
+        await ai_runs.wake_new_assignee(ticket_id, update_data["assignee"])
+    return out
 
 
 @notify_on_success

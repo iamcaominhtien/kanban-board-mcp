@@ -1,0 +1,578 @@
+/* Flow › Timeline (design/screens/ai-team-timeline.md): toolbar, the scrolling diagram and the inspector */
+
+.tl-root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.tl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tl-sep {
+  width: 1px;
+  height: 20px;
+  background: #e3e8e5;
+  margin: 0 4px;
+}
+.tl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tl-btn:hover {
+  background: #f6faf7;
+}
+.tl-btn.on {
+  border-color: #2e6f40;
+  background: #e6f2ea;
+  color: #1f5a31;
+}
+.tl-btn.primary {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+}
+.tl-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.tl-follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e3e8e5;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fff;
+  font-family: inherit;
+}
+.tl-follow.on {
+  border-color: #2e6f40;
+  background: #e6f2ea;
+  color: #1f5a31;
+}
+.tl-follow.back {
+  border-color: #e8b93a;
+  background: #fef3d9;
+  color: #7a5a06;
+  cursor: pointer;
+}
+.tl-follow.paused {
+  border-color: #f0cdb0;
+  background: #fdf0e6;
+  color: #b4571f;
+}
+.tl-menuwrap {
+  position: relative;
+}
+.tl-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 260px;
+  max-height: 300px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+}
+.tl-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  text-align: left;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.tl-menu > button:hover {
+  background: #f6faf7;
+}
+.tl-menu > button.on {
+  background: #f1f8f3;
+}
+.tl-menu-h {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  padding: 8px 10px 4px;
+}
+.tl-menu-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.tl-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+/* The stage: the density strip, the scrolling diagram and the inspector beside it */
+.tl-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.tl-strip-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tl-strip-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+  color: #6b7a70;
+  padding: 0 6px;
+}
+.tl-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.tl-box {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  border: 2px solid #2e6f40;
+  border-radius: 8px;
+  background: rgba(46, 111, 64, 0.06);
+  cursor: grab;
+  touch-action: none;
+  min-width: 10px;
+}
+.tl-box:active {
+  cursor: grabbing;
+}
+.tl-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+}
+.tl-edge.left {
+  left: -5px;
+}
+.tl-edge.right {
+  right: -5px;
+}
+.tl-density {
+  position: relative;
+  display: flex;
+  gap: 1px;
+  align-items: flex-end;
+  height: 30px;
+  padding: 4px 8px;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  background: #fbfcfb;
+  overflow: hidden;
+}
+.tl-density > i {
+  flex: 1;
+  background: #2e6f40;
+  border-radius: 1px;
+}
+.tl-scroll {
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-template-rows: max-content 1fr;
+  overflow: auto;
+  max-height: min(72vh, 900px);
+  min-height: 260px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+}
+.tl-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  background: #fff;
+  border-bottom: 1px solid #eef3ef;
+}
+.tl-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fff;
+  border-bottom: 1px solid #eef3ef;
+}
+.tl-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+}
+.tl-bodywrap {
+  min-width: 0;
+}
+.tl-svg {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.tl-svg [data-pick] {
+  cursor: pointer;
+  outline: none;
+}
+.tl-svg [data-pick]:focus-visible {
+  outline: 2px solid #2e6f40;
+  outline-offset: 2px;
+}
+.tl-halo {
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+}
+.tl-still {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl-anim {
+    display: none;
+  }
+  .tl-still {
+    display: inline;
+  }
+}
+@keyframes tlshim {
+  0% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.45;
+  }
+}
+.tl-shim {
+  animation: tlshim 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl-shim {
+    animation: none;
+  }
+}
+.tl-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+}
+.tl-skeleton > span {
+  height: 22px;
+  border-radius: 6px;
+  background: #eef3ef;
+}
+
+.tl-hover {
+  position: fixed;
+  z-index: 50;
+  width: 270px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #d5ded8;
+  box-shadow: 0 10px 28px rgba(30, 42, 34, 0.22);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #3a4a3e;
+  pointer-events: none;
+}
+.tl-hover > b {
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+.tl-hover-hint {
+  display: block;
+  margin-top: 4px;
+  color: #2e6f40;
+  font-weight: 600;
+}
+.tl-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #eef3ef;
+  color: #3a4a3e;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.tl-inspector {
+  position: fixed;
+  z-index: 40;
+  top: 96px;
+  right: 24px;
+  width: 320px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #d5ded8;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.24);
+  font-size: 12.5px;
+}
+.tl-insp-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.tl-insp-line {
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+.tl-insp-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tl-x {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #5b6b60;
+}
+.tl-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tl-input {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #c7d2cb;
+  font: inherit;
+  font-size: 12.5px;
+}
+.tl-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: #3a4a3e;
+}
+.tl-keyhint {
+  color: #6b7a70;
+}
+
+.tl-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fbfcfb;
+}
+.tl-empty-heads {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tl-empty-head {
+  padding: 5px 12px;
+  border-radius: 9px;
+  border: 1.5px solid;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.tl-days {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tl-day {
+  display: grid;
+  grid-template-columns: 130px 1fr 80px auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.tl-day:hover {
+  border-color: #b7c9be;
+}
+.tl-day.quiet {
+  cursor: default;
+  background: #fbfcfb;
+  padding: 6px 14px;
+  display: flex;
+  gap: 12px;
+}
+.tl-day-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef3ef;
+  overflow: hidden;
+}
+.tl-day-bar > i {
+  display: block;
+  height: 100%;
+  background: #2e6f40;
+}
+.tl-day-chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.tl-day-chip.bad {
+  background: #fdece8;
+  color: #a5321e;
+}
+.tl-day-chip.wait {
+  background: #fef3d9;
+  color: #7a5a06;
+}
+.tl-tablewrap {
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+}
+
+/* What moves when something arrives (ai-team-timeline-cases.md, G): once, short, and never under reduced motion */
+@keyframes tl-draw {
+  from {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: var(--len);
+  }
+  to {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes tl-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes tl-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes tl-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes tl-flash {
+  0% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.tl-draw {
+  animation: tl-draw 400ms ease-out both;
+}
+.tl-fade {
+  animation: tl-fade 400ms ease-out both;
+}
+.tl-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tl-pop 150ms ease-out both;
+}
+.tl-pop.tl-late {
+  animation-delay: 400ms;
+}
+.tl-grow {
+  transform-box: fill-box;
+  transform-origin: top;
+  animation: tl-grow 500ms ease-out both;
+}
+.tl-flash {
+  animation: tl-flash 300ms ease-out both;
+}
+.tl-hidden .tl-svg * {
+  animation-play-state: paused !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl-draw,
+  .tl-fade,
+  .tl-pop,
+  .tl-grow,
+  .tl-flash {
+    animation: none;
+  }
+}

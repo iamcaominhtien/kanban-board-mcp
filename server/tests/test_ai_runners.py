@@ -744,14 +744,14 @@ async def test_the_codex_auto_compact_limit_is_validated(fakes):
     assert zero.status_code == 200
 
 
-async def test_antigravity_without_an_account_is_refused_with_the_reason(fakes):
+async def test_antigravity_without_an_account_runs_on_the_login_of_this_computer(fakes):
     c = fakes["c"]
     pid, _ = await _project(c)
     m = await _member(c, pid, fakes["repo"], "antigravity")
     tid = await _ticket(c, pid)
     await _assign(c, tid, m)
-    run = await _wait(c, tid, ("failed",))
-    assert "need an AI account" in run["ended_reason"]
+    run = await _wait(c, tid, ("finished", "failed"))
+    assert run["state"] == "finished", run
 
 
 @pytest.mark.parametrize("provider", ["codex", "opencode", "antigravity"])

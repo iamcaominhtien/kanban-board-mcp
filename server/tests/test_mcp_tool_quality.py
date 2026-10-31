@@ -190,12 +190,14 @@ async def test_the_tool_list_stays_compact():
     # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters, the sketch actions (3.11.0) about
     # 1,900 more
     # ai_team adds about 2,600 characters (measured 2,612) to the 11-tool list
-    # ai_run (3.16.0) lists the fields of its criteria and tests, which Antigravity needs to build them (a bare
-    # "object" made it send nulls), and takes an ignored ticket_id: about 300 characters
-    assert default < 40_500, (
+    # the Autopilot actions of ai_run (decide, answer) add about 460, `items` (many calls in one) on ticket_items and
+    # docs_write about 440; ai_run (3.16.0) lists the fields of its criteria and tests, which Antigravity needs to build
+    # them (a bare "object" made it send nulls), and takes an ignored ticket_id: about 300; the AI accounts actions of
+    # ai_team a few hundred more
+    assert default < 41_800, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 43_500, (
+    assert full < 44_800, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

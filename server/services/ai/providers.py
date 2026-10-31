@@ -185,6 +185,11 @@ MATRIX["opencode"] = {
     **MATRIX["antigravity"],
     "permissions": ("synced", "Allow / deny rules"),
 }
+# Antigravity on the person's own login adds the member's MCP servers to each run (a run on an AI account: the board only)
+MATRIX["antigravity"] = {
+    **MATRIX["antigravity"],
+    "mcp_servers": ("synced", "Kanban added for each run"),
+}
 
 ADAPTER_COLUMNS = [
     ("claude-code", "Claude Code", "local runner"),
