@@ -7,6 +7,7 @@ import { keyChipHtml, keyPattern, refChipHtml } from './docRefTokens';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { DIAGRAM_LINE } from '../components/diagrams/diagramRefs';
 import { SKETCH_LINE } from '../components/sketch/sketchRefs';
+import { CANVAS_LINE, canvasRefOf } from '../components/canvas/canvasRefs';
 
 function escapeHtml(text: string): string {
   return text
@@ -142,6 +143,75 @@ export function sketchBlockElement(id: string, label: string, version?: number):
   return block;
 }
 
+/**
+ * The editor's stand-in for a canvas line: a non-editable block with the overview picture and "Edit canvas" / "Show"
+ * buttons. `htmlToMarkdown` turns it back into `![label](canvas:id[#frame])`.
+ * @param id - Canvas id.
+ * @param label - Canvas title.
+ * @param fragment - `b_…` for one board or `p_…` for a page tab.
+ * @param version - Version to show; adds a cache key to the picture address.
+ */
+export function canvasBlockElement(id: string, label: string, fragment?: string, version?: number): HTMLElement {
+  const name = label || 'Canvas';
+  const el = (tag: string, style?: string) => {
+    const e = document.createElement(tag);
+    if (style) e.setAttribute('style', style);
+    return e;
+  };
+  const block = el('div', BLOCK_STYLE);
+  block.setAttribute('data-canvas', id);
+  if (fragment) block.setAttribute('data-fragment', fragment);
+  block.setAttribute('data-label', name);
+  block.setAttribute('contenteditable', 'false');
+  const stage = el('div', 'display:flex;justify-content:center;padding:12px;background:#F3F5F3');
+  const img = el('img', 'max-width:100%;max-height:320px;width:auto;height:auto;cursor:zoom-in') as HTMLImageElement;
+  img.setAttribute('data-canvas-img', '');
+  img.src = `${resolveOrigin()}/canvases/${encodeURIComponent(id)}/overview.png${version ? `?v=${Number(version)}` : ''}`;
+  img.alt = name;
+  stage.appendChild(img);
+  const foot = el(
+    'div',
+    'display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid #EEF2EF;background:#FAFCFA;font-size:13px;color:#5B6B60',
+  );
+  const chip = el(
+    'span',
+    'padding:1px 8px;border-radius:6px;background:#E8F1FA;color:#244E78;font-weight:600;font-size:12px',
+  );
+  chip.textContent = 'Canvas';
+  const title = el('b', 'color:#1E2A22');
+  title.setAttribute('data-canvas-name', '');
+  title.textContent = name;
+  const grow = el('span', 'flex:1');
+  const btn = (attr: string, text: string) => {
+    const b = el(
+      'button',
+      'border:1px solid #DCE6DF;border-radius:7px;background:#fff;padding:3px 10px;font:600 12px inherit;cursor:pointer',
+    );
+    b.setAttribute('type', 'button');
+    b.setAttribute(attr, '');
+    b.textContent = text;
+    return b;
+  };
+  foot.append(chip, title, grow, btn('data-canvas-show', 'Show…'), btn('data-canvas-edit', 'Edit canvas'));
+  block.append(stage, foot);
+  return block;
+}
+
+/** A canvas inside a sentence ("Link only"): a small chip that `htmlToMarkdown` turns back into `[label](canvas:id)`. */
+export function canvasChipElement(id: string, label: string, fragment?: string): HTMLElement {
+  const chip = document.createElement('span');
+  chip.setAttribute('data-canvas-chip', id);
+  if (fragment) chip.setAttribute('data-fragment', fragment);
+  chip.setAttribute('data-label', label || 'Canvas');
+  chip.setAttribute('contenteditable', 'false');
+  chip.setAttribute(
+    'style',
+    'display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;background:#F1F8F3;border:1px solid #D7E8DC;color:#2E6F40;font-weight:600;font-size:13px;cursor:pointer;vertical-align:1px',
+  );
+  chip.textContent = `▦ ${label || 'Canvas'}`;
+  return chip;
+}
+
 /** Allow only http(s), mailto, root-relative and plain relative URLs. */
 export function isSafeUrl(url: string): boolean {
   const trimmed = url.trim();
@@ -191,6 +261,10 @@ function formatInlineMarkdown(text: string): string {
   // Images: ![alt](url) or ![alt|width](url)
   let out = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, rawAlt, url) => {
     if (url.startsWith('uploading:')) return '';
+    const inlineCanvas = canvasRefOf(url);
+    if (inlineCanvas) {
+      return canvasChipElement(inlineCanvas.id, rawAlt, inlineCanvas.boardId ?? inlineCanvas.pageId).outerHTML;
+    }
     if (!isSafeUrl(url)) return '';
     const src = url.startsWith('/uploads/') ? `${resolveOrigin()}${url}` : url;
 
@@ -219,9 +293,11 @@ function formatInlineMarkdown(text: string): string {
   });
 
   // Links: [text](url)
-  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, url) =>
-    isSafeUrl(url) ? `<a href="${url}">${label}</a>` : label,
-  );
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, url) => {
+    const canvas = canvasRefOf(url);
+    if (canvas) return canvasChipElement(canvas.id, label, canvas.boardId ?? canvas.pageId).outerHTML;
+    return isSafeUrl(url) ? `<a href="${url}">${label}</a>` : label;
+  });
 
   // Bold: **text**
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -418,6 +494,13 @@ export function markdownToHtml(md: string): string {
       continue;
     }
 
+    // A canvas on its own line: ![label](canvas:cv_…[#b_…])
+    const canvasLine = CANVAS_LINE.exec(line.trim());
+    if (canvasLine) {
+      htmlParts.push(canvasBlockElement(canvasLine[2], canvasLine[1], canvasLine[3]).outerHTML);
+      continue;
+    }
+
     // A diagram on its own line: [label](diagram:dg_…)
     const diagramLine = DIAGRAM_LINE.exec(line.trim());
     if (diagramLine) {
@@ -528,6 +611,13 @@ export function htmlToMarkdown(root: HTMLElement): string {
       ? `[${(el.getAttribute('data-label') || 'Diagram').replace(/[<>"'[\]\n]+/g, ' ')}](diagram:${id})`
       : '';
 
+  const canvasLink = (el: HTMLElement, id: string, image: boolean) => {
+    if (!/^cv_[0-9a-f]{8}$/.test(id)) return '';
+    const frag = el.getAttribute('data-fragment');
+    const fragment = frag && /^(b|p)_[0-9a-f]{8}$/.test(frag) ? `#${frag}` : '';
+    return `${image ? '!' : ''}[${(el.getAttribute('data-label') || 'Canvas').replace(/[<>"'[\]\n]+/g, ' ')}](canvas:${id}${fragment})`;
+  };
+
   const sketchLink = (el: HTMLElement, id: string) =>
     /^sk_[0-9a-f]{8}$/.test(id)
       ? `![${(el.getAttribute('data-label') || 'Sketch').replace(/[<>"'[\]\n]+/g, ' ')}](sketch:${id})`
@@ -549,6 +639,10 @@ export function htmlToMarkdown(root: HTMLElement): string {
     if (inlineDiagramId) return diagramLink(el, inlineDiagramId);
     const inlineSketchId = el.getAttribute('data-sketch');
     if (inlineSketchId) return sketchLink(el, inlineSketchId);
+    const inlineCanvasChip = el.getAttribute('data-canvas-chip');
+    if (inlineCanvasChip) return canvasLink(el, inlineCanvasChip, false);
+    const inlineCanvasId = el.getAttribute('data-canvas');
+    if (inlineCanvasId) return canvasLink(el, inlineCanvasId, true);
 
     const childrenText = Array.from(el.childNodes).map(serializeInline).join('');
 
@@ -704,6 +798,8 @@ export function htmlToMarkdown(root: HTMLElement): string {
     if (diagramId) return `${diagramLink(el, diagramId)}\n\n`;
     const sketchId = el.getAttribute('data-sketch');
     if (sketchId) return `${sketchLink(el, sketchId)}\n\n`;
+    const canvasId = el.getAttribute('data-canvas');
+    if (canvasId) return `${canvasLink(el, canvasId, true)}\n\n`;
 
     switch (tag) {
       case 'h1':

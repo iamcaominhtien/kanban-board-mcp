@@ -150,6 +150,13 @@ def write_doc(canvas_id: str, doc: dict[str, Any]) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")), "utf-8")
     os.replace(tmp, path)
+    # the overview sits next to the file, so a Docs or ticket export can point at a plain image of the canvas
+    try:
+        (path.parent / "overview.png").write_bytes(
+            canvas_png.overview(doc, max_side=1000)
+        )
+    except OSError:  # an export picture is a convenience; the canvas is saved
+        pass
 
 
 def read_doc(canvas_id: str) -> dict[str, Any]:
@@ -382,6 +389,19 @@ def _totals(doc: dict[str, Any]) -> tuple[int, int]:
     return len(boards), sum(
         int((b.get("content") or {}).get("bytes", 0)) for b in boards
     )
+
+
+async def _reindex(session: AsyncSession, c: Canvas) -> None:
+    """A canvas that is a Docs page has its boards as sections: keep the page index in step."""
+    if not c.page_id:
+        return
+    from services import docs_search
+
+    try:
+        await docs_search.reindex(session, [c.page_id])
+        await session.commit()
+    except Exception:  # noqa: BLE001 - the index is a convenience; the canvas is saved
+        await session.rollback()
 
 
 def _touch(c: Canvas, doc: dict[str, Any]) -> None:
@@ -694,6 +714,8 @@ async def save(
         ):
             await _version(session, c, "auto")
         await session.commit()
+    if changed:
+        await _reindex(session, c)
     return {"rev": c.rev, "version": c.version, "doc": doc, "saved": changed}
 
 
@@ -1007,6 +1029,7 @@ async def restore_version(
     await session.commit()
     await _version(session, c, "restore", note=f"Restored version {n}")
     await session.commit()
+    await _reindex(session, c)
     return await get_canvas(session, c.id)
 
 
@@ -1427,6 +1450,7 @@ async def add_board(
     write_doc(c.id, doc)
     session.add(c)
     await session.commit()
+    await _reindex(session, c)
     return {"board": board, "rev": c.rev}
 
 
@@ -1619,6 +1643,7 @@ async def duplicate_board(
     write_doc(c.id, doc)
     session.add(c)
     await session.commit()
+    await _reindex(session, c)
     return {"board": copy, "rev": c.rev}
 
 

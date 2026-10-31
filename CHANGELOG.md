@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-11-01
+
+Canvas: boards (called frames) on one large plane, a peer of Sketch and Diagram. Design: `design/screens/canvas.md`; notes: `docs/specs/canvas.md`. [#246](https://github.com/iamcaominhtien/kanban-board-mcp/issues/246).
+
+### Added
+- **Canvas.** Frames (an HTML page with its CSS and pictures, a picture, a Sketch, a Diagram or an empty frame) sit side by side on one plane with notes, arrows, labels and page tabs. It is an attachment of its owner (ticket, comment, idea, Docs page) shown as `![Name](canvas:cv_…)`, or its own **Docs page** (layers icon; **Docs › New page › Canvas**), and **Move to Docs** turns one into the other without changing the id. Entry points: the Canvas button of every markdown toolbar, `/canvas`, the New idea dialog, **Open on a canvas** on an HTML file or picture in the file viewer, and the New canvas dialog (blank, from files, ask AI).
+- **The editor**: header, page tabs, plane with zoom 10% to 400% and Fit, a map, snapping guides, multi-select, tool bar (Select, Hand, Board, Note, Arrow, Label, Comment), Boards and Comments panels, every key in the design (press `?`). Below 40% frames show a picture of their last state, from 40% they are drawn live. A frame's source opens in an editor with a live locked preview.
+- **Locks and merging.** One lock per frame, only while its content is open for changing (10 idle minutes, warned first). Moves, notes, arrows and comments need no lock and merge per item; only the same item changed by two people shows the "saved a newer version" card (Save as copy, Load theirs, Replace theirs). A failed save keeps a draft on this computer.
+- **Locked frames.** HTML frames are cleaned on the way in (scripts, handlers, outside requests removed and listed in a "3 blocked" chip), served with a `Content-Security-Policy` that allows drawing only, and shown in an `<iframe sandbox="">`.
+- **In text**: a card with an overview (hover: Edit, Download, View full size, Copy link; ⋯: Move to Docs, Save as copy, Remove from text), one frame or a chip ("Show…" in the editors), a large view (steps, filmstrip, width switch, comments, all frames with G) and **Present** (dark full screen). References: pages and frames in the `[[` suggester (`[[Settings flow#Sign in]]`), Linked docs on a ticket, backlinks of a canvas page, exports write an outline picture.
+- **History**: a version on every Done, accepted proposal, restore and (Docs pages) every 10 minutes; name, look at, compare (side by side and source diff), restore (makes a new version).
+- **Comments** pinned to a frame (the pin moves with it) or to the plane, with threads, filters, resolve, mentions, Create ticket and Copy link.
+- **AI.** **Ask AI** (Ctrl J) on selected frames prepares a proposal with before and after and per-frame accept / reject, saved as one version. The AI never overwrites, never takes a lock (a proposal for a locked frame waits) and never resolves a person's thread; an AI comment can offer **Propose a fix**.
+- **MCP**, with no new tool: `docs_read` `canvases` and `canvas` (frames, notes, arrows, labels, comments, proposals; a frame's source or files), `docs_write` `canvas_comment` and `canvas_propose`. They need the member's Edit docs permission.
+- Export: ZIP of every frame or one frame, the board as a 2x PNG, an outline overview, PDF through the print dialog. Import: HTML files, pictures, a ZIP of a built page, `.sketch` and `.drawio` files.
+
+### Changed
+- The default MCP tool list is about 1,800 characters longer (the four canvas actions); the size test allows for it.
+- `docs_page` has a `kind` (`page` or `canvas`).
+
 ## [3.16.0] - 2026-11-01
 
 AI accounts: several sign-ins of the same AI CLI, shared between AI members. Design: `design/screens/ai-accounts.md`; notes: `docs/specs/ai-accounts.md`.

@@ -309,4 +309,3 @@ async def propose_canvas_change(
         ),
         "message": "Proposed. A person sees before and after and accepts or rejects it; nothing was changed.",
     }
-

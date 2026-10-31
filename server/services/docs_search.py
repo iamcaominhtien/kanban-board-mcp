@@ -155,7 +155,32 @@ async def _contents(session: AsyncSession, pages: list[DocsPage]) -> dict[str, s
         )
         for pid, markdown in drafts.all():
             out.setdefault(pid, markdown)
+    await _canvas_outline(session, pages, out)
     return out
+
+
+async def _canvas_outline(
+    session: AsyncSession, pages: list[DocsPage], out: dict[str, str]
+) -> None:
+    """A canvas page has the boards of its canvas as sections, so `[[Settings flow#Sign in]]` and the `[[` suggester
+    ("INSIDE A CANVAS: Login redesign › Sign in") find them like headings."""
+    ids = [p.id for p in pages if getattr(p, "kind", "page") == "canvas"]
+    if not ids:
+        return
+    from models import Canvas
+    from services import canvases
+
+    rows = await _exec(
+        session,
+        select(Canvas).where(Canvas.page_id.in_(ids), Canvas.deleted_at.is_(None)),
+    )  # type: ignore[attr-defined,union-attr]
+    for c in rows.all():
+        try:
+            names = [b["name"] for b in canvases.read_doc(c.id)["boards"]]
+        except Exception:  # noqa: BLE001 - a missing file only means no sections
+            continue
+        outline = "\n\n".join(f"## {n.replace(chr(10), ' ')}" for n in names)
+        out[c.page_id] = f"{out.get(c.page_id, '')}\n\n{outline}".strip()
 
 
 async def reindex(session: AsyncSession, page_ids: list[str]) -> None:

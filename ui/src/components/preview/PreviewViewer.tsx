@@ -12,6 +12,8 @@ import { canShowInFolder, isDesktop, openInDefaultApp, showInFolder } from './de
 import { isRunnableFile, previewKind } from './kinds';
 import { isTyping, useViewerKeys } from './useViewerKeys';
 import { useSketch, type SketchOwner } from '../sketch/SketchContext';
+import { useCanvas, type CanvasOwner } from '../canvas/CanvasContext';
+import { OpenOnCanvas } from '../canvas/OpenOnCanvas';
 import { SketchIcon } from '../sketch/SketchIcon';
 import type { PreviewItem } from './types';
 import styles from './PreviewViewer.module.css';
@@ -29,6 +31,8 @@ interface Props {
   onClose: () => void;
   /** Where "Draw on it" saves to; without it the button is hidden. */
   sketchOwner?: SketchOwner | null;
+  /** Where "Open on a canvas" puts the file; without it the button is hidden. */
+  canvasOwner?: CanvasOwner | null;
 }
 
 const WEB_OPEN_HINT = 'Only in the desktop app. In the browser, download the file and open it from your downloads.';
@@ -101,7 +105,8 @@ function Thumb({ item, active, onPick }: { item: PreviewItem; active: boolean; o
  * @param props.onClose - Called on Esc, the close button or a click outside.
  * @param props.sketchOwner - Where "Draw on it" saves to, set by the page that opened the viewer.
  */
-export default function PreviewViewer({ items, index, onIndex, onClose, sketchOwner }: Props) {
+export default function PreviewViewer({ items, index, onIndex, onClose, sketchOwner, canvasOwner }: Props) {
+  const canvasApi = useCanvas();
   const item = items[index];
   const rootRef = useRef<HTMLDivElement>(null);
   const [facts, setFacts] = useState<Record<string, string>>({});
@@ -356,6 +361,18 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
                 <SketchIcon name="sketch" size={14} /> <span className={styles.btnLabel}>Draw on it</span>
               </button>
             )}
+            {!!canvasOwner &&
+              canvasApi.available &&
+              !!item.uploadPath &&
+              /\.(html?|png|jpe?g|gif|webp|svg)$/i.test(item.name) && (
+                <OpenOnCanvas
+                  owner={canvasOwner}
+                  name={item.name}
+                  src={item.src}
+                  buttonClass={`${styles.btn} ${styles.btnDraw}`}
+                  labelClass={styles.btnLabel}
+                />
+              )}
             {desktop ? (
               <>
                 <button

@@ -11,6 +11,8 @@ import { DIAGRAM_LINE } from './diagrams/diagramRefs';
 import { firstDiagramFile } from './diagrams/diagramFile';
 import { SketchIcon } from './sketch/SketchIcon';
 import { useSketchBlocks } from './sketch/useSketchBlocks';
+import { CanvasIcon } from './canvas/CanvasIcon';
+import { useCanvasBlocks } from './canvas/useCanvasBlocks';
 import diagramStyles from './diagrams/Diagrams.module.css';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { RefSuggester, type SuggestMember } from './docs/RefSuggester';
@@ -238,7 +240,12 @@ export function MarkdownEditor({
     function handleClickOutside(e: MouseEvent) {
       if (isFilePickerOpenRef.current) return;
       // the draw.io, sketch and AI editor layers and viewers sit outside this field but belong to it
-      if ((e.target as HTMLElement).closest?.('[data-diagram-layer], [data-sketch-layer], [data-ai-layer]')) return;
+      if (
+        (e.target as HTMLElement).closest?.(
+          '[data-diagram-layer], [data-sketch-layer], [data-canvas-layer], [data-ai-layer]',
+        )
+      )
+        return;
       if (isLinkPopoverOpen) {
         // If clicking inside link popover, don't close
         const popover = document.querySelector(`.${styles.linkPopover}`);
@@ -377,6 +384,18 @@ export function MarkdownEditor({
 
   // Sketch (paint-style drawing): placed beside Diagram, for the same fields
   const sketch = useSketchBlocks({
+    root: wysiwygRef,
+    savedRange: savedSelectionRangeRef,
+    sync: syncContent,
+    readOnly,
+    ownerKind: diagramItem?.kind ?? 'ticket',
+    ownerId: diagramItem?.id,
+    projectId: diagramProjectId,
+    ownerLabel: diagramSaveTo,
+  });
+
+  // Canvas (boards on one large plane): the third drawing object, beside Sketch and Diagram
+  const canvas = useCanvasBlocks({
     root: wysiwygRef,
     savedRange: savedSelectionRangeRef,
     sync: syncContent,
@@ -1309,6 +1328,25 @@ export function MarkdownEditor({
               </button>
             )}
 
+            {/* Canvas */}
+            {canvas.starter.available && !!diagramProjectId && !readOnly && (
+              <button
+                type="button"
+                className={styles.toolbarBtn}
+                aria-label="Canvas"
+                title="Canvas (boards on one large plane)"
+                data-testid="editor-canvas"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  rememberSelection();
+                  void canvas.starter.start();
+                }}
+              >
+                <CanvasIcon name="canvas" size={14} />
+              </button>
+            )}
+            {canvas.settingsPanel}
+
             {/* Image upload */}
             {(onUploadImage || onUploadFile) && (
               <>
@@ -1558,7 +1596,7 @@ export function MarkdownEditor({
           onDrop={handleDrop}
           onClick={(e) => {
             const target = e.target as HTMLElement;
-            if (handleDiagramClick(target) || sketch.handleClick(target)) {
+            if (handleDiagramClick(target) || sketch.handleClick(target) || canvas.handleClick(target)) {
               e.stopPropagation();
               setSelectedImg(null);
               return;

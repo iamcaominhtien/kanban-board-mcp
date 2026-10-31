@@ -5,6 +5,7 @@ import { uploadDescriptionImage } from '../../api/tickets';
 import type { IdeaSource, IdeaSourceRef } from '../../types/idea';
 import { FooterNote, ModalShell, Spacer } from '../docs/docsShared';
 import { useSketchStarter } from '../sketch/useSketchStarter';
+import { useCanvasStarter } from '../canvas/useCanvasStarter';
 import { useToast } from '../Toast';
 import { BulbIcon, Kbd } from './ideaShared';
 import { ProjectSelect, TagInput } from './TriageDialogs';
@@ -197,6 +198,18 @@ function QuickAdd({
     },
   });
 
+  const canvas = useCanvasStarter({
+    ownerKind: 'idea',
+    ownerId: 'new-idea',
+    projectId: projectId ?? undefined,
+    ownerLabel: title.trim() || 'a new idea',
+    onInsert: (md) => {
+      setDescription((d) => `${d ? `${d}\n\n` : ''}${md}`);
+      setMoreOpen(true);
+      setSource((s) => (s === 'manual' ? 'picture' : s));
+    },
+  });
+
   async function add() {
     if (!title.trim()) return;
     setError(null);
@@ -359,6 +372,18 @@ function QuickAdd({
               onClick={() => void sketch.start()}
             >
               Start with a sketch
+            </button>
+          </div>
+        )}
+        {canvas.available && (
+          <div style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className="is-link"
+              data-testid="quick-add-canvas"
+              onClick={() => void canvas.start()}
+            >
+              Start with a canvas
             </button>
           </div>
         )}

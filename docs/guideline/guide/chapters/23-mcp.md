@@ -17,12 +17,12 @@ The server speaks MCP, so an agent can read and change your boards, Docs and AI 
 | `get_projects` | read | All projects, or one project with its members. |
 | `list_tickets` | read | Compact, paginated ticket summaries (`status`, `priority`, `q`, `limit`, `offset`). |
 | `get_ticket` | read | One ticket with its 10 most recent activity entries, or only its comments. |
-| `docs_read` | read | The Docs tree: list, get, search, versions, recycle bin, link check, comments, diagrams and sketches. |
+| `docs_read` | read | The Docs tree: list, get, search, versions, recycle bin, link check, comments, diagrams, sketches and canvases. |
 | `manage_project` | write | Create and update projects, add and remove members. |
 | `manage_ticket` | write | Create, update, delete, move, block, link, and the workspace. |
 | `ticket_items` | write | Comments, work log, criteria, sub-tasks and test cases. |
 | `ticket_branches` | write | Git branches for a ticket. |
-| `docs_write` | write | Create, update, move, duplicate, delete, restore, import pages, diagrams and sketches. |
+| `docs_write` | write | Create, update, move, duplicate, delete, restore, import pages, diagrams and sketches, comment on a canvas and propose a changed frame. |
 | `ai_run` | write | Only inside a run the board started: ask a question, report. |
 | `ai_schedules` | destructive | List, create, pause, resume, run and delete AI schedules. |
 | `ai_team` | write | Read members, runs, usage and AI accounts; wake an AI, answer or cancel a run, create members, assign a member to an account. Approvals are decided in the board; only a person signs in to an account. |

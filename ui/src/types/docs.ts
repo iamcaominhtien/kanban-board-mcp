@@ -14,6 +14,8 @@ export interface DocsTreeNode {
   aiHidden?: boolean;
   /** Read by every AI run in the project (a small icon in the tree) */
   aiGuidance?: boolean;
+  /** `canvas` pages open the Canvas editor instead of the text editor (the layers icon in the tree) */
+  kind?: 'page' | 'canvas';
 }
 
 export interface DocsHeading {
@@ -52,6 +54,8 @@ export interface DocsAiSource {
 
 export interface DocsPage {
   id: string;
+  /** `canvas` pages open the Canvas editor instead of the text editor */
+  kind?: 'page' | 'canvas';
   projectId: string;
   parentId: string | null;
   title: string;

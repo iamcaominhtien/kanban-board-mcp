@@ -23,6 +23,8 @@ import { DiagramEmbed } from '../diagrams/DiagramEmbed';
 import { DIAGRAM_SCHEME, diagramIdOf, hasDiagram } from '../diagrams/diagramRefs';
 import { SketchEmbed } from '../sketch/SketchEmbed';
 import { SKETCH_SCHEME, hasSketch, sketchIdOf } from '../sketch/sketchRefs';
+import { CanvasChip, CanvasEmbed } from '../canvas/CanvasEmbed';
+import { CANVAS_SCHEME, canvasRefOf, hasCanvas } from '../canvas/canvasRefs';
 
 const SCHEMA = {
   ...defaultSchema,
@@ -44,8 +46,8 @@ const SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram', 'sketch', 'needsinput'],
-    src: ['http', 'https', 'diagram', 'sketch'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'diagram', 'sketch', 'canvas', 'needsinput'],
+    src: ['http', 'https', 'diagram', 'sketch', 'canvas'],
   },
 };
 
@@ -408,12 +410,21 @@ export function DocsMarkdown({
         );
       },
       p: ({ node, children: inner }) =>
-        hasDiagram(node) || hasSketch(node) ? <div>{inner}</div> : <p {...changedProps(node)}>{inner}</p>,
+        hasDiagram(node) || hasSketch(node) || hasCanvas(node) ? (
+          <div>{inner}</div>
+        ) : (
+          <p {...changedProps(node)}>{inner}</p>
+        ),
       img: ({ src, alt }) => {
         const diagramId = diagramIdOf(src);
         if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} />;
         const sketchId = sketchIdOf(src);
         if (sketchId) return <SketchEmbed id={sketchId} label={alt ?? ''} />;
+        const canvasRef = canvasRefOf(src);
+        if (canvasRef)
+          return (
+            <CanvasEmbed id={canvasRef.id} label={alt ?? ''} boardId={canvasRef.boardId} pageId={canvasRef.pageId} />
+          );
         if (!src || src.startsWith('uploading:')) return null;
         return <DocsImage src={src} alt={alt ?? ''} />;
       },
@@ -422,6 +433,8 @@ export function DocsMarkdown({
         if (diagramId) return <DiagramEmbed id={diagramId} label={textOf(inner)} />;
         const sketchId = sketchIdOf(href);
         if (sketchId) return <SketchEmbed id={sketchId} label={textOf(inner)} />;
+        const canvasRef = canvasRefOf(href);
+        if (canvasRef) return <CanvasChip id={canvasRef.id} label={textOf(inner)} boardId={canvasRef.boardId} />;
         if (href?.startsWith(NEEDS_INPUT_SCHEME)) return <span className="dk-needs-input">{inner}</span>;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
@@ -483,6 +496,7 @@ export function DocsMarkdown({
           url.startsWith(TICKET_SCHEME) ||
           url.startsWith(DIAGRAM_SCHEME) ||
           url.startsWith(SKETCH_SCHEME) ||
+          url.startsWith(CANVAS_SCHEME) ||
           url.startsWith(NEEDS_INPUT_SCHEME)
             ? url
             : defaultUrlTransform(url)

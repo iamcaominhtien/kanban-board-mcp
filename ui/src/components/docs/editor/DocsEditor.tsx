@@ -37,6 +37,8 @@ import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from '../../diagrams/diagramRefs';
 import { SKETCH_LINE } from '../../sketch/sketchRefs';
 import { useSketchStarter } from '../../sketch/useSketchStarter';
+import { CANVAS_LINE } from '../../canvas/canvasRefs';
+import { useCanvasStarter } from '../../canvas/useCanvasStarter';
 import { firstDiagramFile } from '../../diagrams/diagramFile';
 import { DiagramDropZone, isDiagramDrag } from '../../diagrams/DiagramDropZone';
 import { MarkdownPane } from './MarkdownPane';
@@ -267,6 +269,26 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   });
   const sketchRef = useRef(sketchStarter);
   sketchRef.current = sketchStarter;
+
+  // Canvas: /canvas opens the "New canvas" dialog, then the editor, and puts the canvas on its own line
+  const insertCanvas = useCallback((md: string) => {
+    const parts = CANVAS_LINE.exec(md);
+    if (!parts || !editorRef.current) return;
+    editorRef.current
+      .chain()
+      .focus()
+      .insertContent({ type: 'canvas', attrs: { id: parts[2], label: parts[1], fragment: parts[3] ?? '' } })
+      .run();
+  }, []);
+  const canvasStarter = useCanvasStarter({
+    ownerKind: sketchOwnerKind,
+    ownerId: currentPageId ?? undefined,
+    projectId,
+    ownerLabel: pageTitle || 'Untitled',
+    onInsert: insertCanvas,
+  });
+  const canvasRef = useRef(canvasStarter);
+  canvasRef.current = canvasStarter;
   const [diagramDrag, setDiagramDrag] = useState(false);
   const dragDepth = useRef(0);
 
@@ -316,6 +338,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           pickImage,
           newDiagram: () => starterRef.current.startNew(),
           newSketch: () => void sketchRef.current.start(),
+          newCanvas: () => void canvasRef.current.start(),
           importDiagram: () => starterRef.current.pickFile(),
           ticketPrefix: live.current.ticketPrefix,
           pageTitle: live.current.pageTitle,
@@ -628,6 +651,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             onLink={openLink}
             onPickImage={pickImage}
             onSketch={sketchStarter.available ? () => void sketchStarter.start() : undefined}
+            onCanvas={canvasStarter.available ? () => void canvasStarter.start() : undefined}
             ticketPrefix={ticketPrefix}
             onAskAi={ai?.onAsk}
           />
@@ -776,6 +800,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
               pickImage,
               newDiagram: diagramStarter.startNew,
               newSketch: () => void sketchStarter.start(),
+              newCanvas: () => void canvasStarter.start(),
               importDiagram: diagramStarter.pickFile,
               ticketPrefix,
               pageTitle,

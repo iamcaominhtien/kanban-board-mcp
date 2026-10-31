@@ -690,7 +690,7 @@ export function DocsTree({
             <span style={{ width: 16, flexShrink: 0 }} />
           )}
           <span style={{ display: 'flex', color: active ? '#2E6F40' : '#9AA8A0' }}>
-            <Icon name="page" size={15} strokeWidth={1.7} />
+            <Icon name={n.kind === 'canvas' ? 'canvas' : 'page'} size={15} strokeWidth={1.7} />
           </span>
           {renaming ? (
             <RenameInput

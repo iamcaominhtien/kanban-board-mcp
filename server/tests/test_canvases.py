@@ -61,6 +61,12 @@ async def add_member(c, pid, name, role="member"):
     assert r.status_code in (200, 201), r.text
 
 
+def svc_csp():
+    from api.canvases import FRAME_CSP
+
+    return FRAME_CSP
+
+
 PAGE = (
     b"<!doctype html><html><head><title>Sign in</title><style>body{color:#123}</style></head>"
     b"<body><h1>Sign in</h1><label>Email</label><input type=email placeholder=you@example.com>"
@@ -181,7 +187,17 @@ async def test_html_board_is_a_folder_with_its_own_css_and_images(c, pid, tmp_pa
         .startswith("text/css")
     )
     assert (await c.get(f"{base}/img/a.png")).content == png()
-    assert (await c.get(f"{base}/../../../canvas.json")).status_code in (404, 422)
+    # a way out of the board's folder gives nothing of the canvas (a built UI answers unknown paths with its own page)
+    for way in (
+        "../../../canvas.json",
+        "%2e%2e/%2e%2e/%2e%2e/canvas.json",
+        "..%2f..%2f..%2fcanvas.json",
+    ):
+        out = await c.get(f"{base}/{way}")
+        assert (
+            "kanban-canvas" not in out.text
+            and out.headers.get("content-security-policy") != svc_csp()
+        )
 
 
 async def test_new_boards_are_placed_to_the_right_never_on_top(c, pid):
@@ -1159,3 +1175,64 @@ async def test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons
             finally:
                 activity.reset_actor(token)
     assert getattr(e.value, "code", "") == "ai_cannot_resolve"
+
+
+async def test_boards_are_sections_of_a_canvas_page_and_the_ticket_lists_the_canvas(
+    c, pid
+):
+    made = (
+        await c.post(
+            "/canvases/pages", json={"project_id": pid, "title": "Settings flow"}
+        )
+    ).json()
+    cv, page_id = made["canvas"], made["page"]["id"]
+    b = await html_board(c, cv["id"], "Sign in: wrong password")
+    # the boards are sections: [[Settings flow#Sign in: wrong password]] resolves and the search finds the board
+    res = (
+        await c.post(
+            f"/projects/{pid}/docs/resolve",
+            json={
+                "refs": [
+                    {
+                        "kind": "page",
+                        "title": "Settings flow",
+                        "anchor": "Sign in: wrong password",
+                    }
+                ]
+            },
+        )
+    ).json()
+    assert res[0]["status"] == "ok", res
+    found = (
+        await c.get(f"/projects/{pid}/docs/search", params={"q": "wrong password"})
+    ).json()
+    assert any(p["page_id"] == page_id for p in found["pages"])
+    # a ticket that shows the canvas lists it under Linked docs, and the page lists the ticket in its backlinks
+    t = (
+        await c.post(
+            f"/projects/{pid}/tickets",
+            json={"title": "Redesign", "description": f"{cv['markdown']}\n"},
+        )
+    ).json()
+    rows = (await c.get(f"/tickets/{t['id']}/docs")).json()
+    assert [
+        (r["kind"], r["canvas_id"], r["page_id"])
+        for r in rows
+        if r.get("kind") == "canvas"
+    ] == [("canvas", cv["id"], page_id)]
+    back = (await c.get(f"/docs/pages/{page_id}/backlinks")).json()
+    assert [x["ticket_id"] for x in back["tickets"]] == [t["id"]]
+    # an inline canvas has no page: the row points at the canvas
+    inline = await make(
+        c, pid, title="Inline", owner_kind="ticket", owner_id=t["id"], project_id=None
+    )
+    await c.patch(
+        f"/tickets/{t['id']}",
+        json={"description": f"{cv['markdown']}\n\n{inline['markdown']}"},
+    )
+    rows = (await c.get(f"/tickets/{t['id']}/docs")).json()
+    assert {r["canvas_id"] for r in rows if r.get("kind") == "canvas"} == {
+        cv["id"],
+        inline["id"],
+    }
+    assert b["name"] == "Sign in: wrong password"

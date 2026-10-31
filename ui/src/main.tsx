@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './components/Toast';
 import { DiagramsProvider } from './components/diagrams/DiagramsProvider';
 import { SketchProvider } from './components/sketch/SketchProvider';
+import { CanvasProvider } from './components/canvas/CanvasProvider';
 import { PreviewProvider } from './components/preview/PreviewContext';
 import App from './App.tsx';
 import './index.css';
@@ -19,9 +20,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ToastProvider>
         <DiagramsProvider>
           <SketchProvider>
-            <PreviewProvider>
-              <App />
-            </PreviewProvider>
+            <CanvasProvider>
+              <PreviewProvider>
+                <App />
+              </PreviewProvider>
+            </CanvasProvider>
           </SketchProvider>
         </DiagramsProvider>
       </ToastProvider>

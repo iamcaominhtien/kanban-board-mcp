@@ -1672,7 +1672,41 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
                     "target_anchor": None,
                 }
             )
+    if page.kind == "canvas":
+        await _canvas_backlinks(session, page, tickets_out, seen_tickets)
     return {"pages": pages_out, "tickets": tickets_out}
+
+
+async def _canvas_backlinks(session, page: DocsPage, tickets_out, seen_tickets) -> None:
+    """A canvas page lists the tickets that show it ("KAN-142 uses this canvas") in its backlinks."""
+    from models import Canvas
+    from services import canvases as svc_canvases
+
+    c = (await session.exec(select(Canvas).where(Canvas.page_id == page.id))).first()
+    if c is None:
+        return
+    tickets = (
+        await session.exec(select(Ticket).where(Ticket.project_id == page.project_id))
+    ).all()
+    for t in tickets:
+        for origin, detail, body in _ticket_texts(t):
+            if (
+                c.id in svc_canvases.refs_in(body)
+                and (t.id, origin, detail) not in seen_tickets
+            ):
+                seen_tickets.add((t.id, origin, detail))
+                tickets_out.append(
+                    {
+                        "ticket_id": t.id,
+                        "title": t.title,
+                        "status": t.status,
+                        "origin": origin,
+                        "detail": detail,
+                        "context": f"Shows this canvas: {c.title}",
+                        "excerpt": "",
+                        "target_anchor": None,
+                    }
+                )
 
 
 async def page_stats(
@@ -1816,8 +1850,47 @@ async def docs_for_ticket(
             await _section_label(session, src, link.source_section),
             link.snippet,
         )
+    if ticket is not None:
+        await _canvas_rows(session, ticket, pages, by_id, row, out)
     out.sort(key=lambda r: (_ORIGIN_ORDER[r["origin"]], r["title"].lower()))
     return out
+
+
+async def _canvas_rows(session, ticket, pages, by_id, row, out) -> None:
+    """A canvas shown in a ticket (inline or as a Docs page) is listed with the layers icon, as a referenced page is."""
+    from models import Canvas
+    from services import canvases as svc_canvases
+
+    seen: set[tuple[str, str]] = set()
+    for origin, detail, body in _ticket_texts(ticket):
+        for cid in svc_canvases.refs_in(body):
+            if (cid, origin) in seen:
+                continue
+            seen.add((cid, origin))
+            c = await session.get(Canvas, cid)
+            if c is None or c.deleted_at or c.project_id != ticket.project_id:
+                continue
+            if c.page_id and c.page_id in by_id:
+                before = len(out)
+                row(by_id[c.page_id], origin, None, c.title, detail)
+                for r in out[before:]:
+                    r["kind"], r["canvas_id"] = "canvas", c.id
+                continue
+            out.append(
+                {
+                    "page_id": c.id,
+                    "project_id": c.project_id,
+                    "title": c.title,
+                    "path": [],
+                    "section": None,
+                    "snippet": f"{c.board_count} board{'s' if c.board_count != 1 else ''}",
+                    "origin": origin,
+                    "detail": detail,
+                    "version": c.version,
+                    "kind": "canvas",
+                    "canvas_id": c.id,
+                }
+            )
 
 
 async def link_ticket_doc(

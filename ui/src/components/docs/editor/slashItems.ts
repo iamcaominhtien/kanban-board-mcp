@@ -13,6 +13,7 @@ export interface SlashCtx {
   pickImage: () => void;
   newDiagram: () => void;
   newSketch: () => void;
+  newCanvas: () => void;
   importDiagram: () => void;
   ticketPrefix: string;
   pageTitle: string;
@@ -212,6 +213,19 @@ export const SLASH_ITEMS: SlashItem[] = [
     run: (e, r, ctx) => {
       chain(e, r).run();
       ctx.newSketch();
+    },
+  },
+  {
+    id: 'canvas',
+    group: 'Blocks',
+    label: 'Canvas',
+    desc: 'Boards on one large plane',
+    kbd: '/canvas',
+    keywords: 'boards frames plane screens',
+    tile: { icon: 'canvas' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      ctx.newCanvas();
     },
   },
   {
