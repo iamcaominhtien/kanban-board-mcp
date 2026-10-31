@@ -55,6 +55,11 @@ if args[:2] == ["auth", "login"]:  # the sign-in the board runs in a terminal
     print("Login successful", flush=True)
     sys.exit(0)
 if "--output-format" in args and args[args.index("--output-format") + 1] == "json":
+    if os.environ.get(
+        "FAKE_CLAUDE_CONFIG_RECORD"
+    ):  # a test run records which account it ran as
+        with open(os.environ["FAKE_CLAUDE_CONFIG_RECORD"], "a") as fh:
+            fh.write(os.environ.get("CLAUDE_CONFIG_DIR", "") + "\n")
     if mode == "logged_out":
         emit(
             {

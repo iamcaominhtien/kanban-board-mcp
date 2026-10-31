@@ -18,7 +18,17 @@ import events as board_events
 import services.activity as svc_activity
 import services.tickets as svc_tickets
 from database import get_session
-from models import AiMember, AiRun, Member, Project, Ticket, TicketRead, TicketUpdate
+from models import (
+    AiAccount,
+    AiMember,
+    AiRun,
+    Member,
+    Project,
+    Ticket,
+    TicketRead,
+    TicketUpdate,
+)
+from services.ai import accounts as svc_accounts
 from services.ai import approvals as svc_approvals
 from services.ai import audit as svc_audit
 from services.ai import members as svc_members
@@ -163,10 +173,12 @@ class TestRunBody(BaseModel):
     cli_path: Optional[str] = None
     model: Optional[str] = None
     working_dir: Optional[str] = None
+    # run as this AI account instead of the login already on this computer
+    account_id: Optional[str] = None
 
 
 @router.post("/ai/test-run")
-async def post_test_run(body: TestRunBody) -> dict:
+async def post_test_run(body: TestRunBody, session: Session) -> dict:
     """Run `claude -p` once with a one-word prompt (step 2a "Run test")."""
     import os
 
@@ -188,7 +200,13 @@ async def post_test_run(body: TestRunBody) -> dict:
                 "ok": False,
                 "error": f"Working folder not found on this computer: {body.working_dir}",
             }
-    return await cli.test_run(path, body.model, folder)
+    env = None
+    if body.account_id:
+        account = await session.get(AiAccount, body.account_id)
+        if account is None:
+            return {"ok": False, "error": "AI account not found."}
+        env = svc_accounts.env_for(account, cli.child_env())
+    return await cli.test_run(path, body.model, folder, env=env)
 
 
 class TestKeyBody(BaseModel):

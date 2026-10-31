@@ -621,3 +621,24 @@ async def test_a_sign_in_whose_window_was_closed_is_stopped(fake_cli, monkeypatc
     await asyncio.sleep(0.6)
     assert signin.active(a["id"]) is s
     await signin.stop(s)
+
+
+async def test_the_test_run_in_the_connect_step_runs_as_the_chosen_account(
+    fake_cli, monkeypatch
+):
+    c = fake_cli["c"]
+    record = fake_cli["tmp"] / "test-run-config.txt"
+    monkeypatch.setenv("FAKE_CLAUDE_CONFIG_RECORD", str(record))
+    a = await _account(c)
+    body = {"provider": "claude-code", "cli_path": FAKE, "model": "haiku"}
+    r = (await c.post("/ai/test-run", json={**body, "account_id": a["id"]})).json()
+    assert r["ok"]
+    # the pong test run does not write the record; check the environment through the status call instead
+    _login(a)
+    assert (await c.post(f"/ai/accounts/{a['id']}/check")).json()[
+        "status"
+    ] == "signed_in"
+    missing = (
+        await c.post("/ai/test-run", json={**body, "account_id": "acct_nope"})
+    ).json()
+    assert missing["ok"] is False
