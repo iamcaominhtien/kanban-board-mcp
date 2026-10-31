@@ -756,6 +756,14 @@ async def test_run_limit_box_and_allow_three_more(env):
         run.trigger = "schedule"
         s.add(run)
         await s.commit()
+    # a Claude Code or Antigravity member is not limited, so its scheduled run is not counted either
+    box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
+    assert box["used"] == 0 and box["reached"] is False
+    async with env["maker"]() as s:
+        row = await s.get(AiMember, run.member_id)
+        row.connection = "api_key"  # only an API-key member is held to the limit
+        s.add(row)
+        await s.commit()
     box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
     assert box["used"] == 1 and box["limit"] == 1 and box["reached"] is True
     r = await c.post(

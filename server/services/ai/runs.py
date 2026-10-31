@@ -20,7 +20,6 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
@@ -399,23 +398,13 @@ async def create_run(
                 )
             behind = held[0].id
         settings = await get_settings(session, ticket.project_id)
-        # The per-ticket limit is a loop guard: it stops scheduled runs and the runs an API-key member starts, never a
-        # person's and never the chain of a person's own CLI (Claude Code, Antigravity)
-        auto = (
-            bool(chain) and profile.connection == "api_key"
-        ) or trigger == "schedule"
+        # The per-ticket limit is a loop guard for API-key members (scheduled or AI-started runs). Claude Code and
+        # Antigravity run on the person's own CLI and are not limited
+        auto = profile.connection == "api_key" and (
+            bool(chain) or trigger == "schedule"
+        )
         if auto:
-            since = budget.today_start().isoformat()
-            today = (
-                await session.exec(
-                    select(AiRun).where(
-                        AiRun.ticket_id == ticket_id,
-                        AiRun.mode == "work",
-                        AiRun.queued_at >= since,
-                        or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
-                    )
-                )
-            ).all()
+            today = await safety.limited_runs_today(session, ticket_id)
             allowed = settings.runs_per_ticket_per_day + await safety.extra_runs_today(
                 session, ticket_id
             )
@@ -1685,14 +1674,13 @@ async def _execute_claude_held(
                 domains=loads(settings.allowed_domains, []),
             )
             edits = False
-        # An owner's "Bypass permissions": work runs only, never in safe mode. Deny rules and the board's own
-        # checks (status ceiling, approvals) still apply; the web stays off because its domain list needs the
-        # allow list the mode skips.
+        # An owner's "Bypass permissions" (Claude Code and Antigravity): work runs only, never in safe mode. Deny
+        # rules and the board's own checks (status ceiling, approvals) still apply; the web stays off because its
+        # domain list needs the allow list the mode skips.
         bypass = (
             config.get("permission_mode") == "bypass"
             and run.mode == "work"
             and not safe
-            and not agy  # Antigravity: no Bypass permissions
         )
         if bypass:
             denied += [d for d in _WEB_TOOLS if d not in denied]
@@ -1719,6 +1707,7 @@ async def _execute_claude_held(
                 extra_flags=[
                     f for f in (config.get("extra_flags") or []) if isinstance(f, str)
                 ],
+                bypass=bypass,
             )
         else:
             args = cli.claude_args(

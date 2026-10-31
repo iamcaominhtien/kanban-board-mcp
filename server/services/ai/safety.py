@@ -221,6 +221,30 @@ async def remembered(
     return found if all(a in covered for a in actions) else []
 
 
+async def limited_runs_today(session: AsyncSession, ticket_id: str) -> list:
+    """Runs today that count against a ticket's run limit: the scheduled or AI-started work runs of API-key members.
+    Claude Code and Antigravity run on the person's own CLI, so they are not limited and not counted."""
+    from sqlalchemy import or_
+
+    from models import AiRun
+
+    return list(
+        (
+            await session.exec(
+                select(AiRun)
+                .join(AiMember, col(AiMember.id) == col(AiRun.member_id))
+                .where(
+                    AiRun.ticket_id == ticket_id,
+                    AiRun.mode == "work",
+                    AiRun.queued_at >= today_start().isoformat(),
+                    AiMember.connection == "api_key",
+                    or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
+                )
+            )
+        ).all()
+    )
+
+
 async def extra_runs_today(session: AsyncSession, ticket_id: str) -> int:
     """Runs an owner allowed on a ticket today beyond the daily limit."""
     rows = (

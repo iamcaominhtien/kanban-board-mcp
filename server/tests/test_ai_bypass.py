@@ -77,7 +77,7 @@ async def test_only_the_owner_can_turn_it_on_and_must_type_the_phrase(env):
     assert len(off) == 1
 
 
-async def test_it_is_only_for_claude_code_and_a_new_member_never_starts_with_it(env):
+async def test_it_is_only_for_cli_members_and_a_new_member_never_starts_with_it(env):
     c = env["c"]
     pid, _ = await _project(c)
     await _people(c, pid)
@@ -96,7 +96,7 @@ async def test_it_is_only_for_claude_code_and_a_new_member_never_starts_with_it(
     assert made.json()["config"]["permission_mode"] == "allowlist"
     api = await _api_member(c, pid)
     bad = await _mode(c, api["id"], "bypass", confirm_bypass=PHRASE)
-    assert bad.status_code == 422 and "Claude Code" in bad.text
+    assert bad.status_code == 422 and "Claude Code and Antigravity" in bad.text
 
 
 async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypatch):

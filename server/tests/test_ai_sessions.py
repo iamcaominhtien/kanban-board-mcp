@@ -184,9 +184,9 @@ def test_a_compaction_shows_up_as_a_step():
     ]
 
 
-async def test_the_ticket_run_limit_guards_scheduled_runs_not_a_persons_own_cli_chain(
-    env,
-):
+async def test_the_ticket_run_limit_holds_api_key_members_not_a_persons_own_cli(env):
+    from models import AiMember
+
     c = env["c"]
     pid, _ = await _project(c)
     a = await _runner(c, pid, env["repo"], name="A")
@@ -195,17 +195,17 @@ async def test_the_ticket_run_limit_guards_scheduled_runs_not_a_persons_own_cli_
     await c.patch(f"/projects/{pid}/ai/settings", json={"runs_per_ticket_per_day": 1})
     async with env["maker"]() as s:
         # earlier runs are written as finished rows: the scheduler must not pick anything up while the test counts
-        for trigger, chain in (
-            ("assign", "[]"),
-            ("assign", "[]"),
-            ("assign", "[]"),
-            ("mention", json.dumps([a["id"]])),
+        for trigger, chain, who in (
+            ("assign", "[]", a),
+            ("assign", "[]", a),
+            ("mention", json.dumps([a["id"]]), b),
+            ("schedule", "[]", b),
         ):
             s.add(
                 AiRun(
                     project_id=pid,
                     ticket_id=tid,
-                    member_id=a["id"] if chain == "[]" else b["id"],
+                    member_id=who["id"],
                     mode="work",
                     trigger=trigger,
                     chain=chain,
@@ -213,7 +213,24 @@ async def test_the_ticket_run_limit_guards_scheduled_runs_not_a_persons_own_cli_
                 )
             )
         await s.commit()
-        # a scheduled run is held back once the limit of 1 is used up
+        # Claude Code and Antigravity run on the person's own CLI: a scheduled run or a chain is never held back
+        for trigger, chain in (("schedule", None), ("mention", [a["id"]])):
+            run = await runs.create_run(
+                s,
+                ticket_id=tid,
+                member_id=b["id"],
+                mode="work",
+                trigger=trigger,
+                chain=chain,
+            )
+            run.state = "finished"
+            s.add(run)
+            await s.commit()
+        # an API-key member is held to the limit once it is used up
+        profile = await s.get(AiMember, b["id"])
+        profile.connection = "api_key"
+        s.add(profile)
+        await s.commit()
         with pytest.raises(runs.RunError, match="scheduled or AI-started"):
             await runs.create_run(
                 s,
@@ -222,15 +239,6 @@ async def test_the_ticket_run_limit_guards_scheduled_runs_not_a_persons_own_cli_
                 mode="work",
                 trigger="schedule",
             )
-        # a chain between Claude Code or Antigravity members is not: they run on the person's own CLI
-        await runs.create_run(
-            s,
-            ticket_id=tid,
-            member_id=b["id"],
-            mode="work",
-            trigger="mention",
-            chain=[a["id"]],
-        )
 
 
 async def test_a_members_scheduled_runs_per_day_ignore_runs_a_person_starts(env):

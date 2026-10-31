@@ -8,7 +8,6 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import or_
 from sqlmodel import col, select
 
 import events as board_events
@@ -666,18 +665,7 @@ async def get_run_limit(ticket_id: str, session: Session) -> dict:
     """Runs of a ticket today against the limit (G): the box with “Allow 3 more runs”."""
     ticket = await _ticket(session, ticket_id)
     settings = await get_settings(session, ticket.project_id)
-    used = len(
-        (
-            await session.exec(
-                select(AiRun).where(
-                    AiRun.ticket_id == ticket_id,
-                    AiRun.mode == "work",
-                    AiRun.queued_at >= budget.today_start().isoformat(),
-                    or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
-                )
-            )
-        ).all()
-    )
+    used = len(await safety.limited_runs_today(session, ticket_id))
     extra = await safety.extra_runs_today(session, ticket_id)
     limit = settings.runs_per_ticket_per_day + extra
     return {

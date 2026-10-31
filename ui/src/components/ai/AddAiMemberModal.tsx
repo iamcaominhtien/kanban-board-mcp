@@ -541,8 +541,8 @@ export function AddAiMemberModal({
                   {provider === 'antigravity' && (
                     <div className="ai-notice">
                       Each run starts in a scratch folder with the Kanban MCP server added for that run, and may only
-                      use what this member is allowed. Bypass permissions is not available, and Antigravity uses your
-                      own account's quota.
+                      use what this member is allowed (an owner can turn on Bypass permissions later), and Antigravity
+                      uses your own account's quota.
                     </div>
                   )}
                 </>
