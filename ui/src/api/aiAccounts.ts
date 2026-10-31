@@ -30,7 +30,8 @@ export const accountKeys = {
 export function useAiAccounts(projectId?: string) {
   return useQuery({
     queryKey: accountKeys.list(projectId),
-    queryFn: async () => (await client.get<AccountsOverview>('/ai/accounts', { params: { project_id: projectId } })).data,
+    queryFn: async () =>
+      (await client.get<AccountsOverview>('/ai/accounts', { params: { project_id: projectId } })).data,
     refetchInterval: (q) => (q.state.data?.accounts.some((a) => a.status === 'signing_in') ? 3000 : 15000),
   });
 }
