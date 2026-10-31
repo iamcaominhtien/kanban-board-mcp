@@ -15,19 +15,42 @@ PROVIDERS: dict[str, dict] = {
         "npm_package": "@anthropic-ai/claude-code",
         "guide_url": "https://docs.claude.com/en/docs/claude-code/setup",
     },
+    "codex": {
+        "label": "Codex",
+        "connection": "local",
+        "binary": "codex",
+        "models": [],
+        "default_model": None,
+        "install": "npm install -g @openai/codex",
+        "npm_package": "@openai/codex",
+        "guide_url": "https://developers.openai.com/codex/cli",
+        # Runs do not start yet: the member can be made and given an account, like Antigravity
+        "runs": False,
+    },
+    "opencode": {
+        "label": "opencode",
+        "connection": "local",
+        "binary": "opencode",
+        "models": [],
+        "default_model": None,
+        "install": "npm install -g opencode-ai",
+        "npm_package": "opencode-ai",
+        "guide_url": "https://opencode.ai/docs",
+        "runs": False,
+    },
     "antigravity": {
         "label": "Antigravity",
         "connection": "local",
-        "binary": "antigravity",
+        "binary": "agy",
         "models": [],
         "default_model": None,
-        "install": "Install Antigravity and enable its command line tool",
+        "install": "Install the Antigravity command line tool (agy)",
         "install_steps": [
-            "Install Antigravity from its website.",
-            "Open it once and sign in with your account.",
-            "Enable its command line tool so that “antigravity” works in a terminal.",
+            "Install the Antigravity command line tool from its website, so that “agy” works in a terminal.",
+            "Run “agy” once and sign in, or add an AI account for it and sign in there.",
         ],
         "guide_url": "https://antigravity.google",
+        "runs": False,
     },
     "anthropic": {
         "label": "Anthropic",
@@ -70,6 +93,8 @@ DEFAULT_LOOK: dict[str, tuple[str, str]] = {
     "claude-code": ("asterisk", "#2E6F40"),
     "anthropic": ("asterisk", "#B4791E"),
     "antigravity": ("peak", "#2F6FB0"),
+    "codex": ("hex", "#244E78"),
+    "opencode": ("braces", "#5B3AA6"),
     "openai": ("hex", "#6D5DD3"),
     "gemini": ("spark", "#B0446E"),
     "custom": ("braces", "#5B6B60"),
@@ -153,6 +178,8 @@ MATRIX: dict[str, dict[str, tuple[str, str]]] = {
         for g, _ in GROUPS
     },
 }
+# Codex and opencode members can be made (and given an account) but their runs do not start yet: nothing is synced
+MATRIX["codex"] = MATRIX["opencode"] = {g: ("not_supported", "") for g, _ in GROUPS}
 
 ADAPTER_COLUMNS = [
     ("claude-code", "Claude Code", "local runner"),

@@ -1,4 +1,5 @@
-export type AiProvider = 'claude-code' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
+import type { MemberAccountRef } from './aiAccounts';
+export type AiProvider = 'claude-code' | 'codex' | 'opencode' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
 export type AiConnection = 'local' | 'api_key' | 'inbox';
 export type PermissionMode = 'allowed' | 'approval' | 'blocked';
 export type AiTemplate = 'developer' | 'reviewer' | 'read_only' | 'custom';
@@ -200,6 +201,9 @@ export interface AiMember {
   retryAt: string | null;
   cliVersion: string | null;
   account: string | null;
+  /** The AI account this member runs as; null = the login already on this computer. */
+  accountId: string | null;
+  accountRef: MemberAccountRef | null;
   isBoardAi: boolean;
   status: AiStatus;
   running: {
