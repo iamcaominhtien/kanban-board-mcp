@@ -253,6 +253,8 @@ Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › block "D Kill
 
 ### D1. Header button, paused state
 
+> **Superseded for the banner and the top-bar state** by [ai-paused.md](ai-paused.md) (AI Team — AI paused). The wording and layout below are the earlier proposal; D2 to D6 still apply.
+
 ![Two header bars, the normal one with a red outlined Pause all AI button and a 1 running chip, and the paused one with a Safe mode chip, an orange AI paused · Resume button, an amber banner with Resume and View audit log, and two ticket cards held by the pause](../images/ai-safety-cost/17-d1-header-button-paused-state.png)
 
 - Caption: "D1. Header button, paused state" "— the same bar tops every screen".
