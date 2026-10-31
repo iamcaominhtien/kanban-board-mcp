@@ -21,7 +21,11 @@ if record:
                     "args": args,
                     "env": {
                         k: os.environ.get(k)
-                        for k in ("KANBAN_RUN_TOKEN", "OPENCODE_CONFIG_CONTENT", "XDG_DATA_HOME")
+                        for k in (
+                            "KANBAN_RUN_TOKEN",
+                            "OPENCODE_CONFIG_CONTENT",
+                            "XDG_DATA_HOME",
+                        )
                     },
                     "cwd": os.getcwd(),
                 }
@@ -30,5 +34,9 @@ if record:
         )
 if mode == "silent":
     time.sleep(300)
-for line in (Path(__file__).parent / "real" / "opencode_run.jsonl").read_text().splitlines():
-    print(line.replace("/work", os.getcwd()), flush=True)  # the real CLI reports paths under its working folder
+for line in (
+    (Path(__file__).parent / "real" / "opencode_run.jsonl").read_text().splitlines()
+):
+    print(
+        line.replace("/work", os.getcwd()), flush=True
+    )  # the real CLI reports paths under its working folder

@@ -36,4 +36,6 @@ if mode == "run_logged_out":
 if mode == "silent":
     time.sleep(300)
 for line in (Path(__file__).parent / "real" / "agy_run.jsonl").read_text().splitlines():
-    print(line.replace("/work", os.getcwd()), flush=True)  # the real CLI reports paths under its working folder
+    print(
+        line.replace("/work", os.getcwd()), flush=True
+    )  # the real CLI reports paths under its working folder

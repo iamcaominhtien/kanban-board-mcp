@@ -25,7 +25,11 @@ if record:
                     "args": args,
                     "env": {
                         k: os.environ.get(k)
-                        for k in ("KANBAN_RUN_TOKEN", "CODEX_HOME", "OPENCODE_CONFIG_CONTENT")
+                        for k in (
+                            "KANBAN_RUN_TOKEN",
+                            "CODEX_HOME",
+                            "OPENCODE_CONFIG_CONTENT",
+                        )
                     },
                     "cwd": os.getcwd(),
                 }
@@ -37,5 +41,9 @@ if mode == "run_logged_out":
     sys.exit(1)
 if mode == "silent":
     time.sleep(300)
-for line in (Path(__file__).parent / "real" / "codex_run.jsonl").read_text().splitlines():
-    print(line.replace("/work", os.getcwd()), flush=True)  # the real CLI reports paths under its working folder
+for line in (
+    (Path(__file__).parent / "real" / "codex_run.jsonl").read_text().splitlines()
+):
+    print(
+        line.replace("/work", os.getcwd()), flush=True
+    )  # the real CLI reports paths under its working folder

@@ -26,6 +26,7 @@ import events as board_events
 import services.activity as svc_activity
 import services.mcp_clients as mcp_clients
 import services.tickets as svc_tickets
+import services.workspace as svc_workspace
 from models import (
     AiAccount,
     AiAudit,
@@ -1439,8 +1440,21 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
             f for f in (config.get("extra_flags") or []) if isinstance(f, str)
         ]
         launch = None
+        read_dirs: list[str] = []
         if adapter:
             if account is not None and adapter.cli == "agy":
+                read_dirs = [
+                    str(
+                        accounts.profile_of(account).home
+                        / ".gemini"
+                        / "antigravity-cli"
+                        / "mcp"
+                    )
+                ]
+                # The ticket's workspace (a worktree the board made for it) is part of the task
+                ws = await svc_workspace.get_workspace_settings(session)
+                if ws.enabled and ws.root_path:
+                    read_dirs.append(os.path.expanduser(ws.root_path))
                 # Antigravity keeps its MCP servers in the account's folder: point it at the bridge, which reads
                 # the run's token from the environment of the run
                 accounts.profile_of(account).ensure_mcp(
@@ -1460,6 +1474,7 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                     resume_id=session_id if resume else None,
                     effort=config.get("effort"),
                     extra_flags=extra_flags,
+                    read_dirs=read_dirs,
                 )
             )
             args = launch.args

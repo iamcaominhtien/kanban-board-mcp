@@ -54,7 +54,9 @@ def test_codex_stream_becomes_steps_files_and_a_result():
     assert results and all(r["exit_code"] == 0 and not r["is_error"] for r in results)
     assert any(r["output"].strip() == "3" for r in results)
     final = [e["result"] for e in ev if e["result"]][-1]
-    assert not final["is_error"] and "add()" in final["text"] and final["tokens_out"] > 0
+    assert (
+        not final["is_error"] and "add()" in final["text"] and final["tokens_out"] > 0
+    )
 
 
 def test_opencode_stream_counts_the_changed_lines_and_ends_on_stop():
@@ -95,23 +97,30 @@ def test_agy_stream_becomes_steps_and_the_answer_without_file_links():
     )
 
 
-def test_agy_says_what_headless_mode_denied():
+def test_agy_says_what_headless_mode_denied_and_fails_a_run_that_ended_on_it():
+    def result(response):
+        return json.dumps(
+            {
+                "event": "result",
+                "result": {
+                    "status": "SUCCESS",
+                    "response": response,
+                    "usage": {"input_tokens": 5, "output_tokens": 1},
+                    "denied_actions": [
+                        {"action": "command", "display_name": "RunCommand"}
+                    ],
+                },
+            }
+        )
+
     parser = adapters.for_provider("antigravity").parser("/work")
-    line = json.dumps(
-        {
-            "event": "result",
-            "result": {
-                "status": "SUCCESS",
-                "response": "",
-                "usage": {"input_tokens": 5, "output_tokens": 1},
-                "denied_actions": [{"action": "command", "display_name": "RunCommand"}],
-            },
-        }
-    )
-    out = parser.feed(line)
-    assert (
-        "denied: command" in out["steps"][0]["text"] and not out["result"]["is_error"]
-    )
+    out = parser.feed(result(""))
+    assert "denied: command" in out["steps"][0]["text"]
+    # nothing was said after the denial: the run stopped on it, which is a failure and says what to do
+    assert out["result"]["is_error"] and "Allow rule" in out["result"]["text"]
+    # an answer after a denial still counts
+    ok = parser.feed(result("Done without it."))
+    assert not ok["result"]["is_error"] and ok["result"]["text"] == "Done without it."
 
 
 def test_failures_end_the_result_as_errors():
@@ -247,12 +256,23 @@ def test_agy_gets_command_rules_from_the_allow_list_and_never_the_bypass_flag():
     work = adapter.launch(_spec(resume_id="conv-1")).args
     assert work[work.index("--mode") + 1] == "accept-edits"
     settings = json.loads(work[work.index("--settings") + 1])
-    assert settings == {
-        "permissions": {"allow": ["command(git status)", "command(pytest)"]}
-    }
+    allow = set(settings["permissions"]["allow"])
+    # the Allow list, plus the read-only commands every run starts with (a denied command ends the whole run)
+    assert {
+        "command(git status)",
+        "command(pytest)",
+        "command(ls)",
+        "command(cat)",
+    } <= allow
+    assert not any(r in allow for r in ("command(rm)", "command(find)", "command(*)"))
     assert work[work.index("--conversation") + 1] == "conv-1"
     ask = adapter.launch(_spec(read_only=True)).args
-    assert ask[ask.index("--mode") + 1] == "plan" and "--settings" not in ask
+    assert ask[ask.index("--mode") + 1] == "plan"
+    # a question may use the board's MCP server and no command at all
+    assert json.loads(ask[ask.index("--settings") + 1])["permissions"]["allow"] == [
+        "mcp(kanban/*)",
+        "mcp(kanban)",
+    ]
     assert "--dangerously-skip-permissions" not in work + ask
     assert adapter.launch(_spec()).env == {
         "KANBAN_RUN_TOKEN": "kbr_secret",
@@ -514,7 +534,9 @@ async def test_a_session_that_ended_with_a_login_error_marks_the_member(
 )
 async def test_antigravity_runs_as_its_account_through_the_bridge(fakes, monkeypatch):
     c = fakes["c"]
-    monkeypatch.setenv("FAKE_CLI_MODE", "logged_out")  # `agy models` fails until the account is signed in
+    monkeypatch.setenv(
+        "FAKE_CLI_MODE", "logged_out"
+    )  # `agy models` fails until the account is signed in
     pid, _ = await _project(c)
     acct = (await c.post("/ai/accounts", json={"name": "Google", "cli": "agy"})).json()
     m = await _member(c, pid, fakes["repo"], "antigravity", account_id=acct["id"])

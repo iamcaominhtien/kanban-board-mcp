@@ -59,6 +59,8 @@ class Spec:
     resume_id: str | None = None
     effort: str | None = None
     extra_flags: list[str] = field(default_factory=list)
+    # Folders outside the working folder the CLI may read (Antigravity keeps the MCP servers' instructions in its home)
+    read_dirs: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -543,15 +545,34 @@ class OpencodeAdapter(Adapter):
 # --------------------------------------------------------------------------- Antigravity
 
 
+# Antigravity's headless mode ends the whole run at the first command that no rule allows (it cannot ask), so the
+# commands every task starts with are always allowed: they only read.
+AGY_READ_ONLY_COMMANDS = (
+    "ls",
+    "pwd",
+    "cat",
+    "head",
+    "tail",
+    "wc",
+    "grep",
+    "rg",
+    "git status",
+    "git diff",
+    "git log",
+    "git show",
+    "git branch",
+)
+
+
 def agy_command_rules(allowed: list[str]) -> list[str]:
     """Claude-style ``Bash(git status:*)`` Allow rules as Antigravity ``command(git status)`` rules (a rule matches
-    the command and anything after it, on a word boundary)."""
-    rules = []
+    the command and anything after it, on a word boundary), plus the read-only commands every run needs."""
+    rules = {f"command({c})" for c in AGY_READ_ONLY_COMMANDS}
     for rule in allowed:
         m = re.match(r"^Bash\((.*?)(?::\*)?\)$", rule)
         if m and m.group(1).strip():
-            rules.append(f"command({m.group(1).strip()})")
-    return sorted(set(rules))
+            rules.add(f"command({m.group(1).strip()})")
+    return sorted(rules)
 
 
 _FILE_LINK = re.compile(r"\[([^\]]*)\]\(file://[^)]*\)")
@@ -590,10 +611,18 @@ class AgyParser(Parser):
                     }
                 )
             bad = res.get("status") not in (None, "SUCCESS")
+            text = _FILE_LINK.sub(r"\1", res.get("response") or "")
+            if denied and not text.strip():
+                # Headless mode ends the run at the first denied action: that is a failure, not a finished task
+                bad = True
+                text = (
+                    f"Antigravity stopped because {names} was denied and it cannot ask in headless mode. "
+                    "Add an Allow rule for it in the member's Configuration."
+                )
             out["result"] = {
                 "is_error": bad,
                 "subtype": "error" if bad else "success",
-                "text": redact(_FILE_LINK.sub(r"\1", res.get("response") or "")),
+                "text": redact(text),
                 "cost_usd": 0.0,
                 "tokens_in": int(usage.get("input_tokens") or 0)
                 + int(usage.get("cache_read_tokens") or 0),
@@ -635,8 +664,13 @@ class AgyParser(Parser):
             kind, text = "read", f"Read {path}"
         elif "search" in name or "grep" in name or "find" in name or name == "list_dir":
             kind, text = "search", f"Searched {_short(json.dumps(params), 80)}"
-        elif "kanban" in name or name.startswith("mcp"):
-            kind, text = "board", f"board.{name}()"
+        elif name == "call_mcp_tool" or "kanban" in name or name.startswith("mcp"):
+            arguments = params.get("Arguments") or {}
+            tool = params.get("ToolName") or name
+            action = arguments.get("action")
+            target = arguments.get("ticket_id") or arguments.get("project_id") or ""
+            kind = "board"
+            text = f"board.{'.'.join(x for x in (tool, action) if x)}({target})"
         else:
             kind, text = "tool", f"{name} {_short(json.dumps(params), 80)}"
         out["steps"].append({"kind": kind, "text": redact(text), "tool_id": index})
@@ -676,18 +710,30 @@ class AgyAdapter(Adapter):
 
     def launch(self, spec: Spec) -> Launch:
         """``agy -p <prompt> --output-format stream-json --mode <mode> --settings <allow rules>``."""
+        # Headless mode ends the run at the first action it may not do, so the model is told the limits up front
+        guide = (
+            f"You are running headless and cannot ask for permission. Work only inside {spec.cwd}: do not list, read "
+            "or change anything outside it. Run only commands from the project's own test command (for example "
+            "`python3 -m pytest -q`, `npm test`), `ls`, `cat` and `git status/diff/log`: never `python -c`, `sh` or "
+            "anything else. The first action that is not allowed ends the run. Use the board's MCP server (kanban) "
+            "for the ticket, and report through it when you are done.\n\n"
+        )
         args = [
             spec.path,
             "-p",
-            spec.prompt,
+            guide + spec.prompt,
             "--output-format",
             "stream-json",
             "--mode",
             "plan" if spec.read_only else "accept-edits",
         ]
         rules = [] if spec.read_only else agy_command_rules(spec.allowed)
-        if rules:
-            args += ["--settings", json.dumps({"permissions": {"allow": rules}})]
+        # the board's own MCP server: what a run may do there is decided by the board's guard, not by the CLI
+        allow = [*rules, "mcp(kanban/*)", "mcp(kanban)"] if spec.mcp_url else rules
+        if allow:
+            args += ["--settings", json.dumps({"permissions": {"allow": allow}})]
+        for folder in spec.read_dirs:
+            args += ["--add-dir", folder]
         if spec.resume_id:
             args += ["--conversation", spec.resume_id]
         if spec.model:
@@ -699,7 +745,7 @@ class AgyAdapter(Adapter):
         note = (
             "Antigravity: a question, so it only plans and reads"
             if spec.read_only
-            else f"Antigravity: file edits allowed; {len(rules)} command rule(s) from the Allow list, other commands are denied"
+            else f"Antigravity: file edits allowed; {len(rules)} command rule(s) (reading commands and the Allow list); the first other command ends the run"
         )
         return Launch(args, env, [note])
 
