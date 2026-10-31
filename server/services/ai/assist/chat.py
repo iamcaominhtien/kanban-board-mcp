@@ -1536,10 +1536,12 @@ async def retry(
     m.context = json.dumps({"request": req})
     session.add(m)
     await session.commit()
+    # read it back before the background task starts writing, or the two meet at SQLite's lock
+    await session.refresh(m)
+    out = _msg(m)
     _spawn(message_id)
     await _publish()
-    await session.refresh(m)
-    return _msg(m)
+    return out
 
 
 async def post_as_comment(
