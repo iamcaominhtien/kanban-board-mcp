@@ -444,3 +444,33 @@ async def test_health_check_notices_a_sign_in_that_expired_and_came_back(
     assert await members.health_check() == 1
     assert (await c.get(f"/ai/members/{m['id']}")).json()["health"] == "ok"
     assert await members.health_check() == 0  # nothing changed, nothing to say
+
+
+async def test_health_check_holds_no_write_lock_while_it_asks_the_cli(env, monkeypatch):
+    """A slow `claude` check must not block other writers (a run posting its answer, a comment being saved)."""
+    from sqlalchemy import text
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    a = await _runner(c, pid, env["repo"], name="A")
+    b = await _runner(c, pid, env["repo"], name="B")
+    async with env["maker"]() as s:
+        for mid in (a["id"], b["id"]):
+            profile = await s.get(AiMember, mid)
+            profile.health, profile.checked_at = "not_logged_in", None
+            s.add(profile)
+        await s.commit()
+    wrote = []
+
+    async def slow(provider, cli_path):
+        # while the "CLI" runs, another connection must be able to write at once
+        engine = env["maker"].kw["bind"]
+        async with engine.begin() as conn:
+            await conn.execute(text("PRAGMA busy_timeout=300"))
+            await conn.execute(text("UPDATE ticket SET title = title WHERE 0"))
+        wrote.append(True)
+        return {"found": True, "logged_in": True, "version": "1", "account": "x"}
+
+    monkeypatch.setattr(members, "detect_local", slow)
+    await members.health_check()
+    assert len(wrote) == 2

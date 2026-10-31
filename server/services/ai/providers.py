@@ -19,7 +19,15 @@ PROVIDERS: dict[str, dict] = {
         "label": "Antigravity",
         "connection": "local",
         "binary": "antigravity",
-        "models": [],
+        # what `antigravity models` lists; empty picks the CLI's own default
+        "models": [
+            "gemini-3.8-flash-high",
+            "gemini-3.8-flash-medium",
+            "gemini-3.8-flash-low",
+            "claude-sonnet-4-6",
+            "claude-opus-4-6-thinking",
+            "gpt-oss-120b-medium",
+        ],
         "default_model": None,
         "install": "Install Antigravity and enable its command line tool",
         "install_steps": [
@@ -127,14 +135,14 @@ MATRIX: dict[str, dict[str, tuple[str, str]]] = {
         "limits": ("synced", "Max turns, run timeout"),
     },
     "antigravity": {
-        "instructions": ("documented", "Rules, pasted by hand"),
+        "instructions": ("synced", "Sent with the first prompt"),
         "skills": ("documented", "Workflows, set up by hand"),
         "tools": ("not_supported", ""),
-        "mcp_servers": ("documented", "Experimental file sync"),
+        "mcp_servers": ("synced", "Kanban added for each run"),
         "subagents": ("not_supported", ""),
         "hooks": ("not_supported", ""),
-        "permissions": ("documented", "Set in its own settings"),
-        "model": ("documented", "Picked in the app"),
+        "permissions": ("synced", "Rules passed for each run"),
+        "model": ("synced", "Model and effort"),
         "limits": ("synced", "Run timeout only"),
     },
     "api": {

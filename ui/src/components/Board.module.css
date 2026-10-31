@@ -105,6 +105,13 @@
   padding-bottom: 2px;
 }
 
+/* The Board AI dock floats over the board: this room at the end lets the last columns scroll out from under it */
+.columns::after {
+  content: '';
+  flex: 0 0 var(--as-dock-w, 0px);
+  margin-left: -12px; /* cancels the gap before it, so there is no room (and no scrollbar) while the dock is shut */
+}
+
 @media (max-width: 860px) {
   .columns {
     overflow-x: auto;
@@ -116,7 +123,8 @@
 
 .column {
   flex: 1 1 0;
-  min-width: 200px;
+  /* Never narrower than an equal share of the row, so the dock's room at the end scrolls instead of squeezing cards */
+  min-width: max(200px, calc((100% - (var(--cols, 6) - 1) * 12px) / var(--cols, 6)));
   height: 100%;
   min-height: 0;
   display: flex;
@@ -144,6 +152,14 @@
   display: flex;
   align-items: center;
   gap: 7px;
+  container-type: inline-size;
+}
+
+/* A narrow column drops the word "pending" (the chip keeps its tooltip) so the label never wraps */
+@container (max-width: 235px) {
+  .pendingWord {
+    display: none;
+  }
 }
 
 .columnLabel {
@@ -153,6 +169,7 @@
   text-transform: uppercase;
   color: #5b6b60;
   flex-grow: 1;
+  white-space: nowrap;
 }
 
 .columnBadge {

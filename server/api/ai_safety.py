@@ -615,49 +615,10 @@ async def get_flags(ticket_id: str, session: Session) -> list[dict]:
     return injection.flags_for_comments(loads(ticket.comments, []), humans, ai_names)
 
 
-class HideBody(BaseModel):
-    """Hide a comment from AI agents, or keep it fenced (the default)."""
-
-    hidden: bool = True
-
-
-@router.post("/tickets/{ticket_id}/ai/comments/{comment_id}/hide")
-async def post_hide_comment(
-    ticket_id: str, comment_id: str, body: HideBody, session: Session
-) -> dict:
-    """Hide a comment from AI agents (the comment stays visible to people)."""
-    ticket = await _ticket(session, ticket_id)
-    comments = loads(ticket.comments, [])
-    hit = next((c for c in comments if c.get("id") == comment_id), None)
-    if hit is None:
-        raise HTTPException(status_code=404, detail="Comment not found")
-    if await safety.role_name(session, ticket.project_id, _by()) == "viewer":
-        raise HTTPException(
-            status_code=403, detail="Viewers can't hide comments from AI."
-        )
-    hit["ai_hidden"] = (
-        {"hidden": True, "by": _by(), "at": now_iso()} if body.hidden else None
-    )
-    ticket.comments = json.dumps(comments)
-    session.add(ticket)
-    await session.commit()
-    await svc_audit.record(
-        ticket.project_id,
-        "comment_hidden_from_ai" if body.hidden else "comment_unhidden",
-        "info",
-        member_name=_by(),
-        on_behalf_of=_by(),
-        target=ticket_id,
-        detail={"comment_id": comment_id},
-    )
-    await board_events.publish(board_events.INVALIDATE)
-    return {"comment_id": comment_id, "hidden": body.hidden}
-
-
 @router.get("/tickets/{ticket_id}/ai/blocked")
 async def get_blocked(ticket_id: str, session: Session) -> list[dict]:
     """“AI action blocked” on a ticket (F5): blocked actions of the last 24 hours that followed text flagged as
-    instructions, until the comment is hidden from AI."""
+    instructions."""
     ticket = await _ticket(session, ticket_id)
     since = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
     rows = await svc_audit.list_entries(
@@ -671,7 +632,7 @@ async def get_blocked(ticket_id: str, session: Session) -> list[dict]:
         if not isinstance(source, dict) or not source.get("comment_id"):
             continue
         c = comments.get(source["comment_id"])
-        if c is None or (c.get("ai_hidden") or {}).get("hidden"):
+        if c is None:
             continue
         out.append(
             {

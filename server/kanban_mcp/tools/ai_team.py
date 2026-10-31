@@ -31,6 +31,8 @@ AI_TEAM_OPS: dict[str, Op] = {
     "resume": Op(ops.resume, ("member_id",)),
     "create_member": Op(ops.create_member, ("project_id", "fields")),
     "update_member": Op(ops.update_member, ("member_id", "fields")),
+    "endpoints": Op(ops.endpoints, (), ("text",)),
+    "api": Op(ops.api, ("path",), ("fields",), {"fields": "body"}),
 }
 READS = {"members", "member", "usage", "runs", "run", "approvals", "docs_jobs"}
 
@@ -52,62 +54,59 @@ async def ai_team(
         "resume",
         "create_member",
         "update_member",
+        "endpoints",
+        "api",
     ],
     project_id: Annotated[
         str | None,
-        Field(description="members, usage, runs, approvals, docs_jobs, create_member."),
+        Field(description="members, usage, runs, approvals, create_member."),
     ] = None,
     member_id: Annotated[
         str | None,
-        Field(
-            description="AI member: member, ask, pause, resume, update_member, runs."
-        ),
+        Field(description="member, ask, pause, resume, update_member."),
     ] = None,
     ticket_id: Annotated[str | None, Field(description="ask, runs: IAM-12.")] = None,
-    page_id: Annotated[str | None, Field(description="ask in Docs, docs_jobs.")] = None,
-    thread_id: Annotated[
-        str | None, Field(description="ask in Docs: reply in this thread.")
-    ] = None,
+    page_id: Annotated[str | None, Field(description="Docs: ask, docs_jobs.")] = None,
+    thread_id: Annotated[str | None, Field(description="ask in Docs.")] = None,
     run_id: Annotated[
         str | None, Field(description="run, cancel, retry, answer.")
     ] = None,
     text: Annotated[
         str | None,
-        Field(description="ask, answer: the message; cancel, pause: a reason."),
+        Field(description="ask, answer: message; cancel, pause: reason."),
     ] = None,
     intent: Annotated[
         Literal["ask", "work", "notify"] | None,
-        Field(
-            description="ask: ask (default), work (assign + work), notify (comment only)."
-        ),
+        Field(description="ask, work (assign + work), notify (comment)."),
     ] = None,
-    range: Annotated[
-        Literal["today", "7d", "month"] | None,
-        Field(description="usage; default month."),
-    ] = None,
+    range: Literal["today", "7d", "month"] | None = None,
     status: Annotated[
-        str | None, Field(description="approvals: pending, approved, denied.")
+        str | None, Field(description="approvals: pending|approved|denied.")
     ] = None,
     active_only: Annotated[
-        bool | None, Field(description="runs: only queued or running.")
+        bool | None, Field(description="runs: queued or running.")
     ] = None,
     limit: Annotated[
         int | None,
-        Field(ge=1, le=100, description="Rows (run: steps)."),
+        Field(ge=1, le=100, description="Rows."),
+    ] = None,
+    path: Annotated[
+        str | None,
+        Field(description="api: 'POST /ai/runs/<id>/cancel'."),
     ] = None,
     fields: Annotated[
         dict[str, Any] | None,
         Field(
             description="create/update_member: name, description, persona, template developer|reviewer|read_only, "
             "ceiling none..review, max_parallel, max_runs_per_day, model; create: provider claude-code|antigravity|"
-            "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run."
+            "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run. api: JSON body."
         ),
     ] = None,
 ) -> dict | list:
-    """The board's AI team. Read: members, member, usage, runs, run, approvals, docs_jobs. Act: ask wakes an AI (an
-    @mention in a comment posted through MCP does not); cancel, retry, answer a run; pause, resume a member;
-    create_member, update_member (never keys, folders, Bypass or a ceiling past Review). Approvals are decided in
-    the board. Acts are refused inside an AI run."""
+    """AI team: read members, runs, usage, approvals; ask wakes an AI (an @mention via MCP does
+    not); cancel, retry, answer runs; pause, resume, create_member, update_member (no keys, folders, Bypass, ceiling
+    past Review; approvals: in the board). With "Full control over MCP" on in Settings: endpoints lists
+    and api calls AI endpoints as the person. Not in AI runs."""
     from services.ai import guard
 
     if action not in READS and await guard.resolve() is not None:

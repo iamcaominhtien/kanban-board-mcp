@@ -3,6 +3,7 @@ import { useTicketRuns } from '../../api/ai';
 import type { Ticket } from '../../types/ticket';
 import { RunStateChip, fmtElapsed, money, useAiBoardState } from '../ai/aiUi';
 import { ScopedChat } from './ScopedChat';
+import { ContextMeter } from './ContextMeter';
 
 /** The "Runs" tab of the ticket chat: the AI runs of this ticket, newest first, each opening its run page. */
 function TicketRunsList({ ticketId, onOpenRun }: { ticketId: string; onOpenRun: (runId: string) => void }) {
@@ -17,17 +18,25 @@ function TicketRunsList({ ticketId, onOpenRun }: { ticketId: string; onOpenRun: 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {runs.map((r) => (
         <div key={r.id} className="sc-runs-row" data-testid="chat-run-row">
-          <b>Run #{r.number}</b>
-          <span className="ai-muted">{r.mode === 'ask' ? 'Answer only' : 'Work'}</span>
-          <RunStateChip state={r.state} />
-          <span style={{ flex: 1 }} />
-          <span className="ai-muted ai-mono">
-            {r.metered ? money(r.costUsd) : 'Not metered'}
-            {r.elapsedS != null ? ` · ${fmtElapsed(r.elapsedS)}` : ''}
-          </span>
-          <button type="button" className="ai-btn ai-btn-sm" onClick={() => onOpenRun(r.id)}>
-            Open
-          </button>
+          <div className="sc-runs-main">
+            <b>Run #{r.number}</b>
+            <RunStateChip state={r.state} />
+            <span style={{ flex: 1 }} />
+            <button type="button" className="ai-btn ai-btn-sm" onClick={() => onOpenRun(r.id)}>
+              Open
+            </button>
+          </div>
+          <div className="sc-runs-meta ai-muted">
+            <span>{r.mode === 'ask' ? 'Answer only' : 'Work'}</span>
+            <span aria-hidden="true">·</span>
+            <span className="ai-mono">
+              {r.metered ? money(r.costUsd) : 'Not metered'}
+              {r.elapsedS != null ? ` · ${fmtElapsed(r.elapsedS)}` : ''}
+            </span>
+            {r.contextUsed && r.contextWindow ? (
+              <ContextMeter used={r.contextUsed} size={r.contextWindow} inline />
+            ) : null}
+          </div>
         </div>
       ))}
     </div>

@@ -8,6 +8,7 @@ approval when one is needed, and writes the audit entry. The model never sees or
 import asyncio
 import hashlib
 import json
+import secrets
 from contextvars import ContextVar, Token
 from datetime import UTC, datetime, timedelta
 
@@ -55,6 +56,30 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+# Board AI chat turns have no AiRun: each answer holds a short-lived token that stands for the asking context
+# (in memory only, gone when the answer ends or the app restarts).
+_chat_tokens: dict[str, RunContext] = {}
+
+
+def issue_chat_token(ctx: RunContext) -> str:
+    """A token for one chat answer: its MCP calls act as `ctx` under the member's permissions."""
+    token = "kbr_chat_" + secrets.token_urlsafe(24)
+    _chat_tokens[token_hash(token)] = ctx
+    return token
+
+
+def waits_for_person(run_id: str) -> bool:
+    """Whether a tool call of this run (or chat answer) is held until a person decides an approval."""
+    from . import runs
+
+    return run_id in runs.RT.waiting_approval
+
+
+def revoke_chat_token(token: str) -> None:
+    """The answer ended: its token stops working."""
+    _chat_tokens.pop(token_hash(token), None)
+
+
 def current() -> RunContext | None:
     """The run the current task acts for."""
     return _ctx.get()
@@ -100,6 +125,19 @@ async def context_for_token(token: str) -> RunContext:
     Raises:
         AiActionError: When the run ended (cancelled, finished, paused by the kill switch): its token is dead.
     """
+    chat = _chat_tokens.get(token_hash(token))
+    if chat is not None:
+        async with database.async_session() as session:
+            member, profile = await get_profile(session, chat.member_id)
+            if profile is None or profile.token_revoked_at:
+                raise AiActionError(
+                    "This AI member's token was revoked or the member was removed; the board no longer accepts "
+                    "its calls. Stop now."
+                )
+            profile.mcp_last_used_at = now_iso()
+            session.add(profile)
+            await session.commit()
+        return chat
     async with database.async_session() as session:
         run = (
             await session.exec(
@@ -148,6 +186,9 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
     if tool == "manage_project":
         return ["manage_project"]
     if tool == "docs_write":
+        # commenting on a page is a comment (a reviewer may), not an edit of it
+        if action in ("comment", "reply", "edit_comment", "delete_comment"):
+            return ["comment"]
         return ["edit_docs"]
     if tool == "ticket_branches":
         return ["create_branches"]
@@ -349,20 +390,24 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
                 detail["approval_id"] = f"remembered:{grants[0].id}"
                 detail["remembered"] = True
                 return detail
-            approval = await _request_approval(
-                session, ctx, settings, worst.action, tool, action, params, target
+            approval = await _pending_twin(
+                session, ctx, worst.action, tool, action, params
             )
-            await audit.record(
-                ctx.project_id,
-                worst.action,
-                "needs_approval",
-                member_id=ctx.member_id,
-                member_name=ctx.member_name,
-                on_behalf_of=ctx.on_behalf_of,
-                run_id=ctx.run_id,
-                target=target,
-                detail={**detail, "approval_id": approval.id},
-            )
+            if approval is None:
+                approval = await _request_approval(
+                    session, ctx, settings, worst.action, tool, action, params, target
+                )
+                await audit.record(
+                    ctx.project_id,
+                    worst.action,
+                    "needs_approval",
+                    member_id=ctx.member_id,
+                    member_name=ctx.member_name,
+                    on_behalf_of=ctx.on_behalf_of,
+                    run_id=ctx.run_id,
+                    target=target,
+                    detail={**detail, "approval_id": approval.id},
+                )
             parked = (approval.id, worst.action, approval.summary)
         else:
             detail["permission"] = needs
@@ -513,6 +558,43 @@ async def _post_move_blocked(
                 }
             },
         )
+
+
+def _asked(tool: str, action: str, params: dict) -> dict:
+    """What an approval asks for, without the free-text reason (that differs from one ask to the next)."""
+    return {
+        "tool": tool,
+        "action": action,
+        "params": {k: v for k, v in params.items() if k != "_reason"},
+    }
+
+
+async def _pending_twin(
+    session, ctx, perm: str, tool: str, action: str, params: dict
+) -> AiApproval | None:
+    """The request of this member for the very same change that still waits for a person, if any. Asking again (the
+    person closed the first card, or the AI retried) joins that request: a second one would only list it twice."""
+    wanted = _asked(tool, action, params)
+    pending = await session.exec(
+        select(AiApproval).where(
+            AiApproval.project_id == ctx.project_id,
+            AiApproval.member_id == ctx.member_id,
+            AiApproval.action == perm,
+            AiApproval.status == "pending",
+        )
+    )
+    for a in pending.all():
+        asked = loads(a.payload, {})
+        if (
+            _asked(
+                asked.get("tool", ""),
+                asked.get("action", ""),
+                asked.get("params") or {},
+            )
+            == wanted
+        ):
+            return a
+    return None
 
 
 async def _request_approval(

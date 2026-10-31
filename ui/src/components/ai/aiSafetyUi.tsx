@@ -55,8 +55,6 @@ export const ACTION_LABEL: Record<string, string> = {
   access_requested: 'Access requested',
   workspace_defaults_updated: 'Workspace defaults',
   extra_runs_allowed: 'More runs allowed',
-  comment_hidden_from_ai: 'Comment hidden from AI',
-  comment_unhidden: 'Comment shown to AI',
 };
 
 export const MODE_LABEL: Record<string, string> = {

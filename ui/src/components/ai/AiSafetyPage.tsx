@@ -201,7 +201,7 @@ function AutoTripCard({ s, save }: { s: AiSettings; save: (b: Record<string, unk
   return (
     <SafetyCard
       title="Auto-trip rules"
-      sub="Thresholds are invented defaults. They protect against a runaway agent when nobody is watching."
+      sub="They watch members billed by the call (API key) when nobody is watching. Claude Code and Antigravity run on your own CLI and are not tripped."
       id="auto-trip"
       right={
         <button type="button" className="ai-link" onClick={() => setEditing((v) => !v)}>
@@ -580,7 +580,11 @@ function KeysCard({
 function LoopsCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknown>) => Promise<void> }) {
   const [cool, setCool] = useState(String(s.loopCooldownS));
   return (
-    <SafetyCard title="Chain and re-run limits" sub="Invented defaults; owners change them" id="loops">
+    <SafetyCard
+      title="Chain and re-run limits"
+      sub="Depth, repeats and cooldown hold back API-key members only: Claude Code and Antigravity are not limited by them"
+      id="loops"
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ flex: 1 }}>
