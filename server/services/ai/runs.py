@@ -135,10 +135,19 @@ def set_board_url(url: str) -> None:
 
 
 async def _publish(force: bool = False) -> None:
+    """Announce a change in the runs. The steady stream of a run's steps (at most one a second) says only that the AI
+    screens changed; a state change (`force`) may have moved a ticket too, so it says "anything"."""
     loop = asyncio.get_running_loop()
     if force or loop.time() - RT.last_publish > 1.0:
         RT.last_publish = loop.time()
-        await board_events.publish(board_events.INVALIDATE)
+        if force:
+            await board_events.publish(board_events.INVALIDATE)
+        else:
+            await board_events.publish(
+                board_events.INVALIDATE, topics=(board_events.TOPIC_AI,)
+            )
+    else:
+        board_events.mark_own_change()
 
 
 # ---------------------------------------------------------------------------

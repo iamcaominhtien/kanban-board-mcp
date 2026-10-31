@@ -13,6 +13,7 @@ import { SafeModeChip } from './AiKillSwitch';
 import { RunSteps } from './RunPanel';
 import { ConfigTab } from './config/ConfigTab';
 import { ConnectionStateCard, type ConfigFocus } from './ConnectionState';
+import { LIVE_POLL_MS } from '../../api/pollIntervals';
 import { ProjectsPicker } from './ProjectsPicker';
 import {
   AiAvatar,
@@ -263,7 +264,7 @@ function Overview({
     queryKey: aiKeys.run(current?.runId ?? ''),
     queryFn: async () => (await client.get<AiRun>(`/ai/runs/${current?.runId}`)).data,
     enabled: !!current,
-    refetchInterval: 1500,
+    refetchInterval: LIVE_POLL_MS,
   });
   const runner = useRunnerInfo();
   // “Started 3m 12s ago” counts every second

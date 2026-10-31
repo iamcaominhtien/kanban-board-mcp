@@ -1,3 +1,4 @@
+import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type {
@@ -22,7 +23,7 @@ export function useTeamNow(projectId: string, range: TeamRange = 'today') {
     queryKey: teamKeys.now(projectId, range),
     queryFn: async () => (await client.get<TeamNow>(`/projects/${projectId}/ai/team/now`, { params: { range } })).data,
     enabled: !!projectId,
-    refetchInterval: (q) => (q.state.data?.totals.running ? 3000 : 15000),
+    refetchInterval: (q) => (q.state.data?.totals.running ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
@@ -37,7 +38,7 @@ export function useTeamStepped(projectId: string, range: TeamRange, filters: Ste
         })
       ).data,
     enabled: !!projectId,
-    refetchInterval: 15000,
+    refetchInterval: SAFETY_POLL_MS,
   });
 }
 
@@ -69,7 +70,7 @@ export function useTeamFlow(projectId: string, range: TeamRange) {
     queryFn: async () => (await client.get<FlowMap>(`/projects/${projectId}/ai/team/flow`, { params: { range } })).data,
     enabled: !!projectId,
     // quick while an AI is at work, so the map follows what is happening
-    refetchInterval: (q) => (q.state.data?.live?.length ? 4000 : 20000),
+    refetchInterval: (q) => (q.state.data?.live?.length ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
@@ -79,7 +80,7 @@ export function useTicketJourney(projectId: string, ticketId: string | null) {
     queryKey: ['ai', 'team', 'journey', projectId, ticketId] as const,
     queryFn: async () => (await client.get<Journey>(`/projects/${projectId}/ai/team/flow/${ticketId}`)).data,
     enabled: !!projectId && !!ticketId,
-    refetchInterval: (q) => (q.state.data?.live?.length ? 3000 : 10000),
+    refetchInterval: (q) => (q.state.data?.live?.length ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
@@ -108,8 +109,8 @@ export function useTimeline(projectId: string, q: TimelineQuery, live = true) {
     enabled: !!projectId,
     refetchInterval: (query) => {
       const d = query.state.data;
-      if (!live || !d?.following) return 30000;
-      return d.live.length ? 4000 : 15000;
+      if (!live || !d?.following) return SAFETY_POLL_MS;
+      return d.live.length ? LIVE_POLL_MS : SAFETY_POLL_MS;
     },
   });
 }

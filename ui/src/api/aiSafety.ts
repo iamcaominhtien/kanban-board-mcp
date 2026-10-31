@@ -328,7 +328,7 @@ export function useAiInbox(projectId: string) {
     queryKey: ['ai', 'inbox', projectId],
     queryFn: async () => (await client.get<Inbox>(`/projects/${projectId}/ai/inbox`)).data,
     enabled: !!projectId,
-    refetchInterval: 10000,
+    refetchInterval: 15_000,
   });
 }
 
@@ -351,7 +351,7 @@ export function useAiApprovalList(
         })
       ).data,
     enabled: !!projectId,
-    refetchInterval: 8000,
+    refetchInterval: 15_000,
   });
 }
 
@@ -361,7 +361,7 @@ export function useApprovalBacklog(projectId: string) {
     queryKey: ['ai', 'approvals', projectId, 'backlog'],
     queryFn: async () => (await client.get<Backlog>(`/projects/${projectId}/ai/approvals-backlog`)).data,
     enabled: !!projectId,
-    refetchInterval: 8000,
+    refetchInterval: 15_000,
   });
 }
 
