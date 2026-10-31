@@ -47,19 +47,33 @@ must write (the class is abstract, so Python refuses to create a subclass withou
 
 ## What was tested
 
-Only on macOS (agy 1.4.12, claude 2.1.316, codex 0.166.0, opencode 1.19.5). Linux, WSL and Windows are
-**not tested**. From the vendors' docs:
+On macOS (agy 1.4.12, claude 2.1.316, codex 0.166.0, opencode 1.19.5), and on Linux (x86_64, Python 3.13, the same
+agy, codex and opencode versions) in a container with no desktop keyring. WSL and Windows are **not tested**.
 
-- `claude`: credentials are `~/.claude/.credentials.json` on Linux and `%USERPROFILE%\.claude\.credentials.json` on
-  Windows, kept under `CLAUDE_CONFIG_DIR` when it is set, so this should work there.
+On Linux:
+
+- `claude`: two logins (two accounts) in two profiles, each with its own `.credentials.json` (mode `0600`) inside
+  `CLAUDE_CONFIG_DIR`; both answered at the same time.
+- `codex`: `login --device-auth` signed in; the login is `auth.json` in the profile; `status` and a prompt worked.
+- `agy`: the Google login ended up as the file `.gemini/antigravity-cli/antigravity-oauth-token` (mode `0600`) in the
+  profile's `HOME`, and `agy -p` answered. Nothing was written outside the profile. The container had no desktop
+  keyring and no `DBUS_SESSION_BUS_ADDRESS`, so a Linux desktop where agy can reach a keyring over D-Bus is **not
+  tested**.
+- `opencode`: `new` and `status` work and its data stays inside the profile. A prompt to a free model was not
+  verified: the server answered "Free usage limit reached".
+
+Not tested, from the vendors' docs:
+
+- `claude`: credentials are `%USERPROFILE%\.claude\.credentials.json` on Windows, kept under `CLAUDE_CONFIG_DIR` when
+  it is set, so this should work there.
 - `codex`: with the file store above it should work on any system.
-- `opencode`: data lives under `~/.local/share/opencode` (`%USERPROFILE%\.local\share\opencode` on Windows);
-  whether it honours `XDG_*` on Windows is not confirmed.
-- `agy`: on macOS, with no keychain under the swapped `HOME`, the Google login did end up as a file in the profile
-  (the binary has a "falling back to file-based secret storage" path). Not tested on Linux: it should work if no
-  desktop keyring is reachable, and the script removes `DBUS_SESSION_BUS_ADDRESS` for that, but a systemd user bus
-  may still be found. **Not supported on Windows**: the Windows credential store belongs to the Windows user, not to
-  `HOME`, so profiles might share one login; `new` refuses there.
+- `opencode`: data lives under `%USERPROFILE%\.local\share\opencode` on Windows; whether it honours `XDG_*` on
+  Windows is not confirmed.
+- `agy`: on macOS and on Linux without a keyring, with no keychain under the swapped `HOME`, the Google login ends up
+  as a file in the profile (the binary has a "falling back to file-based secret storage" path). The script removes
+  `DBUS_SESSION_BUS_ADDRESS` so that a desktop keyring is not used, but a systemd user bus may still be found.
+  **Not supported on Windows**: the Windows credential store belongs to the Windows user, not to `HOME`, so profiles
+  might share one login; `new` refuses there.
 
 ## Things to know
 

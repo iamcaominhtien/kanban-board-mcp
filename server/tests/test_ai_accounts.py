@@ -81,6 +81,34 @@ def test_codex_profile_keeps_the_login_in_a_file(tmp_path):
     assert (tmp_path / "x" / "config.toml").read_text() == text
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="the fake codex is a script with a shebang line"
+)
+@pytest.mark.parametrize(
+    "answer, signed_in, method",
+    [
+        ("Not logged in", False, None),
+        ("Logged in using ChatGPT", True, "ChatGPT"),
+    ],
+)
+def test_codex_check_reads_the_answer_even_after_a_warning(
+    tmp_path, answer, signed_in, method
+):
+    """Codex prints warnings before its answer when the profile is under a temporary folder; the first line is not it."""
+    fake = tmp_path / "codex"
+    fake.write_text(
+        f"#!{sys.executable}\n"
+        "import sys\n"
+        "sys.stderr.write('WARNING: proceeding, even though we could not create PATH aliases\\n')\n"
+        f"sys.stderr.write({answer!r} + '\\n')\n"
+    )
+    fake.chmod(0o755)
+    codex = profiles.Codex("x", tmp_path / "x", binary=str(fake))
+    status = codex.check()
+    assert status.signed_in is signed_in
+    assert status.detail == answer and status.method == method
+
+
 def test_bad_names_are_refused(tmp_path):
     for bad in ("", "../x", ".hidden", "a/b", "-x"):
         with pytest.raises(profiles.Fail):

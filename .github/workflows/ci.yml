@@ -33,6 +33,47 @@ jobs:
       - name: Tests
         run: uv run pytest -q -n auto
 
+  # The AI accounts code and the developer script run on the person's own computer, so Windows matters. There is no
+  # sign-in here (no browser, no account): this only shows that the code starts, builds profile folders and refuses
+  # what Windows cannot do. continue-on-error keeps a Windows-only failure from blocking a pull request; it still
+  # shows in the run. Remove it once the job is known to be stable.
+  windows:
+    name: Windows (AI profile tests, script smoke)
+    runs-on: windows-latest
+    continue-on-error: true
+    defaults:
+      run:
+        shell: bash
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install uv
+      - run: uv sync
+      - name: AI profile tests (the ones that need no fake CLI)
+        run: >-
+          uv run pytest -q tests/test_ai_accounts.py
+          -k "each_cli_keeps or overlay_drops or codex_profile_keeps or bad_names or without_check or refused_on_windows"
+      - name: Developer script (new, list, rm; agy must be refused)
+        working-directory: .
+        env:
+          CODEX_PROFILES_HOME: ${{ runner.temp }}/profiles/codex
+          OPENCODE_PROFILES_HOME: ${{ runner.temp }}/profiles/opencode
+          AGY_PROFILES_HOME: ${{ runner.temp }}/profiles/agy
+        run: |
+          python .claude/scripts/ai_profile.py codex new c1
+          python .claude/scripts/ai_profile.py opencode new o1
+          python .claude/scripts/ai_profile.py list
+          grep -q 'cli_auth_credentials_store = "file"' "$CODEX_PROFILES_HOME/c1/config.toml"
+          python .claude/scripts/ai_profile.py codex rm c1 -y
+          python .claude/scripts/ai_profile.py opencode rm o1 -y
+          if python .claude/scripts/ai_profile.py agy new a1; then
+            echo "agy new should be refused on Windows"; exit 1
+          fi
+          test ! -e "$AGY_PROFILES_HOME/a1"
+
   frontend:
     name: Frontend (prettier, eslint, tsc, build)
     runs-on: ubuntu-latest
