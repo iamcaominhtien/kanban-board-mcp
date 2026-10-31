@@ -1,5 +1,6 @@
 import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import camelcaseKeys from 'camelcase-keys';
 import { client } from './client';
 import type {
   FlowMap,
@@ -91,21 +92,42 @@ export interface TimelineQuery {
   ticketId?: string | null;
 }
 
+/**
+ * The client turns every key of a response into camelCase, and `tickets` is keyed by ticket ("AGT-3" came back as
+ * "agt3"): key it by the ids again, which the bars, arrows and waits carry as values.
+ */
+export function withTicketKeys(t: Timeline): Timeline {
+  const ids = new Set<string>();
+  for (const b of t.bars) ids.add(b.ticketId);
+  for (const a of t.arrows) if (a.ticketId) ids.add(a.ticketId);
+  for (const w of t.waits) if (w.ticketId) ids.add(w.ticketId);
+  for (const x of t.touches) if (x.ticketId) ids.add(x.ticketId);
+  for (const x of t.live) if (x.ticketId) ids.add(x.ticketId);
+  if (t.scope?.ticketId) ids.add(t.scope.ticketId);
+  const back = new Map<string, string>();
+  for (const id of ids) back.set(Object.keys(camelcaseKeys({ [id]: 0 }))[0], id);
+  const tickets: Timeline['tickets'] = {};
+  for (const [k, v] of Object.entries(t.tickets ?? {})) tickets[back.get(k) ?? k] = v;
+  return { ...t, tickets };
+}
+
 /** The AI Team view, Flow › Timeline. Refreshes every few seconds while it follows live and an AI works. */
 export function useTimeline(projectId: string, q: TimelineQuery, live = true) {
   return useQuery({
     queryKey: ['ai', 'team', 'timeline', projectId, q] as const,
     queryFn: async () =>
-      (
-        await client.get<Timeline>(`/projects/${projectId}/ai/team/timeline`, {
-          params: {
-            range: q.range === 'custom' ? 'today' : q.range,
-            since: q.since,
-            until: q.until,
-            ticket_id: q.ticketId ?? undefined,
-          },
-        })
-      ).data,
+      withTicketKeys(
+        (
+          await client.get<Timeline>(`/projects/${projectId}/ai/team/timeline`, {
+            params: {
+              range: q.range === 'custom' ? 'today' : q.range,
+              since: q.since,
+              until: q.until,
+              ticket_id: q.ticketId ?? undefined,
+            },
+          })
+        ).data,
+      ),
     enabled: !!projectId,
     refetchInterval: (query) => {
       const d = query.state.data;

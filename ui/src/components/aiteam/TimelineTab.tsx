@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { aiApi } from '../../api/ai';
+import { aiApi, useTicketRuns } from '../../api/ai';
 import { useTimeline } from '../../api/aiTeam';
 import { extractError } from '../../api/extractError';
 import type { Timeline, TimelineBar, TimelineLifeline, TimelineRange } from '../../types/aiTeam';
@@ -8,8 +8,8 @@ import { useToast } from '../Toast';
 import { PAUSE_COLOR, PauseGlyph, clockTime } from '../ai/pausedUi';
 import { AUTO_RESTARTS, fmtMb } from './resourcesFormat';
 import { fmtShort } from './teamFormat';
+import { ICONS, Icon } from './teamUi';
 import {
-  COL,
   GUTTER,
   NowPill,
   TimelineBody,
@@ -17,7 +17,10 @@ import {
   TimelineHeader,
   arrowColor,
   arrowGlyph,
+  arrowStroke,
   arrowWord,
+  lanesWidth,
+  lookOf,
   pickKey,
   type Pick,
 } from './timelineDraw';
@@ -169,8 +172,8 @@ export function TimelineTab({
   }, [data == null]);
 
   // Lifelines to draw: on a narrow window, AIs with nothing in the range fold into one strip
-  const all = data?.lifelines ?? [];
-  const narrow = width - GUTTER < all.length * COL && width < 900;
+  const all = useMemo(() => data?.lifelines ?? [], [data]);
+  const narrow = width - GUTTER < lanesWidth(all.length) && width < 900;
   const quiet = narrow && !openQuiet ? all.filter((l) => l.kind === 'ai' && l.quiet) : [];
   const lifelines: TimelineLifeline[] = all.filter((l) => !quiet.includes(l));
   const axis = useMemo(() => (data ? buildAxis(data, mode, now) : null), [data, mode, now]);
@@ -245,6 +248,7 @@ export function TimelineTab({
 
   const ticketOf = useCallback((id: string | null | undefined) => id ?? '', []);
   const names = useMemo(() => new Map(all.map((l) => [l.id, l.name])), [all]);
+  const people = useMemo(() => new Map(all.map((l) => [l.id, l])), [all]);
 
   // Esc closes the inspector
   useEffect(() => {
@@ -315,10 +319,14 @@ export function TimelineTab({
               onClick={() => setMenu(menu === 'scope' ? null : 'scope')}
               aria-haspopup="menu"
             >
+              <Icon size={14} color="currentColor">
+                {scope ? ICONS.page : PEOPLE}
+              </Icon>
               {scope ? `One ticket: ${scope}` : 'Whole team'}
             </button>
             {menu === 'scope' && (
               <div className="tl-menu" role="menu" data-testid="tl-scope-menu">
+                <div className="tl-menu-h">Scope</div>
                 <button
                   type="button"
                   role="menuitem"
@@ -328,9 +336,13 @@ export function TimelineTab({
                     setMenu(null);
                   }}
                 >
-                  Whole team
+                  <Icon size={15} color="currentColor">
+                    {PEOPLE}
+                  </Icon>
+                  <span style={{ flex: 1 }}>Whole team</span>
+                  {!scope && <Check />}
                 </button>
-                <div className="tl-menu-h">Tickets in this range</div>
+                <div className="tl-menu-h">One ticket</div>
                 {scopeTickets.length === 0 && <div className="tl-menu-empty">No ticket yet.</div>}
                 {scopeTickets
                   .sort((a, b) => Number(isLive(data, b[0])) - Number(isLive(data, a[0])))
@@ -345,10 +357,20 @@ export function TimelineTab({
                         setMenu(null);
                       }}
                     >
-                      {isLive(data, id) && <span className="at-live-dot working" />}
-                      <b>{id}</b> {t.title}
+                      {isLive(data, id) ? (
+                        <span className="at-live-dot working" />
+                      ) : (
+                        <Icon size={15} color="currentColor">
+                          {ICONS.page}
+                        </Icon>
+                      )}
+                      <span style={{ flex: 1 }}>
+                        <b>{id}</b> {t.title}
+                      </span>
+                      {scope === id && <Check />}
                     </button>
                   ))}
+                <div className="tl-menu-foot">Only the lifelines that took part are shown.</div>
               </div>
             )}
           </div>
@@ -360,6 +382,9 @@ export function TimelineTab({
             onClick={() => setMenu(menu === 'show' ? null : 'show')}
             aria-haspopup="menu"
           >
+            <Icon size={14} color="currentColor">
+              <path d="M4 5h16l-6 7.5V19l-4-2v-4.5L4 5z" />
+            </Icon>
             Show: {hidden.size ? 'some' : 'all'}
           </button>
           {menu === 'show' && (
@@ -485,6 +510,22 @@ export function TimelineTab({
         <EmptyRange data={data} lifelines={lifelines} onWiden={() => choose('7d')} onMap={actions.onSeeMap} />
       ) : (
         <div className="tl-stage">
+          {scope && (
+            <div className="tl-scope-head" data-testid="tl-scope-head">
+              <span className="tl-tchip">
+                <i />
+                <span>{scope}</span>
+              </span>
+              <b>{data.tickets[scope]?.title ?? ''}</b>
+              <span className="at-hint">scoped timeline · {scopedWho(lifelines)}</span>
+              <span style={{ flex: 1 }} />
+              {actions.onOpenStory && (
+                <button type="button" className="tl-btn" onClick={() => actions.onOpenStory?.(scope)}>
+                  See as One ticket
+                </button>
+              )}
+            </div>
+          )}
           <TimelineStrip
             data={data}
             axis={axis}
@@ -518,7 +559,12 @@ export function TimelineTab({
           >
             <div className="tl-corner" style={{ width: GUTTER }} />
             <div className="tl-head">
-              <TimelineHeader lifelines={lifelines} folded={quiet.length} onOpenFolded={() => setOpenQuiet(true)} />
+              <TimelineHeader
+                lifelines={lifelines}
+                folded={quiet.length}
+                onOpenFolded={() => setOpenQuiet(true)}
+                paused={paused}
+              />
             </div>
             <div className="tl-gutter" style={{ width: GUTTER }}>
               <TimelineGutter axis={axis} />
@@ -542,13 +588,13 @@ export function TimelineTab({
             </div>
           </div>
           {hover && !selected && (
-            <HoverCard data={data} pick={hover.pick} x={hover.x} y={hover.y} names={names} now={now} />
+            <HoverCard data={data} pick={hover.pick} x={hover.x} y={hover.y} people={people} now={now} />
           )}
           {selected && (
             <Inspector
               data={data}
               pick={selected}
-              names={names}
+              people={people}
               now={now}
               actions={actions}
               onClose={() => setSelected(null)}
@@ -563,6 +609,27 @@ export function TimelineTab({
       </span>
     </div>
   );
+}
+
+const PEOPLE = (
+  <path d="M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 20c0-3.5 3-6 6-6s6 2.5 6 6M16 5a3.5 3.5 0 0 1 0 7M18 14c2 .8 3 2.6 3 5" />
+);
+
+function Check() {
+  return (
+    <Icon size={14} color="#2E6F40">
+      {ICONS.check}
+    </Icon>
+  );
+}
+
+/** "Dev, Tester, Reviewer and you": the lifelines of a scoped Timeline, in words. */
+function scopedWho(lifelines: TimelineLifeline[]): string {
+  const ais = lifelines.filter((l) => l.kind === 'ai').map((l) => l.name);
+  const you = lifelines.some((l) => l.kind === 'you');
+  const all = you ? [...ais, 'you'] : ais;
+  if (all.length <= 1) return all.join('');
+  return `${all.slice(0, -1).join(', ')} and ${all[all.length - 1]}`;
 }
 
 function isLive(data: Timeline, ticketId: string): boolean {
@@ -760,55 +827,95 @@ function durationOf(b: TimelineBar): string {
 }
 
 // ---------------------------------------------------------------------------
-// Detail on demand: hover card and inspector (the same facts, one at a glance, one in full)
+// Detail on demand: hover card and inspector (the same facts, one at a glance, one in full; ai-team-timeline.md, D)
 // ---------------------------------------------------------------------------
 
+type Tone = 'live' | 'done' | 'bad' | 'wait' | 'plain';
+const TONE: Record<Tone, { bg: string; fg: string; dot: string }> = {
+  live: { bg: '#E6F2EA', fg: '#1F5A31', dot: '#2E6F40' },
+  done: { bg: '#F1F3F1', fg: '#5B6B60', dot: '#C7D2CB' },
+  bad: { bg: '#FDECE8', fg: '#A5321E', dot: '#C4432A' },
+  wait: { bg: '#FEF3D9', fg: '#7A5A06', dot: '#8A6A12' },
+  plain: { bg: '#F1F5F2', fg: '#3A4A3E', dot: '#9AA8A0' },
+};
+
 interface Facts {
+  /** The AI the card is about (an avatar), or an icon. */
+  who?: TimelineLifeline;
+  icon?: ReactNode;
+  iconColor?: string;
   title: string;
-  chip?: string;
-  lines: string[];
+  chip?: { text: string; tone: Tone };
   ticketId?: string | null;
+  /** The words after the ticket chip: the ticket's title, or what the hand-off said. */
+  ticketText?: string;
+  lines: { text: string; strong?: string }[];
+  /** What a click opens. */
+  hint: string;
   pageId?: string;
   bar?: TimelineBar;
-  question?: { runId: string; text: string; options: string[] };
+  question?: { runId: string; text: string; options: string[]; from: number; to: number | null; open: boolean };
   note?: string;
 }
 
-function factsOf(data: Timeline, pick: Pick, names: Map<string, string>, now: number): Facts | null {
-  const who = (id: string) => names.get(id) ?? id;
+const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function barTone(b: TimelineBar): Tone {
+  if (!b.endedAt && ['running', 'starting'].includes(b.state)) return 'live';
+  if (b.state === 'needs_input' || b.state === 'queued') return 'wait';
+  if (b.endKind && b.endKind !== 'ok') return 'bad';
+  return 'done';
+}
+
+function tokensLine(b: TimelineBar): { text: string; strong?: string }[] {
+  if (!b.tokensIn && !b.tokensOut)
+    return b.metered ? [] : [{ strong: 'Not metered', text: ': a local runner reports no cost' }];
+  const t = `${Math.round(b.tokensIn / 1000)}k tokens in, ${Math.round(b.tokensOut / 1000)}k out`;
+  return b.metered
+    ? [{ text: `${t} · $${b.costUsd.toFixed(2)}` }]
+    : [{ text: t }, { strong: 'Not metered', text: ': a local runner reports no cost' }];
+}
+
+function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifeline>, now: number): Facts | null {
+  const who = (id: string) => people.get(id)?.name ?? (id === 'you' ? 'You' : id);
+  const ticketTitle = (id: string | null | undefined) => (id ? data.tickets[id]?.title : undefined);
   if (pick.type === 'bar') {
     const b = data.bars.find((x) => x.id === pick.id);
     if (!b) return null;
     const start = ms(b.startedAt);
     const end = ms(b.endedAt) ?? now;
-    const lines = [
-      b.state === 'queued'
-        ? `Queued at ${clock(ms(b.queuedAt) ?? 0)}${b.heldByPause ? ' · held until resume' : ''}`
-        : `Started ${clock(start ?? 0)} · ${lengthText(end - (start ?? end))}${b.endedAt ? '' : ' so far'} · step ${b.steps}`,
+    const lines: Facts['lines'] = [
+      {
+        text:
+          b.state === 'queued'
+            ? `Queued at ${clock(ms(b.queuedAt) ?? 0)} · ${lengthText(now - (ms(b.queuedAt) ?? now))} so far${b.heldByPause ? ' · held until resume' : ''}`
+            : `Started ${clock(start ?? 0)} · ${lengthText(end - (start ?? end))}${b.endedAt ? '' : ' so far'} · ${b.endedAt ? `${b.steps} steps` : `step ${b.steps}`}`,
+      },
     ];
-    if (b.tokensIn || b.tokensOut)
-      lines.push(
-        `${Math.round(b.tokensIn / 1000)}k tokens in, ${Math.round(b.tokensOut / 1000)}k out${b.metered ? ` · $${b.costUsd.toFixed(2)}` : ' · Not metered'}`,
-      );
-    if (b.summary) lines.push(b.summary);
+    if (b.summary) lines.push({ text: b.summary });
+    lines.push(...tokensLine(b));
     if (b.peakRssMb)
-      lines.push(
-        `Peak RAM ${fmtMb(b.peakRssMb)}${b.lastRssMb ? ` · ${b.endedAt ? 'last' : 'now'} ${fmtMb(b.lastRssMb)}` : ''}`,
-      );
+      lines.push({
+        text: `Peak RAM ${fmtMb(b.peakRssMb)}${b.lastRssMb ? ` · ${b.endedAt ? 'last' : 'now'} ${fmtMb(b.lastRssMb)}` : ''}`,
+      });
     for (const r of b.restarts) {
       const when = clock(ms(r.at) ?? 0);
-      lines.push(
-        r.by === 'system'
-          ? `Restarted at ${when}${r.rssMb && r.limitMb ? `, ${fmtMb(r.rssMb)} over the ${fmtMb(r.limitMb)} limit` : ''}, restart ${r.n} of ${AUTO_RESTARTS}`
-          : `Restarted at ${when} by ${r.by}`,
-      );
+      lines.push({
+        text:
+          r.by === 'system'
+            ? `Restarted at ${when}${r.rssMb && r.limitMb ? `, ${fmtMb(r.rssMb)} over the ${fmtMb(r.limitMb)} limit` : ''}, restart ${r.n} of ${AUTO_RESTARTS}`
+            : `Restarted at ${when} by ${r.by}`,
+      });
     }
-    if (b.endedReason && b.endKind !== 'ok') lines.push(b.endedReason);
+    if (b.endedReason && b.endKind !== 'ok') lines.push({ text: b.endedReason });
     return {
+      who: people.get(b.memberId),
       title: `${who(b.memberId)} · run #${b.number}`,
-      chip: endWord(b),
-      lines,
+      chip: { text: cap1(endWord(b)), tone: barTone(b) },
       ticketId: b.ticketId,
+      ticketText: ticketTitle(b.ticketId),
+      lines,
+      hint: 'Click for the steps',
       bar: b,
       note: b.trigger === 'autopilot' ? 'A short run by the Autopilot delegate to look at a request.' : undefined,
     };
@@ -818,76 +925,147 @@ function factsOf(data: Timeline, pick: Pick, names: Map<string, string>, now: nu
     if (!w) return null;
     const from = ms(w.from) ?? now;
     const to = ms(w.to) ?? now;
+    const open = !w.to;
+    const q = w.kind === 'question';
     return {
-      title: w.kind === 'question' ? `Question from ${who(w.memberId)}` : `${who(w.memberId)} needs a permission`,
-      chip: w.to ? 'answered' : 'waiting for you',
-      lines: [
-        `“${w.text}”`,
-        `${w.to ? 'Waited' : 'Waiting'} ${lengthText(to - from)} · asked ${clock(from)}`,
-        ...(w.risk ? [`Risk ${w.risk}`] : []),
-      ],
+      who: q ? people.get(w.memberId) : undefined,
+      icon: q ? undefined : ICONS.lock,
+      iconColor: '#B8860B',
+      title: q
+        ? `${who(w.memberId)} · ${open ? 'waiting for you' : 'question answered'}`
+        : `${open ? 'Waiting for you' : cap1(w.status ?? 'decided')} · ${lengthText(to - from)}`,
       ticketId: w.ticketId,
+      ticketText: ticketTitle(w.ticketId),
+      lines: q
+        ? [
+            { text: `Asked at ${clock(from)} · ${lengthText(to - from)}${open ? ' so far' : ''}` },
+            { text: `“${w.text}”` },
+          ]
+        : [
+            { text: `${who(w.memberId)} asked: ${w.text}` },
+            ...(w.risk ? [{ text: `Risk ${w.risk} · the run keeps going, this step waits` }] : []),
+          ],
+      hint: q && open ? 'Click for the full question and Answer' : 'Click for details',
       question:
-        w.kind === 'question' && !w.to && w.runId
-          ? { runId: w.runId, text: w.text, options: w.options ?? [] }
-          : undefined,
+        q && w.runId ? { runId: w.runId, text: w.text, options: w.options ?? [], from, to: ms(w.to), open } : undefined,
     };
   }
   if (pick.type === 'arrow') {
     const a = data.arrows.find((x) => x.id === pick.id);
     if (!a) return null;
-    const lines = [`${who(a.from)} → ${who(a.to)} · ${clock(ms(a.at) ?? 0)}`];
-    if (a.waitS != null) lines.push(`Waited ${lengthText(a.waitS * 1000)}`);
-    if (a.label) lines.push(a.label);
-    if (a.summary) lines.push(a.summary);
-    if (a.by) lines.push(`By ${a.by}`);
+    const at = ms(a.at) ?? 0;
+    const landed = ms(a.toAt);
+    const waitMin = a.waitS != null ? a.waitS / 60 : landed ? (landed - at) / 60000 : 0;
+    const lines: Facts['lines'] = [];
+    if (a.kind === 'auto') {
+      const asked =
+        data.waits.find((w) => w.runId === a.runId && w.kind === 'approval' && w.to === a.at) ??
+        data.waits.find((w) => w.runId === a.runId && w.kind === 'approval');
+      const run = data.bars.find((b) => b.autopilot && Math.abs((ms(b.startedAt) ?? 0) - at) < 5 * 60000);
+      if (asked)
+        lines.push({ text: `${who(asked.memberId)} asked: ${asked.text}${a.risk ? ` · risk ${a.risk}` : ''}` });
+      if (a.by)
+        lines.push({
+          text: `Decided by ${a.by}, the delegate${run ? `, in a short run at ${clock(ms(run.startedAt) ?? 0)}` : ''}`,
+        });
+      if (a.label) lines.push({ text: `Its reason: “${a.label}”` });
+      return {
+        icon: ICONS.lock,
+        iconColor: '#5B3AA6',
+        title: `${a.denied ? 'Refused' : 'Approved'} by Autopilot · after ${lengthText(Math.max(waitMin, 1) * 60000)}`,
+        ticketId: a.ticketId,
+        ticketText: ticketTitle(a.ticketId),
+        lines,
+        hint: 'Click for details',
+      };
+    }
+    lines.push({
+      text:
+        landed && landed - at > 60000 ? `Sent ${clock(at)} · ${who(a.to)} started ${clock(landed)}` : `At ${clock(at)}`,
+    });
+    if (waitMin >= 1) lines.push({ strong: `Waited ${lengthText(waitMin * 60000)}`, text: '' });
+    if (a.summary && a.summary !== a.label) lines.push({ text: a.summary });
+    if (a.by) lines.push({ text: `By ${a.by}` });
     if (a.count > 1) {
       const tickets = [...new Set(a.items.map((i) => i.ticketId).filter(Boolean))];
-      lines.push(
-        `${a.count} close events grouped${a.parentId ? ` (children of ${a.parentId})` : ''}${tickets.length ? `: ${tickets.join(', ')}` : ''}`,
-      );
+      lines.push({
+        text: `${a.count} close events grouped${a.parentId ? ` (children of ${a.parentId})` : ''}${tickets.length ? `: ${tickets.join(', ')}` : ''}`,
+      });
     }
+    lines.push({ text: `Kind: ${arrowWord(a.kind)}` });
     return {
-      title: arrowWord(a.kind),
-      chip: arrowGlyph(a.kind).length === 1 ? arrowGlyph(a.kind) : undefined,
-      lines,
+      icon: ICONS.arrow,
+      iconColor: arrowStroke(a),
+      title: `${cap1(arrowWord(a.kind))} · ${who(a.from)} to ${who(a.to)}`,
       ticketId: a.ticketId,
+      ticketText: a.label ?? ticketTitle(a.ticketId),
+      lines,
+      hint: 'Click for details',
     };
   }
   if (pick.type === 'touch') {
     const t = data.touches.find((x) => x.id === pick.id);
     if (!t) return null;
     return {
+      icon: <rect x="6" y="6" width="12" height="12" rx="2" transform="rotate(45 12 12)" />,
+      iconColor: '#B8860B',
       title: t.what,
-      chip: t.mark.replace('_', ' '),
-      lines: [`${t.who}${t.via ? ` via ${t.via}` : ''} · ${clock(ms(t.at) ?? 0)}`],
+      chip: {
+        text: t.mark.replace('_', ' '),
+        tone: t.mark === 'avoidable' ? 'bad' : t.mark === 'needed' ? 'wait' : 'plain',
+      },
+      lines: [{ text: `${t.who}${t.via ? ` via ${t.via}` : ''} · ${clock(ms(t.at) ?? 0)}` }],
       ticketId: t.ticketId,
+      ticketText: ticketTitle(t.ticketId),
+      hint: 'Click for details',
     };
   }
   if (pick.type === 'doc') {
     const n = data.docs.find((x) => x.id === pick.id);
     if (!n) return null;
     return {
-      title: n.title || 'Docs page',
-      chip: n.kind === 'proposal' ? (n.status ?? 'proposal') : `v${n.version}`,
-      lines: [`${who(n.memberId)} · ${clock(ms(n.at) ?? 0)}`, ...(n.summary ? [n.summary] : [])],
+      icon: ICONS.page,
+      iconColor: '#5B6B60',
+      title: `Docs · ${n.title || 'a page'}`,
+      lines: [
+        {
+          text:
+            n.kind === 'proposal'
+              ? `${who(n.memberId)} proposed ${n.changes ?? ''} change${n.changes === 1 ? '' : 's'} (v${n.version})`.replace(
+                  '  ',
+                  ' ',
+                )
+              : `${who(n.memberId)} wrote v${n.version} · ${clock(ms(n.at) ?? 0)}`,
+        },
+        ...(n.kind === 'proposal' && n.status === 'waiting'
+          ? [{ text: `Waiting for you ${lengthText(now - (ms(n.at) ?? now))}` }]
+          : []),
+        ...(n.summary ? [{ text: n.summary }] : []),
+      ],
       pageId: n.pageId,
+      hint: 'Click to open the page',
     };
   }
   const p = data.pauses.find((x) => x.from === pick.id);
   if (!p) return null;
   return {
+    icon: ICONS.pause,
+    iconColor: PAUSE_COLOR,
     title: 'AI paused',
     lines: [
-      `By ${p.by ?? 'someone'} at ${clock(ms(p.from) ?? 0)}${p.to ? ` · resumed ${clock(ms(p.to) ?? 0)}${p.resumedBy ? ` by ${p.resumedBy}` : ''}` : ''}`,
-      ...(p.reason ? [`Reason: “${p.reason}”`] : []),
-      'The time inside the band is counted as paused: it is not waiting for you and not a bottleneck.',
+      {
+        text: `By ${p.by ?? 'someone'} at ${clock(ms(p.from) ?? 0)}${p.to ? ` · resumed ${clock(ms(p.to) ?? 0)}${p.resumedBy ? ` by ${p.resumedBy}` : ''}` : ''}`,
+      },
+      ...(p.reason ? [{ text: `Reason: “${p.reason}”` }] : []),
+      { text: 'The time inside the band is counted as paused: it is not waiting for you and not a bottleneck.' },
     ],
+    hint: 'Click for details',
   };
 }
 
 function endWord(b: TimelineBar): string {
   if (b.heldByPause) return 'held until resume';
+  if (!b.endedAt && b.state === 'running') return 'working';
   switch (b.endKind) {
     case 'ok':
       return 'finished';
@@ -908,55 +1086,150 @@ function endWord(b: TimelineBar): string {
   }
 }
 
+/** The small square with an AI's initials and colours. */
+function Avatar({ l, size = 18 }: { l: TimelineLifeline; size?: number }) {
+  const look = lookOf(l);
+  const words = l.name.trim().split(/\s+/);
+  const ini = (words.length > 1 ? words[0][0] + words[1][0] : l.name.slice(0, 2)).toUpperCase();
+  return (
+    <span
+      className="tl-avatar"
+      title={l.name}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size > 18 ? 6 : 5,
+        background: look.fill,
+        color: look.text,
+        borderColor: look.stroke,
+        fontSize: size > 18 ? 7 : 6,
+      }}
+    >
+      {ini}
+    </span>
+  );
+}
+
+function CardHead({ f, size }: { f: Facts; size?: number }) {
+  return (
+    <>
+      {f.who ? (
+        <Avatar l={f.who} size={size} />
+      ) : f.icon ? (
+        <Icon color={f.iconColor} size={size && size > 18 ? 16 : 14}>
+          {f.icon}
+        </Icon>
+      ) : null}
+      <span>{f.title}</span>
+      {f.chip && (
+        <span className="tl-chip" style={{ background: TONE[f.chip.tone].bg, color: TONE[f.chip.tone].fg }}>
+          <i style={{ background: TONE[f.chip.tone].dot }} />
+          {f.chip.text}
+        </span>
+      )}
+    </>
+  );
+}
+
+function TicketLine({ id, text }: { id: string; text?: string }) {
+  return (
+    <div className="tl-card-line">
+      <span className="tl-tchip">
+        <i />
+        <span>{id}</span>
+      </span>{' '}
+      {text}
+    </div>
+  );
+}
+
 function HoverCard({
   data,
   pick,
   x,
   y,
-  names,
+  people,
   now,
 }: {
   data: Timeline;
   pick: Pick;
   x: number;
   y: number;
-  names: Map<string, string>;
+  people: Map<string, TimelineLifeline>;
   now: number;
 }) {
-  const f = factsOf(data, pick, names, now);
+  const f = factsOf(data, pick, people, now);
   if (!f) return null;
   return (
     <div
       className="tl-hover"
       role="tooltip"
-      style={{ left: Math.min(x + 14, window.innerWidth - 300), top: Math.min(y + 14, window.innerHeight - 160) }}
+      style={{ left: Math.min(x + 14, window.innerWidth - 316), top: Math.min(y + 14, window.innerHeight - 180) }}
     >
-      <b>{f.title}</b>
-      {f.chip && <span className="tl-chip">{f.chip}</span>}
-      {f.lines.slice(0, 3).map((l) => (
-        <div key={l}>{l}</div>
+      <div className="tl-hover-head">
+        <CardHead f={f} />
+      </div>
+      {f.ticketId && <TicketLine id={f.ticketId} text={f.ticketText} />}
+      {f.lines.slice(0, 4).map((l, i) => (
+        <div key={i} className="tl-card-line">
+          {l.strong && <b style={l.strong.startsWith('Waited') ? { color: '#7A5A06' } : undefined}>{l.strong}</b>}
+          {l.text}
+        </div>
       ))}
-      <span className="tl-hover-hint">Click for details</span>
+      <span className="tl-hover-hint">{f.hint}</span>
     </div>
+  );
+}
+
+/** A step's time is stored as hh:mm:ss in UTC without a date: put it on the run's day, in the person's time zone. */
+function stepClock(at: string, runStart: number | null): string {
+  const m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(at);
+  if (!m || runStart == null) return at.slice(0, 5);
+  const d = new Date(runStart);
+  let t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), +m[1], +m[2], +(m[3] ?? 0));
+  if (t < runStart - 60000) t += 86400000;
+  return clock(t);
+}
+
+/** The newest steps of a run, read when the inspector opens (they are not part of the Timeline's data). */
+function LatestSteps({ bar }: { bar: TimelineBar }) {
+  const q = useTicketRuns(bar.ticketId);
+  const run = q.data?.find((r) => r.id === bar.id);
+  if (!run) return q.isLoading ? <div className="at-hint">Reading the steps…</div> : null;
+  const steps = [...run.steps].reverse().slice(0, 5);
+  if (!steps.length) return null;
+  const start = ms(bar.startedAt);
+  return (
+    <>
+      <div className="tl-insp-h">Latest steps</div>
+      <div>
+        {steps.map((s, i) => (
+          <div key={i} className="tl-step">
+            <span className="at-hint">{stepClock(s.at, start)}</span>
+            <span>{s.text}</span>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
 function Inspector({
   data,
   pick,
-  names,
+  people,
   now,
   actions,
   onClose,
 }: {
   data: Timeline;
   pick: Pick;
-  names: Map<string, string>;
+  people: Map<string, TimelineLifeline>;
   now: number;
   actions: TimelineActions;
   onClose: () => void;
 }) {
-  const f = factsOf(data, pick, names, now);
+  const f = factsOf(data, pick, people, now);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -977,61 +1250,179 @@ function Inspector({
       setBusy(false);
     }
   };
+  const b = f.bar;
+  const started = b ? data.arrows.find((a) => a.runId === b.id && a.to === b.memberId) : undefined;
+  const who = (id: string) => people.get(id)?.name ?? (id === 'you' ? 'You' : id);
+  const q = f.question;
   return (
     <aside className="tl-inspector" aria-label="Details" data-testid="tl-inspector">
       <div className="tl-insp-head">
-        <b>{f.title}</b>
-        {f.chip && <span className="tl-chip">{f.chip}</span>}
-        <span style={{ flex: 1 }} />
+        <b>
+          {q ? (
+            <>
+              <Icon color="#B8860B" size={16}>
+                <path d="M12 4l9 16H3L12 4z" />
+                <path d="M12 10v4M12 17v.5" />
+              </Icon>
+              Question from {people.get(data.waits.find((w) => w.id === pick.id)?.memberId ?? '')?.name ?? 'an AI'}
+            </>
+          ) : b ? (
+            <>
+              {f.who && <Avatar l={f.who} size={22} />}
+              {f.title} on{' '}
+              <span className="tl-tchip">
+                <i />
+                <span>{b.ticketId}</span>
+              </span>
+            </>
+          ) : (
+            <CardHead f={f} size={22} />
+          )}
+        </b>
         <button type="button" className="tl-x" onClick={onClose} aria-label="Close">
-          ×
+          <Icon size={14}>
+            <path d="M6 6l12 12M18 6L6 18" />
+          </Icon>
         </button>
       </div>
-      {f.ticketId && (
-        <div className="at-hint">
-          {f.ticketId}
-          {data.tickets[f.ticketId] ? ` · ${data.tickets[f.ticketId].title}` : ''}
-        </div>
-      )}
-      {f.lines.map((l) => (
-        <div key={l} className="tl-insp-line">
-          {l}
-        </div>
-      ))}
-      {f.note && <div className="at-hint">{f.note}</div>}
-      {f.question && (
-        <div className="tl-answer">
-          {f.question.options.length > 0 && (
+      {b ? (
+        <>
+          <div className="tl-insp-chips">
+            {f.chip && (
+              <span className="tl-chip" style={{ background: TONE[f.chip.tone].bg, color: TONE[f.chip.tone].fg }}>
+                <i style={{ background: TONE[f.chip.tone].dot }} />
+                {f.chip.text}
+              </span>
+            )}
+            {b.startedAt && (
+              <span className="tl-fact">
+                <Icon size={12} color="#5B6B60">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3.5 2" />
+                </Icon>
+                {lengthText((ms(b.endedAt) ?? now) - (ms(b.startedAt) ?? now))}
+              </span>
+            )}
+            <span className="tl-fact">
+              <Icon size={12} color="#5B6B60">
+                <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
+              </Icon>
+              step {b.steps}
+            </span>
+            {(b.tokensIn > 0 || b.tokensOut > 0) && (
+              <span className="tl-fact">
+                <Icon size={12} color="#5B6B60">
+                  <path d="M13 3L5 13h6l-1 8 8-10h-6z" />
+                </Icon>
+                {Math.round(b.tokensIn / 1000)}k in / {Math.round(b.tokensOut / 1000)}k out
+              </span>
+            )}
+            <span className="tl-fact">
+              <Icon size={12} color="#5B6B60">
+                <path d="M3 12V4h8l10 10-8 8z" />
+                <circle cx="7.5" cy="8.5" r="1.2" />
+              </Icon>
+              {b.metered ? `$${b.costUsd.toFixed(2)}` : 'Not metered'}
+            </span>
+          </div>
+          {data.tickets[b.ticketId] && <div className="at-hint">{data.tickets[b.ticketId].title}</div>}
+          {f.lines
+            .slice(1)
+            .filter((l) => !l.strong && !/tokens in/.test(l.text))
+            .map((l, i) => (
+              <div key={i} className="tl-insp-line">
+                {l.text}
+              </div>
+            ))}
+          {f.note && <div className="at-hint">{f.note}</div>}
+          <LatestSteps bar={b} />
+          {(started || b.queuedAt) && (
             <>
-              <span className="at-label">Suggested answers (from the AI)</span>
-              {f.question.options.map((o) => (
-                <button key={o} type="button" className="tl-btn" disabled={busy} onClick={() => void answer(o)}>
-                  {o}
-                </button>
-              ))}
+              <div className="tl-insp-h">Started by</div>
+              <div className="tl-insp-line">
+                {started
+                  ? `${who(started.from)}, ${arrowWord(started.kind)} at ${clock(ms(started.at) ?? 0)}`
+                  : `${cap1(b.trigger.replace('_', ' '))} at ${clock(ms(b.queuedAt) ?? 0)}`}
+                {b.startedAt && b.queuedAt && (ms(b.startedAt) ?? 0) - (ms(b.queuedAt) ?? 0) >= 60000
+                  ? ` · queued ${lengthText((ms(b.startedAt) ?? 0) - (ms(b.queuedAt) ?? 0))}`
+                  : ''}
+              </div>
             </>
           )}
-          <input
+        </>
+      ) : q ? (
+        <>
+          <div className="tl-question">“{q.text}”</div>
+          <div className="at-hint">
+            Asked {clock(q.from)} · {q.open ? 'waiting' : 'waited'} {lengthText((q.to ?? now) - q.from)}
+            {f.ticketId ? (
+              <>
+                {' '}
+                · blocks{' '}
+                <span className="tl-tchip">
+                  <i />
+                  <span>{f.ticketId}</span>
+                </span>
+              </>
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <>
+          {f.ticketId && <TicketLine id={f.ticketId} text={f.ticketText} />}
+          {f.lines.map((l, i) => (
+            <div key={i} className="tl-insp-line">
+              {l.strong && <b>{l.strong}</b>}
+              {l.text}
+            </div>
+          ))}
+          {f.note && <div className="at-hint">{f.note}</div>}
+        </>
+      )}
+      {q?.open && (
+        <div className="tl-answer">
+          {q.options.length > 0 && (
+            <>
+              <div className="tl-insp-h">Suggested answers (from the AI)</div>
+              <div className="tl-options">
+                {q.options.map((o) => (
+                  <button key={o} type="button" className="tl-option" disabled={busy} onClick={() => setText(o)}>
+                    {o}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <textarea
             className="tl-input"
             value={text}
             placeholder="Type an answer…"
             aria-label="Answer"
+            rows={2}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') void answer(text);
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void answer(text);
+              }
             }}
           />
+        </div>
+      )}
+      <div className="tl-insp-actions">
+        {q?.open && (
           <button
             type="button"
             className="tl-btn primary"
             disabled={busy || !text.trim()}
             onClick={() => void answer(text)}
           >
+            <Icon size={14}>
+              <path d="M4 12l16-8-6 16-3-7-7-1z" />
+            </Icon>
             Answer
           </button>
-        </div>
-      )}
-      <div className="tl-insp-actions">
+        )}
         {f.ticketId && (
           <button type="button" className="tl-btn" onClick={() => actions.onOpenTicket(f.ticketId as string)}>
             Open the ticket
@@ -1043,7 +1434,7 @@ function Inspector({
           </button>
         )}
         {f.pageId && (
-          <button type="button" className="tl-btn" onClick={() => actions.onOpenDocsPage(f.pageId as string)}>
+          <button type="button" className="tl-btn primary" onClick={() => actions.onOpenDocsPage(f.pageId as string)}>
             Open the page
           </button>
         )}
@@ -1053,11 +1444,12 @@ function Inspector({
 }
 
 function Legend() {
-  const items: { k: Parameters<typeof arrowColor>[0]; t: string }[] = [
+  // the glyph takes the colour the design gives it in the legend (report back is the darker grey here)
+  const items: { k: Parameters<typeof arrowColor>[0]; t: string; c?: string }[] = [
     { k: 'assign', t: 'assigned' },
     { k: 'mention', t: '@mention' },
     { k: 'handoff', t: 'hand-off (dashed and moving while under way)' },
-    { k: 'report', t: 'report back (dotted)' },
+    { k: 'report', t: 'report back (dotted)', c: '#5B6B60' },
     { k: 'sent_back', t: 'sent back (red dashed)' },
     { k: 'ask', t: 'asks you' },
     { k: 'auto', t: 'Autopilot decided' },
@@ -1066,14 +1458,14 @@ function Legend() {
     <div className="tl-legend" data-testid="tl-legend">
       {items.map((i) => (
         <span key={i.k}>
-          <b style={{ color: arrowColor(i.k) }}>{arrowGlyph(i.k)}</b> {i.t}
+          <b style={{ color: i.c ?? arrowColor(i.k) }}>{arrowGlyph(i.k)}</b> {i.t}
         </span>
       ))}
+      <span>Hatched amber: waiting for you · hatched grey: waiting for an AI or a runner</span>
       <span>
         <b style={{ color: '#E8821A' }}>●</b> restarted by the system (memory) · <b style={{ color: '#C4432A' }}>RAM</b>{' '}
         stopped by the system
       </span>
-      <span>Hatched amber: waiting for you · hatched grey: waiting for an AI or a runner</span>
     </div>
   );
 }
