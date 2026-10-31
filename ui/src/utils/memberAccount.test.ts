@@ -146,10 +146,11 @@ describe('the AI list', () => {
     // an old CLI login problem keeps the old words
     expect(displayStatus(member({ accountRef: null })).label).toBe('CLI not logged in');
   });
-  it('marks types whose runs do not start yet as Not ready, but never hides a more blocking state', () => {
+  it('shows every local type as it is: all of them run, so none is Not ready', () => {
     const idle = { code: 'idle', label: 'Idle', detail: null } as const;
-    expect(displayStatus(member({ provider: 'antigravity', accountRef: null, status: idle })).label).toBe('Not ready');
-    expect(displayStatus(member({ provider: 'claude-code', accountRef: null, status: idle })).label).toBe('Idle');
+    for (const provider of ['antigravity', 'codex', 'opencode', 'claude-code'] as const) {
+      expect(displayStatus(member({ provider, accountRef: null, status: idle })).label).toBe('Idle');
+    }
     const paused = { code: 'paused', label: 'Paused', detail: null } as const;
     expect(displayStatus(member({ provider: 'codex', accountRef: null, status: paused })).label).toBe('Paused');
   });

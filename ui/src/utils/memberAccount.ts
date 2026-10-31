@@ -15,8 +15,9 @@ export const CLI_OF_PROVIDER: Partial<Record<AiProvider, AccountCli>> = {
 /** Whether a member type can use an AI account at all. */
 export const usesAccounts = (provider: AiProvider): boolean => provider in CLI_OF_PROVIDER;
 
-/** Types whose runs do not start yet; their members are made and given an account but carry a "Not ready" chip. */
-const NOT_READY: AiProvider[] = ['codex', 'opencode', 'antigravity'];
+/** Types whose runs do not start yet; their members are made and given an account but carry a "Not ready" chip.
+ * None today: Claude Code, Codex, opencode and Antigravity all run. */
+const NOT_READY: AiProvider[] = [];
 /** Whether runs of this member type do not start yet. */
 export const runsNotReady = (provider: AiProvider): boolean => NOT_READY.includes(provider);
 

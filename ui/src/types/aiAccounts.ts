@@ -26,7 +26,7 @@ export interface AiAccount {
   /** Subscription, ChatGPT login, Google sign-in, ... */
   method: string | null;
   folder: string;
-  /** Runs of members on this account start today (false for Codex, opencode and Antigravity: "Not ready"). */
+  /** Runs of members on this account start today (false would show "Not ready"; all four CLIs run now). */
   runnable: boolean;
   /** Why an account of this CLI cannot be made here ("Not available on Windows"), else null. */
   unavailable: string | null;

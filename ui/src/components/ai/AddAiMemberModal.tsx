@@ -593,12 +593,6 @@ export function AddAiMemberModal({
                       )}
                     </div>
                   )}
-                  {runsNotReady(provider) && (
-                    <AccountNote tone="warn" title="Runs do not start yet" testId="not-ready-note">
-                      The board cannot start {spec.label} yet. You can add this AI member and choose its account now; it
-                      has a Not ready chip until runs are supported.
-                    </AccountNote>
-                  )}
                 </>
               )}
               {detect && !detect.found && (
@@ -1113,10 +1107,10 @@ export function AddAiMemberModal({
   );
 }
 
-/** The grey line of a local type card; Antigravity says its runs do not start yet and where it is not available. */
+/** The grey line of a local type card; a type that is not available here (Antigravity on Windows) says so. */
 function typeSub(p: AiProvider, unavailable: string | null): string | undefined {
-  if (p !== 'antigravity') return undefined;
-  return `${PROVIDERS[p].sub} · runs do not start yet (temporary)${unavailable ? ' · not available on Windows' : ''}`;
+  if (!unavailable) return undefined;
+  return `${PROVIDERS[p].sub} · not available on Windows`;
 }
 
 function Group({
