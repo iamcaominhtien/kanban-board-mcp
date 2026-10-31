@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run several accounts of the same AI CLI side by side, each in its own profile.
 
-    ai_profile.py <cli> new <name> [--no-keychain]
+    ai_profile.py <cli> new <name>
     ai_profile.py <cli> login <name> [login args]
     ai_profile.py <cli> run <name> [cli args]      run the CLI as that account
     ai_profile.py <cli> status <name>
@@ -11,7 +11,7 @@
 
 <cli> is agy, claude, codex or opencode. How a profile keeps its login apart:
 
-    agy       its own HOME, plus a login keychain inside it (macOS)
+    agy       its own HOME (the login ends up as a file inside it)
     claude    its own CLAUDE_CONFIG_DIR
     codex     its own CODEX_HOME, with credentials forced into a file
     opencode  its own XDG_*_HOME dirs (the free models need no login)
@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import json
 import os
-import platform
 import re
 import shutil
 import subprocess
@@ -114,7 +113,7 @@ class Profile(ABC):
         return self.dir.is_dir()
 
     def create(self, flags: set[str]) -> None:
-        """`new`: make the profile directory (and anything else the CLI needs there). flags are the --options given."""
+        """`new`: make the profile directory (and anything else the CLI needs there). flags: options given to `new` (none yet)."""
         self.dir.mkdir(parents=True)
 
     def prepare(self) -> None:
@@ -141,10 +140,13 @@ class Profile(ABC):
 
 
 class Agy(Profile):
-    """Antigravity CLI. It keeps its Google login in the OS keychain: one entry per user, service `gemini`,
-    account `antigravity`. Two profiles sharing a keychain would overwrite each other, so a profile gets its own HOME
-    (agy keeps its data in ~/.gemini) and, on macOS, its own login keychain inside that HOME. The `security` tool
-    looks for the keychain under $HOME, so with the swapped HOME it finds the profile's keychain and never the real one.
+    """Antigravity CLI. It keeps its data in ~/.gemini and tries to keep its Google login in the OS keychain (on macOS
+    one entry per user: service `gemini`, account `antigravity`). Two profiles sharing that entry would overwrite each
+    other, so a profile gets its own HOME. Under a swapped HOME the macOS `security` tool finds no keychain, and agy
+    falls back to keeping the login in a file inside the profile (.gemini/antigravity-cli/antigravity-oauth-token,
+    mode 0600). That fallback was seen on macOS only.
+
+    Profiles made by an earlier version have their own keychain inside the HOME instead; they keep working (see prepare).
     """
 
     cli = "agy"
@@ -156,7 +158,7 @@ class Agy(Profile):
 
     @property
     def keychain(self) -> Path:
-        """Where `security` looks for the default login keychain under the swapped HOME."""
+        """Keychain of a profile made by an earlier version. New profiles do not have one."""
         return self.home / "Library" / "Keychains" / "login.keychain-db"
 
     def env(self) -> dict[str, str]:
@@ -172,29 +174,15 @@ class Agy(Profile):
         return env
 
     def dropped_env(self) -> tuple[str, ...]:
-        # Without a profile keychain agy should fall back to its own file store, not look for a desktop keyring
-        # over D-Bus (Linux). Experimental: see `new --no-keychain`.
+        # Without a keychain agy should use its file store, not look for a desktop keyring over D-Bus (Linux, untested).
         return () if self.keychain.exists() else ("DBUS_SESSION_BUS_ADDRESS",)
 
-    def security(self, *args: str) -> None:
-        """Run macOS `security` against the profile's keychain; raise if it fails."""
-        if subprocess.call(["security", *args], env=self.build_env()):
-            raise Fail(f"`security {args[0]}` failed for this profile")
-
     def create(self, flags: set[str]) -> None:
-        """Make the HOME and, unless --no-keychain, a keychain with an empty password that never auto-locks."""
-        use_keychain = "--no-keychain" not in flags
-        if use_keychain and platform.system() != "Darwin":
-            raise Fail("agy profiles need the macOS keychain; on other systems try --no-keychain (experimental, untested)")
+        """Make the HOME and link the real .ssh and .config/gh into it."""
+        if os.name == "nt":
+            # The Windows credential store belongs to the Windows user, not to HOME: profiles might share one login.
+            raise Fail("agy profiles are not supported on Windows (the login may not stay in the profile)")
         (self.home / ".config").mkdir(parents=True)
-        if use_keychain:
-            self.keychain.parent.mkdir(parents=True)
-            kc = str(self.keychain)
-            self.security("create-keychain", "-p", "", kc)
-            self.security("set-keychain-settings", kc)  # no arguments = never auto-lock
-            self.security("unlock-keychain", "-p", "", kc)
-            self.security("default-keychain", "-s", kc)  # recorded under the profile's HOME, not the real one
-            self.security("list-keychains", "-s", kc)
         # Tools agy starts (git over ssh, gh) read these under HOME. Link to the real ones, read-only in practice.
         for rel in (".ssh", ".config/gh"):
             source = REAL_HOME / rel
@@ -202,18 +190,17 @@ class Agy(Profile):
                 try:
                     (self.home / rel).symlink_to(source)
                 except OSError:
-                    pass  # e.g. Windows without the right to make symlinks: the tool just will not see it
+                    pass  # the tool just will not see it
 
     def prepare(self) -> None:
-        """Unlock the profile's keychain: it is locked again after a restart or a long idle period."""
+        """For a profile made with a keychain: unlock it, because it is locked again after a restart or a long idle."""
         if self.keychain.exists():
-            result = self.call_quiet(["security", "unlock-keychain", "-p", "", str(self.keychain)])
+            result = subprocess.run(
+                ["security", "unlock-keychain", "-p", "", str(self.keychain)],
+                env=self.build_env(), capture_output=True, text=True, stdin=subprocess.DEVNULL,
+            )
             if result.returncode:
                 raise Fail("cannot unlock the keychain of this profile")
-
-    def call_quiet(self, argv: list[str]):
-        """Run a command in the profile's environment and keep its output."""
-        return subprocess.run(argv, env=self.build_env(), capture_output=True, text=True, stdin=subprocess.DEVNULL)
 
     def login_argv(self, extra: list[str]) -> list[str]:
         """agy has no login subcommand: starting it without a login opens the sign-in itself."""
@@ -336,8 +323,10 @@ def split_flags(args: list[str]) -> tuple[list[str], set[str]]:
 
 
 def cmd_new(cli: str, args: list[str]) -> int:
-    """new <name> [--no-keychain]: create the profile and say what to do next."""
+    """new <name>: create the profile and say what to do next."""
     names, flags = split_flags(args)
+    if flags:
+        raise Fail(f"unknown option: {', '.join(sorted(flags))}")
     profile = PROFILE_CLASSES[cli](names[0] if names else "")
     if profile.exists():
         raise Fail(f"{cli} profile '{profile.name}' already exists")
