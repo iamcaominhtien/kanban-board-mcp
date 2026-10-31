@@ -165,9 +165,13 @@ async def record_activity_actor(request: Request, call_next):
         ai_runs.set_board_url(f"http://127.0.0.1:{server[1]}")
     header = (request.headers.get("x-actor") or "").strip()[:80]
     token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
+    origin_token = svc_activity.set_origin(
+        (request.headers.get("x-origin") or "").strip()
+    )
     try:
         return await call_next(request)
     finally:
+        svc_activity.reset_origin(origin_token)
         svc_activity.reset_actor(token)
 
 

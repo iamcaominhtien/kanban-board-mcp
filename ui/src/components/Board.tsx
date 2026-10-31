@@ -7,6 +7,8 @@ import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
 import { DocsSpace } from './docs/DocsSpace';
+import { AiTeamView } from './aiteam/AiTeamView';
+import { useTeamNow } from '../api/aiTeam';
 import { SchedulesTab } from './schedules/SchedulesTab';
 import { CalendarIcon } from './schedules/schedulesUi';
 import { useScheduleList } from '../api/schedules';
@@ -37,8 +39,11 @@ interface BoardProps {
   onPriorityChange: (p: Priority | 'all') => void;
   projectName: string;
   projectId?: string;
-  viewMode: 'board' | 'list' | 'timeline' | 'docs' | 'schedules';
-  onViewModeChange: (v: 'board' | 'list' | 'timeline' | 'docs' | 'schedules') => void;
+  viewMode: 'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team';
+  onViewModeChange: (v: 'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team') => void;
+  /** AI Team view: open an AI member's page (fix its connection) and a Docs page (review its proposals). */
+  onOpenAiMember?: (memberId: string) => void;
+  onOpenDocsPage?: (pageId: string) => void;
   /** Docs view: a page to open (from a ticket's linked docs or a ?docs= link). */
   docsRequestedPageId?: string | null;
   onDocsRequestHandled?: () => void;
@@ -101,6 +106,8 @@ export function Board({
   docsRequestedPageId,
   onDocsRequestHandled,
   onOpenSettings,
+  onOpenAiMember,
+  onOpenDocsPage,
   members = [],
   activeAssignee = 'all',
   onAssigneeChange,
@@ -140,6 +147,10 @@ export function Board({
   const memberMap = new Map(members.map((m) => [m.id, m]));
   // Schedules that will run in the next 24 hours (badge on the tab)
   const { data: scheduleList } = useScheduleList(projectId ?? '');
+  // The AI Team view exists for a project with AI members; its badge counts what waits for a person
+  const hasAiTeam = members.some((m) => m.kind === 'ai');
+  const teamNow = useTeamNow(hasAiTeam ? (projectId ?? '') : '', 'today');
+  const waitingForYou = teamNow.data?.needsYou.length ?? 0;
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(event.active.id as string);
@@ -203,6 +214,47 @@ export function Board({
               >
                 Docs
               </button>
+              {hasAiTeam && (
+                <button
+                  type="button"
+                  className={`${styles.viewBtn} ${viewMode === 'ai_team' ? styles.viewBtnActive : ''}`}
+                  onClick={() => onViewModeChange('ai_team')}
+                  data-testid="view-ai-team"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#7C5CD6"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+                  </svg>
+                  AI Team
+                  {waitingForYou > 0 && (
+                    <span
+                      data-testid="ai-team-badge"
+                      title="Things waiting for you"
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        color: '#253D2C',
+                        background: '#E8B93A',
+                        padding: '0 5px',
+                        borderRadius: 999,
+                      }}
+                    >
+                      {waitingForYou}
+                    </span>
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 className={`${styles.viewBtn} ${viewMode === 'schedules' ? styles.viewBtnActive : ''}`}
@@ -256,7 +308,7 @@ export function Board({
             ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } }
             : {})}
         >
-          {viewMode !== 'docs' && viewMode !== 'schedules' && (
+          {viewMode !== 'docs' && viewMode !== 'schedules' && viewMode !== 'ai_team' && (
             <FilterBar
               searchQuery={searchQuery}
               onSearchChange={onSearchChange}
@@ -297,6 +349,17 @@ export function Board({
               const t = allTickets.find((x) => x.id === id);
               if (t) onCardClick(t);
             }}
+          />
+        ) : viewMode === 'ai_team' && projectId && !loadState ? (
+          <AiTeamView
+            projectId={projectId}
+            projectName={projectName}
+            onOpenTicket={(id) => {
+              const t = allTickets.find((x) => x.id === id);
+              if (t) onCardClick(t);
+            }}
+            onOpenMember={(id) => onOpenAiMember?.(id)}
+            onOpenDocsPage={(id) => onOpenDocsPage?.(id)}
           />
         ) : viewMode === 'schedules' && projectId && !loadState ? (
           <SchedulesTab projectId={projectId} tickets={allTickets} />

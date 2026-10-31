@@ -20,7 +20,14 @@ from models import AiApproval, AiRun, Ticket
 
 from . import audit, safety
 from .context import STATUS_LABELS, RunContext
-from .permissions import ACTIONS, APPROVAL, BLOCKED, check_status_move, effective
+from .permissions import (
+    ACTIONS,
+    APPROVAL,
+    BLOCKED,
+    check_status_move,
+    effective,
+    full_rights_member,
+)
 from .store import get_profile, get_settings, loads, now_iso
 
 _ctx: ContextVar[RunContext | None] = ContextVar("ai_run_context", default=None)
@@ -28,8 +35,9 @@ _ctx: ContextVar[RunContext | None] = ContextVar("ai_run_context", default=None)
 _approved: ContextVar[str | None] = ContextVar("ai_approved", default=None)
 
 MAX_PENDING_PER_AGENT = 10
-# A tool call that needs approval waits this long for the decision, then the request stays parked (S, run states)
-APPROVAL_WAIT_S = 600
+# A tool call that needs approval waits this long for the decision, then the request stays parked (S, run states).
+# Kept under the 300 s Claude Code allows one MCP tool call, so the AI gets an answer instead of a timeout.
+APPROVAL_WAIT_S = 240
 APPROVAL_POLL_S = 1.0
 MAX_PENDING_PER_PROJECT = 25
 _FIELD_ACTIONS = {"status": "change_status", "assignee": "change_assignee"}
@@ -100,6 +108,12 @@ def leave(tokens: tuple[Token, Token, Token]) -> None:
     _ctx.reset(tokens[0])
     svc_activity.reset_ai(tokens[1])
     svc_activity.reset_actor(tokens[2])
+
+
+def suspend() -> tuple[Token, Token, Token]:
+    """Act as nobody until `leave()` with the returned tokens: for work the board does for a person (a decision the
+    run's delegate made) that must not carry the run's attribution into the tasks it starts."""
+    return (_ctx.set(None), svc_activity.set_ai(None), svc_activity.set_actor(None))
 
 
 def _request_token() -> str | None:
@@ -189,6 +203,8 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
         # commenting on a page is a comment (a reviewer may), not an edit of it
         if action in ("comment", "reply", "edit_comment", "delete_comment"):
             return ["comment"]
+        if action in ("delete", "diagram_delete"):
+            return ["delete_docs"]
         return ["edit_docs"]
     if tool == "ticket_branches":
         return ["create_branches"]
@@ -255,7 +271,38 @@ def _describe(tool: str, action: str, params: dict) -> str:
         return f"Create ticket “{params.get('title', '')}”"
     if tool == "manage_ticket" and action == "delete":
         return f"Delete {target}"
-    return f"{tool}.{action} {target}".strip()
+    if tool == "docs_write":
+        return docs_summary(action, params)
+    return f"{tool.replace('_', ' ')}: {action.replace('_', ' ')} {target}".strip()
+
+
+_DOCS_VERBS = {
+    "create": "Create the page",
+    "update": "Edit the page",
+    "move": "Move the page",
+    "duplicate": "Copy the page",
+    "delete": "Delete the page",
+    "restore": "Restore the page",
+    "restore_version": "Restore an older version of the page",
+    "import": "Import pages",
+    "comment": "Comment on the page",
+    "reply": "Reply to a comment on the page",
+    "edit_comment": "Edit a comment on the page",
+    "delete_comment": "Delete a comment on the page",
+    "resolve": "Resolve a comment thread on the page",
+    "reopen": "Reopen a comment thread on the page",
+}
+
+
+def docs_summary(action: str, params: dict, page_title: str | None = None) -> str:
+    """A Docs change in words: "Edit the page “UX design”" instead of `docs_write.update <page id>`."""
+    title = (page_title or params.get("title") or "").strip()
+    verb = _DOCS_VERBS.get(action)
+    if verb is None:
+        return f"Change Docs: {action.replace('_', ' ')}"
+    if action == "import":
+        return verb
+    return f"{verb} “{title}”" if title else verb
 
 
 async def _in_scope(session, ctx: RunContext, profile, ticket_id: str | None) -> bool:
@@ -353,14 +400,24 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
         # Status ceiling: a hard rule, also for approved actions
         new_status = params.get("status") if tool == "manage_ticket" else None
         if new_status and ticket is not None and new_status != ticket.status:
-            why = check_status_move(profile, ticket.status, new_status)
+            why = check_status_move(
+                profile,
+                ticket.status,
+                new_status,
+                full=full_rights_member(settings) == profile.id,
+            )
             if why:
                 await _post_move_blocked(ctx, ticket, new_status, profile.ceiling)
                 raise await _refuse(
                     ctx, "change_status", target, detail, why, code="status_ceiling"
                 )
         if tool == "manage_ticket" and action == "create" and params.get("status"):
-            why = check_status_move(profile, "backlog", params["status"])
+            why = check_status_move(
+                profile,
+                "backlog",
+                params["status"],
+                full=full_rights_member(settings) == profile.id,
+            )
             if why:
                 raise await _refuse(
                     ctx, "change_status", target, detail, why, code="status_ceiling"

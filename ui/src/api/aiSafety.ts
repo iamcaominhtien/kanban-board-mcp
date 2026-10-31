@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { client } from './client';
 import { aiKeys } from './ai';
-import type { AiApproval, AiAuditEntry, AiSettings, PermissionMode } from '../types/ai';
+import type { AiApproval, AiAuditEntry, AiAutopilot, AiSettings, PermissionMode } from '../types/ai';
 
 /** Safety and cost endpoints (design/screens/ai-safety-cost.md): hooks, plain calls and their types. */
 
@@ -285,6 +285,16 @@ export interface AuditFilters {
 // Hooks
 // ---------------------------------------------------------------------------
 
+/** Autopilot for the project: who decides for the owner, with which limits. */
+export function useAutopilot(projectId: string) {
+  return useQuery({
+    queryKey: ['ai', 'autopilot', projectId],
+    queryFn: async () => (await client.get<AiAutopilot>(`/projects/${projectId}/ai/autopilot`)).data,
+    enabled: !!projectId,
+    refetchInterval: 20000,
+  });
+}
+
 /** The person this browser acts as and their role. */
 export function useAiMe(projectId: string) {
   return useQuery({
@@ -349,6 +359,27 @@ export function useTicketGrants(ticketId: string | undefined) {
         >(`/tickets/${ticketId}/ai/grants`)
       ).data,
     enabled: !!ticketId,
+  });
+}
+
+/** What the project's AIs may do without asking, from "Always allow" decisions (revocable). */
+export function useAlwaysGrants(projectId: string) {
+  return useQuery({
+    queryKey: ['ai', 'grants', 'always', projectId],
+    queryFn: async () =>
+      (
+        await client.get<
+          {
+            id: string;
+            memberId: string;
+            memberName: string | null;
+            action: string;
+            createdBy: string;
+            createdAt: string;
+          }[]
+        >(`/projects/${projectId}/ai/grants`)
+      ).data,
+    enabled: !!projectId,
   });
 }
 
@@ -490,8 +521,10 @@ export function auditExportQuery(f: AuditFilters, format: 'csv' | 'json'): strin
 // ---------------------------------------------------------------------------
 
 export const safetyApi = {
-  approve: async (id: string, body: { note?: string; remember?: boolean; acceptUpdated?: boolean } = {}) =>
-    (await client.post<AiApproval & { error?: string }>(`/ai/approvals/${id}/approve`, body)).data,
+  approve: async (
+    id: string,
+    body: { note?: string; remember?: boolean; always?: boolean; acceptUpdated?: boolean } = {},
+  ) => (await client.post<AiApproval & { error?: string }>(`/ai/approvals/${id}/approve`, body)).data,
   deny: async (id: string, note?: string, stopRun = false) =>
     (await client.post<AiApproval>(`/ai/approvals/${id}/deny`, { note, stopRun })).data,
   bulk: async (ids: string[], approve: boolean, note?: string) =>
@@ -503,6 +536,8 @@ export const safetyApi = {
       })
     ).data,
   revokeGrant: async (id: string) => (await client.delete(`/ai/grants/${id}`)).data,
+  saveAutopilot: async (projectId: string, body: Record<string, unknown>) =>
+    (await client.put<AiAutopilot>(`/projects/${projectId}/ai/autopilot`, body)).data,
   updateSettings: async (projectId: string, body: Record<string, unknown>) =>
     (await client.patch<AiSettings>(`/projects/${projectId}/ai/settings`, body)).data,
   notifications: async (projectId: string, after?: string) =>

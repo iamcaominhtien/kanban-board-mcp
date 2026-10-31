@@ -39,7 +39,16 @@ from models import (
     TicketUpdate,
 )
 
-from . import approvals, audit, budget, cli, config_service, guard, safety
+from . import (
+    approvals,
+    audit,
+    autopilot,
+    budget,
+    cli,
+    config_service,
+    guard,
+    safety,
+)
 from .mcp_sources import folder_servers
 from .context import (
     STATUS_LABELS,
@@ -171,6 +180,7 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "context_used": run.context_used,
         "context_window": run.context_window,
         "tokens_out": run.tokens_out,
+        "tokens_cached": run.tokens_cached,
         "cost_usd": run.cost_usd,
         "metered": run.metered,
         "status_before": run.status_before,
@@ -429,6 +439,7 @@ async def create_run(
         number=(last.number + 1) if last else 1,
         mode=mode,
         trigger=trigger,
+        started_via=svc_activity.current_origin(),
         started_by=started_by,
         instruction=instruction or "",
         source_comment_id=source_comment_id,
@@ -664,6 +675,7 @@ async def tick() -> None:
     """Start what can start; time out what has waited too long."""
     async with RT.tick_lock:
         await _housekeeping()
+        await autopilot.tick()
         async with database.async_session() as session:
             await _expire_rate_limits(session)
             # Answers that never came: release the hold after 24 h (Pending and the question stay open)
@@ -1639,6 +1651,10 @@ async def _execute_claude_held(
                 "mcp__kanban__docs_read",
                 "mcp__kanban__get_projects",
             ]
+            if run.trigger == autopilot.TRIGGER:
+                allowed.append(
+                    "mcp__kanban__ai_run"
+                )  # decide / answer, checked by the board
             # the member's other MCP servers answer too (a question is read-only on the board and on the files)
             allowed += [
                 f"mcp__{server}" for server in mcp["mcpServers"] if server != "kanban"
@@ -1859,6 +1875,7 @@ async def _execute_claude_held(
         usage = {
             "tokens_in": result["tokens_in"],
             "tokens_out": result["tokens_out"],
+            "tokens_cached": result.get("tokens_cached"),
             "cost_usd": result["cost_usd"],
         }
     async with database.async_session() as session:
@@ -1871,6 +1888,8 @@ async def _execute_claude_held(
         if usage:
             run.tokens_in += usage["tokens_in"]
             run.tokens_out += usage["tokens_out"]
+            if usage["tokens_cached"] is not None:
+                run.tokens_cached = (run.tokens_cached or 0) + usage["tokens_cached"]
             run.cost_usd += usage["cost_usd"]
         run.exit_code = code
         session.add(run)
@@ -2033,11 +2052,20 @@ async def _finish(run_id: str, final_text: str) -> None:
         mode, ticket_id, trigger = run.mode, run.ticket_id, run.trigger
         usage = _usage_line(run, profile)
     if mode == "ask":
-        reply_id = await post_ai_comment(
-            ticket_id,
-            name,
-            redact(final_text.strip() or "(no answer)") + usage,
-            {**meta, "kind": "answer", "question_comment_id": run.source_comment_id},
+        # Autopilot's delegate decides requests; what it decided is in the audit log and on each ticket, not here
+        reply_id = (
+            None
+            if trigger == "autopilot"
+            else await post_ai_comment(
+                ticket_id,
+                name,
+                redact(final_text.strip() or "(no answer)") + usage,
+                {
+                    **meta,
+                    "kind": "answer",
+                    "question_comment_id": run.source_comment_id,
+                },
+            )
         )
         if run.replaces_comment_id:
             # “Edit and re-run → Replace it”: the old answer goes (it can be restored from the comment's Undo)
@@ -2706,7 +2734,7 @@ async def start_now(run_id: str, *, by: str) -> AiRun:
             return run
 
 
-async def answer(run_id: str, *, by: str, text: str) -> AiRun:
+async def answer(run_id: str, *, by: str, text: str, via: str | None = None) -> AiRun:
     """Answer the AI's question from the board: the answer is posted as a comment, Pending clears, the run resumes
     in the same CLI session."""
     text = (text or "").strip()
@@ -2754,6 +2782,7 @@ async def answer(run_id: str, *, by: str, text: str) -> AiRun:
         run = await session.get(AiRun, run_id)
         q["answered_at"] = now_iso()
         q["answered_by"] = by
+        q["answered_via"] = via or svc_activity.current_origin()
         run.question = json.dumps(q)
         run.answer = text
         member, profile = await get_profile(session, run.member_id)

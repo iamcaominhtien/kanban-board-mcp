@@ -11,6 +11,7 @@ from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
+import services.activity as svc_activity
 from models import AiAudit, AiProjectSettings
 
 from .secrets import redact_obj
@@ -64,6 +65,9 @@ async def record(
     detail: dict | None = None,
 ) -> AiAudit:
     """Append an entry in its own session, so it is kept even when the action itself fails."""
+    detail = dict(detail or {})
+    if (via := svc_activity.current_origin()) and "via" not in detail:
+        detail["via"] = via
     async with _lock():
         async with database.async_session() as session:
             last = (
@@ -81,7 +85,7 @@ async def record(
                 action=action,
                 target=target,
                 result=result,
-                detail=json.dumps(redact_obj(detail or {})),
+                detail=json.dumps(redact_obj(detail)),
                 created_at=datetime.now(UTC).isoformat(),
                 prev_hash=last.hash if last else "",
             )

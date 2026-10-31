@@ -22,11 +22,15 @@ from models import AiMember, AiRun, Member, Project, Ticket, TicketRead, TicketU
 from services.ai import approvals as svc_approvals
 from services.ai import audit as svc_audit
 from services.ai import members as svc_members
-from services.ai import autotrip, budget, safety
+from services.ai import autopilot, autotrip, budget, safety
 from services.ai import usage as svc_usage
 from services.ai import mentions as svc_mentions
 from services.ai import permissions as perms
 from services.ai import runs as svc_runs
+from services.ai import flow_view as svc_flow
+from services.ai import health as svc_health
+from services.ai import team as svc_team
+from services.ai import touches as svc_touches
 from services.ai.providers import (
     PRICES,
     PRICES_UPDATED,
@@ -90,6 +94,7 @@ def _settings_dict(s) -> dict:
         "audit_retention_days": s.audit_retention_days,
         "loop_cooldown_s": s.loop_cooldown_s,
         "no_repeat_chain": s.no_repeat_chain,
+        "docs_edits_ask": s.docs_edits_ask,
         "allowed_domains": loads(s.allowed_domains, []),
         "notify": [{"event": k, **v} for k, v in safety.notify_prefs(s).items()],
         "digest": s.digest,
@@ -688,6 +693,90 @@ async def get_overview(project_id: str, session: Session) -> dict:
     }
 
 
+@router.get("/projects/{project_id}/ai/team/now")
+async def get_team_now(
+    project_id: str,
+    session: Session,
+    range: Literal["today", "7d", "30d"] = "today",
+) -> dict:
+    """The AI Team view, Now tab: a card per AI, what waits for a person, recent hand-offs, totals of the range."""
+    await _project(session, project_id)
+    return await svc_team.now_view(session, project_id, range)
+
+
+@router.get("/projects/{project_id}/ai/team/stepped-in")
+async def get_team_stepped_in(
+    project_id: str,
+    session: Session,
+    range: Literal["today", "7d", "30d"] = "7d",
+    mark: Optional[Literal["by_rule", "needed", "avoidable"]] = None,
+    member_id: Optional[str] = None,
+    person: Optional[str] = None,
+    via: Optional[Literal["mcp"]] = None,
+) -> dict:
+    """The AI Team view, You stepped in tab: every touch by a person, marked by rule, needed or avoidable."""
+    await _project(session, project_id)
+    return await svc_touches.stepped_in(
+        session,
+        project_id,
+        range,
+        mark=mark,
+        member_id=member_id,
+        person=person,
+        via=via,
+    )
+
+
+@router.get("/projects/{project_id}/ai/team/health")
+async def get_team_health(
+    project_id: str,
+    session: Session,
+    range: Literal["today", "7d", "30d"] = "7d",
+) -> dict:
+    """The AI Team view, Health tab: five measures, a row per AI and what to fix, with the evidence."""
+    await _project(session, project_id)
+    return await svc_health.health(session, project_id, range)
+
+
+class DismissBody(BaseModel):
+    """A "What to fix" suggestion to hide."""
+
+    key: str
+
+
+@router.post("/projects/{project_id}/ai/team/health/dismiss")
+async def post_team_health_dismiss(
+    project_id: str, body: DismissBody, session: Session
+) -> dict:
+    """Dismiss a suggestion; it stays hidden. Nothing about the AI team is changed."""
+    await _project(session, project_id)
+    keys = await svc_health.dismiss(session, project_id, body.key, by=_by())
+    return {"dismissed": keys}
+
+
+@router.get("/projects/{project_id}/ai/team/flow")
+async def get_team_flow(
+    project_id: str,
+    session: Session,
+    range: Literal["today", "7d", "30d"] = "7d",
+) -> dict:
+    """The AI Team view, Flow tab: who passed work to whom, by kind, with how long the next AI waited."""
+    await _project(session, project_id)
+    return await svc_flow.team_map(session, project_id, range)
+
+
+@router.get("/projects/{project_id}/ai/team/flow/{ticket_id}")
+async def get_team_flow_ticket(
+    project_id: str, ticket_id: str, session: Session
+) -> dict:
+    """One ticket from the first assignment to now: runs, hand-offs, touches and where the time went."""
+    await _project(session, project_id)
+    out = await svc_flow.ticket_journey(session, project_id, ticket_id)
+    if out is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return out
+
+
 @router.get("/projects/{project_id}/ai/board")
 async def get_board(project_id: str, session: Session) -> dict:
     """Run state per ticket (card footers, column indicators) plus the kill switch state."""
@@ -721,6 +810,7 @@ class SettingsBody(BaseModel):
     audit_retention_days: Optional[int] = None  # 0 keeps entries forever
     loop_cooldown_s: Optional[int] = None
     no_repeat_chain: Optional[bool] = None
+    docs_edits_ask: Optional[bool] = None
     allowed_domains: Optional[list[str]] = None
     notify: Optional[list[dict[str, Any]]] = None
     digest: Optional[str] = None
@@ -884,6 +974,92 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
         await svc_audit.prune()
     await board_events.publish("invalidate")
     return _settings_dict(settings)
+
+
+class AutopilotBody(BaseModel):
+    """Autopilot: the delegate AI that decides requests for the owner (services/ai/autopilot.py)."""
+
+    enabled: Optional[bool] = None
+    delegate_id: Optional[str] = None
+    max_risk: Optional[str] = None
+    approvals: Optional[bool] = None
+    questions: Optional[bool] = None
+    grace_min: Optional[int] = None
+    per_hour_limit: Optional[int] = None
+    full_rights: Optional[bool] = None
+    accept_risks: bool = False
+
+
+@router.get("/projects/{project_id}/ai/autopilot")
+async def get_autopilot(project_id: str, session: Session) -> dict:
+    """The Autopilot configuration and how much of its hourly allowance is used."""
+    await _project(session, project_id)
+    return await autopilot.public(session, await get_settings(session, project_id))
+
+
+@router.put("/projects/{project_id}/ai/autopilot")
+async def put_autopilot(project_id: str, body: AutopilotBody, session: Session) -> dict:
+    """Owners only. Turning it on, giving the delegate full rights or raising the risk to High needs `accept_risks`."""
+    await _project(session, project_id)
+    settings = await get_settings(session, project_id)
+    if await safety.role_name(session, project_id, _by()) != "owner":
+        raise HTTPException(
+            status_code=403, detail="Only the project owner sets up Autopilot."
+        )
+    data = body.model_dump(exclude_unset=True)
+    accepted = data.pop("accept_risks", False)
+    old = autopilot.config(settings)
+    try:
+        new = autopilot.validate(data, old)
+    except ValueError as exc:
+        _err(exc, 422)
+    if new["enabled"] or new["full_rights"]:
+        if not new["delegate_id"]:
+            raise HTTPException(status_code=422, detail="Choose the AI that decides.")
+        try:
+            member, profile = await _ai(session, new["delegate_id"])
+        except HTTPException:
+            member = profile = None
+        if member is None or member.project_id != project_id or member.kind != "ai":
+            raise HTTPException(
+                status_code=422,
+                detail="The delegate must be an AI member of this project.",
+            )
+        if profile.connection == "inbox" or profile.paused:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{member.name} cannot run right now; choose another AI.",
+            )
+    riskier = (
+        (new["enabled"] and not old["enabled"])
+        or (new["full_rights"] and not old["full_rights"])
+        or (new["max_risk"] == "high" and old["max_risk"] != "high")
+    )
+    if riskier and not accepted:
+        raise HTTPException(
+            status_code=422,
+            detail="Confirm that you understand what the delegate AI may decide for you.",
+        )
+    if new["enabled"] and not old["enabled"]:
+        new = autopilot.stamp(new, _by())
+    settings.autopilot = autopilot.dumps(new)
+    session.add(settings)
+    await session.commit()
+    await session.refresh(settings)
+    await svc_audit.record(
+        project_id,
+        "autopilot_changed",
+        "info",
+        member_name=_by(),
+        on_behalf_of=_by(),
+        detail={
+            "changes": {
+                k: [old.get(k), new.get(k)] for k in new if old.get(k) != new.get(k)
+            }
+        },
+    )
+    await board_events.publish("invalidate")
+    return await autopilot.public(session, settings)
 
 
 class PauseAllBody(BaseModel):
@@ -1477,6 +1653,7 @@ class DecideBody(BaseModel):
     note: Optional[str] = None
     stop_run: bool = False
     remember: bool = False
+    always: bool = False
     accept_updated: bool = False
 
 
@@ -1497,6 +1674,7 @@ async def post_approve(approval_id: str, body: DecideBody) -> dict:
             approve=True,
             note=body.note,
             remember=body.remember,
+            always=body.always,
             accept_updated=body.accept_updated,
         )
     except svc_approvals.ApprovalError as exc:

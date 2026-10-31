@@ -43,6 +43,7 @@ const ACTIONS = [
   'kill_switch',
   'resume_all',
   'member_updated',
+  'autopilot_decision',
 ];
 const DATES = [
   ['today', 'Today'],

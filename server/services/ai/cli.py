@@ -696,6 +696,8 @@ def parse_stream_line(line: str, cwd: str) -> dict:
             "tokens_in": int(usage.get("input_tokens") or 0)
             + int(usage.get("cache_creation_input_tokens") or 0)
             + int(usage.get("cache_read_input_tokens") or 0),
+            "tokens_cached": int(usage.get("cache_creation_input_tokens") or 0)
+            + int(usage.get("cache_read_input_tokens") or 0),
             "tokens_out": int(usage.get("output_tokens") or 0),
             "turns": ev.get("num_turns"),
         }

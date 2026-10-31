@@ -73,7 +73,12 @@ const APPROVAL_TOGGLES: { action: string; label: string; on: string; off: string
     on: 'New tickets wait for approval',
     off: 'Skipped — it creates tickets freely',
   },
-  { action: 'edit_docs', label: 'Edit docs', on: 'Doc edits wait for approval', off: 'Skipped — it edits docs freely' },
+  {
+    action: 'edit_docs',
+    label: 'Edit docs',
+    on: 'Doc edits wait for approval',
+    off: 'Skipped — edits are saved as new versions',
+  },
 ];
 
 /**
@@ -140,7 +145,7 @@ export function AddAiMemberModal({
     delete_tickets: false,
     change_assignee: true,
     create_tickets: false,
-    edit_docs: true,
+    edit_docs: false,
   });
   const [created, setCreated] = useState<AiMember | null>(null);
   // The key's prefix is only known here (the server keeps the last 4); it is shown once in the Done step
@@ -306,7 +311,7 @@ export function AddAiMemberModal({
     const overrides: Record<string, string> = {};
     if (approvals.change_assignee === false) overrides.change_assignee = 'allowed';
     if (approvals.create_tickets) overrides.create_tickets = 'approval';
-    if (approvals.edit_docs === false) overrides.edit_docs = 'allowed';
+    if (approvals.edit_docs) overrides.edit_docs = 'approval';
     // Delete is Blocked unless an owner turns it on, and then it needs approval (never Allowed)
     if (approvals.delete_tickets) overrides.delete_tickets = 'approval';
     const template = fixedTemplate ?? (Object.values(overrides).includes('allowed') ? 'custom' : 'developer');
@@ -315,7 +320,7 @@ export function AddAiMemberModal({
     } else if (template === 'custom') {
       // Custom starts wide: put back the approvals that stay on
       if (approvals.change_assignee) overrides.change_assignee = 'approval';
-      if (approvals.edit_docs) overrides.edit_docs = 'approval';
+      if (!approvals.edit_docs) delete overrides.edit_docs;
       if (!approvals.create_tickets) delete overrides.create_tickets;
       if (!approvals.delete_tickets) overrides.delete_tickets = 'blocked';
     }
@@ -503,7 +508,8 @@ export function AddAiMemberModal({
                       <span className="ai-error-text">{folderError}</span>
                     ) : (
                       <span className="ai-hint">
-                        Every run works on this folder with <span className="ai-code">{provider === 'antigravity' ? 'antigravity -p' : 'claude -p'}</span>{' '}
+                        Every run works on this folder with{' '}
+                        <span className="ai-code">{provider === 'antigravity' ? 'antigravity -p' : 'claude -p'}</span>{' '}
                         (headless). The runner can only touch this folder and below.
                       </span>
                     )}

@@ -18,6 +18,27 @@ _ai: ContextVar[dict | None] = ContextVar("activity_ai", default=None)
 _suggested: ContextVar[str | None] = ContextVar("activity_suggested", default=None)
 
 
+# Where the request came from when it is not a person at the board: "mcp" for a tool acting for a person (MCP full
+# control). Recorded with the action, never worked out afterwards (design/screens/ai-team-review.md, E "Touch").
+ORIGINS = ("mcp",)
+_origin: ContextVar[str | None] = ContextVar("activity_origin", default=None)
+
+
+def set_origin(origin: str | None) -> Token:
+    """Mark the current request as coming through `origin`; return a token for `reset_origin`."""
+    return _origin.set(origin if origin in ORIGINS else None)
+
+
+def reset_origin(token: Token) -> None:
+    """Restore the origin that was active before `set_origin`."""
+    _origin.reset(token)
+
+
+def current_origin() -> str | None:
+    """ "mcp" when a tool is acting for the person making the current request, else None."""
+    return _origin.get()
+
+
 def set_suggested(name: str | None) -> Token:
     """Mark the changes of the current task as suggested by the Board AI; return a token for `reset_suggested`."""
     return _suggested.set(name)
@@ -43,7 +64,7 @@ def current_ai() -> dict | None:
     return _ai.get()
 
 
-def set_actor(name: str) -> Token:
+def set_actor(name: str | None) -> Token:
     """Set the actor recorded on activity entries; return a token for `reset_actor`."""
     return _actor.set(name)
 

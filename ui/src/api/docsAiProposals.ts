@@ -48,6 +48,8 @@ export interface DocsAiProposal {
   pending: number;
   expiresInDays: number | null;
   canDecide: boolean;
+  /** A person already let this AI member edit pages without review ("Always allow"). */
+  alwaysAllowed?: boolean;
 }
 
 export const proposalKeys = {
@@ -113,6 +115,11 @@ export function useProposalActions(pageId: string) {
     }),
     acceptAll: useMutation({
       mutationFn: (v: { id: string }) => post(`/docs/ai/proposals/${v.id}/accept-all`),
+      onSuccess: done,
+    }),
+    /** "Always allow": this AI member's edits skip the proposal from now on (revocable under Approvals). */
+    alwaysAllow: useMutation({
+      mutationFn: (v: { id: string }) => post(`/docs/ai/proposals/${v.id}/always-allow`),
       onSuccess: done,
     }),
     rejectAll: useMutation({

@@ -195,23 +195,27 @@ async def remembered(
 ) -> list[AiGrant]:
     """Active remembered approvals covering every one of `actions` on the ticket (empty when one is missing). A
     grant ends when its ticket reaches Done or it is revoked."""
-    if not ticket_id or not actions:
+    if not actions:
         return []
     from models import Ticket
 
-    ticket = await session.get(Ticket, ticket_id)
-    if ticket is None or ticket.status in ("done", "wont_do"):
-        return []
+    ticket = await session.get(Ticket, ticket_id) if ticket_id else None
+    on_ticket = ticket is not None and ticket.status not in ("done", "wont_do")
+    # A grant made with "Always allow" belongs to no ticket and ends only when it is revoked
     rows = (
         await session.exec(
             select(AiGrant).where(
                 AiGrant.kind == "approval",
                 AiGrant.member_id == member_id,
-                AiGrant.ticket_id == ticket_id,
                 col(AiGrant.revoked_at).is_(None),
             )
         )
     ).all()
+    rows = [
+        g
+        for g in rows
+        if g.ticket_id is None or (on_ticket and g.ticket_id == ticket_id)
+    ]
     found = [g for a in actions for g in rows if g.action == a][: len(actions)]
     covered = {g.action for g in found}
     return found if all(a in covered for a in actions) else []

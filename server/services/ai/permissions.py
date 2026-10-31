@@ -31,7 +31,16 @@ ACTIONS: dict[str, tuple[str, str, str]] = {
         "Blocked by default; owners may allow with approval only",
         "high",
     ),
-    "edit_docs": ("Edit docs", "Doc edits wait for approval", "medium"),
+    "edit_docs": (
+        "Edit docs",
+        "Page edits are saved as new versions; a project can ask first",
+        "medium",
+    ),
+    "delete_docs": (
+        "Delete docs",
+        "Moving a page to the trash waits for approval",
+        "medium",
+    ),
     "manage_test_cases": (
         "Manage test cases",
         "Create, edit, link; results from runs",
@@ -55,7 +64,8 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "change_assignee": APPROVAL,
         "create_tickets": ALLOWED,
         "delete_tickets": BLOCKED,
-        "edit_docs": APPROVAL,
+        "edit_docs": ALLOWED,
+        "delete_docs": APPROVAL,
         "manage_test_cases": ALLOWED,
         "create_branches": ALLOWED,
     },
@@ -68,6 +78,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "create_tickets": APPROVAL,
         "delete_tickets": BLOCKED,
         "edit_docs": BLOCKED,
+        "delete_docs": BLOCKED,
         "manage_test_cases": ALLOWED,
         "create_branches": BLOCKED,
     },
@@ -80,6 +91,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "create_tickets": BLOCKED,
         "delete_tickets": BLOCKED,
         "edit_docs": BLOCKED,
+        "delete_docs": BLOCKED,
         "manage_test_cases": BLOCKED,
         "create_branches": BLOCKED,
     },
@@ -93,12 +105,13 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "create_tickets": ALLOWED,
         "delete_tickets": APPROVAL,
         "edit_docs": ALLOWED,
+        "delete_docs": APPROVAL,
         "manage_test_cases": ALLOWED,
         "create_branches": ALLOWED,
     },
 }
 # Hard locks: the least restrictive mode an action can ever have.
-LOCKS = {"delete_tickets": APPROVAL}
+LOCKS = {"delete_tickets": APPROVAL, "delete_docs": APPROVAL}
 # Actions an owner may loosen from Blocked to Needs approval on a stricter template (A1).
 OWNER_ENABLEABLE = ("delete_tickets",)
 SAFE_MODE_ALLOWED = {"read", "comment"}
@@ -106,6 +119,18 @@ SAFE_MODE_ALLOWED = {"read", "comment"}
 STATUS_ORDER = ["backlog", "todo", "in-progress", "review", "testing", "done"]
 CEILINGS = ["none", *STATUS_ORDER]
 DEFAULT_CEILING = "review"
+
+
+def full_rights_member(settings) -> str | None:
+    """The AI member the owner gave full rights through Autopilot (the project's delegate), if any."""
+    raw = getattr(settings, "autopilot", None)
+    try:
+        cfg = json.loads(raw) if raw else {}
+    except ValueError:
+        return None
+    if isinstance(cfg, dict) and cfg.get("enabled") and cfg.get("full_rights"):
+        return cfg.get("delegate_id") or None
+    return None
 
 
 def status_rank(status: str) -> int:
@@ -214,12 +239,20 @@ def effective(member, action: str, settings=None) -> Decision:
     template = member.template if member.template in TEMPLATES else "developer"
     own = overrides_of(member).get(action)
     owner_set = action in owner_enabled_of(member) and own == APPROVAL
-    layers = [
-        {
-            "layer": f"Role template · {template}",
-            "mode": APPROVAL if owner_set else TEMPLATES[template].get(action, BLOCKED),
-        }
-    ]
+    delegate = full_rights_member(settings) if settings is not None else None
+    if delegate and delegate == getattr(member, "id", None):
+        # Autopilot, full rights: the delegate acts as the owner would; only the hard locks and the switches below stay
+        layers = [{"layer": "Autopilot · full rights", "mode": ALLOWED}]
+        own = None
+    else:
+        layers = [
+            {
+                "layer": f"Role template · {template}",
+                "mode": APPROVAL
+                if owner_set
+                else TEMPLATES[template].get(action, BLOCKED),
+            }
+        ]
     if own:
         layers.append({"layer": "Agent matrix", "mode": own})
     if action not in SAFE_MODE_ALLOWED:
@@ -227,6 +260,14 @@ def effective(member, action: str, settings=None) -> Decision:
             layers.append({"layer": "Safe mode", "mode": BLOCKED})
         elif getattr(member, "safe_mode", False):
             layers.append({"layer": "Safe mode (this agent)", "mode": BLOCKED})
+    if (
+        action == "edit_docs"
+        and settings is not None
+        and getattr(settings, "docs_edits_ask", False)
+    ):
+        layers.append(
+            {"layer": "Project setting · ask before Docs edits", "mode": APPROVAL}
+        )
     if settings is not None and settings.paused_all:
         layers.append({"layer": "Pause all AI", "mode": BLOCKED})
     mode = ALLOWED
@@ -282,9 +323,12 @@ def matrix(member, settings=None) -> list[dict]:
     return rows
 
 
-def check_status_move(member, current: str, target: str) -> str | None:
-    """Why the status ceiling forbids moving a ticket from `current` to `target`, or None when it is allowed."""
-    ceiling = member.ceiling or DEFAULT_CEILING
+def check_status_move(
+    member, current: str, target: str, *, full: bool = False
+) -> str | None:
+    """Why the status ceiling forbids moving a ticket from `current` to `target`, or None when it is allowed.
+    With `full` (Autopilot full rights) the ceiling is Done."""
+    ceiling = "done" if full else (member.ceiling or DEFAULT_CEILING)
     limit = ceiling_rank(ceiling)
     if limit < 0:
         return "This AI member may not change ticket status (ceiling: None)."

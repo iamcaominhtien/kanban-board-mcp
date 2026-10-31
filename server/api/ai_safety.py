@@ -166,6 +166,13 @@ async def get_approvals_backlog(project_id: str, session: Session) -> dict:
     return await svc_approvals.backlog(session, project_id)
 
 
+@router.get("/projects/{project_id}/ai/grants")
+async def get_always_grants(project_id: str, session: Session) -> list[dict]:
+    """ "Always allow" decisions of the project: what an AI may do without asking again, revocable."""
+    await _project(session, project_id)
+    return await svc_approvals.always_grants(session, project_id)
+
+
 @router.get("/tickets/{ticket_id}/ai/grants")
 async def get_ticket_grants(ticket_id: str, session: Session) -> list[dict]:
     """“Approve & remember” decisions on a ticket: listed there and revocable until the ticket is Done."""

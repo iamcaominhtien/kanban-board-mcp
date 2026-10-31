@@ -383,3 +383,42 @@ async def test_draft_rows_are_per_person(env):
             await s.exec(select(DocsDraft).where(DocsDraft.page_id == p["id"]))
         ).all()
     assert [d.author for d in drafts] == ["An Nguyen"]
+
+
+async def test_always_allow_lets_the_ai_publish_without_a_proposal_until_revoked(env):
+    c, ctx, pid, m, tid, p = await _setup(env)
+    first = await _ai_update(ctx, p["id"])
+    assert first["published"] is False
+    prop = (await c.get(f"/docs/pages/{p['id']}/ai/proposals", headers=H)).json()[
+        "proposals"
+    ][0]
+    assert prop["always_allowed"] is False
+    r = await c.post(f"/docs/ai/proposals/{prop['id']}/always-allow", headers=H)
+    assert r.status_code == 200 and r.json()["always_allowed"] is True
+    # asking twice keeps one grant
+    await c.post(f"/docs/ai/proposals/{prop['id']}/always-allow", headers=H)
+    [grant] = (await c.get(f"/projects/{pid}/ai/grants")).json()
+    assert grant["member_id"] == m["id"] and grant["action"] == "edit_docs"
+    # the next edit is made directly: no new proposal, the page moves to version 2
+    second = await _ai_update(ctx, p["id"], markdown=TEXT + "\nMore.\n")
+    assert second.get("status") != "waiting"
+    assert (await _published(c, p["id"]))["version"] == 2
+    # revoking brings the review back
+    assert (await c.delete(f"/ai/grants/{grant['id']}")).status_code == 200
+    third = await _ai_update(
+        ctx, p["id"], markdown=TEXT + "\nMore.\nAgain.\n", base_version=2
+    )
+    assert third["published"] is False
+
+
+async def test_a_viewer_cannot_always_allow(env):
+    c, ctx, pid, m, tid, p = await _setup(env)
+    await _ai_update(ctx, p["id"])
+    prop = (await c.get(f"/docs/pages/{p['id']}/ai/proposals", headers=H)).json()[
+        "proposals"
+    ][0]
+    r = await c.post(
+        f"/docs/ai/proposals/{prop['id']}/always-allow", headers={"X-Actor": "Nobody"}
+    )
+    assert r.status_code in (403, 409), r.text
+    assert (await c.get(f"/projects/{pid}/ai/grants")).json() == []
