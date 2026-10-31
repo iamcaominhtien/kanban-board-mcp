@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793439837-b9c3",
+  "canvas_version": "1793440105-0d93",
   "exported": "2026-10-31",
   "files": {
     "AccountMenu.dc.html": {
@@ -68,12 +68,12 @@
       "h": 7910
     },
     "AiResources.dc.html": {
-      "bytes": 134596,
-      "sha256": "ea758a67f82b2fae45de68222345e58d723aed2f5e8e84a6e9395d749fdd5228",
+      "bytes": 136640,
+      "sha256": "d44a525aae5bc009a0e7e972c8bbb2c69cd656f57a751dc8f4ff66dafed32705",
       "title": "AI Team — Resources: what the running AIs use",
       "page": "screens_ai",
       "w": 1480,
-      "h": 8043
+      "h": 8283
     },
     "AiTicketWork.dc.html": {
       "bytes": 280284,
