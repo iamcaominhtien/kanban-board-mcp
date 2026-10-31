@@ -77,6 +77,15 @@ def root() -> Path:
     )
 
 
+def _inside_root(leaf: str) -> Path:
+    """``root()/leaf``, refused unless it stays directly inside the accounts folder (the name comes from a person)."""
+    base = os.path.normpath(str(root()))
+    full = os.path.normpath(os.path.join(base, leaf))
+    if os.path.dirname(full) != base or not full.startswith(base + os.sep):
+        raise AccountError("Choose another name for the account.", "name_invalid")
+    return Path(full)
+
+
 def _slug(name: str) -> str:
     text = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     return text[:40] or "account"
@@ -191,10 +200,10 @@ async def create(
     if not path:
         raise AccountError(f"“{binary}” was not found on this computer.", "cli_missing")
     base = _slug(name)
-    folder, n = root() / base, 1
+    folder, n = _inside_root(base), 1
     while folder.exists():
         n += 1
-        folder = root() / f"{base}-{n}"
+        folder = _inside_root(f"{base}-{n}")
     root().mkdir(parents=True, exist_ok=True)
     try:
         profiles.profile_for(cli_name, folder.name, folder, path).create(set())

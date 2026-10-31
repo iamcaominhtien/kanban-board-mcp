@@ -8,6 +8,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-10-31
+
+AI accounts: several sign-ins of the same AI CLI, shared between AI members. Design: `design/screens/ai-accounts.md`; notes: `docs/specs/ai-accounts.md`.
+
+### Added
+- **AI accounts.** An account is a separate login of one CLI (Claude Code, Codex, opencode or Antigravity) in a folder of its own, so two of them can run at the same time. Members › **AI accounts** lists them with who is signed in (Claude Code reports email and plan), their status and the members using each; the row menu has Check now, Rename, See members using it, Sign out and Remove (which asks what happens to the members on it). An AI member picks an account in the Connect step of **Add AI member**, in its profile and when editing it; “the login already on this computer” stays the default and works as before. Members on one account share its limits, and the picker says so.
+- **Sign in inside the app.** **Add account** and **Sign in again** open a window with the CLI's own login in a real terminal, with a line above it that says what it is waiting for (choose a method, finish in the browser, paste a code), key buttons, **Paste code**, **Open in browser** and **Copy link**. Done is decided by asking the CLI who is signed in, never by reading the screen. Where the terminal cannot start, the window shows the command to run in your own terminal and keeps checking. Desktop app only; the web build shows the list read only.
+- **A signed-out account holds its members together.** One banner names the account, runs wait and start by themselves after **Sign in again**; a run that finds the session over fails with “Account signed out”.
+- **New AI member types:** Codex and opencode (and Antigravity through its `agy` command). They can be made and given an account; their runs do not start yet (shown as *Not ready*).
+- **MCP:** `ai_team` can list accounts (`accounts`) and put a member on one (`assign_account`). There is no way for an AI to sign in, sign out or remove an account.
+
+### Changed
+- The Antigravity type looks for the `agy` command instead of `antigravity`.
+- The developer script `.claude/scripts/ai_profile.py` (several accounts of a CLI from the command line) now shares its code with the server (`server/services/ai/profiles.py`).
+
 ## [3.15.2] - 2026-10-30
 
 Hotfix for changes that did not show on the board until the app was restarted, and for the side panels' width.

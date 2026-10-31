@@ -8,6 +8,7 @@ AI member has a route here; the MCP tools only read and assign.
 import asyncio
 import contextlib
 import json
+import logging
 import sys
 from typing import Annotated, Literal, Optional
 from urllib.parse import urlparse
@@ -32,6 +33,7 @@ from services.ai import cli
 from services.ai import members as svc_members
 from services.ai import signin
 
+logger = logging.getLogger("kanban.ai.accounts")
 router = APIRouter(tags=["ai-accounts"])
 
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -272,7 +274,12 @@ async def post_signin(
             detail={"message": str(exc), "code": "signing_in", "by": exc.by},
         ) from exc
     except signin.PtyUnavailable as exc:
-        return {"mode": "fallback", "reason": str(exc), **_fallback(account)}
+        logger.warning("sign-in terminal unavailable: %s", exc)
+        return {
+            "mode": "fallback",
+            "reason": "The terminal could not start on this computer.",
+            **_fallback(account),
+        }
     except svc_accounts.AccountError as exc:
         _fail(exc)
     return {"mode": "terminal"}
