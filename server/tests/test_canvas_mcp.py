@@ -250,3 +250,66 @@ async def test_an_ai_run_goes_through_the_guard_and_its_own_project(env, tmp_pat
                 await call
     finally:
         guard.leave(tokens)
+
+
+async def test_ai_cannot_read_a_hidden_canvas_page_or_reply_into_another_canvas(
+    env, tmp_path
+):
+    ctx, pid, an, m, tid = await _ctx(env)
+    c = env["c"]
+    made = (
+        await c.post(
+            "/canvases/pages", json={"project_id": pid, "title": "Secret flow"}
+        )
+    ).json()
+    cv, page_id = made["canvas"], made["page"]["id"]
+    other = (
+        await c.post(
+            "/canvases",
+            json={"owner_kind": "ticket", "owner_id": tid, "title": "Open one"},
+        )
+    ).json()
+    thread = (
+        await c.post(f"/canvases/{other['id']}/threads", json={"body": "hello"})
+    ).json()
+    await _people(c, pid)
+    await c.patch(
+        f"/ai/members/{m['id']}",
+        json={"template": "custom", "permissions": {"edit_docs": "allowed"}},
+        headers=OWNER,
+    )
+    tokens = guard.enter(ctx)
+    try:
+        assert {
+            x["id"] for x in await docs_read(action="canvases", project_id=pid)
+        } >= {cv["id"], other["id"]}
+        # a reply into a thread of another canvas is refused
+        with pytest.raises(ValueError, match="another canvas"):
+            await docs_write(
+                action="canvas_comment",
+                canvas_id=cv["id"],
+                thread_id=thread["id"],
+                body="x",
+            )
+    finally:
+        guard.leave(tokens)
+    async with env["maker"]() as s:
+        from models import DocsPage
+
+        row = await s.get(DocsPage, page_id)
+        row.ai_hidden = True
+        s.add(row)
+        await s.commit()
+    tokens = guard.enter(ctx)
+    try:
+        assert cv["id"] not in {
+            x["id"] for x in await docs_read(action="canvases", project_id=pid)
+        }
+        with pytest.raises(ValueError, match="hidden from AI"):
+            await docs_read(action="canvas", canvas_id=cv["id"])
+        with pytest.raises(ValueError, match="hidden from AI"):
+            await docs_write(action="canvas_comment", canvas_id=cv["id"], body="x")
+    finally:
+        guard.leave(tokens)
+    # a person's own agent (no AI run) still reads it
+    assert (await docs_read(action="canvas", canvas_id=cv["id"]))["id"] == cv["id"]

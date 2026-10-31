@@ -5,6 +5,7 @@ from typing import Any, Literal, Optional
 
 from pydantic import field_validator
 from sqlalchemy import Index, text
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -964,6 +965,9 @@ class CanvasVersion(SQLModel, table=True):
     """A frozen copy of a canvas file (made on Done, on accepting a proposal, and every 10 minutes in Docs)."""
 
     __tablename__ = "canvas_version"
+    __table_args__ = (
+        UniqueConstraint("canvas_id", "version", name="uq_canvas_version"),
+    )
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     canvas_id: str = Field(foreign_key="canvas.id", index=True)

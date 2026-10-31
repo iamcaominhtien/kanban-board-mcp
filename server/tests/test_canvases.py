@@ -308,12 +308,9 @@ def test_the_cleaner_removes_scripts_handlers_frames_and_outside_requests():
     ):  # fmt: skip
         assert bad not in low, bad
     # what is local stays
-    assert (
-        'href="local.css"' in clean
-        and 'src="ok.png"' in clean
-        and "<h1>Hello</h1>" in clean.replace(" ", "")
-        or "Hello" in clean
-    )
+    assert 'href="local.css"' in clean
+    assert 'src="ok.png"' in clean
+    assert "Hello</h1>" in clean
     assert "<circle" in clean
     listed = {(b["kind"], b.get("host")) for b in blocked.as_list()}
     assert ("script", None) in listed and ("handler", None) in listed
@@ -1236,3 +1233,149 @@ async def test_boards_are_sections_of_a_canvas_page_and_the_ticket_lists_the_can
         inline["id"],
     }
     assert b["name"] == "Sign in: wrong password"
+
+
+def test_the_cleaner_reads_urls_and_css_the_way_a_browser_does():
+    cases = [
+        "<svg><style><img src=x onerror=alert(1)></style></svg>",  # a style in svg is markup to a browser
+        '<a href="java&#x09;script:alert(1)">x</a>',  # a tab inside the scheme
+        '<img src="/\\evil.example/x.png">',  # a backslash reads as a slash: a host
+        '<div style="background:\\75 rl(https://evil.example/a.png)">x</div>',  # a CSS escape
+        '<style>a{background:image-set("https://evil.example/a.png" 1x)}</style>',
+    ]
+    for html in cases:
+        clean, blocked = canvas_html.clean_html(html)
+        assert (
+            "evil.example" not in clean
+            and "javascript" not in clean.lower().replace("&#", "")
+        ), html
+        assert "<img" not in clean.replace("<img>", "") or "&lt;img" in clean, html
+        assert blocked.total() >= 1 or "&lt;" in clean, html
+    ok, none = canvas_html.clean_html(
+        '<p>ok</p><img src="img/a.png"><svg><style>a{fill:red}</style></svg>'
+    )
+    assert 'src="img/a.png"' in ok and none.total() == 0
+
+
+async def test_a_stale_save_about_a_deleted_frame_is_a_conflict_not_a_dead_end(c, pid):
+    cv = await make(c, pid)
+    b = await html_board(c, cv["id"], "Doomed")
+    cur = (await c.get(f"/canvases/{cv['id']}")).json()
+    board = cur["doc"]["boards"][1]
+    assert (
+        await c.patch(
+            f"/canvases/{cv['id']}", json={"base_rev": cur["rev"], "remove": [b["id"]]}
+        )
+    ).status_code == 200
+    stale = await c.patch(
+        f"/canvases/{cv['id']}",
+        json={"base_rev": cur["rev"], "upsert": {"boards": [{**board, "x": 5}]}},
+    )
+    assert stale.status_code == 409 and stale.json()["detail"]["conflicts"] == [b["id"]]
+
+
+async def test_a_frame_somebody_is_editing_cannot_be_deleted_or_replaced_under_them(
+    c, pid
+):
+    await add_member(c, pid, "An")
+    cv = await make(c, pid)
+    b = await html_board(c, cv["id"], "Held")
+    await c.post(
+        f"/canvases/{cv['id']}/boards/{b['id']}/lock", headers={"x-actor": "An"}
+    )
+    rev = (await c.get(f"/canvases/{cv['id']}")).json()["rev"]
+    gone = await c.patch(
+        f"/canvases/{cv['id']}", json={"base_rev": rev, "remove": [b["id"]]}
+    )
+    assert gone.status_code == 423 and gone.json()["detail"]["holder"] == "An"
+    page = cv["doc"]["pages"][0]["id"]
+    tab = await c.patch(
+        f"/canvases/{cv['id']}", json={"base_rev": rev, "remove": [page]}
+    )
+    assert tab.status_code == 423
+    assert canvas_locks.holder_of(cv["id"], b["id"]).holder == "An"
+
+
+async def test_replacing_content_checks_the_revision_it_started_from_even_for_an_empty_frame(
+    c, pid
+):
+    cv = await make(c, pid)
+    empty = cv["doc"]["boards"][0]
+    first = await c.put(
+        f"/canvases/{cv['id']}/boards/{empty['id']}/content",
+        json={
+            "files": [{"path": "index.html", "text": "<h1>Bob</h1>"}],
+            "base_content_rev": 0,
+        },
+    )
+    assert first.status_code == 200
+    # Ann opened it when it was empty (0), Bob saved meanwhile
+    second = await c.put(
+        f"/canvases/{cv['id']}/boards/{empty['id']}/content",
+        json={
+            "files": [{"path": "index.html", "text": "<h1>Ann</h1>"}],
+            "base_content_rev": 0,
+        },
+    )
+    assert (
+        second.status_code == 409
+        and second.json()["detail"]["code"] == "board_conflict"
+    )
+    rep = await c.post(
+        f"/canvases/{cv['id']}/boards/{empty['id']}/replace",
+        data={"base_content_rev": "0"},
+        files=[("files", ("index.html", b"<h1>Late</h1>", "text/html"))],
+    )
+    assert rep.status_code == 409
+
+
+async def test_two_writes_at_once_never_share_a_revision(c, pid):
+    import asyncio
+
+    cv = await make(c, pid, start="none")
+
+    async def add(i):
+        return await c.post(
+            f"/canvases/{cv['id']}/boards",
+            data={"kind": "html", "name": f"F{i}"},
+            files=[("files", ("index.html", f"<h1>{i}</h1>".encode(), "text/html"))],
+        )
+
+    rs = await asyncio.gather(*[add(i) for i in range(5)])
+    assert all(r.status_code == 201 for r in rs)
+    revs = [r.json()["board"]["content"]["rev"] for r in rs]
+    assert len(set(revs)) == 5, revs
+    doc = (await c.get(f"/canvases/{cv['id']}")).json()["doc"]
+    assert len(doc["boards"]) == 5
+    vs = [v["version"] for v in (await c.get(f"/canvases/{cv['id']}/versions")).json()]
+    assert len(vs) == len(set(vs))
+
+
+async def test_odd_input_is_refused_not_a_crash(c, pid):
+    cv = await make(c, pid)
+    bad = await c.patch(
+        f"/canvases/{cv['id']}",
+        json={
+            "base_rev": cv["rev"],
+            "upsert": {"notes": [{"x": 1, "y": 1, "text": "a", "page": {"x": 1}}]},
+        },
+    )
+    assert bad.status_code == 200  # the page falls back to the first tab
+    r = await c.post(
+        f"/canvases/{cv['id']}/boards",
+        data={"kind": "html"},
+        files=[
+            ("files", ("index.html", b"<h1>x</h1>", "text/html")),
+            ("files", ("a.css", b"a{}", "text/css")),
+            ("files", ("a.css/b.html", b"<p>", "text/html")),
+        ],
+    )
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_file"
+    broken = await c.post(
+        f"/canvases/{cv['id']}/import",
+        files=[("files", ("x.zip", b"PK\x03\x04 not really", "application/zip"))],
+    )
+    assert (
+        broken.status_code == 201
+        and broken.json()["failed"][0]["code"] == "invalid_file"
+    )

@@ -2422,7 +2422,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
           e.target.value = '';
           const id = replaceFor.current;
           if (!id || !f.length) return;
-          void replaceBoard(canvasId, id, f)
+          void replaceBoard(canvasId, id, f, boardById(id)?.content?.rev ?? 0)
             .then(() => reload())
             .catch((err: unknown) => fail('Could not replace the content', err));
         }}

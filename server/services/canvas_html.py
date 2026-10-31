@@ -121,22 +121,55 @@ def _host(url: str) -> str:
 
 def is_local(url: str) -> bool:
     """A reference that stays inside the board: a relative path, a fragment, or a picture/font embedded as data."""
-    u = url.strip()
+    # browsers ignore tabs, newlines and other control characters inside a scheme ("java&#9;script:") and read a
+    # backslash as a slash, so both are looked at the way a browser reads them
+    u = re.sub(r"[\x00-\x20]+", "", url).replace("\\", "/")
     if not u:
         return True
     if u.startswith("#"):
         return True
     if SAFE_DATA.match(u) or SAFE_FONT_DATA.match(u):
         return True
-    if u.startswith("//") or u.startswith("\\\\"):
+    if u.startswith("//"):
         return False
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:", u):
         return False  # http:, https:, javascript:, data:text/html, ftp:, file: ...
     return ".." not in u.replace("\\", "/").split("/")
 
 
+_CSS_ESC = re.compile(r"\\([0-9a-fA-F]{1,6})\s?|\\(.)", re.S)
+_IMAGE_SET = re.compile(r"(?:-webkit-)?image-set\s*\([^;{}]*", re.I)
+
+
+def _css_unescape(css: str) -> str:
+    """Read CSS escapes (``\\75 rl(``) the way a browser does, so the checks below see what it would run."""
+
+    def one(m: re.Match[str]) -> str:
+        if m.group(1):
+            try:
+                return chr(int(m.group(1), 16))
+            except (ValueError, OverflowError):
+                return ""
+        return m.group(2)
+
+    return _CSS_ESC.sub(one, css)
+
+
 def clean_css(css: str, blocked: Blocked) -> str:
-    """Remove ``@import``, outside ``url(...)`` and old IE script hooks from a stylesheet."""
+    """Remove ``@import``, outside ``url(...)``, ``image-set(...)`` and old IE script hooks from a stylesheet."""
+    css = _css_unescape(css)
+
+    def image_set(m: re.Match[str]) -> str:
+        urls = re.findall(r"""["']([^"']+)["']|url\(([^)]*)\)""", m.group(0))
+        flat = [a or b for a, b in urls]
+        if all(is_local(u.strip("\"' ")) for u in flat):
+            return m.group(0)
+        for u in flat:
+            if not is_local(u.strip("\"' ")):
+                blocked.request(u)
+        return "none"
+
+    css = _IMAGE_SET.sub(image_set, css)
 
     def imp(m: re.Match[str]) -> str:
         blocked.request(m.group(0))
@@ -177,6 +210,7 @@ class _Cleaner(HTMLParser):
         self.skip: str | None = None
         self.skip_depth = 0
         self.style: list[str] | None = None
+        self.foreign = 0  # inside <svg> / <math>, where a <style> is parsed as markup, not as plain text
 
     def _attrs(self, tag: str, attrs: list[tuple[str, str | None]]) -> str:
         parts = []
@@ -241,6 +275,8 @@ class _Cleaner(HTMLParser):
                 return
         if tag == "style":
             self.style = []
+        if tag in ("svg", "math"):
+            self.foreign += 1
         self.out.append(f"<{tag}{self._attrs(tag, attrs)}>")
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -264,8 +300,12 @@ class _Cleaner(HTMLParser):
                 if self.skip_depth == 0:
                     self.skip = None
             return
+        if tag in ("svg", "math") and self.foreign:
+            self.foreign -= 1
         if tag == "style" and self.style is not None:
-            self.out.append(clean_css("".join(self.style), self.blocked))
+            text = clean_css("".join(self.style), self.blocked)
+            # in svg a "<" in a style starts markup for the browser: keep it as text
+            self.out.append(text.replace("<", "&lt;") if self.foreign else text)
             self.style = None
         if tag in VOID:
             return

@@ -311,8 +311,10 @@ async def post_replace(
     files: Annotated[list[UploadFile], File()],
     paths: Annotated[Optional[list[str]], Form()] = None,
     entry: Annotated[Optional[str], Form()] = None,
+    base_content_rev: Annotated[Optional[int], Form()] = None,
 ) -> dict[str, Any]:
-    """Replace a frame's content with uploaded files (an HTML file, several files, or a ZIP)."""
+    """Replace a frame's content with uploaded files (an HTML file, several files, or a ZIP). `base_content_rev` is the
+    content revision the person saw (0 for an empty frame); a different one is `409 board_conflict`."""
     data = await _files(files, paths)
     if len(data) == 1:
         ((name, blob),) = data.items()
@@ -321,7 +323,12 @@ async def post_replace(
         elif name.lower().endswith((".html", ".htm")):
             data = {"index.html": blob}
     out = await svc.put_board_content(
-        session, canvas_id, board_id, files=data, entry=entry
+        session,
+        canvas_id,
+        board_id,
+        files=data,
+        entry=entry,
+        base_content_rev=base_content_rev,
     )
     await _changed()
     return out

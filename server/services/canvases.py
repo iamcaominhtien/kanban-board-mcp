@@ -15,7 +15,9 @@ Rules the design (design/screens/canvas.md) asks for, and where they live:
 * Versions are made on Done, on accepting a proposal, and every 10 minutes for a canvas that is a Docs page.
 """
 
+import asyncio
 import difflib
+import functools
 import io
 import json
 import os
@@ -24,6 +26,7 @@ import shutil
 import struct
 import uuid
 import zipfile
+import zlib
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
 from typing import Any
@@ -85,6 +88,21 @@ def _now() -> str:
 
 def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+
+_LOCKS: dict[str, asyncio.Lock] = {}
+
+
+def serial(fn):
+    """Run one write of a canvas at a time (read the file, change it, commit): two writes must never share a revision."""
+
+    @functools.wraps(fn)
+    async def wrapper(session, canvas_id, *args, **kwargs):
+        lock = _LOCKS.setdefault(canvas_id, asyncio.Lock())
+        async with lock:
+            return await fn(session, canvas_id, *args, **kwargs)
+
+    return wrapper
 
 
 def refs_in(markdown: str) -> list[str]:
@@ -250,8 +268,12 @@ def clean_board_layout(
         "w": _num(src.get("w"), base.get("w", 1280), MIN_W, MAX_W),
         "h": _num(src.get("h"), base.get("h", 800), MIN_H, MAX_H),
         "order": int(_num(src.get("order"), base.get("order", 0), -1, 100000)),
-        "page": src.get("page", base.get("page")),
+        "page": _page_ref(src.get("page", base.get("page"))),
     }
+
+
+def _page_ref(value: Any) -> str | None:
+    return value if isinstance(value, str) else None
 
 
 def _clean_note(
@@ -267,7 +289,7 @@ def _clean_note(
         "text": _text(src.get("text", base.get("text", "")), 1000),
         "color": color if color in NOTE_COLORS else "yellow",
         "by": base.get("by") or _initials(actor),
-        "page": src.get("page", base.get("page")),
+        "page": _page_ref(src.get("page", base.get("page"))),
     }
 
 
@@ -278,7 +300,7 @@ def _clean_label(src: dict[str, Any], old: dict[str, Any] | None) -> dict[str, A
         "y": _num(src.get("y"), base.get("y", 0), -100000, 100000),
         "text": _text(src.get("text", base.get("text", "")), 200),
         "size": int(_num(src.get("size"), base.get("size", 20), 10, 96)),
-        "page": src.get("page", base.get("page")),
+        "page": _page_ref(src.get("page", base.get("page"))),
     }
 
 
@@ -288,7 +310,7 @@ def _clean_arrow(src: dict[str, Any], old: dict[str, Any] | None) -> dict[str, A
         "from": _text(src.get("from", base.get("from")), 40),
         "to": _text(src.get("to", base.get("to")), 40),
         "label": _text(src.get("label", base.get("label", "")), 120),
-        "page": src.get("page", base.get("page")),
+        "page": _page_ref(src.get("page", base.get("page"))),
     }
 
 
@@ -343,6 +365,10 @@ async def member_role(session: AsyncSession, c: Canvas) -> str:
     """Like ``role_for`` but raises for viewers."""
     role = await role_for(session, c)
     _need_member(role)
+    if c.page_id:  # a canvas that is a Docs page follows the space's edit policy
+        from services import docs as svc_docs
+
+        await svc_docs.get_page(session, c.page_id, edit=True)
     return role
 
 
@@ -597,6 +623,7 @@ def _conflict(c: Canvas, ids: list[str]) -> DocsError:
     )
 
 
+@serial
 async def save(
     session: AsyncSession,
     canvas_id: str,
@@ -659,6 +686,10 @@ async def save(
                     changed += 1
                 continue
             if key == "boards":
+                if src.get("rev") is not None:
+                    # it was there when the editor loaded it, and somebody deleted it: a conflict, not a refusal
+                    conflicts.append(item_id)
+                    continue
                 raise DocsError(
                     422,
                     "invalid_canvas",
@@ -686,7 +717,26 @@ async def save(
         existing = _find(doc[key], item_id)
         if existing is None:
             continue
+        # a frame (or a page tab holding one) that somebody else is editing is not taken away from under them
+        doomed = (
+            [existing["id"]]
+            if key == "boards"
+            else [b["id"] for b in doc["boards"] if b.get("page") == item_id]
+            if key == "pages"
+            else []
+        )
+        for bid in doomed:
+            held = canvas_locks.holder_of(c.id, bid)
+            if held is not None and held.holder != actor:
+                raise DocsError(
+                    423,
+                    "board_locked",
+                    f"{held.holder} is editing a frame you are removing. Remove it once they save or leave.",
+                    holder=held.holder,
+                    board_id=bid,
+                )
         doc[key].remove(existing)
+        canvas_locks.release_all(c.id, doomed)
         if key == "pages":
             for k in ("boards", "notes", "labels", "arrows"):
                 doc[k] = [i for i in doc[k] if i.get("page") != item_id]
@@ -980,6 +1030,7 @@ async def name_version(
     return _version_out(v)
 
 
+@serial
 async def make_version(
     session: AsyncSession,
     canvas_id: str,
@@ -996,6 +1047,7 @@ async def make_version(
     return _version_out(v)
 
 
+@serial
 async def restore_version(
     session: AsyncSession, canvas_id: str, n: int
 ) -> dict[str, Any]:
@@ -1237,6 +1289,15 @@ def prepare_files(
             ).encode("utf-8")
         else:
             clean[path] = data
+    names = set(clean)
+    for path in names:
+        parent = path.rsplit("/", 1)[0] if "/" in path else ""
+        while parent:
+            if parent in names:
+                raise DocsError(
+                    422, "invalid_file", f"“{parent}” is both a file and a folder."
+                )
+            parent = parent.rsplit("/", 1)[0] if "/" in parent else ""
     total = sum(len(v) for v in clean.values())
     if total > MAX_BOARD_BYTES:
         raise _too_large_board(total)
@@ -1329,6 +1390,7 @@ def _free_spot(
     return float(x), float(y)
 
 
+@serial
 async def add_board(
     session: AsyncSession,
     canvas_id: str,
@@ -1479,6 +1541,7 @@ async def _check_ref(
     return d.label, None
 
 
+@serial
 async def put_board_content(
     session: AsyncSession,
     canvas_id: str,
@@ -1604,6 +1667,7 @@ async def unlock_board(
     }
 
 
+@serial
 async def duplicate_board(
     session: AsyncSession, canvas_id: str, board_id: str
 ) -> dict[str, Any]:
@@ -1829,6 +1893,18 @@ def _unzip(data: bytes) -> dict[str, bytes]:
                 out[safe_path(info.filename)] = z.read(info)
             except DocsError:
                 continue
+            except (
+                RuntimeError,
+                NotImplementedError,
+                zipfile.BadZipFile,
+                zlib.error,
+                OSError,
+            ) as e:
+                raise DocsError(
+                    422,
+                    "invalid_file",
+                    "That ZIP could not be unpacked (it may be encrypted or damaged).",
+                ) from e
     return out
 
 

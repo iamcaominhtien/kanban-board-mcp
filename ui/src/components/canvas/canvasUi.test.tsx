@@ -560,3 +560,87 @@ test('only people who can edit decide a proposal', async () => {
   await screen.findByTestId('canvas-proposal');
   expect(screen.queryByTestId('canvas-proposal-accept-all')).toBeNull();
 });
+
+// ---- what a review found ----
+
+test('a refresh of the plane while the source is open does not drop and take the lock again', async () => {
+  handlers['POST /canvases/cv_12345678/boards/b_aaaaaaaa/lock'] = () => reply({ holder: 'user' });
+  handlers['GET /canvases/cv_12345678/boards/b_aaaaaaaa/source'] = () =>
+    reply({ boardId: 'b_aaaaaaaa', rev: 2, entry: 'index.html', files: [{ path: 'index.html', text: '<h1>x</h1>' }] });
+  const props = {
+    canvasId: 'cv_12345678',
+    canvasTitle: 'Login redesign',
+    onClose: () => undefined,
+    onSaved: () => undefined,
+  };
+  const view = render(wrap(<SourceEditor {...props} board={DOC.boards[0]} />));
+  await screen.findByTestId('canvas-source-text');
+  // somebody moved a note: the poll gives the editor a new plane, so the board object is new (same revision)
+  const fresh = { ...DOC.boards[0], content: { ...DOC.boards[0].content!, files: [...DOC.boards[0].content!.files] } };
+  view.rerender(wrap(<SourceEditor {...props} board={fresh} />));
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 50));
+  });
+  expect(calls.filter((c) => c.method === 'POST' && c.url.endsWith('/lock'))).toHaveLength(1);
+  expect(calls.filter((c) => c.method === 'DELETE')).toHaveLength(0);
+});
+
+test('Ctrl Z does not undo or delete what other people did meanwhile', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  let server = { ...CANVAS, rev: 5 };
+  handlers['GET /canvases/cv_12345678'] = () => reply(server);
+  handlers['PATCH /canvases/cv_12345678'] = () => reply({ rev: 6, version: 3, saved: 1, doc: DOC });
+  render(
+    wrap(
+      <CanvasEditor
+        canvasId="cv_12345678"
+        request={{ ownerKind: 'ticket', ownerId: 'KAN-1' }}
+        me="user"
+        onClose={() => undefined}
+      />,
+    ),
+  );
+  await screen.findByTestId('canvas-editor');
+  await waitFor(() => expect(screen.getAllByTestId('canvas-board')).toHaveLength(2));
+  const plane = screen.getByTestId('canvas-plane');
+  plane.focus();
+  fireEvent.keyDown(plane, { key: 'Tab' });
+  fireEvent.keyDown(plane, { key: 'ArrowRight' });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000);
+  });
+  // another person adds a frame and a note; the next poll brings them in
+  const theirs = {
+    ...DOC,
+    boards: [...DOC.boards, board('b_cccccccc', 'Theirs', 3000)],
+    notes: [
+      {
+        id: 'n_11111111',
+        page: 'p_1',
+        x: 0,
+        y: 0,
+        w: 160,
+        h: 100,
+        text: 'their note',
+        color: 'yellow' as const,
+        by: 'HM',
+        rev: 9,
+      },
+    ],
+  };
+  server = { ...CANVAS, rev: 9, doc: theirs };
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(5000);
+  });
+  await waitFor(() => expect(screen.getAllByTestId('canvas-board')).toHaveLength(3));
+  calls.length = 0;
+  fireEvent.keyDown(plane, { key: 'z', ctrlKey: true });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1500);
+  });
+  // nothing to undo any more, and above all nothing is sent that removes their frame or note
+  const patches = calls.filter((c) => c.method === 'PATCH');
+  expect(patches.every((p) => !(p.body as { remove?: string[] }).remove?.length)).toBe(true);
+  expect(screen.getAllByTestId('canvas-board')).toHaveLength(3);
+  expect(screen.getAllByTestId('canvas-note')).toHaveLength(1);
+});

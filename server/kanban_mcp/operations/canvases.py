@@ -42,10 +42,30 @@ async def _same_project(project_id: str | None) -> None:
         )
 
 
+async def _ai_may_read(session, c) -> bool:
+    """A canvas that is a Docs page hidden from AI (or outside "only picked pages") is not read by any AI run."""
+    from models import DocsPage
+    from services.ai import guard
+    from services.docs_ai import access
+
+    if guard.current() is None or not c.page_id:
+        return True
+    page = await session.get(DocsPage, c.page_id)
+    return page is not None and await access.ai_can_read(session, page)
+
+
 async def list_project_canvases(project_id: ProjectId) -> list[dict]:
     """List a project's canvases: [{id, title, owner_kind, owner_id, page_id, version, rev, boards, updated_by, updated_at, markdown}]."""
+    from models import Canvas
+
+    await _same_project(project_id)
     async with common.async_session() as session:
-        return await svc_canvases.list_for_project(session, project_id)
+        rows = await svc_canvases.list_for_project(session, project_id)
+        out = []
+        for r in rows:
+            if await _ai_may_read(session, await session.get(Canvas, r["id"])):
+                out.append(r)
+        return out
 
 
 async def read_canvas(
@@ -70,6 +90,12 @@ async def read_canvas(
         try:
             out = await svc_canvases.get_canvas(session, canvas_id)
             await _same_project(out["project_id"])
+            if not await _ai_may_read(
+                session, await svc_canvases._canvas(session, canvas_id)
+            ):  # noqa: SLF001
+                raise ValueError(
+                    "That canvas is a page hidden from AI, so it was left alone."
+                )
             doc = out["doc"]
             threads = await canvas_comments.list_threads(session, canvas_id)
             props = await canvas_proposals.list_proposals(session, canvas_id)
@@ -236,7 +262,14 @@ async def comment_on_canvas(
                 if guard.current()
                 else None
             )
+            if not await _ai_may_read(session, c):
+                raise ValueError(
+                    "That canvas is a page hidden from AI, so it was left alone."
+                )
             if thread_id:
+                thread = await canvas_comments.thread_by_id(session, thread_id)
+                if thread["canvas_id"] != canvas_id:
+                    raise ValueError("That thread belongs to another canvas.")
                 return await canvas_comments.reply(session, thread_id, body, ai=ai)
             return await canvas_comments.add_thread(
                 session,
@@ -289,6 +322,10 @@ async def propose_canvas_change(
         try:
             c = await svc_canvases._canvas(session, canvas_id)  # noqa: SLF001
             await _same_project(c.project_id)
+            if not await _ai_may_read(session, c):
+                raise ValueError(
+                    "That canvas is a page hidden from AI, so it was left alone."
+                )
             ctx = guard.current()
             out = await canvas_proposals.create(
                 session,

@@ -459,8 +459,9 @@ export async function importFiles(id: string, files: File[], page?: string) {
   ).data;
 }
 /** Replace the content of a board with uploaded files. */
-export async function replaceBoard(id: string, boardId: string, files: File[]) {
+export async function replaceBoard(id: string, boardId: string, files: File[], baseContentRev = 0) {
   const f = new FormData();
+  f.append('base_content_rev', String(baseContentRev));
   for (const file of files) f.append('files', file, file.name);
   return (await client.post<{ board: CanvasBoard; rev: number }>(`/canvases/${id}/boards/${boardId}/replace`, f)).data;
 }

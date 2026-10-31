@@ -62,6 +62,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_canvas_version_canvas_id", "canvas_version", ["canvas_id"])
+    op.create_index(
+        "uq_canvas_version", "canvas_version", ["canvas_id", "version"], unique=True
+    )
     op.create_table(
         "canvas_thread",
         sa.Column("id", _S(), nullable=False),

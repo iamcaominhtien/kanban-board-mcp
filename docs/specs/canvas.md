@@ -206,6 +206,15 @@ one frame at a time.
 * AI proposals for picture, Sketch and Diagram frames (they have their own editors).
 * A frame's own comments are kept when the frame is deleted but are only shown in the Comments tab.
 
+## Known limits (found in review, left as they are)
+
+* A delete carries no revision: someone who removes a note or frame they last saw removes it even if another person edited it
+  since. (A stale *move* of a frame that was deleted is a conflict; a frame or page tab somebody is editing cannot be removed:
+  `423`.)
+* Accepting a proposal does not run the Docs AI `forbid_ai` / audit-entry path; it needs a person with the member role (and the
+  Docs edit policy for a canvas page), and the version records who accepted.
+* Writes of one canvas are serialised in this process (`canvases.serial`); a second server process would need a database lock.
+
 ## Tests
 
 * `server/tests/test_canvases.py`: create, read, files in the uploads folder, HTML folder frames, placement, limits and their

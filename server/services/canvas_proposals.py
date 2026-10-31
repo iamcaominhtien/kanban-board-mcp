@@ -20,6 +20,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import database
 from models import CanvasProposal
 from services import activity, canvas_locks, canvases
+from services.ai.assist import settings as assist
 from services.docs_ai import engine, jobs, reader
 from services.docs_ai.errors import DocsAiError
 from services.docs_text import DocsError
@@ -229,7 +230,7 @@ async def view(
             item["before"] = [{"path": k, "text": v} for k, v in before.items()]
             item["after"] = [{"path": k, "text": v} for k, v in after.items()]
             item["entry_url_before"] = (
-                f"/canvases/{c.id}/boards/{ch['board_id']}/r{ch['base_rev']}/{(board.get('content') or {}).get('entry', 'index.html')}"
+                f"/canvases/{c.id}/boards/{ch['board_id']}/r/{ch['base_rev']}/{(board.get('content') or {}).get('entry', 'index.html')}"
                 if ch["base_rev"] is not None
                 else None
             )
@@ -286,6 +287,7 @@ async def read_file(
     )
 
 
+@canvases.serial
 async def decide(
     session: AsyncSession,
     canvas_id: str,
@@ -421,6 +423,11 @@ def parse_reply(text: str) -> tuple[dict[str, dict[str, str]], str]:
     return files, (m.group(1).strip() if m else "")
 
 
+def _label(text: str) -> str:
+    """A name from a page's title made safe to sit in a fence label: letters, digits and a few marks only."""
+    return re.sub(r"[^\w .:()\-]", " ", text or "")[:80].strip() or "untitled"
+
+
 def build_prompt(
     canvas_title: str,
     boards: list[dict[str, Any]],
@@ -443,7 +450,7 @@ def build_prompt(
     if extras:
         parts.append(engine.fenced("notes and comments on the canvas", extras))
     parts.append("The person asks:\n" + engine.fenced("request", request))
-    return f"Canvas “{canvas_title}”.\n\n" + "\n\n".join(parts)
+    return f"Canvas {_label(canvas_title)}.\n\n" + "\n\n".join(parts)
 
 
 @jobs.handler("canvas")
@@ -489,7 +496,11 @@ async def _propose(job: Any) -> dict[str, Any]:
     await jobs.add_step(
         job.id, f"Reading {len(boards)} frame{'s' if len(boards) != 1 else ''}"
     )
-    who, system = await reader.start_system(job.project_id, RULES)
+    who = await engine.resolve(
+        job.project_id, job.member_id
+    )  # the member that was asked, not the default
+    async with database.async_session() as sess:
+        system = engine.system_prompt(who, await assist.get(sess), RULES)
     out = await engine.call(
         job.project_id,
         system=system,

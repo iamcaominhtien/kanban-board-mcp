@@ -24,17 +24,17 @@ const SAVE_DELAY = 700;
 const POLL_MS = 4000;
 const draftKey = (id: string) => `kanban-canvas-draft:${id}`;
 
-function readDraft(id: string): { baseRev: number; doc: CanvasDoc } | null {
+function readDraft(id: string): { baseRev: number; doc: CanvasDoc; base?: CanvasDoc } | null {
   try {
     const raw = localStorage.getItem(draftKey(id));
-    return raw ? (JSON.parse(raw) as { baseRev: number; doc: CanvasDoc }) : null;
+    return raw ? (JSON.parse(raw) as { baseRev: number; doc: CanvasDoc; base?: CanvasDoc }) : null;
   } catch {
     return null;
   }
 }
-function writeDraft(id: string, baseRev: number, doc: CanvasDoc) {
+function writeDraft(id: string, baseRev: number, doc: CanvasDoc, base?: CanvasDoc) {
   try {
-    localStorage.setItem(draftKey(id), JSON.stringify({ baseRev, doc, at: Date.now() }));
+    localStorage.setItem(draftKey(id), JSON.stringify({ baseRev, doc, base, at: Date.now() }));
   } catch {
     /* storage unavailable or full: the draft is a convenience */
   }
@@ -101,6 +101,25 @@ export function useCanvasEditor(canvasId: string) {
           apply(draft.doc);
           setDraftKept(true);
           setTick((t) => t + 1);
+        } else if (draft?.base && draft.baseRev !== c.rev) {
+          // somebody saved while this person was offline: bring their changes back item by item, each with the
+          // revision they started from, so the server reports only the items both of them changed
+          const ch = layoutChanges(draft.base, draft.doc);
+          const merged = cloneDoc(c.doc);
+          for (const [list, items] of Object.entries(ch.upsert)) {
+            const arr = merged[list as 'notes'] as unknown as { id: string }[];
+            for (const item of items) {
+              const at = arr.findIndex((x) => x.id === item.id);
+              if (at >= 0) arr[at] = item;
+              else if (list !== 'boards') arr.push(item);
+            }
+          }
+          for (const id of ch.remove)
+            for (const list of ['pages', 'boards', 'notes', 'arrows', 'labels'] as const)
+              merged[list] = (merged[list] as unknown as { id: string }[]).filter((x) => x.id !== id) as never;
+          apply(merged);
+          setDraftKept(true);
+          setTick((t) => t + 1);
         } else {
           apply(cloneDoc(c.doc));
         }
@@ -136,6 +155,10 @@ export function useCanvasEditor(canvasId: string) {
           remove: ch.remove,
           force,
         });
+        if (out.rev > revRef.current + 1) {
+          undoStack.current = [];
+          redoStack.current = [];
+        }
         revRef.current = out.rev;
         baseRef.current = cloneDoc(out.doc);
         const merged = mergeAfterSave(out.doc, sent, docRef.current ?? sent);
@@ -162,7 +185,7 @@ export function useCanvasEditor(canvasId: string) {
           setSave(f.code === 'offline' ? 'offline' : 'error');
           setFailure(f.message);
         }
-        writeDraft(canvasId, revRef.current, docRef.current ?? sent);
+        writeDraft(canvasId, revRef.current, docRef.current ?? sent, baseRef.current ?? undefined);
         setDraftKept(true);
       } finally {
         inflight.current = false;
@@ -220,6 +243,9 @@ export function useCanvasEditor(canvasId: string) {
           baseRef.current = cloneDoc(c.doc);
           apply(cloneDoc(c.doc));
           canvasRef.current = c;
+          // an undo would put back a plane that does not hold what the others did
+          undoStack.current = [];
+          redoStack.current = [];
         }
       } catch {
         /* the next tick tries again */
@@ -269,6 +295,8 @@ export function useCanvasEditor(canvasId: string) {
     const working = docRef.current;
     const base = baseRef.current;
     const dirty = working && base && !layoutChanges(base, working).empty;
+    undoStack.current = [];
+    redoStack.current = [];
     revRef.current = c.rev;
     canvasRef.current = c;
     setCanvas(c);

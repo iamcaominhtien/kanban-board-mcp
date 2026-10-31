@@ -134,7 +134,9 @@ export function SourceEditor({
         void unlockBoard(canvasId, board.id).catch(() => undefined);
       }
     };
-  }, [canvasId, board.id, board.content?.files]);
+    // the lock and the source are taken once per board and revision, not on every refresh of the plane
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasId, board.id]);
 
   // heartbeat while the person is here; stop when they have been idle, so the lock can end
   useEffect(() => {
