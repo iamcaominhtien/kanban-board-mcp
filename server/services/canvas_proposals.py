@@ -66,7 +66,9 @@ def _read_current(canvas_id: str, board: dict[str, Any]) -> dict[str, str]:
     for f in content["files"]:
         if PurePosixPath(f["path"]).suffix.lower() in TEXT_EXT:
             try:
-                out[f["path"]] = (root / f["path"]).read_text("utf-8", errors="replace")
+                out[f["path"]] = canvases.file_in(root, f["path"]).read_text(
+                    "utf-8", errors="replace"
+                )
             except OSError:
                 continue
     return out
@@ -117,8 +119,8 @@ async def create(
                     f"{board['name']} is a {board['kind']} frame. Proposals change HTML frames only.",
                 )
             current = {
-                p: (
-                    canvases.board_dir(c.id, board["id"], board["content"]["rev"]) / p
+                p: canvases.file_in(
+                    canvases.board_dir(c.id, board["id"], board["content"]["rev"]), p
                 ).read_bytes()
                 for p in [
                     f["path"] for f in (board.get("content") or {}).get("files", [])
@@ -144,7 +146,7 @@ async def create(
             if lines == 0 and set(clean) == set(current):
                 continue  # nothing to propose for this frame
             for p, data in clean.items():
-                target = root / board["id"] / p
+                target = canvases.file_in(root, f"{board['id']}/{p}")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             stored.append(
@@ -222,7 +224,10 @@ async def view(
             before = _read_current(c.id, board)
             after = {
                 f["path"]: _file_text(
-                    canvases.proposal_dir(c.id, p.id) / ch["board_id"] / f["path"]
+                    canvases.file_in(
+                        canvases.proposal_dir(c.id, p.id),
+                        f"{ch['board_id']}/{f['path']}",
+                    )
                 )
                 for f in ch["files"]
                 if PurePosixPath(f["path"]).suffix.lower() in TEXT_EXT
@@ -272,14 +277,10 @@ async def read_file(
 ) -> tuple[bytes, str]:
     """A file of a proposal (shown in the "After" preview)."""
     await _get(session, canvas_id, proposal_id)
-    root = canvases.proposal_dir(canvas_id, proposal_id) / board_id
-    target = (root / canvases.safe_path(path)).resolve()
-    try:
-        target.relative_to(root.resolve())
-    except ValueError as e:
-        raise DocsError(
-            404, "file_not_found", "That file is not in the proposal."
-        ) from e
+    target = canvases.file_in(
+        canvases.proposal_dir(canvas_id, proposal_id),
+        f"{board_id}/{canvases.safe_path(path)}",
+    )
     if not target.is_file():
         raise DocsError(404, "file_not_found", "That file is not in the proposal.")
     return target.read_bytes(), canvases.MEDIA.get(
@@ -353,8 +354,11 @@ async def decide(
     for bid in to_accept:
         board = canvases._find(doc["boards"], bid)  # noqa: SLF001
         ch = next(i for i in items if i["board_id"] == bid)
-        root = canvases.proposal_dir(c.id, p.id) / bid
-        files = {f["path"]: (root / f["path"]).read_bytes() for f in ch["files"]}
+        root = canvases.file_in(canvases.proposal_dir(c.id, p.id), bid)
+        files = {
+            f["path"]: canvases.file_in(root, f["path"]).read_bytes()
+            for f in ch["files"]
+        }
         clean, info = canvases.prepare_files(files, ch["entry"])
         canvases._check_canvas_bytes(doc, bid, info["bytes"])  # noqa: SLF001
         info["rev"] = new_rev

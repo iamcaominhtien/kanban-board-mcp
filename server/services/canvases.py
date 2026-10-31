@@ -28,7 +28,7 @@ import uuid
 import zipfile
 import zlib
 from datetime import UTC, datetime
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from sqlmodel import select
@@ -129,6 +129,24 @@ _ID_FORMS = {
 }
 
 
+def _join(root: Any, *parts: str) -> Any:
+    """``root`` plus ``parts``, kept inside ``root``: normalised, and refused if it would leave it.
+
+    Raises:
+        DocsError: 404 for a path that leaves ``root``.
+    """
+    base = os.path.normpath(os.fspath(root))
+    full = os.path.normpath(os.path.join(base, *parts))
+    if full != base and not full.startswith(base + os.sep):
+        raise DocsError(404, "file_not_found", "That file is not in the canvas.")
+    return Path(full)
+
+
+def file_in(root: Any, rel: str) -> Any:
+    """A file named by a path from an upload or the canvas file, inside ``root`` (see ``safe_path``)."""
+    return _join(root, safe_path(rel))
+
+
 def _id_part(kind: str, value: str) -> str:
     """An id that is about to become a folder name, checked against the shape the server makes (nothing else, so no
     ``..`` or separator can reach the file system).
@@ -143,7 +161,7 @@ def _id_part(kind: str, value: str) -> str:
 
 def canvas_dir(canvas_id: str) -> Any:
     """The folder one canvas keeps everything in (inside the uploads folder, so a backup carries it)."""
-    p = get_uploads_dir() / "canvases" / _id_part("canvas", canvas_id)
+    p = _join(get_uploads_dir() / "canvases", _id_part("canvas", canvas_id))
     p.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -155,14 +173,14 @@ def doc_path(canvas_id: str) -> Any:
 
 def board_dir(canvas_id: str, board_id: str, rev: int) -> Any:
     """Folder of one revision of a board's content."""
-    return (
-        canvas_dir(canvas_id) / "boards" / _id_part("board", board_id) / f"r{int(rev)}"
+    return _join(
+        canvas_dir(canvas_id), "boards", _id_part("board", board_id), f"r{int(rev)}"
     )
 
 
 def proposal_dir(canvas_id: str, proposal_id: str) -> Any:
     """Folder of the files an AI member proposed."""
-    return canvas_dir(canvas_id) / "proposals" / _id_part("proposal", proposal_id)
+    return _join(canvas_dir(canvas_id), "proposals", _id_part("proposal", proposal_id))
 
 
 def safe_path(raw: str) -> str:
@@ -1191,10 +1209,10 @@ def _read_text(
     if not board or not board.get("content"):
         return ""
     try:
-        return (
-            board_dir(canvas_id, board_id, board["content"]["rev"]) / path
+        return file_in(
+            board_dir(canvas_id, board_id, board["content"]["rev"]), path
         ).read_text("utf-8", errors="replace")
-    except OSError:
+    except (OSError, DocsError):
         return ""
 
 
@@ -1386,7 +1404,7 @@ def write_revision(
     if root.exists():
         shutil.rmtree(root)
     for path, data in files.items():
-        target = root / path
+        target = file_in(root, path)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
 
@@ -1742,11 +1760,11 @@ async def board_binary_files(
         return {}
     root = board_dir(c.id, board_id, content["rev"])
     return {
-        f["path"]: (root / f["path"]).read_bytes()
+        f["path"]: file_in(root, f["path"]).read_bytes()
         for f in content["files"]
         if PurePosixPath(f["path"]).suffix.lower()
         not in (".html", ".htm", ".css", ".txt", ".md", ".json")
-        and (root / f["path"]).is_file()
+        and file_in(root, f["path"]).is_file()
     }
 
 
@@ -1807,12 +1825,7 @@ async def read_board_file(
         DocsError: 404 if the frame or file does not exist.
     """
     c = await _canvas(session, canvas_id)
-    root = board_dir(c.id, board_id, rev)
-    target = (root / safe_path(path)).resolve()
-    try:
-        target.relative_to(root.resolve())
-    except ValueError as e:
-        raise DocsError(404, "file_not_found", "That file is not in the frame.") from e
+    target = file_in(board_dir(c.id, board_id, rev), path)
     if not target.is_file():
         raise DocsError(404, "file_not_found", "That file is not in the frame.")
     ext = target.suffix.lower()
@@ -1843,7 +1856,9 @@ async def board_source(
                 files.append(
                     {
                         "path": f["path"],
-                        "text": (root / f["path"]).read_text("utf-8", errors="replace"),
+                        "text": file_in(root, f["path"]).read_text(
+                            "utf-8", errors="replace"
+                        ),
                     }
                 )
             except OSError:
@@ -1867,9 +1882,9 @@ async def board_snapshot(
     if content and board["kind"] == "html":
         r = rev if rev is not None else content["rev"]
         try:
-            html_text = (board_dir(c.id, board_id, r) / content["entry"]).read_text(
-                "utf-8", errors="replace"
-            )
+            html_text = file_in(
+                board_dir(c.id, board_id, r), content["entry"]
+            ).read_text("utf-8", errors="replace")
         except OSError:
             html_text = None
     return canvas_png.board_snapshot(html_text, int(board["w"]), int(board["h"]))
@@ -2034,7 +2049,7 @@ async def export_zip(
             if b.get("content"):
                 root = board_dir(c.id, b["id"], b["content"]["rev"])
                 for f in b["content"]["files"]:
-                    p = root / f["path"]
+                    p = file_in(root, f["path"])
                     if p.is_file():
                         z.write(p, prefix + f["path"])
             elif b["kind"] == "sketch" and b.get("ref"):
