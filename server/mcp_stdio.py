@@ -9,6 +9,15 @@ Requires the database to have been migrated first:
 """
 
 import asyncio
+import sys
+
+if "--bridge" in sys.argv:
+    # Antigravity's way into a board run: forward to the board's HTTP MCP endpoint with the run's token (see
+    # mcp_bridge.py). Handled before anything heavy is imported: no database is needed.
+    import mcp_bridge
+
+    mcp_bridge.main()
+    sys.exit(0)
 
 import app_logging
 from mcp.server.fastmcp import FastMCP

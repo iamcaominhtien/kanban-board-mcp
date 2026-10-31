@@ -46,6 +46,7 @@ import { AiMembersPage } from './components/ai/AiMembersPage';
 import { OPEN_DOC_EVENT } from './utils/openDoc';
 import { AiPausedBanner, PauseAllButton } from './components/ai/AiDialogs';
 import { useAiRunNotifications } from './components/ai/useAiRunNotifications';
+import { useAccountNotifications } from './components/ai/useAccountNotifications';
 import { DragConfirm } from './components/ai/DragConfirm';
 import { AiHoverHost } from './components/ai/MentionPill';
 import type { AiRun } from './types/ai';
@@ -175,7 +176,7 @@ export default function App() {
   const [aiPage, setAiPage] = useState<{
     memberId?: string | null;
     add?: boolean;
-    tab?: 'approvals' | 'audit' | 'usage' | 'safety';
+    tab?: 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety';
     auditMemberId?: string;
     key: number;
   } | null>(null);
@@ -194,6 +195,8 @@ export default function App() {
   );
   useAiRunNotifications(aiBoard.data?.runs, (id) => openTicketModal(id), aiState.openAiPage);
   useAiSafetyNotifications(currentProjectId ?? '', () => setAiPage({ tab: 'approvals', key: Date.now() }));
+  const openAccountsTab = useCallback(() => setAiPage({ tab: 'accounts', key: Date.now() }), []);
+  useAccountNotifications(currentProjectId ?? '', aiOverview.data?.members, openAccountsTab);
 
   useEffect(() => {
     if (!globalError) return;
@@ -913,6 +916,10 @@ export default function App() {
                     onManageAi={() => {
                       setSettingsTarget(null);
                       setAiPage({ key: Date.now() });
+                    }}
+                    onManageAccounts={() => {
+                      setSettingsTarget(null);
+                      setAiPage({ tab: 'accounts', key: Date.now() });
                     }}
                   />
                 ) : aiPage && currentProjectId && !noProjects ? (

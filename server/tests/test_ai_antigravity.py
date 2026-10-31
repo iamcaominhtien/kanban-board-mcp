@@ -16,7 +16,7 @@ from tests.test_ai import (  # noqa: F401
 )
 from tests.test_ai_safety import OWNER, _people
 
-FAKE_AGY = str(Path(__file__).parent / "fixtures" / "fake_agy.py")
+FAKE_AGY = str(Path(__file__).parent / "fixtures" / "fake_agy_local.py")
 SAMPLE = [
     '{"event":"init","conversation_id":"c1","init":{"model":"gemini-3.8-flash-low","cwd":"/w","tools":["run_command"]}}',
     '{"event":"step_update","step_update":{"conversation_id":"c1","step_index":2,"state":"ACTIVE","step_type":"tool","tool_name":"read_file","tool_info":{"name":"read_file","parameters":{"Path":"/w/a.py"}}}}',
@@ -292,7 +292,7 @@ async def test_a_missing_cli_is_reported_not_run(agy_env, monkeypatch):
     m = await _agy(c, pid, repo, cli_path="/nonexistent/agy")
     r = (await c.post(f"/ai/members/{m['id']}/test", json={"full": True})).json()
     assert r["ok"] is False and r["health"] == "runner_missing"
-    assert "antigravity" in r["message"]
+    assert "agy" in r["message"]
 
 
 async def test_a_refused_action_does_not_end_the_run_the_cli_is_told_and_goes_on(

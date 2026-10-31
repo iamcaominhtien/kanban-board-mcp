@@ -38,7 +38,13 @@ const GROUP_LABEL: Record<string, string> = {
 function MatrixPanel({ provider }: { provider: AiMember['provider'] }) {
   const q = useCapabilityMatrix();
   const current =
-    provider === 'claude-code' || provider === 'antigravity' || provider === 'mcp-client' ? provider : 'api';
+    provider === 'claude-code' ||
+    provider === 'antigravity' ||
+    provider === 'codex' ||
+    provider === 'opencode' ||
+    provider === 'mcp-client'
+      ? provider
+      : 'api';
   if (q.isError && !q.data) return <LoadError what="the adapters" error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <div className="ai-skel" style={{ height: 80 }} />;
   return (
@@ -109,35 +115,6 @@ function InboxCard({ endpoint }: { endpoint: string }) {
   );
 }
 
-/** Antigravity: how many Documented items are done (design C3). */
-function ItemStatus() {
-  const { status } = useCtx();
-  if (!status) return null;
-  const rows = status.documented.filter((d) => ['instructions', 'skills', 'permissions', 'model'].includes(d.key));
-  return (
-    <CfgCard
-      testId="card-item-status"
-      title="Item status"
-      right={
-        <span className="ai-muted">
-          {rows.filter((r) => r.done).length} of {rows.length} Documented items done
-        </span>
-      }
-      sub="Most items are Documented. Only board-side settings can be Synced."
-    >
-      {rows.map((r) => (
-        <div key={r.key} className="cfg-row">
-          <span className="cfg-row-main cfg-row-title">{r.label}</span>
-          <ModeChip mode="documented" />
-          <Chip tone={r.done ? 'synced' : r.stale ? 'warn' : 'plain'}>
-            {r.done ? 'Done' : r.stale ? 'Redo' : 'Not done'}
-          </Chip>
-        </div>
-      ))}
-    </CfgCard>
-  );
-}
-
 /** Items attached from the library that this adapter ignores: skipped, never silently dropped (design F6). */
 function SkippedBanners({ member }: { member: AiMember }) {
   const { status, cfg, replaceConfig } = useCtx();
@@ -147,7 +124,11 @@ function SkippedBanners({ member }: { member: AiMember }) {
       ? 'Claude Code'
       : adapterOf(member) === 'antigravity'
         ? 'Antigravity'
-        : 'API agent';
+        : adapterOf(member) === 'cli'
+          ? member.provider === 'codex'
+            ? 'Codex'
+            : 'opencode'
+          : 'API agent';
   const detach = (group: string) => {
     const next: AiConfig = { ...cfg };
     if (group === 'skills') next.skills = [];
@@ -509,13 +490,16 @@ export function ConfigTab({
     left.push(<InstructionsCard key="i" />, <McpCard key="m" />, <PermissionsCard key="p" />);
     right.push(<SkillsCard key="s" />, <SubagentsCard key="a" />, <HooksCard key="h" />, <ModelCard key="mo" />);
   } else if (kind === 'antigravity') {
-    left.push(<ItemStatus key="st" />, <InstructionsCard key="i" />, <SkillsCard key="s" />);
-    right.push(<McpCard key="m" />, <PermissionsCard key="p" />, <ModelCard key="mo" />);
+    left.push(<InstructionsCard key="i" />, <PermissionsCard key="p" />);
+    right.push(<ModelCard key="mo" />);
+  } else if (kind === 'cli') {
+    left.push(<InstructionsCard key="i" />, <PermissionsCard key="p" />);
+    right.push(<ModelCard key="mo" />);
   } else if (kind === 'api') {
     left.push(<InstructionsCard key="i" />, <ContextCard key="c" />, <OutputCard key="o" />);
     right.push(<ApiToolsCard key="t" />, <McpCard key="m" />, <LimitsCard key="l" />);
   }
-  const notes = kind === 'claude-code' || (kind === 'antigravity' && form.config.antigravity.syncMcp);
+  const notes = kind === 'claude-code';
 
   return (
     <CfgContext.Provider value={ctx}>
@@ -535,7 +519,7 @@ export function ConfigTab({
               Config v{status?.version ?? 1} ·{' '}
               {status?.syncedAt
                 ? `synced ${ago(status.syncedAt)} · ${status.syncedFiles} file${status.syncedFiles === 1 ? '' : 's'}`
-                : kind === 'api'
+                : kind === 'api' || kind === 'antigravity' || kind === 'cli'
                   ? 'used directly'
                   : 'nothing synced yet'}
             </span>

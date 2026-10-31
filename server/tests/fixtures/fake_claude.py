@@ -18,10 +18,48 @@ def emit(obj):
 if args[:1] == ["--version"]:
     print("9.9.9 (Claude Code)")
     sys.exit(0)
+# With FAKE_CLAUDE_ACCOUNTS=1 a login is the file <CLAUDE_CONFIG_DIR>/.fake-login (its text is the email), so tests can
+# have several accounts that are signed in or out independently, like the real CLI with CLAUDE_CONFIG_DIR.
+accounts_on = os.environ.get("FAKE_CLAUDE_ACCOUNTS") == "1"
+login_file = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR", ""), ".fake-login")
 if args[:2] == ["auth", "status"]:
+    if accounts_on:
+        ok = os.path.isfile(login_file)
+        emit(
+            {
+                "loggedIn": ok,
+                "authMethod": "claude.ai" if ok else "none",
+                "email": open(login_file).read().strip() if ok else None,
+                "subscriptionType": "max" if ok else None,
+            }
+        )
+        sys.exit(0)
     emit({"loggedIn": mode != "logged_out", "authMethod": "oauth_token"})
     sys.exit(0)
+if args[:2] == ["auth", "logout"]:
+    if accounts_on and os.path.isfile(login_file):
+        os.remove(login_file)
+    sys.exit(0)
+if args[:2] == ["auth", "login"]:  # the sign-in the board runs in a terminal
+    print("Opening your browser to sign in…")
+    print(
+        "If it does not open, visit: https://claude.example/oauth/authorize?code=true&client_id=x",
+        flush=True,
+    )
+    code = input("Paste code here if prompted > ")
+    if code.strip() != "good":
+        print("Invalid or expired code")
+        sys.exit(1)
+    with open(login_file, "w") as fh:
+        fh.write(os.environ.get("FAKE_CLAUDE_EMAIL", "an@work.example"))
+    print("Login successful", flush=True)
+    sys.exit(0)
 if "--output-format" in args and args[args.index("--output-format") + 1] == "json":
+    if os.environ.get(
+        "FAKE_CLAUDE_CONFIG_RECORD"
+    ):  # a test run records which account it ran as
+        with open(os.environ["FAKE_CLAUDE_CONFIG_RECORD"], "a") as fh:
+            fh.write(os.environ.get("CLAUDE_CONFIG_DIR", "") + "\n")
     if mode == "logged_out":
         emit(
             {
@@ -38,6 +76,10 @@ record = os.environ.get("FAKE_CLAUDE_RECORD")
 if record:
     with open(record, "a") as fh:
         fh.write(json.dumps(args) + "\n")
+config_record = os.environ.get("FAKE_CLAUDE_CONFIG_RECORD")
+if config_record:
+    with open(config_record, "a") as fh:
+        fh.write(os.environ.get("CLAUDE_CONFIG_DIR", "") + "\n")
 env_record = os.environ.get("FAKE_CLAUDE_ENV_RECORD")
 if env_record:
     with open(env_record, "a") as fh:
@@ -58,6 +100,9 @@ if (
             "result": "No conversation found with session ID: " + session,
         }
     )
+    sys.exit(1)
+if mode == "run_logged_out":  # the session expired between two runs
+    sys.stderr.write("Not logged in. Please log in with claude auth login\n")
     sys.exit(1)
 config_dir = os.environ.get("CLAUDE_CONFIG_DIR")
 if config_dir:  # the real CLI keeps each conversation as a file; the runner checks for it before resuming

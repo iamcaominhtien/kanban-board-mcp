@@ -1,0 +1,342 @@
+/* AI accounts tab (design/screens/ai-accounts.md, B1, B2, F). Values copied from design/source/AiAccounts.dc.html. */
+
+.acc-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.acc-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.acc-intro-text {
+  flex: 1;
+  max-width: 720px;
+  font-size: 13px;
+  color: #3a4a3e;
+  line-height: 1.5;
+}
+
+/* Notices: signed out (red), signing in / web build (blue), CLI not found (amber) */
+.acc-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+.acc-note-bad {
+  border-color: #f0c4b8;
+  background: #fdf3f0;
+  color: #a5321e;
+}
+.acc-note-info {
+  border-color: #c9ddf0;
+  background: #e8f1fa;
+  color: #244e78;
+}
+.acc-note-warn {
+  border-color: #f0dba8;
+  background: #fef6e7;
+  color: #7a5a06;
+}
+.acc-note-icon {
+  display: flex;
+  margin-top: 1px;
+}
+.acc-note-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.acc-note-title {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.acc-note-body {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+.acc-note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* Tiles */
+.acc-tiles {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.acc-tile {
+  flex: 1 1 150px;
+  max-width: 230px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.acc-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.acc-tile-n {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #1e2a22;
+}
+.acc-tile-n-bad {
+  color: #a5321e;
+}
+.acc-tile-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #5b6b60;
+}
+
+/* List */
+.acc-table {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 4px 18px;
+}
+.acc-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) 100px minmax(150px, 1.2fr) minmax(150px, 1fr) 84px minmax(150px, auto);
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 12.5px;
+  border-bottom: 1px solid #eef3ef;
+}
+.acc-grid:last-child {
+  border-bottom: none;
+}
+.acc-grid-head {
+  padding: 10px 0;
+  border-bottom: 1px solid #e3e8e5;
+}
+.acc-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.acc-name b {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.acc-sub {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+.acc-sub-bad {
+  color: #a5321e;
+}
+.acc-sub-warn {
+  color: #7a5a06;
+}
+.acc-badge {
+  border-radius: 9px;
+  border-width: 1.5px;
+  border-style: solid;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.acc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.acc-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+}
+.acc-skel {
+  height: 46px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+
+/* Empty state and the logins that already exist */
+.acc-empty {
+  padding: 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #f6faf7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.acc-logins {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fbfcfb;
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.acc-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12.5px;
+}
+.acc-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  color: #2f6fb0;
+}
+.acc-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.acc-link:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Row menu: the .ai-menu look with icons and a divider */
+.acc-menu {
+  right: 0;
+  top: 32px;
+  width: 210px;
+  padding: 5px;
+}
+.acc-menu .ai-mi {
+  font-weight: 500;
+  padding: 7px 10px;
+}
+.acc-menu .ai-mi:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.acc-menu .ai-mi:disabled:hover {
+  background: none;
+}
+
+/* Dialogs (Remove, Sign out, Rename, Members using it) */
+.acc-dlg {
+  width: 480px;
+  max-width: 100%;
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(30, 42, 34, 0.18);
+  overflow: hidden;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #1e2a22;
+}
+.acc-dlg-narrow {
+  width: 420px;
+}
+.acc-dlg-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eef3ef;
+}
+.acc-dlg-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.acc-dlg-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.acc-dlg-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+}
+.acc-choice {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid #e3e8e5;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: left;
+  font-family: inherit;
+  color: #1e2a22;
+  cursor: pointer;
+  width: 100%;
+}
+.acc-choice-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.acc-choice:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.acc-radio {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid #9aa8a0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.acc-choice-on .acc-radio {
+  border-color: #2e6f40;
+}
+.acc-radio i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2e6f40;
+  display: block;
+}
+.acc-hint {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}

@@ -1,3 +1,4 @@
+import { displayStatus } from '../utils/memberAccount';
 import { extractError } from '../api/extractError';
 import { useState } from 'react';
 import type { AxiosError } from 'axios';
@@ -193,7 +194,17 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={30} dim={m.paused} />
                 <span style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
                   <span>{m.name}</span>
-                  <StatusLabel status={m.status} sub={null} />
+                  {m.accountRef && (
+                    <span
+                      className="ai-muted"
+                      style={{ fontSize: 11, color: m.accountRef.status === 'needs_sign_in' ? '#A5321E' : undefined }}
+                      data-testid="member-account-line"
+                    >
+                      Local runner · {m.accountRef.name}
+                      {m.accountRef.status === 'needs_sign_in' ? ' signed out' : ''}
+                    </span>
+                  )}
+                  <StatusLabel status={displayStatus(m)} sub={null} />
                 </span>
                 <ConnectionChip connection={m.connection} />
               </button>

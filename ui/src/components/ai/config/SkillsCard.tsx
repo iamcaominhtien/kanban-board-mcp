@@ -3,7 +3,7 @@ import { extractError } from '../../../api/extractError';
 import { Toggle } from '../aiUi';
 import type { AiSkill } from '../../../types/ai';
 import { configApi, useLibrary, type LibraryRow } from './configApi';
-import { adapterOf, useCfg } from './configCtx';
+import { useCfg } from './configCtx';
 import { CfgCard, Chip, CodeEditor, DiffView, Dialog, EmptyState, IssueText, TickRow, newId } from './parts';
 import { frontMatter, skillTemplate } from './frontMatter';
 import { useQuery } from '@tanstack/react-query';
@@ -16,7 +16,6 @@ type Tab = 'library' | 'write' | 'import';
 /** “Add skill”: attach from the library, write a SKILL.md, or import a folder (design B10). */
 function AddSkillModal({ editing, onClose }: { editing?: AiSkill; onClose: () => void }) {
   const { member, cfg, setCfg, replaceConfig } = useCfg();
-  const isAg = adapterOf(member) === 'antigravity';
   const [tab, setTab] = useState<Tab>(editing ? 'write' : 'library');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,7 +68,7 @@ function AddSkillModal({ editing, onClose }: { editing?: AiSkill; onClose: () =>
         });
         library = { id: item.id, version: item.version };
       }
-      const mode: AiSkill['mode'] = isAg || documented ? 'documented' : 'synced';
+      const mode: AiSkill['mode'] = documented ? 'documented' : 'synced';
       if (editing) {
         setCfg({
           skills: cfg.skills.map((s) =>
@@ -147,7 +146,7 @@ function AddSkillModal({ editing, onClose }: { editing?: AiSkill; onClose: () =>
           content: folder.skill,
           files: folder.files,
           enabled: true,
-          mode: isAg ? 'documented' : 'synced',
+          mode: 'synced',
           library: null,
         },
       ],
@@ -285,12 +284,10 @@ function AddSkillModal({ editing, onClose }: { editing?: AiSkill; onClose: () =>
               Also save to the board library as <b className="ai-mono">{fm.name || 'name'}</b> (v1)
             </label>
           )}
-          {!isAg && (
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5 }}>
-              <input type="checkbox" checked={documented} onChange={(e) => setDocumented(e.target.checked)} />
-              Documented only: I set it up by hand (nothing is written)
-            </label>
-          )}
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5 }}>
+            <input type="checkbox" checked={documented} onChange={(e) => setDocumented(e.target.checked)} />
+            Documented only: I set it up by hand (nothing is written)
+          </label>
         </>
       )}
       {tab === 'import' && (
@@ -378,10 +375,9 @@ function ReviewDialog({
   );
 }
 
-/** Skills of a Claude Code member (SKILL.md folders) or Workflows of an Antigravity one (design B2). */
+/** Skills of a Claude Code member (SKILL.md folders, design B2). */
 export function SkillsCard() {
   const { member, cfg, setCfg, replaceConfig, issues, status, tick, pickLibrary } = useCfg();
-  const isAg = adapterOf(member) === 'antigravity';
   const lib = useLibrary(member.projectId, 'skill');
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<AiSkill | null>(null);
@@ -389,7 +385,6 @@ export function SkillsCard() {
   const [error, setError] = useState<string | null>(null);
   const latest = new Map((lib.data?.items ?? []).map((i) => [i.id, i]));
   const synced = cfg.skills.filter((s) => s.mode === 'synced').length;
-  const label = isAg ? 'Workflows' : 'Skills';
   const wrap = useRef<HTMLDivElement>(null);
   const update = async (s: AiSkill) => {
     if (!s.library) return;
@@ -404,13 +399,9 @@ export function SkillsCard() {
     <CfgCard
       id="cfg-skills"
       testId="card-skills"
-      title={label}
-      mode={isAg ? 'documented' : 'synced'}
-      sub={
-        isAg
-          ? 'Skills equivalent: the board shows each one as steps to set up in Antigravity.'
-          : `${cfg.skills.length} skill${cfg.skills.length === 1 ? '' : 's'} · ${synced} Synced into .claude/skills/, ${cfg.skills.length - synced} Documented`
-      }
+      title="Skills"
+      mode="synced"
+      sub={`${cfg.skills.length} skill${cfg.skills.length === 1 ? '' : 's'} · ${synced} Synced into .claude/skills/, ${cfg.skills.length - synced} Documented`}
       right={
         <>
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => pickLibrary(['skill'], true)}>

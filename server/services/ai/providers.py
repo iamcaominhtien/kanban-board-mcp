@@ -15,25 +15,37 @@ PROVIDERS: dict[str, dict] = {
         "npm_package": "@anthropic-ai/claude-code",
         "guide_url": "https://docs.claude.com/en/docs/claude-code/setup",
     },
+    "codex": {
+        "label": "Codex",
+        "connection": "local",
+        "binary": "codex",
+        "models": [],
+        "default_model": None,
+        "install": "npm install -g @openai/codex",
+        "npm_package": "@openai/codex",
+        "guide_url": "https://developers.openai.com/codex/cli",
+    },
+    "opencode": {
+        "label": "opencode",
+        "connection": "local",
+        "binary": "opencode",
+        "models": [],
+        "default_model": None,
+        "install": "npm install -g opencode-ai",
+        "npm_package": "opencode-ai",
+        "guide_url": "https://opencode.ai/docs",
+    },
     "antigravity": {
         "label": "Antigravity",
         "connection": "local",
-        "binary": "antigravity",
-        # what `antigravity models` lists; empty picks the CLI's own default
-        "models": [
-            "gemini-3.8-flash-high",
-            "gemini-3.8-flash-medium",
-            "gemini-3.8-flash-low",
-            "claude-sonnet-4-6",
-            "claude-opus-4-6-thinking",
-            "gpt-oss-120b-medium",
-        ],
+        "binary": "agy",
+        "models": [],
         "default_model": None,
-        "install": "Install Antigravity and enable its command line tool",
+        "install": "Install the Antigravity command line tool (agy)",
         "install_steps": [
             "Install Antigravity from its website.",
-            "Open it once and sign in with your account.",
-            "Enable its command line tool so that “antigravity” works in a terminal.",
+            "Open it once and sign in with your account, or add an AI account for it and sign in there.",
+            "Enable its command line tool so that “agy” works in a terminal.",
         ],
         "guide_url": "https://antigravity.google",
     },
@@ -78,6 +90,8 @@ DEFAULT_LOOK: dict[str, tuple[str, str]] = {
     "claude-code": ("asterisk", "#2E6F40"),
     "anthropic": ("asterisk", "#B4791E"),
     "antigravity": ("peak", "#2F6FB0"),
+    "codex": ("hex", "#244E78"),
+    "opencode": ("braces", "#5B3AA6"),
     "openai": ("hex", "#6D5DD3"),
     "gemini": ("spark", "#B0446E"),
     "custom": ("braces", "#5B6B60"),
@@ -131,19 +145,21 @@ MATRIX: dict[str, dict[str, tuple[str, str]]] = {
         "subagents": ("synced", ".claude/agents"),
         "hooks": ("synced", "Runs shell on your machine"),
         "permissions": ("synced", "Allow / deny tool rules"),
-        "model": ("synced", "Model + effort, flags"),
+        "model": ("synced", "Model, flags"),
         "limits": ("synced", "Max turns, run timeout"),
     },
+    # The three CLIs the board runs itself (Antigravity, Codex, opencode) get everything on the command line or in
+    # the prompt of each run: nothing is written into the working folder, so nothing is "documented".
     "antigravity": {
-        "instructions": ("synced", "Sent with the first prompt"),
-        "skills": ("documented", "Workflows, set up by hand"),
+        "instructions": ("synced", "Added to each run's prompt"),
+        "skills": ("not_supported", "Workflows are not used by runs"),
         "tools": ("not_supported", ""),
-        "mcp_servers": ("synced", "Kanban added for each run"),
+        "mcp_servers": ("not_supported", "The board's own tools only"),
         "subagents": ("not_supported", ""),
         "hooks": ("not_supported", ""),
-        "permissions": ("synced", "Rules passed for each run"),
-        "model": ("synced", "Model and effort"),
-        "limits": ("synced", "Run timeout only"),
+        "permissions": ("synced", "Allow / deny command rules"),
+        "model": ("synced", "Model + effort, flags"),
+        "limits": ("synced", "Run timeout"),
     },
     "api": {
         "instructions": ("synced", "System prompt, used directly"),
@@ -161,10 +177,25 @@ MATRIX: dict[str, dict[str, tuple[str, str]]] = {
         for g, _ in GROUPS
     },
 }
+MATRIX["codex"] = {
+    **MATRIX["antigravity"],
+    "permissions": ("not_supported", "Runs in its own sandbox"),
+}
+MATRIX["opencode"] = {
+    **MATRIX["antigravity"],
+    "permissions": ("synced", "Allow / deny rules"),
+}
+# Antigravity on the person's own login adds the member's MCP servers to each run (a run on an AI account: the board only)
+MATRIX["antigravity"] = {
+    **MATRIX["antigravity"],
+    "mcp_servers": ("synced", "Kanban added for each run"),
+}
 
 ADAPTER_COLUMNS = [
     ("claude-code", "Claude Code", "local runner"),
     ("antigravity", "Antigravity", "local runner"),
+    ("codex", "Codex", "local runner"),
+    ("opencode", "opencode", "local runner"),
     ("api", "API agent", "API key"),
     ("mcp-client", "Other MCP client", "inbox only"),
 ]
@@ -273,6 +304,8 @@ DEFAULT_CONFIG: dict = {
     "permission_mode": "allowlist",
     # Claude Code compacts a long session by itself once it fills this share of its context window
     "compact_at_pct": 60,
+    # Codex compacts a long session once it holds this many tokens (0 = its own default); other CLIs ignore it
+    "compact_at_tokens": 0,
     # API agents (D5–D7)
     "max_steps": 12,
     "max_tokens_per_run": 60000,
@@ -322,10 +355,6 @@ DEFAULT_CONFIG: dict = {
         "move_back_on_failure": False,
         "comment_format": "short",
     },
-    # Antigravity: experimental file sync of the MCP server list (C4, placeholder paths: TODO verify)
-    "antigravity": {"sync_mcp": False, "mcp_target": ".agents/mcp_config.json"},
-    # Antigravity permissions are documented: free text the person follows in the app
-    "permission_notes": "",
 }
 
 
@@ -359,7 +388,7 @@ def merged_config(raw: dict | None) -> dict:
         **DEFAULT_CONFIG["tool_groups"],
         **((raw or {}).get("tool_groups") or {}),
     }
-    for key in ("output", "antigravity"):
+    for key in ("output",):
         out[key] = {**DEFAULT_CONFIG[key], **((raw or {}).get(key) or {})}
     out["mcp_servers"] = [
         {

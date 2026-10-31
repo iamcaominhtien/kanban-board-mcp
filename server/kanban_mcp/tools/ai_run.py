@@ -5,6 +5,38 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
+_CRITERION = {
+    "type": "object",
+    "properties": {
+        "text": {"type": "string"},
+        "met": {"type": "boolean"},
+        "evidence": {"type": "string"},
+    },
+    "required": ["text", "met"],
+}
+_TESTS = {
+    "type": "object",
+    "properties": {"passed": {"type": "integer"}, "failed": {"type": "integer"}},
+}
+
+
+def _spell_out(schema: dict, shape: dict, *, array: bool) -> None:
+    """Put the fields of an object in the tool's JSON schema. A bare "object" gives some CLIs (Antigravity) nothing to
+    build, and they send nulls instead."""
+    for branch in schema.get("anyOf", [schema]):
+        if array and branch.get("type") == "array":
+            branch["items"] = shape
+        elif not array and branch.get("type") == "object":
+            branch.update(shape)
+
+
+def _criteria_schema(schema: dict) -> None:
+    _spell_out(schema, _CRITERION, array=True)
+
+
+def _tests_schema(schema: dict) -> None:
+    _spell_out(schema, _TESTS, array=False)
+
 
 async def ai_run(
     action: Literal["ask", "report", "handoff", "decide", "answer"],
@@ -14,10 +46,22 @@ async def ai_run(
     ] = None,
     summary: Annotated[str | None, Field(description="report: what you did.")] = None,
     criteria: Annotated[
-        list[dict] | None, Field(description="report: [{text, met, evidence}].")
+        list[dict] | None,
+        Field(
+            description="report: one per acceptance criterion.",
+            json_schema_extra=_criteria_schema,
+        ),
     ] = None,
     tests: Annotated[
-        dict | None, Field(description="report: {passed, failed}.")
+        dict | None,
+        Field(
+            description="report: test counts.",
+            json_schema_extra=_tests_schema,
+        ),
+    ] = None,
+    ticket_id: Annotated[
+        str | None,
+        Field(description="Ignored: the run's ticket is used."),
     ] = None,
     member: Annotated[
         str | None, Field(description="handoff: teammate AI's exact name.")

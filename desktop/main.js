@@ -139,7 +139,7 @@ function createWindow() {
 
   // Always load from the local file — this is safe because:
   //   • The CSP header (injected via onHeadersReceived below) explicitly allows
-  //     connect-src http://127.0.0.1:* so API calls to the Python backend work.
+  //     connect-src http://127.0.0.1:* (and ws:// for the sign-in terminal) so API calls to the Python backend work.
   //   • Loading from file:// means the window shows immediately without waiting
   //     for the Python server to boot.  The renderer handles the "backend not ready"
   //     state by showing a connecting overlay until it receives the backend-ready IPC.
@@ -163,7 +163,7 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*; base-uri 'self'; object-src 'none'"
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; img-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*; base-uri 'self'; object-src 'none'"
         ]
       }
     });

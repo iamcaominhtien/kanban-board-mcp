@@ -35,6 +35,8 @@ AI_TEAM_OPS: dict[str, Op] = {
     "update_member": Op(ops.update_member, ("member_id", "fields")),
     "endpoints": Op(ops.endpoints, (), ("text",)),
     "api": Op(ops.api, ("path",), ("fields",), {"fields": "body"}),
+    "accounts": Op(ops.accounts, (), ("project_id",)),
+    "assign_account": Op(ops.assign_account, ("member_id", "account_id")),
 }
 READS = {
     "members",
@@ -45,6 +47,7 @@ READS = {
     "approvals",
     "docs_jobs",
     "resources",
+    "accounts",
 }
 # Allowed inside an AI run when its member's "Resource tools" setting is Control (checked in the operation)
 RUN_CONTROL = {"restart", "cancel"}
@@ -73,14 +76,24 @@ async def ai_team(
         "update_member",
         "endpoints",
         "api",
+        "accounts",
+        "assign_account",
     ],
     project_id: Annotated[
         str | None,
-        Field(description="members, usage, runs, approvals, create_member."),
+        Field(
+            description="members, usage, runs, accounts, approvals, docs_jobs, create_member."
+        ),
     ] = None,
     member_id: Annotated[
         str | None,
-        Field(description="member, ask, pause, resume, update_member."),
+        Field(
+            description="AI member: member, ask, pause, resume, update_member, assign_account."
+        ),
+    ] = None,
+    account_id: Annotated[
+        str | None,
+        Field(description="assign_account: id, or none."),
     ] = None,
     ticket_id: Annotated[str | None, Field(description="ask, runs: IAM-12.")] = None,
     page_id: Annotated[str | None, Field(description="Docs: ask, docs_jobs.")] = None,
@@ -94,9 +107,14 @@ async def ai_team(
     ] = None,
     intent: Annotated[
         Literal["ask", "work", "notify"] | None,
-        Field(description="ask, work (assign + work), notify (comment)."),
+        Field(
+            description="ask: ask (default), work (assign + work), notify (comment)."
+        ),
     ] = None,
-    range: Literal["today", "7d", "month"] | None = None,
+    range: Annotated[
+        Literal["today", "7d", "month"] | None,
+        Field(description="usage (default month)."),
+    ] = None,
     status: Annotated[
         str | None, Field(description="approvals: pending|approved|denied.")
     ] = None,
@@ -120,15 +138,16 @@ async def ai_team(
         ),
     ] = None,
 ) -> dict | list:
-    """AI team: read members, runs, usage, approvals, resources; ask wakes an AI (an @mention via MCP does
-    not); cancel, restart, retry, answer runs; pause, resume, create_member, update_member (no keys, folders, Bypass, ceiling
-    past Review; approvals: in the board). With "Full control over MCP" on in Settings: endpoints lists
-    and api calls AI endpoints as the person. Not in AI runs."""
+    """AI team: read members, runs, usage, approvals, resources, accounts (separate logins; only a person signs in);
+    ask wakes an AI (an @mention via MCP does not); cancel, restart, retry, answer runs; assign_account; pause, resume,
+    create_member, update_member (no keys, folders, Bypass, ceiling past Review; approvals: in the board). With "Full
+    control over MCP" on in Settings: endpoints lists and api calls AI endpoints as the person. Not in AI runs."""
     from services.ai import guard
 
+    ctx = await guard.resolve()
     if (
         action in RESOURCE_ONLY
-        and await guard.resolve() is not None
+        and ctx is not None
         and await ops._resource_level() == "none"
     ):
         # the resource tools do not exist for this member
@@ -136,11 +155,21 @@ async def ai_team(
         raise ValueError(
             f"Unknown action '{action}'. Valid actions: {', '.join(valid)}."
         )
-    if action not in READS and await guard.resolve() is not None:
+    if action not in READS and ctx is not None:
         # inside an AI run only a member with the Resource tools set to Control may restart or stop runs
         if action not in RUN_CONTROL or await ops._resource_level() != "control":
             raise ValueError(
                 "An AI run cannot start AIs or change AI members or runs; a person does."
             )
-    given = params_of({k: v for k, v in locals().items() if k != "guard"})
+    op = AI_TEAM_OPS.get(action)
+    if (
+        project_id is None
+        and ctx is not None
+        and op is not None
+        and "project_id" in (*op.required, *op.optional)
+    ):
+        project_id = ctx.project_id  # inside a run the project is known
+    given = params_of(
+        {k: v for k, v in locals().items() if k not in ("guard", "ctx", "op")}
+    )
     return await dispatch("ai_team", AI_TEAM_OPS, action, given)

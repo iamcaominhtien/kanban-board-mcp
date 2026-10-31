@@ -12,7 +12,7 @@ import {
   type SyncPreview as Preview,
   type WriteResult,
 } from './configApi';
-import { adapterOf, useCfg } from './configCtx';
+import { useCfg } from './configCtx';
 import { CfgCard, Chip, CopyButton, DiffView, Dialog } from './parts';
 
 function when(iso: string | null): string {
@@ -156,7 +156,6 @@ export function SyncPreview() {
   const { member, dirty, status, setCfg, cfg, refreshStatus } = useCfg();
   const qc = useQueryClient();
   const toast = useToast();
-  const kind = adapterOf(member);
   const q = useQuery<Preview>({
     queryKey: [...configKeys.status(member.id), 'preview', status?.version ?? 0, status?.syncedAt ?? ''],
     queryFn: () => configApi.preview(member.id),
@@ -168,7 +167,6 @@ export function SyncPreview() {
   const [failure, setFailure] = useState<{ path: string; message: string } | null>(null);
   const [restoring, setRestoring] = useState<{ path: string; backup: Backup } | null>(null);
   const p = q.data;
-  const experimental = kind === 'antigravity';
 
   async function write() {
     if (!p) return;
@@ -211,12 +209,8 @@ export function SyncPreview() {
       id="cfg-sync"
       testId="card-sync"
       title="Sync preview"
-      mode={experimental ? 'documented' : 'synced'}
-      right={
-        <span className="ai-muted">
-          {experimental ? 'Experimental · writes when you press Write now' : 'Synced · writes on next run'}
-        </span>
-      }
+      mode="synced"
+      right={<span className="ai-muted">Synced · writes on next run</span>}
       sub="Files the runner will write before the next run."
     >
       {q.isLoading && <div className="ai-skel" style={{ height: 90 }} />}
@@ -257,24 +251,20 @@ export function SyncPreview() {
             >
               Change folder
             </button>
-            {!experimental && (
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm"
-                onClick={switchToDocumented}
-                title="Skills and MCP servers become Documented (unsaved)"
-              >
-                Switch to Documented
-              </button>
-            )}
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              onClick={switchToDocumented}
+              title="Skills and MCP servers become Documented (unsaved)"
+            >
+              Switch to Documented
+            </button>
           </div>
         </div>
       )}
       {p && p.files.length === 0 && p.conflicts.length === 0 && folderOnline && (
         <div className="ai-muted" data-testid="sync-uptodate">
-          {experimental && p.mode === 'none'
-            ? 'Nothing to write: experimental MCP sync is off.'
-            : `Everything is written. ${p.syncedFiles} file${p.syncedFiles === 1 ? '' : 's'} managed${p.syncedAt ? `, last written ${ago(p.syncedAt)}` : ''}.`}
+          {`Everything is written. ${p.syncedFiles} file${p.syncedFiles === 1 ? '' : 's'} managed${p.syncedAt ? `, last written ${ago(p.syncedAt)}` : ''}.`}
         </div>
       )}
       {p &&

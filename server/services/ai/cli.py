@@ -20,6 +20,9 @@ from pathlib import Path
 from . import paths
 from .secrets import redact
 
+# The command names of the local runners (Claude Code, Codex, opencode, Antigravity)
+LOCAL_CLIS = ("claude", "codex", "opencode", "agy")
+
 _SEARCH_DIRS = [
     "~/.local/bin",
     "~/.claude/local",
@@ -99,9 +102,12 @@ def child_env(compact_at_pct: int | None = None) -> dict:
     return env
 
 
-def session_exists(session_id: str, provider: str | None = None) -> bool:
-    """Whether the CLI still has this conversation on disk (it is gone when the person cleaned ~/.claude). Without a
-    `provider` either CLI's conversations count (a ticket's shared conversation belongs to one of them)."""
+def session_exists(
+    session_id: str, config_dir: str | None = None, provider: str | None = None
+) -> bool:
+    """Whether the CLI still has this conversation on disk (it is gone when the person cleaned ~/.claude).
+    ``config_dir`` is the folder of an AI account, which keeps its own sessions. Without a `provider` either CLI's
+    conversations count (a ticket's shared conversation belongs to one of them)."""
     if (
         provider in (None, "antigravity")
         and (
@@ -115,7 +121,9 @@ def session_exists(session_id: str, provider: str | None = None) -> bool:
     if provider == "antigravity":
         return False
     root = (
-        Path(os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude").expanduser()
+        Path(
+            config_dir or os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude"
+        ).expanduser()
         / "projects"
     )
     try:
@@ -125,16 +133,20 @@ def session_exists(session_id: str, provider: str | None = None) -> bool:
 
 
 async def run_capture(
-    args: list[str], timeout: float, cwd: str | None = None
+    args: list[str],
+    timeout: float,
+    cwd: str | None = None,
+    env: dict | None = None,
 ) -> tuple[int, str, str]:
-    """Run a short command and capture its output; kills it on timeout."""
+    """Run a short command and capture its output; kills it on timeout. ``env`` replaces the usual environment
+    (an AI account's)."""
     proc = await asyncio.create_subprocess_exec(
         *args,
         cwd=cwd,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        env=child_env(),
+        env=env or child_env(),
         **_popen_kwargs(),
     )
     try:
@@ -150,8 +162,14 @@ async def run_capture(
     )
 
 
-async def detect(provider: str, binary: str, explicit: str | None = None) -> dict:
-    """CLI found? version? signed in (and as whom, without ever touching the token)?"""
+async def detect(
+    provider: str,
+    binary: str,
+    explicit: str | None = None,
+    env: dict | None = None,
+) -> dict:
+    """CLI found? version? signed in (and as whom, without ever touching the token)? ``env`` is the environment of
+    an AI account, so the answer is about that account's login."""
     path, checked = find_cli(binary, explicit)
     info: dict = {
         "found": bool(path),
@@ -163,11 +181,11 @@ async def detect(provider: str, binary: str, explicit: str | None = None) -> dic
     }
     if not path:
         return info
-    code, out, _ = await run_capture([path, "--version"], 20)
+    code, out, _ = await run_capture([path, "--version"], 20, env=env)
     if code == 0:
         info["version"] = out.strip().split("\n")[0][:80]
     if provider == "claude-code":
-        code, out, _ = await run_capture([path, "auth", "status"], 20)
+        code, out, _ = await run_capture([path, "auth", "status"], 20, env=env)
         try:
             status = json.loads(out)
         except ValueError:
@@ -193,6 +211,7 @@ async def test_run(
     path: str,
     model: str | None,
     cwd: str | None,
+    env: dict | None = None,
     provider: str = "claude-code",
 ) -> dict:
     """A one-line headless run: proves the CLI starts, is signed in and answers."""
@@ -207,7 +226,7 @@ async def test_run(
         ]
         if model:
             args += ["--model", model]
-        code, out, err = await run_capture(args, 120, cwd=cwd)
+        code, out, err = await run_capture(args, 120, cwd=cwd, env=env)
         seconds = round(time.monotonic() - started, 1)
         try:
             data = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
@@ -240,7 +259,7 @@ async def test_run(
     ]
     if model:
         args += ["--model", model]
-    code, out, err = await run_capture(args, 90, cwd=cwd)
+    code, out, err = await run_capture(args, 90, cwd=cwd, env=env)
     seconds = round(time.monotonic() - started, 1)
     try:
         data = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
@@ -342,7 +361,7 @@ def suspend_tree(pid: int | None, stop: bool = True) -> bool:
     return True
 
 
-def looks_like_cli(pid: int, binary: str = "claude") -> bool:
+def looks_like_cli(pid: int, binary: str | None = None) -> bool:
     """Is `pid` still one of our CLI processes? Used before killing a run left over from a crash, so a reused
     pid is never killed by mistake."""
     if sys.platform == "win32":
@@ -372,8 +391,10 @@ def looks_like_cli(pid: int, binary: str = "claude") -> bool:
             )
         except OSError:
             return False
-    names = ("antigravity", "agy") if binary == "antigravity" else (binary,)
-    return any(n in cmd for n in names) and "--output-format" in cmd
+    names = (binary,) if binary else LOCAL_CLIS
+    return any(n in cmd for n in names) and any(
+        f in cmd for f in ("--output-format", "--json", "--format")
+    )
 
 
 # Windows runs the CLI through its `claude.cmd` shim, and cmd.exe refuses a command line over 8191 characters
@@ -789,7 +810,6 @@ def claude_args(
 # The server name the board's MCP endpoint gets inside an Antigravity run. A person's own `kanban` entry (a stdio
 # server with no run token, acting as that person) is always denied there.
 AGY_BOARD_SERVER = "board"
-AGY_EFFORTS = ("low", "medium", "high", "xhigh", "max")
 
 
 def antigravity_home() -> Path:
@@ -841,7 +861,6 @@ def antigravity_args(
     edits: bool,
     conversation: str | None,
     add_dirs: list[str],
-    effort: str | None = None,
     extra_flags: list[str] | None = None,
     bypass: bool = False,
 ) -> list[str]:
@@ -853,8 +872,7 @@ def antigravity_args(
         args += ["--conversation", conversation]
     if model:
         args += ["--model", model]
-    if effort in AGY_EFFORTS:
-        args += ["--effort", effort]
+    # No --effort: agy refuses it with most models (the level is part of the model's name, gemini-…-low)
     if edits:
         args += ["--mode", "accept-edits"]
     for folder in add_dirs:

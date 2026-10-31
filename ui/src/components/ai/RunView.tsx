@@ -5,6 +5,7 @@ import type { AiRun, RunStep } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { useToast } from '../Toast';
 import { RaiseLimitButton, TakeOverButton, UndoRunDialog } from './RunActions';
+import { SignInAgainButton } from './accounts/SignedOutBanners';
 import { testsOf, TestChips } from './ReviewGate';
 import {
   ACTIVE_RUN_STATES,
@@ -385,6 +386,7 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
         )}
         {!live && run.mode === 'work' && (
           <>
+            {ai && ['failed', 'timed_out'].includes(run.state) && <SignInAgainButton member={ai} primary />}
             <button
               type="button"
               className={`ai-btn ai-btn-sm ${run.state === 'failed' || run.state === 'timed_out' ? 'ai-btn-primary' : ''}`}

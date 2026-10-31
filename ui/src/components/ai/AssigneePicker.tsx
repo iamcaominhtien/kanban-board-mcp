@@ -114,10 +114,10 @@ export function AssigneePicker({
         {current ? (
           <>
             <MemberAvatar member={current} size={22} />
-            <span style={{ fontWeight: 600 }}>{current.name}</span>
+            <span style={{ fontWeight: 600, fontSize: 12.5 }}>{current.name}</span>
           </>
         ) : (
-          <span style={{ color: '#9AA8A0' }}>Unassigned</span>
+          <span style={{ color: '#9AA8A0', fontSize: 12.5 }}>Unassigned</span>
         )}
       </button>
       {current && aiMap.get(current.id) && (

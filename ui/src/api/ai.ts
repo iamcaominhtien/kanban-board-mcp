@@ -245,7 +245,14 @@ export interface RevertRow {
 export const aiApi = {
   detect: async (provider: string, cliPath?: string) =>
     (await client.post<DetectResult>('/ai/detect', { provider, cliPath })).data,
-  testRun: async (body: { provider: string; cliPath?: string; model?: string; workingDir?: string }) =>
+  testRun: async (body: {
+    provider: string;
+    cliPath?: string;
+    model?: string;
+    workingDir?: string;
+    /** Run as this AI account (the server runs the CLI with the account's own login). */
+    accountId?: string;
+  }) =>
     (await client.post<{ ok: boolean; seconds?: number; reply?: string; error?: string }>('/ai/test-run', body)).data,
   testKey: async (body: { provider: string; apiKey: string; baseUrl?: string }) =>
     (

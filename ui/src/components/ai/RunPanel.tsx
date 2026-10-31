@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { aiApi, useAiApprovals, useAiMutation, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import type { AiRun } from '../../types/ai';
+import type { AiMember, AiRun } from '../../types/ai';
 import type { Member, Ticket } from '../../types';
 import { useToast } from '../Toast';
 import { useScheduleList } from '../../api/schedules';
@@ -16,6 +16,10 @@ import { BudgetStopBox, budgetStop } from './RunView';
 import { ResumeAllDialog } from './AiKillSwitch';
 import { FinalResources, MemoryStopNote, RestartNotice, RunResourcesStrip } from './RunResources';
 import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from './pausedUi';
+import { AccountNote } from './accounts/AccountBanner';
+import { ChangeAccountDialog } from './accounts/AccountPicker';
+import { SignInAgainButton } from './accounts/SignedOutBanners';
+import './accounts/accountsMember.css';
 import {
   ACTIVE_RUN_STATES,
   AiAvatar,
@@ -258,6 +262,7 @@ export function TicketAiPanel({
   if (!latest && !ticketApprovals.length && !asks.length && !paused) return null;
   const queuedMember = latest?.state === 'queued' ? aiMembers.get(latest.memberId) : undefined;
   const offline = queuedMember?.status.code === 'runner_missing' && !keepQueued;
+  const accountOut = queuedMember?.accountRef?.status === 'needs_sign_in';
   // Fixed above the scrolling ticket body: bottom padding and a rule keep the body from looking covered.
   return (
     <div
@@ -314,6 +319,7 @@ export function TicketAiPanel({
         </span>
       )}
       {offline && latest && <OfflineBanner run={latest} ticketId={ticket.id} onKeep={() => setKeepQueued(true)} />}
+      {accountOut && queuedMember && <AccountHeldBanner member={queuedMember} />}
       {latest && (latest.state === 'running' || latest.state === 'starting' || latest.state === 'queued') && (
         <ActiveRunCard run={latest} onOpenRun={onOpenRun} />
       )}
@@ -350,6 +356,31 @@ export function TicketAiPanel({
           onClose={() => setResumeOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+/** The run is held because the AI member's account is signed out: only a person can sign in (design E3). */
+function AccountHeldBanner({ member }: { member: AiMember }) {
+  const [choosing, setChoosing] = useState(false);
+  return (
+    <div className="acm-banner" style={{ marginBottom: 0 }} data-testid="account-held-banner">
+      <AccountNote
+        tone="error"
+        title={`Needs sign-in: ${member.accountRef?.name} is signed out`}
+        actions={
+          <>
+            <SignInAgainButton member={member} primary />
+            <button type="button" className="ai-btn ai-btn-sm" onClick={() => setChoosing(true)}>
+              Choose another account
+            </button>
+          </>
+        }
+      >
+        The run is held, nothing is lost. It starts by itself once the account is signed in again. An AI cannot sign in;
+        a person does it here.
+      </AccountNote>
+      {choosing && <ChangeAccountDialog members={[member]} onClose={() => setChoosing(false)} />}
     </div>
   );
 }
@@ -568,6 +599,9 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
 function FailedCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ticket; onOpenRun: () => void }) {
   const retry = useAiMutation(() => aiApi.retry(run.id));
   const toast = useToast();
+  const { members: boardMembers } = useAiBoardState();
+  // “Account signed out” fails the run; signing the account in again is what makes Retry work
+  const failedMember = boardMembers.get(run.memberId);
   const [undo, setUndo] = useState(false);
   const canUndo = run.statusChanges.length > 0 || run.files.length > 0;
   return (
@@ -600,6 +634,7 @@ function FailedCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ticket; on
         <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
           Open run
         </button>
+        {failedMember && <SignInAgainButton member={failedMember} primary />}
         <button
           type="button"
           className="ai-btn ai-btn-sm ai-btn-primary"

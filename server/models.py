@@ -970,6 +970,8 @@ class AiMember(SQLModel, table=True):
     checked_at: Optional[str] = Field(default=None)
     cli_version: Optional[str] = Field(default=None)
     account: Optional[str] = Field(default=None)
+    # The AI account (own login of the CLI) this member runs as; None = the login already on this computer
+    account_id: Optional[str] = Field(default=None, index=True)
     last_call_at: Optional[str] = Field(default=None)
     retry_at: Optional[str] = Field(
         default=None
@@ -991,6 +993,36 @@ class AiMember(SQLModel, table=True):
     )  # last call with one of its run tokens
     token_revoked_at: Optional[str] = Field(default=None)
     token_revoked_by: Optional[str] = Field(default=None)
+    created_by: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiAccount(SQLModel, table=True):
+    """One sign-in of one CLI (claude | codex | opencode | agy), kept in a folder of its own. Several AI members can
+    use the same account. The login is kept by the CLI; the board never reads it (table)."""
+
+    __tablename__ = "ai_account"
+
+    id: str = Field(
+        default_factory=lambda: f"acct_{uuid.uuid4().hex[:10]}", primary_key=True
+    )
+    name: str = Field(index=True, unique=True)  # unique per computer
+    cli: str  # claude | codex | opencode | agy
+    folder: str  # absolute path of the account's own folder
+    # signed_in | needs_sign_in | signing_in | cli_missing; "checking" and "not_ready" are shown, not stored
+    status: str = Field(default="needs_sign_in")
+    status_detail: Optional[str] = Field(default=None)
+    email: Optional[str] = Field(default=None)  # only Claude Code reports who
+    plan: Optional[str] = Field(default=None)
+    method: Optional[str] = Field(
+        default=None
+    )  # Subscription, ChatGPT login, Google sign-in, ...
+    checked_at: Optional[str] = Field(default=None)
+    signed_out_at: Optional[str] = Field(
+        default=None
+    )  # when it was found signed out (one event per account)
+    signed_out_how: Optional[str] = Field(default=None)  # run | check
     created_by: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
     updated_at: str = Field(default_factory=_now_iso)
