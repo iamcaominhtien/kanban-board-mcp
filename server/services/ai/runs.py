@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import secrets as pysecrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -24,8 +25,11 @@ from sqlmodel import col, select
 import database
 import events as board_events
 import services.activity as svc_activity
+import services.mcp_clients as mcp_clients
 import services.tickets as svc_tickets
+import services.workspace as svc_workspace
 from models import (
+    AiAccount,
     AiAudit,
     AiMember,
     AiProjectSettings,
@@ -36,7 +40,17 @@ from models import (
     TicketUpdate,
 )
 
-from . import approvals, audit, budget, cli, config_service, guard, safety
+from . import (
+    accounts,
+    adapters,
+    approvals,
+    audit,
+    budget,
+    cli,
+    config_service,
+    guard,
+    safety,
+)
 from .context import (
     STATUS_LABELS,
     RunContext,
@@ -557,6 +571,10 @@ async def _blocking_reason(
         return f"{member.name} is paused"
     if profile.token_revoked_at:
         return f"Token revoked by {profile.token_revoked_by or 'a person'} — reconnect {member.name}"
+    if profile.account_id:
+        account = await session.get(AiAccount, profile.account_id)
+        if account is not None and account.status == "needs_sign_in":
+            return f"Account {account.name} needs sign-in"
     if profile.health in (
         "key_invalid",
         "not_logged_in",
@@ -1024,8 +1042,10 @@ async def _execute(run_id: str, token: str) -> None:
                     run, profile
                 ) else None
             await api_agent.execute(run_id, token)
-        elif profile.provider == "claude-code":
-            await _execute_claude(run_id, token)
+        elif profile.provider == "claude-code" or adapters.for_provider(
+            profile.provider
+        ):
+            await _execute_cli(run_id, token)
         else:
             await _end(
                 run_id,
@@ -1270,7 +1290,9 @@ def cli_tool_rules(
     return allowed, denied
 
 
-async def _session_for(session, run: AiRun) -> tuple[str | None, str | None]:
+async def _session_for(
+    session, run: AiRun, config_dir: str | None = None, check: bool = True
+) -> tuple[str | None, str | None]:
     """The CLI session this run continues: the one already on the run (a run resumed after a question, a re-run
     after "Request changes"), else the last session this member used on this ticket, so one agent keeps one
     conversation per ticket. Returns (session id or None, a note for the run when a new session starts although
@@ -1296,27 +1318,28 @@ async def _session_for(session, run: AiRun) -> tuple[str | None, str | None]:
         ):
             return None, None
         wanted = prev.session_id
-    if wanted and cli.session_exists(wanted):
+    if wanted and (not check or cli.session_exists(wanted, config_dir)):
         return wanted, None
     return None, "Earlier session not found on this computer: starting a new one"
 
 
-async def _execute_claude(
-    run_id: str, token: str, resume_note: str | None = None
-) -> None:
+async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) -> None:
+    """One run of a local CLI: Claude Code (built here) or Codex, opencode and Antigravity (``adapters.py``)."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         member, profile = await get_profile(session, run.member_id)
-        path, _ = cli.find_cli("claude", profile.cli_path)
+        adapter = adapters.for_provider(profile.provider)
+        binary = adapter.binary if adapter else "claude"
+        path, _ = cli.find_cli(binary, profile.cli_path)
         if not path:
             profile.health = "runner_missing"
-            profile.health_detail = "“claude” was not found on this computer"
+            profile.health_detail = f"“{binary}” was not found on this computer"
             session.add(profile)
             await session.commit()
             await _end(
                 run_id,
                 "failed",
-                "No runner: the claude CLI was not found on this computer.",
+                f"No runner: the {binary} CLI was not found on this computer.",
             )
             return
         cwd = os.path.expanduser(profile.working_dir or "")
@@ -1335,9 +1358,28 @@ async def _execute_claude(
         system, prompt, config = await _build_prompt(
             session, run, profile, member, resume_note=resume_note
         )
-        session_id, fresh_note = await _session_for(session, run)
+        account = (
+            await session.get(AiAccount, profile.account_id)
+            if profile.account_id
+            else None
+        )
+        if adapter and adapter.needs_account and account is None:
+            await _end(
+                run_id,
+                "failed",
+                f"{adapter.label} runs need an AI account: its MCP servers are kept per account. "
+                "Add an account for it and choose it for this AI member.",
+            )
+            return
+        session_id, fresh_note = await _session_for(
+            session,
+            run,
+            accounts.claude_config_dir(account),
+            check=adapter is None,
+        )
         resume = session_id is not None
-        session_id = session_id or str(uuid.uuid4())
+        # Claude Code takes the session id up front; the others tell it in their first event
+        session_id = session_id or (None if adapter else str(uuid.uuid4()))
         mcp = {
             "mcpServers": {
                 "kanban": {
@@ -1394,26 +1436,73 @@ async def _execute_claude(
         )
         if bypass:
             denied += [d for d in _WEB_TOOLS if d not in denied]
-        args = cli.claude_args(
-            path,
-            prompt=prompt,
-            system=system,
-            model=profile.model,
-            mcp_config=mcp,
-            allowed=allowed,
-            denied=denied,
-            max_turns=int(config.get("max_turns") or 40),
-            session_id=session_id,
-            resume=resume,
-            effort=config.get("effort"),
-            extra_flags=[
-                f for f in (config.get("extra_flags") or []) if isinstance(f, str)
-            ],
-            bypass=bypass,
-        )
+        extra_flags = [
+            f for f in (config.get("extra_flags") or []) if isinstance(f, str)
+        ]
+        launch = None
+        read_dirs: list[str] = []
+        if adapter:
+            if account is not None and adapter.cli == "agy":
+                read_dirs = [
+                    str(
+                        accounts.profile_of(account).home
+                        / ".gemini"
+                        / "antigravity-cli"
+                        / "mcp"
+                    )
+                ]
+                # The ticket's workspace (a worktree the board made for it) is part of the task
+                ws = await svc_workspace.get_workspace_settings(session)
+                if ws.enabled and ws.root_path:
+                    read_dirs.append(os.path.expanduser(ws.root_path))
+                # Antigravity keeps its MCP servers in the account's folder: point it at the bridge, which reads
+                # the run's token from the environment of the run
+                accounts.profile_of(account).ensure_mcp(
+                    "kanban", adapters.bridge_entry(*mcp_clients.stdio_command())
+                )
+            launch = adapter.launch(
+                adapters.Spec(
+                    path=path,
+                    cwd=cwd,
+                    prompt=f"{system}\n\n---\n\n{prompt}" if system else prompt,
+                    model=profile.model,
+                    mcp_url=f"{RT.board_url or 'http://127.0.0.1:8000'}/mcp/",
+                    token=token,
+                    allowed=allowed,
+                    denied=denied,
+                    read_only=run.mode == "ask" or safe,
+                    resume_id=session_id if resume else None,
+                    effort=config.get("effort"),
+                    compact_at_tokens=int(config.get("compact_at_tokens") or 0),
+                    extra_flags=extra_flags,
+                    read_dirs=read_dirs,
+                    bypass=bypass,
+                )
+            )
+            args = launch.args
+        else:
+            args = cli.claude_args(
+                path,
+                prompt=prompt,
+                system=system,
+                model=profile.model,
+                mcp_config=mcp,
+                allowed=allowed,
+                denied=denied,
+                max_turns=int(config.get("max_turns") or 40),
+                session_id=session_id,
+                resume=resume,
+                effort=config.get("effort"),
+                extra_flags=extra_flags,
+                bypass=bypass,
+            )
         run.session_id = session_id
         session.add(run)
         await session.commit()
+        account_folder = account.folder if account else None
+        account_snapshot = account
+        if account is not None:
+            session.expunge(account)  # still readable after the session closes
         ceiling_ok = _should_start_move(run, profile) and not resume_note
         compact_at = config.get("compact_at_pct")
     if run_id in RT.cancelled:
@@ -1421,7 +1510,13 @@ async def _execute_claude(
     if ceiling_ok:
         await move_status(run_id, "in-progress")
 
-    proc = cli.CliProcess(args, cwd=cwd, env=cli.child_env(compact_at))
+    env = cli.child_env(compact_at)
+    if account_folder:
+        env = accounts.env_for(account_snapshot, env)
+    if launch:
+        env.update(launch.env)
+    proc = cli.CliProcess(args, cwd=cwd, env=env)
+    parser = adapter.parser(cwd) if adapter else None
     RT.procs[run_id] = proc
     pid = await proc.start()
     if run_id in RT.cancelled:
@@ -1439,13 +1534,17 @@ async def _execute_claude(
             },
             *([{"kind": "start", "text": fresh_note}] if fresh_note else []),
             *(
+                {"kind": "start", "text": note}
+                for note in (launch.notes if launch else [])
+            ),
+            *(
                 [
                     {
                         "kind": "start",
                         "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops (web off)",
                     }
                 ]
-                if bypass
+                if bypass and not launch
                 else []
             ),
         ],
@@ -1490,7 +1589,7 @@ async def _execute_claude(
             line = finished.result()
         except StopAsyncIteration:
             break
-        parsed = cli.parse_stream_line(line, cwd)
+        parsed = parser.feed(line) if parser else cli.parse_stream_line(line, cwd)
         fields = {}
         if parsed["ready"] and not ready:
             ready = True
@@ -1559,7 +1658,8 @@ async def _execute_claude(
     ):
         return
     said = ((result or {}).get("text") or " ".join(proc.stderr_tail[-5:])).lower()
-    if resume and "no conversation found" in said and await _requeue_fresh(run_id):
+    gone = adapter.resume_missing if adapter else ("no conversation found",)
+    if resume and any(m in said for m in gone) and await _requeue_fresh(run_id):
         return
     reason = None
     if result and result.get("subtype") == "error_max_turns":
@@ -1567,8 +1667,13 @@ async def _execute_claude(
     elif result and result.get("text"):
         reason = result["text"][:300]
     else:
-        tail = " ".join(proc.stderr_tail[-3:])
-        reason = f"Exit code {code}." + (f" {tail[:240]}" if tail else "")
+        tail = _plain(" ".join(proc.stderr_tail[-3:]))
+        asked = re.search(r"permission requested: ([^;]+)", tail)
+        if asked:
+            # opencode ends a headless run at a permission no rule gave (it has nobody to ask)
+            reason = f"Stopped at a permission nothing allows: {asked.group(1).strip()[:160]}."
+        else:
+            reason = f"Exit code {code}." + (f" {tail[:240]}" if tail else "")
         low = tail.lower()
         if "log in" in low or "login" in low or "not authenticated" in low:
             async with database.async_session() as session:
@@ -1577,6 +1682,17 @@ async def _execute_claude(
                 profile.health_detail = "The CLI is installed but its session expired."
                 session.add(profile)
                 await session.commit()
+                if profile.account_id and (
+                    acct := await session.get(AiAccount, profile.account_id)
+                ):
+                    # Every member on the account is held together, and told once
+                    await accounts.mark_signed_out(
+                        session,
+                        acct,
+                        how="run",
+                        detail="The CLI said it is not signed in.",
+                    )
+                    reason = "Account signed out"
     await _end(run_id, "failed", reason)
 
 
@@ -1783,6 +1899,14 @@ async def _needs_input(run_id: str) -> None:
         ],
     )
     await _publish(force=True)
+
+
+_ANSI = re.compile(r"\x1b?\[[0-9;]*m")
+
+
+def _plain(text: str) -> str:
+    """Text without terminal colour codes, for a reason a person reads."""
+    return _ANSI.sub("", text)
 
 
 async def _end(
@@ -2226,7 +2350,7 @@ async def answer(run_id: str, *, by: str, text: str) -> AiRun:
 
 async def _resume_cli(run_id: str, token: str, note: str) -> None:
     try:
-        await _execute_claude(run_id, token, resume_note=note)
+        await _execute_cli(run_id, token, resume_note=note)
     except Exception as exc:  # noqa: BLE001
         logger.exception("AI run %s crashed on resume", run_id)
         await _end(run_id, "failed", f"The runner failed: {redact(str(exc))[:300]}")

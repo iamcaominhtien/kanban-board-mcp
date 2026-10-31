@@ -4,6 +4,7 @@ An AI member is a project Member with ``kind='ai'`` (so assignment, @mentions an
 AiMember profile holding its connection, persona, limits and permissions.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -21,6 +22,8 @@ import database
 from models import AiApproval, AiMember, AiRun, Member, Project, Ticket
 
 from . import (
+    accounts,
+    adapters,
     audit,
     budget,
     cli,
@@ -211,6 +214,27 @@ def _validate_connection(
                 raise AiMemberError("HTTPS is required except for localhost.")
 
 
+async def _checked_account(
+    session: AsyncSession, provider: str, account_id: str | None
+) -> str | None:
+    """The account id to store for a member of this type, or None; refuses an unknown account or one of another CLI."""
+    if not account_id:
+        return None
+    if (PROVIDERS.get(provider) or {}).get("connection") != "local":
+        raise AiMemberError(
+            "Only a member that runs on this computer can use an account."
+        )
+    try:
+        account = await accounts.get(session, account_id)
+    except accounts.AccountError as exc:
+        raise AiMemberError(str(exc)) from exc
+    if accounts.cli_for_provider(provider) != account.cli:
+        raise AiMemberError(
+            f"{account.name} is an account of {accounts.ACCOUNT_CLIS[account.cli]['label']}."
+        )
+    return account.id
+
+
 async def create(
     session: AsyncSession, project_id: str, data: dict, *, by: str
 ) -> Member:
@@ -240,6 +264,7 @@ async def create(
         data["monthly_cap"] = ws["monthly_cap"]
     _validate_limits(data)
     _validate_connection(provider, data, creating=True, has_key=False)
+    account_id = await _checked_account(session, provider, data.get("account_id"))
     role = await safety.role_name(session, project_id, by)
     if role != "owner" and (
         data.get("ceiling") in ("testing", "done") or data.get("scope") == "project"
@@ -313,6 +338,7 @@ async def create(
         glyph=glyph,
         cli_path=(data.get("cli_path") or None),
         working_dir=(data.get("working_dir") or "").strip() or None,
+        account_id=account_id,
         base_url=(data.get("base_url") or spec.get("base_url") or None),
         model=data.get("model") or spec.get("default_model"),
         key_enc=key_enc,
@@ -454,6 +480,13 @@ async def update(
                 key,
                 (value or None) if key not in ("persona", "description") else value,
             )
+    if "account_id" in data:
+        new_account = await _checked_account(
+            session, profile.provider, data["account_id"]
+        )
+        if new_account != profile.account_id:
+            changes["account"] = [profile.account_id, new_account]
+            profile.account_id = new_account
     if data.get("glyph"):
         profile.glyph = _clean_glyph(data["glyph"])
     for key in (
@@ -893,13 +926,62 @@ def _semver(text: str | None) -> tuple[int, ...] | None:
     return tuple(int(x) for x in found.groups()) if found else None
 
 
+async def cli_models(session: AsyncSession, profile: AiMember) -> dict:
+    """The models an Antigravity or opencode member can pick: ``<cli> models`` run as its account. Antigravity prints
+    ``id<TAB>label`` lines after a "Fetching" line (and needs a login); opencode prints one ``provider/model`` per line."""
+    account = (
+        await session.get(accounts.AiAccount, profile.account_id)
+        if profile.account_id
+        else None
+    )
+    info = await detect_local(profile.provider, profile.cli_path, account=account)
+    if not info.get("path"):
+        return {
+            "source": "none",
+            "models": [],
+            "error": "Antigravity (agy) was not found.",
+        }
+    env = None
+    if account is not None:
+        await asyncio.to_thread(accounts.profile_of(account).prepare)
+        env = accounts.env_for(account, cli.child_env())
+    code, out, err = await cli.run_capture([info["path"], "models"], 30, env=env)
+    models = []
+    for line in out.splitlines():
+        ident, _, label = line.strip().partition("\t")
+        if profile.provider == "opencode":
+            if ident and " " not in ident and "/" in ident:
+                models.append({"id": ident, "label": ident})
+        elif ident.strip() and label.strip():
+            models.append({"id": ident.strip(), "label": label.strip()})
+    if code == 0 and models:
+        return {"source": "cli", "models": models, "error": None}
+    detail = (err.strip() or out.strip() or f"exit code {code}").splitlines()[-1]
+    return {"source": "none", "models": [], "error": secrets.redact(detail)[:200]}
+
+
 async def detect_local(
-    provider: str, cli_path: str | None = None, *, latest: bool = False
+    provider: str,
+    cli_path: str | None = None,
+    *,
+    latest: bool = False,
+    account=None,
 ) -> dict:
     """Step 2a: is the CLI installed and signed in on this computer? With `latest`, also whether it is the newest
     version (a network lookup, only the stepper wants it); the install steps and guide link are for step 2b."""
     spec = PROVIDERS.get(provider) or {}
-    info = await cli.detect(provider, spec.get("binary") or provider, cli_path)
+    env = accounts.env_for(account, cli.child_env()) if account is not None else None
+    info = await cli.detect(provider, spec.get("binary") or provider, cli_path, env=env)
+    adapter = adapters.for_provider(provider)
+    if adapter and info["found"] and account is None:
+        info["logged_in"] = await adapters.logged_in(adapter, info["path"], env)
+    if account is not None and info["found"]:
+        # The answer is about the account's own login, not the one already on this computer
+        info["logged_in"] = account.status == "signed_in"
+        info["account"] = (
+            " · ".join(x for x in (account.email, account.plan or account.method) if x)
+            or account.name
+        )
     info["install"] = spec.get("install")
     info["install_steps"] = spec.get("install_steps") or []
     info["guide_url"] = spec.get("guide_url")
@@ -1004,7 +1086,12 @@ async def test_connection(
             "message": "Connects through MCP; nothing to test from the board.",
         }
     elif profile.connection == "local":
-        info = await detect_local(profile.provider, profile.cli_path)
+        account = None
+        if profile.account_id:
+            account = await session.get(accounts.AiAccount, profile.account_id)
+            if account is not None:
+                await accounts.check(session, account)
+        info = await detect_local(profile.provider, profile.cli_path, account=account)
         profile.cli_version = info.get("version")
         profile.account = info.get("account")
         if not info["found"]:
@@ -1021,20 +1108,29 @@ async def test_connection(
                 "message": "The CLI is installed but not signed in. Run it in a terminal and sign in.",
                 **info,
             }
-        elif profile.provider != "claude-code":
-            result = {
-                "ok": True,
-                "health": "ok",
-                "message": "CLI found. Runs are not supported for this CLI yet.",
-                **info,
-            }
         elif full:
             folder = os.path.expanduser(profile.working_dir or "") or None
-            run = await cli.test_run(
-                info["path"],
-                profile.model,
-                folder if folder and Path(folder).is_dir() else None,
+            test_env = (
+                accounts.env_for(account, cli.child_env())
+                if account is not None
+                else None
             )
+            adapter = adapters.for_provider(profile.provider)
+            if adapter:
+                run = await adapters.test_run(
+                    adapter,
+                    info["path"],
+                    profile.model,
+                    folder if folder and Path(folder).is_dir() else None,
+                    test_env,
+                )
+            else:
+                run = await cli.test_run(
+                    info["path"],
+                    profile.model,
+                    folder if folder and Path(folder).is_dir() else None,
+                    env=test_env,
+                )
             if run["ok"]:
                 result = {
                     "ok": True,
@@ -1107,6 +1203,7 @@ async def test_connection(
 
 HEALTH_INTERVAL_S = 60  # how often the scheduler re-detects runners
 HEALTH_STALE_S = 300  # how often a healthy runner's sign-in is checked again
+ACCOUNT_STALE_S = 240  # an account is asked for its status at most every four minutes
 
 
 async def health_check() -> int:
@@ -1129,12 +1226,35 @@ async def health_check() -> int:
                 )
             )
         ).all()
+        await accounts.check_all(session, only_stale_s=ACCOUNT_STALE_S)
         for profile in rows:
             member = await session.get(Member, profile.id)
             if member is None or member.kind != "ai":
                 continue
             binary = (PROVIDERS.get(profile.provider) or {}).get("binary") or ""
             before = profile.health
+            if profile.account_id:
+                # A member on an account follows the account: one sign-in, fixed once for every member
+                account = await session.get(accounts.AiAccount, profile.account_id)
+                if account is not None:
+                    if account.status == "signed_in":
+                        if profile.health == "not_logged_in":
+                            profile.health, profile.health_detail = "ok", None
+                    elif account.status == "needs_sign_in":
+                        profile.health = "not_logged_in"
+                        profile.health_detail = (
+                            f"The account {account.name} needs to sign in."
+                        )
+                    else:
+                        profile.health = "runner_missing"
+                        profile.health_detail = (
+                            f"“{binary}” was not found on this computer"
+                        )
+                    profile.checked_at = now.isoformat()
+                    session.add(profile)
+                    if profile.health != before:
+                        changed += 1
+                    continue
             if profile.health in ("runner_missing", "not_logged_in"):
                 info = await detect_local(profile.provider, profile.cli_path)
             else:
@@ -1370,6 +1490,28 @@ def status_of(
     return {"code": "online", "label": "Online", "detail": None}
 
 
+async def _account_ref(session: AsyncSession, profile: AiMember) -> dict | None:
+    """The AI account a member runs as, with how many members share it (never a login)."""
+    if not profile.account_id:
+        return None
+    account = await session.get(accounts.AiAccount, profile.account_id)
+    if account is None:
+        return None
+    shared = await accounts.members_of(session, account.id)
+    return {
+        "id": account.id,
+        "name": account.name,
+        "cli": account.cli,
+        "cli_label": accounts.ACCOUNT_CLIS[account.cli]["label"],
+        "status": account.status,
+        "email": account.email,
+        "plan": account.plan,
+        "method": account.method,
+        "signed_out_at": account.signed_out_at,
+        "shared_by": len(shared),
+    }
+
+
 async def describe(
     session: AsyncSession, member: Member, profile: AiMember, settings=None
 ) -> dict:
@@ -1452,6 +1594,8 @@ async def describe(
         "retry_at": profile.retry_at,
         "cli_version": profile.cli_version,
         "account": profile.account,
+        "account_id": profile.account_id,
+        "account_ref": await _account_ref(session, profile),
         "is_board_ai": settings.board_ai_id == member.id,
         "status": status_of(member, profile, runs, settings, use),
         "running": [

@@ -288,7 +288,6 @@ def normalize_lists(cfg: dict) -> dict:
     cfg["extra_flags"] = [_s(f) for f in cfg.get("extra_flags") or [] if _s(f)]
     cfg["instructions"] = _s(cfg.get("instructions"))
     cfg["user_instructions"] = _s(cfg.get("user_instructions"))
-    cfg["permission_notes"] = _s(cfg.get("permission_notes"))
     return cfg
 
 
@@ -657,6 +656,10 @@ def rule_problem(rule: str) -> str | None:
     return None
 
 
+# Member types that run a local CLI on a ticket: the ones an owner may let skip the CLI's permission checks
+BYPASS_PROVIDERS = ("claude-code", "codex", "opencode", "antigravity")
+
+
 def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
     """Every problem in a configuration: [{path, message, severity, line?, hint?}]; errors block Save."""
     from .providers import adapter_of
@@ -687,11 +690,23 @@ def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
     rng("run_timeout_min", "Run timeout", 1, 240)
     rng("idle_timeout_min", "Idle timeout", 1, 120)
     rng("compact_at_pct", "Auto-compact at", 10, 95)
+    try:
+        tokens = int(cfg.get("compact_at_tokens") or 0)
+    except (TypeError, ValueError):
+        tokens = -1
+    if tokens != 0 and not 10_000 <= tokens <= 2_000_000:
+        err(
+            "compact_at_tokens",
+            "Auto-compact at: 0 for the CLI's default, or 10000 to 2000000 tokens.",
+        )
     mode = cfg.get("permission_mode", "allowlist")
     if mode not in ("allowlist", "bypass"):
         err("permission_mode", "Permission mode: Allow list or Bypass permissions.")
-    elif mode == "bypass" and provider != "claude-code":
-        err("permission_mode", "Bypass permissions is only available for Claude Code.")
+    elif mode == "bypass" and provider not in BYPASS_PROVIDERS:
+        err(
+            "permission_mode",
+            "Bypass permissions is only available for Claude Code, Codex, opencode and Antigravity.",
+        )
     rng("max_tokens_per_run", "Max tokens per run", 1000, 2_000_000)
     rng("retries", "Retries", 0, 10)
     rng("retry_base_s", "Backoff start", 0, 60, float)
@@ -908,15 +923,6 @@ def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
         ):
             err(f"{path}.url", "Enter an https:// URL (http:// only for localhost).")
 
-    ag = cfg.get("antigravity") or {}
-    target = _s(ag.get("mcp_target"))
-    if ag.get("sync_mcp") and (
-        not target or target.startswith("/") or ".." in target.split("/")
-    ):
-        err(
-            "antigravity.mcp_target",
-            "The target file must be a path inside the working folder.",
-        )
     return errs
 
 
@@ -943,46 +949,6 @@ def documented_items(cfg: dict, provider: str) -> list[dict]:
                 "empty": not (cfg.get("user_instructions") or "").strip(),
             }
         )
-    if adapter == "antigravity":
-        text = expand_includes(cfg.get("instructions") or "", cfg.get("snippets") or [])
-        out.append(
-            {
-                "key": "instructions",
-                "label": "Rules",
-                "group": "instructions",
-                "content": text,
-                "empty": not text.strip(),
-            }
-        )
-        out.append(
-            {
-                "key": "skills",
-                "label": "Workflows",
-                "group": "skills",
-                "content": json.dumps(
-                    [[s["name"], s["content"]] for s in cfg.get("skills") or []]
-                ),
-                "empty": not cfg.get("skills"),
-            }
-        )
-        out.append(
-            {
-                "key": "permissions",
-                "label": "Permissions",
-                "group": "permissions",
-                "content": cfg.get("permission_notes") or "",
-                "empty": False,
-            }
-        )
-        out.append(
-            {
-                "key": "model",
-                "label": "Model",
-                "group": "model",
-                "content": "",
-                "empty": False,
-            }
-        )
     for s in cfg.get("skills") or []:
         if adapter == "claude-code" and s["mode"] == "documented":
             out.append(
@@ -995,10 +961,7 @@ def documented_items(cfg: dict, provider: str) -> list[dict]:
                 }
             )
     for s in cfg.get("mcp_servers") or []:
-        documented = s["mode"] == "documented" or (
-            adapter == "antigravity"
-            and not (cfg.get("antigravity") or {}).get("sync_mcp")
-        )
+        documented = s["mode"] == "documented"
         if documented and caps.get("mcp_servers") != "not_supported":
             out.append(
                 {

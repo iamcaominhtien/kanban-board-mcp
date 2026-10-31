@@ -25,7 +25,7 @@ The server speaks MCP, so an agent can read and change your boards, Docs and AI 
 | `docs_write` | write | Create, update, move, duplicate, delete, restore, import pages, diagrams and sketches. |
 | `ai_run` | write | Only inside a run the board started: ask a question, report. |
 | `ai_schedules` | destructive | List, create, pause, resume, run and delete AI schedules. |
-| `ai_team` | write | Read members, runs and usage; wake an AI, answer or cancel a run, create members. Approvals are decided in the board. |
+| `ai_team` | write | Read members, runs, usage and AI accounts; wake an AI, answer or cancel a run, create members, assign a member to an account. Approvals are decided in the board; only a person signs in to an account. |
 
 !!! note "Good to know"
     The server sends usage instructions on connect and marks each tool as read-only or destructive. A failure is a real tool error whose message says how to fix the call. Omitted optional arguments mean “unchanged”; use `clear_fields` on a ticket update to empty a field. An @mention in a comment posted through MCP does **not** wake an AI.

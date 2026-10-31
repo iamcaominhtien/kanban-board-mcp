@@ -20,19 +20,37 @@ export const PROVIDERS: Record<
   'claude-code': {
     label: 'Claude Code',
     connection: 'local',
-    sub: 'Uses your signed-in CLI',
+    sub: 'Uses an AI account · subscription',
     models: ['sonnet', 'haiku'],
     defaultModel: 'sonnet',
     install: 'npm install -g @anthropic-ai/claude-code',
     binary: 'claude',
   },
+  codex: {
+    label: 'Codex',
+    connection: 'local',
+    sub: 'Uses an AI account',
+    models: [],
+    defaultModel: null,
+    install: 'npm install -g @openai/codex',
+    binary: 'codex',
+  },
+  opencode: {
+    label: 'opencode',
+    connection: 'local',
+    sub: 'Free models need no account; paid ones use an account',
+    models: [],
+    defaultModel: null,
+    install: 'npm install -g opencode-ai',
+    binary: 'opencode',
+  },
   antigravity: {
     label: 'Antigravity',
     connection: 'local',
-    sub: 'Uses your signed-in CLI',
+    sub: 'Uses an AI account',
     models: [],
     defaultModel: null,
-    binary: 'antigravity',
+    binary: 'agy',
   },
   anthropic: {
     label: 'Anthropic',
@@ -78,6 +96,12 @@ const GLYPHS: Record<AiProvider, { path: string; bg: string; color: string; fill
   'claude-code': { path: 'M12 3V21M3 12H21M5.6 5.6L18.4 18.4M18.4 5.6L5.6 18.4', bg: '#DCEEE1', color: '#2E6F40' },
   anthropic: { path: 'M12 3V21M3 12H21M5.6 5.6L18.4 18.4M18.4 5.6L5.6 18.4', bg: '#F3E7DC', color: '#B4571F' },
   antigravity: { path: 'M5 18.5L12 5.5L19 18.5M8.8 14.5H15.2', bg: '#DDEBF7', color: '#2F6FB0' },
+  codex: { path: 'M12 3L20 7.5V16.5L12 21L4 16.5V7.5Z', bg: '#E8F1FA', color: '#244E78' },
+  opencode: {
+    path: 'M9 4C7 4 7 6 7 8S7 11 5 12C7 13 7 14 7 16S7 20 9 20M15 4C17 4 17 6 17 8S17 11 19 12C17 13 17 14 17 16S17 20 15 20',
+    bg: '#EFE8FB',
+    color: '#5B3AA6',
+  },
   openai: { path: 'M12 3L20 7.5V16.5L12 21L4 16.5V7.5Z', bg: '#E6E9F5', color: '#5B5FA8' },
   gemini: {
     path: 'M12 2.5C12 8 16 12 21.5 12C16 12 12 16 12 21.5C12 16 8 12 2.5 12C8 12 12 8 12 2.5Z',
@@ -141,6 +165,8 @@ export const DEFAULT_LOOK: Record<AiProvider, { glyph: string; color: string }> 
   'claude-code': { glyph: 'asterisk', color: '#2E6F40' },
   anthropic: { glyph: 'asterisk', color: '#B4791E' },
   antigravity: { glyph: 'peak', color: '#2F6FB0' },
+  codex: { glyph: 'hex', color: '#244E78' },
+  opencode: { glyph: 'braces', color: '#5B3AA6' },
   openai: { glyph: 'hex', color: '#6D5DD3' },
   gemini: { glyph: 'spark', color: '#B0446E' },
   custom: { glyph: 'braces', color: '#5B6B60' },
@@ -400,6 +426,7 @@ const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean
   rate_limited: { dot: '#B4791E', text: '#B4571F' },
   paused: { dot: '#9AA8A0', text: '#5B6B60', square: true },
   paused_all: { dot: '#B4571F', text: '#B4571F', square: true },
+  not_ready: { dot: '#B4791E', text: '#7A5A06' },
   removing: { dot: '#9AA8A0', text: '#5B6B60' },
   removed: { dot: '#9AA8A0', text: '#9AA8A0' },
 };
@@ -622,7 +649,7 @@ export interface AiBoardState {
   /** Open a ticket. */
   openTicket?: (ticketId: string) => void;
   /** Open the AI page on one of its tabs (Inbox, Audit log, Usage, Safety). */
-  openAiTab?: (tab: 'approvals' | 'audit' | 'usage' | 'safety', opts?: { memberId?: string }) => void;
+  openAiTab?: (tab: 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety', opts?: { memberId?: string }) => void;
 }
 
 /** AI state of the open project, provided by App. */

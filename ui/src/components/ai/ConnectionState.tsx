@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
+import { useAiAccounts } from '../../api/aiAccounts';
 import { extractError } from '../../api/extractError';
 import type { AiMember, DetectResult } from '../../types/ai';
 import { useToast } from '../Toast';
 import { currentPerson } from '../assist/assistUi';
+import { displayStatus } from '../../utils/memberAccount';
+import { ChangeAccountDialog } from './accounts/AccountPicker';
+import { SignInWindow } from './accounts/SignInWindow';
 import { PROVIDERS, StatusLabel, fmtElapsed, inWords, money, secondsSince, shortDate, useNow, ago } from './aiUi';
 
 /** Where “Configuration” should put the cursor when a state's action sends the person there. */
@@ -110,6 +114,10 @@ export function ConnectionStateCard({
   const toast = useToast();
   const [steps, setSteps] = useState(false);
   const [busy, setBusy] = useState(false);
+  // E11: the member's account is signed out. The person signs it in here, or picks another account.
+  const [signingIn, setSigningIn] = useState(false);
+  const [choosing, setChoosing] = useState(false);
+  const accounts = useAiAccounts(member.projectId);
   // “for 3m 12s” keeps counting while it runs
   useNow(1000, member.status.code === 'running');
   const resume = useAiMutation(() => aiApi.resume(member.id));
@@ -129,7 +137,9 @@ export function ConnectionStateCard({
     }
   }
 
-  const st = member.status;
+  const st = displayStatus(member);
+  const accountOut = st.code === 'not_logged_in' && member.accountRef?.status === 'needs_sign_in';
+  const fullAccount = accounts.data?.accounts.find((a) => a.id === member.accountId);
   const spec = PROVIDERS[member.provider];
   const run = member.running.find((r) => r.state === 'running' || r.state === 'starting');
   const free = Math.max(0, member.maxParallel - member.slotsInUse);
@@ -169,6 +179,15 @@ export function ConnectionStateCard({
           action: { label: 'Show install & relaunch steps', testId: 'state-action-steps', run: () => setSteps(true) },
         };
       case 'not_logged_in':
+        if (accountOut)
+          return {
+            text: `The account ${member.accountRef!.name} is signed out, so this member and any others on it cannot run. Assigned tickets wait; held runs start again by themselves after sign-in. An AI cannot sign in; a person does it here.`,
+            action: {
+              label: 'Sign in again',
+              testId: 'state-action-sign-in',
+              run: () => setSigningIn(true),
+            },
+          };
         return {
           text: `The CLI is installed but its session expired. Run ${spec.binary ?? 'it'} in a terminal and sign in again; Kanban never asks for your login.`,
           action: { label: 'Check again', testId: 'state-action-check', run: () => check(false) },
@@ -222,6 +241,11 @@ export function ConnectionStateCard({
           text: 'AI is paused for this project. Nothing starts until someone resumes it from the banner.',
           action: null,
         };
+      case 'not_ready':
+        return {
+          text: `Runs don’t start yet for ${spec.label}. This AI member keeps its account; assigned tickets wait until runs are supported.`,
+          action: null,
+        };
       case 'inbox':
         return {
           text: 'Connects through MCP. The board cannot start it; it reads its inbox of assigned tickets and mentions itself.',
@@ -243,7 +267,7 @@ export function ConnectionStateCard({
         <div className="ai-label" style={{ marginBottom: 4 }}>
           Connection
         </div>
-        <StatusLabel status={st} sub={null} />
+        <StatusLabel status={accountOut ? { ...st, label: 'Needs sign-in' } : st} sub={null} />
         <div className="ai-hint" style={{ marginTop: 6 }} data-testid="connection-state-text">
           {copy.text}
         </div>
@@ -265,6 +289,13 @@ export function ConnectionStateCard({
           {busy && <span className="ai-spin" />} {copy.action.label}
         </button>
       )}
+      {accountOut && (
+        <button type="button" className="ai-btn" onClick={() => setChoosing(true)} data-testid="state-action-choose">
+          Choose another account
+        </button>
+      )}
+      {signingIn && fullAccount && <SignInWindow account={fullAccount} onClose={() => setSigningIn(false)} />}
+      {choosing && <ChangeAccountDialog members={[member]} onClose={() => setChoosing(false)} />}
       {steps && (
         <InstallStepsDialog member={member} onClose={() => setSteps(false)} onCheck={() => void check(false)} />
       )}

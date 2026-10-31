@@ -569,6 +569,44 @@ async def test_acts_are_refused_inside_an_ai_run_but_reads_work(env):
     assert names == {m["name"]}
 
 
+async def test_inside_a_run_the_project_is_the_runs_own_when_left_out(env):
+    ctx, pid, _, m, tid = await _ctx(env)
+    tokens = guard.enter(ctx)
+    try:
+        assert [x["id"] for x in await ai_team("members")] == [m["id"]]
+        assert (await ai_team("usage"))["totals"]
+    finally:
+        guard.leave(tokens)
+
+
+def test_the_run_tool_schema_spells_out_the_report_fields():
+    # a bare "object" gave Antigravity nothing to build and it sent nulls ("criteria.0 Input should be a valid dictionary")
+    from mcp.server.fastmcp.utilities.func_metadata import func_metadata
+
+    from kanban_mcp.tools.ai_run import ai_run
+
+    props = func_metadata(ai_run).arg_model.model_json_schema()["properties"]
+    item = next(b for b in props["criteria"]["anyOf"] if b.get("type") == "array")[
+        "items"
+    ]
+    assert set(item["properties"]) == {"text", "met", "evidence"}
+    assert item["required"] == ["text", "met"]
+    tests = next(b for b in props["tests"]["anyOf"] if b.get("type") == "object")
+    assert set(tests["properties"]) == {"passed", "failed"}
+
+
+async def test_the_run_tool_ignores_a_ticket_id_a_model_adds(env):
+    from kanban_mcp.tools.ai_run import ai_run
+
+    ctx, pid, _, m, tid = await _ctx(env)
+    tokens = guard.enter(ctx)
+    try:
+        out = await ai_run("report", summary="Done", ticket_id=tid)
+        assert out
+    finally:
+        guard.leave(tokens)
+
+
 async def test_a_run_reads_only_its_own_project_and_honours_read_permission(env):
     c = env["c"]
     ctx, pid, _, m, tid = await _ctx(env)

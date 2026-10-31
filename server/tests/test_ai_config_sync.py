@@ -55,11 +55,18 @@ def test_capability_matrix_follows_the_design():
         len([m for m in caps.values() if m != "not_supported"]) == 8
         and caps["tools"] == "not_supported"
     )
+    # The CLIs the board runs itself: everything goes in the prompt or on the command line, nothing is "documented"
     ag = providers.capabilities("antigravity")
     assert (
-        len([m for m in ag.values() if m != "not_supported"]) == 6
-        and ag["instructions"] == "documented"
+        len([m for m in ag.values() if m != "not_supported"]) == 4
+        and ag["instructions"] == "synced"
+        and ag["permissions"] == "synced"
+        and ag["skills"] == "not_supported"
     )
+    assert "documented" not in ag.values()
+    assert providers.capabilities("codex")["permissions"] == "not_supported"
+    assert providers.capabilities("opencode")["permissions"] == "synced"
+    assert providers.capabilities("codex")["model"] == "synced"
     api = providers.capabilities("anthropic")
     assert (
         api["tools"] == "synced"
@@ -73,6 +80,8 @@ def test_capability_matrix_follows_the_design():
     assert [a["key"] for a in matrix["adapters"]] == [
         "claude-code",
         "antigravity",
+        "codex",
+        "opencode",
         "api",
         "mcp-client",
     ]
@@ -453,81 +462,62 @@ async def test_run_writes_the_files_first_and_stops_on_a_conflict(env, monkeypat
 
 
 async def test_documented_items_tick_who_when_and_clear_on_change(env):
+    # Claude Code is the adapter that still has Documented items (the user-level CLAUDE.md)
     c = env["c"]
     pid, _ = await _project(c)
-    r = await c.post(
-        f"/projects/{pid}/ai/members",
-        json={
-            "name": "Antigravity · UI",
-            "provider": "antigravity",
-            "working_dir": env["repo"],
-            "config": {"instructions": "# UI rules\n- No new colors.\n"},
-        },
-    )
-    assert r.status_code == 201, r.text
-    mid = r.json()["id"]
+    mid = (await _runner(c, pid, env["repo"], name="Claude Code · UI"))["id"]
+    await _save(c, mid, user_instructions="# Mine\n- No new colors.\n")
     st = (await c.get(f"/ai/members/{mid}/config/status")).json()
-    assert st["declares"] == 6 and {d["key"] for d in st["documented"]} == {
-        "instructions",
-        "skills",
-        "permissions",
-        "model",
-    }
+    assert "user_instructions" in {d["key"] for d in st["documented"]}
     assert st["documented_done"] == 0
     await c.post(
         f"/ai/members/{mid}/config/tick",
-        json={"item": "instructions", "done": True},
+        json={"item": "user_instructions", "done": True},
         headers={"X-Actor": "An Nguyen"},
     )
     st = (await c.get(f"/ai/members/{mid}/config/status")).json()
-    rules = next(d for d in st["documented"] if d["key"] == "instructions")
+    rules = next(d for d in st["documented"] if d["key"] == "user_instructions")
     assert (
         rules["done"]
         and rules["by"] == "An Nguyen"
         and rules["at"]
         and st["documented_done"] == 1
     )
-    await _save(c, mid, instructions="# UI rules\n- Changed.\n")
+    await _save(c, mid, user_instructions="# Mine\n- Changed.\n")
     st = (await c.get(f"/ai/members/{mid}/config/status")).json()
-    rules = next(d for d in st["documented"] if d["key"] == "instructions")
+    rules = next(d for d in st["documented"] if d["key"] == "user_instructions")
     assert not rules["done"] and rules["stale"]
     bad = await c.post(f"/ai/members/{mid}/config/tick", json={"item": "nope"})
     assert bad.status_code == 422
 
 
-async def test_antigravity_mcp_sync_is_experimental_and_off_by_default(env):
-    c, repo = env["c"], Path(env["repo"])
+async def test_an_antigravity_config_saved_with_the_removed_keys_still_loads(env):
+    # `antigravity.sync_mcp` and `permission_notes` were removed (runs never read them); old data must not break
+    c = env["c"]
     pid, _ = await _project(c)
-    srv = [{"name": "figma", "type": "http", "url": "https://mcp.figma.example/mcp"}]
     r = await c.post(
         f"/projects/{pid}/ai/members",
         json={
             "name": "AG",
             "provider": "antigravity",
             "working_dir": env["repo"],
-            "config": {"mcp_servers": srv},
+            "config": {
+                "antigravity": {
+                    "sync_mcp": True,
+                    "mcp_target": ".agents/mcp_config.json",
+                },
+                "permission_notes": "Allow git status.",
+                "instructions": "# Rules",
+            },
         },
     )
+    assert r.status_code == 201, r.text
     mid = r.json()["id"]
-    assert (await _preview(c, mid))["files"] == []
     st = (await c.get(f"/ai/members/{mid}/config/status")).json()
-    assert any(
-        d["key"].startswith("mcp:") for d in st["documented"]
-    )  # off: documented steps
-    await _save(
-        c, mid, antigravity={"sync_mcp": True, "mcp_target": ".agents/mcp_config.json"}
-    )
-    assert (await _write(c, mid))["ok"]
-    assert json.loads((repo / ".agents/mcp_config.json").read_text())["mcpServers"][
-        "figma"
-    ]["url"].startswith("https://")
-    st = (await c.get(f"/ai/members/{mid}/config/status")).json()
-    assert not any(d["key"].startswith("mcp:") for d in st["documented"])
-    bad = await c.patch(
-        f"/ai/members/{mid}",
-        json={"config": {"antigravity": {"sync_mcp": True, "mcp_target": "../x"}}},
-    )
-    assert bad.status_code == 422
+    assert st["documented"] == []
+    pv = await _preview(c, mid)
+    assert pv["files"] == [] and pv["mode"] == "none"
+    assert (await c.get(f"/ai/members/{mid}")).status_code == 200
 
 
 async def test_export_has_no_secrets_import_previews_and_reset_can_be_undone(env):

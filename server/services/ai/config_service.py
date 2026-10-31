@@ -120,8 +120,6 @@ async def _specs(session, profile, cfg, state) -> tuple[list[cs.Spec], dict]:
         specs, notes = cs.desired_specs(
             cfg, _board_url(), loads(state.hooks_ok, {}), set(files)
         )
-    elif adapter == "antigravity":
-        specs, notes = cs.antigravity_specs(cfg), {"hooks_pending": False}
     else:
         return [], {"hooks_pending": False}
     have = {s.path for s in specs}
@@ -234,9 +232,7 @@ async def preview(
     files, conflicts = _describe_plan(plans, files_state, runner)
     adapter = adapter_of(profile.provider)
     return {
-        "mode": "synced"
-        if adapter == "claude-code"
-        else ("experimental" if adapter == "antigravity" else "none"),
+        "mode": "synced" if adapter == "claude-code" else "none",
         "runner": {k: v for k, v in runner.items() if k != "root"},
         "files": files,
         "conflicts": conflicts,

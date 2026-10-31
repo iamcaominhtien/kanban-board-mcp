@@ -1,0 +1,163 @@
+/* AI accounts on the member screens (design/screens/ai-accounts.md, D, E1-E3). Colours are the design's. */
+.acm-note {
+  padding: 10px 12px;
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid #c9ddf0;
+  background: #e8f1fa;
+}
+.acm-note-icon {
+  display: flex;
+  margin-top: 1px;
+  color: #244e78;
+}
+.acm-note-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.acm-note-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #244e78;
+}
+.acm-note-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+.acm-note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.acm-note-error {
+  border-color: #f0c4b8;
+  background: #fdf3f0;
+}
+.acm-note-error .acm-note-icon,
+.acm-note-error .acm-note-title {
+  color: #a5321e;
+}
+.acm-note-warn {
+  border-color: #f0dba8;
+  background: #fef6e7;
+}
+.acm-note-warn .acm-note-icon,
+.acm-note-warn .acm-note-title {
+  color: #7a5a06;
+}
+
+.acm-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.acm-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.acm-choice:hover {
+  border-color: #9cc9a8;
+}
+.acm-choice-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.acm-radio {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid #9aa8a0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.acm-choice-on .acm-radio {
+  border-color: #2e6f40;
+}
+.acm-radio > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2e6f40;
+  display: block;
+}
+.acm-choice-main {
+  flex: 1;
+  min-width: 0;
+}
+.acm-choice-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.acm-choice-sub {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+.acm-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1.5px dashed #9aa8a0;
+  border-radius: 10px;
+  color: #2f6fb0;
+  font-size: 13px;
+  font-weight: 600;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.acm-new:hover {
+  background: #f6faf7;
+}
+
+.acm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background: #f1f3f1;
+  color: #3a4a3e;
+}
+.acm-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.acm-warn-text {
+  color: #a5321e;
+}
+.acm-banner {
+  margin-bottom: 12px;
+}
+
+/* The AI list gets an Account column after Connection (design E1) */
+.ai-grid.acm-grid {
+  grid-template-columns: minmax(220px, 2.4fr) 110px 110px minmax(150px, 1.5fr) minmax(150px, 1.5fr) 100px 130px 28px;
+}

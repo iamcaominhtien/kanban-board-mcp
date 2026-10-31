@@ -1,4 +1,6 @@
-export type AiProvider = 'claude-code' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
+import type { MemberAccountRef } from './aiAccounts';
+export type AiProvider =
+  'claude-code' | 'codex' | 'opencode' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
 export type AiConnection = 'local' | 'api_key' | 'inbox';
 export type PermissionMode = 'allowed' | 'approval' | 'blocked';
 export type AiTemplate = 'developer' | 'reviewer' | 'read_only' | 'custom';
@@ -20,7 +22,9 @@ export interface AiStatus {
     | 'online'
     | 'inbox'
     | 'removing'
-    | 'removed';
+    | 'removed'
+    /** UI only: the type's runs do not start yet (Codex, opencode, Antigravity). */
+    | 'not_ready';
   label: string;
   detail: string | null;
   ticketId?: string;
@@ -115,6 +119,7 @@ export interface AiConfig {
   runTimeoutMin: number;
   idleTimeoutMin: number;
   compactAtPct: number;
+  compactAtTokens: number;
   permissionMode: 'allowlist' | 'bypass';
   maxSteps: number;
   maxTokensPerRun: number;
@@ -147,8 +152,6 @@ export interface AiConfig {
   customTools: AiCustomTool[];
   remoteMcp: AiRemoteMcp[];
   output: { includeUsage: boolean; moveBackOnFailure: boolean; commentFormat: 'short' | 'detailed' | 'plain' };
-  antigravity: { syncMcp: boolean; mcpTarget: string };
-  permissionNotes: string;
 }
 
 export interface AiMember {
@@ -200,6 +203,9 @@ export interface AiMember {
   retryAt: string | null;
   cliVersion: string | null;
   account: string | null;
+  /** The AI account this member runs as; null = the login already on this computer. */
+  accountId: string | null;
+  accountRef: MemberAccountRef | null;
   isBoardAi: boolean;
   status: AiStatus;
   running: {
