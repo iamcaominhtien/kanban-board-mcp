@@ -44,7 +44,7 @@ DEFAULTS: dict = {
     "max_risk": "medium",
     "approvals": True,
     "questions": True,
-    "grace_min": 2,
+    "grace_min": 0,
     "per_hour_limit": 20,
     "full_rights": False,
     "enabled_by": None,

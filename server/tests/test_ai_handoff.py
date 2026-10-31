@@ -317,3 +317,41 @@ async def test_an_ask_run_is_not_logged(env):
     ctx, _, _, _, own = await _ctx(env, mode="ask")
     await runs._end(ctx.run_id, "finished", None)
     assert (await c.get(f"/tickets/{own}")).json()["work_log"] == []
+
+
+async def _assign_by_edit(ctx, ticket_id, member_id):
+    from kanban_mcp.tools.tickets import manage_ticket
+
+    tokens = guard.enter(ctx)
+    try:
+        return await manage_ticket(
+            action="update", ticket_id=ticket_id, assignee=member_id
+        )
+    finally:
+        guard.leave(tokens)
+
+
+async def test_giving_a_ticket_to_an_ai_by_editing_it_starts_that_ai(env):
+    # a handoff written as "change the assignee" left the ticket waiting on an AI nobody started
+    c = env["c"]
+    ctx, pid, _, pm, own = await _ctx(env, template="custom")
+    rin = await _runner(c, pid, env["repo"], name="Reviewer Rin")
+    other = await _made_by(ctx, pid, "Review the brief")
+    await _assign_by_edit(ctx, other, rin["id"])
+    (run,) = await _runs(env, other)
+    assert (run.member_id, run.mode, run.trigger) == (rin["id"], "work", "handoff")
+    assert "assigned" in run.instruction
+    # the same edit again does not queue a second run for someone who is already on it
+    await _assign_by_edit(ctx, other, rin["id"])
+    assert len(await _runs(env, other)) == 1
+
+
+async def test_a_person_assigning_in_the_board_starts_nothing_here(env):
+    c = env["c"]
+    ctx, pid, _, pm, own = await _ctx(env, template="custom")
+    rin = await _runner(c, pid, env["repo"], name="Reviewer Rin")
+    other = await _made_by(ctx, pid, "Review the brief")
+    from kanban_mcp.tools.tickets import manage_ticket
+
+    await manage_ticket(action="update", ticket_id=other, assignee=rin["id"])
+    assert await _runs(env, other) == []

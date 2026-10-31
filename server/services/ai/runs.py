@@ -3814,6 +3814,72 @@ async def record_handoff(
     }
 
 
+async def wake_new_assignee(ticket_id: str, assignee_id: str) -> None:
+    """An AI run assigned a ticket to another AI member by editing it (or a person approved that edit). A ticket
+    handed over is only handed over when the receiver starts, as `ai_run(handoff)` does; without it the ticket waits on
+    someone who is never started and nothing on the board says so. Queues their work run, behind this one."""
+    from . import guard
+
+    ctx = guard.current()
+    if ctx is None or ctx.mode == "ask" or assignee_id == ctx.member_id:
+        return
+    async with database.async_session() as session:
+        ticket = await session.get(Ticket, ticket_id)
+        member = await session.get(Member, assignee_id)
+        profile = await session.get(AiMember, assignee_id)
+        if (
+            ticket is None
+            or ticket.project_id != ctx.project_id
+            or member is None
+            or member.kind != "ai"
+            or profile is None
+            or profile.connection == "inbox"
+            or profile.paused
+            or (await get_settings(session, ctx.project_id)).paused_all
+            or await active_runs(session, member_id=assignee_id, ticket_id=ticket_id)
+        ):
+            return
+        mine = await session.get(AiRun, ctx.run_id) if ctx.run_id else None
+        if ticket_id != ctx.ticket_id:
+            back = {"member_id": ctx.member_id, "ticket_id": ctx.ticket_id}
+        else:
+            # the sender's own duty passes along with the baton, as in a handoff
+            back = loads(mine.report_back, None) if mine else None
+            if mine is not None and back:
+                mine.report_back = None
+                session.add(mine)
+        try:
+            run = await create_run(
+                session,
+                ticket_id=ticket_id,
+                member_id=assignee_id,
+                mode="work",
+                trigger="handoff",
+                started_by=ctx.on_behalf_of,
+                instruction=f"{ctx.member_name} assigned {ticket_id} to you. Read the ticket and its comments, then do the work.",
+                chain=[*ctx.chain, ctx.member_id],
+                wait_for_hold=True,
+                report_back=back,
+            )
+        except RunError as exc:
+            await session.rollback()
+            logger.info(
+                "Assigning %s to %s started nothing: %s", ticket_id, member.name, exc
+            )
+            return
+    await audit.record(
+        ctx.project_id,
+        "handoff",
+        "allowed",
+        member_id=ctx.member_id,
+        member_name=ctx.member_name,
+        on_behalf_of=ctx.on_behalf_of,
+        run_id=ctx.run_id,
+        target=ticket_id,
+        detail={"to": member.name, "run": run.number, "via": "assignee"},
+    )
+
+
 def _clean_tests(tests) -> dict | None:
     """The agent's claim about tests, reduced to {passed, failed, lint, failing[]}."""
     if not isinstance(tests, dict):

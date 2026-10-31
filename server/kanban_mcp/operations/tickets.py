@@ -471,10 +471,14 @@ async def update_ticket(
         if "assignee" in update_data
         else ai_runs._UNSET,
     )
-    return await _edit_ticket(
+    out = await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.update_ticket(s, ticket_id, TicketUpdate(**update_data)),
     )
+    if update_data.get("assignee"):
+        # an AI that gives a ticket to another AI has handed it over: the receiver is started
+        await ai_runs.wake_new_assignee(ticket_id, update_data["assignee"])
+    return out
 
 
 @notify_on_success
