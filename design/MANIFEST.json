@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793406673-3d1f",
+  "canvas_version": "1793424114-497f",
   "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
@@ -562,6 +562,22 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 7445
+    },
+    "AiTimeline.dc.html": {
+      "bytes": 124741,
+      "sha256": "7fab94cba4f5eceb5b6666f89d1f403bcebfca4f56dfcf732ae41e53a185c1cc",
+      "title": "AI Team — Flow: the Timeline view",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 4307
+    },
+    "AiTimelineCases.dc.html": {
+      "bytes": 142544,
+      "sha256": "60c8787c1aab4787cc3456186ea3b9db440542b6cce53d9d5f919fa320c33edf",
+      "title": "AI Team — Timeline: time, scope, motion, states",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 6015
     }
   }
 }
