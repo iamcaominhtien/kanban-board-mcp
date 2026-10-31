@@ -11,6 +11,21 @@ function looksLikeDrawio(xml: string): boolean {
   return /<(mxfile|mxGraphModel)[\s>]/.test(xml);
 }
 
+const XML_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+
+/** The `content` attribute of the root `<svg>` tag (where draw.io keeps its XML), read without parsing the file as HTML. */
+function svgContentAttribute(text: string): string | null {
+  const tag = /<svg\b[^>]*>/i.exec(text)?.[0];
+  const raw = tag ? /\scontent\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(tag) : null;
+  const value = raw ? (raw[1] ?? raw[2] ?? '') : null;
+  if (value === null) return null;
+  return value.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_, e: string) => {
+    if (e[0] !== '#') return XML_ENTITIES[e.toLowerCase()];
+    const code = e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+    return code <= 0x10ffff ? String.fromCodePoint(code) : '';
+  });
+}
+
 /**
  * Read a `.drawio`, `.xml` or `.svg` file chosen or dropped by the person and return the draw.io XML.
  * An SVG must be one exported by draw.io with its data included (it carries the XML in `content`).
@@ -20,8 +35,7 @@ export async function readDiagramFile(file: File): Promise<string> {
   if (file.size > MAX_IMPORT_BYTES) throw new DiagramFileError('That file is too large to import.');
   const text = await file.text();
   if (/\.svg$/i.test(file.name) || /^\s*<svg[\s>]/i.test(text) || /^\s*<\?xml[^>]*\?>\s*<svg[\s>]/i.test(text)) {
-    const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
-    const content = doc.documentElement.getAttribute('content');
+    const content = svgContentAttribute(text);
     if (!content || !looksLikeDrawio(content)) {
       throw new DiagramFileError(
         'This SVG has no draw.io data. Export it from draw.io with "Include a copy of my diagram" ticked.',
