@@ -48,14 +48,35 @@ AI members can share one. Design: `design/screens/ai-accounts.md`. Related: `des
   websites (origin check). There is no tool or route an AI member can use. Output is kept in memory so a window can attach
   again and is never logged or stored; closing the window or stopping the board stops the CLI.
 
+## Codex, opencode and Antigravity runs
+
+Members of these types work a ticket like a Claude Code member (`server/services/ai/adapters.py`; the lifecycle is
+the same code in `runs.py`). Each adapter says how to start the CLI headless, how to read its output into steps,
+files and a summary (tested on streams captured from the real CLIs, `server/tests/fixtures/real/`), and how to ask
+whether it is signed in. The board never passes a flag that skips a CLI's permission checks.
+
+| | Command | Permissions | Board MCP |
+| --- | --- | --- | --- |
+| Codex | `codex exec [resume <id>] --json -s <sandbox>` | `read-only` for a question or safe mode, else `workspace-write`; the Allow/Deny tool rules cannot be expressed and are not applied (a first step says so) | `-c mcp_servers.kanban.url` with the token in `KANBAN_RUN_TOKEN` |
+| opencode | `opencode run --format json [-s <id>]` | `permission` map in `OPENCODE_CONFIG_CONTENT`: deny everything, then the Allow rules, then the Deny rules; edits denied for a question | the same variable, with the token in the header |
+| Antigravity | `agy -p --output-format stream-json --mode accept-edits` (`plan` for a question) | Allow rules as `command(...)` rules in `--settings`, plus read-only commands; the board's MCP and a few folders are allowed | a stdio bridge (`mcp_bridge.py`, entry `mcp_stdio.py --bridge`) named in the account's `mcp_config.json`; it reads the token from the environment of the run |
+
+- The run's token is never on a command line or in a shared file.
+- **Antigravity** needs an AI account (its MCP servers live in the account's HOME; without one that file would be the
+  person's own). Its headless mode ends the run at the first action that no rule allows: the run then fails with the
+  reason instead of finishing empty, and a member that keeps failing is auto-paused as usual. The run is told to stay
+  inside the working folder and to use only test commands, `ls`, `cat` and `git`. The Allow rules are the way to give it
+  more; a pre-approved command set is not a sandbox.
+- Codex and Antigravity do not report changed-line counts, so a changed file shows `+0 -0`.
+- Found by running each one against a live board with the three CLIs on this computer (Codex and Antigravity with an
+  account, opencode with a free model): each worked a ticket to Review through the board's MCP tools.
+
 ## Not done yet
 
-- **Runs for Codex, opencode and Antigravity.** Members of these types can be made and given an account (the design shows a
-  *Not ready* chip), but their runs do not start. Each needs a runner like the Claude Code one (headless command, output
-  parser, MCP and permission mapping). Antigravity: `agy -p` with `--output-format stream-json` exists.
 - **Linux and Windows** were not tried with real logins. The profile approach follows the vendors' documentation; see
   `.claude/scripts/ai_profile.md`. Antigravity accounts are refused on Windows (its login belongs to the Windows user).
-  The embedded terminal needs ConPTY on Windows (not built; the fallback command is shown instead).
+  The embedded terminal needs ConPTY on Windows (not built; the fallback command is shown instead). Long prompts on
+  Windows go over the command-line limit for the three new CLIs (Claude Code spills them to stdin).
 - **Moving an existing login** ("Move to an account") signs in again in the new account's folder; it does not copy the old
   token.
 - **Desktop (system) notification** for a signed-out account: the board shows one banner per account and one toast when an
