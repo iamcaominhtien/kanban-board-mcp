@@ -82,3 +82,13 @@ def _app_config_in_a_temp_folder(monkeypatch, tmp_path_factory):
     folder = tmp_path_factory.mktemp("app-config")
     monkeypatch.setattr(config, "_CONFIG_DIR", folder)
     monkeypatch.setattr(config, "_CONFIG_FILE", folder / "config.json")
+
+
+@pytest.fixture(autouse=True)
+def _resource_monitor_starts_empty():
+    """The RAM/CPU monitor is process-wide; every test starts without readings, watchers or a running loop."""
+    from services.ai import resources
+
+    resources.MON.reset()
+    yield
+    resources.MON.reset()

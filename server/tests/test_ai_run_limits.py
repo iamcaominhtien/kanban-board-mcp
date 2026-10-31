@@ -1,39 +1,47 @@
-"""How much of the machine a CLI may use: it runs at a low priority on macOS when asked and is stopped when it grows past a
-memory limit (some CLI versions leak many GB)."""
+"""RAM and CPU of AI runs: the monitor's readings, the memory limit that restarts a run's CLI inside the same run (twice)
+and then stops it, a person's Restart, the Resources snapshot and the access level of the resource tools."""
 
+import asyncio
+import json
 import subprocess
 import sys
+import time
 
 import pytest
 
-from services.ai import cli, runs
+from kanban_mcp.operations import ai_team as ai_ops
+from models import AiMember, AiProjectSettings, AiRun
+from services.ai import guard, resources
+from services.ai.context import RunContext
 from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
-from tests.test_ai_ticket_work import _assign
+from tests.test_ai_ticket_work import _assign, _runs, _until
 
 AN = {"X-Actor": "An Nguyen"}
 
 
-def test_low_priority_is_opt_in_and_macos_only(monkeypatch):
-    monkeypatch.delenv("KANBAN_CLI_LOW_PRIORITY", raising=False)
-    assert cli.low_priority_prefix() == []
-    monkeypatch.setenv("KANBAN_CLI_LOW_PRIORITY", "1")
-    if sys.platform == "darwin":
-        assert cli.low_priority_prefix()[-1] == "-b"
-    else:
-        assert cli.low_priority_prefix() == []
+@pytest.fixture
+def quick_monitor(monkeypatch):
+    monkeypatch.setattr(resources, "SAMPLE_S", 0.15)
+    monkeypatch.setattr(resources, "HISTORY_EVERY_S", 0.1)
 
 
-def test_the_memory_limit_defaults_and_can_be_changed(monkeypatch):
-    monkeypatch.delenv("KANBAN_RUN_MAX_RSS_MB", raising=False)
-    assert cli.run_memory_limit_mb() == 4096
-    monkeypatch.setenv("KANBAN_RUN_MAX_RSS_MB", "512")
-    assert cli.run_memory_limit_mb() == 512
-    monkeypatch.setenv("KANBAN_RUN_MAX_RSS_MB", "lots")
-    assert cli.run_memory_limit_mb() == 4096
+async def _set_limit(env, project_id, mb):
+    async with env["maker"]() as s:
+        row = await s.get(AiProjectSettings, project_id)
+        if row is None:
+            row = AiProjectSettings(project_id=project_id)
+        row.run_memory_limit_mb = mb
+        s.add(row)
+        await s.commit()
+    resources.MON.limit_changed(project_id)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="reads `ps`")
-def test_tree_memory_counts_the_children_too():
+async def _run_row(env, run_id) -> AiRun:
+    async with env["maker"]() as s:
+        return await s.get(AiRun, run_id)
+
+
+def test_read_run_counts_the_cli_and_what_it_started_apart():
     code = (
         "import subprocess, sys, time\n"
         "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])\n"
@@ -41,33 +49,175 @@ def test_tree_memory_counts_the_children_too():
     )
     parent = subprocess.Popen([sys.executable, "-c", code])
     try:
-        import time
-
         deadline = time.time() + 10
-        used = None
+        reading = None
         while time.time() < deadline:
-            used = cli.tree_rss_mb(parent.pid)
-            alone = cli.tree_rss_mb(parent.pid)
-            if used and alone:
+            reading = resources.read_run(parent.pid)
+            if reading and reading["extra_mb"]:
                 break
             time.sleep(0.2)
-        # two Python processes: more than one of them could hold
-        assert used is not None and used > 5
+        assert reading["readable"] and reading["cli_rss_mb"] > 3
+        assert reading["extra_mb"] > 3  # the child is not part of the CLI's number
     finally:
-        cli.kill_tree(parent.pid)
+        parent.kill()
         parent.wait()
-    assert cli.tree_rss_mb(parent.pid) is None  # gone
+    assert resources.read_run(parent.pid) is None  # gone
 
 
-async def test_a_run_that_passes_the_memory_limit_is_stopped(env, monkeypatch):
+def test_machine_numbers_are_there():
+    machine = resources.read_machine()
+    assert (
+        machine["ram_total_mb"] > machine["ram_free_mb"] > 0 and machine["cores"] >= 1
+    )
+
+
+async def test_a_run_over_the_limit_restarts_in_the_same_run_twice_then_stops(
+    env, monkeypatch, quick_monitor
+):
     c = env["c"]
     monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")  # a CLI that never ends by itself
-    monkeypatch.setenv("KANBAN_RUN_MAX_RSS_MB", "1")  # any process is over this
-    monkeypatch.setattr(runs, "MEMORY_CHECK_S", 0.2)
+    pid, _ = await _project(c)
+    await _set_limit(env, pid, 1)  # any process is over 1 MB
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    run = await _wait(c, tid, ("failed",), timeout=40)
+    assert run["stop_code"] == "memory"
+    assert "Stopped automatically" in run["ended_reason"]
+    assert [r["by"] for r in run["restarts"]] == ["system", "system"]
+    assert [r["n"] for r in run["restarts"]] == [1, 2]
+    assert all(r["limit_mb"] == 1 and r["rss_mb"] > 1 for r in run["restarts"])
+    texts = [s["text"] for s in run["steps"]]
+    assert sum(t.startswith("Restarted automatically") for t in texts) == 2
+    assert run["peak_rss_mb"] and run["peak_rss_mb"] > 1  # kept with the run
+
+
+async def test_a_person_can_restart_a_running_run(env, monkeypatch, quick_monitor):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")
+    pid, _ = await _project(c)
+    await _set_limit(env, pid, 0)  # no limit
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    run = await _wait(c, tid, ("running",))
+    first_pid = (await _run_row(env, run["id"])).pid
+    r = await c.post(f"/ai/runs/{run['id']}/restart", headers=AN)
+    assert r.status_code == 200 and r.json() == {"restarting": True}
+
+    async def restarted():
+        row = (await _runs(c, tid))[0]
+        return row if row["restarts"] and row["state"] == "running" else None
+
+    row = await _until(restarted)
+    assert row["restarts"][0]["by"] == "An Nguyen" and row["restarts"][0]["n"] == 1
+    assert (
+        await _run_row(env, run["id"])
+    ).pid != first_pid  # a new CLI process, the same run
+    assert row["id"] == run["id"] and row["number"] == run["number"]
+
+
+async def test_restart_needs_a_running_run(env):
+    c = env["c"]
     pid, _ = await _project(c)
     m = await _runner(c, pid, env["repo"])
     tid = await _ticket(c, pid)
     await _assign(c, tid, m["id"])
-    run = await _wait(c, tid, ("failed",))
-    assert "Stopped: the CLI was using" in run["ended_reason"]
-    assert "limit" in run["ended_reason"]
+    run = await _wait(c, tid, ("finished",))
+    r = await c.post(f"/ai/runs/{run['id']}/restart", headers=AN)
+    assert r.status_code == 409 and "only a running run" in r.json()["detail"].lower()
+
+
+async def test_the_snapshot_has_the_machine_and_the_live_runs(
+    env, monkeypatch, quick_monitor
+):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")
+    pid, _ = await _project(c)
+    await _set_limit(env, pid, 0)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    run = await _wait(c, tid, ("running",))
+
+    async def read():
+        snap = (await c.get(f"/projects/{pid}/ai/resources")).json()
+        row = next((r for r in snap["runs"] if r["run_id"] == run["id"]), None)
+        return snap if row and row["cli_rss_mb"] and row["history"] else None
+
+    snap = await _until(read)
+    row = snap["runs"][0]
+    assert row["live"] and row["readable"] and row["member_name"] == m["name"]
+    assert row["ticket_id"] == tid and row["peak_rss_mb"] >= row["cli_rss_mb"] > 0
+    assert snap["machine"]["cli_count"] == 1 and snap["machine"]["ram_total_mb"] > 0
+    assert snap["limits"]["auto_restarts"] == 2 and snap["my_role"]
+
+
+async def test_the_memory_limit_setting_is_checked(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    r = await c.patch(f"/projects/{pid}/ai/settings", json={"run_memory_limit_mb": 100})
+    assert r.status_code == 422
+    for ok in (0, 2048):
+        r = await c.patch(
+            f"/projects/{pid}/ai/settings", json={"run_memory_limit_mb": ok}
+        )
+        assert r.status_code == 200 and r.json()["run_memory_limit_mb"] == ok
+
+
+async def test_access_to_the_resource_tools_is_set_per_member_by_an_owner_or_admin(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    assert m["resource_access"] == "none"
+    r = await c.patch(f"/ai/members/{m['id']}", json={"resource_access": "control"})
+    assert r.status_code == 200 and r.json()["resource_access"] == "control"
+    r = await c.patch(f"/ai/members/{m['id']}", json={"resource_access": "everything"})
+    assert r.status_code in (400, 422)
+
+
+async def _inside_run_of(env, member_id, project_id, ticket_id, run_id="run_x"):
+    ctx = RunContext(run_id, member_id, "AI", project_id, ticket_id, "x", "work")
+    return guard.enter(ctx)
+
+
+async def test_an_ai_run_sees_and_acts_only_as_far_as_its_access(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+
+    async def set_level(level):
+        async with env["maker"]() as s:
+            row = await s.get(AiMember, m["id"])
+            row.resource_access = level
+            s.add(row)
+            await s.commit()
+
+    tokens = await _inside_run_of(env, m["id"], pid, tid)
+    try:
+        with pytest.raises(ValueError, match="not turned on"):
+            await ai_ops.resources(pid)
+        await set_level("view")
+        snap = await ai_ops.resources(pid)
+        assert "machine" in snap and all("history" not in r for r in snap["runs"])
+        with pytest.raises(ValueError, match="look at the resources"):
+            await ai_ops.restart("run_other")
+        await set_level("control")
+        with pytest.raises(ValueError, match="own run"):
+            await ai_ops.cancel("run_x")
+    finally:
+        guard.leave(tokens)
+    # outside an AI run (a person, or an AI of your own over MCP) the tools work with the person's rights
+    assert "machine" in await ai_ops.resources(pid)
+
+
+async def test_the_stream_sends_a_snapshot_first(env):
+    pid, _ = await _project(env["c"])
+    queue = resources.MON.subscribe(pid)
+    try:
+        snap = await asyncio.wait_for(queue.get(), 5)
+        assert snap["machine"]["cores"] >= 1 and snap["runs"] == []
+    finally:
+        resources.MON.unsubscribe(pid, queue)
+    assert json.dumps(snap)  # plain JSON

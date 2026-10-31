@@ -5,17 +5,19 @@ import { NowTab, type NowActions } from './NowTab';
 import { FlowTab } from './FlowTab';
 import { HealthTab } from './HealthTab';
 import { SteppedInTab } from './SteppedInTab';
+import { ResourcesTab } from './ResourcesTab';
 import { Icon, ICONS } from './teamUi';
 import { OPEN_TIMELINE_EVENT, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
 
-type Tab = 'now' | 'flow' | 'stepped' | 'health';
+type Tab = 'now' | 'flow' | 'stepped' | 'health' | 'resources';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
   { id: 'flow', label: 'Flow' },
   { id: 'stepped', label: 'You stepped in' },
   { id: 'health', label: 'Health' },
+  { id: 'resources', label: 'Resources' },
 ];
 
 interface Props {
@@ -51,6 +53,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
     flow: '7d',
     stepped: '7d',
     health: '7d',
+    resources: 'today',
   });
   const range = ranges[tab];
   const setRange = (r: TeamRange) => setRanges({ ...ranges, [tab]: r });
@@ -61,6 +64,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
     onOpenMember,
     onOpenDocsPage,
     onSeeFlow: () => setTab('flow'),
+    onSeeResources: () => setTab('resources'),
   };
   const updated = dataUpdatedAt ? Math.max(0, Math.round((Date.now() - dataUpdatedAt) / 1000)) : null;
 
@@ -91,6 +95,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
         <span style={{ flex: 1 }} />
         <select
           className="at-range"
+          hidden={tab === 'resources'}
           value={range}
           onChange={(e) => setRange(e.target.value as TeamRange)}
           aria-label="Range"
@@ -127,6 +132,8 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
             },
           }}
         />
+      ) : tab === 'resources' ? (
+        <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />
       ) : tab === 'stepped' ? (
         <SteppedInTab
           projectId={projectId}

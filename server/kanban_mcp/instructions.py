@@ -35,10 +35,10 @@ stores it (with the `version` you got as base_version). docs_write(diagram_creat
 Work on one as files: docs_read(sketch) writes its PNG and editable .sketch.json (layers, at most 4096 px, 10 layers, 10 MB), \
 docs_write(sketch_save) stores a new PNG (+ source) with the `version` you read as base_version; docs_write(sketch_create) makes a new one \
 for a ticket or Docs page from a PNG (put the returned `markdown` line on its own line in the text).
-- AI team: ai_team looks at the board's AI members (members, member, usage, runs, run, approvals, docs_jobs) and acts on them \
-(ask, cancel, retry, answer, pause, resume, create_member, update_member). An @mention in a comment posted through MCP does NOT wake \
+- AI team: ai_team looks at the board's AI members (members, member, usage, runs, run, approvals, docs_jobs, resources: RAM and CPU of the running AIs and the machine) and acts on them \
+(ask, cancel, restart (a run's CLI starts again in the same run), retry, answer, pause, resume, create_member, update_member). An @mention in a comment posted through MCP does NOT wake \
 an AI: use ai_team(action='ask', member_id, text, ticket_id) (intent 'work' to assign it the ticket). Approvals are decided by a person \
-in the board, never over MCP; inside an AI run only the read actions work.
+in the board, never over MCP; inside an AI run only the read actions work (resources needs the member's Resource tools set to View; restart and cancel need Control).
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions

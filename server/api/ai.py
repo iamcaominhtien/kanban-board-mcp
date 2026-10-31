@@ -1,5 +1,6 @@
 """REST API of AI members, their runs on tickets, approvals, the audit log and the kill switch."""
 
+import asyncio
 import csv
 import io
 import json
@@ -8,7 +9,7 @@ import sys
 from typing import Annotated, Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -26,6 +27,7 @@ from services.ai import autopilot, autotrip, budget, safety
 from services.ai import usage as svc_usage
 from services.ai import mentions as svc_mentions
 from services.ai import permissions as perms
+from services.ai import resources as svc_resources
 from services.ai import runs as svc_runs
 from services.ai import flow_view as svc_flow
 from services.ai import timeline as svc_timeline
@@ -87,6 +89,7 @@ def _settings_dict(s) -> dict:
         "approval_expiry_hours": s.approval_expiry_hours,
         "board_tokens_per_day": s.board_tokens_per_day,
         "board_max_parallel": s.board_max_parallel,
+        "run_memory_limit_mb": s.run_memory_limit_mb,
         "board_runs_per_day": s.board_runs_per_day,
         "board_at_cap": s.board_at_cap,
         "approval_on_expiry": s.approval_on_expiry,
@@ -254,6 +257,7 @@ class AiMemberBody(BaseModel):
     api_key: Optional[str] = None
     persona: Optional[str] = None
     max_parallel: Optional[int] = None
+    resource_access: Optional[str] = None  # none | view | control
     daily_budget: Optional[float] = None
     monthly_cap: Optional[float] = None
     max_runs_per_day: Optional[int] = None
@@ -841,6 +845,7 @@ class SettingsBody(BaseModel):
     approval_expiry_hours: Optional[int] = None
     board_tokens_per_day: Optional[int] = None
     board_max_parallel: Optional[int] = None
+    run_memory_limit_mb: Optional[int] = None  # 0 = no limit
     board_runs_per_day: Optional[int] = None
     board_at_cap: Optional[str] = None
     approval_on_expiry: Optional[str] = None
@@ -929,6 +934,13 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
                 status_code=422,
                 detail=f"{key.replace('_', ' ').capitalize()}: {lo} to {hi}.",
             )
+    if data.get("run_memory_limit_mb") is not None and not (
+        data["run_memory_limit_mb"] == 0 or 256 <= data["run_memory_limit_mb"] <= 262144
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Memory limit per run: 256 MB to 256 GB, or 0 for no limit.",
+        )
     if "auto_trip" in data:
         try:
             patch = autotrip.validate(data["auto_trip"] or [])
@@ -995,6 +1007,8 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
     session.add(settings)
     await session.commit()
     await session.refresh(settings)
+    if "run_memory_limit_mb" in data:
+        svc_resources.MON.limit_changed(project_id)
     new = _settings_dict(settings)
     await svc_audit.record(
         project_id,
@@ -1404,6 +1418,58 @@ async def post_cancel(run_id: str, body: ReasonBody, session: Session) -> dict:
     async with database.async_session() as fresh_session:
         fresh = await fresh_session.get(AiRun, run.id)
         return (await svc_runs.runs_to_dicts(fresh_session, [fresh]))[0]
+
+
+@router.post("/ai/runs/{run_id}/restart")
+async def post_restart(run_id: str, session: Session) -> dict:
+    """Start a running run's CLI again inside the same run (it resumes its conversation; memory is released)."""
+    run = await session.get(AiRun, run_id)
+    if (
+        run is not None
+        and await safety.role_name(session, run.project_id, _by()) == "viewer"
+    ):
+        raise HTTPException(status_code=403, detail="You can look, not act.")
+    try:
+        await svc_runs.restart_run(run_id, by=_by())
+    except svc_runs.RunError as exc:
+        _err(exc, 409)
+    return {"restarting": True}
+
+
+@router.get("/projects/{project_id}/ai/resources")
+async def get_resources(project_id: str, session: Session) -> dict:
+    """RAM and CPU of the running AIs and of the machine, with their short history."""
+    await _project(session, project_id)
+    snap = await svc_resources.snapshot(project_id)
+    snap["my_role"] = await safety.role_name(session, project_id, _by())
+    return snap
+
+
+@router.get("/projects/{project_id}/ai/resources/stream")
+async def stream_resources(project_id: str, session: Session) -> StreamingResponse:
+    """The same snapshot every 2 s as Server-Sent Events, for as long as the page is open."""
+    await _project(session, project_id)
+    role = await safety.role_name(session, project_id, _by())
+    queue = svc_resources.MON.subscribe(project_id)
+
+    async def generator():
+        try:
+            first = await svc_resources.snapshot(project_id)
+            yield f"data: {json.dumps({**first, 'my_role': role})}\n\n"
+            while True:
+                try:
+                    snap = await asyncio.wait_for(queue.get(), timeout=20.0)
+                    yield f"data: {json.dumps({**snap, 'my_role': role})}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+        finally:
+            svc_resources.MON.unsubscribe(project_id, queue)
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 class RetryBody(BaseModel):

@@ -24,6 +24,8 @@ AI_TEAM_OPS: dict[str, Op] = {
         ("member_id", "text"),
         ("ticket_id", "page_id", "thread_id", "intent"),
     ),
+    "resources": Op(ops.resources, ("project_id",)),
+    "restart": Op(ops.restart, ("run_id",)),
     "cancel": Op(ops.cancel, ("run_id",), ("text",)),
     "retry": Op(ops.retry, ("run_id",)),
     "answer": Op(ops.answer, ("run_id", "text")),
@@ -34,7 +36,18 @@ AI_TEAM_OPS: dict[str, Op] = {
     "endpoints": Op(ops.endpoints, (), ("text",)),
     "api": Op(ops.api, ("path",), ("fields",), {"fields": "body"}),
 }
-READS = {"members", "member", "usage", "runs", "run", "approvals", "docs_jobs"}
+READS = {
+    "members",
+    "member",
+    "usage",
+    "runs",
+    "run",
+    "approvals",
+    "docs_jobs",
+    "resources",
+}
+# Allowed inside an AI run when its member's "Resource tools" setting is Control (checked in the operation)
+RUN_CONTROL = {"restart", "cancel"}
 
 
 async def ai_team(
@@ -46,7 +59,9 @@ async def ai_team(
         "run",
         "approvals",
         "docs_jobs",
+        "resources",
         "ask",
+        "restart",
         "cancel",
         "retry",
         "answer",
@@ -103,15 +118,17 @@ async def ai_team(
         ),
     ] = None,
 ) -> dict | list:
-    """AI team: read members, runs, usage, approvals; ask wakes an AI (an @mention via MCP does
-    not); cancel, retry, answer runs; pause, resume, create_member, update_member (no keys, folders, Bypass, ceiling
+    """AI team: read members, runs, usage, approvals, resources; ask wakes an AI (an @mention via MCP does
+    not); cancel, restart, retry, answer runs; pause, resume, create_member, update_member (no keys, folders, Bypass, ceiling
     past Review; approvals: in the board). With "Full control over MCP" on in Settings: endpoints lists
     and api calls AI endpoints as the person. Not in AI runs."""
     from services.ai import guard
 
     if action not in READS and await guard.resolve() is not None:
-        raise ValueError(
-            "An AI run cannot start AIs or change AI members or runs; a person does."
-        )
+        # inside an AI run only a member with the Resource tools set to Control may restart or stop runs
+        if action not in RUN_CONTROL or await ops._resource_level() != "control":
+            raise ValueError(
+                "An AI run cannot start AIs or change AI members or runs; a person does."
+            )
     given = params_of({k: v for k, v in locals().items() if k != "guard"})
     return await dispatch("ai_team", AI_TEAM_OPS, action, given)

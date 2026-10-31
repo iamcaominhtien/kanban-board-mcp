@@ -1,5 +1,7 @@
 /** The AI Team view, Now tab (GET /projects/{id}/ai/team/now; keys are camel-cased by the API client). */
 
+import type { CardMemory } from './aiResources';
+
 export type TeamRange = 'today' | '7d' | '30d';
 
 export type CardState = 'working' | 'waiting' | 'queued' | 'paused' | 'offline' | 'idle';
@@ -53,6 +55,8 @@ export interface TeamCard {
         limitMin: number | null;
         paused: boolean;
         question: { text: string; askedAt: string | null; options: unknown[] } | null;
+        /** RAM and CPU of its CLI right now (null before the first reading). */
+        memory: CardMemory | null;
       })
     | null;
   queued: RunRef[];

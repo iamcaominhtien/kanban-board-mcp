@@ -44,6 +44,8 @@ const ACTIONS = [
   'resume_all',
   'member_updated',
   'autopilot_decision',
+  'run_restarted',
+  'run_stopped_memory',
 ];
 const DATES = [
   ['today', 'Today'],

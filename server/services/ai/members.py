@@ -411,6 +411,19 @@ async def update(
             raise AiPermissionDenied(
                 "Only the project owner can switch to the Custom template."
             )
+    if data.get("resource_access") is not None:
+        if data["resource_access"] not in ("none", "view", "control"):
+            raise AiMemberError("Resource tools: none, view or control.")
+        if data["resource_access"] != profile.resource_access:
+            if role not in ("owner", "admin"):
+                raise AiPermissionDenied(
+                    "Only owners and admins can change access to the resource tools."
+                )
+            changes["resource_access"] = [
+                profile.resource_access,
+                data["resource_access"],
+            ]
+            profile.resource_access = data["resource_access"]
     merged = {
         "tokens_per_day": data.get("tokens_per_day", profile.tokens_per_day),
         "cap_per_run": data.get("cap_per_run", profile.cap_per_run),
@@ -1419,6 +1432,7 @@ async def describe(
         "key_last4": profile.key_last4,
         "persona": profile.persona,
         "max_parallel": profile.max_parallel,
+        "resource_access": profile.resource_access,
         "daily_budget": profile.daily_budget,
         "monthly_cap": profile.monthly_cap,
         "max_runs_per_day": profile.max_runs_per_day,

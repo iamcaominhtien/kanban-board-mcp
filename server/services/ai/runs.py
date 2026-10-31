@@ -46,6 +46,7 @@ from . import (
     cli,
     config_service,
     guard,
+    resources,
     safety,
 )
 from .mcp_sources import folder_servers
@@ -113,6 +114,8 @@ class _Runtime:
         self.procs: dict[str, cli.CliProcess] = {}
         self.tasks: dict[str, asyncio.Task] = {}
         self.cancelled: set[str] = set()
+        # run id -> {by, rss_mb, limit_mb} when its CLI is being stopped to start it again inside the same run
+        self.restart_requests: dict[str, dict] = {}
         self.waiting: dict[str, str] = {}
         # run id -> how often an Antigravity run was told its action was refused and went on
         self.refusal_retries: dict[str, int] = {}
@@ -212,6 +215,9 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "replaces_comment_id": run.replaces_comment_id,
         "feedback": loads(run.feedback, None),
         "stop_code": run.stop_code,
+        "peak_rss_mb": run.peak_rss_mb,
+        "last_rss_mb": run.last_rss_mb,
+        "restarts": resources.restarts_of(run),
         "blocked_move": run.blocked_move,
         "context_notes": loads(run.context_notes, []),
         "tests": observed_tests(loads(run.steps, [])),
@@ -1772,7 +1778,7 @@ async def _execute_claude_held(
     )
     RT.procs[run_id] = proc
     pid = await proc.start()
-    memory_watch = asyncio.ensure_future(_watch_memory(proc))
+    resources.MON.track(run_id, proc, run.project_id)
     if run_id in RT.cancelled:
         proc.kill()  # the cancel came while the process was starting
     await _append(
@@ -1783,6 +1789,8 @@ async def _execute_claude_held(
                 "text": (
                     "Continuing after a refused action"
                     if (resume_note or "").startswith("Your last action was refused")
+                    else "Continuing in a new process"
+                    if (resume_note or "").startswith("Your process was restarted")
                     else "Answer received — resuming"
                 )
                 if resume_note
@@ -1875,8 +1883,8 @@ async def _execute_claude_held(
     if timed_out:
         proc.kill()
     code = await proc.wait()
-    too_big = memory_watch.result() if memory_watch.done() else None
-    memory_watch.cancel()
+    await resources.MON.untrack(run_id)
+    restart = RT.restart_requests.pop(run_id, None)
     if run_id in RT.cancelled:
         RT.cancelled.discard(run_id)
         return
@@ -1905,8 +1913,8 @@ async def _execute_claude_held(
         session.add(run)
         await session.commit()
         question = loads(run.question, None)
-    if too_big:
-        await _end(run_id, "failed", too_big)
+    if restart:
+        await _restart_inside_run(run_id, token, restart, scratch)
         return
     if timed_out:
         await _end(run_id, "timed_out", timed_out)
@@ -1988,27 +1996,118 @@ async def _execute_claude_held(
     await _end(run_id, "failed", reason)
 
 
-MEMORY_CHECK_S = 15
+RESTART_NOTE = (
+    "Your process was restarted ({why}). The conversation and every file are as you left them. Look at "
+    "`git status` and the last steps, then carry on with the task from where you stopped; do not start over."
+)
 
 
-async def _watch_memory(proc: cli.CliProcess) -> str | None:
-    """Stops the CLI when it (with everything it started) passes the memory limit; returns why, or None when the CLI
-    ended first. One leaking CLI must not take the whole machine down."""
-    limit = cli.run_memory_limit_mb()
-    if limit <= 0:
-        return None
-    while proc.proc is not None and proc.proc.returncode is None:
-        await asyncio.sleep(MEMORY_CHECK_S)
-        if proc.proc.returncode is not None:
-            return None
-        used = await asyncio.to_thread(cli.tree_rss_mb, proc.proc.pid)
-        if used is not None and used > limit:
-            proc.kill()
-            return (
-                f"Stopped: the CLI was using {used / 1024:.1f} GB of memory (limit {limit / 1024:.1f} GB). "
-                "Run it again; if it keeps happening, update or change the CLI."
+async def _memory_breach(run_id: str, rss_mb: float, limit_mb: int) -> None:
+    """The monitor saw a run's CLI pass the memory limit: stop it; the run goes on in a new CLI (or ends)."""
+    proc = RT.procs.get(run_id)
+    if proc is None:
+        return
+    RT.restart_requests[run_id] = {
+        "by": "system",
+        "rss_mb": rss_mb,
+        "limit_mb": limit_mb,
+    }
+    proc.kill()
+
+
+resources.MON.on_breach = _memory_breach
+
+
+async def restart_run(run_id: str, *, by: str) -> AiRun:
+    """Start a running run's CLI again inside the same run (it resumes its conversation); memory is released.
+
+    Raises:
+        RunError: The run is not running a CLI.
+    """
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+    if run is None:
+        raise RunError("Run not found.")
+    proc = RT.procs.get(run_id)
+    if run.state != "running" or proc is None or proc.proc is None:
+        raise RunError("Only a running run can be restarted.")
+    reading = resources.MON.readings.get(run_id) or {}
+    RT.restart_requests[run_id] = {
+        "by": by,
+        "rss_mb": reading.get("cli_rss_mb"),
+        "limit_mb": await resources.MON.limit_mb(run.project_id),
+    }
+    proc.kill()
+    return run
+
+
+async def _restart_inside_run(
+    run_id: str, token: str, request: dict, scratch: list[str] | None
+) -> None:
+    """The CLI was stopped on purpose (memory limit, or a person pressed Restart): log it and start a new CLI in the
+    same run. After `AUTO_RESTARTS` restarts by the system, the next breach ends the run instead."""
+    by = request["by"]
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state in ENDED:
+            return
+        log = resources.restarts_of(run)
+        by_system = sum(1 for r in log if r.get("by") == "system")
+        rss, limit = request.get("rss_mb"), request.get("limit_mb")
+        if by == "system" and by_system >= resources.AUTO_RESTARTS:
+            gb = f"{rss / 1024:.2f} GB" if rss else "too much memory"
+            await audit.record(
+                run.project_id,
+                "run_stopped_memory",
+                "info",
+                member_id=run.member_id,
+                member_name="System",
+                run_id=run_id,
+                target=run.ticket_id,
+                detail={"rss_mb": rss, "limit_mb": limit, "restarts": len(log)},
             )
-    return None
+            await _end(
+                run_id,
+                "failed",
+                f"Stopped automatically: the CLI went over the memory limit ({gb} of {limit / 1024:.1f} GB) "
+                f"again after {resources.AUTO_RESTARTS} restarts. Partial work in the folder is kept.",
+                stop_code="memory",
+            )
+            return
+        entry = {
+            "at": now_iso(),
+            "rss_mb": rss,
+            "limit_mb": limit,
+            "by": by,
+            "n": len(log) + 1,
+        }
+        run.restarts = resources.dump(log + [entry])
+        session.add(run)
+        await session.commit()
+        await audit.record(
+            run.project_id,
+            "run_restarted",
+            "info",
+            member_id=run.member_id,
+            member_name="System" if by == "system" else by,
+            run_id=run_id,
+            target=run.ticket_id,
+            detail=entry,
+        )
+    if by == "system":
+        text = (
+            f"Restarted automatically: the CLI reached {rss / 1024:.2f} GB, over the {limit / 1024:.1f} GB limit "
+            f"(restart {by_system + 1} of {resources.AUTO_RESTARTS})"
+        )
+        why = f"it used {rss / 1024:.2f} GB of memory, over the {limit / 1024:.1f} GB limit"
+    else:
+        text = f"Restarted by {by}"
+        why = f"{by} restarted it"
+    await _append(run_id, steps=[{"kind": "start", "text": text}])
+    await _publish(force=True)
+    await _execute_claude_held(
+        run_id, token, resume_note=RESTART_NOTE.format(why=why), scratch=scratch
+    )
 
 
 # ---------------------------------------------------------------------------

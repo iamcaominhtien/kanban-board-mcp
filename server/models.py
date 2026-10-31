@@ -946,6 +946,8 @@ class AiMember(SQLModel, table=True):
     key_enc: Optional[str] = Field(default=None)  # encrypted API key, never returned
     key_last4: Optional[str] = Field(default=None)
     persona: str = Field(default="")
+    # The resource tools (RAM and CPU of the runs, restart a run) this member may use: none | view | control
+    resource_access: str = Field(default="none")
     max_parallel: int = Field(default=2)
     daily_budget: Optional[float] = Field(default=5.0)  # USD, API-key members
     monthly_cap: Optional[float] = Field(default=None)
@@ -1132,6 +1134,11 @@ class AiRun(SQLModel, table=True):
     context_notes: str = Field(default="[]")
     # "mcp" when a tool started the run for the person (MCP full control)
     started_via: Optional[str] = Field(default=None)
+    # What the run's CLI process used (MB of RAM): the highest value and the last one read (services/ai/resources.py)
+    peak_rss_mb: Optional[float] = Field(default=None)
+    last_rss_mb: Optional[float] = Field(default=None)
+    # JSON [{at, rss_mb, limit_mb, by, n}]: every time the CLI was started again inside this run, by the system or a person
+    restarts: str = Field(default="[]")
 
 
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
@@ -1218,6 +1225,8 @@ class AiProjectSettings(SQLModel, table=True):
     # Safety and cost (design/screens/ai-safety-cost.md, B5, C4, D, E3, F6, G, H1)
     board_tokens_per_day: Optional[int] = Field(default=1_000_000)
     board_max_parallel: int = Field(default=4)
+    # RAM (MB) a run's CLI may use before the system restarts it (twice) and then stops it; 0 = no limit
+    run_memory_limit_mb: int = Field(default=4096)
     board_runs_per_day: Optional[int] = Field(default=100)
     board_at_cap: str = Field(default="pause")  # pause | stop | ask
     approval_on_expiry: str = Field(default="skip")  # skip | stop

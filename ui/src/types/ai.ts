@@ -1,3 +1,5 @@
+import type { RestartEntry } from './aiResources';
+
 export type AiProvider = 'claude-code' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
 export type AiConnection = 'local' | 'api_key' | 'inbox';
 export type PermissionMode = 'allowed' | 'approval' | 'blocked';
@@ -169,6 +171,8 @@ export interface AiMember {
   keyLast4: string | null;
   persona: string;
   maxParallel: number;
+  /** The resource tools (RAM and CPU of the runs, restart a run) over MCP: none | view | control. */
+  resourceAccess?: 'none' | 'view' | 'control';
   dailyBudget: number | null;
   monthlyCap: number | null;
   maxRunsPerDay: number | null;
@@ -291,6 +295,8 @@ export interface AiSettings {
   pausedSafeBefore?: boolean;
   /** Runs that started before the pause and are still going, counted live (the banner chip). */
   pausedFinishing?: number;
+  /** RAM (MB) a run's CLI may use before the system restarts it; 0 = no limit. */
+  runMemoryLimitMb?: number;
   /** The person's role in the project: only owners and admins resume. */
   myRole?: 'owner' | 'admin' | 'member' | 'viewer';
 }
@@ -420,6 +426,10 @@ export interface AiRun {
   feedback: { rating: 'up' | 'down'; reasons: string[]; by: string; at: string } | null;
   /** Why the run ended when it was not its own doing: budget, archive, deleted, reassigned, takeover. */
   stopCode: string | null;
+  /** RAM of the run's CLI (MB): the highest and the last reading; restarts inside the run. */
+  peakRssMb?: number | null;
+  lastRssMb?: number | null;
+  restarts?: RestartEntry[];
   /** The status the AI tried to move the ticket to and was not allowed to. */
   blockedMove: string | null;
   contextNotes: ContextNote[];

@@ -2,9 +2,11 @@ import { useState, type ReactNode } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
 import { safetyApi } from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
+import type { CardMemory } from '../../types/aiResources';
 import type { Handoff, NeedsItem, TeamCard, TeamNow, TeamRange } from '../../types/aiTeam';
 import { useToast } from '../Toast';
 import { Badge, ICONS, Icon, KIND_LOOK, Spark, STATE_ORDER, StateChip, TicketChip, stateLine } from './teamUi';
+import { LEVEL_COLOR, fmtMb, levelOf, limitPct } from './resourcesFormat';
 import { fmtAgo, fmtClock, fmtDuration, fmtUsd, usageText } from './teamFormat';
 
 export interface NowActions {
@@ -12,6 +14,7 @@ export interface NowActions {
   onOpenMember: (memberId: string) => void;
   onOpenDocsPage: (pageId: string) => void;
   onSeeFlow: () => void;
+  onSeeResources: () => void;
 }
 
 const RANGE_LABEL: Record<TeamRange, { head: string; runs: string; spent: string }> = {
@@ -194,6 +197,40 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
   );
 }
 
+/** The RAM and CPU chip on a working AI's card (design/screens/ai-resources.md, C1). */
+function MemoryChip({ memory, onOpen }: { memory: CardMemory; onOpen: () => void }) {
+  if (!memory.readable || memory.cliRssMb == null) return null;
+  const pct = limitPct(memory.cliRssMb, memory.limitMb);
+  const level = levelOf(pct);
+  const look = { ok: '#E6F2EA', warn: '#FEF3D9', bad: '#FDF3F0' }[level];
+  const title = [
+    `CLI ${fmtMb(memory.cliRssMb)}${memory.limitMb > 0 ? ` of ${fmtMb(memory.limitMb)} (${pct}%)` : ''}`,
+    memory.peakRssMb != null ? `peak ${fmtMb(memory.peakRssMb)}` : null,
+    memory.extraMb ? `+${fmtMb(memory.extraMb)} from what it started` : null,
+    memory.restarts ? `${memory.restarts} restart${memory.restarts === 1 ? '' : 's'}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <button
+        type="button"
+        className="rs-chip"
+        style={{ background: look, color: LEVEL_COLOR[level].text, border: 'none', cursor: 'pointer' }}
+        title={title}
+        onClick={onOpen}
+      >
+        <span className="rs-chip-bar">
+          <i style={{ width: `${Math.min(100, pct)}%`, background: LEVEL_COLOR[level].bar }} />
+        </span>
+        RAM {fmtMb(memory.cliRssMb)}
+        {memory.cpuPct != null && <span style={{ fontWeight: 500 }}>· CPU {Math.round(memory.cpuPct)}%</span>}
+      </button>
+      {memory.limitMb > 0 && level !== 'ok' && <span className="at-hint-sm">{pct}% of its limit</span>}
+    </div>
+  );
+}
+
 function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange; actions: NowActions }) {
   const toast = useToast();
   const pause = useAiMutation((v: { runId: string; resume: boolean }) =>
@@ -276,6 +313,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
                 </span>
               )}
             </div>
+            {current.memory && <MemoryChip memory={current.memory} onOpen={actions.onSeeResources} />}
             {queued[0] && (
               <div className="at-hint-sm">
                 Next in line: <TicketChip id={queued[0].ticketId} onOpen={open} /> (queued behind this run)

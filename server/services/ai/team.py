@@ -13,6 +13,7 @@ from . import approvals as svc_approvals
 from . import budget
 from . import members as svc_members
 from . import permissions as perms
+from . import resources
 from .store import get_settings, loads, parse_iso
 
 RANGES = ("today", "7d", "30d")
@@ -500,6 +501,9 @@ async def now_view(
                     "limit_min": limit_min,
                     "paused": bool(current.paused),
                     "question": _question_of(current),
+                    "memory": resources.card_view(
+                        current, settings.run_memory_limit_mb
+                    ),
                 }
                 if current is not None
                 else None,

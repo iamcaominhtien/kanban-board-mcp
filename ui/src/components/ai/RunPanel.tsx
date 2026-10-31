@@ -14,6 +14,7 @@ import { SummaryCard } from './ReviewGate';
 import { RaiseLimitButton, TakeOverButton, UndoRunDialog } from './RunActions';
 import { BudgetStopBox, budgetStop } from './RunView';
 import { ResumeAllDialog } from './AiKillSwitch';
+import { FinalResources, MemoryStopNote, RestartNotice, RunResourcesStrip } from './RunResources';
 import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from './pausedUi';
 import {
   ACTIVE_RUN_STATES,
@@ -527,6 +528,8 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
         </button>
         {run.state === 'running' && !run.paused && <div className="ai-progress" />}
       </div>
+      <RestartNotice run={run} />
+      {run.state === 'running' && <RunResourcesStrip run={run} />}
       {run.state === 'running' && (
         <div
           className="ai-hint"
@@ -568,53 +571,59 @@ function FailedCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ticket; on
   const [undo, setUndo] = useState(false);
   const canUndo = run.statusChanges.length > 0 || run.files.length > 0;
   return (
-    <div
-      className="ai-card"
-      style={{
-        padding: '10px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        flexWrap: 'wrap',
-        borderColor: '#F0C4B8',
-        background: '#FBEEEA',
-      }}
-      data-testid="failed-card"
-    >
-      <RunStateChip state={run.state} />
-      <div style={{ flex: 1, minWidth: 180 }}>
-        <div style={{ fontSize: 13, fontWeight: 700 }}>
-          Run #{run.number} · {run.memberName}
-        </div>
-        <div className="ai-muted">
-          {run.endedReason}
-          {run.files.length > 0 ? ` · ${run.files.length} file${run.files.length === 1 ? '' : 's'} changed so far` : ''}
-        </div>
-      </div>
-      <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
-        Open run
-      </button>
-      <button
-        type="button"
-        className="ai-btn ai-btn-sm ai-btn-primary"
-        onClick={async () => {
-          try {
-            await retry.mutateAsync(undefined);
-          } catch (err) {
-            toast.error("Couldn't retry", extractError(err));
-          }
+    <div>
+      <div
+        className="ai-card"
+        style={{
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+          borderColor: '#F0C4B8',
+          background: '#FBEEEA',
         }}
+        data-testid="failed-card"
       >
-        Retry
-      </button>
-      <TakeOverButton ticketId={ticket.id} projectId={ticket.projectId} />
-      {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
-      {canUndo && (
-        <button type="button" className="ai-btn ai-btn-sm" onClick={() => setUndo(true)} data-testid="failed-undo">
-          ↶ Undo changes
+        <RunStateChip state={run.state} />
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>
+            Run #{run.number} · {run.memberName}
+          </div>
+          <div className="ai-muted">
+            {run.endedReason}
+            {run.files.length > 0
+              ? ` · ${run.files.length} file${run.files.length === 1 ? '' : 's'} changed so far`
+              : ''}
+          </div>
+        </div>
+        <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
+          Open run
         </button>
-      )}
-      {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm ai-btn-primary"
+          onClick={async () => {
+            try {
+              await retry.mutateAsync(undefined);
+            } catch (err) {
+              toast.error("Couldn't retry", extractError(err));
+            }
+          }}
+        >
+          Retry
+        </button>
+        <TakeOverButton ticketId={ticket.id} projectId={ticket.projectId} />
+        {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
+        {canUndo && (
+          <button type="button" className="ai-btn ai-btn-sm" onClick={() => setUndo(true)} data-testid="failed-undo">
+            ↶ Undo changes
+          </button>
+        )}
+        {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
+      </div>
+      <MemoryStopNote run={run} />
+      <FinalResources run={run} />
     </div>
   );
 }

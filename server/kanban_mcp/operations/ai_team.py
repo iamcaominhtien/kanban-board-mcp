@@ -14,11 +14,13 @@ import services.tickets as svc_tickets
 from models import AiMember, AiRun, Member, Project, Ticket, TicketUpdate
 from services.ai import approvals as svc_approvals
 from services.ai import audit, budget, guard
+from services.ai import resources as svc_resources
 from services.ai import members as svc_members
 from services.ai import runs as svc_runs
 from services.ai import usage as svc_usage
 from services.ai.assist import member_drafts as drafts
 from services.ai.secrets import redact_obj
+from services.ai.permissions import full_rights_member
 from services.ai.store import active_runs, get_profile, get_settings, loads
 from sqlmodel import col, select
 
@@ -559,8 +561,65 @@ async def _fresh(run_id: str) -> dict:
         return _run_row_dict((await svc_runs.runs_to_dicts(session, [row]))[0])
 
 
+async def _resource_level() -> str:
+    """none | view | control for the caller. A person, or an AI outside the board's runs, acts with their own rights
+    (control); an AI run gets what its member's "Resource tools" setting says, and the Autopilot delegate (which has
+    the owner's rights) gets control."""
+    ctx = guard.current()
+    if ctx is None:
+        return "control"
+    async with common.async_session() as session:
+        _, profile = await get_profile(session, ctx.member_id)
+        settings = await get_settings(session, ctx.project_id)
+    if profile is None:
+        return "none"
+    if full_rights_member(settings) == profile.id:
+        return "control"
+    return svc_resources.access_of(profile)
+
+
+async def _need_resource_level(wanted: str) -> None:
+    """Refuse an AI run that was not given the resource tools (view) or the right to act on runs (control)."""
+    have = await _resource_level()
+    order = svc_resources.ACCESS_LEVELS
+    if order.index(have) < order.index(wanted):
+        raise ValueError(
+            "The resource tools are not turned on for this AI member."
+            if have == "none"
+            else "This AI member may look at the resources but not stop or restart runs."
+        )
+
+
+async def resources(project_id: str) -> dict:
+    """RAM and CPU of the running AIs (the CLI process, what it started, peak, restarts) and of the machine."""
+    await _need_resource_level("view")
+    async with common.async_session() as session:
+        await _project(session, project_id)
+    snap = await svc_resources.snapshot(project_id)
+    for row in snap["runs"]:
+        row.pop("history", None)
+    return snap
+
+
+async def restart(run_id: str) -> dict:
+    """Start a running run's CLI again inside the same run: it resumes its conversation and its memory is released."""
+    await _need_resource_level("control")
+    async with common.async_session() as session:
+        await _run_row(session, run_id)
+    try:
+        await svc_runs.restart_run(run_id, by=_by())
+    except svc_runs.RunError as exc:
+        raise ValueError(str(exc)) from exc
+    return {"restarting": True, "run_id": run_id}
+
+
 async def cancel(run_id: str, text: str | None = None) -> dict:
     """Cancel an active run (text: the reason). Returns the run."""
+    ctx = guard.current()
+    if ctx is not None:
+        await _need_resource_level("control")
+        if ctx.run_id == run_id:
+            raise ValueError("An AI cannot stop its own run.")
     async with common.async_session() as session:
         await _run_row(session, run_id)
     row = await svc_runs.cancel(run_id, by=_by(), reason=(text or "").strip() or None)
