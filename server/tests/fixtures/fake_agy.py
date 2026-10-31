@@ -81,13 +81,67 @@ if mode == "fail":
     sys.exit(3)
 if mode == "refuse" and "--conversation" not in args:
     # a refused action: the real CLI ends the turn with nothing said
-    step(1, state="ACTIVE", step_type="tool", tool_name="run_command", tool_info={"name": "run_command", "parameters": {"CommandLine": "node -v"}})
-    step(1, state="ERROR", step_type="tool", tool_name="run_command", tool_info={"name": "run_command", "parameters": {"CommandLine": "node -v"}, "error": {"type": "TOOL_ERROR", "message": 'permission check failed for unsandboxed "node -v": user denied permission to run command'}})
-    emit({"event": "result", "result": {"conversation_id": cid, "status": "SUCCESS", "response": "", "num_turns": 1, "denied_actions": [{"action": "command", "display_name": "RunCommand"}]}})
+    step(
+        1,
+        state="ACTIVE",
+        step_type="tool",
+        tool_name="run_command",
+        tool_info={"name": "run_command", "parameters": {"CommandLine": "node -v"}},
+    )
+    step(
+        1,
+        state="ERROR",
+        step_type="tool",
+        tool_name="run_command",
+        tool_info={
+            "name": "run_command",
+            "parameters": {"CommandLine": "node -v"},
+            "error": {
+                "type": "TOOL_ERROR",
+                "message": 'permission check failed for unsandboxed "node -v": user denied permission to run command',
+            },
+        },
+    )
+    emit(
+        {
+            "event": "result",
+            "result": {
+                "conversation_id": cid,
+                "status": "SUCCESS",
+                "response": "",
+                "num_turns": 1,
+                "denied_actions": [{"action": "command", "display_name": "RunCommand"}],
+            },
+        }
+    )
     sys.exit(0)
 if mode == "refuse_always":
-    step(1, state="ERROR", step_type="tool", tool_name="run_command", tool_info={"name": "run_command", "parameters": {"CommandLine": "node -v"}, "error": {"type": "TOOL_ERROR", "message": 'permission check failed for unsandboxed "node -v": user denied permission to run command'}})
-    emit({"event": "result", "result": {"conversation_id": cid, "status": "SUCCESS", "response": "", "num_turns": 1, "denied_actions": [{"action": "command", "display_name": "RunCommand"}]}})
+    step(
+        1,
+        state="ERROR",
+        step_type="tool",
+        tool_name="run_command",
+        tool_info={
+            "name": "run_command",
+            "parameters": {"CommandLine": "node -v"},
+            "error": {
+                "type": "TOOL_ERROR",
+                "message": 'permission check failed for unsandboxed "node -v": user denied permission to run command',
+            },
+        },
+    )
+    emit(
+        {
+            "event": "result",
+            "result": {
+                "conversation_id": cid,
+                "status": "SUCCESS",
+                "response": "",
+                "num_turns": 1,
+                "denied_actions": [{"action": "command", "display_name": "RunCommand"}],
+            },
+        }
+    )
     sys.exit(0)
 work = "--mode" in args
 if work:

@@ -136,8 +136,9 @@ export function useSetMcpControl() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (v: { enabled: boolean; acceptRisks?: boolean }) =>
-      (await client.post('/settings/mcp-control', { enabled: v.enabled, accept_risks: !!v.acceptRisks }))
-        .data as { enabled: boolean },
+      (await client.post('/settings/mcp-control', { enabled: v.enabled, accept_risks: !!v.acceptRisks })).data as {
+        enabled: boolean;
+      },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', 'mcp-control'] }),
   });
 }
