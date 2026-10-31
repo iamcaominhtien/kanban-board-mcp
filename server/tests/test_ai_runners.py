@@ -280,6 +280,45 @@ def test_agy_gets_command_rules_from_the_allow_list_and_never_the_bypass_flag():
     }
 
 
+def test_agy_deny_rules_are_passed_and_hold_under_bypass():
+    adapter = adapters.for_provider("antigravity")
+    work = adapter.launch(_spec()).args
+    deny = json.loads(work[work.index("--settings") + 1])["permissions"]["deny"]
+    assert deny == ["command(rm -rf)"]
+    assert "--dangerously-skip-permissions" not in work
+    bypass = adapter.launch(_spec(bypass=True))
+    assert "--dangerously-skip-permissions" in bypass.args
+    settings = json.loads(bypass.args[bypass.args.index("--settings") + 1])
+    assert settings["permissions"]["deny"] == ["command(rm -rf)"]
+    assert bypass.notes[0].startswith("Bypass permissions")
+    # a question never bypasses
+    ask = adapter.launch(_spec(bypass=True, read_only=True)).args
+    assert "--dangerously-skip-permissions" not in ask
+
+
+def test_codex_bypass_drops_the_sandbox_but_a_question_stays_read_only():
+    adapter = adapters.for_provider("codex")
+    on = adapter.launch(_spec(bypass=True))
+    assert on.args[on.args.index("-s") + 1] == "danger-full-access"
+    assert on.notes[0].startswith("Bypass permissions")
+    ask = adapter.launch(_spec(bypass=True, read_only=True)).args
+    assert ask[ask.index("-s") + 1] == "read-only"
+    off = adapter.launch(_spec()).args
+    assert off[off.index("-s") + 1] == "workspace-write"
+
+
+def test_opencode_bypass_allows_everything_except_the_deny_rules():
+    perms = adapters.opencode_permissions(["Read"], ["Bash(rm -rf:*)"], False, True)
+    assert perms["edit"] == "allow"
+    assert perms["bash"]["*"] == "allow"
+    assert perms["bash"]["rm -rf*"] == "deny"
+    assert perms["webfetch"] == "deny"
+    ask = adapters.opencode_permissions([], [], True, True)
+    assert ask["edit"] == "deny" and ask["bash"]["*"] == "deny"
+    launch = adapters.for_provider("opencode").launch(_spec(bypass=True))
+    assert launch.notes[0].startswith("Bypass permissions")
+
+
 def test_every_run_says_what_was_and_was_not_applied():
     for provider in ("codex", "opencode", "antigravity"):
         assert adapters.for_provider(provider).launch(_spec()).notes
@@ -472,6 +511,55 @@ async def test_a_member_of_each_cli_works_a_ticket_to_review(fakes, provider):
         "KANBAN_RUN_TOKEN" if provider == "codex" else "OPENCODE_CONFIG_CONTENT"
     ]
     assert not any("kbr_" in a for a in launch["args"])
+
+
+@pytest.mark.parametrize(
+    "provider,check",
+    [
+        ("codex", lambda a: a[a.index("-s") + 1] == "danger-full-access"),
+        ("antigravity", lambda a: "--dangerously-skip-permissions" in a),
+    ],
+)
+async def test_an_owner_can_turn_on_bypass_for_the_other_clis(fakes, provider, check):
+    c = fakes["c"]
+    pid, _ = await _project(c)
+    m = await _member(c, pid, fakes["repo"], provider)
+    if provider == "antigravity":
+        acct = (
+            await c.post("/ai/accounts", json={"name": "Work Google", "cli": "agy"})
+        ).json()
+        r = await c.put(
+            f"/ai/members/{m['id']}/account", json={"account_id": acct["id"]}
+        )
+        assert r.status_code == 200, r.text
+        await c.post(f"/ai/accounts/{acct['id']}/check")
+    # the Configuration tab's own calls accept the mode for this CLI
+    assert (await c.get(f"/ai/members/{m['id']}/config/status")).status_code == 200
+    v = await c.post(
+        f"/ai/members/{m['id']}/config/validate",
+        json={"config": {"permission_mode": "bypass"}},
+    )
+    assert v.status_code == 200 and not [
+        i for i in v.json()["issues"] if i["path"] == "permission_mode"
+    ], v.text
+    # the phrase is asked for, as for Claude Code
+    r = await c.patch(
+        f"/ai/members/{m['id']}", json={"config": {"permission_mode": "bypass"}}
+    )
+    assert r.status_code == 422 and "bypass permissions" in r.text.lower()
+    r = await c.patch(
+        f"/ai/members/{m['id']}",
+        json={
+            "config": {"permission_mode": "bypass"},
+            "confirm_bypass": "bypass permissions",
+        },
+    )
+    assert r.status_code == 200, r.text
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m)
+    run = await _wait(c, tid, ("finished", "failed"))
+    assert any(s["text"].startswith("Bypass permissions") for s in run["steps"])
+    assert check(_recorded(fakes)[0]["args"])
 
 
 async def test_a_question_runs_read_only(fakes):

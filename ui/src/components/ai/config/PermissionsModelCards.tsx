@@ -110,9 +110,10 @@ function RuleList({
   );
 }
 
-/** Permission mode (Claude Code): only the Allow rules run, or every tool except what a Deny rule stops. */
+/** Permission mode: only the Allow rules run, or every tool except what a Deny rule stops (Codex: no sandbox). */
 function PermissionModeBlock() {
   const { member, cfg, setCfg, draft, setDraft, issues } = useCfg();
+  const codex = member.provider === 'codex';
   const me = useAiMe(member.projectId);
   const isOwner = me.data?.role === 'owner';
   const bypass = cfg.permissionMode === 'bypass';
@@ -138,7 +139,9 @@ function PermissionModeBlock() {
               Allow list only <span className="perm-opt-tag">Recommended</span>
             </span>
             <span className="perm-opt-desc">
-              The CLI runs only the tools in Allow; anything else is refused, because a run cannot ask a person.
+              {codex
+                ? 'Codex runs in its own workspace-write sandbox: it can change files in the working folder only.'
+                : 'The CLI runs only the tools in Allow; anything else is refused, because a run cannot ask a person.'}
             </span>
           </span>
         </label>
@@ -154,7 +157,9 @@ function PermissionModeBlock() {
           <span className="perm-opt-text">
             <span className="perm-opt-title">Bypass permissions</span>
             <span className="perm-opt-desc">
-              The CLI runs any tool without the Allow list. Only for work runs.
+              {codex
+                ? 'Codex runs without its sandbox, with full access to this computer. Only for work runs.'
+                : 'The CLI runs any tool without the Allow list. Only for work runs.'}
               {locked ? ' Only the project owner can turn it on.' : ''}
             </span>
           </span>
@@ -162,9 +167,10 @@ function PermissionModeBlock() {
       </div>
       {bypass && (
         <div className="perm-warn" data-testid="bypass-warning">
-          <b>Bypass permissions runs shell commands and edits files on this computer without asking.</b> Still in force:
-          the Deny rules, the board’s own ceiling and approvals, and Safe mode (it overrides Bypass). Ask runs stay
-          read-only and the web stays off. Use it in a folder you can restore from git.
+          <b>Bypass permissions runs shell commands and edits files on this computer without asking.</b> Still in force:{' '}
+          {codex ? 'the' : 'the Deny rules, the'} board’s own ceiling and approvals, and Safe mode (it overrides
+          Bypass). {codex ? 'The Deny rules do not apply to Codex. ' : ''}Ask runs stay read-only and the web stays off.
+          Use it in a folder you can restore from git.
           {projects > 1 ? ` This AI member is in ${projects} projects: the setting applies in all of them.` : ''}
         </div>
       )}
@@ -197,8 +203,24 @@ export function PermissionsCard() {
         testId="card-permissions"
         title="Permissions"
         mode="documented"
-        sub="Which actions it may run without asking. Set in Antigravity’s own settings; Kanban cannot read them."
+        sub="The Allow and Deny rules are passed to Antigravity for each run. Notes below are only for you; Kanban cannot read the app’s own settings."
       >
+        {member.connection === 'local' && <PermissionModeBlock />}
+        <RuleList
+          label="Allow"
+          path="allow_rules"
+          rules={cfg.allowRules}
+          other={cfg.denyRules}
+          onChange={(r) => setCfg({ allowRules: r })}
+        />
+        <RuleList
+          label="Deny"
+          path="deny_rules"
+          rules={cfg.denyRules}
+          other={cfg.allowRules}
+          onChange={(r) => setCfg({ denyRules: r })}
+          danger
+        />
         <textarea
           aria-label="Permission notes"
           className="ai-textarea"
@@ -211,6 +233,43 @@ export function PermissionsCard() {
           Separate from the board’s own ceiling in the Permissions tab: the board checks its rules even if the app
           allows more.
         </div>
+      </CfgCard>
+    );
+  }
+  if (kind === 'cli') {
+    const codex = member.provider === 'codex';
+    return (
+      <CfgCard
+        id="cfg-permissions"
+        testId="card-permissions"
+        title="Permissions"
+        mode="synced"
+        sub={
+          codex
+            ? 'Codex runs in its own sandbox; the Allow and Deny rules do not apply to it.'
+            : 'Passed to opencode as its permission map for each run: everything not allowed is refused.'
+        }
+      >
+        <PermissionModeBlock />
+        {!codex && (
+          <>
+            <RuleList
+              label="Allow"
+              path="allow_rules"
+              rules={cfg.allowRules}
+              other={cfg.denyRules}
+              onChange={(r) => setCfg({ allowRules: r })}
+            />
+            <RuleList
+              label="Deny"
+              path="deny_rules"
+              rules={cfg.denyRules}
+              other={cfg.allowRules}
+              onChange={(r) => setCfg({ denyRules: r })}
+              danger
+            />
+          </>
+        )}
       </CfgCard>
     );
   }

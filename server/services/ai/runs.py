@@ -1432,7 +1432,6 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
             config.get("permission_mode") == "bypass"
             and run.mode == "work"
             and not safe
-            and adapter is None
         )
         if bypass:
             denied += [d for d in _WEB_TOOLS if d not in denied]
@@ -1475,6 +1474,7 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                     effort=config.get("effort"),
                     extra_flags=extra_flags,
                     read_dirs=read_dirs,
+                    bypass=bypass,
                 )
             )
             args = launch.args
@@ -1542,7 +1542,7 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                         "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops (web off)",
                     }
                 ]
-                if bypass
+                if bypass and not launch
                 else []
             ),
         ],

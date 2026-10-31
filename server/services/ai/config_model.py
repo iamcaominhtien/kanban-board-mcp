@@ -657,6 +657,10 @@ def rule_problem(rule: str) -> str | None:
     return None
 
 
+# Member types that run a local CLI on a ticket: the ones an owner may let skip the CLI's permission checks
+BYPASS_PROVIDERS = ("claude-code", "codex", "opencode", "antigravity")
+
+
 def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
     """Every problem in a configuration: [{path, message, severity, line?, hint?}]; errors block Save."""
     from .providers import adapter_of
@@ -690,8 +694,11 @@ def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
     mode = cfg.get("permission_mode", "allowlist")
     if mode not in ("allowlist", "bypass"):
         err("permission_mode", "Permission mode: Allow list or Bypass permissions.")
-    elif mode == "bypass" and provider != "claude-code":
-        err("permission_mode", "Bypass permissions is only available for Claude Code.")
+    elif mode == "bypass" and provider not in BYPASS_PROVIDERS:
+        err(
+            "permission_mode",
+            "Bypass permissions is only available for Claude Code, Codex, opencode and Antigravity.",
+        )
     rng("max_tokens_per_run", "Max tokens per run", 1000, 2_000_000)
     rng("retries", "Retries", 0, 10)
     rng("retry_base_s", "Backoff start", 0, 60, float)

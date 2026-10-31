@@ -53,7 +53,7 @@ AI members can share one. Design: `design/screens/ai-accounts.md`. Related: `des
 Members of these types work a ticket like a Claude Code member (`server/services/ai/adapters.py`; the lifecycle is
 the same code in `runs.py`). Each adapter says how to start the CLI headless, how to read its output into steps,
 files and a summary (tested on streams captured from the real CLIs, `server/tests/fixtures/real/`), and how to ask
-whether it is signed in. The board never passes a flag that skips a CLI's permission checks.
+whether it is signed in. By default the board passes no flag that skips a CLI's permission checks. A project owner can turn on **Bypass permissions** for a member (the same setting, confirmation and audit entry as for Claude Code; work runs only, never in Safe mode): Codex then runs with `-s danger-full-access`, opencode allows every command and edit except what a Deny rule stops, and Antigravity gets `--dangerously-skip-permissions` with the Deny rules still passed as `command(...)` deny rules (tested: a denied command is blocked under the flag, and the run goes on). The Deny rules do not apply to Codex.
 
 | | Command | Permissions | Board MCP |
 | --- | --- | --- | --- |
@@ -64,8 +64,9 @@ whether it is signed in. The board never passes a flag that skips a CLI's permis
 - The run's token is never on a command line or in a shared file.
 - **Antigravity** needs an AI account (its MCP servers live in the account's HOME; without one that file would be the
   person's own). Its headless mode ends the run at the first action that no rule allows: the run then fails with the
-  reason instead of finishing empty, and a member that keeps failing is auto-paused as usual. The run is told to stay
-  inside the working folder and to use only test commands, `ls`, `cat` and `git`. The Allow rules are the way to give it
+  reason instead of finishing empty, and a member that keeps failing is auto-paused as usual. Under Bypass permissions
+  there is no such stop. Otherwise the run is told to stay inside the working folder and to use only test commands,
+  `ls`, `cat` and `git`. The Allow rules are the way to give it
   more; a pre-approved command set is not a sandbox.
 - Codex and Antigravity do not report changed-line counts, so a changed file shows `+0 -0`.
 - Found by running each one against a live board with the three CLIs on this computer (Codex and Antigravity with an

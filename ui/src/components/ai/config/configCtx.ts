@@ -38,8 +38,10 @@ export function useCfg(): CfgCtx {
 }
 
 /** The adapter family of a member: which card set the tab shows. */
-export function adapterOf(m: AiMember): 'claude-code' | 'antigravity' | 'api' | 'inbox' {
+export function adapterOf(m: AiMember): 'claude-code' | 'antigravity' | 'cli' | 'api' | 'inbox' {
   if (m.provider === 'claude-code') return 'claude-code';
   if (m.provider === 'antigravity') return 'antigravity';
+  // Codex and opencode run tickets on this computer through the board's own adapter
+  if ((m.provider === 'codex' || m.provider === 'opencode') && m.connection === 'local') return 'cli';
   return m.connection === 'api_key' ? 'api' : 'inbox';
 }

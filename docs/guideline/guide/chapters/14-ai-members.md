@@ -85,7 +85,7 @@ Open the AI member and the **Permissions** tab. The **Role template** card offer
 Role templates control what an AI may do to **tickets**. What it may do to **files** is set by the CLI rules in {menu:Configuration › Permissions}. By default a Claude Code AI may read, search, edit and write files, run `git status`, `git diff`, `git log`, `pytest`, `npm test` and `npm run lint`, and it may not run `rm -rf` or the like. To let it run your own test command add a rule such as `Bash(go test:*)` or `Bash(cargo test:*)`. Do not add `git push`, `rm` or `Bash(*)`.
 
 !!! caution "Bypass permissions"
-    The Permission mode **Bypass permissions** (owner only, with a typed confirmation and an audit entry) lets a Claude Code AI run tools that are not on the allow list. Deny rules, the status ceiling, board approvals and Safe mode still apply, and it only affects work runs. Use it only in a folder you can restore with git.
+    The Permission mode **Bypass permissions** (owner only, with a typed confirmation and an audit entry) lets a Claude Code, Codex, opencode or Antigravity AI run tools that are not on the allow list (Codex runs without its sandbox). Deny rules (not for Codex), the status ceiling, board approvals and Safe mode still apply, and it only affects work runs. Use it only in a folder you can restore with git.
 
 ## Assign work
 

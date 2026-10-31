@@ -147,7 +147,11 @@ function SkippedBanners({ member }: { member: AiMember }) {
       ? 'Claude Code'
       : adapterOf(member) === 'antigravity'
         ? 'Antigravity'
-        : 'API agent';
+        : adapterOf(member) === 'cli'
+          ? member.provider === 'codex'
+            ? 'Codex'
+            : 'opencode'
+          : 'API agent';
   const detach = (group: string) => {
     const next: AiConfig = { ...cfg };
     if (group === 'skills') next.skills = [];
@@ -511,6 +515,8 @@ export function ConfigTab({
   } else if (kind === 'antigravity') {
     left.push(<ItemStatus key="st" />, <InstructionsCard key="i" />, <SkillsCard key="s" />);
     right.push(<McpCard key="m" />, <PermissionsCard key="p" />, <ModelCard key="mo" />);
+  } else if (kind === 'cli') {
+    left.push(<PermissionsCard key="p" />);
   } else if (kind === 'api') {
     left.push(<InstructionsCard key="i" />, <ContextCard key="c" />, <OutputCard key="o" />);
     right.push(<ApiToolsCard key="t" />, <McpCard key="m" />, <LimitsCard key="l" />);

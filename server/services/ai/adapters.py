@@ -56,6 +56,8 @@ class Spec:
     )  # Claude-style Allow rules, ``Bash(git status:*)``
     denied: list[str] = field(default_factory=list)
     read_only: bool = False  # a question, or safe mode: nothing may be changed
+    # An owner's "Bypass permissions" for the member (work runs only, never in safe mode): the CLI asks for nothing
+    bypass: bool = False
     resume_id: str | None = None
     effort: str | None = None
     extra_flags: list[str] = field(default_factory=list)
@@ -292,7 +294,9 @@ class CodexAdapter(Adapter):
             "--json",
             "--skip-git-repo-check",
             "-s",
-            "read-only" if spec.read_only else "workspace-write",
+            "read-only"
+            if spec.read_only
+            else ("danger-full-access" if spec.bypass else "workspace-write"),
             "-C",
             spec.cwd,
         ]
@@ -313,11 +317,12 @@ class CodexAdapter(Adapter):
         if spec.resume_id:
             args += [spec.resume_id]
         args += [spec.prompt if not spec.prompt.startswith("-") else " " + spec.prompt]
-        note = (
-            "Codex runs in its own sandbox: read-only for a question"
-            if spec.read_only
-            else "Codex runs in its workspace-write sandbox (the Allow and Deny tool rules do not apply to it)"
-        )
+        if spec.read_only:
+            note = "Codex runs in its own sandbox: read-only for a question"
+        elif spec.bypass:
+            note = "Bypass permissions: Codex runs without its sandbox (full access; the Deny rules do not apply to it)"
+        else:
+            note = "Codex runs in its workspace-write sandbox (the Allow and Deny tool rules do not apply to it)"
         return Launch(args, env, [note])
 
     def parser(self, cwd: str) -> Parser:
@@ -333,11 +338,11 @@ class CodexAdapter(Adapter):
 
 
 def opencode_permissions(
-    allowed: list[str], denied: list[str], read_only: bool
+    allowed: list[str], denied: list[str], read_only: bool, bypass: bool = False
 ) -> dict:
     """The board's Allow/Deny rules as an opencode ``permission`` map. Last match wins, so it is the catch-all deny,
     then the allows, then the denies. ``Bash(git status:*)`` becomes the pattern ``git status*``."""
-    bash: dict[str, str] = {"*": "deny"}
+    bash: dict[str, str] = {"*": "allow" if bypass and not read_only else "deny"}
     if not read_only:
         for rule in allowed:
             m = re.match(r"^Bash\((.*?)(?::\*)?\)$", rule)
@@ -351,8 +356,12 @@ def opencode_permissions(
                 bash[m.group(1) + "*"] = "deny"
     return {
         "edit": "deny"
-        if read_only or not any(r.split("(")[0] in ("Edit", "Write") for r in allowed)
-        else "allow",
+        if read_only
+        else (
+            "allow"
+            if bypass or any(r.split("(")[0] in ("Edit", "Write") for r in allowed)
+            else "deny"
+        ),
         "bash": bash,
         "webfetch": "deny",
     }
@@ -515,7 +524,7 @@ class OpencodeAdapter(Adapter):
         args += ["--", spec.prompt]
         config: dict = {
             "permission": opencode_permissions(
-                spec.allowed, spec.denied, spec.read_only
+                spec.allowed, spec.denied, spec.read_only, spec.bypass
             )
         }
         if spec.mcp_url:
@@ -531,9 +540,13 @@ class OpencodeAdapter(Adapter):
             args,
             {"OPENCODE_CONFIG_CONTENT": json.dumps(config)},
             [
-                "opencode: tools are held to the Allow and Deny rules (everything else is denied)"
-                if not spec.read_only
-                else "opencode: a question, so file edits and commands are denied"
+                "opencode: a question, so file edits and commands are denied"
+                if spec.read_only
+                else (
+                    "Bypass permissions: opencode runs any command and edit except what a Deny rule stops (web off)"
+                    if spec.bypass
+                    else "opencode: tools are held to the Allow and Deny rules (everything else is denied)"
+                )
             ],
         )
 
@@ -696,6 +709,16 @@ class AgyParser(Parser):
             )
 
 
+def agy_deny_rules(denied: list[str]) -> list[str]:
+    """Claude-style ``Bash(rm:*)`` Deny rules as Antigravity ``command(rm)`` rules. They hold under Bypass too."""
+    rules = set()
+    for rule in denied:
+        m = re.match(r"^Bash\((.*?)(?::\*)?\)$", rule)
+        if m and m.group(1).strip():
+            rules.add(f"command({m.group(1).strip()})")
+    return sorted(rules)
+
+
 class AgyAdapter(Adapter):
     """Antigravity CLI (``agy -p --output-format stream-json``)."""
 
@@ -711,13 +734,19 @@ class AgyAdapter(Adapter):
     def launch(self, spec: Spec) -> Launch:
         """``agy -p <prompt> --output-format stream-json --mode <mode> --settings <allow rules>``."""
         # Headless mode ends the run at the first action it may not do, so the model is told the limits up front
-        guide = (
-            f"You are running headless and cannot ask for permission. Work only inside {spec.cwd}: do not list, read "
-            "or change anything outside it. Run only commands from the project's own test command (for example "
-            "`python3 -m pytest -q`, `npm test`), `ls`, `cat` and `git status/diff/log`: never `python -c`, `sh` or "
-            "anything else. The first action that is not allowed ends the run. Use the board's MCP server (kanban) "
-            "for the ticket, and report through it when you are done.\n\n"
-        )
+        if spec.bypass and not spec.read_only:
+            guide = (
+                f"You are running headless and cannot ask for permission. Work inside {spec.cwd}. Use the board's "
+                "MCP server (kanban) for the ticket, and report through it when you are done.\n\n"
+            )
+        else:
+            guide = (
+                f"You are running headless and cannot ask for permission. Work only inside {spec.cwd}: do not list, read "
+                "or change anything outside it. Run only commands from the project's own test command (for example "
+                "`python3 -m pytest -q`, `npm test`), `ls`, `cat` and `git status/diff/log`: never `python -c`, `sh` or "
+                "anything else. The first action that is not allowed ends the run. Use the board's MCP server (kanban) "
+                "for the ticket, and report through it when you are done.\n\n"
+            )
         args = [
             spec.path,
             "-p",
@@ -730,8 +759,12 @@ class AgyAdapter(Adapter):
         rules = [] if spec.read_only else agy_command_rules(spec.allowed)
         # the board's own MCP server: what a run may do there is decided by the board's guard, not by the CLI
         allow = [*rules, "mcp(kanban/*)", "mcp(kanban)"] if spec.mcp_url else rules
-        if allow:
-            args += ["--settings", json.dumps({"permissions": {"allow": allow}})]
+        deny = [] if spec.read_only else agy_deny_rules(spec.denied)
+        permissions = {k: v for k, v in (("allow", allow), ("deny", deny)) if v}
+        if permissions:
+            args += ["--settings", json.dumps({"permissions": permissions})]
+        if spec.bypass and not spec.read_only:
+            args += ["--dangerously-skip-permissions"]
         for folder in spec.read_dirs:
             args += ["--add-dir", folder]
         if spec.resume_id:
@@ -742,11 +775,12 @@ class AgyAdapter(Adapter):
             args += ["--effort", spec.effort]
         args += _safe_flags(spec.extra_flags)
         env = {TOKEN_ENV: spec.token, URL_ENV: spec.mcp_url} if spec.mcp_url else {}
-        note = (
-            "Antigravity: a question, so it only plans and reads"
-            if spec.read_only
-            else f"Antigravity: file edits allowed; {len(rules)} command rule(s) (reading commands and the Allow list); the first other command ends the run"
-        )
+        if spec.read_only:
+            note = "Antigravity: a question, so it only plans and reads"
+        elif spec.bypass:
+            note = f"Bypass permissions: Antigravity runs any command except what a Deny rule stops ({len(deny)} rule(s))"
+        else:
+            note = f"Antigravity: file edits allowed; {len(rules)} command rule(s) (reading commands and the Allow list); the first other command ends the run"
         return Launch(args, env, [note])
 
     def parser(self, cwd: str) -> Parser:
