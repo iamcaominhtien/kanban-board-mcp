@@ -41,8 +41,9 @@ In the code, each CLI is a `Profile` subclass in `ai_profile.py`:
 | `status()` | whether the profile is signed in, as one line |
 | `forget()` | what to remove outside the directory on `rm` (for `claude`: its keychain entry) |
 
-To add another CLI: write a subclass with these methods, add it to `PROFILE_CLASSES` and `CLIS`, then check by hand
-that two profiles answer at the same time and that `rm` leaves nothing behind.
+To add another CLI: write a subclass, set its `cli` name, add it to `PROFILE_CLASSES` and `CLIS`, then check by hand
+that two profiles answer at the same time and that `rm` leaves nothing behind. `status()` is the only method you
+must write (the class is abstract, so Python refuses to create a subclass without it); the rest have defaults.
 
 ## What was tested
 

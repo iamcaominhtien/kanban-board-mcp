@@ -34,6 +34,7 @@ import re
 import shutil
 import subprocess
 import sys
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 # The user's real home. Profiles must not change it: the agy profile swaps HOME, and some tools still need the real one.
@@ -62,11 +63,12 @@ def find_bin(cli: str) -> str:
     return found
 
 
-class Profile:
+class Profile(ABC):
     """One account of one CLI. Subclasses say how its login is kept apart from the others.
 
     The base class is the plumbing every CLI shares (naming, building the environment, running the CLI). A subclass
-    overrides only what differs; the "hooks" below say when each one is called.
+    overrides only what differs; the "hooks" below say when each one is called. Only status() is abstract: a subclass
+    that forgets it cannot be created. A subclass must also set `cli` (nothing checks that).
     """
 
     cli = ""  # the command name, also used for <CLI>_BIN and <CLI>_PROFILES_HOME
@@ -129,9 +131,9 @@ class Profile:
         """Folder to start the sign-in in, or None for the current one."""
         return None
 
+    @abstractmethod
     def status(self) -> tuple[bool, str]:
         """(signed in, one line to print). The exit code of `status` follows the first value."""
-        raise NotImplementedError
 
     def next_step(self) -> str:
         """What `new` tells the user to do next."""
