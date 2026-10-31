@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793431332-0cc8",
-  "exported": "2026-10-29",
+  "canvas_version": "1793440105-0d93",
+  "exported": "2026-10-31",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -75,6 +75,14 @@
       "w": 1480,
       "h": 10280,
       "note": "Supersedes D1 (header button, paused state) of AiSafetyCost for the banner and top-bar state; D2-D6 stay."
+    },
+    "AiResources.dc.html": {
+      "bytes": 136640,
+      "sha256": "d44a525aae5bc009a0e7e972c8bbb2c69cd656f57a751dc8f4ff66dafed32705",
+      "title": "AI Team — Resources: what the running AIs use",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 8283
     },
     "AiTicketWork.dc.html": {
       "bytes": 280284,
