@@ -1772,6 +1772,7 @@ async def _execute_claude_held(
     )
     RT.procs[run_id] = proc
     pid = await proc.start()
+    memory_watch = asyncio.ensure_future(_watch_memory(proc))
     if run_id in RT.cancelled:
         proc.kill()  # the cancel came while the process was starting
     await _append(
@@ -1874,6 +1875,8 @@ async def _execute_claude_held(
     if timed_out:
         proc.kill()
     code = await proc.wait()
+    too_big = memory_watch.result() if memory_watch.done() else None
+    memory_watch.cancel()
     if run_id in RT.cancelled:
         RT.cancelled.discard(run_id)
         return
@@ -1902,6 +1905,9 @@ async def _execute_claude_held(
         session.add(run)
         await session.commit()
         question = loads(run.question, None)
+    if too_big:
+        await _end(run_id, "failed", too_big)
+        return
     if timed_out:
         await _end(run_id, "timed_out", timed_out)
         return
@@ -1980,6 +1986,29 @@ async def _execute_claude_held(
                 session.add(profile)
                 await session.commit()
     await _end(run_id, "failed", reason)
+
+
+MEMORY_CHECK_S = 15
+
+
+async def _watch_memory(proc: cli.CliProcess) -> str | None:
+    """Stops the CLI when it (with everything it started) passes the memory limit; returns why, or None when the CLI
+    ended first. One leaking CLI must not take the whole machine down."""
+    limit = cli.run_memory_limit_mb()
+    if limit <= 0:
+        return None
+    while proc.proc is not None and proc.proc.returncode is None:
+        await asyncio.sleep(MEMORY_CHECK_S)
+        if proc.proc.returncode is not None:
+            return None
+        used = await asyncio.to_thread(cli.tree_rss_mb, proc.proc.pid)
+        if used is not None and used > limit:
+            proc.kill()
+            return (
+                f"Stopped: the CLI was using {used / 1024:.1f} GB of memory (limit {limit / 1024:.1f} GB). "
+                "Run it again; if it keeps happening, update or change the CLI."
+            )
+    return None
 
 
 # ---------------------------------------------------------------------------

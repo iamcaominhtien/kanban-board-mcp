@@ -74,6 +74,59 @@ def _popen_kwargs() -> dict:
     return {"start_new_session": True}
 
 
+def low_priority_prefix() -> list[str]:
+    """`taskpolicy -b` on macOS, only when KANBAN_CLI_LOW_PRIORITY=1: the CLI and its children run on the efficiency
+    cores with a lower disk priority. Off by default: five real CLIs took 144 s instead of 106 s with it and the
+    CPU peak did not drop. `taskpolicy` execs the command, so the pid stays the CLI's."""
+    if sys.platform != "darwin" or os.environ.get("KANBAN_CLI_LOW_PRIORITY") != "1":
+        return []
+    tool = shutil.which("taskpolicy")
+    return [tool, "-b"] if tool else []
+
+
+def run_memory_limit_mb() -> int:
+    """The memory (MB, the CLI and everything it started) at which a run is stopped; 0 turns the check off. Normal
+    CLIs use ~200 MB; the limit is for the leaks of some CLI versions that grow to many GB. KANBAN_RUN_MAX_RSS_MB
+    changes it."""
+    try:
+        return int(os.environ.get("KANBAN_RUN_MAX_RSS_MB", "4096"))
+    except ValueError:
+        return 4096
+
+
+def tree_rss_mb(pid: int) -> float | None:
+    """Memory in use (RSS, MB) of a process and all its descendants; None when it cannot be read (Windows, gone)."""
+    if sys.platform == "win32":
+        return None
+    try:
+        out = subprocess.run(
+            ["ps", "-axo", "pid=,ppid=,rss="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    parent: dict[int, int] = {}
+    rss: dict[int, int] = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 3 and all(x.isdigit() for x in parts):
+            parent[int(parts[0])], rss[int(parts[0])] = int(parts[1]), int(parts[2])
+    if pid not in rss:
+        return None
+    members = {pid}
+    grew = True
+    while grew:
+        grew = False
+        for child, up in parent.items():
+            if up in members and child not in members:
+                members.add(child)
+                grew = True
+    return sum(rss[p] for p in members) / 1024
+
+
 def child_env(compact_at_pct: int | None = None) -> dict:
     """Environment for the CLI: the person's own, minus variables that would make it think it runs inside a
     Claude Code session (when the board itself was started from one). `compact_at_pct` is the share of the context
@@ -450,6 +503,7 @@ class CliProcess:
         )
         try:
             self.proc = await asyncio.create_subprocess_exec(
+                *low_priority_prefix(),
                 *args,
                 cwd=self.cwd,
                 stdin=asyncio.subprocess.DEVNULL
