@@ -374,13 +374,22 @@ class Codex(Profile):
         return [self.dir / "auth.json"]
 
     def check(self) -> Status:
-        """The first line of `login status` is "Logged in using ..." or "Not logged in"."""
+        """`login status` says "Logged in using ..." or "Not logged in". Codex may print
+        warnings before that line (for example about PATH aliases when the profile is
+        under /tmp), so look for the answer, not the first line."""
         out = self.call([self.bin(), "login", "status"], capture=True)
-        first = ((out.stdout + out.stderr).strip().splitlines() or ["no answer"])[0]
-        ok = first.startswith("Logged in")
-        return Status(
-            ok, first, method=first[len("Logged in using ") :] if ok else None
+        lines = [
+            line.strip()
+            for line in (out.stdout + out.stderr).splitlines()
+            if line.strip()
+        ]
+        answer = next(
+            (line for line in lines if line.startswith(("Logged in", "Not logged in"))),
+            None,
         )
+        text = answer or (lines[0] if lines else "no answer")
+        ok = bool(answer) and answer.startswith("Logged in")
+        return Status(ok, text, method=text[len("Logged in using ") :] if ok else None)
 
 
 class Opencode(Profile):
