@@ -30,7 +30,7 @@ export const accountKeys = {
 export function useAiAccounts(projectId?: string) {
   return useQuery({
     queryKey: accountKeys.list(projectId),
-    queryFn: async () => (await client.get<AccountsOverview>('/ai/accounts', { params: { projectId } })).data,
+    queryFn: async () => (await client.get<AccountsOverview>('/ai/accounts', { params: { project_id: projectId } })).data,
     refetchInterval: (q) => (q.state.data?.accounts.some((a) => a.status === 'signing_in') ? 3000 : 15000),
   });
 }
@@ -61,7 +61,7 @@ export const accountsApi = {
   remove: async (id: string, members: RemoveMembersPolicy, otherId?: string) =>
     (
       await client.delete<{ removed: boolean; membersMoved: number }>(`/ai/accounts/${id}`, {
-        params: { members, otherId },
+        params: { members, other_id: otherId },
       })
     ).data,
   nameCheck: async (name: string) =>
