@@ -1,10 +1,19 @@
 /** Open a link in the system browser (the desktop app) or a new tab. Only web links are ever opened. */
 export function openLink(url: string) {
-  if (!/^https?:\/\//i.test(url)) return;
+  // The link comes from the CLI's output: parse it and open only the rebuilt web address, never the raw text
+  let target: string;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
+    target = parsed.href;
+  } catch {
+    return;
+  }
+  if (!target.startsWith('https://') && !target.startsWith('http://')) return;
   const open = (window as unknown as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI
     ?.openExternal;
-  if (open) open(url);
-  else window.open(url, '_blank', 'noopener');
+  if (open) open(target);
+  else window.open(target, '_blank', 'noopener');
 }
 
 /** Copy text; false when the browser refuses. */
