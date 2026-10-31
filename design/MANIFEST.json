@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793441542-8a90",
+  "canvas_version": "1793469596-c902",
   "exported": "2026-10-31",
   "files": {
     "AccountMenu.dc.html": {
@@ -555,6 +555,14 @@
       "page": "screens_docs",
       "w": 1480,
       "h": 6340
+    },
+    "Canvas.dc.html": {
+      "bytes": 403353,
+      "sha256": "3d8e46e752b1a2b1852371b855a13896ac709fb73958a08541119ff326e092ce",
+      "title": "Canvas — boards, notes and comments on one large plane",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 19845
     },
     "DesktopMenu.dc.html": {
       "bytes": 104626,
