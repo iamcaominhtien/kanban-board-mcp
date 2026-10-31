@@ -456,3 +456,42 @@ async def test_a_parent_ticket_rolls_up_its_children_and_says_what_blocks_the_re
     assert (
         j["parent"]["tiles"]["children"] == 2 and j["parent"]["tiles"]["blocked"] == 1
     )
+
+
+async def test_flow_says_what_is_happening_now(env):
+    c = env["c"]
+    _, pid, an, dev, tid = await _ctx(env)  # the AI has a run going on the ticket
+    rev = await _runner(c, pid, env["repo"], name="Reviewer Rin", template="reviewer")
+    async with env["maker"]() as s:
+        s.add(
+            AiRun(
+                project_id=pid,
+                ticket_id=tid,
+                member_id=rev["id"],
+                trigger="handoff",
+                chain=json.dumps([dev["id"]]),
+                started_by="An Nguyen",
+                state="queued",
+                mode="ask",  # one work run holds a ticket; a reviewer's turn waits as an ask run here
+                number=50,
+                queued_at=datetime.now(UTC).isoformat(),
+            )
+        )
+        await s.commit()
+    data = (await c.get(f"/projects/{pid}/ai/team/flow")).json()
+    assert [(x["member_name"], x["state"]) for x in data["live"]] == [
+        (dev["name"], "working"),
+        ("Reviewer Rin", "queued"),
+    ]
+    nodes = {n["id"]: n for n in data["nodes"]}
+    assert nodes[dev["id"]]["live"]["ticket_id"] == tid
+    assert nodes[rev["id"]]["live"]["state"] == "queued"
+    # the hand-off from the dev to the reviewer is under way
+    assert any(
+        e["live"]
+        for e in data["edges"]
+        if (e["from"], e["to"]) == (dev["id"], rev["id"])
+    )
+    assert [x["state"] for x in data["picker"][0]["live"]] == ["working", "queued"]
+    j = (await c.get(f"/projects/{pid}/ai/team/flow/{tid}")).json()
+    assert len(j["live"]) == 2 and j["live"][0]["member_id"] == dev["id"]

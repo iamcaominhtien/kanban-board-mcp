@@ -247,6 +247,21 @@ export interface Health {
   notOkTotal: number;
 }
 
+/** What an active run is doing right now (queued, working, or waiting for a person). */
+export interface LiveRun {
+  runId: string;
+  memberId: string;
+  memberName: string;
+  ticketId: string;
+  ticketTitle: string;
+  state: 'working' | 'waiting_you' | 'queued';
+  mode: string;
+  trigger: string;
+  sender: string;
+  elapsedS: number | null;
+  step: string;
+}
+
 export interface FlowEdge {
   from: string;
   to: string;
@@ -256,12 +271,24 @@ export interface FlowEdge {
   count: number;
   waitS: number | null;
   tickets: string[];
+  /** A hand-off between these two is under way. */
+  live: boolean;
 }
 
 export interface FlowMap {
   range: TeamRange;
   since: string;
-  nodes: { id: string; name: string; color: string; tickets: number; avgRunS: number | null; asked: number }[];
+  live: LiveRun[];
+  nodes: {
+    id: string;
+    name: string;
+    color: string;
+    tickets: number;
+    avgRunS: number | null;
+    asked: number;
+    live: LiveRun | null;
+    liveCount: number;
+  }[];
   edges: FlowEdge[];
   tickets: number;
   stats: {
@@ -283,6 +310,7 @@ export interface FlowMap {
     bounced: number;
     costUsd: number;
     completed: boolean;
+    live: LiveRun[];
   }[];
 }
 
@@ -292,6 +320,7 @@ export interface Journey {
   start?: string | null;
   end?: string | null;
   running?: boolean;
+  live?: LiveRun[];
   lanes?: { id: string; name: string; color: string | null }[];
   bars?: {
     runId: string;

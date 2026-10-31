@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTeamFlow, useTicketJourney } from '../../api/aiTeam';
-import type { FlowEdge, FlowMap, Journey, JourneyPage, ParentRollup, TeamRange } from '../../types/aiTeam';
+import type { FlowEdge, FlowMap, Journey, JourneyPage, LiveRun, ParentRollup, TeamRange } from '../../types/aiTeam';
 import { fmtShort, fmtUsd } from './teamFormat';
 import { TicketChip } from './teamUi';
 
@@ -12,7 +12,52 @@ export interface FlowActions {
 const NODE_W = 130;
 const NODE_GAP = 60;
 const NODE_Y = 70;
-const NODE_H = 104;
+const NODE_H = 140;
+
+const LIVE_WORD: Record<LiveRun['state'], string> = {
+  working: 'working',
+  waiting_you: 'waiting for you',
+  queued: 'queued',
+};
+// The short word inside a node, which is only 130 px wide
+const LIVE_SHORT: Record<LiveRun['state'], string> = { working: 'working', waiting_you: 'needs you', queued: 'queued' };
+const LIVE_COLOR: Record<LiveRun['state'], string> = { working: '#2E6F40', waiting_you: '#8A6A12', queued: '#5B6B60' };
+
+/** "3m 20s" for a live timer: seconds under a minute, minutes after. */
+function since(s: number | null): string {
+  if (s == null) return '';
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60 ? `${s % 60}s` : ''}`.trim();
+}
+
+/** What the AIs are doing right now, one chip each; a click opens that ticket's journey. */
+function LiveStrip({ live, onPick }: { live: LiveRun[]; onPick: (ticketId: string) => void }) {
+  if (live.length === 0)
+    return (
+      <div className="at-now idle" data-testid="live-strip">
+        <b>Right now</b> Nobody is working. The map shows what already happened.
+      </div>
+    );
+  return (
+    <div className="at-now" data-testid="live-strip">
+      <b>Right now</b>
+      {live.map((x) => (
+        <button
+          key={x.runId}
+          type="button"
+          className="at-now-chip"
+          onClick={() => onPick(x.ticketId)}
+          title={x.step || x.ticketTitle}
+        >
+          <span className={`at-live-dot ${x.state}`} />
+          <b>{x.memberName}</b>
+          <span style={{ color: LIVE_COLOR[x.state] }}>
+            {LIVE_WORD[x.state]} · {x.ticketId} · {since(x.elapsedS)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /** One box per AI in a row, an arrow per pair: straight to the next one, an arc above for a skip or a report back,
  *  an arc below for work sent back (design/screens/ai-team.md, C). Longer arcs rise higher so labels do not collide. */
@@ -91,9 +136,10 @@ function TeamMap({ map }: { map: FlowMap }) {
               <path
                 d={`M${a} ${NODE_Y} C${a} ${top - rise * 0.33} ${b} ${top - rise * 0.33} ${b} ${NODE_Y}`}
                 stroke={color}
-                strokeWidth="1.8"
+                strokeWidth={e.live ? 3 : 1.8}
                 fill="none"
                 strokeDasharray={dash}
+                className={e.live ? 'at-live-edge' : undefined}
                 markerEnd={`url(#${marker})`}
               />
               <text x={(a + b) / 2} y={top - 2} fontSize="11.5" fontWeight="700" fill={color} textAnchor="middle">
@@ -104,6 +150,19 @@ function TeamMap({ map }: { map: FlowMap }) {
         })}
         {nodes.map((n, i) => (
           <g key={n.id}>
+            {n.live && (
+              <rect
+                className="at-ring"
+                x={x(i) - 4}
+                y={NODE_Y - 4}
+                width={NODE_W + 8}
+                height={NODE_H + 8}
+                rx="15"
+                fill="none"
+                stroke={LIVE_COLOR[n.live.state]}
+                strokeWidth="2.4"
+              />
+            )}
             <rect
               x={x(i)}
               y={NODE_Y}
@@ -128,6 +187,23 @@ function TeamMap({ map }: { map: FlowMap }) {
             <text x={x(i) + 12} y={NODE_Y + 86} fontSize="11" fill="#5B6B60">
               asked you: {n.asked}
             </text>
+            <line x1={x(i) + 8} x2={x(i) + NODE_W - 8} y1={NODE_Y + 95} y2={NODE_Y + 95} stroke="#E3E8E5" />
+            {n.live ? (
+              <g data-testid={`node-live-${n.name}`}>
+                <circle cx={x(i) + 17} cy={NODE_Y + 110} r="4.5" fill={LIVE_COLOR[n.live.state]} className="at-ring" />
+                <text x={x(i) + 28} y={NODE_Y + 114} fontSize="11" fontWeight="700" fill={LIVE_COLOR[n.live.state]}>
+                  {LIVE_SHORT[n.live.state]}
+                </text>
+                <text x={x(i) + 28} y={NODE_Y + 130} fontSize="11" fontWeight="600" fill="#1E2A22">
+                  {n.live.ticketId.length > 11 ? `${n.live.ticketId.slice(0, 10)}…` : n.live.ticketId}
+                  {(n.liveCount ?? 0) > 1 ? ` +${(n.liveCount ?? 1) - 1}` : ''}
+                </text>
+              </g>
+            ) : (
+              <text x={x(i) + 12} y={NODE_Y + 113.5} fontSize="11" fill="#9AA8A0">
+                idle
+              </text>
+            )}
           </g>
         ))}
         {adjacent.map((e) => {
@@ -138,8 +214,9 @@ function TeamMap({ map }: { map: FlowMap }) {
               <path
                 d={`M${x(a) + NODE_W} ${NODE_Y + 52} L${x(a) + NODE_W + NODE_GAP - 2} ${NODE_Y + 52}`}
                 stroke="#2E6F40"
-                strokeWidth={w(e.count)}
+                strokeWidth={e.live ? w(e.count) + 1 : w(e.count)}
                 fill="none"
+                className={e.live ? 'at-live-edge' : undefined}
                 markerEnd="url(#ah)"
               />
               <text x={mid} y={NODE_Y + 42} fontSize="11.5" fontWeight="700" fill="#1E2A22" textAnchor="middle">
@@ -161,9 +238,10 @@ function TeamMap({ map }: { map: FlowMap }) {
               <path
                 d={`M${a} ${bottom} C${a} ${low + drop * 0.33} ${b} ${low + drop * 0.33} ${b} ${bottom}`}
                 stroke={color}
-                strokeWidth="2"
+                strokeWidth={e.live ? 3 : 2}
                 fill="none"
                 strokeDasharray={dash}
+                className={e.live ? 'at-live-edge' : undefined}
                 markerEnd={`url(#${marker})`}
               />
               <text x={(a + b) / 2} y={low + 14} fontSize="11.5" fontWeight="700" fill={color} textAnchor="middle">
@@ -189,7 +267,7 @@ function Stat({ label, value, hint, color }: { label: string; value: string | nu
   );
 }
 
-function MapView({ map }: { map: FlowMap }) {
+function MapView({ map, onPick }: { map: FlowMap; onPick: (ticketId: string) => void }) {
   const s = map.stats;
   const LABEL: Record<string, string> = {
     assigned: 'assigned',
@@ -205,6 +283,7 @@ function MapView({ map }: { map: FlowMap }) {
   const pp = s.pingPong[0];
   return (
     <>
+      <LiveStrip live={map.live ?? []} onPick={onPick} />
       <div className="at-hint">
         {map.tickets} ticket{map.tickets === 1 ? '' : 's'} with AI work in this range · the number on an arrow is how
         many hand-offs, the time under it the average wait before the next AI started
@@ -403,7 +482,11 @@ function Swimlanes({ j, selected, onSelect }: { j: Journey; selected: string | n
                 fill={bad ? '#FDECE8' : `${color}33`}
                 stroke={color}
                 strokeWidth={selected === b.runId ? 2.4 : 1.2}
+                className={b.state === 'running' || b.state === 'starting' ? 'at-bar-live' : undefined}
               />
+              {(b.state === 'running' || b.state === 'starting') && (
+                <circle cx={x2} cy={y + 13} r="4" fill={color} className="at-ring" />
+              )}
               {b.wait && (
                 <rect
                   x={px(b.wait.from)}
@@ -818,6 +901,17 @@ function OneTicket({
                 {p.title}
               </span>
             </div>
+            {p.live?.[0] && (
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 11.5, fontWeight: 700 }}
+                data-testid={`pick-live-${p.id}`}
+              >
+                <span className={`at-live-dot ${p.live[0].state}`} />
+                <span style={{ color: LIVE_COLOR[p.live[0].state] }}>
+                  {p.live[0].memberName} {LIVE_WORD[p.live[0].state]} · {since(p.live[0].elapsedS)}
+                </span>
+              </div>
+            )}
             <div className="at-hint-sm" style={{ marginTop: 3 }}>
               {p.status}
               {p.elapsedS ? ` · ${fmtShort(p.elapsedS)}` : ''}
@@ -846,6 +940,23 @@ function OneTicket({
                   : ''}
                 {j.touches?.[0]?.mark === 'start' ? ` · started by ${j.touches[0].who}` : ''}
               </span>
+            </div>
+            <div className={`at-now${j.live?.length ? '' : ' idle'}`} data-testid="journey-now">
+              <b>Now</b>
+              {j.live?.length ? (
+                j.live.map((x) => (
+                  <span key={x.runId} style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                    <span className={`at-live-dot ${x.state}`} />
+                    <b>{x.memberName}</b>
+                    <span style={{ color: LIVE_COLOR[x.state] }}>
+                      {LIVE_WORD[x.state]} · {since(x.elapsedS)}
+                    </span>
+                    {x.step && <span style={{ color: '#5B6B60' }}>· {x.step}</span>}
+                  </span>
+                ))
+              ) : (
+                <span>No AI is working on this ticket. It is in {j.ticket.status}.</span>
+              )}
             </div>
             {st && !j.parent && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 12 }}>
@@ -1050,7 +1161,13 @@ export function FlowTab({
         </button>
       </div>
       {view === 'map' ? (
-        <MapView map={map} />
+        <MapView
+          map={map}
+          onPick={(id) => {
+            setTicketId(id);
+            setView('ticket');
+          }}
+        />
       ) : (
         <OneTicket projectId={projectId} map={map} ticketId={ticketId} setTicketId={setTicketId} actions={actions} />
       )}

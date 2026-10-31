@@ -4,7 +4,7 @@ import statistics
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import AiRun, Ticket
@@ -14,6 +14,69 @@ from .store import loads, parse_iso
 from .team import RANGES, window_start
 
 YOU = "you"
+LIVE_STATES = ("queued", "starting", "running", "needs_input")
+_LIVE_LABEL = {
+    "queued": "queued",
+    "starting": "working",
+    "running": "working",
+    "needs_input": "waiting_you",
+}
+_LIVE_RANK = {"working": 0, "waiting_you": 1, "queued": 2}
+
+
+def _live_row(r: AiRun, names: dict[str, str], tickets: dict[str, Ticket]) -> dict:
+    """What an active run is doing right now: who, on which ticket, since when and its latest step."""
+    chain = loads(r.chain, [])
+    steps = [
+        s for s in loads(r.steps, []) if s.get("kind") not in ("system", "compact")
+    ]
+    t = tickets.get(r.ticket_id)
+    now = datetime.now(UTC)
+    since = parse_iso(r.started_at) or parse_iso(r.queued_at)
+    return {
+        "run_id": r.id,
+        "member_id": r.member_id,
+        "member_name": names.get(r.member_id, "AI"),
+        "ticket_id": r.ticket_id,
+        "ticket_title": t.title if t else "",
+        "state": _LIVE_LABEL.get(r.state, r.state),
+        "mode": r.mode,
+        "trigger": r.trigger,
+        "sender": chain[-1] if chain else r.started_by,
+        "elapsed_s": int((now - since).total_seconds()) if since else None,
+        "step": (steps[-1].get("text") or "")[:140] if steps else "",
+    }
+
+
+async def live_runs(session: AsyncSession, project_id: str) -> list[dict]:
+    """Every run that is queued, working or waiting for a person, the busiest first."""
+    runs = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id, col(AiRun.state).in_(LIVE_STATES)
+            )
+        )
+    ).all()
+    if not runs:
+        return []
+    from models import Member
+
+    members = (
+        await session.exec(select(Member).where(Member.project_id == project_id))
+    ).all()
+    names = {m.id: m.name for m in members}
+    tickets = {
+        t.id: t
+        for t in (
+            await session.exec(
+                select(Ticket).where(col(Ticket.id).in_({r.ticket_id for r in runs}))
+            )
+        ).all()
+    }
+    rows = [_live_row(r, names, tickets) for r in runs]
+    return sorted(
+        rows, key=lambda x: (_LIVE_RANK.get(x["state"], 3), -(x["elapsed_s"] or 0))
+    )
 
 
 def _end_of(r: AiRun, now: datetime) -> datetime | None:
@@ -88,6 +151,7 @@ async def team_map(
     runs = [r for r in d.runs if (parse_iso(r.queued_at) or a) >= a]
     evs = [e for e in d.events if (parse_iso(e["at"]) or a) >= a and e["to"] in names]
 
+    live = await live_runs(session, project_id)
     order = usual_order(runs, list(d.ais))
     nodes = []
     for mid in order:
@@ -102,6 +166,9 @@ async def team_map(
                 "tickets": len({r.ticket_id for r in mine}),
                 "avg_run_s": int(statistics.mean(durations)) if durations else None,
                 "asked": len([r for r in mine if loads(r.question, None)]),
+                # what this AI is doing right now (the busiest of its active runs), None when idle
+                "live": next((x for x in live if x["member_id"] == mid), None),
+                "live_count": len([x for x in live if x["member_id"] == mid]),
             }
         )
 
@@ -148,6 +215,13 @@ async def team_map(
             "count": v["count"],
             "wait_s": int(statistics.mean(v["waits"])) if v["waits"] else None,
             "tickets": sorted(v["tickets"])[:5],
+            # a hand-off between these two is under way: the receiver is queued or working on it
+            "live": any(
+                x["sender"] == v["from"]
+                and x["member_id"] == v["to"]
+                and x["trigger"] != "autopilot"
+                for x in live
+            ),
         }
         for v in edges.values()
     ]
@@ -165,10 +239,18 @@ async def team_map(
             r.cost_usd if (r.metered or r.cost_usd > 0) else 0
         )
     picker = []
+    live_by_ticket: dict[str, list[dict]] = defaultdict(list)
+    for x in live:
+        live_by_ticket[x["ticket_id"]].append(x)
     for tid in sorted(
         {r.ticket_id for r in runs},
-        key=lambda t: max(r.queued_at for r in runs if r.ticket_id == t),
-        reverse=True,
+        key=lambda t: (
+            t not in live_by_ticket,
+            "".join(
+                chr(255 - ord(ch))
+                for ch in max(r.queued_at for r in runs if r.ticket_id == t)
+            ),
+        ),
     )[:40]:
         t = d.tickets.get(tid)
         mine = [r for r in runs if r.ticket_id == tid]
@@ -184,9 +266,11 @@ async def team_map(
                 "bounced": len([e for e in sent if e["ticket_id"] == tid]),
                 "cost_usd": round(cost_by_ticket[tid], 4),
                 "completed": any(c.ticket_id == tid for c in done),
+                "live": live_by_ticket.get(tid, [])[:3],
             }
         )
     return {
+        "live": live[:12],
         "range": range_key,
         "since": a.isoformat(),
         "nodes": nodes,
@@ -609,6 +693,11 @@ async def ticket_journey(
         "empty": False,
         "start": start.isoformat() if start else None,
         "end": end.isoformat() if end else None,
+        "live": [
+            x
+            for x in await live_runs(session, project_id)
+            if x["ticket_id"] == ticket_id
+        ],
         "running": bool(
             last and last.state in ("starting", "running", "needs_input", "queued")
         ),

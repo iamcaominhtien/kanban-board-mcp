@@ -58,7 +58,8 @@ export function useTeamFlow(projectId: string, range: TeamRange) {
     queryKey: ['ai', 'team', 'flow', projectId, range] as const,
     queryFn: async () => (await client.get<FlowMap>(`/projects/${projectId}/ai/team/flow`, { params: { range } })).data,
     enabled: !!projectId,
-    refetchInterval: 30000,
+    // quick while an AI is at work, so the map follows what is happening
+    refetchInterval: (q) => (q.state.data?.live?.length ? 4000 : 20000),
   });
 }
 
@@ -68,6 +69,6 @@ export function useTicketJourney(projectId: string, ticketId: string | null) {
     queryKey: ['ai', 'team', 'journey', projectId, ticketId] as const,
     queryFn: async () => (await client.get<Journey>(`/projects/${projectId}/ai/team/flow/${ticketId}`)).data,
     enabled: !!projectId && !!ticketId,
-    refetchInterval: 10000,
+    refetchInterval: (q) => (q.state.data?.live?.length ? 3000 : 10000),
   });
 }
