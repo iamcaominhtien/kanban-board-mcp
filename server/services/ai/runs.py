@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import secrets as pysecrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -1472,6 +1473,7 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                     read_only=run.mode == "ask" or safe,
                     resume_id=session_id if resume else None,
                     effort=config.get("effort"),
+                    compact_at_tokens=int(config.get("compact_at_tokens") or 0),
                     extra_flags=extra_flags,
                     read_dirs=read_dirs,
                     bypass=bypass,
@@ -1665,8 +1667,13 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
     elif result and result.get("text"):
         reason = result["text"][:300]
     else:
-        tail = " ".join(proc.stderr_tail[-3:])
-        reason = f"Exit code {code}." + (f" {tail[:240]}" if tail else "")
+        tail = _plain(" ".join(proc.stderr_tail[-3:]))
+        asked = re.search(r"permission requested: ([^;]+)", tail)
+        if asked:
+            # opencode ends a headless run at a permission no rule gave (it has nobody to ask)
+            reason = f"Stopped at a permission nothing allows: {asked.group(1).strip()[:160]}."
+        else:
+            reason = f"Exit code {code}." + (f" {tail[:240]}" if tail else "")
         low = tail.lower()
         if "log in" in low or "login" in low or "not authenticated" in low:
             async with database.async_session() as session:
@@ -1892,6 +1899,14 @@ async def _needs_input(run_id: str) -> None:
         ],
     )
     await _publish(force=True)
+
+
+_ANSI = re.compile(r"\x1b?\[[0-9;]*m")
+
+
+def _plain(text: str) -> str:
+    """Text without terminal colour codes, for a reason a person reads."""
+    return _ANSI.sub("", text)
 
 
 async def _end(

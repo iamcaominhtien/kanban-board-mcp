@@ -145,19 +145,21 @@ MATRIX: dict[str, dict[str, tuple[str, str]]] = {
         "subagents": ("synced", ".claude/agents"),
         "hooks": ("synced", "Runs shell on your machine"),
         "permissions": ("synced", "Allow / deny tool rules"),
-        "model": ("synced", "Model + effort, flags"),
+        "model": ("synced", "Model, flags"),
         "limits": ("synced", "Max turns, run timeout"),
     },
+    # The three CLIs the board runs itself (Antigravity, Codex, opencode) get everything on the command line or in
+    # the prompt of each run: nothing is written into the working folder, so nothing is "documented".
     "antigravity": {
-        "instructions": ("documented", "Rules, pasted by hand"),
-        "skills": ("documented", "Workflows, set up by hand"),
+        "instructions": ("synced", "Added to each run's prompt"),
+        "skills": ("not_supported", "Workflows are not used by runs"),
         "tools": ("not_supported", ""),
-        "mcp_servers": ("documented", "Experimental file sync"),
+        "mcp_servers": ("not_supported", "The board's own tools only"),
         "subagents": ("not_supported", ""),
         "hooks": ("not_supported", ""),
-        "permissions": ("documented", "Set in its own settings"),
-        "model": ("documented", "Picked in the app"),
-        "limits": ("synced", "Run timeout only"),
+        "permissions": ("synced", "Allow / deny command rules"),
+        "model": ("synced", "Model + effort, flags"),
+        "limits": ("synced", "Run timeout"),
     },
     "api": {
         "instructions": ("synced", "System prompt, used directly"),
@@ -175,12 +177,20 @@ MATRIX: dict[str, dict[str, tuple[str, str]]] = {
         for g, _ in GROUPS
     },
 }
-# Codex and opencode members: the board writes nothing into their folders; the run is configured on the command line
-MATRIX["codex"] = MATRIX["opencode"] = {g: ("not_supported", "") for g, _ in GROUPS}
+MATRIX["codex"] = {
+    **MATRIX["antigravity"],
+    "permissions": ("not_supported", "Runs in its own sandbox"),
+}
+MATRIX["opencode"] = {
+    **MATRIX["antigravity"],
+    "permissions": ("synced", "Allow / deny rules"),
+}
 
 ADAPTER_COLUMNS = [
     ("claude-code", "Claude Code", "local runner"),
     ("antigravity", "Antigravity", "local runner"),
+    ("codex", "Codex", "local runner"),
+    ("opencode", "opencode", "local runner"),
     ("api", "API agent", "API key"),
     ("mcp-client", "Other MCP client", "inbox only"),
 ]
@@ -289,6 +299,8 @@ DEFAULT_CONFIG: dict = {
     "permission_mode": "allowlist",
     # Claude Code compacts a long session by itself once it fills this share of its context window
     "compact_at_pct": 60,
+    # Codex compacts a long session once it holds this many tokens (0 = its own default); other CLIs ignore it
+    "compact_at_tokens": 0,
     # API agents (D5–D7)
     "max_steps": 12,
     "max_tokens_per_run": 60000,

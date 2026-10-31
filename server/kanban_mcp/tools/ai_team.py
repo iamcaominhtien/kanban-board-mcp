@@ -127,9 +127,20 @@ async def ai_team(
     Bypass). Refused inside an AI run."""
     from services.ai import guard
 
-    if action not in READS and await guard.resolve() is not None:
+    ctx = await guard.resolve()
+    if action not in READS and ctx is not None:
         raise ValueError(
             "An AI run cannot start AIs or change AI members or runs; a person does."
         )
-    given = params_of({k: v for k, v in locals().items() if k != "guard"})
+    op = AI_TEAM_OPS.get(action)
+    if (
+        project_id is None
+        and ctx is not None
+        and op is not None
+        and "project_id" in (*op.required, *op.optional)
+    ):
+        project_id = ctx.project_id  # inside a run the project is known
+    given = params_of(
+        {k: v for k, v in locals().items() if k not in ("guard", "ctx", "op")}
+    )
     return await dispatch("ai_team", AI_TEAM_OPS, action, given)

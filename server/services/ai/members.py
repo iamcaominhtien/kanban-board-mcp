@@ -4,6 +4,7 @@ An AI member is a project Member with ``kind='ai'`` (so assignment, @mentions an
 AiMember profile holding its connection, persona, limits and permissions.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -923,6 +924,40 @@ async def latest_cli_version(provider: str) -> str | None:
 def _semver(text: str | None) -> tuple[int, ...] | None:
     found = re.search(r"(\d+)\.(\d+)\.(\d+)", text or "")
     return tuple(int(x) for x in found.groups()) if found else None
+
+
+async def cli_models(session: AsyncSession, profile: AiMember) -> dict:
+    """The models an Antigravity or opencode member can pick: ``<cli> models`` run as its account. Antigravity prints
+    ``id<TAB>label`` lines after a "Fetching" line (and needs a login); opencode prints one ``provider/model`` per line."""
+    account = (
+        await session.get(accounts.AiAccount, profile.account_id)
+        if profile.account_id
+        else None
+    )
+    info = await detect_local(profile.provider, profile.cli_path, account=account)
+    if not info.get("path"):
+        return {
+            "source": "none",
+            "models": [],
+            "error": "Antigravity (agy) was not found.",
+        }
+    env = None
+    if account is not None:
+        await asyncio.to_thread(accounts.profile_of(account).prepare)
+        env = accounts.env_for(account, cli.child_env())
+    code, out, err = await cli.run_capture([info["path"], "models"], 30, env=env)
+    models = []
+    for line in out.splitlines():
+        ident, _, label = line.strip().partition("\t")
+        if profile.provider == "opencode":
+            if ident and " " not in ident and "/" in ident:
+                models.append({"id": ident, "label": ident})
+        elif ident.strip() and label.strip():
+            models.append({"id": ident.strip(), "label": label.strip()})
+    if code == 0 and models:
+        return {"source": "cli", "models": models, "error": None}
+    detail = (err.strip() or out.strip() or f"exit code {code}").splitlines()[-1]
+    return {"source": "none", "models": [], "error": secrets.redact(detail)[:200]}
 
 
 async def detect_local(

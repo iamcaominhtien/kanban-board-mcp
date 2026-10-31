@@ -60,6 +60,9 @@ class Spec:
     bypass: bool = False
     resume_id: str | None = None
     effort: str | None = None
+    compact_at_tokens: int = (
+        0  # Codex only: compact the session at this many tokens (0 = its default)
+    )
     extra_flags: list[str] = field(default_factory=list)
     # Folders outside the working folder the CLI may read (Antigravity keeps the MCP servers' instructions in its home)
     read_dirs: list[str] = field(default_factory=list)
@@ -304,6 +307,11 @@ class CodexAdapter(Adapter):
             args += ["-m", spec.model]
         if spec.effort:
             args += ["-c", f"model_reasoning_effort={json.dumps(spec.effort)}"]
+        if spec.compact_at_tokens:
+            args += [
+                "-c",
+                f"model_auto_compact_token_limit={int(spec.compact_at_tokens)}",
+            ]
         env: dict[str, str] = {}
         if spec.mcp_url:
             args += [
@@ -364,6 +372,10 @@ def opencode_permissions(
         ),
         "bash": bash,
         "webfetch": "deny",
+        # Both default to "ask", and a run has nobody to ask: opencode then rejects the call and ends the run. Denied,
+        # the model gets an error and goes on. Outside the working folder is open only under Bypass permissions.
+        "external_directory": "allow" if bypass and not read_only else "deny",
+        "doom_loop": "deny",
     }
 
 
@@ -736,7 +748,8 @@ class AgyAdapter(Adapter):
         # Headless mode ends the run at the first action it may not do, so the model is told the limits up front
         if spec.bypass and not spec.read_only:
             guide = (
-                f"You are running headless and cannot ask for permission. Work inside {spec.cwd}. Use the board's "
+                f"You are running headless and cannot ask for permission. Work inside {spec.cwd}. Your file tools "
+                "(view, edit, search) need absolute paths: start them with that folder. Use the board's "
                 "MCP server (kanban) for the ticket, and report through it when you are done.\n\n"
             )
         else:
@@ -744,7 +757,8 @@ class AgyAdapter(Adapter):
                 f"You are running headless and cannot ask for permission. Work only inside {spec.cwd}: do not list, read "
                 "or change anything outside it. Run only commands from the project's own test command (for example "
                 "`python3 -m pytest -q`, `npm test`), `ls`, `cat` and `git status/diff/log`: never `python -c`, `sh` or "
-                "anything else. The first action that is not allowed ends the run. Use the board's MCP server (kanban) "
+                "anything else. Your file tools (view, edit, search) need absolute paths: start them with that folder. "
+                "The first action that is not allowed ends the run. Use the board's MCP server (kanban) "
                 "for the ticket, and report through it when you are done.\n\n"
             )
         args = [
@@ -771,8 +785,8 @@ class AgyAdapter(Adapter):
             args += ["--conversation", spec.resume_id]
         if spec.model:
             args += ["--model", spec.model]
-        if spec.effort:
-            args += ["--effort", spec.effort]
+        # No --effort: agy refuses it with a model that has the level in its name (gemini-…-low) and with others
+        # (claude-sonnet-4-6), so the level is part of the model the person picks.
         args += _safe_flags(spec.extra_flags)
         env = {TOKEN_ENV: spec.token, URL_ENV: spec.mcp_url} if spec.mcp_url else {}
         if spec.read_only:

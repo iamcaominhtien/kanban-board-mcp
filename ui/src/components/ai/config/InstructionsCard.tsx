@@ -153,28 +153,19 @@ function ClaudeInstructions() {
   );
 }
 
-/** Rules of an Antigravity member: Documented, copy and tick (design C2). */
-function AntigravityRules() {
-  const { cfg, setCfg, draft, setDraft, member, status, tick, issues } = useCfg();
-  const text = expanded(cfg.instructions, cfg.snippets);
-  const item = status?.documented.find((d) => d.key === 'instructions');
+/** Rules of a member the board runs itself (Antigravity, Codex, opencode): added to the prompt of every run. */
+function RunRules() {
+  const { cfg, setCfg, draft, setDraft, issues } = useCfg();
   const lib = cfg.snippets.map((s) => `${s.name} v${s.version}`).join(', ');
+  const tokens = estimateTokens(expanded(cfg.instructions, cfg.snippets));
   return (
     <CfgCard
       id="cfg-instructions"
       testId="card-instructions"
-      title="Rules — setup instructions"
-      mode="documented"
-      sub={`Do this once on the computer where the runner lives.`}
+      title="Rules"
+      mode="direct"
+      sub="The board adds these to the prompt of every run, after its own rules and before the ticket. Nothing is written into the working folder."
     >
-      <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, lineHeight: 1.7 }}>
-        <li>
-          Open the working folder <span className="ai-code">{member.workingDir || '(not set)'}</span> in Antigravity.
-        </li>
-        <li>
-          Open its rules settings (exact menu name: TODO verify) and paste the text below, then tick “I’ve done this”.
-        </li>
-      </ol>
       <div className="ai-field">
         <span className="ai-label ai-label-dark">Rules text{lib ? ` · from library ${lib}` : ''}</span>
         <CodeEditor
@@ -189,24 +180,18 @@ function AntigravityRules() {
           }
         />
         <IssueText issues={issues} path="instructions" />
+        {tokens > 0 && <span className="ai-hint">{tok(tokens)} added to every run</span>}
       </div>
       <SnippetChips />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <CopyButton text={text} />
-        <span className="ai-muted">The copy includes attached library snippets.</span>
-      </div>
-      <TickRow item={item} onTick={(d) => void tick('instructions', d)} />
-      <div className="ai-hint">
-        If the rules text changes later, the tick is cleared and you are asked to copy it again. Kanban cannot look
-        inside Antigravity, so the tick is a reminder, not a check.
-      </div>
       <div className="ai-field">
         <span className="ai-label ai-label-dark">Role / persona</span>
         <textarea
           className="ai-textarea"
+          aria-label="Role / persona"
           value={draft.persona}
           onChange={(e) => setDraft({ persona: e.target.value })}
         />
+        <span className="ai-hint">{draft.persona.length} / 1000 · added to every run; visible to members.</span>
       </div>
     </CfgCard>
   );
@@ -417,6 +402,6 @@ export function InstructionsCard() {
   const { member } = useCfg();
   const kind = adapterOf(member);
   if (kind === 'claude-code') return <ClaudeInstructions />;
-  if (kind === 'antigravity') return <AntigravityRules />;
+  if (kind === 'antigravity' || kind === 'cli') return <RunRules />;
   return <ApiPrompt />;
 }

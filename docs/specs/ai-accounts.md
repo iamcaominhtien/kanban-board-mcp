@@ -69,6 +69,13 @@ whether it is signed in. By default the board passes no flag that skips a CLI's 
   `ls`, `cat` and `git`. The Allow rules are the way to give it
   more; a pre-approved command set is not a sandbox.
 - Codex and Antigravity do not report changed-line counts, so a changed file shows `+0 -0`.
+- **Configuration tab.** For these three types the tab shows Rules (put in the prompt of every run), Permissions
+  (Allow and Deny rules; Codex has none) and Model & limits. Nothing is written into the working folder and nothing is
+  "documented": the earlier steps to paste rules into the Antigravity app are gone. The model list comes from
+  `agy models` or `opencode models`. `--effort` is not passed to `agy` (it conflicts with models that carry the level
+  in their name). Codex can set `model_auto_compact_token_limit`; Antigravity compacts by itself and opencode has no
+  threshold. On macOS an Antigravity account gets a keychain of its own (empty, unlocked before each use) so no
+  keychain dialog appears.
 - Found by running each one against a live board with the three CLIs on this computer (Codex and Antigravity with an
   account, opencode with a free model): each worked a ticket to Review through the board's MCP tools.
 

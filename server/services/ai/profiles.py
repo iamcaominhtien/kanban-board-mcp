@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -201,9 +202,8 @@ class Agy(Profile):
     one entry per user: service `gemini`, account `antigravity`). Two profiles sharing that entry would overwrite each
     other, so a profile gets its own HOME. Under a swapped HOME the macOS `security` tool finds no keychain, and agy
     falls back to keeping the login in a file inside the profile (.gemini/antigravity-cli/antigravity-oauth-token,
-    mode 0600). That fallback was seen on macOS only.
-
-    Profiles made by an earlier version have their own keychain inside the HOME instead; they keep working (see prepare).
+    mode 0600). That fallback was seen on macOS only, from a terminal. Started from the desktop session, the failed
+    lookup makes macOS show a dialog, so on macOS a profile gets a keychain of its own (see prepare).
     """
 
     cli = "agy"
@@ -215,7 +215,7 @@ class Agy(Profile):
 
     @property
     def keychain(self) -> Path:
-        """Keychain of a profile made by an earlier version. New profiles do not have one."""
+        """The profile's own keychain (macOS only; see prepare)."""
         return self.home / "Library" / "Keychains" / "login.keychain-db"
 
     def env(self) -> dict[str, str]:
@@ -254,21 +254,40 @@ class Agy(Profile):
                     pass  # the tool just will not see it
 
     def prepare(self) -> None:
-        """For a profile made with a keychain: unlock it, because it is locked again after a restart or a long idle."""
-        if self.keychain.exists():
-            result = subprocess.run(
-                ["security", "unlock-keychain", "-p", "", str(self.keychain)],
-                env=self.build_env(),
-                capture_output=True,
-                text=True,
-                stdin=subprocess.DEVNULL,
+        """On macOS give the profile a keychain of its own, empty and unlocked.
+
+        Under a swapped HOME there is no default keychain, and when agy asks for one from a program started inside the
+        desktop session, macOS shows a "Keychain Not Found" dialog (from a terminal it just fails quietly and agy
+        falls back to a file). A keychain inside the HOME makes the lookup succeed, and being the profile's own it
+        cannot mix two accounts up. It is locked again after a restart or a long idle, so it is unlocked each time."""
+        if sys.platform != "darwin":
+            return
+        if not self.keychain.exists():
+            self.keychain.parent.mkdir(parents=True, exist_ok=True)
+            self._security("create-keychain", "-p", "", str(self.keychain))
+            # No automatic lock after a while: a run can be long.
+            self._security("set-keychain-settings", str(self.keychain))
+        self._security("unlock-keychain", "-p", "", str(self.keychain))
+
+    def _security(self, *args: str) -> None:
+        result = subprocess.run(
+            ["security", *args],
+            env=self.build_env(),
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+        )
+        if result.returncode:
+            raise Fail(
+                f"cannot prepare the keychain of this profile ({args[0]} failed)"
             )
-            if result.returncode:
-                raise Fail("cannot unlock the keychain of this profile")
 
     def credential_files(self) -> list[Path]:
-        """The OAuth token file under the profile's HOME."""
-        return [self.home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"]
+        """The OAuth token file under the profile's HOME, and the profile's own keychain (where macOS keeps it)."""
+        return [
+            self.home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token",
+            self.keychain,
+        ]
 
     def login_argv(self, extra: list[str]) -> list[str]:
         """agy has no login subcommand: starting it without a login opens the sign-in itself."""

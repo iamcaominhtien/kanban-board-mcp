@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.16.0] - 2026-10-31
+## [3.16.0] - 2026-11-01
 
 AI accounts: several sign-ins of the same AI CLI, shared between AI members. Design: `design/screens/ai-accounts.md`; notes: `docs/specs/ai-accounts.md`.
 
@@ -19,6 +19,18 @@ AI accounts: several sign-ins of the same AI CLI, shared between AI members. Des
 - **Codex, opencode and Antigravity run tickets.** New AI member types Codex and opencode, and Antigravity (through its `agy` command), work a ticket like Claude Code: steps, changed files, a summary, the board's MCP tools, and the member's permissions. Each CLI is held to them in its own way, and none is started with a flag that skips its permission checks unless the project owner turns on Bypass permissions for that member (see below): Codex runs in its `read-only` or `workspace-write` sandbox (the Allow and Deny tool rules do not apply to it), opencode gets a permission map built from the member's Allow and Deny rules, and Antigravity gets the Allow rules as command rules (its headless mode ends the run at the first action no rule allows, and the run then fails with the reason). Antigravity runs need an AI account.
 - **Bypass permissions for Codex, opencode and Antigravity members**, with the same rules as for Claude Code (owner only, typed confirmation, audit entry, work runs only, never in Safe mode). Codex runs with `-s danger-full-access` (no sandbox; the Deny rules do not apply to Codex), opencode allows every command and edit except what a Deny rule stops, and Antigravity gets `--dangerously-skip-permissions` with the Deny rules passed as `command(...)` deny rules (checked: they still block a command under the flag). The Configuration tab now shows Permissions for Codex and opencode members, and the Allow and Deny rules for Antigravity, which are now passed to the run. Antigravity needs no pre-approved command list under Bypass, so a run no longer ends at an unlisted command.
 - **MCP:** `ai_team` can list accounts (`accounts`) and put a member on one (`assign_account`). There is no way for an AI to sign in, sign out or remove an account.
+
+- **Configuration tab of Antigravity, Codex and opencode members** now matches what a run really does, like Claude Code's: **Rules** (added to the prompt of every run, with the role / persona), **Permissions** (Allow and Deny rules; Codex runs in its own sandbox) and **Model & limits** (model, run and no-output timeouts, runs per day, parallel runs, extra flags). The model is a list from `agy models` or `opencode models` (Codex: type it); opencode also has **Effort**. Codex gets **Auto-compact at (tokens)**, passed as `model_auto_compact_token_limit`. Antigravity has no such setting: it compacts a long session by itself. The "paste into the Antigravity app" steps, the tick boxes, Workflows and the MCP file sync no longer show, because runs never read them.
+- **Antigravity sign-in window.** The terminal is as tall as the window allows (up to 24 rows) with a scrollbar that stays visible, and the mouse wheel scrolls three times faster. On macOS each Antigravity account gets a keychain of its own, so the system no longer asks for a keychain that is not there.
+
+### Fixed
+- The sign-in window stayed empty in the desktop app: its security policy blocked the WebSocket to the local server.
+- A run of opencode ended at the first prompt it could not answer (`external_directory`, `doom_loop`). They are denied now, so the model gets an error and goes on; a run that does stop says at which permission, without colour codes.
+- A run of Antigravity failed with `--effort`, which `agy` refuses with most models; the flag is no longer passed.
+- An AI member writing several test cases, comments or checklist items on one ticket was stopped as a "loop". Only the same call (same action, target and content) repeated counts now.
+- Antigravity's report to the board (`ai_run`) sent empty criteria because the tool listed no fields for them; the fields are in the tool's schema now. `ai_run` also ignores a `ticket_id` a model adds, and `ai_team` uses the run's project when none is given.
+- Antigravity is told that its file tools need absolute paths.
+- The name of the assignee in a ticket was 16 px, larger than the other values beside it.
 
 ### Changed
 - The Antigravity type looks for the `agy` command instead of `antigravity`.

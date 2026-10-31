@@ -251,6 +251,44 @@ def test_opencode_gets_its_config_and_the_board_server_through_the_environment()
     )
 
 
+def test_opencode_denies_the_prompts_it_would_ask_a_person_about():
+    # `external_directory` and `doom_loop` default to "ask"; a headless opencode then rejects the call and ends the run
+    perm = adapters.opencode_permissions(["Read"], [], read_only=False)
+    assert perm["external_directory"] == "deny" and perm["doom_loop"] == "deny"
+    bypass = adapters.opencode_permissions([], [], read_only=False, bypass=True)
+    assert bypass["external_directory"] == "allow" and bypass["doom_loop"] == "deny"
+    asked = adapters.opencode_permissions([], [], read_only=True, bypass=True)
+    assert asked["external_directory"] == "deny"
+
+
+def test_a_failure_reason_has_no_terminal_colour_codes():
+    from services.ai import runs
+
+    assert (
+        runs._plain("\x1b[93m\x1b[1m! \x1b[0mpermission requested: x")
+        == "! permission requested: x"
+    )
+    assert runs._plain("[93m[1m! [0mnope") == "! nope"
+
+
+def test_codex_gets_its_auto_compact_limit_only_when_one_is_set():
+    codex = adapters.for_provider("codex")
+    set_args = codex.launch(_spec(compact_at_tokens=120000)).args
+    assert "model_auto_compact_token_limit=120000" in set_args
+    assert not [a for a in codex.launch(_spec()).args if "auto_compact" in a]
+
+
+def test_agy_is_never_given_an_effort_flag_because_it_refuses_it_with_most_models():
+    # `agy --model gemini-3.8-flash-low --effort high` fails ("conflicts"), and so does --effort with claude-sonnet-4-6
+    args = (
+        adapters.for_provider("antigravity")
+        .launch(_spec(model="gemini-3.8-flash-low", effort="high"))
+        .args
+    )
+    assert args[args.index("--model") + 1] == "gemini-3.8-flash-low"
+    assert "--effort" not in args
+
+
 def test_agy_gets_command_rules_from_the_allow_list_and_never_the_bypass_flag():
     adapter = adapters.for_provider("antigravity")
     work = adapter.launch(_spec(resume_id="conv-1")).args
@@ -651,6 +689,59 @@ async def test_antigravity_runs_as_its_account_through_the_bridge(fakes, monkeyp
     ).read_text()
     servers = json.loads(text)["mcpServers"]
     assert servers["kanban"]["args"][-1] == "--bridge" and "kbr_" not in text
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Antigravity accounts are refused on Windows"
+)
+async def test_antigravity_models_come_from_agy_models_and_the_choice_reaches_the_run(
+    fakes, monkeypatch
+):
+    c = fakes["c"]
+    pid, _ = await _project(c)
+    acct = (await c.post("/ai/accounts", json={"name": "Google", "cli": "agy"})).json()
+    member = await _member(c, pid, fakes["repo"], "antigravity", account_id=acct["id"])
+    m = member["id"]
+    listed = (await c.get(f"/ai/members/{m}/models")).json()
+    assert listed["source"] == "cli"
+    assert [x["id"] for x in listed["models"]] == [
+        "gemini-3.8-flash-high",
+        "claude-sonnet-4-6",
+    ]
+    assert listed["models"][1]["label"] == "Claude Sonnet 4.6 (Thinking)"
+    # signed out: no list, the reason instead
+    monkeypatch.setenv("FAKE_CLI_MODE", "logged_out")
+    out = (await c.get(f"/ai/members/{m}/models")).json()
+    assert out["models"] == [] and "sign in" in out["error"].lower()
+    monkeypatch.setenv("FAKE_CLI_MODE", "finish")
+    # the chosen model is passed to agy as --model
+    assert (
+        await c.patch(f"/ai/members/{m}", json={"model": "claude-sonnet-4-6"})
+    ).status_code == 200
+    await c.post(f"/ai/accounts/{acct['id']}/check")
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, member)
+    run = await _wait(c, tid, ("finished", "failed"))
+    assert run["state"] == "finished", run
+    args = _recorded(fakes)[-1]["args"]
+    assert args[args.index("--model") + 1] == "claude-sonnet-4-6"
+
+
+async def test_the_codex_auto_compact_limit_is_validated(fakes):
+    c = fakes["c"]
+    pid, _ = await _project(c)
+    m = (await _member(c, pid, fakes["repo"], "codex"))["id"]
+    ok = await c.patch(
+        f"/ai/members/{m}", json={"config": {"compact_at_tokens": 120000}}
+    )
+    assert ok.status_code == 200, ok.text
+    for bad in (5, 5_000_000, "lots"):
+        r = await c.patch(
+            f"/ai/members/{m}", json={"config": {"compact_at_tokens": bad}}
+        )
+        assert r.status_code == 422, (bad, r.text)
+    zero = await c.patch(f"/ai/members/{m}", json={"config": {"compact_at_tokens": 0}})
+    assert zero.status_code == 200
 
 
 async def test_antigravity_without_an_account_is_refused_with_the_reason(fakes):

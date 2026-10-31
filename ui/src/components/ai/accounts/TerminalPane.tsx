@@ -69,6 +69,7 @@ export const TerminalPane = forwardRef<TerminalHandle, Props>(function TerminalP
       lineHeight: 1.3,
       cursorBlink: true,
       scrollback: 1000,
+      scrollSensitivity: 3, // the default (1) moves three lines for ten wheel clicks
       theme: { background: '#14201A', foreground: '#DDE8E0', cursor: '#C7E7D0', selectionBackground: '#2E6F4066' },
     });
     const fit = new FitAddon();

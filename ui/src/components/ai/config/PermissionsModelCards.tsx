@@ -4,7 +4,7 @@ import { Stepper } from '../AddAiMemberModal';
 import { useAiMe } from '../../../api/aiSafety';
 import { configApi } from './configApi';
 import { adapterOf, useCfg } from './configCtx';
-import { BYPASS_PHRASE, CfgCard, Chip, IssueText, NumField, TickRow, hasError } from './parts';
+import { BYPASS_PHRASE, CfgCard, Chip, IssueText, NumField, hasError } from './parts';
 import { joinWords, splitWords } from './frontMatter';
 
 const REJECTED = [
@@ -191,52 +191,11 @@ function PermissionModeBlock() {
   );
 }
 
-/** Permissions: allow / deny tool rules written to settings.json (Claude Code, B6), or documented notes (Antigravity, C3). */
+/** Permissions: allow / deny tool rules written to settings.json (Claude Code, B6); passed on the command line for the other CLIs. */
 export function PermissionsCard() {
-  const { member, cfg, setCfg, status, tick } = useCfg();
+  const { member, cfg, setCfg } = useCfg();
   const kind = adapterOf(member);
-  if (kind === 'antigravity') {
-    const item = status?.documented.find((d) => d.key === 'permissions');
-    return (
-      <CfgCard
-        id="cfg-permissions"
-        testId="card-permissions"
-        title="Permissions"
-        mode="documented"
-        sub="The Allow and Deny rules are passed to Antigravity for each run. Notes below are only for you; Kanban cannot read the app’s own settings."
-      >
-        {member.connection === 'local' && <PermissionModeBlock />}
-        <RuleList
-          label="Allow"
-          path="allow_rules"
-          rules={cfg.allowRules}
-          other={cfg.denyRules}
-          onChange={(r) => setCfg({ allowRules: r })}
-        />
-        <RuleList
-          label="Deny"
-          path="deny_rules"
-          rules={cfg.denyRules}
-          other={cfg.allowRules}
-          onChange={(r) => setCfg({ denyRules: r })}
-          danger
-        />
-        <textarea
-          aria-label="Permission notes"
-          className="ai-textarea"
-          placeholder="e.g. Allow terminal commands: git status, npm run test. Ask before anything else."
-          value={cfg.permissionNotes}
-          onChange={(e) => setCfg({ permissionNotes: e.target.value })}
-        />
-        <TickRow item={item} onTick={(d) => void tick('permissions', d)} />
-        <div className="ai-hint">
-          Separate from the board’s own ceiling in the Permissions tab: the board checks its rules even if the app
-          allows more.
-        </div>
-      </CfgCard>
-    );
-  }
-  if (kind === 'cli') {
+  if (kind === 'cli' || kind === 'antigravity') {
     const codex = member.provider === 'codex';
     return (
       <CfgCard
@@ -247,7 +206,9 @@ export function PermissionsCard() {
         sub={
           codex
             ? 'Codex runs in its own sandbox; the Allow and Deny rules do not apply to it.'
-            : 'Passed to opencode as its permission map for each run: everything not allowed is refused.'
+            : kind === 'antigravity'
+              ? 'Passed to Antigravity as command rules for each run. A run cannot ask a person, so it ends at the first command no rule allows.'
+              : 'Passed to opencode as its permission map for each run: everything not allowed is refused.'
         }
       >
         <PermissionModeBlock />
@@ -282,7 +243,7 @@ export function PermissionsCard() {
       sub={
         <>
           Written to <span className="ai-code">.claude/settings.json</span> and passed as --allowedTools /
-          --disallowedTools. Pattern syntax: TODO verify.
+          --disallowedTools.
         </>
       }
     >
@@ -311,9 +272,9 @@ export function PermissionsCard() {
   );
 }
 
-/** Model, effort, working folder, limits and extra CLI flags (design B7); Antigravity: model is Documented (C3). */
+/** Model, effort, working folder, limits and extra CLI flags (design B7). */
 export function ModelCard() {
-  const { member, cfg, setCfg, draft, setDraft, issues, status, tick } = useCfg();
+  const { member, cfg, setCfg, draft, setDraft, issues, status } = useCfg();
   const kind = adapterOf(member);
   const models = useQuery({
     queryKey: ['ai', 'models', member.id],
@@ -331,26 +292,77 @@ export function ModelCard() {
     setFlagError(bad ? `Flags that skip permission checks are rejected: ${bad}` : null);
     setCfg({ extraFlags: words });
   };
-  if (kind === 'antigravity') {
-    const item = status?.documented.find((d) => d.key === 'model');
+  if (kind === 'antigravity' || kind === 'cli') {
+    const label =
+      member.provider === 'antigravity' ? 'Antigravity' : member.provider === 'codex' ? 'Codex' : 'opencode';
     return (
       <CfgCard
-        id="cfg-model"
+        id="cfg-model-card"
         testId="card-model"
         title="Model & limits"
-        mode="documented"
-        sub="The model is picked inside the Antigravity app; the board only limits how long a run may take."
+        mode="synced"
+        sub={`Passed to ${label} on the command line for each run; nothing is written to files.`}
       >
-        <TickRow item={item} onTick={(d) => void tick('model', d)} />
         <div className="cfg-two">
           <div className="ai-field">
+            <span className="ai-label ai-label-dark">Model</span>
+            {options.length ? (
+              <select
+                id="cfg-model"
+                data-path="model"
+                className="ai-select"
+                value={draft.model}
+                onChange={(e) => setDraft({ model: e.target.value })}
+              >
+                <option value="">Default (the CLI’s choice)</option>
+                {draft.model && !known && <option value={draft.model}>{draft.model}</option>}
+                {options.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="cfg-model"
+                data-path="model"
+                className="ai-input ai-mono"
+                placeholder="Empty: the CLI’s choice"
+                value={draft.model}
+                onChange={(e) => setDraft({ model: e.target.value })}
+              />
+            )}
+            {models.data?.error && <span className="ai-hint">{models.data.error}</span>}
+          </div>
+          {kind === 'cli' && (
+            <div className="ai-field">
+              <span className="ai-label ai-label-dark">Effort</span>
+              <select
+                aria-label="Effort"
+                data-path="effort"
+                className="ai-select"
+                value={cfg.effort ?? ''}
+                onChange={(e) => setCfg({ effort: e.target.value || null })}
+              >
+                <option value="">Default</option>
+                {['low', 'medium', 'high', 'xhigh', 'max'].map((e) => (
+                  <option key={e} value={e}>
+                    {e[0].toUpperCase() + e.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <IssueText issues={issues} path="effort" />
+            </div>
+          )}
+          <div className="ai-field" style={{ gridColumn: '1 / -1' }}>
             <span className="ai-label ai-label-dark">Working folder</span>
             <input
               data-path="working_dir"
-              className="ai-input ai-mono"
+              className={`ai-input ai-mono ${hasError(issues, 'working_dir') ? 'ai-input-error' : ''}`}
               value={draft.workingDir}
               onChange={(e) => setDraft({ workingDir: e.target.value })}
             />
+            <IssueText issues={issues} path="working_dir" />
           </div>
           <NumField
             label="Run timeout"
@@ -359,9 +371,60 @@ export function ModelCard() {
             onChange={(v) => setCfg({ runTimeoutMin: v })}
             path="run_timeout_min"
             issues={issues}
-            hint="Run timeout only: the other limits are Antigravity’s own."
           />
+          <NumField
+            label="No output timeout"
+            unit="min"
+            value={cfg.idleTimeoutMin}
+            onChange={(v) => setCfg({ idleTimeoutMin: v })}
+            path="idle_timeout_min"
+            issues={issues}
+          />
+          {member.provider === 'codex' && (
+            <NumField
+              label="Auto-compact at"
+              unit="tokens"
+              step={10000}
+              value={cfg.compactAtTokens}
+              onChange={(v) => setCfg({ compactAtTokens: v })}
+              path="compact_at_tokens"
+              issues={issues}
+              hint="0 is Codex’s own default. Otherwise a long session is summarized once it holds this many tokens (10000 to 2000000)."
+            />
+          )}
+          <NumField
+            id="cfg-budget"
+            label="Scheduled runs per day"
+            value={draft.maxRunsPerDay}
+            onChange={(v) => setDraft({ maxRunsPerDay: v })}
+            path="max_runs_per_day"
+            issues={issues}
+          />
+          <div className="ai-field">
+            <span className="ai-label ai-label-dark">Parallel runs</span>
+            <Stepper value={draft.maxParallel} min={1} max={10} onChange={(v) => setDraft({ maxParallel: v })} />
+          </div>
+          <div className="ai-field" style={{ gridColumn: '1 / -1' }}>
+            <span className="ai-label ai-label-dark">
+              Extra CLI flags (flags that skip permission checks are rejected)
+            </span>
+            <input
+              data-path="extra_flags"
+              aria-label="Extra CLI flags"
+              className={`ai-input ai-mono ${flagError ? 'ai-input-error' : ''}`}
+              value={flagText}
+              onChange={(e) => onFlags(e.target.value)}
+            />
+            {flagError && (
+              <span className="ai-error-text" data-testid="flag-error">
+                {flagError}
+              </span>
+            )}
+            <IssueText issues={issues} path="extra_flags" />
+          </div>
         </div>
+        <div className="ai-muted">A run stops at the first limit it reaches and says which one.</div>
+        {status?.runner && !status.runner.online && <Chip tone="warn">Working folder not reachable</Chip>}
       </CfgCard>
     );
   }

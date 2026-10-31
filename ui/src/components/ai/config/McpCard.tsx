@@ -528,8 +528,7 @@ export function McpCard() {
             </div>
           )}
           <span className="ai-hint">
-            <b>Invented — TODO verify.</b> Target file, format and reload behavior are unconfirmed; nothing is written
-            until you turn this on.
+            Antigravity runs started by the board do not read this file; it is for the Antigravity app only.
           </span>
         </div>
       )}

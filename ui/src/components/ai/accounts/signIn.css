@@ -380,7 +380,7 @@
 }
 .sg-term-body {
   padding: 10px 12px;
-  height: 190px;
+  height: clamp(190px, 50vh, 396px); /* 24 rows when the window is tall enough, as in the design */
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -389,6 +389,13 @@
 }
 .sg-term-body .xterm-viewport {
   background-color: transparent !important;
+}
+/* xterm hides its scrollbar until the pointer is over it: keep it visible so people know the output scrolls */
+.sg-term-body .xterm .scrollbar.vertical {
+  opacity: 1 !important;
+}
+.sg-term-body .xterm .scrollbar.vertical .slider {
+  background: rgba(221, 232, 224, 0.35) !important;
 }
 .sg-term-body .xterm a {
   text-decoration: underline;

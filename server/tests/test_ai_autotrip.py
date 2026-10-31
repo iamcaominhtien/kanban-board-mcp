@@ -125,6 +125,42 @@ async def test_failed_runs_and_denials_and_spend_spike(env):
     }
 
 
+async def test_different_calls_on_one_ticket_are_work_not_a_loop(env):
+    # a QA member writing four test cases on one ticket must not be stopped; the same call four times is a loop
+    c, maker = env["c"], env["maker"]
+    pid, _ = await _project(c)
+    a = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    run_id = await _run(maker, pid, a["id"], tid, state="running")
+    for i in range(4):
+        await audit.record(
+            pid,
+            "manage_test_cases",
+            "allowed",
+            member_id=a["id"],
+            run_id=run_id,
+            target=tid,
+            detail={"request": {"ticket_id": tid, "item": f"case {i}"}},
+        )
+    await autotrip.check()
+    async with maker() as s:
+        assert (await s.get(AiRun, run_id)).state == "running"
+    for _ in range(3):
+        await audit.record(
+            pid,
+            "manage_test_cases",
+            "allowed",
+            member_id=a["id"],
+            run_id=run_id,
+            target=tid,
+            detail={"request": {"ticket_id": tid, "item": "case 0"}},
+        )
+    await autotrip.check()
+    async with maker() as s:
+        run = await s.get(AiRun, run_id)
+    assert run.state == "cancelled" and "manage test cases" in run.ended_reason
+
+
 async def test_loop_stops_the_run_and_holds_the_ticket_and_many_agents_pause_all(env):
     c, maker = env["c"], env["maker"]
     pid, _ = await _project(c)

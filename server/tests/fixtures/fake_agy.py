@@ -13,7 +13,15 @@ if args[:1] == ["--version"]:
     print("agy 9.9.9")
     sys.exit(0)
 if args[:1] == ["models"]:
-    sys.exit(0 if mode != "logged_out" else 1)
+    if mode == "logged_out":
+        sys.stderr.write("Error: Please sign in to view available models.\n")
+        sys.exit(1)
+    print(
+        "Fetching available models..."
+    )  # then one id<TAB>label per line, as the real CLI prints
+    print("gemini-3.8-flash-high\tGemini 3.8 Flash (High)")
+    print("claude-sonnet-4-6\tClaude Sonnet 4.6 (Thinking)")
+    sys.exit(0)
 record = os.environ.get("FAKE_CLI_RECORD")
 if record:
     with open(record, "a") as fh:

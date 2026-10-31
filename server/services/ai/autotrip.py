@@ -5,7 +5,7 @@ in safe mode, or its run stopped), the trip is audited and people are told. Only
 - failed runs: N failed runs in M minutes → pause the agent (checked when a run fails)
 - spend spike: spend in the last M minutes above F × the agent's 7-day norm for that span → pause the agent
 - repeated denials: N blocked or denied actions in M minutes → safe mode for the agent
-- loop: the same action on the same target N times in M minutes → stop the run and hold the ticket
+- loop: the same call (same action, target and content) N times in M minutes → stop the run and hold the ticket
 - many agents: N agents tripped in M minutes → pause all AI in the project (off by default)
 """
 
@@ -315,6 +315,12 @@ async def _denials(p: AiMember, r: dict) -> None:
         )
 
 
+def _call(detail: str) -> str:
+    """What a call asked for (its request, canonical), so two calls with different content are not the same call."""
+    request = (loads(detail, {}) or {}).get("request")
+    return json.dumps(request, sort_keys=True, default=str) if request else ""
+
+
 async def _loops(p: AiMember, r: dict) -> None:
     async with database.async_session() as session:
         runs_ = (
@@ -328,21 +334,24 @@ async def _loops(p: AiMember, r: dict) -> None:
         for run in runs_:
             rows = (
                 await session.exec(
-                    select(AiAudit.action, AiAudit.target, func.count())
-                    .where(
+                    select(AiAudit.action, AiAudit.target, AiAudit.detail).where(
                         AiAudit.run_id == run.id,
                         col(AiAudit.result).in_(
                             ["allowed", "blocked", "denied", "needs_approval"]
                         ),
                         col(AiAudit.created_at) >= await _since(r["minutes"]),
                     )
-                    .group_by(AiAudit.action, AiAudit.target)
                 )
             ).all()
+            # The same call is a loop; four different test cases or comments on one ticket are just work
+            same: dict[tuple, int] = {}
+            for a, t, d in rows:
+                key = (a, t, _call(d))
+                same[key] = same.get(key, 0) + 1
             hit = next(
                 (
                     (a, t, n)
-                    for a, t, n in rows
+                    for (a, t, _), n in same.items()
                     if n >= r["count"] and a not in ("read",)
                 ),
                 None,

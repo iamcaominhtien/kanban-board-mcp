@@ -691,6 +691,15 @@ def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
     rng("run_timeout_min", "Run timeout", 1, 240)
     rng("idle_timeout_min", "Idle timeout", 1, 120)
     rng("compact_at_pct", "Auto-compact at", 10, 95)
+    try:
+        tokens = int(cfg.get("compact_at_tokens") or 0)
+    except (TypeError, ValueError):
+        tokens = -1
+    if tokens != 0 and not 10_000 <= tokens <= 2_000_000:
+        err(
+            "compact_at_tokens",
+            "Auto-compact at: 0 for the CLI's default, or 10000 to 2000000 tokens.",
+        )
     mode = cfg.get("permission_mode", "allowlist")
     if mode not in ("allowlist", "bypass"):
         err("permission_mode", "Permission mode: Allow list or Bypass permissions.")
@@ -948,46 +957,6 @@ def documented_items(cfg: dict, provider: str) -> list[dict]:
                 "group": "instructions",
                 "content": cfg.get("user_instructions") or "",
                 "empty": not (cfg.get("user_instructions") or "").strip(),
-            }
-        )
-    if adapter == "antigravity":
-        text = expand_includes(cfg.get("instructions") or "", cfg.get("snippets") or [])
-        out.append(
-            {
-                "key": "instructions",
-                "label": "Rules",
-                "group": "instructions",
-                "content": text,
-                "empty": not text.strip(),
-            }
-        )
-        out.append(
-            {
-                "key": "skills",
-                "label": "Workflows",
-                "group": "skills",
-                "content": json.dumps(
-                    [[s["name"], s["content"]] for s in cfg.get("skills") or []]
-                ),
-                "empty": not cfg.get("skills"),
-            }
-        )
-        out.append(
-            {
-                "key": "permissions",
-                "label": "Permissions",
-                "group": "permissions",
-                "content": cfg.get("permission_notes") or "",
-                "empty": False,
-            }
-        )
-        out.append(
-            {
-                "key": "model",
-                "label": "Model",
-                "group": "model",
-                "content": "",
-                "empty": False,
             }
         )
     for s in cfg.get("skills") or []:
