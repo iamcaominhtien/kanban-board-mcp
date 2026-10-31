@@ -81,6 +81,9 @@ def test_codex_profile_keeps_the_login_in_a_file(tmp_path):
     assert (tmp_path / "x" / "config.toml").read_text() == text
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="the fake codex is a script with a shebang line"
+)
 @pytest.mark.parametrize(
     "answer, signed_in, method",
     [
