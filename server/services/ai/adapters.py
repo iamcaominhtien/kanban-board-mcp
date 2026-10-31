@@ -645,6 +645,7 @@ class AgyParser(Parser):
                     "Add an Allow rule for it in the member's Configuration."
                 )
             out["result"] = {
+                "status": res.get("status"),
                 "is_error": bad,
                 "subtype": "error" if bad else "success",
                 "text": redact(text),
@@ -770,7 +771,8 @@ class AgyAdapter(Adapter):
             "--mode",
             "plan" if spec.read_only else "accept-edits",
         ]
-        rules = [] if spec.read_only else agy_command_rules(spec.allowed)
+        # a question may only read, but a denied command ends the whole run: it gets the reading commands too
+        rules = agy_command_rules([] if spec.read_only else spec.allowed)
         # the board's own MCP server: what a run may do there is decided by the board's guard, not by the CLI
         allow = [*rules, "mcp(kanban/*)", "mcp(kanban)"] if spec.mcp_url else rules
         deny = [] if spec.read_only else agy_deny_rules(spec.denied)
@@ -790,7 +792,7 @@ class AgyAdapter(Adapter):
         args += _safe_flags(spec.extra_flags)
         env = {TOKEN_ENV: spec.token, URL_ENV: spec.mcp_url} if spec.mcp_url else {}
         if spec.read_only:
-            note = "Antigravity: a question, so it only plans and reads"
+            note = "Antigravity: a question, so it only plans and reads (reading commands only)"
         elif spec.bypass:
             note = f"Bypass permissions: Antigravity runs any command except what a Deny rule stops ({len(deny)} rule(s))"
         else:

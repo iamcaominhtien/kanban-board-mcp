@@ -2074,6 +2074,9 @@ async def _execute_cli_held(
         reason = f"Reached the turn limit ({config.get('max_turns') or 40} turns)."
     elif result and result.get("text"):
         reason = result["text"][:300]
+        if result.get("status") not in (None, "SUCCESS") and code == 0:
+            # the CLI said it was done, yet not with success: say what it reported instead of a bare report
+            reason = f"Antigravity ended with status {result['status']}: {reason}"
     else:
         tail = _plain(" ".join(proc.stderr_tail[-3:]))
         asked = re.search(r"permission requested: ([^;]+)", tail)

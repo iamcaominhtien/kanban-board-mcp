@@ -11,6 +11,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 ### Fixed
 - **A ticket an AI gave to another AI waited for ever.** When an AI changed a ticket's assignee to another AI (by editing it, or in an edit a person or Autopilot approved) the new assignee was never started, nothing on the board said so, and the lifecycle stood still. The receiver now gets a work run, queued behind the sender's, as `ai_run` handoff does.
 
+- **A question to an Antigravity member failed at its first `ls`.** A question runs in plan mode and was given no command at all; Antigravity ends the whole run at the first command nothing allows, and the card then said to add an Allow rule. A question may now run the reading commands (`ls`, `cat`, `grep`, `git status/diff/log`…) like any run. A run that ends with a status other than success now says which status the CLI reported.
+
 ### Changed
 - **Autopilot decides at once by default.** The time it leaves a person to decide first (`grace_min`) starts at 0 minutes instead of 2 for new projects; the Autopilot card still changes it (0 to 240).
 - **Antigravity runs without an AI account again.** A member on “the login already on this computer” runs as before (a scratch workspace that carries the run's MCP config, this run's own token count, the list of models from `agy models`); a member on an AI account runs through the account's stdio bridge (`adapters.py`). The Antigravity member test and the run command use `agy`; `--effort` is not passed to it (it refuses it with most models). The auto-trip “loop” rule stays removed for CLI members, as with the other limits.

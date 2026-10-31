@@ -306,11 +306,10 @@ def test_agy_gets_command_rules_from_the_allow_list_and_never_the_bypass_flag():
     assert work[work.index("--conversation") + 1] == "conv-1"
     ask = adapter.launch(_spec(read_only=True)).args
     assert ask[ask.index("--mode") + 1] == "plan"
-    # a question may use the board's MCP server and no command at all
-    assert json.loads(ask[ask.index("--settings") + 1])["permissions"]["allow"] == [
-        "mcp(kanban/*)",
-        "mcp(kanban)",
-    ]
+    # a question may use the board's MCP server and the reading commands only: a denied command ends the whole run
+    asked = set(json.loads(ask[ask.index("--settings") + 1])["permissions"]["allow"])
+    assert {"mcp(kanban/*)", "mcp(kanban)", "command(ls)", "command(cat)"} <= asked
+    assert not any(r in asked for r in ("command(pytest)", "command(rm)", "command(*)"))
     assert "--dangerously-skip-permissions" not in work + ask
     assert adapter.launch(_spec()).env == {
         "KANBAN_RUN_TOKEN": "kbr_secret",
@@ -800,3 +799,11 @@ async def test_a_signed_out_cli_is_seen_by_detect(fakes, monkeypatch):
 
 def test_leftover_runs_are_recognised_for_every_cli():
     assert cli.LOCAL_CLIS == ("claude", "codex", "opencode", "agy")
+
+
+def test_agy_result_status_is_kept_so_a_failed_run_can_say_what_it_reported():
+    parser = adapters.for_provider("antigravity").parser("/w")
+    out = parser.feed(
+        '{"event":"result","result":{"conversation_id":"c1","status":"MAX_TURNS","response":"All done.","num_turns":40}}'
+    )
+    assert out["result"]["is_error"] is True and out["result"]["status"] == "MAX_TURNS"
