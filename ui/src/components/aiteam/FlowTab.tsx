@@ -3,6 +3,9 @@ import { useTeamFlow, useTicketJourney } from '../../api/aiTeam';
 import type { FlowEdge, FlowMap, Journey, JourneyPage, LiveRun, ParentRollup, TeamRange } from '../../types/aiTeam';
 import { fmtShort, fmtUsd } from './teamFormat';
 import { TicketChip } from './teamUi';
+import { TimelineTab } from './TimelineTab';
+import type { TimelineLink } from './timelineLink';
+import { PAUSE_COLOR, clockTime } from '../ai/pausedUi';
 
 export interface FlowActions {
   onOpenTicket: (ticketId: string) => void;
@@ -30,7 +33,22 @@ function since(s: number | null): string {
 }
 
 /** What the AIs are doing right now, one chip each; a click opens that ticket's journey. */
-function LiveStrip({ live, onPick }: { live: LiveRun[]; onPick: (ticketId: string) => void }) {
+function LiveStrip({
+  live,
+  onPick,
+  pausedAt,
+}: {
+  live: LiveRun[];
+  onPick: (ticketId: string) => void;
+  /** Set while Pause all AI is on: the strip says why nothing runs. */
+  pausedAt?: string | null;
+}) {
+  if (live.length === 0 && pausedAt !== undefined)
+    return (
+      <div className="at-now idle" data-testid="live-strip">
+        <b>Right now</b> <b style={{ color: PAUSE_COLOR }}>No AI is running</b> · paused since {clockTime(pausedAt)}
+      </div>
+    );
   if (live.length === 0)
     return (
       <div className="at-now idle" data-testid="live-strip">
@@ -201,8 +219,55 @@ function TeamMap({ map }: { map: FlowMap }) {
               </g>
             ) : (
               <text x={x(i) + 12} y={NODE_Y + 113.5} fontSize="11" fill="#9AA8A0">
-                idle
+                {n.pauseTag ? '' : 'idle'}
               </text>
+            )}
+            {n.pauseTag && (
+              <g data-testid={`node-pause-${n.name}`}>
+                <rect
+                  x={x(i) + NODE_W - 64}
+                  y={NODE_Y + 99}
+                  width="56"
+                  height="18"
+                  rx="9"
+                  fill={n.pauseTag === 'paused' ? '#FDF0E6' : n.pauseTag === 'waiting' ? '#FEF3D9' : '#FDECE8'}
+                  stroke={n.pauseTag === 'paused' ? '#F0CDB0' : n.pauseTag === 'waiting' ? '#E8B93A' : '#C4432A'}
+                />
+                <text
+                  x={x(i) + NODE_W - 36}
+                  y={NODE_Y + 111.5}
+                  fontSize="10"
+                  fontWeight="700"
+                  textAnchor="middle"
+                  fill={n.pauseTag === 'paused' ? PAUSE_COLOR : n.pauseTag === 'waiting' ? '#7A5A06' : '#A5321E'}
+                >
+                  {n.pauseTag}
+                </text>
+                {(n.held ?? 0) > 0 && (
+                  <>
+                    <rect
+                      x={x(i) + 12}
+                      y={NODE_Y + 121}
+                      width="62"
+                      height="16"
+                      rx="8"
+                      fill="#fff"
+                      stroke="#9AA8A0"
+                      strokeDasharray="3 2"
+                    />
+                    <text
+                      x={x(i) + 43}
+                      y={NODE_Y + 132.5}
+                      fontSize="10"
+                      fontWeight="600"
+                      textAnchor="middle"
+                      fill="#5B6B60"
+                    >
+                      {n.held} held
+                    </text>
+                  </>
+                )}
+              </g>
             )}
           </g>
         ))}
@@ -283,7 +348,7 @@ function MapView({ map, onPick }: { map: FlowMap; onPick: (ticketId: string) => 
   const pp = s.pingPong[0];
   return (
     <>
-      <LiveStrip live={map.live ?? []} onPick={onPick} />
+      <LiveStrip live={map.live ?? []} onPick={onPick} pausedAt={map.pausedAll ? (map.pausedAt ?? '') : undefined} />
       <div className="at-hint">
         {map.tickets} ticket{map.tickets === 1 ? '' : 's'} with AI work in this range · the number on an arrow is how
         many hand-offs, the time under it the average wait before the next AI started
@@ -827,12 +892,14 @@ function OneTicket({
   ticketId,
   setTicketId,
   actions,
+  onSeeSequence,
 }: {
   projectId: string;
   map: FlowMap;
   ticketId: string | null;
   setTicketId: (id: string) => void;
   actions: FlowActions;
+  onSeeSequence: (ticketId: string) => void;
 }) {
   const [find, setFind] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
@@ -934,6 +1001,14 @@ function OneTicket({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <TicketChip id={j.ticket.id} onOpen={actions.onOpenTicket} />
               <b style={{ fontSize: 15, flex: 1 }}>{j.ticket.title}</b>
+              <button
+                type="button"
+                className="tl-btn"
+                onClick={() => onSeeSequence(j.ticket.id)}
+                data-testid="see-as-sequence"
+              >
+                See as sequence
+              </button>
               <span className="at-hint">
                 {j.start
                   ? new Date(j.start).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
@@ -992,6 +1067,14 @@ function OneTicket({
                   color="#7A5A06"
                 />
                 <Stat label="Between runs" value={fmtShort(st.betweenS)} hint="hand-off gaps" />
+                {(st.pausedS ?? 0) > 0 && (
+                  <Stat
+                    label="AI paused"
+                    value={fmtShort(st.pausedS)}
+                    hint="not counted in the others"
+                    color={PAUSE_COLOR}
+                  />
+                )}
                 <Stat
                   label="Hand-offs"
                   value={st.handoffs}
@@ -1124,17 +1207,24 @@ export function FlowTab({
   range,
   focusTicket,
   actions,
+  timelineLink = null,
 }: {
   projectId: string;
   range: TeamRange;
   focusTicket: string | null;
   actions: FlowActions;
+  /** Open on the Timeline with this state (a link, or "Open in Timeline" on a ticket). */
+  timelineLink?: TimelineLink | null;
 }) {
-  const [view, setView] = useState<'map' | 'ticket'>(focusTicket ? 'ticket' : 'map');
+  const [view, setView] = useState<'map' | 'timeline' | 'ticket'>(
+    timelineLink ? 'timeline' : focusTicket ? 'ticket' : 'map',
+  );
   const [ticketId, setTicketId] = useState<string | null>(focusTicket);
+  const [scopeTicket, setScopeTicket] = useState<string | null>(timelineLink?.scope ?? null);
   const q = useTeamFlow(projectId, range);
   const map = q.data;
-  if (!map) return <div className="at-hint">{q.isError ? "Couldn't load the flow." : 'Drawing the team map…'}</div>;
+  if (!map && view !== 'timeline')
+    return <div className="at-hint">{q.isError ? "Couldn't load the flow." : 'Drawing the team map…'}</div>;
   return (
     <>
       <div className="at-seg" style={{ marginLeft: 0, alignSelf: 'flex-start' }} role="tablist">
@@ -1150,17 +1240,43 @@ export function FlowTab({
         <button
           type="button"
           role="tab"
+          aria-selected={view === 'timeline'}
+          className={view === 'timeline' ? 'on' : ''}
+          onClick={() => setView('timeline')}
+          data-testid="flow-timeline-tab"
+        >
+          Timeline
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={view === 'ticket'}
           className={view === 'ticket' ? 'on' : ''}
           onClick={() => {
             setView('ticket');
-            if (!ticketId && map.picker[0]) setTicketId(map.picker[0].id);
+            if (!ticketId && map?.picker[0]) setTicketId(map.picker[0].id);
           }}
         >
           One ticket
         </button>
       </div>
-      {view === 'map' ? (
+      {view === 'timeline' ? (
+        <TimelineTab
+          key={scopeTicket ?? 'team'}
+          projectId={projectId}
+          scopeTicketId={scopeTicket}
+          initial={scopeTicket === (timelineLink?.scope ?? null) ? timelineLink : null}
+          actions={{
+            onOpenTicket: actions.onOpenTicket,
+            onOpenDocsPage: actions.onOpenDocsPage,
+            onSeeMap: () => setView('map'),
+            onOpenStory: (id) => {
+              setTicketId(id);
+              setView('ticket');
+            },
+          }}
+        />
+      ) : view === 'map' && map ? (
         <MapView
           map={map}
           onPick={(id) => {
@@ -1168,9 +1284,19 @@ export function FlowTab({
             setView('ticket');
           }}
         />
-      ) : (
-        <OneTicket projectId={projectId} map={map} ticketId={ticketId} setTicketId={setTicketId} actions={actions} />
-      )}
+      ) : map ? (
+        <OneTicket
+          projectId={projectId}
+          map={map}
+          ticketId={ticketId}
+          setTicketId={setTicketId}
+          actions={actions}
+          onSeeSequence={(id) => {
+            setScopeTicket(id);
+            setView('timeline');
+          }}
+        />
+      ) : null}
     </>
   );
 }

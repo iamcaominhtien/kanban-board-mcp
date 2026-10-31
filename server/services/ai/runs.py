@@ -92,6 +92,15 @@ class RunError(ValueError):
     """A run request was refused; the message says why."""
 
 
+class AlreadyResumed(RunError):
+    """Resume was asked for a project that is not paused (someone else resumed it first); `info` says who and when."""
+
+    def __init__(self, info: dict):
+        """`info`: who resumed, when, and how many AI members started."""
+        super().__init__("AI was already resumed.")
+        self.info = info
+
+
 class RunConflict(RunError):
     """The ticket is already held by another work run."""
 
@@ -3161,6 +3170,8 @@ async def pause_all(
         settings.paused_at = now_iso()
         settings.paused_by = by
         settings.paused_reason = (reason or "").strip()[:300] or None
+        settings.paused_let_finish = not cancel_running
+        settings.paused_safe_before = bool(settings.safe_mode)
         session.add(settings)
         await session.commit()
         runs = (
@@ -3224,19 +3235,56 @@ async def pause_all(
         project_id,
         "auto_trip",
         "AI is paused",
-        f"{by} paused all AI. {cancelled} run cancelled, {len(queued)} queued runs held."
+        f"{by} paused all AI. {cancelled} run{'' if cancelled == 1 else 's'} cancelled, "
+        f"{len(queued)} queued run{'' if len(queued) == 1 else 's'} held."
         + (f" Reason: {reason}." if reason else ""),
     )
     await _publish(force=True)
     return {"cancelled": cancelled, "held": len(queued), "revoked_tokens": revoked}
 
 
+async def _last_resume(session, project_id: str) -> dict:
+    """Who resumed last, when, and how many AI members started: for the second person's Resume."""
+    rows = await audit.list_entries(
+        session, project_id, actions=["resume_all"], limit=1
+    )
+    if not rows:
+        return {"by": None, "at": None, "members": None}
+    e = rows[0]
+    members = (json.loads(e.detail or "{}") or {}).get("members")
+    return {
+        "by": e.member_name or None,
+        "at": e.created_at,
+        "members": len(members) if members else None,
+    }
+
+
+async def finishing_after_pause(session, project_id: str) -> int:
+    """Runs that started before Pause all AI and were let finish: still going, counted live (the banner chip)."""
+    settings = await get_settings(session, project_id)
+    if not (settings.paused_all and settings.paused_at):
+        return 0
+    rows = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id,
+                col(AiRun.state).in_(["starting", "running"]),
+                AiRun.started_at < settings.paused_at,
+            )
+        )
+    ).all()
+    return len(rows)
+
+
 async def resume_all(
     project_id: str, *, by: str, safe_mode: bool, member_ids: list[str] | None
 ) -> dict:
-    """Resume after Pause all AI: optionally in safe mode, optionally only some agents (the others are paused)."""
+    """Resume after Pause all AI: optionally in safe mode, optionally only some agents (the others are paused).
+    Raises AlreadyResumed when the project is not paused any more (two people opened the dialog)."""
     async with database.async_session() as session:
         settings = await get_settings(session, project_id)
+        if not settings.paused_all:
+            raise AlreadyResumed(await _last_resume(session, project_id))
         settings.paused_all = False
         settings.paused_tokens_revoked = False
         settings.safe_mode = bool(safe_mode)

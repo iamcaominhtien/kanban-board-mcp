@@ -28,6 +28,7 @@ from services.ai import mentions as svc_mentions
 from services.ai import permissions as perms
 from services.ai import runs as svc_runs
 from services.ai import flow_view as svc_flow
+from services.ai import timeline as svc_timeline
 from services.ai import health as svc_health
 from services.ai import team as svc_team
 from services.ai import touches as svc_touches
@@ -102,6 +103,8 @@ def _settings_dict(s) -> dict:
         "paused_cancelled": s.paused_cancelled,
         "paused_held": s.paused_held,
         "paused_tokens_revoked": s.paused_tokens_revoked,
+        "paused_let_finish": s.paused_let_finish,
+        "paused_safe_before": s.paused_safe_before,
         "auto_trip": autotrip.describe(s),
     }
 
@@ -765,6 +768,36 @@ async def get_team_flow(
     return await svc_flow.team_map(session, project_id, range)
 
 
+def _parse_when(value: Optional[str]):
+    """A time from a query (ISO), or None; a bad one is a 422."""
+    if not value:
+        return None
+    from services.ai.store import parse_iso
+
+    at = parse_iso(value)
+    if at is None:
+        raise HTTPException(status_code=422, detail="Not a time: use ISO 8601.")
+    return at
+
+
+@router.get("/projects/{project_id}/ai/team/timeline")
+async def get_team_timeline(
+    project_id: str,
+    session: Session,
+    range: Literal["hour", "today", "24h", "7d"] = "today",
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    ticket_id: Optional[str] = None,
+) -> dict:
+    """The AI Team view, Flow tab, Timeline: a sequence diagram of the team (lifelines, runs, hand-offs, questions,
+    approvals, Autopilot decisions and pauses) for a window and a scope."""
+    await _project(session, project_id)
+    a, b = _parse_when(since), _parse_when(until)
+    return await svc_timeline.timeline(
+        session, project_id, range_key=range, since=a, until=b, ticket_id=ticket_id
+    )
+
+
 @router.get("/projects/{project_id}/ai/team/flow/{ticket_id}")
 async def get_team_flow_ticket(
     project_id: str, ticket_id: str, session: Session
@@ -785,7 +818,13 @@ async def get_board(project_id: str, session: Session) -> dict:
     return {
         # A list, not a dict keyed by ticket id: the UI camel-cases keys, which would mangle "KAN-1"
         "runs": list((await svc_runs.latest_by_ticket(session, project_id)).values()),
-        "settings": _settings_dict(settings),
+        "settings": {
+            **_settings_dict(settings),
+            "paused_finishing": await svc_runs.finishing_after_pause(
+                session, project_id
+            ),
+            "my_role": await safety.role_name(session, project_id, _by()),
+        },
     }
 
 
@@ -1099,14 +1138,27 @@ async def post_resume_all(
 ) -> dict:
     """Resume AI after Pause all AI; never one click: the person confirms they reviewed what happened."""
     await _project(session, project_id)
+    if (
+        safety.ROLE_RANK[await safety.role_name(session, project_id, _by())]
+        < safety.ROLE_RANK["admin"]
+    ):
+        raise HTTPException(
+            status_code=403, detail="Only owners and admins can resume AI."
+        )
     if not body.reviewed:
         raise HTTPException(
             status_code=422,
             detail="Confirm that you looked at what the AI did before the stop.",
         )
-    return await svc_runs.resume_all(
-        project_id, by=_by(), safe_mode=body.safe_mode, member_ids=body.member_ids
-    )
+    try:
+        return await svc_runs.resume_all(
+            project_id, by=_by(), safe_mode=body.safe_mode, member_ids=body.member_ids
+        )
+    except svc_runs.AlreadyResumed as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "already_resumed", "message": str(exc), **exc.info},
+        ) from exc
 
 
 @router.get("/projects/{project_id}/ai/usage")

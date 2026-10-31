@@ -7,10 +7,10 @@ from datetime import UTC, datetime
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiRun, Ticket
+from models import AiMember, AiRun, Ticket
 
-from . import flow, health
-from .store import loads, parse_iso
+from . import flow, health, pause_log
+from .store import get_settings, loads, parse_iso
 from .team import RANGES, window_start
 
 YOU = "you"
@@ -152,11 +152,46 @@ async def team_map(
     evs = [e for e in d.events if (parse_iso(e["at"]) or a) >= a and e["to"] in names]
 
     live = await live_runs(session, project_id)
+    settings = await get_settings(session, project_id)
+    profiles = {
+        p.id: p
+        for p in (
+            await session.exec(
+                select(AiMember).where(col(AiMember.id).in_(list(d.ais) or [""]))
+            )
+        ).all()
+    }
     order = usual_order(runs, list(d.ais))
     nodes = []
     for mid in order:
         m = d.ais[mid]
         mine = [r for r in runs if r.member_id == mid]
+        mine_live = next((x for x in live if x["member_id"] == mid), None)
+        held = len(
+            [
+                r
+                for r in d.runs
+                if r.member_id == mid and r.state == "queued" and r.mode == "work"
+            ]
+        )
+        # The map is history, so nothing on it is erased; while the project is paused each box says where its AI
+        # stands now (design/screens/ai-paused.md, D2)
+        profile = profiles.get(mid)
+        offline = (profile.health if profile else "") in (
+            "runner_missing",
+            "not_logged_in",
+            "key_invalid",
+            "model_retired",
+        )
+        tag = None
+        if settings.paused_all or (profile and profile.paused):
+            tag = (
+                "offline"
+                if offline
+                else "waiting"
+                if mine_live and mine_live.get("state") == "needs_input"
+                else "paused"
+            )
         durations = [s for r in mine if (s := flow._secs(r.started_at, r.ended_at))]
         nodes.append(
             {
@@ -167,8 +202,10 @@ async def team_map(
                 "avg_run_s": int(statistics.mean(durations)) if durations else None,
                 "asked": len([r for r in mine if loads(r.question, None)]),
                 # what this AI is doing right now (the busiest of its active runs), None when idle
-                "live": next((x for x in live if x["member_id"] == mid), None),
+                "live": mine_live,
                 "live_count": len([x for x in live if x["member_id"] == mid]),
+                "pause_tag": tag,
+                "held": held if settings.paused_all else 0,
             }
         )
 
@@ -271,6 +308,8 @@ async def team_map(
         )
     return {
         "live": live[:12],
+        "paused_all": settings.paused_all,
+        "paused_at": settings.paused_at if settings.paused_all else None,
         "range": range_key,
         "since": a.isoformat(),
         "nodes": nodes,
@@ -683,6 +722,8 @@ async def ticket_journey(
         }
         for e in evs
     ]
+    pauses = await pause_log.intervals(session, project_id, start, now) if start else []
+    paused_s = pause_log.overlap_s(pauses, start, now) if start else 0.0
     return {
         "ticket": {
             "id": ticket.id,
@@ -710,6 +751,8 @@ async def ticket_journey(
             "working_s": int(min(working, elapsed)),
             "waiting_s": int(min(waiting, elapsed)),
             "between_s": int(max(elapsed - working - waiting, 0)),
+            # Paused time is counted apart: it is not waiting for a person and not a bottleneck
+            "paused_s": int(paused_s),
             "runs": len(runs),
             "handoffs": len(evs),
             "returned": len([e for e in evs if e["returned"]]),

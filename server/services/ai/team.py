@@ -450,6 +450,31 @@ async def now_view(
             limit_min = current.limit_min or (m.get("config") or {}).get(
                 "run_timeout_min"
             )
+        pause = None
+        if settings.paused_all or m["paused"]:
+            stopped = (
+                last
+                if last is not None
+                and last.state == "cancelled"
+                and (last.ended_reason or "").startswith("Pause all AI")
+                and settings.paused_at
+                and (last.ended_at or "") >= settings.paused_at
+                else None
+            )
+            pause = {
+                "project": bool(settings.paused_all),
+                # Paused on its own too (a person, a budget, a rate limit): Resume does not start it
+                "own": bool(m["paused"])
+                or m["status"]["code"] in ("over_budget", "rate_limited"),
+                "own_label": m["status"]["detail"] or m["status"]["label"],
+                "cancelled": {
+                    "ticket_id": stopped.ticket_id,
+                    "step": len(loads(stopped.steps, [])),
+                    "at": stopped.ended_at,
+                }
+                if stopped is not None
+                else None,
+            }
         cards.append(
             {
                 "id": m["id"],
@@ -467,6 +492,7 @@ async def now_view(
                 and m["connection"] != "inbox"
                 and m["health"] in (None, "", "unknown"),
                 "paused": m["paused"],
+                "pause": pause,
                 "current": {
                     **_run_ref(current, tickets),
                     "step": _last_step(current),

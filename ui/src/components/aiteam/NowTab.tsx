@@ -293,7 +293,32 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
             Queued: <Tickets ids={queuedIds} onOpen={open} />
           </div>
         ) : card.state === 'paused' ? (
-          <div className="at-hint">{card.status.detail || card.status.label}</div>
+          <>
+            {card.pause?.project && !card.pause.own && !card.pause.cancelled && !queuedIds.length && (
+              <div className="at-hint">Paused for the project.</div>
+            )}
+            {card.pause?.cancelled && (
+              <div>
+                On <TicketChip id={card.pause.cancelled.ticketId} onOpen={open} /> cancelled at step{' '}
+                {card.pause.cancelled.step}
+                {card.pause.cancelled.at ? ` (${fmtClock(card.pause.cancelled.at)})` : ''}.{' '}
+                <span className="at-hint">Partial work is kept.</span>
+              </div>
+            )}
+            {card.pause?.own && (
+              <div className="at-hint">
+                {card.pause.ownLabel || card.status.label}
+                {card.pause.project ? '. Paused on its own, not only by the project: Resume will not start it.' : ''}
+              </div>
+            )}
+            {!card.pause && <div className="at-hint">{card.status.detail || card.status.label}</div>}
+            {card.pause?.project && queuedIds.length > 0 && (
+              <div>
+                Held: <Tickets ids={queuedIds} onOpen={open} />{' '}
+                <span className="at-hint">{queuedIds.length === 1 ? 'starts' : 'start'} on resume</span>
+              </div>
+            )}
+          </>
         ) : queuedIds.length ? (
           <div className="at-hint">
             Assigned: <Tickets ids={queuedIds} onOpen={open} />
@@ -333,7 +358,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
           <div className="at-card-name">{card.name}</div>
           <div className="at-hint-sm">{runnerText}</div>
         </div>
-        <StateChip state={card.state} />
+        <StateChip state={card.state} project={!!card.pause?.project && !card.pause.own} />
       </div>
       <div className="at-card-body">{body}</div>
       <div className="at-card-foot">
@@ -432,9 +457,18 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
   return (
     <>
       <div className="at-states">
-        {STATE_ORDER.filter((s) => data.counts[s]).map((s) => (
-          <StateChip key={s} state={s} count={data.counts[s]} />
-        ))}
+        {STATE_ORDER.filter((s) => data.counts[s]).map((s) => {
+          if (s !== 'paused' || !data.pausedAll) return <StateChip key={s} state={s} count={data.counts[s]} />;
+          // While the project is paused, two kinds of paused: orange for the project, grey for the AI's own
+          const own = data.members.filter((c) => c.state === 'paused' && c.pause?.own).length;
+          const proj = (data.counts[s] ?? 0) - own;
+          return (
+            <span key={s} style={{ display: 'inline-flex', gap: 8 }}>
+              {proj > 0 && <StateChip state="paused" project count={proj} />}
+              {own > 0 && <StateChip state="paused" count={own} />}
+            </span>
+          );
+        })}
         <span className="at-hint">{data.members.length} AI members</span>
       </div>
 

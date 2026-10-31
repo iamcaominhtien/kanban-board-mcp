@@ -360,14 +360,54 @@ async def get_resume_info(project_id: str, session: Session) -> dict:
             await session.exec(select(Member).where(Member.project_id == project_id))
         ).all()
     }
-    over = []
+    over: dict[str, tuple[str, str]] = {}
     for p in members:
         hit = await budget.blocked(session, p, settings)
         if hit:
-            over.append(p.id)
+            over[p.id] = hit
+    # What each AI has waiting, so the dialog can say what Resume does to it (design/screens/ai-paused.md, C)
+    runs = (
+        await session.exec(
+            select(AiRun)
+            .where(
+                AiRun.project_id == project_id,
+                col(AiRun.state).in_(["queued", "needs_input", "cancelled"]),
+            )
+            .order_by(col(AiRun.queued_at))
+        )
+    ).all()
+    paused_at = settings.paused_at or ""
+    held_order: list[dict] = []
+    per: dict[str, dict] = {
+        p.id: {"held": [], "waiting_for_you": [], "cancelled": []} for p in members
+    }
+    for r in runs:
+        row = per.get(r.member_id)
+        if row is None:
+            continue
+        if r.state == "queued" and r.mode == "work":
+            row["held"].append(r.ticket_id)
+            held_order.append({"ticket_id": r.ticket_id, "member_id": r.member_id})
+        elif r.state == "needs_input":
+            row["waiting_for_you"].append(r.ticket_id)
+        elif (
+            r.state == "cancelled"
+            and (r.ended_reason or "").startswith("Pause all AI")
+            and (r.ended_at or "") >= paused_at
+        ):
+            steps = loads(r.steps, [])
+            row["cancelled"].append(
+                {
+                    "ticket_id": r.ticket_id,
+                    "step": len(steps),
+                    "at": r.ended_at,
+                    "run_number": r.number,
+                }
+            )
     return {
         "paused_at": settings.paused_at,
         "paused_by": settings.paused_by,
+        "safe_before": settings.paused_safe_before,
         "window_start": start.isoformat(),
         "window_end": stop.isoformat(),
         "actions": [
@@ -386,12 +426,18 @@ async def get_resume_info(project_id: str, session: Session) -> dict:
         "daily_cap": settings.board_daily_cap,
         "budgets_ok": not over
         and (settings.board_daily_cap is None or spent < settings.board_daily_cap),
+        "held_order": held_order,
         "members": [
             {
                 "member_id": p.id,
                 "name": names.get(p.id, ""),
                 "over_budget": p.id in over,
+                "over_budget_reason": over[p.id][1] if p.id in over else None,
                 "token_revoked": bool(p.token_revoked_at),
+                "health": p.health,
+                "paused": p.paused,
+                "paused_reason": p.paused_reason,
+                **per[p.id],
             }
             for p in members
         ],

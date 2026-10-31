@@ -63,6 +63,8 @@ import { aiApi } from '../api/ai';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
+import { TimelineTab } from './aiteam/TimelineTab';
+import { openTimeline } from './aiteam/timelineLink';
 import { TicketSafetyBlocks } from './ai/AiTicketSafety';
 import { SplitBadge, SuggestCasesButton, SuggestCasesPanel, TicketAiMenu } from './assist/TicketAi';
 import { TicketChat } from './assist/TicketChat';
@@ -1764,6 +1766,28 @@ function TicketModalInner({
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
                     <TicketAiPanel ticket={ticket} members={members} onOpenRun={() => setActiveTab('ai')} />
+                    {mainView === 'ai' && ticket.projectId && (
+                      <div data-testid="ticket-timeline">
+                        <button
+                          type="button"
+                          className="ai-btn ai-btn-sm"
+                          style={{ marginBottom: 8 }}
+                          data-testid="open-in-timeline"
+                          onClick={() => openTimeline({ scope: ticket.id })}
+                        >
+                          Open in Timeline
+                        </button>
+                        <TimelineTab
+                          projectId={ticket.projectId}
+                          scopeTicketId={ticket.id}
+                          compactChrome
+                          actions={{
+                            onOpenTicket: () => undefined,
+                            onOpenDocsPage: () => undefined,
+                          }}
+                        />
+                      </div>
+                    )}
                     <TicketPlan ticket={ticket} />
                     <TicketSafetyBlocks ticketId={ticket.id} />
                     <ScheduleTicketBlock ticket={ticket} />

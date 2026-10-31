@@ -22,8 +22,22 @@ export const stateLabel = (s: CardState) => STATE_LOOK[s].label;
 export const stateLine = (s: CardState) => STATE_LOOK[s].line;
 
 /** A coloured chip for an AI's state, with an optional count. */
-export function StateChip({ state, count, label }: { state: CardState; count?: number; label?: string }) {
-  const look = STATE_LOOK[state];
+export function StateChip({
+  state,
+  count,
+  label,
+  project,
+}: {
+  state: CardState;
+  count?: number;
+  label?: string;
+  /** Paused for the whole project (orange, "AI paused"), not on its own (grey, "Paused"). */
+  project?: boolean;
+}) {
+  const look =
+    state === 'paused' && project
+      ? { bg: '#FDF0E6', fg: '#B4571F', dot: '#B4571F', live: false, label: 'AI paused', line: '#2E6F40' }
+      : STATE_LOOK[state];
   return (
     <span className="at-chip" style={{ background: look.bg, color: look.fg }}>
       <span className={`at-dot${look.live ? ' at-dot-live' : ''}`} style={{ background: look.dot }} />

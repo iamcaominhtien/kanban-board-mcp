@@ -159,7 +159,24 @@ export interface ResumeInfo {
   spentToday: number;
   dailyCap: number | null;
   budgetsOk: boolean;
-  members: { memberId: string; name: string; overBudget: boolean; tokenRevoked: boolean }[];
+  safeBefore?: boolean;
+  heldOrder?: { ticketId: string; memberId: string }[];
+  members: {
+    memberId: string;
+    name: string;
+    overBudget: boolean;
+    overBudgetReason?: string | null;
+    tokenRevoked: boolean;
+    health?: string;
+    paused?: boolean;
+    pausedReason?: string | null;
+    /** Tickets of queued work runs, oldest first. */
+    held?: string[];
+    /** Tickets with a question waiting for a person. */
+    waitingForYou?: string[];
+    /** Runs the pause cancelled. */
+    cancelled?: { ticketId: string; step: number; at: string | null; runNumber: number }[];
+  }[];
 }
 
 export interface Preview {

@@ -286,6 +286,13 @@ export interface AiSettings {
   pausedCancelled: number;
   pausedHeld: number;
   pausedTokensRevoked: boolean;
+  /** Pause all AI chose "Let them finish", and safe mode was already on (Resume preselects it). */
+  pausedLetFinish?: boolean;
+  pausedSafeBefore?: boolean;
+  /** Runs that started before the pause and are still going, counted live (the banner chip). */
+  pausedFinishing?: number;
+  /** The person's role in the project: only owners and admins resume. */
+  myRole?: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
 /** Autopilot: the AI that decides requests for the owner (server/services/ai/autopilot.py). */

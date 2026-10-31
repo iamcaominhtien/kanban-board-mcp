@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTeamNow, useTeamStepped } from '../../api/aiTeam';
 import type { TeamRange } from '../../types/aiTeam';
 import { NowTab, type NowActions } from './NowTab';
@@ -6,6 +6,7 @@ import { FlowTab } from './FlowTab';
 import { HealthTab } from './HealthTab';
 import { SteppedInTab } from './SteppedInTab';
 import { Icon, ICONS } from './teamUi';
+import { OPEN_TIMELINE_EVENT, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
 
 type Tab = 'now' | 'flow' | 'stepped' | 'health';
@@ -27,8 +28,23 @@ interface Props {
 
 /** The AI Team view (design/screens/ai-team.md): what the AIs are doing, how work moves, where people stepped in. */
 export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember, onOpenDocsPage }: Props) {
-  const [tab, setTab] = useState<Tab>('now');
+  // The Timeline was asked for (a link, or "Open in Timeline" on a ticket): Flow opens on it
+  const [timelineLink, setTimelineLink] = useState<{ link: TimelineLink; key: number } | null>(() => {
+    const link = takePendingTimeline();
+    return link ? { link, key: Date.now() } : null;
+  });
+  const [tab, setTab] = useState<Tab>(timelineLink ? 'flow' : 'now');
   const [flowTicket, setFlowTicket] = useState<string | null>(null);
+  useEffect(() => {
+    const open = () => {
+      const link = takePendingTimeline();
+      if (!link) return;
+      setTimelineLink({ link, key: Date.now() });
+      setTab('flow');
+    };
+    window.addEventListener(OPEN_TIMELINE_EVENT, open);
+    return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
+  }, []);
   // Now reads best for today, the other tabs for a week; each tab keeps the range the person picked
   const [ranges, setRanges] = useState<Record<Tab, TeamRange>>({
     now: 'today',
@@ -90,7 +106,8 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
 
       {tab === 'flow' ? (
         <FlowTab
-          key={flowTicket ?? 'map'}
+          key={`${flowTicket ?? 'map'}:${timelineLink?.key ?? 0}`}
+          timelineLink={timelineLink?.link ?? null}
           projectId={projectId}
           range={range}
           focusTicket={flowTicket}

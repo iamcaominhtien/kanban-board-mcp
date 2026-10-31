@@ -1249,6 +1249,9 @@ class AiProjectSettings(SQLModel, table=True):
     paused_cancelled: int = Field(default=0)
     paused_held: int = Field(default=0)
     paused_tokens_revoked: bool = Field(default=False)
+    # Saved with the pause: "Let them finish" was chosen, and safe mode was already on (Resume preselects it)
+    paused_let_finish: bool = Field(default=False)
+    paused_safe_before: bool = Field(default=False)
     # JSON list of "What to fix" suggestions a person dismissed in AI Team › Health: [{key, at, by}]
     team_dismissed: str = Field(default="[]")
 

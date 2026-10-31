@@ -9,6 +9,7 @@ import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
 import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
+import { OPEN_TIMELINE_EVENT, parseTimelineLink, setPendingTimeline } from './components/aiteam/timelineLink';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
@@ -128,13 +129,21 @@ export default function App() {
   const deleteProjectMutation = useDeleteProject();
 
   const { theme, toggleTheme } = useTheme();
-  const [currentProjectId, setCurrentProjectId] = useState<string>(() => localStorage.getItem('activeProjectId') ?? '');
+  const [currentProjectId, setCurrentProjectId] = useState<string>(
+    // A Timeline link names its project
+    () => new URLSearchParams(window.location.search).get('proj') ?? localStorage.getItem('activeProjectId') ?? '',
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
-  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team'>(() =>
-    new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board',
-  );
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team'>(() => {
+    const link = parseTimelineLink(window.location.search);
+    if (link) {
+      setPendingTimeline(link);
+      return 'ai_team';
+    }
+    return new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board';
+  });
   const [docsRequest, setDocsRequest] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('docs'),
   );
@@ -481,6 +490,22 @@ export default function App() {
     setViewMode('schedules');
     closeModal();
   }
+
+  // "Open in Timeline" from a ticket: show the AI Team view on the Timeline, over whatever is open
+  useEffect(() => {
+    const open = () => {
+      setSettingsTarget(null);
+      setAiPage(null);
+      setActiveBoard('main');
+      setViewMode('ai_team');
+      setModalState(null);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('ticket');
+      window.history.replaceState({}, '', url.toString());
+    };
+    window.addEventListener(OPEN_TIMELINE_EVENT, open);
+    return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
+  }, []);
 
   function closeModal() {
     setModalState(null);

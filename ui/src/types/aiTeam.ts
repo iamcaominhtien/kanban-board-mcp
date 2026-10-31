@@ -39,6 +39,13 @@ export interface TeamCard {
   status: { code: string; label: string; detail: string | null };
   connectionUnknown: boolean;
   paused: boolean;
+  /** Why this AI is paused (set while the project is paused or the AI is paused on its own). */
+  pause?: {
+    project: boolean;
+    own: boolean;
+    ownLabel: string | null;
+    cancelled: { ticketId: string; step: number; at: string | null } | null;
+  } | null;
   current:
     | (RunRef & {
         step: { n: number; kind: string | null; text: string } | null;
@@ -279,6 +286,9 @@ export interface FlowMap {
   range: TeamRange;
   since: string;
   live: LiveRun[];
+  /** Pause all AI is on: the map keeps its history and marks where each AI stands. */
+  pausedAll?: boolean;
+  pausedAt?: string | null;
   nodes: {
     id: string;
     name: string;
@@ -288,6 +298,8 @@ export interface FlowMap {
     asked: number;
     live: LiveRun | null;
     liveCount: number;
+    pauseTag?: 'paused' | 'waiting' | 'offline' | null;
+    held?: number;
   }[];
   edges: FlowEdge[];
   tickets: number;
@@ -354,6 +366,8 @@ export interface Journey {
     workingS: number;
     waitingS: number;
     betweenS: number;
+    /** Time the whole project was paused, counted apart from the others. */
+    pausedS?: number;
     runs: number;
     handoffs: number;
     returned: number;
@@ -431,4 +445,166 @@ export interface ParentRollup {
     touchesAvoidable: number;
     costUsd: number;
   };
+}
+
+// ---------------------------------------------------------------------------
+// Flow › Timeline (design/screens/ai-team-timeline.md): a sequence diagram of the team
+// ---------------------------------------------------------------------------
+
+export type TimelineRange = 'hour' | 'today' | '24h' | '7d' | 'custom';
+
+export interface TimelineLifeline {
+  id: string;
+  kind: 'you' | 'autopilot' | 'ai' | 'docs';
+  name: string;
+  color: string | null;
+  /** Header dot: working, waiting for you, queued, offline, idle or paused (AIs only). */
+  state: 'working' | 'waiting' | 'queued' | 'offline' | 'idle' | 'paused' | null;
+  delegate?: string | null;
+  /** No event in the window: folded into the "N quiet AIs" strip on a narrow window. */
+  quiet?: boolean;
+}
+
+export type RunEnd = 'ok' | 'failed' | 'timeout' | 'stopped' | 'pause_all' | 'budget' | null;
+
+export interface TimelineBar {
+  id: string;
+  memberId: string;
+  ticketId: string;
+  number: number;
+  mode: string;
+  state: string;
+  trigger: string;
+  autopilot: boolean;
+  queuedAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  endKind: RunEnd;
+  endedReason: string | null;
+  endedBy: string | null;
+  stopCode: string | null;
+  steps: number;
+  tokensIn: number;
+  tokensOut: number;
+  tokensCached: number | null;
+  costUsd: number;
+  metered: boolean;
+  summary: string;
+  question: string | null;
+  paused: boolean;
+  heldByPause: boolean;
+  model: string | null;
+}
+
+export type ArrowKind =
+  | 'assign'
+  | 'mention'
+  | 'handoff'
+  | 'report'
+  | 'returned'
+  | 'sent_back'
+  | 'ask'
+  | 'answer'
+  | 'perm'
+  | 'approve'
+  | 'deny'
+  | 'auto'
+  | 'doc';
+
+export interface TimelineArrow {
+  id: string;
+  at: string;
+  /** Where the arrow lands: when the next lifeline started (or the same time for a message). */
+  toAt: string | null;
+  kind: ArrowKind;
+  from: string;
+  to: string;
+  ticketId: string | null;
+  runId: string | null;
+  waitS: number | null;
+  /** Times the same pair sent the work back (the ×N badge). */
+  round: number;
+  label: string | null;
+  /** Close events between the same two lifelines grouped into one. */
+  count: number;
+  atLast: string;
+  /** The parent ticket whose children's report backs were grouped into this arrow. */
+  parentId?: string | null;
+  items: { id: string; ticketId: string | null }[];
+  by?: string | null;
+  denied?: boolean;
+  risk?: string;
+  summary?: string;
+}
+
+export interface TimelineWait {
+  id: string;
+  memberId: string;
+  ticketId: string | null;
+  runId: string | null;
+  kind: 'question' | 'approval';
+  from: string;
+  to: string | null;
+  text: string;
+  options?: string[];
+  risk?: string;
+  status?: string;
+}
+
+export interface TimelineTouch {
+  id: string;
+  at: string;
+  ticketId: string;
+  mark: TouchMark | 'start';
+  what: string;
+  who: string;
+  via: string | null;
+}
+
+export interface TimelineDocNode {
+  id: string;
+  at: string;
+  memberId: string;
+  pageId: string;
+  title: string;
+  version: number;
+  kind: 'version' | 'proposal';
+  status: string | null;
+  summary?: string;
+  changes?: number;
+}
+
+export interface TimelinePause {
+  from: string;
+  to: string | null;
+  by: string | null;
+  reason: string | null;
+  resumedBy: string | null;
+}
+
+export interface Timeline {
+  range: TimelineRange;
+  since: string;
+  until: string;
+  now: string;
+  following: boolean;
+  scope: { kind: 'team' | 'ticket'; ticketId: string | null };
+  lifelines: TimelineLifeline[];
+  bars: TimelineBar[];
+  arrows: TimelineArrow[];
+  waits: TimelineWait[];
+  touches: TimelineTouch[];
+  docs: TimelineDocNode[];
+  pauses: TimelinePause[];
+  pausedAll: boolean;
+  pausedAt: string | null;
+  pausedBy: string | null;
+  live: LiveRun[];
+  density: number[];
+  truncated: boolean;
+  /** Over the cap the picture groups harder before it drops anything. */
+  groupedHarder?: boolean;
+  lastEndedAt: string | null;
+  tickets: Record<string, { title: string; status: string }>;
+  autopilot: { on: boolean; delegate: string | null; graceMin: number | null };
 }

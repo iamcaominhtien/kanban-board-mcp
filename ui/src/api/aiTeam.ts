@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type { FlowMap, Health, Journey, SteppedFilters, SteppedIn, TeamNow, TeamRange } from '../types/aiTeam';
+import type {
+  FlowMap,
+  Health,
+  Journey,
+  SteppedFilters,
+  SteppedIn,
+  TeamNow,
+  TeamRange,
+  Timeline,
+  TimelineRange,
+} from '../types/aiTeam';
 
 export const teamKeys = {
   now: (projectId: string, range: TeamRange) => ['ai', 'team', 'now', projectId, range] as const,
@@ -70,5 +80,36 @@ export function useTicketJourney(projectId: string, ticketId: string | null) {
     queryFn: async () => (await client.get<Journey>(`/projects/${projectId}/ai/team/flow/${ticketId}`)).data,
     enabled: !!projectId && !!ticketId,
     refetchInterval: (q) => (q.state.data?.live?.length ? 3000 : 10000),
+  });
+}
+
+export interface TimelineQuery {
+  range: TimelineRange;
+  since?: string;
+  until?: string;
+  ticketId?: string | null;
+}
+
+/** The AI Team view, Flow › Timeline. Refreshes every few seconds while it follows live and an AI works. */
+export function useTimeline(projectId: string, q: TimelineQuery, live = true) {
+  return useQuery({
+    queryKey: ['ai', 'team', 'timeline', projectId, q] as const,
+    queryFn: async () =>
+      (
+        await client.get<Timeline>(`/projects/${projectId}/ai/team/timeline`, {
+          params: {
+            range: q.range === 'custom' ? 'today' : q.range,
+            since: q.since,
+            until: q.until,
+            ticket_id: q.ticketId ?? undefined,
+          },
+        })
+      ).data,
+    enabled: !!projectId,
+    refetchInterval: (query) => {
+      const d = query.state.data;
+      if (!live || !d?.following) return 30000;
+      return d.live.length ? 4000 : 15000;
+    },
   });
 }
