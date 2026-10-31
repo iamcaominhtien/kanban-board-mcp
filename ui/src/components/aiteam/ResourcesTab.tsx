@@ -67,7 +67,11 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
   const now = Date.parse(snap.at);
   const limit = snap.limits.runMemoryLimitMb;
   const peak = Math.max(0, ...snap.runs.flatMap((r) => r.history.map((p) => p.rssMb)));
-  const maxMb = Math.max(limit > 0 ? limit : 0, peak * 1.15, 512);
+  // Scaled to what the runs use, so a 200 MB run is not a flat line under a 4 GB limit; the limit line is drawn when it
+  // is within reach of the lines, and written under the chart when it is far above them
+  const fitMb = Math.max(peak * 1.3, 512);
+  const limitInView = limit > 0 && limit <= fitMb * 2.5;
+  const maxMb = limitInView ? Math.max(fitMb, limit) : fitMb;
   const live = snap.runs.filter((r) => r.live);
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * maxMb);
   return (
@@ -100,7 +104,7 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
             </g>
           );
         })}
-        {limit > 0 && limit <= maxMb && (
+        {limitInView && (
           <g>
             <line
               x1="52"
@@ -148,6 +152,9 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
           now
         </text>
       </svg>
+      {limit > 0 && !limitInView && (
+        <div className="at-hint-sm">Limit per run: {fmtGb(limit)}, above the top of this chart.</div>
+      )}
       {!live.length && (
         <div className="at-hint">Nothing is running. The last runs stay in the table below for 10 minutes.</div>
       )}

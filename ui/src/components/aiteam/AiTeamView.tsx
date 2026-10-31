@@ -104,7 +104,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
           <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
         </select>
-        <span className="at-hint">
+        <span className="at-hint" hidden={tab === 'resources'}>
           {isError ? 'Not live: reconnecting' : updated != null ? `Live · updated ${updated} s ago` : ''}
         </span>
       </div>
