@@ -1,5 +1,6 @@
 import type { MemberAccountRef } from './aiAccounts';
-export type AiProvider = 'claude-code' | 'codex' | 'opencode' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
+export type AiProvider =
+  'claude-code' | 'codex' | 'opencode' | 'antigravity' | 'anthropic' | 'openai' | 'gemini' | 'custom' | 'mcp-client';
 export type AiConnection = 'local' | 'api_key' | 'inbox';
 export type PermissionMode = 'allowed' | 'approval' | 'blocked';
 export type AiTemplate = 'developer' | 'reviewer' | 'read_only' | 'custom';
@@ -21,7 +22,9 @@ export interface AiStatus {
     | 'online'
     | 'inbox'
     | 'removing'
-    | 'removed';
+    | 'removed'
+    /** UI only: the type's runs do not start yet (Codex, opencode, Antigravity). */
+    | 'not_ready';
   label: string;
   detail: string | null;
   ticketId?: string;
