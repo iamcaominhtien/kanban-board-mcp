@@ -31,8 +31,19 @@ AI_TEAM_OPS: dict[str, Op] = {
     "resume": Op(ops.resume, ("member_id",)),
     "create_member": Op(ops.create_member, ("project_id", "fields")),
     "update_member": Op(ops.update_member, ("member_id", "fields")),
+    "accounts": Op(ops.accounts, (), ("project_id",)),
+    "assign_account": Op(ops.assign_account, ("member_id", "account_id")),
 }
-READS = {"members", "member", "usage", "runs", "run", "approvals", "docs_jobs"}
+READS = {
+    "members",
+    "member",
+    "usage",
+    "runs",
+    "run",
+    "approvals",
+    "docs_jobs",
+    "accounts",
+}
 
 
 async def ai_team(
@@ -52,21 +63,29 @@ async def ai_team(
         "resume",
         "create_member",
         "update_member",
+        "accounts",
+        "assign_account",
     ],
     project_id: Annotated[
         str | None,
-        Field(description="members, usage, runs, approvals, docs_jobs, create_member."),
+        Field(
+            description="members, usage, accounts, approvals, docs_jobs, create_member."
+        ),
     ] = None,
     member_id: Annotated[
         str | None,
         Field(
-            description="AI member: member, ask, pause, resume, update_member, runs."
+            description="AI member: member, ask, pause, resume, update_member, assign_account."
         ),
+    ] = None,
+    account_id: Annotated[
+        str | None,
+        Field(description="assign_account: id, or none."),
     ] = None,
     ticket_id: Annotated[str | None, Field(description="ask, runs: IAM-12.")] = None,
     page_id: Annotated[str | None, Field(description="ask in Docs, docs_jobs.")] = None,
     thread_id: Annotated[
-        str | None, Field(description="ask in Docs: reply in this thread.")
+        str | None, Field(description="ask in Docs: a thread.")
     ] = None,
     run_id: Annotated[
         str | None, Field(description="run, cancel, retry, answer.")
@@ -77,13 +96,11 @@ async def ai_team(
     ] = None,
     intent: Annotated[
         Literal["ask", "work", "notify"] | None,
-        Field(
-            description="ask: ask (default), work (assign + work), notify (comment only)."
-        ),
+        Field(description="ask: ask (default), work, notify."),
     ] = None,
     range: Annotated[
         Literal["today", "7d", "month"] | None,
-        Field(description="usage; default month."),
+        Field(description="usage (default month)."),
     ] = None,
     status: Annotated[
         str | None, Field(description="approvals: pending, approved, denied.")
@@ -98,16 +115,16 @@ async def ai_team(
     fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="create/update_member: name, description, persona, template developer|reviewer|read_only, "
-            "ceiling none..review, max_parallel, max_runs_per_day, model; create: provider claude-code|antigravity|"
-            "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run."
+            description="create/update_member: name, description, persona, template, ceiling none..review, "
+            "max_parallel, max_runs_per_day, model; create: provider; update: daily_budget, monthly_cap, "
+            "tokens_per_day, cap_per_run."
         ),
     ] = None,
 ) -> dict | list:
-    """The board's AI team. Read: members, member, usage, runs, run, approvals, docs_jobs. Act: ask wakes an AI (an
-    @mention in a comment posted through MCP does not); cancel, retry, answer a run; pause, resume a member;
-    create_member, update_member (never keys, folders, Bypass or a ceiling past Review). Approvals are decided in
-    the board. Acts are refused inside an AI run."""
+    """The board's AI team. Read: members, member, usage, runs, run, approvals, docs_jobs, accounts (separate logins;
+    only a person signs in). Act: assign_account; ask wakes an AI (an @mention in a posted comment does not);
+    cancel, retry, answer a run; pause, resume a member; create_member, update_member (never keys, folders or
+    Bypass). Refused inside an AI run."""
     from services.ai import guard
 
     if action not in READS and await guard.resolve() is not None:

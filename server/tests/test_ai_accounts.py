@@ -524,3 +524,51 @@ async def test_the_fallback_command_names_the_accounts_folder(fake_cli):
     acct = AiAccount(id=a["id"], name=a["name"], cli="claude", folder=a["folder"])
     command = signin.fallback_command(acct)
     assert a["folder"] in command and command.rstrip().endswith("auth login --claudeai")
+
+
+# --------------------------------------------------------------------------- MCP: read accounts, assign, never sign in
+
+
+async def test_an_ai_can_list_accounts_and_assign_a_member_but_not_sign_in(fake_cli):
+    from kanban_mcp.tools.ai_team import AI_TEAM_OPS, ai_team
+
+    c = fake_cli["c"]
+    pid, _ = await _project(c)
+    a = await _account(c)
+    m = await _runner(c, pid, fake_cli["repo"])
+    rows = await ai_team("accounts", project_id=pid)
+    assert [r["name"] for r in rows] == ["Work Claude"]
+    assert (
+        rows[0]["status"] == "needs_sign_in"
+        and "Only a person can sign in" in rows[0]["note"]
+    )
+    assert "folder" not in rows[0] and not any("token" in k for k in rows[0])
+    out = await ai_team("assign_account", member_id=m["id"], account_id=a["id"])
+    assert out["id"] == m["id"]
+    assert (await c.get(f"/ai/members/{m['id']}")).json()["account_id"] == a["id"]
+    rows = await ai_team("accounts", project_id=pid)
+    assert rows[0]["members"] == [m["name"]]
+    await ai_team("assign_account", member_id=m["id"], account_id="none")
+    assert (await c.get(f"/ai/members/{m['id']}")).json()["account_id"] is None
+    with pytest.raises(ValueError, match="not found"):
+        await ai_team("assign_account", member_id=m["id"], account_id="acct_nope")
+    # there is no action that signs in, signs out, renames or removes
+    assert not {"signin", "sign_in", "login", "sign_out", "remove_account"} & set(
+        AI_TEAM_OPS
+    )
+
+
+async def test_inside_an_ai_run_the_accounts_can_be_read_but_not_changed(fake_cli):
+    from kanban_mcp.tools.ai_team import ai_team
+    from services.ai import guard
+    from tests.test_ai import _ctx
+
+    ctx, pid, _, m, _tid = await _ctx(fake_cli)
+    a = await _account(fake_cli["c"])
+    tokens = guard.enter(ctx)
+    try:
+        assert len(await ai_team("accounts")) == 1
+        with pytest.raises(ValueError, match="cannot start AIs or change AI members"):
+            await ai_team("assign_account", member_id=m["id"], account_id=a["id"])
+    finally:
+        guard.leave(tokens)

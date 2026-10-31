@@ -10,6 +10,7 @@ import events as board_events
 import services.activity as svc_activity
 import services.tickets as svc_tickets
 from models import AiMember, AiRun, Member, Project, Ticket, TicketUpdate
+from services.ai import accounts as svc_accounts
 from services.ai import approvals as svc_approvals
 from services.ai import audit, budget, guard
 from services.ai import members as svc_members
@@ -731,6 +732,56 @@ async def update_member(member_id: str, fields: dict) -> dict:
     async with common.async_session() as session:
         await _ai(session, member_id)
         await svc_members.update(session, member_id, fields, by=by)
+        out = await _described(session, member_id)
+    await board_events.publish("invalidate")
+    return out
+
+
+async def accounts(project_id: str | None = None) -> list[dict]:
+    """The AI accounts on this computer (separate logins of one CLI): who is signed in and which members use each.
+    Only a person can sign in, in the app; the login is never shown."""
+    async with common.async_session() as session:
+        if project_id:
+            await _project(session, project_id)
+        rows = await svc_accounts.list_all(session)
+        users = await svc_accounts.counts(session, project_id)
+    out = []
+    for a in rows:
+        mine = users.get(a.id) or {"here": [], "elsewhere": []}
+        out.append(
+            {
+                "id": a.id,
+                "name": a.name,
+                "cli": a.cli,
+                "status": a.status,
+                "signed_in_as": a.email,
+                "plan": a.plan,
+                "method": a.method,
+                "checked_at": a.checked_at,
+                "members": [m["name"] for m in mine["here"]],
+                "members_elsewhere": len(mine["elsewhere"]),
+                **(
+                    {"note": "Signed out. Only a person can sign in, in the app."}
+                    if a.status == "needs_sign_in"
+                    else {}
+                ),
+            }
+        )
+    return out
+
+
+async def assign_account(member_id: str, account_id: str) -> dict:
+    """Make an AI member run as an account (`none`: the login already on this computer). Members of other CLIs are refused."""
+    async with common.async_session() as session:
+        await _ai(session, member_id)
+        try:
+            await svc_accounts.assign(
+                session, member_id, None if account_id == "none" else account_id
+            )
+        except svc_accounts.AccountError as exc:
+            raise ValueError(
+                f"{exc} ai_team(action='accounts') lists the accounts."
+            ) from exc
         out = await _described(session, member_id)
     await board_events.publish("invalidate")
     return out
