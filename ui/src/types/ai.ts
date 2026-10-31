@@ -152,8 +152,6 @@ export interface AiConfig {
   customTools: AiCustomTool[];
   remoteMcp: AiRemoteMcp[];
   output: { includeUsage: boolean; moveBackOnFailure: boolean; commentFormat: 'short' | 'detailed' | 'plain' };
-  antigravity: { syncMcp: boolean; mcpTarget: string };
-  permissionNotes: string;
 }
 
 export interface AiMember {

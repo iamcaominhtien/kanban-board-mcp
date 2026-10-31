@@ -256,19 +256,6 @@ def desired_specs(
     return specs, notes
 
 
-def antigravity_specs(cfg: dict) -> list[Spec]:
-    """Experimental: the server list as one JSON file (target path and format are placeholders, TODO verify)."""
-    ag = cfg.get("antigravity") or {}
-    if not ag.get("sync_mcp") or not ag.get("mcp_target"):
-        return []
-    units = {
-        f"server:{s['name']}": canon(mcp_entry(s))
-        for s in cfg.get("mcp_servers") or []
-        if s["enabled"] and s["name"]
-    }
-    return [Spec(ag["mcp_target"], "mcp", units)]
-
-
 # ---------------------------------------------------------------------------
 # Reading units out of a file / building the new file
 # ---------------------------------------------------------------------------

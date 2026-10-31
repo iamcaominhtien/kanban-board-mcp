@@ -950,13 +950,14 @@ async def test_library_versions_attach_update_prompt_and_delete_rules(env):
             )
         ).json()["config"],
     )
-    # Antigravity gets skills as Documented; an API agent gets tools, and refuses stdio servers
+    # Antigravity runs read no skills (the tab reports them as skipped); an API agent gets tools, and refuses stdio
+    # servers
     agc = (
         await c.post(
             f"/ai/members/{ag['id']}/library/attach", json={"item_id": sk["id"]}
         )
     ).json()["config"]
-    assert agc["skills"][0]["mode"] == "documented"
+    assert agc["skills"][0]["mode"] == "synced"
     apic = (
         await c.post(
             f"/ai/members/{api['id']}/library/attach", json={"item_id": tool["id"]}

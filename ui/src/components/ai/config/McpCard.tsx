@@ -4,7 +4,7 @@ import { Toggle } from '../aiUi';
 import type { AiKv, AiMcpServer, AiRemoteMcp } from '../../../types/ai';
 import { configApi, useLibrary, type ProbeResult } from './configApi';
 import { adapterOf, useCfg } from './configCtx';
-import { CfgCard, Chip, Dialog, EmptyState, IssueText, ModeChip, TickRow, newId } from './parts';
+import { CfgCard, Chip, Dialog, IssueText, TickRow, newId } from './parts';
 import { joinWords, splitWords } from './frontMatter';
 
 const ENV_REF = /^\$\{[A-Za-z_][A-Za-z0-9_]*\}$/;
@@ -129,19 +129,13 @@ function ServerDialog({
   onSave: (s: AiMcpServer) => void;
   onClose: () => void;
 }) {
-  const { member } = useCfg();
-  const isAg = adapterOf(member) === 'antigravity';
   const [s, setS] = useState(server);
   const line = s.type === 'http' ? s.url : joinWords([s.command, ...s.args].filter(Boolean));
   const literal = s.env.filter((p) => p.value && !ENV_REF.test(p.value));
   return (
     <Dialog
       title={server.name ? `Edit server · ${server.name}` : 'Add server'}
-      sub={
-        isAg
-          ? 'Written to a file inside the project only if experimental sync is on.'
-          : 'Written to .mcp.json in the working folder.'
-      }
+      sub="Written to .mcp.json in the working folder."
       width={600}
       onClose={onClose}
       testId="server-dialog"
@@ -221,7 +215,7 @@ function ServerDialog({
           valuePlaceholder="Bearer ${TOKEN}"
         />
       )}
-      {literal.length > 0 && !isAg && (
+      {literal.length > 0 && (
         <div className="ai-notice ai-notice-warn" data-testid="literal-env-warning">
           {literal.map((p) => p.name).join(', ')} holds a literal value that will be written to .mcp.json in your repo.
           Use a reference such as ${'{'}
@@ -229,16 +223,14 @@ function ServerDialog({
           {'}'} and set the variable on this computer.
         </div>
       )}
-      {!isAg && (
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5 }}>
-          <input
-            type="checkbox"
-            checked={s.mode === 'documented'}
-            onChange={(e) => setS({ ...s, mode: e.target.checked ? 'documented' : 'synced' })}
-          />
-          Documented only: I set it up by hand (sign-in happens in Claude Code, nothing is written)
-        </label>
-      )}
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5 }}>
+        <input
+          type="checkbox"
+          checked={s.mode === 'documented'}
+          onChange={(e) => setS({ ...s, mode: e.target.checked ? 'documented' : 'synced' })}
+        />
+        Documented only: I set it up by hand (sign-in happens in Claude Code, nothing is written)
+      </label>
     </Dialog>
   );
 }
@@ -364,7 +356,7 @@ export function McpCard() {
     env: [],
     headers: [],
     enabled: true,
-    mode: kind === 'antigravity' ? 'documented' : 'synced',
+    mode: 'synced',
     description: '',
     library: null,
   });
@@ -472,23 +464,15 @@ export function McpCard() {
     );
   }
 
-  const isAg = kind === 'antigravity';
-  const syncOn = isAg && cfg.antigravity.syncMcp;
-  const effMode = (s: AiMcpServer) => (isAg ? (syncOn ? 'synced' : 'documented') : s.mode);
   return (
     <CfgCard
       id="cfg-mcp"
       testId="card-mcp"
-      title={isAg ? 'MCP servers — the rare Synced item' : 'MCP servers'}
-      mode={isAg ? (syncOn ? 'synced' : 'documented') : 'synced'}
-      sub={
-        isAg
-          ? 'Sync only works if Antigravity reads MCP servers from a file inside the project.'
-          : 'Written to .mcp.json in the working folder. The Kanban server is always present and locked.'
-      }
+      title="MCP servers"
+      mode="synced"
+      sub="Written to .mcp.json in the working folder. The Kanban server is always present and locked."
       right={
         <>
-          {isAg && <Chip tone="warn">Experimental</Chip>}
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => pickLibrary(['mcp_server'], true)}>
             Attach from library
           </button>
@@ -503,35 +487,6 @@ export function McpCard() {
         </>
       }
     >
-      {isAg && (
-        <div className="ai-notice ai-notice-slate" style={{ flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Toggle
-              on={cfg.antigravity.syncMcp}
-              label="Sync MCP servers into the project"
-              onChange={(v) => setCfg({ antigravity: { ...cfg.antigravity, syncMcp: v } })}
-            />
-            <b>Sync MCP servers into the project</b>
-            <ModeChip mode={syncOn ? 'synced' : 'documented'} />
-          </div>
-          <span>Off by default. When off, both servers below are Documented.</span>
-          {syncOn && (
-            <div className="ai-field">
-              <span className="ai-label ai-label-dark">Target file (inside the working folder)</span>
-              <input
-                data-path="antigravity.mcp_target"
-                className="ai-input ai-mono"
-                value={cfg.antigravity.mcpTarget}
-                onChange={(e) => setCfg({ antigravity: { ...cfg.antigravity, mcpTarget: e.target.value } })}
-              />
-              <IssueText issues={issues} path="antigravity.mcp_target" />
-            </div>
-          )}
-          <span className="ai-hint">
-            Antigravity runs started by the board do not read this file; it is for the Antigravity app only.
-          </span>
-        </div>
-      )}
       <div className="cfg-row" data-testid="mcp-kanban-row">
         <div className="cfg-row-main">
           <div className="cfg-row-title">
@@ -539,9 +494,7 @@ export function McpCard() {
             <span className="ai-mono">kanban</span>
             <ProbeChip r={probes.kanban} busy={busy === 'kanban'} />
             <Chip>Preattached</Chip>
-            <Chip tone={isAg && !syncOn ? 'warn' : 'synced'}>
-              {isAg ? (syncOn ? 'Synced' : 'Documented') : 'Synced'}
-            </Chip>
+            <Chip tone="synced">Synced</Chip>
           </div>
           <div className="ai-muted">Board’s own MCP server · {status?.endpoint ?? '/mcp/'} · locked</div>
         </div>
@@ -554,12 +507,12 @@ export function McpCard() {
           Check
         </button>
       </div>
-      {cfg.mcpServers.length === 0 && !isAg && (
+      {cfg.mcpServers.length === 0 && (
         <div className="ai-muted">No other servers. Add one, or attach one from the library.</div>
       )}
       {cfg.mcpServers.map((s, i) => {
         const r = probes[s.id];
-        const mode = effMode(s);
+        const mode = s.mode;
         const doc = status?.documented.find((d) => d.key === `mcp:${s.id}`);
         const item = s.library ? latest.get(s.library.id) : undefined;
         const behind = !!(s.library && item && item.version > s.library.version);
@@ -643,14 +596,6 @@ export function McpCard() {
         );
       })}
       {error && <div className="ai-error-text">{error}</div>}
-      {cfg.mcpServers.length === 0 && isAg && (
-        <EmptyState
-          title="No servers yet"
-          text="Add one, or attach from the library."
-          action="Add server"
-          onAction={() => setEditing(blankServer())}
-        />
-      )}
       {editing && <ServerDialog server={editing} onClose={() => setEditing(null)} onSave={saveServer} />}
     </CfgCard>
   );

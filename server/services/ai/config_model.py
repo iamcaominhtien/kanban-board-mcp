@@ -288,7 +288,6 @@ def normalize_lists(cfg: dict) -> dict:
     cfg["extra_flags"] = [_s(f) for f in cfg.get("extra_flags") or [] if _s(f)]
     cfg["instructions"] = _s(cfg.get("instructions"))
     cfg["user_instructions"] = _s(cfg.get("user_instructions"))
-    cfg["permission_notes"] = _s(cfg.get("permission_notes"))
     return cfg
 
 
@@ -924,15 +923,6 @@ def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
         ):
             err(f"{path}.url", "Enter an https:// URL (http:// only for localhost).")
 
-    ag = cfg.get("antigravity") or {}
-    target = _s(ag.get("mcp_target"))
-    if ag.get("sync_mcp") and (
-        not target or target.startswith("/") or ".." in target.split("/")
-    ):
-        err(
-            "antigravity.mcp_target",
-            "The target file must be a path inside the working folder.",
-        )
     return errs
 
 
@@ -971,10 +961,7 @@ def documented_items(cfg: dict, provider: str) -> list[dict]:
                 }
             )
     for s in cfg.get("mcp_servers") or []:
-        documented = s["mode"] == "documented" or (
-            adapter == "antigravity"
-            and not (cfg.get("antigravity") or {}).get("sync_mcp")
-        )
+        documented = s["mode"] == "documented"
         if documented and caps.get("mcp_servers") != "not_supported":
             out.append(
                 {

@@ -491,35 +491,33 @@ async def test_documented_items_tick_who_when_and_clear_on_change(env):
     assert bad.status_code == 422
 
 
-async def test_antigravity_mcp_file_sync_is_off_by_default_and_the_target_stays_in_the_folder(
-    env,
-):
-    c, repo = env["c"], Path(env["repo"])
+async def test_an_antigravity_config_saved_with_the_removed_keys_still_loads(env):
+    # `antigravity.sync_mcp` and `permission_notes` were removed (runs never read them); old data must not break
+    c = env["c"]
     pid, _ = await _project(c)
-    srv = [{"name": "figma", "type": "http", "url": "https://mcp.figma.example/mcp"}]
     r = await c.post(
         f"/projects/{pid}/ai/members",
         json={
             "name": "AG",
             "provider": "antigravity",
             "working_dir": env["repo"],
-            "config": {"mcp_servers": srv},
+            "config": {
+                "antigravity": {
+                    "sync_mcp": True,
+                    "mcp_target": ".agents/mcp_config.json",
+                },
+                "permission_notes": "Allow git status.",
+                "instructions": "# Rules",
+            },
         },
     )
+    assert r.status_code == 201, r.text
     mid = r.json()["id"]
-    assert (await _preview(c, mid))["files"] == []
-    await _save(
-        c, mid, antigravity={"sync_mcp": True, "mcp_target": ".agents/mcp_config.json"}
-    )
-    assert (await _write(c, mid))["ok"]
-    assert json.loads((repo / ".agents/mcp_config.json").read_text())["mcpServers"][
-        "figma"
-    ]["url"].startswith("https://")
-    bad = await c.patch(
-        f"/ai/members/{mid}",
-        json={"config": {"antigravity": {"sync_mcp": True, "mcp_target": "../x"}}},
-    )
-    assert bad.status_code == 422
+    st = (await c.get(f"/ai/members/{mid}/config/status")).json()
+    assert st["documented"] == []
+    pv = await _preview(c, mid)
+    assert pv["files"] == [] and pv["mode"] == "none"
+    assert (await c.get(f"/ai/members/{mid}")).status_code == 200
 
 
 async def test_export_has_no_secrets_import_previews_and_reset_can_be_undone(env):

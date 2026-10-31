@@ -499,7 +499,7 @@ export function ConfigTab({
     left.push(<InstructionsCard key="i" />, <ContextCard key="c" />, <OutputCard key="o" />);
     right.push(<ApiToolsCard key="t" />, <McpCard key="m" />, <LimitsCard key="l" />);
   }
-  const notes = kind === 'claude-code' || (kind === 'antigravity' && form.config.antigravity.syncMcp);
+  const notes = kind === 'claude-code';
 
   return (
     <CfgContext.Provider value={ctx}>

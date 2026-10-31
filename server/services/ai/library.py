@@ -390,7 +390,7 @@ def attach(item: AiLibraryItem, cfg: dict, provider: str) -> dict:
                 "content": content,
                 "name": item.name,
                 "library": link,
-                "mode": "documented" if adapter == "antigravity" else "synced",
+                "mode": "synced",
             }
         )
         if any(x["name"] == s["name"] for x in cfg["skills"]):
@@ -442,7 +442,7 @@ def attach(item: AiLibraryItem, cfg: dict, provider: str) -> dict:
                     {
                         **srv,
                         "library": link,
-                        "mode": "documented" if adapter == "antigravity" else "synced",
+                        "mode": "synced",
                     }
                 )
             )

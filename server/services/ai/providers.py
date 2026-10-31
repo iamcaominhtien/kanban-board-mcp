@@ -350,10 +350,6 @@ DEFAULT_CONFIG: dict = {
         "move_back_on_failure": False,
         "comment_format": "short",
     },
-    # Antigravity: experimental file sync of the MCP server list (C4, placeholder paths: TODO verify)
-    "antigravity": {"sync_mcp": False, "mcp_target": ".agents/mcp_config.json"},
-    # Antigravity permissions are documented: free text the person follows in the app
-    "permission_notes": "",
 }
 
 
@@ -387,7 +383,7 @@ def merged_config(raw: dict | None) -> dict:
         **DEFAULT_CONFIG["tool_groups"],
         **((raw or {}).get("tool_groups") or {}),
     }
-    for key in ("output", "antigravity"):
+    for key in ("output",):
         out[key] = {**DEFAULT_CONFIG[key], **((raw or {}).get(key) or {})}
     out["mcp_servers"] = [
         {

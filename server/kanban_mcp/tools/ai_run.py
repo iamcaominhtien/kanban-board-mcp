@@ -7,17 +7,15 @@ from pydantic import Field
 _CRITERION = {
     "type": "object",
     "properties": {
-        "text": {"type": "string", "description": "The acceptance criterion."},
-        "met": {"type": "boolean", "description": "Whether you met it."},
-        "evidence": {"type": "string", "description": "What shows it."},
+        "text": {"type": "string"},
+        "met": {"type": "boolean"},
+        "evidence": {"type": "string"},
     },
     "required": ["text", "met"],
-    "additionalProperties": True,
 }
 _TESTS = {
     "type": "object",
     "properties": {"passed": {"type": "integer"}, "failed": {"type": "integer"}},
-    "additionalProperties": True,
 }
 
 
@@ -49,25 +47,24 @@ async def ai_run(
     criteria: Annotated[
         list[dict] | None,
         Field(
-            description="report: one {text, met, evidence} per acceptance criterion.",
+            description="report: one per acceptance criterion.",
             json_schema_extra=_criteria_schema,
         ),
     ] = None,
     tests: Annotated[
         dict | None,
         Field(
-            description="report: {passed, failed} counts.",
+            description="report: test counts.",
             json_schema_extra=_tests_schema,
         ),
     ] = None,
     ticket_id: Annotated[
         str | None,
-        Field(description="Not needed: the run's own ticket is used. Ignored."),
+        Field(description="Ignored: the run's ticket is used."),
     ] = None,
 ) -> dict:
     """Only inside a run the board started for an AI member. ask: question the person you act for, then stop;
-    the board resumes you with the answer. report: record your summary before the final message. Takes no ticket:
-    it always acts on the ticket of the run."""
+    the board resumes you with the answer. report: record your summary before the final message."""
     from services.ai import guard, runs
 
     ctx = await guard.resolve()
