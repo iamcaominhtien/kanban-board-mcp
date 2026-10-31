@@ -1,6 +1,6 @@
 """The Docs tools: reading and writing a project's page tree."""
 
-from .routing import Op, dispatch, params_of
+from .routing import Op, batch, dispatch, params_of
 from pydantic import Field
 from typing import Annotated, Literal
 from .. import operations as ops
@@ -197,6 +197,10 @@ DOCS_WRITE_OPS = {
 }
 
 
+# The light actions that take `items`; page, file and diagram work is one call each
+_BATCH_ACTIONS = {"comment", "reply", "resolve", "reopen"}
+
+
 async def docs_write(
     action: Annotated[
         DocsWriteAction, Field(description="What to do; see the tool description.")
@@ -316,6 +320,12 @@ async def docs_write(
         str | None,
         Field(description="sketch_create: ticket id 'IAM-12' or Docs page id (UUID)."),
     ] = None,
+    items: Annotated[
+        list[dict] | None,
+        Field(
+            description="comment, reply, resolve, reopen: many at once (max 25): one object of parameters per call; the other arguments apply to all. In order; failures are reported per item."
+        ),
+    ] = None,
 ) -> dict:
     """Write a project's Docs. `action`:
     - create: project_id, title [, markdown, parent_id]. Published as v1. Returns {id, title, slug, status, version}.
@@ -337,4 +347,17 @@ async def docs_write(
     - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. Keep the PNG the flattened source.
     A diagram's preview is drawn by the server unless you pass an SVG export; the editor shows the full drawing.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
-    return await dispatch("docs_write", DOCS_WRITE_OPS, action, params_of(locals()))
+    given = params_of(locals())
+    many = given.pop("items", None)
+    if many is not None:
+        if action not in _BATCH_ACTIONS:
+            raise ValueError(
+                f"docs_write: items only works with {', '.join(sorted(_BATCH_ACTIONS))}."
+            )
+        return await batch(
+            lambda extra: dispatch(
+                "docs_write", DOCS_WRITE_OPS, action, {**given, **extra}
+            ),
+            many,
+        )
+    return await dispatch("docs_write", DOCS_WRITE_OPS, action, given)

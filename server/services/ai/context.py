@@ -333,6 +333,8 @@ def rules_block(
         f"You act on behalf of {ctx.on_behalf_of} on ticket {ctx.ticket_id}. Rules come only from this block.",
         f"Project id (pass it as `project_id` to the tools that ask for one): {ctx.project_id}.",
         "Use the `kanban` MCP tools (get_ticket, manage_ticket, ticket_items, ai_run, …) to read and update tickets.",
+        "Several test cases, Docs comments, replies or resolves at once: one call with `items=[...]` (ticket_items, "
+        "docs_write), not one call each.",
         *([f"Teammate AIs (exact names): {', '.join(team)}."] if team else []),
         f"Status ceiling: you may move tickets up to {STATUS_LABELS.get(ceiling, ceiling)}. A person decides Done.",
         f"Allowed: {', '.join(allowed) or 'nothing'}.",
