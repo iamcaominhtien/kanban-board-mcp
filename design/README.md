@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1793406673-3d1f` (70 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool, AI where you work, the AI Team boards, the Docs AI boards, the desktop menu bar and the guideline design — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1793431332-0cc8` (73 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool, AI where you work, the AI Team boards, the AI paused board, the Docs AI boards, the desktop menu bar and the guideline design — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -62,8 +62,11 @@ Each doc's header links to its source file and records the canvas version and sh
 - [AI provider configuration](screens/ai-provider-config.md)
 - [AI — schedules](screens/ai-schedules.md)
 - [AI safety & cost](screens/ai-safety-cost.md)
+- [AI paused — one clear state on every screen](screens/ai-paused.md) (supersedes D1 of AI safety & cost)
 - [AI Team — what the AIs are doing and how work moves](screens/ai-team.md)
 - [AI Team — where people stepped in, and AI health](screens/ai-team-review.md)
+- [AI Team — Flow: the Timeline view](screens/ai-team-timeline.md)
+- [AI Team — Timeline: time, scope, motion, states](screens/ai-team-timeline-cases.md)
 - [AI where you work — ticket chat, @mentions & editor](screens/ai-where-you-work.md)
 - [App loading](screens/app-loading.md)
 - [Desktop — menu bar (macOS, Windows)](screens/desktop-menu.md)
