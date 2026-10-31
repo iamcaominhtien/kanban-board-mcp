@@ -113,6 +113,14 @@ export function TimelineStrip({
           if (e.key === 'ArrowRight') jump(Math.min(l + 0.05, 1));
         }}
       >
+        {/* folded stretches (nothing running) are hatched, as in the design's strip */}
+        {axis.breaks.map((b) => (
+          <span
+            key={b.from}
+            className="tl-strip-fold"
+            style={{ left: `${frac(b.from) * 100}%`, width: `${(frac(b.to) - frac(b.from)) * 100}%` }}
+          />
+        ))}
         {data.density.map((n, i) => (
           <i key={i} style={{ height: Math.min(4 + n * 6, 26), opacity: n ? 0.4 + Math.min(n, 5) * 0.1 : 0.15 }} />
         ))}
@@ -144,7 +152,8 @@ export function TimelineStrip({
       <div className="tl-strip-labels">
         <span>{clock(since)}</span>
         <span>
-          Drag the box to move it, drag an edge to zoom · ctrl + scroll zooms · Home and End go to the start and to now
+          The range at a glance: drag the box to move it, drag an edge to zoom
+          {axis.breaks.length ? '. Hatched: nothing running (collapsed below)' : ''}
         </span>
         {zoomed ? (
           <button type="button" className="tl-link" onClick={() => onZoom(null)} data-testid="tl-zoom-reset">

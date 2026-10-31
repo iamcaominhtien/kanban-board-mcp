@@ -124,6 +124,36 @@
   color: #5b6b60;
   padding: 8px 10px 4px;
 }
+.tl-menu-foot {
+  padding: 6px 10px;
+  margin-top: 4px;
+  border-top: 1px solid #eef3ef;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.tl-scope-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+}
+.tl-scope-head > b {
+  font-size: 13.5px;
+}
+.tl-scope-head > .at-hint {
+  font-size: 12px;
+}
+.tl-strip-fold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(45deg, #f6f8f6, #f6f8f6 4px, #e3e8e5 4px, #e3e8e5 5px);
+  pointer-events: none;
+}
 .tl-menu-empty {
   padding: 8px 10px;
   font-size: 12px;
@@ -172,8 +202,8 @@
 }
 .tl-box {
   position: absolute;
-  top: -1px;
-  bottom: -1px;
+  top: -2px;
+  bottom: -2px;
   border: 2px solid #2e6f40;
   border-radius: 8px;
   background: rgba(46, 111, 64, 0.06);
@@ -210,6 +240,7 @@
   overflow: hidden;
 }
 .tl-density > i {
+  position: relative;
   flex: 1;
   background: #2e6f40;
   border-radius: 1px;
@@ -313,7 +344,11 @@
 .tl-hover {
   position: fixed;
   z-index: 50;
-  width: 270px;
+  width: 300px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   padding: 10px 12px;
   border-radius: 10px;
   background: #fff;
@@ -324,53 +359,162 @@
   color: #3a4a3e;
   pointer-events: none;
 }
-.tl-hover > b {
+.tl-hover-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12.5px;
+  font-weight: 700;
   color: #1e2a22;
+  line-height: 1.35;
+}
+.tl-card-line {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #3a4a3e;
+  overflow-wrap: anywhere;
 }
 .tl-hover-hint {
-  display: block;
-  margin-top: 4px;
   color: #2e6f40;
   font-weight: 600;
 }
+/* A state chip: a dot and a word (Working, Finished, Failed, …) */
 .tl-chip {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  padding: 0 8px;
   border-radius: 999px;
   background: #eef3ef;
   color: #3a4a3e;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.tl-chip > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+/* The ticket chip of the design: a dot and the key in mono */
+.tl-tchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px 0 7px;
+  border-radius: 6px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  color: #1e2a22;
+  vertical-align: 1px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.tl-tchip > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2f6fb0;
+  flex-shrink: 0;
+}
+.tl-tchip > span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.tl-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 1.5px solid;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 .tl-inspector {
   position: fixed;
   z-index: 40;
   top: 96px;
   right: 24px;
-  width: 320px;
+  width: 330px;
+  box-sizing: border-box;
   max-height: calc(100vh - 120px);
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 9px;
+  padding: 14px;
   border-radius: 12px;
-  background: #fff;
-  border: 1px solid #d5ded8;
-  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.24);
+  background: #fbfcfb;
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18);
   font-size: 12.5px;
 }
 .tl-insp-head {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+.tl-insp-head > b {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.tl-insp-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.tl-insp-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tl-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #f1f5f2;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #3a4a3e;
+}
+.tl-step {
+  display: flex;
+  gap: 8px;
+  font-size: 11.5px;
+  padding: 3px 0;
+  border-bottom: 1px solid #eef3ef;
+}
+.tl-step > .at-hint {
+  width: 36px;
+  flex-shrink: 0;
+  font-size: 11.5px;
+}
+.tl-step > span:last-child {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .tl-insp-line {
   line-height: 1.5;
   color: #3a4a3e;
+  overflow-wrap: anywhere;
 }
 .tl-insp-actions {
   display: flex;
@@ -378,24 +522,68 @@
   flex-wrap: wrap;
 }
 .tl-x {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   border: none;
   background: none;
-  font-size: 18px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: #5b6b60;
+  flex-shrink: 0;
+  padding: 0;
+}
+.tl-x:hover {
+  background: #eaf0ec;
+}
+.tl-question {
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: #fef6e7;
+  border: 1px solid #f0dba8;
 }
 .tl-answer {
   display: flex;
   flex-direction: column;
+  gap: 9px;
+}
+.tl-options {
+  display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+}
+.tl-option {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.tl-option:hover {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #1e2a22;
 }
 .tl-input {
-  padding: 7px 10px;
+  padding: 8px 10px;
+  min-height: 44px;
   border-radius: 8px;
   border: 1px solid #c7d2cb;
+  background: #fff;
   font: inherit;
   font-size: 12.5px;
+  resize: vertical;
+  box-sizing: border-box;
 }
 .tl-legend {
   display: flex;
@@ -564,6 +752,27 @@
 .tl-flash {
   animation: tl-flash 300ms ease-out both;
 }
+/* A new arrow's badge: a ring fades around it once (G, "Arrived"); still, it outlines the badge until it settles */
+@keyframes tl-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  30% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+.tl-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: tl-ring 700ms ease-out 400ms both;
+  pointer-events: none;
+}
 .tl-hidden .tl-svg * {
   animation-play-state: paused !important;
 }
@@ -574,5 +783,9 @@
   .tl-grow,
   .tl-flash {
     animation: none;
+  }
+  .tl-ring {
+    animation: none;
+    opacity: 0.5;
   }
 }
