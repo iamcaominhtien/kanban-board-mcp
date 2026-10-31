@@ -2,7 +2,7 @@
 
 > COMPONENT — V1 PROPOSAL · source: [`Diagrams.dc.html`](../source/Diagrams.dc.html) · canvas `1793195406-cc1c` · sha256 `66a3c664e48c8fabea8e72a773fef99ffab5ed28ede1d9ae438b4ebdf9d286bf`
 
-Draw flows and sketches inside any markdown field, using the real draw.io editor. The drawing is saved as an editable .drawio file and shown on the page as a crisp image. Anyone can download it as .drawio, SVG or PNG. Used in ticket descriptions, comments and Docs.
+Draw flows and sketches inside any markdown field, using the real draw.io editor. The drawing is saved as an editable .drawio file and shown on the page as a crisp image. Anyone can download it as .drawio, SVG or PNG. Used in ticket descriptions, comments and Docs. A third object, [Canvas](canvas.md), puts boards (pages, pictures, sketches, diagrams) side by side on one plane and appears in the same places.
 
 Source: [Diagrams.dc.html](../source/Diagrams.dc.html) › header ("COMPONENT — V1 PROPOSAL", "Diagrams — draw.io" and the intro)
 

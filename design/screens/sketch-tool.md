@@ -2,7 +2,7 @@
 
 > SCREEN — V1 PROPOSAL · source: [`Sketch.dc.html`](../source/Sketch.dc.html) · canvas `1793295530-5588` · sha256 `7e8ed32a94a424cfa9729dcbe7da6eb9585a9303418af4992a5e88f84a76be4f`
 
-A simple, offline drawing tool that works like a basic paint program: brush, pencil, eraser, fill, shapes, text and a few layers. It starts from a blank page or from any picture, and the result can be placed in any text, ticket, Doc or idea. Diagrams (draw.io) stay for structured drawings.
+A simple, offline drawing tool that works like a basic paint program: brush, pencil, eraser, fill, shapes, text and a few layers. It starts from a blank page or from any picture, and the result can be placed in any text, ticket, Doc or idea. Diagrams (draw.io) stay for structured drawings. A third object, [Canvas](canvas.md), puts boards (pages, pictures, sketches, diagrams) side by side on one plane and appears in the same places.
 
 Source: [Sketch.dc.html](../source/Sketch.dc.html) › header ("SCREEN — V1 PROPOSAL", "Sketch — a paint-style drawing tool" and the intro)
 
