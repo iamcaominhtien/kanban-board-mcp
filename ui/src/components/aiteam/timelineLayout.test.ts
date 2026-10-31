@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Timeline, TimelineBar, TimelineWait } from '../../types/aiTeam';
-import { BREAK_H, CAP_H, PX_PER_MIN, assignLanes, buildAxis, lengthText } from './timelineLayout';
+import { BREAK_H, CAP_H, PX_PER_MIN, ROW_GAP, assignLanes, buildAxis, eventRows, lengthText } from './timelineLayout';
 
 const T0 = new Date('2026-10-31T08:00:00').getTime();
 const at = (min: number) => new Date(T0 + min * 60000).toISOString();
@@ -170,6 +170,44 @@ describe('timeline axis', () => {
       expect(y).toBeGreaterThanOrEqual(last);
       last = y;
     }
+  });
+});
+
+describe('rows for close events (Compact time)', () => {
+  const sec = (s: number) => new Date(T0 + s * 1000).toISOString();
+  const quick = (id: string, from: number, to: number, member = 'm1') =>
+    bar(id, 0, 0, { memberId: member, queuedAt: sec(from), startedAt: sec(from), endedAt: sec(to) });
+
+  it('gives every moment its own row and merges moments a second or two apart', () => {
+    const d = data([quick('a', 0, 20), quick('b', 21, 40, 'm2'), quick('c', 300, 320)], 10);
+    expect(eventRows(d).map((t) => (t - T0) / 1000)).toEqual([0, 20, 40, 300, 320]);
+  });
+
+  it('keeps at least ROW_GAP px between two rows, and leaves what is far apart to scale', () => {
+    const d = data([quick('a', 0, 20), quick('b', 21, 40, 'm2'), quick('c', 600, 900)], 20);
+    const axis = buildAxis(d, 'compact', T0 + 20 * 60000);
+    const y = (s: number) => axis.y(T0 + s * 1000);
+    expect(y(20) - y(0)).toBeCloseTo(ROW_GAP, 3);
+    expect(y(40) - y(20)).toBeCloseTo(ROW_GAP, 3);
+    // five minutes apart: to scale
+    expect(y(900) - y(600)).toBeCloseTo(5 * PX_PER_MIN, 3);
+    expect(axis.timeAt(y(20))).toBeCloseTo(T0 + 20000, -2);
+  });
+
+  it('keeps Real time to scale', () => {
+    const d = data([quick('a', 0, 20), quick('b', 21, 40, 'm2')], 10);
+    const axis = buildAxis(d, 'real', T0 + 10 * 60000);
+    expect(axis.y(T0 + 20000) - axis.y(T0)).toBeCloseTo((20 / 60) * PX_PER_MIN, 3);
+  });
+
+  it('writes the clock of a break level with its words, and no grid line inside it', () => {
+    const d = data([bar('a', 0, 5), bar('b', 80, 90)], 90);
+    const axis = buildAxis(d, 'compact', T0 + 90 * 60000);
+    const b = axis.breaks[0];
+    const start = axis.ticks.find((t) => t.t === b.from);
+    expect(start?.y).toBeCloseTo(b.y + 20.5, 3);
+    expect(start?.inside).toBe(true);
+    expect(axis.ticks.find((t) => t.t === b.to)?.inside).toBeFalsy();
   });
 });
 

@@ -14,6 +14,14 @@ export const QUIET_MIN = 10;
 export const CAP_MIN = 60;
 export const CAP_H = 150;
 export const HEAD_H = 46;
+/**
+ * In Compact time two moments that are both on the diagram (a run starting or ending, an arrow leaving or landing, a
+ * wait, a Docs page, a pause) are never closer than this, so their marks and labels have room (see timelinePlace.ts).
+ * At 11 px a minute that only changes moments less than two minutes apart; Real time keeps the true proportion.
+ */
+export const ROW_GAP = 20;
+/** Moments this close are one row: an arrow that leaves as a run ends, a run that starts as an arrow lands. */
+export const SAME_ROW_MS = 2500;
 
 export type AxisMode = 'compact' | 'real';
 
@@ -31,6 +39,8 @@ export interface Tick {
   label: string;
   /** A date line: this tick is midnight. */
   midnight?: boolean;
+  /** A clock inside a fold (a break or a capped wait): written in the gutter, with no grid line across. */
+  inside?: boolean;
 }
 
 export interface Axis {
@@ -155,6 +165,37 @@ function activeSpans(data: Timeline, now: number): Span[] {
   return merge(spans);
 }
 
+/** The moments the diagram draws something at, one per row (closer than SAME_ROW_MS they share a row), in order. */
+export function eventRows(data: Timeline): number[] {
+  const all: number[] = [];
+  const add = (iso: string | null | undefined) => {
+    const t = ms(iso);
+    if (t != null) all.push(t);
+  };
+  for (const b of data.bars) {
+    add(b.queuedAt);
+    add(b.startedAt);
+    add(b.endedAt);
+  }
+  for (const a of data.arrows) {
+    add(a.at);
+    add(a.toAt);
+  }
+  for (const w of data.waits) {
+    add(w.from);
+    add(w.to);
+  }
+  for (const d of data.docs) add(d.at);
+  for (const p of data.pauses) {
+    add(p.from);
+    add(p.to);
+  }
+  all.sort((p, q) => p - q);
+  const rows: number[] = [];
+  for (const t of all) if (!rows.length || t - rows[rows.length - 1] > SAME_ROW_MS) rows.push(t);
+  return rows;
+}
+
 /** Ticks whose label does not crowd the next one: a step from five minutes to six hours. */
 function tickStep(pxPerMin: number): number {
   for (const step of [5, 10, 15, 30, 60, 120, 360, 720]) if (step * pxPerMin >= 46) return step;
@@ -210,11 +251,25 @@ export function buildAxis(data: Timeline, mode: AxisMode, now: number): Axis {
 
   let y = 0;
   let t = from;
-  const addTime = (t0: number, t1: number) => {
+  const rows = mode === 'compact' ? eventRows(data) : [];
+  const addPiece = (t0: number, t1: number, h: number) => {
     if (t1 <= t0) return;
-    const h = ((t1 - t0) / MIN) * PX_PER_MIN;
     segments.push({ t0, t1, y0: y, h, kind: 'time' });
     y += h;
+  };
+  // To scale, except that two rows of events in Compact time keep ROW_GAP px between them
+  const addTime = (t0: number, t1: number) => {
+    if (t1 <= t0) return;
+    const inside = rows.filter((r) => r > t0 && r < t1);
+    let a = t0;
+    let aIsRow = rows.includes(t0);
+    for (const r of [...inside, t1]) {
+      const natural = ((r - a) / MIN) * PX_PER_MIN;
+      const bIsRow = r !== t1 || rows.includes(t1);
+      addPiece(a, r, aIsRow && bIsRow && natural < ROW_GAP ? ROW_GAP : natural);
+      a = r;
+      aIsRow = true;
+    }
   };
   for (const sp of clean) {
     addTime(t, sp.t0);
@@ -277,9 +332,16 @@ export function buildAxis(data: Timeline, mode: AxisMode, now: number): Axis {
   // Labels: on the rows of the to-scale segments, and the real clock on both sides of every fold
   const ticks: Tick[] = [];
   for (const s of segments) {
-    if (s.kind !== 'time') {
-      ticks.push({ t: s.t0, y: s.y0, label: clock(s.t0) });
+    if (s.kind === 'break') {
+      // the clock where the quiet starts sits level with the break's words, the one where it ends on its lower edge
+      ticks.push({ t: s.t0, y: s.y0 + 20.5, label: clock(s.t0), inside: true });
       ticks.push({ t: s.t1, y: s.y0 + s.h, label: clock(s.t1) });
+      continue;
+    }
+    if (s.kind === 'cap') {
+      // a capped wait has its two real clocks just inside its ends, and no grid line across it
+      ticks.push({ t: s.t0, y: s.y0 + 6.5, label: clock(s.t0), inside: true });
+      ticks.push({ t: s.t1, y: s.y0 + s.h - 5.5, label: clock(s.t1), inside: true });
       continue;
     }
     const ppm = s.h / Math.max((s.t1 - s.t0) / MIN, 1e-9);
