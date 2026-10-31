@@ -76,6 +76,9 @@ export const ICON_PATHS: Record<string, string> = {
   i67: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4V20"/>',
   i68: '<rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M3.5 10H20.5"/><path d="M8 3V6.5"/><path d="M16 3V6.5"/>',
   i69: '<path d="M12 5V19"/><path d="M6 13L12 19L18 13"/>',
+  // Sketch tool
+  sketch:
+    '<path d="M18.5 3.5C14 6 10.5 10 9.5 13.5L11.5 15.5C15 14.5 19 11 20.5 5.5Z"/><path d="M9.5 13.5C7 13.5 5.5 15 5.5 17.5C5.5 19 4.5 20 3.5 20.5C7 21.5 11.5 20.5 11.5 15.5"/>',
   // ticket-doc-refs board
   sidePanel: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4V20"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8A4 4 0 0 1 16 8V11"/>',

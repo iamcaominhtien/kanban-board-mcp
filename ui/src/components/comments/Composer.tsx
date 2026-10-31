@@ -5,11 +5,17 @@ import { RefSuggester, type SuggestMember } from '../docs/RefSuggester';
 import { Icon } from '../docs/Icon';
 import { DiagramIcon } from '../diagrams/DiagramIcon';
 import { useDiagramStarter } from '../diagrams/useDiagramStarter';
+import { SketchIcon } from '../sketch/SketchIcon';
+import { useSketchStarter } from '../sketch/useSketchStarter';
 import { firstDiagramFile } from '../diagrams/diagramFile';
 import { aiAvailability } from '../ai/aiAvailability';
-import { mentionedAi, type SendOpts } from '../ai/MentionIntent';
+import { mentionedAi, type MentionIntent, type SendOpts } from '../ai/MentionIntent';
+import { MentionPlan } from '../ai/MentionPlan';
 import { useAiBoardState } from '../ai/aiUi';
-import { AskSplit, SendSplit } from '../ai/ComposerAi';
+import { AskSplit } from '../ai/ComposerAi';
+import { EditorAiSelectionBar, useEditorAi } from '../ai/editor/useEditorAi';
+import { textareaAdapter } from '../ai/editor/adapters';
+import { mentionRefs, toFriendly, toStored } from '../../utils/mentionText';
 import { COUNTER_FROM, MAX_COMMENT_CHARS, draftKey, readJson, writeJson, type Person } from './commentUtils';
 
 interface Chip {
@@ -116,9 +122,18 @@ export function Composer({
   commentCount = 0,
   defaultAskId,
 }: Props) {
-  const [text, setText] = useState(() => (editing ? initial : (prefill ?? readJson<string>(draftKey(ticketId), ''))));
+  // the box shows a mention as @PM; the comment is saved with the member's id (`stored`)
+  const [start] = useState(() => (editing ? initial : (prefill ?? readJson<string>(draftKey(ticketId), ''))));
+  const [text, setText] = useState(() => toFriendly(start));
+  const people = useMemo(() => [...members, ...mentionRefs(start)], [members, start]);
+  const stored = useMemo(() => toStored(text, people), [text, people]);
   const { members: aiMap } = useAiBoardState();
-  const mentioned = useMemo(() => mentionedAi(text, aiMap), [text, aiMap]);
+  const mentioned = useMemo(() => mentionedAi(stored, aiMap), [stored, aiMap]);
+  // What a mention of an AI means: Ask only is the default, so a question never starts a run by accident
+  const [intent, setIntent] = useState<MentionIntent>('ask');
+  useEffect(() => {
+    if (mentioned.length === 0) setIntent('ask');
+  }, [mentioned.length]);
   // AI members that can answer a question now (the Ask split button), the ticket's assignee first
   const askable = useMemo(
     () =>
@@ -135,6 +150,9 @@ export function Composer({
   const [saved, setSaved] = useState(!editing && !!readJson<string>(draftKey(ticketId), ''));
   const ta = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // AI in the comment box: /ai or Ctrl+J, and a selection bar (design/screens/ai-where-you-work.md, D)
+  const adapter = useMemo(() => textareaAdapter(() => ta.current), []);
+  const ai = useEditorAi({ surface: 'comment', projectId, ticketId, adapter, enabled: tab === 'write' });
 
   useEffect(() => {
     if (autoFocus) ta.current?.focus();
@@ -154,7 +172,7 @@ export function Composer({
   }, [text, ticketId, editing]);
 
   const uploading = chips.some((c) => c.status === 'uploading');
-  const tooLong = text.length > MAX_COMMENT_CHARS;
+  const tooLong = stored.length > MAX_COMMENT_CHARS;
   const hasContent = !!text.trim() || chips.some((c) => c.status === 'done');
   const canSend = hasContent && !uploading && !tooLong;
 
@@ -218,6 +236,14 @@ export function Composer({
     onInsert: insertDiagramLine,
   });
 
+  const sketch = useSketchStarter({
+    ownerKind: 'comment',
+    ownerId: ticketId,
+    projectId,
+    ownerLabel: ticketId,
+    onInsert: insertDiagramLine,
+  });
+
   function addFiles(files: FileList | File[]) {
     for (const file of Array.from(files)) {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -238,8 +264,11 @@ export function Composer({
       .map((c) => c.markdown)
       .join('\n\n');
     setMenu(null);
-    const opts = replyTo || how ? { ...how, replyTo } : undefined;
-    onSubmit([text.trim(), extra].filter(Boolean).join('\n\n'), opts);
+    // a comment that mentions an AI always says what the mention means (no dialog at send time)
+    const chosen: SendOpts | undefined =
+      !editing && mentioned.length > 0 && !how?.askMemberId ? { intent, ...how } : how;
+    const opts = replyTo || chosen ? { ...chosen, replyTo } : undefined;
+    onSubmit([stored.trim(), extra].filter(Boolean).join('\n\n'), opts);
     if (!editing) writeJson(draftKey(ticketId), null);
   }
   /** Ctrl+Shift+Enter: ask. With a mention it means “Ask” for it; without, the Ask button's AI gets the text. */
@@ -369,6 +398,21 @@ export function Composer({
               >
                 [[ ]]
               </button>
+              {sketch.available && (
+                <button
+                  type="button"
+                  aria-label="Sketch"
+                  title="Sketch (draw freehand)"
+                  data-testid="comment-sketch"
+                  style={{ ...btn, color: '#5A49C2' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    void sketch.start();
+                  }}
+                >
+                  <SketchIcon name="sketch" size={14} />
+                </button>
+              )}
               {diagram.available && (
                 <>
                   <button
@@ -414,7 +458,7 @@ export function Composer({
             style={{ padding: '12px 14px', minHeight: 72, fontSize: 14, lineHeight: 1.6 }}
           >
             {text.trim() ? (
-              <MarkdownRenderer>{text}</MarkdownRenderer>
+              <MarkdownRenderer>{stored}</MarkdownRenderer>
             ) : (
               <span style={{ color: '#9AA8A0' }}>Nothing to preview</span>
             )}
@@ -427,8 +471,17 @@ export function Composer({
             data-testid="comment-textarea"
             aria-label="Comment"
             placeholder="Add a comment…"
-            onChange={(e) => setText(e.target.value)}
+            data-ai-editor
+            onChange={(e) => {
+              setText(e.target.value);
+              ai.onInput();
+            }}
             onKeyDown={(e) => {
+              if (ai.onKeyDown(e)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.shiftKey && !editing) {
                 e.preventDefault();
                 ask();
@@ -552,7 +605,12 @@ export function Composer({
           </div>
         )}
 
-        {!editing && text.trim() && (mentioned.length > 0 || asking) && (
+        {!editing && tab === 'write' && mentioned.length > 0 && (
+          <div style={{ paddingTop: 10, borderTop: '1px solid #EEF3EF' }}>
+            <MentionPlan ticketId={ticketId} members={mentioned} mode={intent} onMode={setIntent} />
+          </div>
+        )}
+        {!editing && text.trim() && mentioned.length === 0 && asking && (
           <div
             data-testid="comment-context-chips"
             style={{
@@ -625,12 +683,12 @@ export function Composer({
               <span style={{ color: '#2F6FB0', fontWeight: 700 }}>@</span> {mentioned.length} AI mentioned
             </span>
           )}
-          {text.length >= COUNTER_FROM && (
+          {stored.length >= COUNTER_FROM && (
             <span
               data-testid="comment-counter"
               style={{ fontSize: 11.5, color: tooLong ? '#C4432A' : '#B4791E', marginLeft: 6 }}
             >
-              {text.length.toLocaleString()} / {MAX_COMMENT_CHARS.toLocaleString()}
+              {stored.length.toLocaleString()} / {MAX_COMMENT_CHARS.toLocaleString()}
             </span>
           )}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -651,25 +709,15 @@ export function Composer({
             <button type="button" className="st-btn" data-testid="comment-cancel" onClick={cancel}>
               Cancel
             </button>
-            {!editing && mentioned.length > 0 ? (
-              <SendSplit
-                open={menu === 'send'}
-                disabled={!canSend}
-                onToggle={() => setMenu(menu === 'send' ? null : 'send')}
-                onSend={() => send()}
-                onPick={(intent) => send({ intent })}
-              />
-            ) : (
-              <button
-                type="button"
-                className="st-btn st-btn-primary"
-                data-testid="comment-send"
-                disabled={!canSend}
-                onClick={() => send()}
-              >
-                {editing ? 'Save' : 'Comment'}
-              </button>
-            )}
+            <button
+              type="button"
+              className="st-btn st-btn-primary"
+              data-testid="comment-send"
+              disabled={!canSend}
+              onClick={() => send()}
+            >
+              {editing ? 'Save' : 'Comment'}
+            </button>
           </span>
         </div>
         {!editing && saved && (
@@ -693,6 +741,8 @@ export function Composer({
         )}
       </div>
       <RefSuggester targetRef={ta} projectId={projectId} keyPrefix={ticketId.split('-')[0]} members={members} />
+      {ai.layer}
+      <EditorAiSelectionBar ai={ai} adapter={adapter} />
     </div>
   );
 }

@@ -6,8 +6,10 @@ server turned off. Keys are decrypted only for the call and never logged.
 """
 
 import asyncio
+import base64
 import json
 import os
+import shutil
 import tempfile
 import time
 from collections.abc import Awaitable, Callable
@@ -68,6 +70,18 @@ class LlmError(Exception):
         self.retry_after = retry_after
 
 
+def image_type(data: bytes) -> tuple[str, str]:
+    """The media type and file extension of a picture, from its first bytes (never from a name): PNG, JPEG, GIF or
+    WebP; anything else is sent as PNG, which is what the editor's own picture is."""
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg", "jpg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif", "gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", "webp"
+    return "image/png", "png"
+
+
 def _classify(status: int, body: str, retry_after: str | None) -> LlmError:
     low = body.lower()
     if status in (401, 403):
@@ -126,13 +140,27 @@ async def _anthropic(
     max_tokens: int,
     temperature: float,
     on_delta: Delta | None,
+    images: list[bytes] | None = None,
 ) -> Completion:
     out = Completion(model=model)
+    content: str | list[dict] = prompt
+    if images:
+        content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": image_type(img)[0],
+                    "data": base64.b64encode(img).decode("ascii"),
+                },
+            }
+            for img in images
+        ] + [{"type": "text", "text": prompt}]
     body = {
         "model": model,
         "max_tokens": max_tokens,
         "system": system,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [{"role": "user", "content": content}],
         "temperature": temperature,
         "stream": True,
     }
@@ -190,13 +218,26 @@ async def _openai(
     max_tokens: int,
     temperature: float,
     on_delta: Delta | None,
+    images: list[bytes] | None = None,
 ) -> Completion:
     out = Completion(model=model)
+    content: str | list[dict] = prompt
+    if images:
+        content = [{"type": "text", "text": prompt}] + [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{image_type(img)[0]};base64,"
+                    + base64.b64encode(img).decode("ascii")
+                },
+            }
+            for img in images
+        ]
     body = {
         "model": model,
         "messages": [
             {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": content},
         ],
         "temperature": temperature,
         "max_tokens": max_tokens,
@@ -236,6 +277,50 @@ async def _claude_cli(
     system: str,
     prompt: str,
     on_delta: Delta | None,
+    images: list[bytes] | None = None,
+    session: "SessionUse | None" = None,
+) -> Completion:
+    """Run the CLI headless. With `images` the pictures are written to a private temp folder (picture-1.png ...), which
+    becomes the working folder, and the CLI gets the read-only `Read` tool and nothing else, so it can look at them.
+    A `session` is ignored then: the CLI keeps sessions per working folder and this one is new every time."""
+    if images:
+        folder = tempfile.mkdtemp(prefix="kanban-picture-")
+        try:
+            names = []
+            for n, img in enumerate(images, 1):
+                name = f"picture-{n}.{image_type(img)[1]}"
+                with open(os.path.join(folder, name), "wb") as fh:
+                    fh.write(img)
+                names.append(name)
+            note = (
+                (
+                    "The picture is the file "
+                    if len(names) == 1
+                    else "The pictures are the files "
+                )
+                + ", ".join(names)
+                + " in your working folder: open "
+                + ("it" if len(names) == 1 else "them")
+                + " with the Read tool before you answer. Read no other file.\n\n"
+            )
+            return await _claude_cli_run(
+                profile, system, note + prompt, on_delta, folder, tools="Read"
+            )
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+    return await _claude_cli_run(
+        profile, system, prompt, on_delta, None, tools="", session=session
+    )
+
+
+async def _claude_cli_run(
+    profile: AiMember,
+    system: str,
+    prompt: str,
+    on_delta: Delta | None,
+    cwd_override: str | None,
+    *,
+    tools: str,
     session: "SessionUse | None" = None,
 ) -> Completion:
     spec = PROVIDERS.get(profile.provider) or {}
@@ -252,7 +337,7 @@ async def _claude_cli(
         "--verbose",
         "--include-partial-messages",
         "--tools",
-        "",
+        tools,
         "--strict-mcp-config",
         "--mcp-config",
         json.dumps({"mcpServers": {}}),
@@ -268,7 +353,7 @@ async def _claude_cli(
     ]
     if model:
         args += ["--model", model]
-    cwd = (
+    cwd = cwd_override or (
         profile.working_dir
         if profile.working_dir and os.path.isdir(profile.working_dir)
         else tempfile.gettempdir()
@@ -345,9 +430,14 @@ async def complete(
     timeout: float = 60.0,
     temperature: float = 0.2,
     on_delta: Delta | None = None,
+    images: list[bytes] | None = None,
     session: "SessionUse | None" = None,
 ) -> Completion:
     """One answer from the member. Raises `LlmError`; `asyncio.CancelledError` stops the call (and the CLI).
+
+    `images` are pictures (PNG, JPEG, GIF or WebP, as bytes) the model should look at: Anthropic and OpenAI-compatible
+    members get them all in the request, Claude Code reads them from a temporary folder. Leave it out for a text-only
+    call.
     A `session` keeps a local Claude Code conversation going (the CLI remembers it); other connections ignore it."""
     started = time.monotonic()
     if profile.connection == "local":
@@ -356,7 +446,7 @@ async def complete(
                 "unsupported",
                 "Only Claude Code can answer as the Board AI among local runners.",
             )
-        coro = _claude_cli(profile, system, prompt, on_delta, session)
+        coro = _claude_cli(profile, system, prompt, on_delta, images, session)
     elif profile.connection == "api_key":
         key = secrets.decrypt(profile.key_enc)
         if not key:
@@ -365,7 +455,9 @@ async def complete(
         base = profile.base_url or spec.get("base_url") or ""
         model = profile.model or spec.get("default_model") or ""
         fn = _anthropic if profile.provider == "anthropic" else _openai
-        coro = fn(base, key, model, system, prompt, max_tokens, temperature, on_delta)
+        coro = fn(
+            base, key, model, system, prompt, max_tokens, temperature, on_delta, images
+        )
     else:
         raise LlmError(
             "unsupported", "This AI member cannot answer board questions (inbox only)."

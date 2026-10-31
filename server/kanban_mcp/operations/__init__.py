@@ -72,19 +72,17 @@ from .diagrams import (
     delete_diagram,
     restore_diagram,
 )
+from .sketches import (
+    list_project_sketches,
+    export_sketch,
+    create_sketch_from_files,
+    save_sketch_files,
+)
 from .ideas import (
     list_idea_tickets,
     create_idea_ticket,
     get_idea_ticket,
-    update_idea_ticket,
-    delete_idea_ticket,
-    update_idea_status,
-    promote_idea_to_ticket,
-    add_assumption,
-    update_assumption_status,
-    delete_assumption,
-    add_microthought,
-    delete_microthought,
+    list_idea_assumptions,
     get_idea_activity_trail,
 )
 
@@ -138,6 +136,10 @@ __all__ = [
     "save_diagram_file",
     "delete_diagram",
     "restore_diagram",
+    "list_project_sketches",
+    "export_sketch",
+    "create_sketch_from_files",
+    "save_sketch_files",
     "list_docs_pages",
     "get_docs_page",
     "create_docs_page",
@@ -165,14 +167,6 @@ __all__ = [
     "list_idea_tickets",
     "create_idea_ticket",
     "get_idea_ticket",
-    "update_idea_ticket",
-    "delete_idea_ticket",
-    "update_idea_status",
-    "promote_idea_to_ticket",
-    "add_assumption",
-    "update_assumption_status",
-    "delete_assumption",
-    "add_microthought",
-    "delete_microthought",
+    "list_idea_assumptions",
     "get_idea_activity_trail",
 ]

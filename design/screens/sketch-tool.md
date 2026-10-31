@@ -89,3 +89,17 @@ Source: [Sketch.dc.html](../source/Sketch.dc.html) › block "G. Sketch or Diagr
 ![G. Sketch or Diagram?: Both stay. They solve different problems, so the menu names them plainly and says what each is for.](../images/sketch-tool/14-g-sketch-or-diagram.png)
 
 - Text in the frames: "Choose Sketch when…" · "You are thinking, not documenting: a rough layout, a shape, a note on a screenshot." · "You want to draw freely with a pen or finger." · "You are marking up a picture (circle the bug, point at the button)." · "Choose Diagram when…" · "You need boxes joined by arrows that stay joined when you move them." · "Someone else will edit it later, or it must open in draw.io." · "It is a flow, an architecture, a data model." · "What we are not building" · "No photo editing: no filters, curves, blend modes or RAW support." · "No real-time drawing together. One person edits at a time, as with Docs." · "No cloud. Everything stays in your data folder."
+
+---
+
+### As shipped
+
+Details where the design leaves a choice, or where the build differs. The full write-up (library decision, data format,
+API) is in [`docs/specs/sketch-tool.md`](../../docs/specs/sketch-tool.md).
+
+- Built with plain Canvas 2D, no library. A drawing is `uploads/sketches/<id>.png` plus `<id>.sketch.json`; text stays editable until its layer is merged down.
+- In text a sketch is the image line `![Name](sketch:sk_…)`; the Docs export writes it as a plain image of its PNG.
+- The line tool draws straight lines and arrows only; **curves are not built**.
+- Saving keeps one version of the drawing (PNG and source overwritten); the "Someone saved in the meantime" card uses a version number, and "Replace theirs" overwrites it. Docs page history shows the latest drawing.
+- "Draw on it" saves the marked-up copy as a new sketch of the page or ticket the picture belongs to and adds it to the ticket's description; the original file is never touched.
+- The undo history lives in the open editor only; a restored draft starts with an empty history.

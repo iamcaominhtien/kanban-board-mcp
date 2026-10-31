@@ -107,6 +107,14 @@ def _clean_body(body: str | None) -> str:
     return text
 
 
+def _json_obj(raw: str | None) -> dict[str, Any] | None:
+    try:
+        v = json.loads(raw) if raw else None
+    except ValueError:
+        return None
+    return v if isinstance(v, dict) else None
+
+
 def _json_list(raw: str | None) -> list[Any]:
     try:
         v = json.loads(raw or "[]")
@@ -160,7 +168,9 @@ def _comment_out(
         "mentions": [{"id": m.id, "name": m.name} for m in mentioned],
         "created_at": c.created_at,
         "edited_at": c.edited_at,
-        "can_edit": mine and role != "viewer",
+        # set on an AI member's reply: {member_id, job_id, cost, sources, can_suggest, kind?, proposal_id?}
+        "ai": _json_obj(c.ai),
+        "can_edit": mine and role != "viewer" and not c.ai,
         "can_delete": role != "viewer" and (mine or role == "admin"),
     }
 
@@ -301,8 +311,12 @@ async def list_comments(
             t.created_at,
         )
     )
+    from services.docs_ai import threads as ai_threads
+
+    out_threads = await _serialize(session, shown, members, actor, role, numbers)
+    docs_ai = await ai_threads.annotate(session, page, out_threads)
     return {
-        "threads": await _serialize(session, shown, members, actor, role, numbers),
+        "threads": out_threads,
         "counts": {
             "all": len(inline),
             "open": sum(t.status == "open" for t in inline),
@@ -314,10 +328,11 @@ async def list_comments(
         },
         "role": role,
         "me": actor,
-        "members": [
-            {"id": m.id, "name": m.name, "color": m.color, "role": m.role}
-            for m in members
-        ],
+        # `kind` human | ai; AI members carry `ai` (status for the @ picker) only while Docs AI is on
+        "members": await ai_threads.member_rows(
+            session, page.project_id, members, docs_ai
+        ),
+        "docs_ai": docs_ai,
     }
 
 
@@ -332,7 +347,15 @@ async def _one(session: AsyncSession, thread: DocsCommentThread) -> dict[str, An
     out = await _serialize(
         session, [thread], members, actor, role_in(members, actor), numbers
     )
+    from services.docs_ai import threads as ai_threads
+
+    await ai_threads.annotate(session, page, out)
     return out[0]
+
+
+async def get_thread(session: AsyncSession, thread_id: str) -> dict[str, Any]:
+    """One thread as the comments list shows it."""
+    return await _one(session, await _thread(session, thread_id))
 
 
 # --- events -------------------------------------------------------------------
@@ -438,6 +461,7 @@ async def create_thread(
     kind: str,
     body: str,
     anchor: dict[str, Any] | None = None,
+    ai: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Start a thread: an inline comment on selected text, or a page comment.
 
@@ -446,6 +470,7 @@ async def create_thread(
         kind: ``inline`` or ``page``.
         body: Comment text (Markdown; ``@Name`` mentions project members).
         anchor: For inline threads, ``{quote, prefix, suffix, section}`` of the selection.
+        ai: Set when an AI member writes the comment (Docs AI): ``{member_id, job_id, cost, sources, can_suggest}``.
 
     Returns:
         The new thread.
@@ -494,6 +519,7 @@ async def create_thread(
         author=actor,
         body=text,
         mentions=json.dumps([m.id for m in mentions_in(text, members)]),
+        ai=json.dumps(ai) if ai else None,
     )
     session.add(comment)
     await session.flush()
@@ -505,8 +531,18 @@ async def create_thread(
     return await _one(session, thread)
 
 
-async def add_reply(session: AsyncSession, thread_id: str, body: str) -> dict[str, Any]:
-    """Reply in a thread and notify the people mentioned, the thread starter and earlier repliers."""
+async def add_reply(
+    session: AsyncSession,
+    thread_id: str,
+    body: str,
+    *,
+    ai: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Reply in a thread and notify the people mentioned, the thread starter and earlier repliers.
+
+    ``ai`` is set when an AI member writes the reply (Docs AI): it is shown with an AI badge and never starts
+    another AI run.
+    """
     thread = await _thread(session, thread_id)
     page = await _thread_page(session, thread)
     actor = activity.current_actor()
@@ -518,6 +554,7 @@ async def add_reply(session: AsyncSession, thread_id: str, body: str) -> dict[st
         author=actor,
         body=text,
         mentions=json.dumps([m.id for m in mentions_in(text, members)]),
+        ai=json.dumps(ai) if ai else None,
     )
     session.add(comment)
     await session.flush()

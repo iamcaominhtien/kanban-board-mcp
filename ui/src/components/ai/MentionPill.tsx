@@ -30,8 +30,11 @@ function plainName(children: ReactNode): ReactNode {
  * An AI that cannot take work now is greyed out and struck through.
  */
 export function MentionPill({ memberId, children }: { memberId: string; children: ReactNode }) {
-  const { members } = useAiBoardState();
+  const { members, settings } = useAiBoardState();
   const ai = members.get(memberId);
+  // AI turned off for the project: an old mention of an AI member is plain text
+  if (ai && ai.kind === 'ai' && settings?.aiEnabled === false)
+    return <span data-testid="mention-plain">{children}</span>;
   if (!ai || ai.kind !== 'ai') {
     return (
       <span

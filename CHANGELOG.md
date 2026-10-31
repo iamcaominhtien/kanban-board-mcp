@@ -8,6 +8,116 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.15.2] - 2026-10-30
+
+Hotfix for changes that did not show on the board until the app was restarted, and for the side panels' width.
+
+### Fixed
+- **Changes an AI made through the MCP server did not appear on the board.** When the AI is connected over stdio (the desktop app, VS Code and Claude Desktop launch it that way) it runs as its own process, so the "board changed" signal it sent reached nobody; an updated ticket or Docs page showed up only after another action, the 60-second refresh or a restart. The server now watches the database and announces changes that another process made. A change the server itself announced is not announced twice.
+- **A slow screen could stop receiving updates.** When a client fell behind, the server dropped it from the live stream without closing it, so the board went quiet until a restart. It now keeps the client and skips its oldest event.
+- **The board refetched everything for every event.** An AI editing many things at once made the board reload once per edit. Events within 150 ms are now gathered into one refresh, and a tab that comes back from sleep reconnects (or refreshes) at once.
+
+### Added
+- **Resize and maximize the side panels.** Drag the left edge of Board AI, the ticket chat, the idea chat, Shape with AI and the Docs inline comments to widen them (the width is remembered for each panel; double-click the edge or press Home to reset; arrow keys nudge it). The new button in each header fills the window, and Esc restores it.
+
+## [3.15.1] - 2026-10-30
+
+Hotfix for how a mention looks in the comment boxes.
+
+### Fixed
+- **A mention in a comment box showed its code.** Picking someone with `@` put `@[PM](member:465eec59-…)` in the ticket comment box and in the Docs comment box. The box now shows `@PM`; the comment is still saved with the member's id when it is sent, so the link, the notification and an AI mention work as before. A name typed by hand (`@Tien Cao`) is linked too, and editing an old comment shows the same plain `@Name`.
+
+## [3.15.0] - 2026-10-30
+
+The desktop menu bar and the user and administrator guide ([#207](https://github.com/iamcaominhtien/kanban-board-mcp/issues/207)). Designs: `design/screens/desktop-menu.md` and `design/screens/guideline-design.md`.
+
+### Added
+- **Desktop menu bar** (macOS, Windows and Linux): an app menu on macOS (About, Check for Updates…, Settings… ⌘,, Services, Hide, Quit) and File, Edit, View, Window and Help on every platform, in place of Electron's default menu. File has New Ticket (Ctrl/⌘+N), New Idea (Ctrl/⌘+Shift+N), New Doc Page (Ctrl/⌘+Alt+N), New Project…, Import Data… and Export Data… (Settings › Storage & backup); View switches Board, List, Timeline, Docs, Schedules and Idea Space (Ctrl/⌘+1 to 6, the current view is ticked) and opens Ask AI (Ctrl/⌘+J); Edit has Find in Board (Ctrl/⌘+Shift+F). Help has Keyboard Shortcuts (Ctrl/⌘+/), Documentation, What's New, Set Up AI…, Set Up MCP…, Report an Issue…, Request a Feature…, Open Logs Folder, Export Logs…, Open Data Folder and Copy Diagnostics Info (versions and system facts only, never tickets, Docs, paths, keys or logs); on Windows and Linux Check for Updates… and About are at the bottom of Help. On macOS Help is the system Help menu, so it has the menu search box. All links go to this project's own pages.
+- **Four small windows** in the page: Keyboard Shortcuts (searches commands and keys), What's New (the release notes of the running version, from `CHANGELOG.md`), Report an Issue (shows what will be filled in, then opens a new GitHub issue in the browser; the app sends nothing) and About (the system About window on macOS).
+- **Check for Updates… from the menu** reuses the existing update flow (the corner notice and Settings › Updates) and adds a toast for a manual check ("You're up to date", or "Couldn't check for updates" with "Open releases page"); the item is greyed while a check runs and reads "Install Update x.y.z…" when one is found. Automatic checks stay silent.
+- Items that need data are greyed while the backend is not running (Help keeps working); on macOS with no window open only File › New Window is live.
+- **The guide** (`docs/guideline/guide/`): one English user and administrator guide built from one source file per chapter with audience tags (Everyone, Admin, Developer, Desktop app, AI): a full PDF with cover, contents with page numbers and links, bookmarks, a tagged structure and embedded Plus Jakarta Sans and JetBrains Mono, a web version, and stand-alone PDFs (quick start, keyboard shortcut sheet, administration, self-hosting, MCP, privacy, troubleshooting). Values stated from the code (tool count, defaults, statuses, settings pages, environment variables) are read from the code when the guide is built, and the build fails when a figure is missing, a documented variable is gone, or (with `--release`) a chapter is marked "to confirm". Screenshots are taken by `shots/take_screenshots.js` from a demo project. The AI chapters rewrite the Vietnamese AI guide in English.
+- **One list of keyboard shortcuts** (`ui/src/components/shortcuts/shortcuts.json`) read by the Keyboard Shortcuts window, the shortcut sheet in the guide and a test that keeps the menu accelerators in line with it.
+
+### Changed
+- **Developer tools** are View › Toggle Developer Tools (Ctrl/⌘+Shift+I), active only while the app is in front. The system-wide shortcut is gone.
+- Find in Board is Ctrl/⌘+Shift+F, not Ctrl/⌘+F: that key already finds text in a Docs page.
+
+### Notes
+- The privacy chapter is marked "to confirm" and is left out of release builds of the guide until what each AI feature puts in a prompt is checked against the code. The guide states 12 MCP tools (the code's count), not the 11 of the design.
+- The menu was tested as data per platform; it has not been run in a packaged app on macOS or Windows yet.
+
+## [3.14.1] - 2026-10-30
+
+Hotfix for Board AI, Docs AI and AI comments on Windows, and a switch for the "Changed in vN" markers in Docs.
+
+### Fixed
+- **Board AI chat, Docs AI (Ask, Ask on a selection), AI comments on a ticket and ticket runs failed on Windows** with "The command line is too long" (exit 1), `[WinError 206] The filename or extension is too long`, or "Exit code 0." with no answer. The CLI got the prompt and the system prompt as command-line arguments: a long ticket or chat went over cmd.exe's 8191 and Windows' 32767 characters, and cmd.exe (the `claude.cmd` shim) cut a multi-line prompt at its first line break. Past a size limit, and always behind a `.cmd` or `.bat` shim, the prompt now goes to the CLI by stdin and the system prompt by `--system-prompt-file` / `--append-system-prompt-file` (a temporary file, removed when the CLI ends). Short commands elsewhere are unchanged.
+- **Docs: the green "Changed in vN" and "Proposed by" bars sat on the bullets of list items**; they are now drawn left of the bullets.
+
+### Added
+- **Docs: a switch for the change markers.** An eye button in the "Changes since you last viewed" banner hides or shows the green bars and "Changed in vN" labels in the page (a slashed eye means hidden). The choice is kept in the browser for every page; the banner and "Show changes" stay.
+
+### Changed
+- **README**: a release badge and a `releases/latest` download link replace the fixed `v1.4.5` link and the out-of-date platform status, so the README no longer needs an edit for each release. The release instructions drop their README step.
+
+## [3.14.0] - 2026-10-30
+
+The new Idea Space, the Sketch tool and AI where you work ([#203](https://github.com/iamcaominhtien/kanban-board-mcp/issues/203)). Docs: `docs/specs/idea-space.md`, `docs/specs/sketch-tool.md`, `docs/specs/ai-where-you-work.md`.
+
+### Added
+- **Idea Space** at workspace level (also for ideas that belong to no project): a list, a stages view and an impact/strength matrix; **Quick add** (Alt+N); **Inbox triage** with Keep, Park (needs a date), Merge (undo for 10 minutes) and Archive (needs a reason), with Z to undo every move and a local duplicate search that needs no model.
+- **Stages** Inbox, Exploring, Ready, Building, Parked, Shipped, Archived. A Parked idea whose date has come returns to the Inbox once.
+- **The idea page**: a written page (Docs editor), assumptions as records (impact, status, test ticket, "AI" mark), evidence (link, file, ticket, note, sketch, diagram) that can support several assumptions, "I want this" votes, comments, a research log (note, research, interview, experiment, finding, decision; pin; "Use as evidence"), a workspace folder per idea (`IDEA-n`, kept while open and 30 days after, or forever, or as you choose) and an activity trail with authors and before/after.
+- **Promote**: a preview of the ticket, evidence carried over, the workspace folder moved, copied or left; the ticket gets a small lightbulb, a "Started as an idea" block and a "From an idea" filter. Ticket Done moves the idea to Shipped; "Won't do" returns it to Exploring; a deleted ticket returns it to Ready. A test ticket for an assumption asks "validated or disproved?" when it is Done.
+- **Sketch tool**: a paint-style drawing editor that works offline with no new dependency (pencil, brush, eraser, fill, picker, line/arrow, shapes, text, crop, layers, 100+ undo steps, pen pressure and touch). Insert from `/draw` or the Sketch button in Docs, ticket descriptions, comments and ideas; **Draw on it** on any picture in the file viewer; drafts are kept in the browser; saved as a PNG plus an editable source in the uploads folder (4096 px, 10 layers, 10 MB) with a save conflict card. `![Name](sketch:sk_…)` in markdown; `GET/POST/PUT /api/sketches`.
+- **AI where you work**: a chat docked in the ticket page about that ticket (Ask only or Do the work, Post as comment, criteria drafts, cost before sending); the `@` list says what each AI can do and what the mention means is stated under the box; AI in every editor (`/ai`, Ctrl+J, a selection bar with Improve, Shorten, Fix spelling, Explain, Ask…, a draft over the text with the changes marked, "What will be sent", Activity "edited with AI by …"); one switch per project; viewers can read but only members can ask.
+- **AI helpers in the Idea Space** (on by default and switchable per project, using the project's Board AI member with a daily cap of their own): triage advice with a reason and confidence, **Shape with AI** (suggests assumptions and a first page, a person adds them), an **Ask** panel, a draft ticket on promote, a file-name based effort guess, and a weekly digest.
+- **MCP**: five idea tools for AI members (read ideas, assumptions and the activity; add to the Inbox). AI members cannot move, edit, merge, archive or promote an idea. They are hidden unless `KANBAN_MCP_IDEA_TOOLS=1`.
+- **AI help in the Sketch tool**: an **AI** panel in the sketch editor (and an **Ask AI** button on an embedded sketch that opens it) with ONE conversation per person and sketch, built on the scoped chat like the idea chat: it is kept 30 days (private to you), found again when the editor or the embed is opened again, and the model gets the earlier turns plus the **current picture of the drawing with every message** and the text of the ticket, page or idea the sketch is in (fenced as data). Ask in words ("what is missing?", "draw a retry button next to the error"); quick-start chips replace the old Ask / Ideas / Draw tabs. When you ask for a drawing the answer carries a **proposal** (line, arrow, rectangle, ellipse, text, freehand path) that appears as a preview and is put on a **new layer named "AI"** as one undoable step when you press Accept (Discard and Try again are next to it; the thread keeps every proposal marked Accepted or Discarded; the AI never writes pixels and never touches your layers); ideas in an answer can be added as text labels. **Paste a picture, drop one or attach files**: pictures (PNG, JPEG, WebP, GIF, 4 per message, 5 MB each, scaled down when large) go to the model as pictures and can be put on the drawing on a new layer; text files (txt, md, csv, json, log, source code, 200 KB) go as fenced data; anything else (PDF, office files, archives) is refused with a plain message. Attachments are kept privately with the chat and removed when it expires. A sketch that is not saved yet keeps its chat under a key in its local draft and the chat moves to the real id on first save (a copy starts a new chat). "What will be sent" (now with the attachments and the text of the place) and the cost are shown first; the same AI members, project switch, kill switch, per-member and board caps and audit log as the other AI helpers (usage booked as `sketch_chat` / `sketch_draw`, or `idea_sketch_*` for a sketch in an idea, which the Idea Space cap counts); viewers cannot ask, and everything works with AI off. The model also reads pictures in Anthropic, OpenAI-compatible and Claude Code members (several per request). Server: `GET /ai/sketch/state`, `POST /ai/sketch/preview`, `POST /ai/scopes/sketch/{id}/chat` (the shared scope routes), `POST /ai/sketch/chats/{id}/messages` (multipart), `GET /ai/sketch/chats/{id}/files/...`, `POST /ai/sketch/drafts/{id}/accept` and `.../idea`; a new "Sketch AI" switch in Settings → AI.
+- **MCP: sketches as files** (the Claude Code CLI path, like diagrams): `docs_read(sketches)` lists a project's sketches, `docs_read(sketch)` writes a sketch's PNG and its editable `.sketch.json` to local paths, `docs_write(sketch_save)` stores a new version from local files with the `version` you read as `base_version` (a stale one is rejected) and `docs_write(sketch_create)` makes a new sketch for a ticket or Docs page. Same tools, new actions; an AI member needs the "edit docs" permission and may only touch sketches of its own project. Limits to respect: 4096 px, 10 layers, 10 MB per file.
+
+### Changed
+- **One-time conversion of existing ideas** on first start: draft → Exploring (Inbox if never edited), in review → Exploring, approved → Ready (Building or Shipped when promoted and the ticket is open or Done; Exploring when the ticket was set to Won't do; the link is cleared when the ticket no longer exists), dropped → Archived ("Imported from the old Idea Space"), a revisit date → Parked until that date. Assumptions keep their text and become records with medium impact ("invalidated" is now "disproved"); the problem statement and description become the page body; microthoughts become comments; ICE and energy are kept as notes in Details. Nothing is deleted: the old columns stay in place. Before converting, a copy of the database is saved next to it as `kanban.before-idea-space-<date>.db` (only when there are ideas).
+- The old Idea board, card and modal are replaced by the Idea Space screens. The `/api/idea-tickets` CRUD still answers.
+- One-shot AI calls (chat, drafts) now also count toward the board's daily cap; an AI name can no longer approve a request.
+- The Docs "Export" writes a sketch as a plain image of its PNG.
+
+## [3.13.0] - 2026-10-30
+
+Docs AI (issue 209, following `design/screens/docs-ai.md` and `docs-ai-care.md`), conversations that keep their memory, and one MCP tool for the AI team.
+
+### Added
+- **Docs AI**, on by default, and an admin can turn it off per project (Settings › Docs › AI): who answers (an AI member, else the Board AI), what AI may read (all / except hidden / only picked), a style guide page, freshness checks, how AI members' edits are handled (made directly, a proposal, or a draft) and how long a proposal waits. When it is off nothing in Docs shows AI.
+- **Hide from AI** and **Use as AI guidance** per page (page info; a lock and a small mark in the tree). One check (`services/docs_ai/access.py`) decides what any AI may read: Ask, summaries, checks, the Board AI chat, AI runs and the MCP `docs_read` of an AI run all skip a hidden page. Guidance pages (limit 8k tokens by default) are added to every AI run in the project and listed as "Read" on the run.
+- **Ask the docs**: an Ask tab in the Docs search palette (This space / This page / All my projects). It answers from published pages the asker can see, cites the section (each citation is checked against the page), says "the docs do not say" with the closest pages, or shows both pages when they disagree. A question that matches nothing is answered without calling the model. Open as chat, Copy, Was this right?, Report as out of date. Keywords work for English and Vietnamese questions.
+- **The page AI menu** (Ask this page, Summarise, Check if up to date, Create tickets, Suggest links, Translate view, Edit with AI): a summary is a dashed block above the page and is never saved; selecting text offers Explain / Summarise / Ask; Translate view keeps code, links and ticket keys byte for byte and leaves the page unchanged. In the editor `/ai` has a Docs-only group and **Check this page** (unclear text, gaps, unknown links, style guide), with Fix as draft and Ignore.
+- **Write with AI**: a page from a ticket, an idea, notes or a prompt, written only from the sources you pick (a "what will be sent" list first; code changes off by default). It opens as your private draft marked "Drafted with AI" with visible `[Needs input: …]` markers, a Gaps list and numbered sources; Publish warns while markers remain. Import Markdown can tidy while importing (split by heading, heading levels, "see X" candidates shown for review). History gets an AI summary of a range and a "with AI" mark; Publish suggests a change note.
+- **AI members edit pages directly by default** (still within each member's own permissions; the version shows "with AI"). Choose "Proposal to review" or "Draft only" in Settings › Docs › AI to hold their edits instead: a proposal has a banner, per-change Accept / Reject / Edit, "made against vN", expiry, a purple dot in the tree, a row in Approvals with **Review on page**, and the blocks it would change are marked "Proposed by …" in the page (click to review). Accepting writes into the reviewer's draft; an AI cannot decide its own proposal; a page an AI member creates stays an unpublished draft. Freshness checks and **Suggest an edit** always make proposals. A page hidden from AI is never edited by an AI member.
+- **Draw a diagram** (`/ai`): the AI member draws the selected text or the page as an editable draw.io diagram and adds it to your draft, or, with a diagram selected, changes it as a new version. The XML is checked before anything is saved.
+- **One Claude Code session for each (page, AI member)**: Ask this page, a tag in a thread, Suggest an edit, summaries, Check this page and the chat about the page all continue the same conversation, so the AI remembers what was said and done on that page. Everyone shares it and the prompt names who is asking. The board's own background freshness checks and questions about the whole space are one-shot.
+- **@AI in Docs comment threads**: tag an AI member (Ask / Ask and suggest an edit / Just notify). It answers inside the thread with its sources and cost; a second tag in the same thread continues the same conversation (the thread is the memory; a long thread is summarised; Claude Code continues the member's session for that page). **Suggest an edit** turns a reply into a proposal; long threads get a summary. It never resolves a thread and never answers another AI's reply.
+- **Keeping docs true**: a daily and on-demand check compares a page with the tickets and pages it links to (every reason names what was compared and quotes the page), a banner for editors, Still correct (30 days), suggested edits one at a time. **Docs health** lists out of date pages, Done tickets no page mentions, broken links and overlaps.
+- **Create tickets from a page**: unchecked items and action items become reviewed drafts (suggested assignee, never set); nothing exists before the button; links the tickets to the page, adds the key to your draft, Undo (kept for 30 minutes, also after a restart).
+- **MCP `ai_team`** (the 12th tool, one tool and no more): list AI members with status and spend, usage, ask or give work (a ticket, or a Docs page or thread), runs and one run's steps, cancel / retry / answer, pause / resume, create and update AI members (no key, folder, Bypass permissions or ceiling above Review over MCP), pending approvals (read only), recent Docs AI jobs. Refused inside an AI run except for reads; approvals are decided in the board.
+
+### Changed
+- **The Board AI chat keeps its memory with an API key too**: older messages are summarised into the chat (shown as "Earlier messages summarised"), the question is sent once, failed or stopped turns are not sent again. "Ask this page" and ticket asks continue your latest chat on that page or ticket instead of opening a new one; "+" starts a new one, and switching scope adds a divider.
+- **API-key AI members remember their work**: the "Activity since your last run" block (their own runs and other members') is in their prompt, the work done before a question is kept when they are answered, and a long run is compacted (step "Long session compacted") like a Claude Code session. A resumed run no longer restarts its token and cost counters at 0.
+- The Board AI chat never reads a page hidden from AI, even when a person includes a private doc for the chat, and an AI member's `docs_write` on a hidden page is refused. A page the Board AI chat lists as private is still read by Docs AI, AI runs and MCP.
+
+### Fixed
+- Purging a page leaves no Docs AI rows behind.
+- **@AI in the first comment of a page**: the @ list offered no AI members on a page that had no comment thread yet (Docs AI looked off there), so a thread could not be started with @AI.
+- **Docs lines of the Monday digest** are shown in Board health ("Docs that may be out of date", one line per page); they were stored but never rendered.
+- **Tables in "Proposed by …" marks**: a waiting proposal that changes a table row now marks the whole table in the page (it was left unmarked).
+- **Import tidy** starts as drawn: split by top-level section, ticket-key chips and heading levels are ticked; "see X" links stay off until you tick them.
+- **"Changes since you last viewed"** now sits in the bottom right corner instead of covering the page's Edit and Share buttons, and the history and comments drawers open over it.
+
+Demo: `docs/demo/docs-ai-demo.pdf`: screenshots of the running app with real Claude Code (Haiku) answers.
+
+---
+
 ## [3.12.0] - 2026-10-29
 
 One viewer for every image and file (issue 191, following `design/screens/preview-viewer.md` and `preview-types.md`).

@@ -10,6 +10,8 @@ import { useToast } from './Toast';
 import { RefChip } from './docs/RefChip';
 import { DiagramEmbed } from './diagrams/DiagramEmbed';
 import { DIAGRAM_SCHEME, diagramIdOf, hasDiagram } from './diagrams/diagramRefs';
+import { SketchEmbed } from './sketch/SketchEmbed';
+import { SKETCH_SCHEME, hasSketch, sketchIdOf } from './sketch/sketchRefs';
 import { useDocsRefs } from './docs/DocsRefsContext';
 import { MentionPill } from './ai/MentionPill';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../utils/docsMarkdown';
@@ -35,8 +37,8 @@ const MARKDOWN_SCHEMA = {
   clobberPrefix: 'docs-',
   protocols: {
     ...(defaultSchema.protocols ?? {}),
-    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'member', 'diagram'],
-    src: ['http', 'https', 'diagram'],
+    href: ['http', 'https', 'mailto', 'docref', 'dockey', 'member', 'diagram', 'sketch'],
+    src: ['http', 'https', 'diagram', 'sketch'],
   },
 };
 
@@ -187,7 +189,8 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
           url.startsWith(REF_SCHEME) ||
           url.startsWith(TICKET_SCHEME) ||
           url.startsWith('member:') ||
-          url.startsWith(DIAGRAM_SCHEME)
+          url.startsWith(DIAGRAM_SCHEME) ||
+          url.startsWith(SKETCH_SCHEME)
             ? url
             : defaultUrlTransform(url)
         }
@@ -195,8 +198,9 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
           ...(inline
             ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> }
             : {
-                // a diagram is a block: it cannot live inside a <p>
-                p: ({ node, children: inner }) => (hasDiagram(node) ? <div>{inner}</div> : <p>{inner}</p>),
+                // a diagram or sketch is a block: it cannot live inside a <p>
+                p: ({ node, children: inner }) =>
+                  hasDiagram(node) || hasSketch(node) ? <div>{inner}</div> : <p>{inner}</p>,
               }),
           blockquote: ({ node, children: inner, ...props }) => {
             const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
@@ -213,11 +217,15 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
           img: ({ src, alt, ...props }) => {
             const diagramId = diagramIdOf(src);
             if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} small />;
+            const sketchId = sketchIdOf(src);
+            if (sketchId) return <SketchEmbed id={sketchId} label={alt ?? ''} small />;
             return <MarkdownImage src={src} alt={alt} {...props} />;
           },
           a: ({ href, children, ...props }) => {
             const diagramId = diagramIdOf(href);
             if (diagramId) return <DiagramEmbed id={diagramId} label={String(children ?? '')} small />;
+            const sketchId = sketchIdOf(href);
+            if (sketchId) return <SketchEmbed id={sketchId} label={String(children ?? '')} small />;
             if (href?.startsWith('member:')) {
               // A person is a round blue pill; an AI member a pill in its own colour with a hover card
               return <MentionPill memberId={href.slice(7)}>{children}</MentionPill>;

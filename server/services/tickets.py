@@ -575,10 +575,22 @@ async def update_ticket(
             ticket.updated_at,
         )
 
+    if update_data.get("status"):
+        await _sync_idea(session, ticket, previous_status)
+
     session.add(ticket)
     await session.commit()
     await session.refresh(ticket)
     return ticket
+
+
+async def _sync_idea(
+    session: AsyncSession, ticket: Ticket, previous_status: str
+) -> None:
+    """Let the idea promoted to this ticket (and any assumption it tests) follow the status change."""
+    from services import idea_promote
+
+    await idea_promote.on_ticket_status_change(session, ticket, previous_status)
 
 
 async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
@@ -586,6 +598,9 @@ async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
         return False
+    from services import idea_promote
+
+    await idea_promote.on_ticket_deleted(session, ticket)
 
     # Don't leave dangling references behind: detach children, drop block/link entries
     now = datetime.now(UTC).isoformat()
@@ -2310,6 +2325,7 @@ async def reopen_ticket(
 
     ticket.status = "todo"
     ticket.wont_do_reason = None
+    await _sync_idea(session, ticket, prev_status)
 
     side_effects = []
     ac_reset_count = 0
@@ -2606,6 +2622,7 @@ async def undo_reopen(session: AsyncSession, ticket_id: str) -> Ticket | None:
 
     latest = history.pop(0)
     ticket.status = latest.get("from_status") or "done"
+    await _sync_idea(session, ticket, "todo")
     ticket.reopen_count = max((ticket.reopen_count or 1) - 1, 0)
     previous = history[0] if history else None
     ticket.last_reopened_at = previous.get("at") if previous else None

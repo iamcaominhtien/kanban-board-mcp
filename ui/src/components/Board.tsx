@@ -66,6 +66,9 @@ interface BoardProps {
   totalReopens30d?: number;
   waitingOnTicketsCount?: number;
   waitingOnPersonsCount?: number;
+  fromIdeaCount?: number;
+  filterFromIdea?: boolean;
+  onFilterFromIdeaChange?: (val: boolean) => void;
   onReopen?: (ticket: Ticket) => void;
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
@@ -113,6 +116,9 @@ export function Board({
   onHidePendingChange,
   reopenedCount,
   pendingCount,
+  fromIdeaCount,
+  filterFromIdea,
+  onFilterFromIdeaChange,
   totalReopens30d,
   waitingOnTicketsCount,
   waitingOnPersonsCount,
@@ -272,6 +278,9 @@ export function Board({
               totalReopens30d={totalReopens30d}
               waitingOnTicketsCount={waitingOnTicketsCount}
               waitingOnPersonsCount={waitingOnPersonsCount}
+              fromIdeaCount={fromIdeaCount}
+              filterFromIdea={filterFromIdea}
+              onFilterFromIdeaChange={onFilterFromIdeaChange}
             />
           )}
         </div>

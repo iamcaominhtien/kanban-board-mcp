@@ -91,6 +91,7 @@
 
 /* panel */
 .dc-panel {
+  position: relative;
   width: 340px;
   flex-shrink: 0;
   border-left: 1px solid #e3e8e5;
@@ -717,4 +718,111 @@ kbd {
 .dc-sort {
   font-size: 12.5px;
   color: #7a887f;
+}
+
+/* --- Docs AI in threads (docs-ai-care E) ------------------------------------------------------------------- */
+.dc-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: #f1ecfb;
+  color: #6b4fbb;
+  font-size: 11px;
+  font-weight: 600;
+}
+.dc-ai-note .dc-meta + * {
+  color: #6b6b6b;
+  font-style: italic;
+}
+.dc-ai-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.dc-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #f3f5f3;
+  color: #3c4a40;
+  font-size: 11.5px;
+}
+.dc-ai-cost {
+  color: #8a8f8b;
+  font-size: 11px;
+}
+.dc-ai-suggest {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #c9b8f0;
+  border-radius: 7px;
+  background: #faf7ff;
+  color: #5b3fae;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dc-ai-suggest:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.dc-ai-proposal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1px solid #ddd0f7;
+  border-radius: 8px;
+  background: #faf7ff;
+  font-size: 12px;
+  color: #4a3a7a;
+}
+.dc-ai-proposal span {
+  flex: 1;
+}
+.dc-ai-summary {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid #ddd0f7;
+  border-radius: 8px;
+  background: #faf7ff;
+}
+.dc-ai-summary-head {
+  color: #5b3fae;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.dc-ai-summary p {
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.dc-ai-summary-foot {
+  color: #8a8f8b;
+  font-size: 11px;
+}
+.dc-ai-thinking .dc-ai-dots {
+  color: #6b4fbb;
+  font-size: 12.5px;
+}
+.dc-ai-thinking .dc-ai-dots span {
+  animation: dc-ai-pulse 1.2s ease-in-out infinite;
+}
+@keyframes dc-ai-pulse {
+  50% {
+    opacity: 0.3;
+  }
 }

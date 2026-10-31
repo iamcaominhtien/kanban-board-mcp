@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { markdownToHtml, htmlToMarkdown, diagramBlockElement } from '../utils/markdownWysiwyg';
+import type { EditorSurface } from '../api/editorAi';
+import { contentEditableAdapter } from './ai/editor/adapters';
+import { EditorAiSelectionBar, useEditorAi } from './ai/editor/useEditorAi';
 import { useDiagrams } from './diagrams/DiagramsContext';
 import { DiagramIcon } from './diagrams/DiagramIcon';
 import { useDiagramStarter } from './diagrams/useDiagramStarter';
 import { DIAGRAM_LINE } from './diagrams/diagramRefs';
 import { firstDiagramFile } from './diagrams/diagramFile';
+import { SketchIcon } from './sketch/SketchIcon';
+import { useSketchBlocks } from './sketch/useSketchBlocks';
 import diagramStyles from './diagrams/Diagrams.module.css';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { RefSuggester, type SuggestMember } from './docs/RefSuggester';
@@ -61,6 +66,11 @@ interface Props {
   diagramSaveTo?: string;
   /** The ticket or comment the diagrams belong to. */
   diagramItem?: { kind: 'ticket' | 'comment'; id?: string };
+  /**
+   * AI in this field (/ai, Ctrl+J, the selection bar). `surface` says what kind of text it is; the server decides what
+   * each kind offers. Left out, the field has no AI.
+   */
+  ai?: { surface: EditorSurface; projectId?: string; ticketId?: string | null };
 }
 
 /**
@@ -102,6 +112,7 @@ export function MarkdownEditor({
   diagramProjectId,
   diagramSaveTo,
   diagramItem,
+  ai: aiProp,
 }: Props) {
   const docsRefs = useDocsRefs();
   const diagrams = useDiagrams();
@@ -126,6 +137,14 @@ export function MarkdownEditor({
 
   const wysiwygRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const aiAdapter = useMemo(() => contentEditableAdapter(() => wysiwygRef.current), []);
+  const editorAi = useEditorAi({
+    surface: aiProp?.surface ?? 'ticket_description',
+    projectId: aiProp?.projectId ?? docsProjectIdProp ?? docsRefs?.projectId,
+    ticketId: aiProp?.ticketId,
+    adapter: aiAdapter,
+    enabled: !!aiProp && isEditing && !readOnly,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const allFileInputRef = useRef<HTMLInputElement>(null);
   const linkBtnRef = useRef<HTMLButtonElement>(null);
@@ -218,8 +237,8 @@ export function MarkdownEditor({
 
     function handleClickOutside(e: MouseEvent) {
       if (isFilePickerOpenRef.current) return;
-      // the draw.io editor layer and viewer sit outside this field but belong to it
-      if ((e.target as HTMLElement).closest?.('[data-diagram-layer]')) return;
+      // the draw.io, sketch and AI editor layers and viewers sit outside this field but belong to it
+      if ((e.target as HTMLElement).closest?.('[data-diagram-layer], [data-sketch-layer], [data-ai-layer]')) return;
       if (isLinkPopoverOpen) {
         // If clicking inside link popover, don't close
         const popover = document.querySelector(`.${styles.linkPopover}`);
@@ -354,6 +373,18 @@ export function MarkdownEditor({
     itemKind: diagramItem?.kind,
     itemId: diagramItem?.id,
     onInsert: (md) => insertDiagramBlock(md),
+  });
+
+  // Sketch (paint-style drawing): placed beside Diagram, for the same fields
+  const sketch = useSketchBlocks({
+    root: wysiwygRef,
+    savedRange: savedSelectionRangeRef,
+    sync: syncContent,
+    readOnly,
+    ownerKind: diagramItem?.kind ?? 'ticket',
+    ownerId: diagramItem?.id,
+    projectId: diagramProjectId,
+    ownerLabel: diagramSaveTo,
   });
 
   function rememberSelection() {
@@ -886,6 +917,8 @@ export function MarkdownEditor({
 
   return (
     <div ref={containerRef} style={{ width: '100%' }}>
+      {editorAi.layer}
+      {aiProp && <EditorAiSelectionBar ai={editorAi} adapter={aiAdapter} />}
       <div className={`${styles.editContainer} ${compact ? styles.editContainerCompact : ''}`}>
         {/* Toolbar Header (no Write/Preview tabs in Approach B) */}
         <div className={`${styles.toolbarHeader} ${compact ? styles.toolbarHeaderCompact : ''}`}>
@@ -1258,6 +1291,24 @@ export function MarkdownEditor({
               </span>
             )}
 
+            {/* Sketch */}
+            {sketch.starter.available && !!diagramProjectId && !readOnly && (
+              <button
+                type="button"
+                className={styles.toolbarBtn}
+                aria-label="Sketch"
+                title="Sketch (draw freehand)"
+                data-testid="editor-sketch"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  rememberSelection();
+                  void sketch.starter.start();
+                }}
+              >
+                <SketchIcon name="sketch" size={14} />
+              </button>
+            )}
+
             {/* Image upload */}
             {(onUploadImage || onUploadFile) && (
               <>
@@ -1473,14 +1524,21 @@ export function MarkdownEditor({
           suppressContentEditableWarning
           className={`${styles.wysiwygArea} ${compact ? styles.wysiwygAreaCompact : ''}`}
           data-placeholder={placeholderText}
+          data-ai-editor={aiProp ? true : undefined}
           onInput={() => {
             if (wysiwygRef.current && snapRefTokens(wysiwygRef.current)) updateToolbarState();
             syncContent();
             updateToolbarState();
+            editorAi.onInput();
           }}
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
           onKeyDown={(e) => {
+            if (editorAi.onKeyDown(e)) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
             const root = wysiwygRef.current;
             if (root && (e.key === 'Escape' || e.key === 'ArrowRight') && tokenAtCaret(root)) {
               // leaving a raw [[token]] with Esc or → snaps it back to a pill
@@ -1500,7 +1558,7 @@ export function MarkdownEditor({
           onDrop={handleDrop}
           onClick={(e) => {
             const target = e.target as HTMLElement;
-            if (handleDiagramClick(target)) {
+            if (handleDiagramClick(target) || sketch.handleClick(target)) {
               e.stopPropagation();
               setSelectedImg(null);
               return;

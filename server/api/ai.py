@@ -69,6 +69,7 @@ def _settings_dict(s) -> dict:
     return {
         "project_id": s.project_id,
         "board_ai_id": s.board_ai_id,
+        "ai_enabled": s.ai_enabled,
         "paused_all": s.paused_all,
         "paused_at": s.paused_at,
         "paused_by": s.paused_by,
@@ -703,6 +704,7 @@ class SettingsBody(BaseModel):
     """Project AI settings."""
 
     board_ai_id: Optional[str] = None
+    ai_enabled: Optional[bool] = None
     safe_mode: Optional[bool] = None
     board_daily_cap: Optional[float] = None
     board_monthly_budget: Optional[float] = None

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { assistApi, assistError, useDraft } from '../../api/assist';
 import { extractError } from '../../api/extractError';
 import type { AssistDraft, DraftChange } from '../../types/assist';
@@ -32,12 +32,15 @@ export function DraftChanges({
   initial,
   onRefresh,
   compact,
+  renderChange,
 }: {
   draftId: string;
   initial?: AssistDraft | null;
   /** "Refresh draft" after a conflict (re-asks the chat or re-acts on the insight). */
   onRefresh?: () => void;
   compact?: boolean;
+  /** How a change of a kind this card does not know is shown (a scope's own kinds, e.g. an idea's). */
+  renderChange?: (change: DraftChange) => ReactNode;
 }) {
   const q = useDraft(draftId);
   const d = q.data ?? initial ?? null;
@@ -91,6 +94,7 @@ export function DraftChanges({
 
   if (d.status === 'applied' || d.status === 'undone') {
     const count = d.result.count ?? 0;
+    const added = (d.result.applied ?? []).reduce((n, a) => n + ((a as { ids?: string[] }).ids?.length ?? 0), 0);
     return (
       <div className="as-tile" style={{ flexDirection: 'row', alignItems: 'center' }} data-testid="draft-result">
         <span style={{ color: '#2E6F40', fontWeight: 700 }}>✓</span>
@@ -102,7 +106,9 @@ export function DraftChanges({
           ) : (
             <>
               <b>
-                Applied {count} change{count !== 1 ? 's' : ''}
+                {added
+                  ? `Added ${added} acceptance criteri${added !== 1 ? 'a' : 'on'}`
+                  : `Applied ${count} change${count !== 1 ? 's' : ''}`}
               </b>{' '}
               <span className="ai-muted">at {hhmm(d.appliedAt)}</span>
               {d.result.errors?.length ? (
@@ -137,6 +143,78 @@ export function DraftChanges({
   }
   if (d.status === 'discarded' || d.status === 'expired')
     return <div className="ai-muted">Draft {d.status}. Nothing was changed.</div>;
+
+  if (changes.length === 1 && changes[0].op === 'add_criteria') {
+    const ch = changes[0];
+    const items = edits['0'] !== undefined ? edits['0'].split('\n').filter((x) => x.trim()) : (ch.items ?? []);
+    const word = items.length === 2 ? 'both' : items.length === 1 ? 'it' : `all ${items.length}`;
+    return (
+      <div className="as-draft sc-criteria" data-testid="draft-criteria">
+        <div className="sc-criteria-head">
+          Draft · {items.length} acceptance criteri{items.length !== 1 ? 'a' : 'on'}
+        </div>
+        {editing ? (
+          <textarea
+            className="ai-textarea"
+            rows={Math.max(3, items.length + 1)}
+            value={edits['0'] ?? (ch.items ?? []).join('\n')}
+            onChange={(e) => setEdits({ ...edits, '0': e.target.value })}
+            aria-label="Acceptance criteria, one per line"
+            data-testid="draft-criteria-edit"
+          />
+        ) : (
+          <div className="sc-criteria-list">
+            {items.map((t, i) => (
+              <div key={i}>
+                <span aria-hidden="true">☐</span> {t}
+              </div>
+            ))}
+          </div>
+        )}
+        {viewer || d.viewer ? (
+          <div className="ai-hint">
+            {viewer ?? `Ask the project lead${d.lead ? `, ${d.lead},` : ''} to add these. Copy the draft to share it.`}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="ai-btn ai-btn-primary ai-btn-sm"
+              disabled={!items.length || busy}
+              onClick={() => void apply(false)}
+              data-testid="draft-apply"
+            >
+              ✓ Add {word}
+            </button>
+            <button type="button" className="ai-btn ai-btn-sm" onClick={() => setEditing((v) => !v)}>
+              {editing ? 'Done' : 'Edit'}
+            </button>
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              data-testid="draft-dismiss"
+              onClick={async () => {
+                await assistApi.discard(d.id);
+                await q.refetch();
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+        {conflict && (
+          <div className="as-tile as-tile-warn" data-testid="draft-conflict">
+            <div className="as-tile-title">{ch.ticket} changed after this draft</div>
+            <div className="ai-hint">{conflict}</div>
+            <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={() => void apply(true)}>
+              Add anyway
+            </button>
+          </div>
+        )}
+        {error && <div className="ai-error-text">{error}</div>}
+      </div>
+    );
+  }
 
   return (
     <div className="as-draft" data-testid="draft-changes">
@@ -182,6 +260,24 @@ export function DraftChanges({
                   </div>
                 )}
               </>
+            ) : ch.scope || !FIELD_LABEL[ch.op] ? (
+              (renderChange?.(ch) ?? (
+                <div className="as-diff">
+                  {ch.op === 'add_criteria' ? (
+                    (ch.items ?? []).map((t, k) => (
+                      <div key={k} className="as-diff-add">
+                        <span>+</span>
+                        <span>{`☐ ${t}`}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="as-diff-add">
+                      <span>+</span>
+                      <span style={{ whiteSpace: 'pre-wrap' }}>{ch.text ?? ch.op}</span>
+                    </div>
+                  )}
+                </div>
+              ))
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

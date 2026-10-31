@@ -1,4 +1,4 @@
-"""Builds the tool list on a FastMCP server: the 10 tools, plus the Idea Space ones when they are switched on."""
+"""Builds the tool list on a FastMCP server: the 12 tools, plus the Idea Space ones when they are switched on."""
 
 import logging
 from collections.abc import Callable
@@ -26,22 +26,14 @@ _DELETE = ToolAnnotations(
 )
 
 # The Idea Space tools are hidden from the MCP tool list for now (about a quarter of its size). They are fully
-# implemented: set KANBAN_MCP_IDEA_TOOLS=1 to expose them again. They keep one tool per verb because their
-# "omit = unchanged, explicit null = clear" parameters do not fit the action routing of the other tools.
+# implemented: set KANBAN_MCP_IDEA_TOOLS=1 to expose them. AI members may only read ideas and add to the Inbox:
+# moving, editing, merging, archiving and promoting are for people, in the app.
 IDEA_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (ops.list_idea_tickets, _READ),
     (ops.get_idea_ticket, _READ),
+    (ops.list_idea_assumptions, _READ),
     (ops.get_idea_activity_trail, _READ),
     (ops.create_idea_ticket, _WRITE),
-    (ops.update_idea_ticket, _UPDATE),
-    (ops.update_idea_status, _UPDATE),
-    (ops.promote_idea_to_ticket, _WRITE),
-    (ops.delete_idea_ticket, _DELETE),
-    (ops.add_assumption, _WRITE),
-    (ops.update_assumption_status, _UPDATE),
-    (ops.delete_assumption, _DELETE),
-    (ops.add_microthought, _WRITE),
-    (ops.delete_microthought, _DELETE),
 ]
 
 

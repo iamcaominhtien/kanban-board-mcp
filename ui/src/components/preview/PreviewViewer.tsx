@@ -11,6 +11,8 @@ import { StatePanel } from './StatePanel';
 import { canShowInFolder, isDesktop, openInDefaultApp, showInFolder } from './desktop';
 import { isRunnableFile, previewKind } from './kinds';
 import { isTyping, useViewerKeys } from './useViewerKeys';
+import { useSketch, type SketchOwner } from '../sketch/SketchContext';
+import { SketchIcon } from '../sketch/SketchIcon';
 import type { PreviewItem } from './types';
 import styles from './PreviewViewer.module.css';
 
@@ -25,6 +27,8 @@ interface Props {
   index: number;
   onIndex: (i: number) => void;
   onClose: () => void;
+  /** Where "Draw on it" saves to; without it the button is hidden. */
+  sketchOwner?: SketchOwner | null;
 }
 
 const WEB_OPEN_HINT = 'Only in the desktop app. In the browser, download the file and open it from your downloads.';
@@ -95,8 +99,9 @@ function Thumb({ item, active, onPick }: { item: PreviewItem; active: boolean; o
  * @param props.index - Which of them is showing.
  * @param props.onIndex - Called with the new position for next / previous.
  * @param props.onClose - Called on Esc, the close button or a click outside.
+ * @param props.sketchOwner - Where "Draw on it" saves to, set by the page that opened the viewer.
  */
-export default function PreviewViewer({ items, index, onIndex, onClose }: Props) {
+export default function PreviewViewer({ items, index, onIndex, onClose, sketchOwner }: Props) {
   const item = items[index];
   const rootRef = useRef<HTMLDivElement>(null);
   const [facts, setFacts] = useState<Record<string, string>>({});
@@ -108,6 +113,31 @@ export default function PreviewViewer({ items, index, onIndex, onClose }: Props)
   const meta = getFileTypeMeta(item.name);
   const kind = previewKind(item.name);
   const downloadHref = item.downloadUrl ?? item.src;
+  // "Draw on it": a page that owns the file says where the marked-up copy goes
+  const sketch = useSketch();
+  const canDraw =
+    !!sketchOwner && sketch.available && !!item.uploadPath && /\.(png|jpe?g|gif|webp|bmp)$/i.test(item.name);
+
+  const drawingRef = useRef(false);
+  async function drawOnIt() {
+    if (!sketchOwner || !item.uploadPath || drawingRef.current) return;
+    const stem = item.name.replace(/\.[^.]+$/, '');
+    drawingRef.current = true;
+    try {
+      // the picture opens on its own locked layer; saving makes a new copy and the original is never changed
+      const r = await sketch.openSketch({
+        ownerKind: sketchOwner.ownerKind,
+        ownerId: sketchOwner.ownerId,
+        projectId: sketchOwner.projectId,
+        ownerLabel: sketchOwner.ownerLabel,
+        baseImageUrl: item.uploadPath,
+        title: `${stem} (marked up)`,
+      });
+      if (r) sketchOwner.onSaved?.(r);
+    } finally {
+      drawingRef.current = false;
+    }
+  }
 
   // Facts belong to one file
   useEffect(() => {
@@ -167,6 +197,8 @@ export default function PreviewViewer({ items, index, onIndex, onClose }: Props)
   }
 
   useViewerKeys((e) => {
+    // the sketch editor sits on top while drawing: its keys (Esc, tool letters, arrows) are not the viewer's
+    if (drawingRef.current) return false;
     if (e.key === 'Escape') {
       // Esc first clears a search the reader has open, then closes
       const t = e.target as HTMLInputElement | null;
@@ -313,6 +345,17 @@ export default function PreviewViewer({ items, index, onIndex, onClose }: Props)
             </span>
           )}
           <div className={styles.actions}>
+            {canDraw && kind === 'image' && (
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDraw}`}
+                onClick={() => void drawOnIt()}
+                title="Open the picture in the sketch editor. Your marks go on a layer above it; the original is never changed."
+                data-testid="draw-on-it"
+              >
+                <SketchIcon name="sketch" size={14} /> <span className={styles.btnLabel}>Draw on it</span>
+              </button>
+            )}
             {desktop ? (
               <>
                 <button

@@ -7,6 +7,8 @@ import type { AssistScope, AssistState, Chat } from '../../types/assist';
 import { useAssist } from './AssistContext';
 import { AnswerBlock } from './AnswerBlock';
 import { BoardAiAvatar, dayOrTime, usd } from './assistUi';
+import { useResizablePanel } from '../../hooks/useResizablePanel';
+import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 
 const SCOPES: { key: AssistScope; label: string; reads: string; size: string }[] = [
@@ -162,6 +164,7 @@ export function AssistDock() {
   const tree = useDocsTree(projectId);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const scope = ctx?.scope ?? 'project';
+  const panel = useResizablePanel('board-ai', 420, { min: 340 });
 
   const send = async (raw: string, opts?: { draft?: boolean; sendAll?: boolean }) => {
     if (!ctx || !projectId) return;
@@ -176,6 +179,7 @@ export function AssistDock() {
           scope,
           ticketId: scope === 'ticket' ? ctx.ticketId : null,
           docId: scope === 'doc' ? ctx.docId : null,
+          fresh: ctx.fresh,
         });
         id = created.id;
         ctx.setChatId(id);
@@ -209,6 +213,17 @@ export function AssistDock() {
     const p = ctx.consumePending();
     setView('chat');
     if (p?.text) void send(p.text);
+    else if (p && !p.fresh && (p.scope === 'doc' || p.scope === 'ticket') && projectId) {
+      // "Ask this page" / "Ask about this ticket" pick up the latest chat about it (the server decides)
+      void assistApi
+        .createChat(projectId, {
+          scope: p.scope,
+          ticketId: p.scope === 'ticket' ? (p.ticketId ?? ctx.ticketId) : null,
+          docId: p.scope === 'doc' ? (p.docId ?? ctx.docId) : null,
+        })
+        .then((c) => ctx.setChatId(c.id))
+        .catch((e: unknown) => setError(extractError(e)));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx?.pending]);
 
@@ -254,11 +269,18 @@ export function AssistDock() {
           : 'Ask about this project…';
   const loadFailed = st.isError && !state;
   const disabled = notConfigured || chatOff || offline || overBudget || loadFailed;
+  const sizing = panelSizing(panel);
   const f = ctx.filters;
   const filterLabel = f.assignee || f.type || f.priority || f.q ? 'Filtered' : 'No filters';
 
   return (
-    <aside className="as-dock ai-root" data-testid="assist-dock" aria-label="Board AI">
+    <aside
+      className={`as-dock ai-root ${sizing.className}`}
+      style={sizing.style}
+      data-testid="assist-dock"
+      aria-label="Board AI"
+    >
+      <PanelResizer panel={panel} label="Resize Board AI" />
       <div className="as-head">
         <BoardAiAvatar provider={b?.provider} size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -295,12 +317,13 @@ export function AssistDock() {
           title="New chat"
           aria-label="New chat"
           onClick={() => {
-            ctx.setChatId(null);
+            ctx.startFresh();
             setView('chat');
           }}
         >
           +
         </button>
+        <PanelMaxButton panel={panel} />
         <button type="button" className="ai-icobtn" title="Close" aria-label="Close Board AI" onClick={ctx.close}>
           ✕
         </button>
@@ -313,7 +336,7 @@ export function AssistDock() {
             setView('chat');
           }}
           onNew={() => {
-            ctx.setChatId(null);
+            ctx.startFresh();
             setView('chat');
           }}
         />
@@ -536,9 +559,25 @@ export function AssistDock() {
                 )}
               </div>
             )}
+            {(chat.data?.compactions ?? 0) > 0 && (
+              <div className="ai-muted" style={{ textAlign: 'center' }} data-testid="assist-summarised">
+                Earlier messages summarised
+              </div>
+            )}
             {chat.data &&
               messages.map((m) =>
-                m.role === 'user' ? (
+                m.role === 'note' ? (
+                  <div
+                    key={m.id}
+                    className="ai-muted"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    data-testid="assist-divider"
+                  >
+                    <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
+                    <span>{m.text}</span>
+                    <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
+                  </div>
+                ) : m.role === 'user' ? (
                   <div key={m.id} className="as-user">
                     {m.text}
                   </div>

@@ -4,6 +4,8 @@ import { McpIntegrations } from '../McpIntegrations';
 import { AiSettingsSection } from '../ai/AiSettingsSection';
 import { UpdateSettingsSection } from '../UpdateSettingsSection';
 import { DocsSettingsRow } from '../docs/DocsSettingsRow';
+import { IdeaSpaceSettings } from '../ideas/IdeaSpaceSettings';
+import { DocsAiSettings } from '../docs/ai/DocsAiSettings';
 import { DiagramSettingsSection } from '../diagrams/DiagramSettingsSection';
 import { AssistSettings } from '../assist/AssistSettings';
 import type { Theme } from '../../types';
@@ -166,9 +168,17 @@ export function SettingsPage({ onClose, theme, onToggleTheme, projectId, onManag
       break;
     case 'docs':
       body = project ? (
-        <div className={styles.section} data-setting="docs-enabled">
-          <DocsSettingsRow project={project} />
-        </div>
+        <>
+          <div className={styles.section} data-setting="docs-enabled">
+            <DocsSettingsRow project={project} />
+          </div>
+          {project.docsEnabled !== false && (
+            <div className={styles.section} data-setting="docs-ai">
+              <span className={styles.sectionTitle}>AI in Docs</span>
+              <DocsAiSettings project={project} />
+            </div>
+          )}
+        </>
       ) : null;
       break;
     case 'ai':
@@ -180,6 +190,9 @@ export function SettingsPage({ onClose, theme, onToggleTheme, projectId, onManag
           <AssistSettings projectId={project.id} onOpenAudit={onManageAi} />
         </div>
       ) : null;
+      break;
+    case 'ideas':
+      body = project ? <IdeaSpaceSettings projectId={project.id} onManageAi={onManageAi} /> : null;
       break;
     case 'appearance':
       body = (

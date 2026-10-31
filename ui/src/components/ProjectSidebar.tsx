@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Project } from '../types';
 import { AppLogo } from './icons';
+import { useAppCommand } from '../utils/appCommands';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
 
@@ -18,6 +19,8 @@ interface ProjectSidebarProps {
   wontDoCount: number;
   /** People and AI member counts for the Members pill (“4 · 7 AI”). */
   memberCounts?: { humans: number; ai: number };
+  /** Ideas waiting in the Inbox, all projects: the badge of the Idea Space entry. */
+  ideaInbox?: number;
   activeBoard: 'main' | 'idea';
   onBoardChange: (board: 'main' | 'idea') => void;
   /** 'loading': skeleton rows, static items dimmed; 'error': inline retry row; 'empty': only "New project". */
@@ -36,7 +39,8 @@ const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#
  * @param props.onOpenMembers - Called when the members entry is clicked.
  * @param props.onOpenSettings - Called when the settings entry is clicked.
  * @param props.wontDoCount - Number of "Won't do" tickets shown as the recycle bin badge.
- * @param props.activeBoard - Selected space: the main board or the idea board.
+ * @param props.ideaInbox - Ideas waiting in the Inbox, shown as the badge of the Idea Space entry.
+ * @param props.activeBoard - Selected space: the main board or the Idea Space.
  * @param props.onBoardChange - Called when the other space is selected.
  * @param props.loadState - `loading`: skeleton rows, static items dimmed; `error`: inline retry row; `empty`: only "New project".
  * @param props.onRetryProjects - Called when the retry row is clicked.
@@ -53,12 +57,15 @@ export function ProjectSidebar({
   askAi,
   wontDoCount,
   memberCounts,
+  ideaInbox = 0,
   activeBoard,
   onBoardChange,
   loadState,
   onRetryProjects,
 }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
+  // Desktop menu: File › New Project…
+  useAppCommand('new-project', () => setShowForm(true));
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
@@ -242,22 +249,16 @@ export function ProjectSidebar({
         </button>
       )}
 
-      {/* Idea Space Toggle Card */}
-      <div
-        className={`${styles.ideaCard} ${activeBoard === 'idea' ? styles.ideaCardActive : ''}`}
+      {/* Idea Space: a workspace-level space; the badge counts the ideas waiting in the Inbox */}
+      <button
+        type="button"
+        className={`${styles.sidebarIconBtn} ${activeBoard === 'idea' ? styles.sidebarIconActive : ''}`}
         onClick={toggleBoard}
-        role="button"
-        tabIndex={0}
-        title={activeBoard === 'idea' ? 'Idea Space (Active)' : 'Idea Space'}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleBoard();
-          }
-        }}
+        title={activeBoard === 'idea' ? 'Idea Space (open)' : 'Idea Space'}
+        aria-pressed={activeBoard === 'idea'}
+        data-testid="sidebar-idea-space"
       >
         <svg
-          className={styles.ideaIcon}
           width="16"
           height="16"
           viewBox="0 0 24 24"
@@ -267,16 +268,19 @@ export function ProjectSidebar({
           strokeLinecap="round"
           strokeLinejoin="round"
           style={{ flexShrink: 0 }}
+          aria-hidden="true"
         >
           <path d="M9 18h6" />
           <path d="M10 22h4" />
           <path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z" />
         </svg>
-        <span className={styles.ideaLabel}>Idea Space</span>
-        <div className={`${styles.toggleTrack} ${activeBoard === 'idea' ? styles.toggleTrackActive : ''}`}>
-          <div className={`${styles.toggleKnob} ${activeBoard === 'idea' ? styles.toggleKnobActive : ''}`} />
-        </div>
-      </div>
+        <span className={styles.navLabel}>Idea Space</span>
+        {ideaInbox > 0 && (
+          <span className={styles.badgeCount} data-testid="idea-inbox-badge" title="Ideas waiting in the Inbox">
+            {ideaInbox}
+          </span>
+        )}
+      </button>
 
       <div className={styles.spacer} />
 

@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793315125-cd46",
+  "canvas_version": "1793315909-1e64",
   "exported": "2026-10-29",
   "files": {
     "AccountMenu.dc.html": {
@@ -514,6 +514,22 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 4046
+    },
+    "DocsAi.dc.html": {
+      "bytes": 113919,
+      "sha256": "62d5c43801116643f3da83422efda94f2ebc6acd05b8eddf9a31ca8977bbf761",
+      "title": "Docs AI — ask, write, read & edit",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 5220
+    },
+    "DocsAiCare.dc.html": {
+      "bytes": 126445,
+      "sha256": "175c78653843dc5bb6e9c257ab9908e923f24704e6b6bae86a08665bf19b91ac",
+      "title": "Docs AI — keeping docs true, proposals & control",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 6340
     },
     "DesktopMenu.dc.html": {
       "bytes": 104626,

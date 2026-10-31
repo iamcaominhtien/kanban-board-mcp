@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { IdeaBulb } from './ideas/ideaLinks';
 import type { Member, Priority, Status, Ticket } from '../types';
 import styles from './ListView.module.css';
 
@@ -273,7 +274,9 @@ function GroupSection({ group, members, collapsed, onToggle, onCardClick }: Grou
                 className={`${styles.row} ${reopened ? styles.rowReopened : ''} ${pending ? styles.rowPending : ''}`}
                 onClick={() => onCardClick(ticket)}
               >
-                <span className={`${styles.rowId} ${isDone ? styles.rowIdDone : ''}`}>{ticket.id}</span>
+                <span className={`${styles.rowId} ${isDone ? styles.rowIdDone : ''}`}>
+                  {ticket.fromIdeaId && <IdeaBulb ticketId={ticket.id} ideaId={ticket.fromIdeaId} />} {ticket.id}
+                </span>
                 <span className={`${styles.rowTitle} ${isDone ? styles.rowTitleDone : ''}`}>{ticket.title}</span>
 
                 {/* Reopened badge / Pending chip after the title (TicketReopen E2, TicketPending F2) */}

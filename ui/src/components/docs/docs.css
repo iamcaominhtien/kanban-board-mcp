@@ -556,6 +556,44 @@ input:focus-visible {
   font-family: var(--font-body, inherit);
 }
 
+.dk-md .dk-proposed {
+  position: relative;
+  margin-top: 22px;
+  cursor: pointer;
+  background: #faf7ff;
+  box-shadow: 0 0 0 4px #faf7ff;
+  border-radius: 4px;
+}
+.dk-md .dk-proposed::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: -19px;
+  bottom: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: #8b6fdb;
+}
+.dk-md .dk-proposed::after {
+  content: attr(data-proposed-by);
+  position: absolute;
+  left: 0;
+  top: -19px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #6b4fc4;
+  font-family: var(--font-body, inherit);
+}
+
+/* in a list the bar sits left of the bullet column (ul padding 22px), not on the bullets */
+.dk-md li.dk-changed::before,
+.dk-md li > p.dk-changed::before,
+.dk-md li.dk-proposed::before,
+.dk-md li > p.dk-proposed::before {
+  left: -30px;
+}
+
 .dk-md li {
   margin: 2px 0;
 }
@@ -901,4 +939,48 @@ mark.docs-find-mark.docs-find-cur {
     animation: none;
     background: #fff3c4;
   }
+}
+
+/* Docs AI rows in the tree ("Ask the docs", "Docs health") */
+.dk-tree-airow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3d5a47;
+  cursor: pointer;
+}
+.dk-tree-airow:hover,
+.dk-tree-airow[aria-current='page'] {
+  background: #eef3ef;
+}
+.dk-tree-airow svg {
+  color: #6b5bd2;
+}
+
+/* Needs input markers an AI draft leaves (editor decoration and reader chip) */
+.dk-needs-input {
+  display: inline;
+  padding: 1px 7px;
+  border-radius: 7px;
+  border: 1px solid #e8c879;
+  background: #fef1d6;
+  color: #7a4f08;
+  font-size: 0.9em;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: normal;
+}
+.dk-needs-input::before {
+  content: '\26A0\00a0';
+}
+.dk-ai-draft-panel mark {
+  background: #fef1d6;
 }

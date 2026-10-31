@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { IdeaBulb } from './ideas/ideaLinks';
 import type { IssueType, Member, Ticket } from '../types';
 import { MemberAvatar } from './MemberAvatar';
 import { CardAiFooter } from './ai/RunPanel';
@@ -476,7 +477,9 @@ export function TicketCard({
           </div>
 
           <div className={styles.headerRight}>
-            <span className={styles.cardId}>{ticket.id}</span>
+            <span className={styles.cardId}>
+              {ticket.fromIdeaId && <IdeaBulb ticketId={ticket.id} ideaId={ticket.fromIdeaId} />} {ticket.id}
+            </span>
             <span className={styles.dragHandle} aria-hidden="true">
               <svg width="10" height="14" viewBox="0 0 10 16" fill="#B7C4BC">
                 <circle cx="2" cy="2" r="1.3" />

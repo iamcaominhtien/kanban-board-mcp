@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority } from '../types';
+import { useAppCommand } from '../utils/appCommands';
 import styles from './FilterBar.module.css';
 
 interface FilterBarProps {
@@ -23,6 +24,10 @@ interface FilterBarProps {
   totalReopens30d?: number;
   waitingOnTicketsCount?: number;
   waitingOnPersonsCount?: number;
+  /** Tickets that started as an idea; the "From an idea" chip shows when there are some. */
+  fromIdeaCount?: number;
+  filterFromIdea?: boolean;
+  onFilterFromIdeaChange?: (v: boolean) => void;
 }
 
 const TYPE_OPTIONS: { value: IssueType | 'all'; label: string }[] = [
@@ -73,9 +78,18 @@ export function FilterBar({
   totalReopens30d = 0,
   waitingOnTicketsCount = 0,
   waitingOnPersonsCount = 0,
+  fromIdeaCount = 0,
+  filterFromIdea = false,
+  onFilterFromIdeaChange,
 }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<'type' | 'priority' | 'assignee' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Desktop menu: Edit › Find in Board
+  useAppCommand('find-board', () => {
+    searchInputRef.current?.focus();
+    searchInputRef.current?.select();
+  });
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -90,7 +104,7 @@ export function FilterBar({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {/* Project hints: E1 (Reopened) and F1 (Pending); chips beside the secondary counts, link on the right */}
-      {(reopenedCount > 0 || pendingCount > 0) && (
+      {(reopenedCount > 0 || pendingCount > 0 || fromIdeaCount > 0) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minHeight: 30 }}>
           {reopenedCount > 0 && (
             <>
@@ -137,6 +151,44 @@ export function FilterBar({
                 {filterReopened ? 'Show all' : 'Show only reopened'}
               </span>
             </>
+          )}
+          {fromIdeaCount > 0 && (
+            <button
+              type="button"
+              aria-pressed={filterFromIdea}
+              data-testid="filter-from-idea"
+              onClick={() => onFilterFromIdeaChange?.(!filterFromIdea)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 11px',
+                borderRadius: 999,
+                background: filterFromIdea ? '#FFF1D6' : '#FFFAF0',
+                border: '1px solid #F0D28A',
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#8A5A00',
+                cursor: 'pointer',
+              }}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#C98A0B"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 18h6" />
+                <path d="M10 22h4" />
+                <path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z" />
+              </svg>
+              From an idea {fromIdeaCount}
+            </button>
           )}
           {pendingCount > 0 && (
             <>
@@ -209,6 +261,7 @@ export function FilterBar({
             <path d="M21 21L16.65 16.65" />
           </svg>
           <input
+            ref={searchInputRef}
             className={styles.searchInput}
             type="text"
             aria-label="Search tickets"

@@ -15,6 +15,7 @@ import {
   AskPlaceholder,
   ThreadChip,
   askRunOf,
+  didNotStart,
   type ThreadState,
 } from './ai/AiThread';
 import type { AiRun } from '../types/ai';
@@ -22,6 +23,7 @@ import type { AiRun } from '../types/ai';
 const AI_KIND: Record<string, string> = {
   summary: 'AI summary',
   failed: 'Run failed',
+  chat_answer: 'From chat',
 };
 import { Icon } from './docs/Icon';
 import type { SuggestMember } from './docs/RefSuggester';
@@ -430,12 +432,20 @@ export function CommentsSection({
       }));
     for (const g of [...ghosts].sort((a, b) => a.index - b.index))
       live.splice(Math.min(g.index, live.length), 0, { kind: 'g', g });
-    // an AI that is still answering shows right after the question it was asked (Thinking, then Streaming)
-    for (const r of aiRuns) {
-      if (r.mode !== 'ask' || !['queued', 'starting', 'running'].includes(r.state)) continue;
+    // the state of a run a comment started shows right under that comment: queued, reading, needs your OK, did not
+    // start, and (for a work run) ready for review (design C3)
+    aiRuns.forEach((r, i) => {
+      const active = ['queued', 'starting', 'running'].includes(r.state);
+      const show =
+        active ||
+        (r.mode === 'work' && didNotStart(r)) ||
+        (r.mode === 'work' && r.state === 'finished' && i === 0 && !!r.sourceCommentId);
+      if (!show) return;
+      if (!active && !r.sourceCommentId) return;
       const at = live.findIndex((x) => x.kind === 'c' && x.c.id === r.sourceCommentId);
+      if (at < 0 && !active) return;
       live.splice(at >= 0 ? at + 1 : live.length, 0, { kind: 'p', run: r });
-    }
+    });
     if (sortOrder === 'newest') {
       live.reverse();
     }
@@ -573,11 +583,28 @@ export function CommentsSection({
             </div>
           )}
           {c.ai?.kind === 'answer' && (
-            <AnswerFooter comment={c} run={aiRuns.find((r) => r.id === c.ai?.runId)} canAct />
+            <AnswerFooter
+              comment={c}
+              run={aiRuns.find((r) => r.id === c.ai?.runId)}
+              canAct
+              onReply={() => {
+                setPrefill(undefined);
+                setReplyTo(c.id);
+                setComposing(true);
+                requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+              }}
+            />
+          )}
+          {c.ai?.kind === 'chat_answer' && (
+            <div className="ai-muted" style={{ display: 'flex', gap: 8 }} data-testid="chat-answer-meta">
+              <span>Answer from the AI chat · asked by {c.ai.askedBy ?? 'a teammate'}</span>
+              <span>· {c.ai.metered ? `$${(c.ai.costUsd ?? 0).toFixed(2)}` : 'Not metered'}</span>
+              {c.ai.model && <span className="ai-mono">· {c.ai.model}</span>}
+            </div>
           )}
           <CommentAiFlag ticketId={ticketId} commentId={c.id} />
           {c.answerToRun && <AnswerTransitions run={aiRuns.find((r) => r.id === c.answerToRun)} />}
-          {c.ai?.runNumber && c.ai.kind !== 'answer' && c.ai.kind !== 'ask_failed' && (
+          {c.ai?.runNumber && c.ai.kind !== 'answer' && c.ai.kind !== 'ask_failed' && c.ai.kind !== 'chat_answer' && (
             <div
               className="ai-muted"
               style={{ display: 'flex', gap: 8, alignItems: 'center' }}
@@ -770,6 +797,7 @@ export function CommentsSection({
     <div
       ref={rootRef}
       data-testid="comments"
+      data-idea-source={JSON.stringify({ source: 'comment', id: ticketId, label: ticketId })}
       id="comments"
       style={{
         display: 'flex',

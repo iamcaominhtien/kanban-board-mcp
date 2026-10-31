@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Board } from './components/Board';
-import { IdeaBoard } from './components/IdeaBoard';
+import { IdeaSpace } from './components/ideas/IdeaSpace';
+import { IdeaCaptureProvider } from './components/ideas/IdeaCapture';
+import { IdeaLinksProvider } from './components/ideas/ideaLinks';
+import { useIdeaCounts } from './api/ideas';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
-import { isSettingsPageId } from './components/settings/settingsIndex';
+import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
 import {
   useTickets,
+  getTicket,
   useCreateTicket,
   useDeleteTicket,
   useUpdateTicketStatus,
@@ -34,9 +38,11 @@ import { FirstRun } from './components/FirstRun';
 import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
 import { UpdateNotice } from './components/UpdateNotice';
+import { DesktopMenuHost, type MenuView } from './components/desktop/DesktopMenuHost';
 import { useAiBoard, useAiOverview, aiApi } from './api/ai';
 import { AiBoardContext, type AiBoardState } from './components/ai/aiUi';
 import { AiMembersPage } from './components/ai/AiMembersPage';
+import { OPEN_DOC_EVENT } from './utils/openDoc';
 import { AiPausedBanner, PauseAllButton } from './components/ai/AiDialogs';
 import { useAiRunNotifications } from './components/ai/useAiRunNotifications';
 import { DragConfirm } from './components/ai/DragConfirm';
@@ -90,15 +96,24 @@ function SidebarWithAssist(props: Omit<Parameters<typeof ProjectSidebar>[0], 'as
 function BoardProviders({
   ai,
   schedules,
+  ideas,
   children,
 }: {
   ai: AiBoardState;
   schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
+  /** Idea Space: Quick add (Alt+N, "Make idea") and the links from tickets to their idea. */
+  ideas: { projectId: string | null; openIdea: (id: string, tab?: string) => void };
   children: ReactNode;
 }) {
   return (
     <AiBoardContext.Provider value={ai}>
-      <SchedulesProvider {...schedules}>{children}</SchedulesProvider>
+      <SchedulesProvider {...schedules}>
+        <IdeaLinksProvider value={{ openIdea: ideas.openIdea }}>
+          <IdeaCaptureProvider projectId={ideas.projectId} onOpenIdea={ideas.openIdea}>
+            {children}
+          </IdeaCaptureProvider>
+        </IdeaLinksProvider>
+      </SchedulesProvider>
     </AiBoardContext.Provider>
   );
 }
@@ -135,6 +150,9 @@ export default function App() {
   const [activeAssignee, setActiveAssignee] = useState<string | 'all'>('all');
   const [blockedDragPending, setBlockedDragPending] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const [activeBoard, setActiveBoard] = useState<'main' | 'idea'>('main');
+  // An idea to open on its page (a link from a ticket or a toast)
+  const [ideaRequest, setIdeaRequest] = useState<{ id: string; tab?: string } | null>(null);
+  const ideaInbox = useIdeaCounts().data?.totalInbox ?? 0;
   // The card of an AI's ticket was dropped on another column: a dialog asks before its run is cancelled
   const [dragConfirm, setDragConfirm] = useState<{
     run: AiRun;
@@ -220,6 +238,7 @@ export default function App() {
 
   const [filterReopened, setFilterReopened] = useState(false);
   const [filterPending, setFilterPending] = useState(false);
+  const [filterFromIdea, setFilterFromIdea] = useState(false);
   const [hidePending, setHidePending] = useState(false);
 
   const [reopenTargetTicket, setReopenTargetTicket] = useState<Ticket | null>(null);
@@ -250,6 +269,10 @@ export default function App() {
     };
   }, []);
 
+  const fromIdeaCount = useMemo(
+    () => localTickets.filter((t) => t.fromIdeaId && t.status !== 'wont_do').length,
+    [localTickets],
+  );
   const reopenedCount = useMemo(
     () => localTickets.filter((t) => t.status !== 'wont_do' && t.status !== 'done' && (t.reopenCount ?? 0) > 0).length,
     [localTickets],
@@ -285,9 +308,16 @@ export default function App() {
       const matchesReopened =
         !filterReopened || ((t.reopenCount ?? 0) > 0 && t.status !== 'done' && t.status !== 'wont_do');
       const matchesPending = !filterPending || Boolean(t.pending);
+      const matchesFromIdea = !filterFromIdea || Boolean(t.fromIdeaId);
       const matchesHidePending = !hidePending || !t.pending;
       return (
-        matchesType && matchesPriority && matchesAssignee && matchesReopened && matchesPending && matchesHidePending
+        matchesType &&
+        matchesPriority &&
+        matchesAssignee &&
+        matchesReopened &&
+        matchesPending &&
+        matchesFromIdea &&
+        matchesHidePending
       );
     });
 
@@ -403,6 +433,40 @@ export default function App() {
     setDocsRequest(pageId);
     closeModal();
   }
+
+  /** Open an idea's page in the Idea Space. */
+  function openIdea(ideaId: string, tab?: string) {
+    closeModal();
+    setActiveBoard('idea');
+    setIdeaRequest({ id: ideaId, tab });
+  }
+
+  /** Open a ticket from the Idea Space: switch to its project and the board first when needed. */
+  async function openTicketFromIdeas(ticketId: string) {
+    try {
+      const t = await getTicket(ticketId);
+      if (t.projectId !== currentProjectId) setCurrentProjectId(t.projectId);
+    } catch {
+      /* the modal then shows nothing: the ticket is gone */
+    }
+    setActiveBoard('main');
+    setViewMode('board');
+    openTicketModal(ticketId);
+  }
+
+  // "Review on page" in the Approvals list asks for a Docs page from outside the Docs view
+  const openDocsPageRef = useRef(openDocsPage);
+  openDocsPageRef.current = openDocsPage;
+  useEffect(() => {
+    const open = (e: Event) => {
+      const pageId = (e as CustomEvent<{ pageId?: string }>).detail?.pageId;
+      if (!pageId) return;
+      setAiPage(null);
+      openDocsPageRef.current(pageId);
+    };
+    window.addEventListener(OPEN_DOC_EVENT, open);
+    return () => window.removeEventListener(OPEN_DOC_EVENT, open);
+  }, []);
 
   function openTicketModal(ticketId: string) {
     setModalState({ mode: 'view', ticketId });
@@ -605,6 +669,30 @@ export default function App() {
     window.history.replaceState({}, '', url.toString());
   }
 
+  // Desktop menu: a view or New Ticket must show even when Settings, the AI members page or the Idea Space is on top
+  function showMenuView(next: MenuView) {
+    setSettingsTarget(null);
+    setAiPage(null);
+    if (next === 'ideas') {
+      setActiveBoard('idea');
+    } else {
+      setActiveBoard('main');
+      setViewMode(next);
+    }
+  }
+
+  function handleMenuNewTicket() {
+    showMenuView(activeBoard === 'idea' ? 'board' : viewMode);
+    handleOpenCreate();
+  }
+
+  function handleMenuSettings(target: { page?: string; setting?: string }) {
+    setSettingsTarget({
+      page: isSettingsPageId(target.page ?? null) ? (target.page as SettingsPageId) : undefined,
+      setting: target.setting,
+    });
+  }
+
   function handleOpenView(ticket: Ticket) {
     openTicketModal(ticket.id);
   }
@@ -654,6 +742,7 @@ export default function App() {
         onOpenTicket: openTicketModal,
         onShowTab: showSchedulesTab,
       }}
+      ideas={{ projectId: currentProjectId || null, openIdea }}
     >
       <AssistProvider
         projectId={currentProjectId}
@@ -674,6 +763,12 @@ export default function App() {
           <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <Splash status={backendStatus} errorMessage={backendError} onRetryBackend={retryBackend} />
             <UpdateNotice />
+            <DesktopMenuHost
+              view={activeBoard === 'idea' ? 'ideas' : viewMode}
+              onSettings={handleMenuSettings}
+              onNewTicket={handleMenuNewTicket}
+              onView={showMenuView}
+            />
             <AssistOverlays />
             <SidebarWithAssist
               projectId={currentProjectId}
@@ -685,6 +780,7 @@ export default function App() {
               onOpenRecycleBin={() => setRecycleBinOpen(true)}
               onOpenMembers={() => setMembersPanelOpen(true)}
               memberCounts={{ humans: humanMembers.length, ai: aiMemberCount }}
+              ideaInbox={ideaInbox}
               onOpenSettings={() => openSettings()}
               wontDoCount={wontDoTickets.length}
               activeBoard={activeBoard}
@@ -824,7 +920,14 @@ export default function App() {
                     }}
                   />
                 ) : activeBoard === 'idea' && !boardLoadState ? (
-                  <IdeaBoard projectId={currentProjectId ?? ''} />
+                  <IdeaSpace
+                    projects={apiProjects}
+                    currentProjectId={currentProjectId ?? ''}
+                    requestedIdea={ideaRequest}
+                    onRequestHandled={() => setIdeaRequest(null)}
+                    onOpenTicket={(id) => void openTicketFromIdeas(id)}
+                    onOpenSettings={() => setSettingsTarget({ page: 'ideas' })}
+                  />
                 ) : (
                   <>
                     <Board
@@ -872,6 +975,9 @@ export default function App() {
                       hidePending={hidePending}
                       onHidePendingChange={setHidePending}
                       reopenedCount={reopenedCount}
+                      fromIdeaCount={fromIdeaCount}
+                      filterFromIdea={filterFromIdea}
+                      onFilterFromIdeaChange={setFilterFromIdea}
                       pendingCount={pendingCount}
                       totalReopens30d={totalReopens30d}
                       waitingOnTicketsCount={waitingOnTicketsCount}

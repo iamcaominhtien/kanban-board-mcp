@@ -113,3 +113,22 @@ Source: [DesktopMenu.dc.html](../source/DesktopMenu.dc.html) › block "I. Check
 ![I. Check for Updates…: what you see: The update flow is already built in the app: a card in the corner (Download, Later, Skip this version, What’s new) and the Updates section in Settings. The canvas did not show the corner card, so it is drawn here as it is today. The menu item adds only one thing: a toast that answers when the check was started by hand. The automatic checks (at start and every 6 hours) stay silent unless an update exists.](../images/desktop-menu/18-i-check-for-updates-what-you-see.png)
 
 - Text in the frames: "Menu › Check for Updates…" · "item greys: “Checking for Updates…”" · "up to date → toast (1)" · "or" · "newer version → corner notice (3)" · "failed → toast (2)" · "1. Up to date: a toast" · "You’re up to date" · "Kanban Board 3.10.0 is the latest version." · "2. The check failed: a toast with a way out" · "Couldn’t check for updates" · "GitHub rate limit reached, try again later." · "Open releases page" · "3. An update exists: the corner notice (already built)" · "Version 3.10.1 is available" · "3.10.1" · "• Fix: the Idea Space list no longer jumps when a ticket moves." · "• Docs search keeps the filter when you go back." · "Download" · "Later" · "Skip this version" · "What’s new" · "4. Downloading" · "5. Ready (macOS)" · "Downloaded. Open the disk image, then drag Kanban Board to Applications." · "Open installer" · "6. Ready (Windows and Linux)" · "Downloaded. Kanban Board will close and the installer will start." · "Install and restart" · "7. Download failed" · "Download failed (503)" · "Try again" · "Settings › Updates shows the same result" · "Updates" · "Installed version: 3.10.0 · Last checked just now" · "Check for updates" · "✓ You’re on the latest version." · "✓ Version 3.10.1 is available. Download it from the notice in the corner." · "✗ Couldn’t check for updates: GitHub rate limit reached, try again later."
+
+---
+
+## Implementation notes (3.15.0)
+
+Where the built menu (`desktop/menu.js`, tested in `desktop/tests/menu.test.js`) differs from the proposal above.
+
+- **Find in Board is Ctrl/⌘+Shift+F**, not ⌘F: Ctrl/⌘+F already opens Find in page in Docs, and a menu accelerator would take the key before the page. (Checked against the keys the page uses; all other proposed shortcuts were free. Ctrl/⌘+Alt+M, comment on the selection, and Alt+N, quick add an idea, are different keys from New Doc Page, Ctrl/⌘+Alt+N.)
+- **No Show Sidebar item.** The project sidebar cannot be hidden today, so there is nothing to show or hide.
+- **Search tickets has no `/` key on the Board** (it works in the Idea Space and in Settings). The shortcut list (`ui/src/components/shortcuts/shortcuts.json`) and the Keyboard Shortcuts window list only keys that exist in the code, each with its source.
+- **Close Window stays enabled** while the backend is down (it needs no data). Settings, Set Up AI…, Set Up MCP… and Export Logs… are greyed with the rest, since they read from the backend.
+- **The Idea Space is always in View** (there is no switch for the feature).
+- **The Windows and Linux menu bar stays visible** (Electron's default). It is not hidden until Alt is pressed.
+- **The update dot** on “Install Update x.y.z…” cannot be drawn in a native menu; the label changes instead.
+- **About** is the system About window on macOS (`app.setAboutPanelOptions`) and a small window in the page elsewhere. The four small windows are built in the page, in the app’s own style, and receive the menu’s `app-command` message.
+- **Documentation** opens the project README on GitHub (the open question in issue #207 assumed this).
+- **Report an Issue** opens `issues/new?template=bug_report.md` with the facts as the body. **Request a Feature…** opens the feature request template.
+- A link that cannot open copies its address and shows a toast, as in section F.
+- Not run yet in a packaged app: the template is tested as data per platform. Electron’s own default menu on Windows and Linux was not compared, since it is replaced entirely.

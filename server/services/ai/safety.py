@@ -117,6 +117,19 @@ async def can_decide(
     role = await role_name(session, project_id, person)
     if role == "viewer":
         return False, "Viewers can't decide approvals."
+    if person and person != "user":
+        # An AI can never approve (itself or another AI): only people decide, whatever name a request carries
+        ai = (
+            await session.exec(
+                select(Member).where(
+                    Member.project_id == project_id,
+                    Member.name == person,
+                    col(Member.kind).in_(["ai", "ai_removed"]),
+                )
+            )
+        ).first()
+        if ai is not None:
+            return False, "AI members can't decide approvals; a person has to."
     need = approvers_of(settings).get(risk, "owner")
     people = [person]
     for d in delegates_of(settings):

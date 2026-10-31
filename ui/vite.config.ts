@@ -8,6 +8,8 @@ export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   base: './',
   server: {
+    // What's New reads CHANGELOG.md, which sits above the ui folder
+    fs: { allow: ['..'] },
     proxy: {
       '/api': 'http://localhost:8000',
       '/events': 'http://localhost:8000',
@@ -22,6 +24,7 @@ export default defineConfig({
       '/data': 'http://127.0.0.1:8000',
       '/workspace': 'http://localhost:8000',
       '/diagrams': 'http://localhost:8000',
+      '/sketches': 'http://localhost:8000',
       '/docs/': 'http://localhost:8000',
       '/ai': 'http://localhost:8000',
     },

@@ -1,5 +1,6 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { uploadUrl } from '../../api/tickets';
+import { SketchOwnerContext, type SketchOwner } from '../sketch/SketchContext';
 import { cleanDisplayFileName, getFileExtension } from '../../utils/fileIcons';
 import type { PreviewItem } from './types';
 
@@ -10,6 +11,8 @@ interface Open {
   index: number;
   /** Element to give focus back to when the viewer closes. */
   returnTo: HTMLElement | null;
+  /** Where "Draw on it" saves to, when the page that opened the viewer said so. */
+  sketchOwner: SketchOwner | null;
 }
 
 interface PreviewApi {
@@ -17,17 +20,23 @@ interface PreviewApi {
   open: (items: PreviewItem[], index?: number) => void;
 }
 
-const PreviewContext = createContext<PreviewApi | null>(null);
+/** The provider's own open: the page's sketch owner rides along, so the viewer can offer "Draw on it". */
+interface ProviderApi {
+  open: (items: PreviewItem[], index?: number, sketchOwner?: SketchOwner | null) => void;
+}
+
+const PreviewContext = createContext<ProviderApi | null>(null);
 
 /** Mounts the one viewer for the whole app. Anything that shows a file only says "open this". */
 export function PreviewProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<Open | null>(null);
-  const open = useCallback((items: PreviewItem[], index = 0) => {
+  const open = useCallback((items: PreviewItem[], index = 0, sketchOwner: SketchOwner | null = null) => {
     if (!items.length) return;
     setCurrent({
       items,
       index: Math.min(Math.max(index, 0), items.length - 1),
       returnTo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+      sketchOwner,
     });
   }, []);
   const api = useMemo(() => ({ open }), [open]);
@@ -39,6 +48,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
           <PreviewViewer
             items={current.items}
             index={current.index}
+            sketchOwner={current.sketchOwner}
             onIndex={(i) => setCurrent((c) => (c ? { ...c, index: i } : c))}
             onClose={() => {
               const back = current.returnTo;
@@ -54,7 +64,13 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
 
 /** Open files in the viewer. Outside the provider it does nothing. */
 export function usePreview(): PreviewApi {
-  return useContext(PreviewContext) ?? { open: () => {} };
+  const api = useContext(PreviewContext);
+  // The viewer is mounted above every page, so the page's sketch owner is read here, where it is opened from
+  const sketchOwner = useContext(SketchOwnerContext);
+  return useMemo(
+    () => ({ open: (items: PreviewItem[], index?: number) => api?.open(items, index, sketchOwner) }),
+    [api, sketchOwner],
+  );
 }
 
 /**

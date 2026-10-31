@@ -1,0 +1,6 @@
+{
+  "name": "kanban-board-mcp",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "containerEnv": { "CODEGRAPH_TELEMETRY": "0" },
+  "postStartCommand": "bash .claude/scripts/codegraph.sh ensure"
+}

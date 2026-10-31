@@ -52,6 +52,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('update-progress', handler);
   },
 
+  // Application menu: a command from the menu for the page to run ({command, ...}), and what the page tells the menu
+  onAppCommand: (callback) => {
+    const handler = (_event, message) => callback(message);
+    ipcRenderer.on('app-command', handler);
+    return () => ipcRenderer.removeListener('app-command', handler);
+  },
+  setAppState: (state) => ipcRenderer.send('app-state', state),
+  // Versions and system facts for About and Report an Issue (never tickets, paths, keys or logs)
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+
   // Platform info
   platform: process.platform,
 });

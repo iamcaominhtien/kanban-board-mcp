@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { aiApi, useAiMutation } from '../../api/ai';
+import { useState, type ReactNode } from 'react';
+import { aiApi, useAiApprovals, useAiMutation } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AiRun } from '../../types/ai';
 import type { Comment } from '../../types/ticket';
@@ -66,86 +66,181 @@ export function askRunOf(comment: Comment, runs: AiRun[]): AiRun | undefined {
   return runs.find((r) => r.mode === 'ask' && r.sourceCommentId === comment.id);
 }
 
-/** What an ask run in progress shows in the thread: Thinking until text arrives, then Streaming. */
+/** A run that never got going: failed, stopped or timed out before it took a single step. */
+export function didNotStart(run: AiRun): boolean {
+  return ['failed', 'cancelled', 'timed_out'].includes(run.state) && !run.startedAt && run.steps.length === 0;
+}
+
+/**
+ * The state of a run a comment started, under that comment (design/screens/ai-where-you-work.md, C3): QUEUED
+ * (Cancel), READING (Stop), NEEDS YOUR OK (Review), REVIEW when a work run is done, or DID NOT START (Try again).
+ * An ask that is already writing shows its text underneath.
+ */
 export function AskPlaceholder({ run }: { run: AiRun }) {
-  const { members } = useAiBoardState();
+  const { members, projectId } = useAiBoardState();
+  const { openRun } = useAiTicket();
   const ai = members.get(run.memberId);
   const toast = useToast();
   const cancel = useAiMutation(() => aiApi.cancel(run.id));
+  const retry = useAiMutation(() => aiApi.retry(run.id));
+  const approvals = useAiApprovals(projectId, 'pending').data ?? [];
   useNow(1000, run.state === 'running' || run.state === 'starting');
   const said = run.steps.filter((s) => s.kind === 'say').map((s) => s.text);
   const all = said.join('\n\n');
   const text = all.length > 1200 ? `…${all.slice(-1200)}` : all;
-  const streaming = run.state === 'running' && text.length > 0;
+  const live = run.state === 'queued' || run.state === 'starting' || run.state === 'running';
+  const streaming = live && run.state === 'running' && run.mode === 'ask' && text.length > 0;
   const waiting = run.state === 'queued';
+  const pending = live && !waiting ? approvals.filter((a) => a.runId === run.id) : [];
   const secs = secondsSince(run.startedAt ?? run.queuedAt) ?? 0;
-  const stop = async () => {
+  const name = run.memberName ?? ai?.name ?? 'The AI';
+  const act = async (fn: () => Promise<unknown>, fail: string) => {
     try {
-      await cancel.mutateAsync(undefined);
+      await fn();
     } catch (err) {
-      toast.error("Couldn't stop it", extractError(err));
+      toast.error(fail, extractError(err));
     }
   };
+  const stop = () => act(() => cancel.mutateAsync(undefined), "Couldn't stop it");
+
+  let state: 'queued' | 'reading' | 'ok' | 'review' | 'failed' = 'reading';
+  let label = 'READING';
+  let body: ReactNode = (
+    <>
+      {name} is {run.mode === 'work' ? 'working on this ticket' : 'reading the ticket and the code'}…
+    </>
+  );
+  let action: ReactNode = (
+    <button type="button" className="ai-btn ai-btn-sm" onClick={stop} data-testid="ask-stop">
+      Stop
+    </button>
+  );
+  let lead: ReactNode = <span className="ai-spin" />;
+  if (waiting) {
+    state = 'queued';
+    label = 'QUEUED';
+    lead = <span className="tw-dot-grey" />;
+    body = <>{run.waitingReason ?? 'Waiting for a free slot'}</>;
+    action = (
+      <button type="button" className="ai-btn ai-btn-sm" onClick={stop} data-testid="ask-stop">
+        Cancel
+      </button>
+    );
+  } else if (pending.length) {
+    state = 'ok';
+    label = 'NEEDS YOUR OK';
+    lead = (
+      <svg width="15" height="15" viewBox="0 0 24 24" {...IC} style={{ color: '#B4791E' }} aria-hidden="true">
+        <rect x="5" y="11" width="14" height="9" rx="2" />
+        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      </svg>
+    );
+    body = (
+      <>
+        Wants to {pending[0].summary.replace(/^wants to\s+/i, '')}. Waiting for an approver.
+        {pending.length > 1 ? ` (${pending.length} requests)` : ''}
+      </>
+    );
+    action = (
+      <button type="button" className="ai-btn ai-btn-sm" onClick={() => openRun(run.id)} data-testid="ask-review">
+        Review
+      </button>
+    );
+  } else if (didNotStart(run)) {
+    state = 'failed';
+    label = 'DID NOT START';
+    lead = (
+      <svg width="15" height="15" viewBox="0 0 24 24" {...IC} style={{ color: '#C4432A' }} aria-hidden="true">
+        <path d="M12 3.5L22 20H2zM12 10v4M12 17.2v.1" />
+      </svg>
+    );
+    body = <>{run.endedReason ?? 'It could not start.'} Nothing was sent.</>;
+    action = (
+      <button
+        type="button"
+        className="ai-btn ai-btn-sm"
+        disabled={retry.isPending}
+        data-testid="ask-retry"
+        onClick={() => act(() => retry.mutateAsync(undefined), "Couldn't try again")}
+      >
+        Try again
+      </button>
+    );
+  } else if (run.state === 'finished' && run.mode === 'work') {
+    state = 'review';
+    label = 'REVIEW';
+    lead = <span style={{ color: '#2E6F40', fontWeight: 700 }}>✓</span>;
+    body = <>{name} finished. The ticket is ready for your review.</>;
+    action = (
+      <button type="button" className="ai-btn ai-btn-sm" onClick={() => openRun(run.id)} data-testid="ask-review">
+        Review
+      </button>
+    );
+  }
   return (
-    <div
-      className="cm-row tw-thread-row"
-      data-testid="ask-placeholder"
-      data-state={streaming ? 'streaming' : 'thinking'}
-    >
-      {ai ? (
-        <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={32} title={ai.name} />
-      ) : (
-        <span style={{ width: 32 }} />
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="tw-head">
-          <span style={{ fontSize: 14, fontWeight: 700 }}>{run.memberName}</span>
-          <span className="ai-chip" style={{ height: 18, background: '#1E2A22', color: '#fff' }}>
-            AI
-          </span>
-          <span style={{ flex: 1 }} />
-          <ThreadChip state={streaming ? 'streaming' : 'thinking'} />
-        </div>
-        {streaming ? (
-          <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
-            <MarkdownRenderer>{text}</MarkdownRenderer>
-            <span className="tw-caret" aria-hidden="true" />
-            <div className="tw-live">
-              <span
-                className="ai-chip"
-                style={{ background: '#F6FAF7', border: '1px solid #E3E8E5', color: '#5B6B60' }}
-              >
-                ⚡ <span className="ai-mono">{Math.max(1, Math.round(all.length / 4))} tokens</span>
+    <div data-testid="ask-placeholder" data-state={state === 'reading' && streaming ? 'streaming' : state}>
+      <div className={`tw-runrow ${state === 'failed' ? 'tw-runrow-bad' : state === 'review' ? 'tw-runrow-ok' : ''}`}>
+        <span className="tw-runrow-label">{label}</span>
+        <span style={{ display: 'inline-flex', width: 18, justifyContent: 'center' }}>{lead}</span>
+        <span className="tw-runrow-text">
+          {body}
+          {state === 'reading' && !waiting && run.state !== 'queued' && (
+            <span className="ai-muted ai-mono" style={{ marginLeft: 8 }}>
+              {secs}s
+            </span>
+          )}
+        </span>
+        {action}
+      </div>
+      {streaming && (
+        <div className="cm-row tw-thread-row" style={{ marginTop: 6 }}>
+          {ai ? (
+            <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={32} title={ai.name} />
+          ) : (
+            <span style={{ width: 32 }} />
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="tw-head">
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{run.memberName}</span>
+              <span className="ai-chip" style={{ height: 18, background: '#1E2A22', color: '#fff' }}>
+                AI
               </span>
-              <span className="ai-muted">Streaming…</span>
-              <button type="button" className="ai-link" onClick={stop} data-testid="ask-stop">
-                Stop
-              </button>
+              <span style={{ flex: 1 }} />
+              <ThreadChip state="streaming" />
+            </div>
+            <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+              <MarkdownRenderer>{text}</MarkdownRenderer>
+              <span className="tw-caret" aria-hidden="true" />
+              <div className="tw-live">
+                <span
+                  className="ai-chip"
+                  style={{ background: '#F6FAF7', border: '1px solid #E3E8E5', color: '#5B6B60' }}
+                >
+                  ⚡ <span className="ai-mono">{Math.max(1, Math.round(all.length / 4))} tokens</span>
+                </span>
+                <span className="ai-muted">Streaming…</span>
+              </div>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="tw-live" style={{ marginTop: 4 }}>
-              <span className="ai-spin" />
-              <span style={{ fontSize: 13.5, color: '#5B6B60' }}>
-                {waiting ? (run.waitingReason ?? 'Waiting to start') : 'Thinking…'}
-              </span>
-              {!waiting && <span className="ai-muted ai-mono">{secs}s</span>}
-              <button type="button" className="ai-link" onClick={stop} data-testid="ask-stop">
-                Stop
-              </button>
-            </div>
-            <div className="tw-skel" style={{ width: '92%' }} />
-            <div className="tw-skel" style={{ width: '64%' }} />
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /** Rating buttons, regenerate and edit-and-re-run under an AI's answer; the run link and cost on the left (C2). */
-export function AnswerFooter({ comment, run, canAct }: { comment: Comment; run?: AiRun; canAct: boolean }) {
+export function AnswerFooter({
+  comment,
+  run,
+  canAct,
+  onReply,
+}: {
+  comment: Comment;
+  run?: AiRun;
+  canAct: boolean;
+  /** "Reply": answer this comment, which asks the AI again. */
+  onReply?: () => void;
+}) {
   const meta = comment.ai!;
   const { openRun } = useAiTicket();
   const toast = useToast();
@@ -187,6 +282,7 @@ export function AnswerFooter({ comment, run, canAct }: { comment: Comment; run?:
               onClick={() => void send({ rating: rating === 'up' ? 'none' : 'up' })}
             >
               <ThumbUp on={rating === 'up'} />
+              <span style={{ marginLeft: 5, fontSize: 12.5, fontWeight: 600 }}>Helpful</span>
             </button>
             <button
               type="button"
@@ -220,6 +316,11 @@ export function AnswerFooter({ comment, run, canAct }: { comment: Comment; run?:
             <button type="button" className="tw-act" data-testid="answer-edit" onClick={() => setEdit(!edit)}>
               ✎ Edit and re-run
             </button>
+            {onReply && (
+              <button type="button" className="tw-act" data-testid="answer-reply" onClick={onReply}>
+                ↩ Reply
+              </button>
+            )}
           </>
         )}
       </div>
@@ -370,9 +471,12 @@ export function AskErrorCard({ comment, run, onDismiss }: { comment: Comment; ru
         <svg width="17" height="17" viewBox="0 0 24 24" {...IC} aria-hidden="true">
           <path d="M12 3.5L22 20H2zM12 10v4M12 17.2v.1" />
         </svg>
-        Couldn’t answer
+        {run && didNotStart(run) ? 'Did not start' : 'Couldn’t answer'}
       </div>
-      <div style={{ fontSize: 13.5, margin: '8px 0 10px', color: '#3A4A3E' }}>{reason}</div>
+      <div style={{ fontSize: 13.5, margin: '8px 0 10px', color: '#3A4A3E' }}>
+        {reason}
+        {run && didNotStart(run) ? ' Nothing was sent.' : ''}
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <button
           type="button"
@@ -387,7 +491,7 @@ export function AskErrorCard({ comment, run, onDismiss }: { comment: Comment; ru
             }
           }}
         >
-          ↻ Retry
+          {run && didNotStart(run) ? 'Try again' : '↻ Retry'}
         </button>
         <button type="button" className="ai-link" onClick={() => openRun(meta.runId)}>
           Open run log
