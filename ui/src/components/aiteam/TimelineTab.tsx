@@ -943,7 +943,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
           ]
         : [
             { text: `${who(w.memberId)} asked: ${w.text}` },
-            ...(w.risk ? [{ text: `Risk ${w.risk} · the run keeps going, this step waits` }] : []),
+            ...(w.risk ? [{ text: `Risk ${w.risk}${open ? ' · the run keeps going, this step waits' : ''}` }] : []),
           ],
       hint: q && open ? 'Click for the full question and Answer' : 'Click for details',
       question:
