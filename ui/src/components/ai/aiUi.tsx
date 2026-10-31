@@ -426,6 +426,7 @@ const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean
   rate_limited: { dot: '#B4791E', text: '#B4571F' },
   paused: { dot: '#9AA8A0', text: '#5B6B60', square: true },
   paused_all: { dot: '#B4571F', text: '#B4571F', square: true },
+  not_ready: { dot: '#B4791E', text: '#7A5A06' },
   removing: { dot: '#9AA8A0', text: '#5B6B60' },
   removed: { dot: '#9AA8A0', text: '#9AA8A0' },
 };
@@ -648,7 +649,7 @@ export interface AiBoardState {
   /** Open a ticket. */
   openTicket?: (ticketId: string) => void;
   /** Open the AI page on one of its tabs (Inbox, Audit log, Usage, Safety). */
-  openAiTab?: (tab: 'approvals' | 'audit' | 'usage' | 'safety', opts?: { memberId?: string }) => void;
+  openAiTab?: (tab: 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety', opts?: { memberId?: string }) => void;
 }
 
 /** AI state of the open project, provided by App. */

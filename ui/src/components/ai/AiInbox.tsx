@@ -8,6 +8,8 @@ import { useToast } from '../Toast';
 import { requestOpenDoc } from '../../utils/openDoc';
 import { setPendingReview } from '../../utils/docsProposalRules';
 import { AiAvatar, ago, hhmm } from './aiUi';
+import { SignedOutBanners } from './accounts/SignedOutBanners';
+import './accounts/accountsMember.css';
 import { ChipChoice, Pill, RISK, RadioRow, RiskChip, SafetyCard, TrustChip, expiresIn, shown } from './aiSafetyUi';
 
 type InboxTab = 'mentions' | 'questions' | 'approvals';
@@ -38,6 +40,7 @@ export function InboxView({
           Approval rules
         </button>
       </div>
+      <SignedOutBanners projectId={projectId} members={members} />
       {rules && <ApprovalRules projectId={projectId} humans={humans} />}
       <div className="ai-tabs" role="tablist" style={{ marginTop: 0 }}>
         {(

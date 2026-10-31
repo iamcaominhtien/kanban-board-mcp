@@ -13,6 +13,10 @@ import { SafeModeChip } from './AiKillSwitch';
 import { RunSteps } from './RunPanel';
 import { ConfigTab } from './config/ConfigTab';
 import { ConnectionStateCard, type ConfigFocus } from './ConnectionState';
+import { ChangeAccountDialog } from './accounts/AccountPicker';
+import { AccountStatusChip } from './accounts/AccountChip';
+import { displayStatus, planOrMethod, sharedProfileHint, usesAccounts } from '../../utils/memberAccount';
+import './accounts/accountsMember.css';
 import { ProjectsPicker } from './ProjectsPicker';
 import {
   AiAvatar,
@@ -76,7 +80,7 @@ export function AiProfile({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <h1 className="ai-h1">{member.name}</h1>
-            <StatusLabel status={member.status} sub={null} />
+            <StatusLabel status={displayStatus(member)} sub={null} />
           </div>
           <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
             <ProviderChip provider={member.provider} />
@@ -266,6 +270,7 @@ function Overview({
     refetchInterval: 1500,
   });
   const runner = useRunnerInfo();
+  const [changing, setChanging] = useState(false);
   // “Started 3m 12s ago” counts every second
   useNow(1000, !!current);
   const cancel = useAiMutation((id: string) => aiApi.cancel(id));
@@ -416,8 +421,50 @@ function Overview({
                       ? `${PROVIDERS[member.provider].binary} ${member.cliVersion.split(' ')[0]}`
                       : 'not checked yet'}
                   </dd>
-                  <dt>Signed in as</dt>
-                  <dd>{member.account ?? '—'}</dd>
+                  {usesAccounts(member.provider) && (
+                    <>
+                      <dt>Account</dt>
+                      <dd data-testid="profile-account">
+                        {member.accountRef ? (
+                          <>
+                            <b>{member.accountRef.name}</b>
+                            {[member.accountRef.email, planOrMethod(member.accountRef)].filter(Boolean).map((t) => (
+                              <span key={t}> · {t}</span>
+                            ))}{' '}
+                            <AccountStatusChip status={member.accountRef.status} />
+                          </>
+                        ) : member.provider === 'opencode' ? (
+                          'Free models · no account'
+                        ) : (
+                          'The login already on this computer · as before'
+                        )}
+                        {runner.data?.local !== false && (
+                          <>
+                            {' '}
+                            <button
+                              type="button"
+                              className="ai-link"
+                              onClick={() => setChanging(true)}
+                              data-testid="profile-account-change"
+                            >
+                              Change
+                            </button>
+                          </>
+                        )}
+                        {member.accountRef && sharedProfileHint(member.accountRef) && (
+                          <div className="ai-muted" data-testid="profile-account-shared">
+                            {sharedProfileHint(member.accountRef)}
+                          </div>
+                        )}
+                      </dd>
+                    </>
+                  )}
+                  {!member.accountRef && (
+                    <>
+                      <dt>Signed in as</dt>
+                      <dd>{member.account ?? '—'}</dd>
+                    </>
+                  )}
                   <dt>Folder</dt>
                   <dd className="ai-mono" style={{ fontSize: 12 }}>
                     {member.workingDir ?? '—'}
@@ -445,7 +492,9 @@ function Overview({
             </dl>
             <div className="ai-muted" style={{ marginTop: 8 }}>
               {member.connection === 'local'
-                ? 'Uses the CLI’s own login. Kanban holds no token for this AI member.'
+                ? member.accountRef
+                  ? `Runs as the account ${member.accountRef.name}. Kanban never reads or shows its login.`
+                  : 'Uses the CLI’s own login. Kanban holds no token for this AI member.'
                 : 'The key is encrypted; only its last 4 characters are ever shown.'}
             </div>
           </Card>
@@ -490,6 +539,7 @@ function Overview({
           </Card>
         </div>
       </div>
+      {changing && <ChangeAccountDialog members={[member]} onClose={() => setChanging(false)} />}
     </div>
   );
 }

@@ -113,7 +113,16 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
 }
 
 /** Settings › AI: the Board AI selector, safe mode and the board-wide limits (A4). The board assistant has its own page. */
-export function AiSettingsSection({ projectId, onManage }: { projectId: string; onManage?: () => void }) {
+export function AiSettingsSection({
+  projectId,
+  onManage,
+  onManageAccounts,
+}: {
+  projectId: string;
+  onManage?: () => void;
+  /** Opens the AI accounts tab of the Members page. */
+  onManageAccounts?: () => void;
+}) {
   const overview = useAiOverview(projectId);
   const [picker, setPicker] = useState(false);
   const [library, setLibrary] = useState(false);
@@ -137,6 +146,17 @@ export function AiSettingsSection({ projectId, onManage }: { projectId: string; 
         >
           Library
         </button>
+        {onManageAccounts && (
+          <button
+            type="button"
+            className="ai-link"
+            onClick={onManageAccounts}
+            style={{ marginRight: 12 }}
+            data-testid="manage-ai-accounts"
+          >
+            Manage AI accounts
+          </button>
+        )}
         {onManage && (
           <button type="button" className="ai-link" onClick={onManage}>
             Manage AI members

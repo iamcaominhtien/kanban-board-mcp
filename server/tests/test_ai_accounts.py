@@ -379,6 +379,12 @@ async def test_removing_to_a_missing_or_foreign_account_is_refused(fake_cli):
         ("Paste the authorization code here > ", "paste_code", None),
         ("Do you trust the files in this folder?\n❯ 1. Yes", "trust_folder", None),
         ("Invalid or expired code", "error", None),
+        (
+            "Paste code here if prompted > bad\nInvalid or expired code\nPress Enter to retry",
+            "error",
+            None,
+        ),
+        ("Paste code here if prompted > bad\nInvalid or expired code", "error", None),
         ("\x1b[1mSelect login method\x1b[0m", "choose_method", None),
     ],
 )
@@ -642,3 +648,24 @@ async def test_the_test_run_in_the_connect_step_runs_as_the_chosen_account(
         await c.post("/ai/test-run", json={**body, "account_id": "acct_nope"})
     ).json()
     assert missing["ok"] is False
+
+
+async def test_signing_in_again_to_a_signed_in_account_waits_for_the_login_to_end(
+    fake_cli,
+):
+    c = fake_cli["c"]
+    a = await _account(c)
+    _login(a)
+    await c.post(f"/ai/accounts/{a['id']}/check")
+    await c.post(f"/ai/accounts/{a['id']}/signin")
+    s = signin.active(a["id"])
+    assert s.was_signed_in
+    await signin._check(s)
+    assert (
+        not s.signed_in
+    )  # the status said "signed in" before the CLI even asked for a code
+    q = signin.attach(s)
+    await _drain(q, lambda m: m["type"] == "state" and m.get("phase") == "paste_code")
+    signin.write(s, "good\n")
+    await _drain(q, lambda m: m["type"] == "state" and m.get("signed_in"))
+    await signin.stop(s)

@@ -37,6 +37,8 @@ interface SettingsPageProps {
   projectId?: string;
   /** Opens the AI members page. */
   onManageAi?: () => void;
+  /** Opens the AI accounts tab of the Members page. */
+  onManageAccounts?: () => void;
   target?: SettingsTarget;
 }
 
@@ -61,7 +63,15 @@ function syncUrl(page: SettingsPageId | null) {
  * Settings as a full page with a list of pages, search and direct links
  * (design/screens/settings-structure.md, settings-pages.md).
  */
-export function SettingsPage({ onClose, theme, onToggleTheme, projectId, onManageAi, target }: SettingsPageProps) {
+export function SettingsPage({
+  onClose,
+  theme,
+  onToggleTheme,
+  projectId,
+  onManageAi,
+  onManageAccounts,
+  target,
+}: SettingsPageProps) {
   const desktop = isDesktop();
   const pages = useMemo(() => SETTINGS_PAGES.filter((p) => !p.desktopOnly || desktop), [desktop]);
   const { data: projects = [] } = useProjects();
@@ -182,7 +192,9 @@ export function SettingsPage({ onClose, theme, onToggleTheme, projectId, onManag
       ) : null;
       break;
     case 'ai':
-      body = project ? <AiSettingsSection projectId={project.id} onManage={onManageAi} /> : null;
+      body = project ? (
+        <AiSettingsSection projectId={project.id} onManage={onManageAi} onManageAccounts={onManageAccounts} />
+      ) : null;
       break;
     case 'assistant':
       body = project ? (

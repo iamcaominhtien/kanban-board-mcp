@@ -1,0 +1,445 @@
+/* Add an AI account and the sign-in window (design/screens/ai-accounts.md, C1 to C4). */
+.sg-win {
+  width: 640px;
+  max-width: 100%;
+  max-height: calc(100vh - 40px);
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(30, 42, 34, 0.18);
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #1e2a22;
+}
+.sg-win-add {
+  width: 520px;
+}
+.sg-win-small {
+  width: 420px;
+}
+.sg-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eef3ef;
+}
+.sg-head-title {
+  flex: 1;
+  min-width: 0;
+}
+.sg-head-title b {
+  font-size: 15px;
+}
+.sg-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+.sg-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+}
+.sg-grow {
+  flex: 1;
+}
+.sg-note {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+
+/* Add account stepper: 1 CLI, 2 Name, 3 Sign in */
+.sg-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sg-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5b6b60;
+}
+.sg-step-on {
+  font-weight: 700;
+  color: #1e2a22;
+}
+.sg-step-n {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid #c7d2cb;
+  color: #5b6b60;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sg-step-on .sg-step-n,
+.sg-step-done .sg-step-n {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+}
+.sg-step-line {
+  width: 18px;
+  height: 1px;
+  background: #d5ded8;
+  display: inline-block;
+}
+
+/* CLI cards */
+.sg-cli {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.sg-cli:hover:not(:disabled) {
+  border-color: #9cc9a8;
+}
+.sg-cli-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.sg-cli:disabled {
+  background: #f6f8f6;
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+.sg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1.5px solid currentColor;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sg-cli-text {
+  flex: 1;
+  min-width: 0;
+}
+.sg-cli-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.sg-cli-hint {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+.sg-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.sg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  background: #f1f3f1;
+  color: #3a4a3e;
+}
+.sg-chip-warn {
+  background: #fef3d9;
+  color: #7a5a06;
+}
+.sg-chip-off {
+  color: #5b6b60;
+}
+
+/* Callouts (the info box of the name step, the install warning) */
+.sg-callout {
+  padding: 10px 12px;
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid #c9ddf0;
+  background: #e8f1fa;
+}
+.sg-callout > svg {
+  margin-top: 1px;
+  color: #244e78;
+}
+.sg-callout-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #244e78;
+}
+.sg-callout-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+.sg-callout-warn {
+  border-color: #f0dba8;
+  background: #fef6e7;
+}
+.sg-callout-warn > svg,
+.sg-callout-warn .sg-callout-title {
+  color: #7a5a06;
+}
+.sg-cmd {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #14201a;
+  color: #dde8e0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.sg-cmd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #14201a;
+}
+.sg-cmd-row span {
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #dde8e0;
+  word-break: break-all;
+}
+
+/* Sign-in: step dots */
+.sg-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sg-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #5b6b60;
+  font-weight: 500;
+}
+.sg-dot-now {
+  color: #1e2a22;
+  font-weight: 700;
+}
+.sg-dot > i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid #9aa8a0;
+  display: inline-block;
+}
+.sg-dot-filled > i {
+  background: #2e6f40;
+  border-color: #2e6f40;
+}
+.sg-dot-line {
+  width: 14px;
+  height: 1px;
+  background: #d5ded8;
+  display: inline-block;
+}
+
+/* Sign-in: the status line (one sentence) */
+.sg-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #c9ddf0;
+  background: #e8f1fa;
+  flex-wrap: wrap;
+}
+.sg-status-text {
+  flex: 1;
+  min-width: 180px;
+}
+.sg-status-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.sg-status-body {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #3a4a3e;
+}
+.sg-status-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sg-tone-blue {
+  background: #e8f1fa;
+  border-color: #c9ddf0;
+  color: #244e78;
+}
+.sg-tone-amber {
+  background: #fef6e7;
+  border-color: #f0dba8;
+  color: #7a5a06;
+}
+.sg-tone-green {
+  background: #e6f2ea;
+  border-color: #bfdcc8;
+  color: #1f5a31;
+}
+.sg-tone-red {
+  background: #fdf3f0;
+  border-color: #f0c4b8;
+  color: #a5321e;
+}
+.sg-status-title {
+  color: inherit;
+}
+.sg-status > svg {
+  flex-shrink: 0;
+}
+.sg-spin {
+  animation: sg-spin 0.9s linear infinite;
+}
+@keyframes sg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-spin {
+    animation: none;
+  }
+}
+
+/* Sign-in: the terminal */
+.sg-term {
+  width: 100%;
+  border-radius: 10px;
+  background: #14201a;
+  border: 1px solid #0e1712;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.sg-term-dim {
+  opacity: 0.55;
+}
+.sg-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #1b2a22;
+  color: #9db3a5;
+  font-size: 11px;
+}
+.sg-term-bar > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2e6f40;
+  display: inline-block;
+}
+.sg-term-bar code {
+  font-family: 'JetBrains Mono', monospace;
+}
+.sg-term-body {
+  padding: 10px 12px;
+  height: 190px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.sg-term-body .xterm {
+  height: 100%;
+}
+.sg-term-body .xterm-viewport {
+  background-color: transparent !important;
+}
+.sg-term-body .xterm a {
+  text-decoration: underline;
+}
+
+/* Sign-in: helper keys */
+.sg-keys {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.sg-key {
+  min-width: 30px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #d5ded8;
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sg-key:hover {
+  background: #f6faf7;
+}
+.sg-key:active {
+  border-bottom-width: 1px;
+}
+
+/* The command to run in the person's own terminal / the reason the terminal did not start */
+.sg-reason {
+  padding: 14px;
+  border: 1px dashed #e8b5a8;
+  border-radius: 10px;
+  background: #fffaf8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #a5321e;
+  word-break: break-word;
+}
+.sg-body .ai-input {
+  box-sizing: border-box;
+  width: 100%;
+}
+.sg-win:focus {
+  outline: none;
+}

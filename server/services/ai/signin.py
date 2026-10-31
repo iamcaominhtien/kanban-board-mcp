@@ -68,7 +68,11 @@ def read_screen(text: str, signed_in: bool = False) -> dict:
     recent = "\n".join(last).lower()
     urls = URL.findall(tail)
     phase = "waiting"
-    if re.search(r"do you trust|trust the files|trust this folder", recent):
+    # the newest lines decide: an old prompt above a rejection no longer counts
+    newest = "\n".join(last[-2:]).lower()
+    if re.search(r"invalid|expired|rejected|denied|failed|error", newest):
+        phase = "error"
+    elif re.search(r"do you trust|trust the files|trust this folder", recent):
         phase = "trust_folder"
     elif (
         re.search(r"(paste|enter|type).{0,40}(code|token)|authorization code", recent)
@@ -125,6 +129,9 @@ class SignIn:
     exit_code: int | None = None
     ended: str | None = None  # None while open | exited | cancelled | done
     signed_in: bool = False
+    # The account was signed in before: its status says so at once, so "signed in" only counts once the CLI's login
+    # has ended (Claude Code and Codex end by themselves; for the others the person presses Done)
+    was_signed_in: bool = False
     duplicate_of: str | None = None
     account: dict | None = None
     poller: asyncio.Task | None = None
@@ -224,7 +231,14 @@ async def start(account: AiAccount, by: str, cols: int = 80, rows: int = 24) -> 
         raise PtyUnavailable(f"Could not run the CLI ({exc.strerror or exc})") from exc
     os.close(slave)
     os.set_blocking(master, False)
-    session = SignIn(account.id, by, argv, master=master, proc=proc)
+    session = SignIn(
+        account.id,
+        by,
+        argv,
+        master=master,
+        proc=proc,
+        was_signed_in=account.status == "signed_in",
+    )
     SESSIONS[account.id] = session
     loop = asyncio.get_running_loop()
     loop.add_reader(master, _on_output, session)
@@ -278,7 +292,11 @@ async def _check(session: SignIn) -> None:
         if account is None:
             return
         await accounts.check(db, account)
-        session.signed_in = account.status == "signed_in"
+        session.signed_in = account.status == "signed_in" and (
+            not session.was_signed_in
+            or (session.ended == "exited" and session.exit_code == 0)
+            or session.ended == "done"
+        )
         session.duplicate_of = None
         if session.signed_in and account.email:
             for other in await accounts.list_all(db):

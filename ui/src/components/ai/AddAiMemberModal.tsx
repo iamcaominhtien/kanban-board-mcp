@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { aiApi, useAiMutation, useRunnerInfo } from '../../api/ai';
+import { useAiAccounts } from '../../api/aiAccounts';
 import { useAiMe } from '../../api/aiSafety';
 import { useTickets } from '../../api/tickets';
 import { extractError } from '../../api/extractError';
@@ -7,6 +8,10 @@ import type { AiMember, AiProvider, DetectResult } from '../../types/ai';
 import { AiAvatar, AvatarPicker, DEFAULT_LOOK, PROVIDERS, STATUS_NAMES } from './aiUi';
 import presetData from './memberPresets.json';
 import { AiFillPanel, type AiFilled } from './AiFillPanel';
+import { AccountPicker } from './accounts/AccountPicker';
+import { AccountNote } from './accounts/AccountBanner';
+import { GreyChip, NotReadyChip } from './accounts/AccountChip';
+import { accountReady, accountsFor, runsNotReady, typeChip, usesAccounts } from '../../utils/memberAccount';
 
 interface MemberPreset {
   id: string;
@@ -107,6 +112,10 @@ export function AddAiMemberModal({
   const [detect, setDetect] = useState<DetectResult | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [workingDir, setWorkingDir] = useState('');
+  // The AI account this member runs as (null: the login already on this computer, or opencode's free models)
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const accountList = useAiAccounts(projectId);
+  const chosenAccount = accountList.data?.accounts.find((a) => a.id === accountId) ?? null;
   const [testRun, setTestRun] = useState<{ ok: boolean; text: string } | null>(null);
   const [testing, setTesting] = useState(false);
   const [key, setKey] = useState('');
@@ -200,6 +209,7 @@ export function AddAiMemberModal({
     setDetect(null);
     setTestRun(null);
     setKeyTest(null);
+    setAccountId(null);
     setName(provider === 'mcp-client' ? '' : `${spec.label.replace(' endpoint', '')} · `);
     setLook({ ...DEFAULT_LOOK[provider] });
   }, [provider, spec.defaultModel, spec.baseUrl, spec.label]);
@@ -238,10 +248,20 @@ export function AddAiMemberModal({
     setTesting(true);
     setTestRun(null);
     try {
-      const r = await aiApi.testRun({ provider, model, workingDir: workingDir || undefined });
+      const r = await aiApi.testRun({
+        provider,
+        model,
+        workingDir: workingDir || undefined,
+        accountId: accountId ?? undefined,
+      });
       setTestRun(
         r.ok
-          ? { ok: true, text: `Test run passed in ${r.seconds} s — CLI replied “${r.reply}”` }
+          ? {
+              ok: true,
+              text: chosenAccount
+                ? `Test run passed in ${r.seconds} s as ${chosenAccount.name}`
+                : `Test run passed in ${r.seconds} s — CLI replied “${r.reply}”`,
+            }
           : { ok: false, text: r.error ?? 'Test run failed' },
       );
     } catch (err) {
@@ -293,7 +313,8 @@ export function AddAiMemberModal({
     (local &&
       !webBuild &&
       detect?.found &&
-      detect.loggedIn !== false &&
+      accountReady(chosenAccount) &&
+      (accountId !== null || detect.loggedIn !== false) &&
       (!!workingDir.trim() || provider !== 'claude-code')) ||
     (apiKey &&
       key.trim().length > 0 &&
@@ -328,6 +349,7 @@ export function AddAiMemberModal({
         color: look.color,
         glyph: look.glyph,
         workingDir: local ? workingDir : undefined,
+        accountId: local && accountId ? accountId : undefined,
         model: model || undefined,
         apiKey: apiKey ? key : undefined,
         baseUrl: apiKey ? baseUrl || undefined : undefined,
@@ -394,38 +416,43 @@ export function AddAiMemberModal({
         <div className="ai-modal-body">
           {step === 1 && (
             <>
-              <div className="ai-notice ai-notice-info">
-                <ShieldIcon />
-                <div>
-                  <b>Your login stays in the CLI</b>
-                  <div>
-                    A local runner only starts the official CLI that you already signed in to. Kanban never stores,
-                    copies or reuses its token.
-                  </div>
-                </div>
-              </div>
+              <AccountNote title="Sign in once, use it for many" testId="step1-accounts-note">
+                A local runner starts the official CLI with an <b>AI account</b>. Kanban never reads or shows the login.
+              </AccountNote>
               {webBuild && (
                 <div className="ai-notice ai-notice-warn" data-testid="web-build-notice">
                   <div>
                     <b>Local runners only work in the desktop app</b>
                     <div>
-                      This is the web build; it cannot start the Claude Code or Antigravity CLI. Their tickets queue and
-                      start when the desktop app is online. API-key AI members still work here.
+                      This is the web build; it cannot start the Claude Code, Codex, opencode or Antigravity CLI. Their
+                      tickets queue and start when the desktop app is online. API-key AI members still work here.
                     </div>
                   </div>
                 </div>
               )}
-              <Group title="Runs on your computer" tag="local runner">
-                {(['claude-code', 'antigravity'] as AiProvider[]).map((p) => (
-                  <TypeOption
-                    key={p}
-                    p={p}
-                    active={provider === p}
-                    onPick={setProvider}
-                    disabled={webBuild}
-                    sub={webBuild ? 'Needs the desktop app' : undefined}
-                  />
-                ))}
+              <Group title="Runs on your computer" tag="local runner" columns={1}>
+                {(['claude-code', 'codex', 'opencode', 'antigravity'] as AiProvider[]).map((p) => {
+                  const card = accountList.data?.clis.find((c) => c.provider === p);
+                  const count = accountsFor(accountList.data?.accounts ?? [], p).length;
+                  const chip = typeChip(count, webBuild ? undefined : card?.found);
+                  return (
+                    <TypeOption
+                      key={p}
+                      p={p}
+                      active={provider === p}
+                      onPick={setProvider}
+                      disabled={webBuild}
+                      sub={webBuild ? 'Needs the desktop app' : typeSub(p, card?.unavailable ?? null)}
+                      chip={
+                        runsNotReady(p) && p === 'antigravity' ? (
+                          <NotReadyChip />
+                        ) : chip ? (
+                          <GreyChip>{chip.text}</GreyChip>
+                        ) : undefined
+                      }
+                    />
+                  );
+                })}
               </Group>
               <Group title="Runs on the board" tag="API key">
                 {(['anthropic', 'openai', 'gemini', 'custom'] as AiProvider[]).map((p) => (
@@ -467,10 +494,27 @@ export function AddAiMemberModal({
                       )}
                     </dd>
                     <dt>Signed in as</dt>
-                    <dd style={{ color: detect.loggedIn === false ? '#C4432A' : undefined }}>
-                      {detect.loggedIn === false
-                        ? 'Not signed in — run it once in a terminal'
-                        : (detect.account ?? (detect.loggedIn ? 'Signed in' : 'Not reported by the CLI'))}
+                    <dd
+                      style={{
+                        color: chosenAccount
+                          ? accountReady(chosenAccount)
+                            ? undefined
+                            : '#C4432A'
+                          : detect.loggedIn === false
+                            ? '#C4432A'
+                            : undefined,
+                      }}
+                      data-testid="signed-in-as"
+                    >
+                      {chosenAccount
+                        ? accountReady(chosenAccount)
+                          ? [chosenAccount.name, chosenAccount.email].filter(Boolean).join(' · ')
+                          : `${chosenAccount.name} is signed out`
+                        : provider === 'opencode'
+                          ? 'Free models need no sign-in'
+                          : detect.loggedIn === false
+                            ? 'Not signed in — run it once in a terminal'
+                            : (detect.account ?? (detect.loggedIn ? 'Signed in' : 'Not reported by the CLI'))}
                     </dd>
                     {runner.data && (
                       <>
@@ -479,13 +523,24 @@ export function AddAiMemberModal({
                       </>
                     )}
                   </dl>
+                  {usesAccounts(provider) && (
+                    <AccountPicker
+                      provider={provider}
+                      value={accountId}
+                      projectId={projectId}
+                      onChange={(id) => {
+                        setAccountId(id);
+                        setTestRun(null);
+                      }}
+                    />
+                  )}
                   <div className="ai-notice ai-notice-info">
                     <ShieldIcon />
                     <div>
                       <b>Account name only</b>
                       <div>
-                        Kanban reads the account name the CLI reports. The login token stays in the CLI’s own keychain
-                        and is never read, shown or stored.
+                        Kanban reads the account name the CLI reports. It never reads, shows or sends the login: the CLI
+                        keeps it for the account, in its folder or, for Claude Code on macOS, in the system keychain.
                       </div>
                     </div>
                   </div>
@@ -503,8 +558,14 @@ export function AddAiMemberModal({
                       <span className="ai-error-text">{folderError}</span>
                     ) : (
                       <span className="ai-hint">
-                        Every run starts here with <span className="ai-code">claude -p</span> (headless). The runner can
-                        only touch this folder and below.
+                        {provider === 'claude-code' ? (
+                          <>
+                            Every run starts here with <span className="ai-code">claude -p</span> (headless). The runner
+                            can only touch this folder and below.
+                          </>
+                        ) : (
+                          'Every run starts here. The runner can only touch this folder and below.'
+                        )}
                       </span>
                     )}
                   </div>
@@ -532,25 +593,25 @@ export function AddAiMemberModal({
                       )}
                     </div>
                   )}
-                  {provider === 'antigravity' && (
-                    <div className="ai-notice ai-notice-warn">
-                      Antigravity has no headless mode the board can start yet: it gets its assigned tickets and
-                      mentions through MCP, and runs are marked as not supported.
-                    </div>
+                  {runsNotReady(provider) && (
+                    <AccountNote tone="warn" title="Runs do not start yet" testId="not-ready-note">
+                      The board cannot start {spec.label} yet. You can add this AI member and choose its account now; it
+                      has a Not ready chip until runs are supported.
+                    </AccountNote>
                   )}
                 </>
               )}
               {detect && !detect.found && (
                 <>
-                  <div className="ai-notice ai-notice-error">
-                    <div>
-                      <b>“{spec.binary}” was not found on this computer</b>
-                      <div>
-                        Checked PATH and the usual install folders. The desktop runner needs the official CLI installed
-                        and signed in.
-                      </div>
-                    </div>
-                  </div>
+                  <AccountNote
+                    tone="warn"
+                    title={`“${spec.binary}” was not found on this computer`}
+                    testId="cli-missing"
+                  >
+                    {usesAccounts(provider)
+                      ? 'Install it to use an account with it. The steps are the same as for any local runner.'
+                      : 'Checked PATH and the usual install folders. The desktop runner needs the official CLI installed and signed in.'}
+                  </AccountNote>
                   <div className="ai-label ai-label-dark">Install and sign in</div>
                   {detect.installSteps && detect.installSteps.length > 0 ? (
                     <ol className="ai-hint" style={{ margin: 0, paddingLeft: 18 }} data-testid="install-steps">
@@ -1052,14 +1113,30 @@ export function AddAiMemberModal({
   );
 }
 
-function Group({ title, tag, children }: { title: string; tag: string; children: React.ReactNode }) {
+/** The grey line of a local type card; Antigravity says its runs do not start yet and where it is not available. */
+function typeSub(p: AiProvider, unavailable: string | null): string | undefined {
+  if (p !== 'antigravity') return undefined;
+  return `${PROVIDERS[p].sub} · runs do not start yet (temporary)${unavailable ? ' · not available on Windows' : ''}`;
+}
+
+function Group({
+  title,
+  tag,
+  children,
+  columns = 2,
+}: {
+  title: string;
+  tag: string;
+  children: React.ReactNode;
+  columns?: number;
+}) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <span style={{ fontSize: 12.5, fontWeight: 700 }}>{title}</span>
         <span className="ai-label">{tag}</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>{children}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 8 }}>{children}</div>
     </div>
   );
 }
@@ -1071,6 +1148,7 @@ function TypeOption({
   disabled,
   sub,
   wide,
+  chip,
 }: {
   p: AiProvider;
   active: boolean;
@@ -1078,6 +1156,8 @@ function TypeOption({
   disabled?: boolean;
   sub?: string;
   wide?: boolean;
+  /** A small pill at the right: how many accounts, not installed, Not ready. */
+  chip?: React.ReactNode;
 }) {
   return (
     <button
@@ -1089,12 +1169,13 @@ function TypeOption({
       data-testid={`ai-type-${p}`}
     >
       <AiAvatar provider={p} size={30} />
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: chip ? 1 : undefined, textAlign: 'left' }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>{PROVIDERS[p].label}</span>
         <span className="ai-muted" style={{ fontSize: 11.5 }}>
           {sub ?? PROVIDERS[p].sub}
         </span>
       </span>
+      {chip}
     </button>
   );
 }

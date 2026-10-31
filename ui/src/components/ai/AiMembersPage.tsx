@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { aiApi, useAiApprovals, useAiMutation, useAiOverview, useRunnerInfo } from '../../api/ai';
+import { useAiAccounts } from '../../api/aiAccounts';
 import { useAssist } from '../assist/AssistContext';
 import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
@@ -10,6 +11,10 @@ import { AddAiMemberModal } from './AddAiMemberModal';
 import { AiProfile } from './AiProfile';
 import { ApprovalsView, AuditView, SafetyView, UsageView } from './AiSafetyViews';
 import { BoardAiPicker, PauseAllButton, RemoveAiDialog } from './AiDialogs';
+import { AccountsTab } from './accounts/AccountsTab';
+import { SignedOutBanners } from './accounts/SignedOutBanners';
+import { accountCell, displayStatus } from '../../utils/memberAccount';
+import './accounts/accountsMember.css';
 import {
   AiAvatar,
   CeilingChip,
@@ -23,7 +28,7 @@ import {
   useNow,
 } from './aiUi';
 
-type Tab = 'humans' | 'ai' | 'approvals' | 'audit' | 'usage' | 'safety';
+type Tab = 'humans' | 'ai' | 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety';
 
 interface Props {
   projectId: string;
@@ -67,6 +72,7 @@ export function AiMembersPage({
   const [adding, setAdding] = useState<{ provider?: AiProvider } | null>(initialAdd ? {} : null);
   const [picker, setPicker] = useState(false);
   const [removing, setRemoving] = useState<AiMember | null>(null);
+  const accounts = useAiAccounts(projectId);
   const overview = useAiOverview(projectId);
   const runner = useRunnerInfo();
   const webBuild = runner.data?.local === false;
@@ -163,6 +169,13 @@ export function AiMembersPage({
             <div className="ai-tabs" role="tablist">
               <TabBtn id="humans" tab={tab} setTab={setTab} label="Humans" count={humans.length} />
               <TabBtn id="ai" tab={tab} setTab={setTab} label="AI" count={members.length} />
+              <TabBtn
+                id="accounts"
+                tab={tab}
+                setTab={setTab}
+                label="AI accounts"
+                count={accounts.data?.accounts.length ?? 0}
+              />
               <TabBtn id="approvals" tab={tab} setTab={setTab} label="Inbox" count={approvals.data?.length ?? 0} />
               <TabBtn id="audit" tab={tab} setTab={setTab} label="Audit log" />
               <TabBtn id="usage" tab={tab} setTab={setTab} label="Usage" />
@@ -235,6 +248,7 @@ export function AiMembersPage({
                         </button>
                       )}
                     </div>
+                    <SignedOutBanners projectId={projectId} members={members} />
                     <MemberTable
                       members={members}
                       webBuild={webBuild}
@@ -247,6 +261,7 @@ export function AiMembersPage({
                     />
                   </>
                 ))}
+              {tab === 'accounts' && <AccountsTab projectId={projectId} />}
               {tab === 'approvals' && (
                 <ApprovalsView projectId={projectId} humans={humans} members={members} onOpenTicket={onOpenTicket} />
               )}
@@ -408,10 +423,11 @@ function MemberTable({
 
   return (
     <div className="ai-card" style={{ overflow: 'visible' }} ref={ref}>
-      <div className="ai-grid" style={{ padding: '8px 16px', borderBottom: '1px solid #E3E8E5' }}>
+      <div className="ai-grid acm-grid" style={{ padding: '8px 16px', borderBottom: '1px solid #E3E8E5' }}>
         <div className="ai-label">AI member</div>
         <div className="ai-label">Provider</div>
         <div className="ai-label">Connection</div>
+        <div className="ai-label">Account</div>
         <div className="ai-label">Status</div>
         <div className="ai-label">Today</div>
         <div className="ai-label">Permissions</div>
@@ -420,7 +436,7 @@ function MemberTable({
       {members.map((m, i) => (
         <div key={m.id}>
           {i > 0 && <div className="ai-divider" />}
-          <div className="ai-grid ai-row" onClick={() => onOpen(m.id)} data-testid={`ai-row-${m.name}`}>
+          <div className="ai-grid acm-grid ai-row" onClick={() => onOpen(m.id)} data-testid={`ai-row-${m.name}`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={36} dim={m.paused} />
               <div style={{ minWidth: 0 }}>
@@ -446,6 +462,7 @@ function MemberTable({
             <div>
               <ConnectionChip connection={m.connection} />
             </div>
+            <AccountCell member={m} />
             <div
               onClick={(e) => {
                 if (m.status.ticketId) {
@@ -460,7 +477,10 @@ function MemberTable({
                   sub={m.checkedAt ? `Last seen ${ago(m.checkedAt)}` : 'Queues until the desktop app is online'}
                 />
               ) : (
-                <StatusLabel status={m.status} sub={statusSub(m) ?? null} />
+                <StatusLabel
+                  status={displayStatus(m)}
+                  sub={displayStatus(m) !== m.status ? displayStatus(m).detail : (statusSub(m) ?? null)}
+                />
               )}
             </div>
             <div>
@@ -552,6 +572,20 @@ function MemberTable({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** The Account column: the account the member runs as, or the login on this computer as before. */
+function AccountCell({ member }: { member: AiMember }) {
+  const cell = accountCell(member);
+  if (!cell) return <div className="ai-muted">—</div>;
+  return (
+    <div style={{ minWidth: 0 }} data-testid="account-cell">
+      <div style={{ fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {cell.name}
+      </div>
+      <div className={cell.warn ? 'ai-muted acm-warn-text' : 'ai-muted'}>{cell.sub}</div>
     </div>
   );
 }

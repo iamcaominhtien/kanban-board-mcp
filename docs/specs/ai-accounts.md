@@ -58,5 +58,6 @@ AI members can share one. Design: `design/screens/ai-accounts.md`. Related: `des
   The embedded terminal needs ConPTY on Windows (not built; the fallback command is shown instead).
 - **Moving an existing login** ("Move to an account") signs in again in the new account's folder; it does not copy the old
   token.
-- **Desktop notification** for a signed-out account: the board shows one banner per account; the system notification is
-  not sent yet.
+- **Desktop (system) notification** for a signed-out account: the board shows one banner per account and one toast when an
+  account goes signed out or comes back; no system notification is sent yet.
+- **AI Team › Needs you** card for a signed-out account: that view does not exist in this branch.

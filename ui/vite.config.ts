@@ -26,7 +26,7 @@ export default defineConfig({
       '/diagrams': 'http://localhost:8000',
       '/sketches': 'http://localhost:8000',
       '/docs/': 'http://localhost:8000',
-      '/ai': 'http://localhost:8000',
+      '/ai': { target: 'http://localhost:8000', ws: true }, // ws: the sign-in terminal of an AI account
     },
   },
 })
