@@ -122,9 +122,28 @@ def embed_line(canvas_id: str, title: str, board_id: str | None = None) -> str:
 # --- files -----------------------------------------------------------------------------------------------------
 
 
+_ID_FORMS = {
+    "canvas": re.compile(r"cv_[0-9a-f]{8}"),
+    "board": re.compile(r"b_[0-9a-f]{8}"),
+    "proposal": re.compile(r"cp_[0-9a-f]{10}"),
+}
+
+
+def _id_part(kind: str, value: str) -> str:
+    """An id that is about to become a folder name, checked against the shape the server makes (nothing else, so no
+    ``..`` or separator can reach the file system).
+
+    Raises:
+        DocsError: 404 for anything that is not such an id.
+    """
+    if not isinstance(value, str) or not _ID_FORMS[kind].fullmatch(value):
+        raise DocsError(404, f"{kind}_not_found", f"There is no such {kind}.")
+    return value
+
+
 def canvas_dir(canvas_id: str) -> Any:
     """The folder one canvas keeps everything in (inside the uploads folder, so a backup carries it)."""
-    p = get_uploads_dir() / "canvases" / canvas_id
+    p = get_uploads_dir() / "canvases" / _id_part("canvas", canvas_id)
     p.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -136,12 +155,14 @@ def doc_path(canvas_id: str) -> Any:
 
 def board_dir(canvas_id: str, board_id: str, rev: int) -> Any:
     """Folder of one revision of a board's content."""
-    return canvas_dir(canvas_id) / "boards" / board_id / f"r{rev}"
+    return (
+        canvas_dir(canvas_id) / "boards" / _id_part("board", board_id) / f"r{int(rev)}"
+    )
 
 
 def proposal_dir(canvas_id: str, proposal_id: str) -> Any:
     """Folder of the files an AI member proposed."""
-    return canvas_dir(canvas_id) / "proposals" / proposal_id
+    return canvas_dir(canvas_id) / "proposals" / _id_part("proposal", proposal_id)
 
 
 def safe_path(raw: str) -> str:

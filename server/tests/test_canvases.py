@@ -1379,3 +1379,18 @@ async def test_odd_input_is_refused_not_a_crash(c, pid):
         broken.status_code == 201
         and broken.json()["failed"][0]["code"] == "invalid_file"
     )
+
+
+def test_an_id_that_becomes_a_folder_name_must_have_the_shape_the_server_makes():
+    import pytest as _pytest
+
+    from services.docs_text import DocsError
+
+    for bad in ("..", "../x", "b_../..", "cv_12345678/../x", "", "B_0A1B2C3D"):
+        with _pytest.raises(DocsError):
+            svc.board_dir("cv_12345678", bad, 1)
+    with _pytest.raises(DocsError):
+        svc.canvas_dir("../../etc")
+    with _pytest.raises(DocsError):
+        svc.proposal_dir("cv_12345678", "../p")
+    assert svc.board_dir("cv_12345678", "b_0a1b2c3d", 3).name == "r3"
