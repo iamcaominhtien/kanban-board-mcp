@@ -240,7 +240,7 @@ async def logins_on_this_computer() -> list[dict]:
                 {
                     "cli": "claude",
                     "label": "Claude Code",
-                    "signedInWith": info.get("account"),
+                    "signed_in_with": info.get("account"),
                 }
             )
     return out

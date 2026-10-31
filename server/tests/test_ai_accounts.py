@@ -104,7 +104,7 @@ async def test_create_check_rename_and_list(fake_cli):
     assert (
         a["status"] == "needs_sign_in"
         and a["cli"] == "claude"
-        and a["memberCount"] == 0
+        and a["member_count"] == 0
     )
     assert (
         Path(a["folder"]).is_dir()
@@ -251,18 +251,18 @@ async def test_a_run_that_finds_the_account_signed_out_holds_every_member_on_it(
     now = (await c.get(f"/ai/accounts/{a['id']}")).json()
     assert (
         now["status"] == "needs_sign_in"
-        and now["signedOutHow"] == "run"
-        and now["signedOutAt"]
+        and now["signed_out_how"] == "run"
+        and now["signed_out_at"]
     )
     # one event for the account; the other member follows
     two = (await c.get(f"/ai/members/{m2['id']}")).json()
     assert two["account_ref"]["status"] == "needs_sign_in"
     # no project asked, so every member counts as "elsewhere"
-    assert {x["name"] for x in now["membersElsewhere"]} == {"One", "Two"}
+    assert {x["name"] for x in now["members_elsewhere"]} == {"One", "Two"}
     here = (await c.get("/ai/accounts", params={"project_id": pid})).json()["accounts"][
         0
     ]
-    assert {x["name"] for x in here["membersHere"]} == {"One", "Two"}
+    assert {x["name"] for x in here["members_here"]} == {"One", "Two"}
 
 
 async def test_an_account_only_fits_members_of_its_own_cli_and_runner(fake_cli):
@@ -411,7 +411,7 @@ async def test_sign_in_in_a_terminal_ends_signed_in_when_the_cli_says_so(fake_cl
     )
     assert "claude.example/oauth" in text
     signin.write(s, "good\n")  # what the person pastes
-    text, state = await _drain(q, lambda m: m["type"] == "state" and m.get("signedIn"))
+    text, state = await _drain(q, lambda m: m["type"] == "state" and m.get("signed_in"))
     assert state["account"]["status"] == "signed_in"
     assert state["account"]["email"] == "an@work.example"
     await _until(lambda: signin.active(a["id"]) is None)  # the CLI ended by itself
@@ -430,7 +430,7 @@ async def test_a_rejected_code_saves_nothing(fake_cli):
     _, state = await _drain(
         q, lambda m: m["type"] == "state" and m.get("ended") == "exited"
     )
-    assert state["exitCode"] == 1 and not state["signedIn"]
+    assert state["exit_code"] == 1 and not state["signed_in"]
     assert (await c.get(f"/ai/accounts/{a['id']}")).json()["status"] == "needs_sign_in"
 
 
@@ -462,7 +462,7 @@ async def test_the_login_runs_in_the_accounts_own_folder_not_the_one_on_this_com
     q = signin.attach(s)
     await _drain(q, lambda m: m["type"] == "state" and m.get("phase") == "paste_code")
     signin.write(s, "good\n")
-    await _drain(q, lambda m: m["type"] == "state" and m.get("signedIn"))
+    await _drain(q, lambda m: m["type"] == "state" and m.get("signed_in"))
     assert Path(a["folder"], ".fake-login").is_file()
     assert not (fake_cli["tmp"] / "claude-config" / ".fake-login").exists()
 
