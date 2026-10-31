@@ -23,6 +23,27 @@ two processes can use two accounts at the same time. Python 3.9+, standard libra
 Override the root with `<CLI>_PROFILES_HOME` (for example `CLAUDE_PROFILES_HOME`) and the binary with
 `<CLI>_BIN`.
 
+## How it works
+
+A profile is a directory. Running a CLI "as" a profile starts it with an environment that points its config and
+login at that directory, so profiles never share a login and can run at the same time. The caller's own
+environment (PATH, proxies, working directory) is kept; only the variables in the table above are changed, and a
+few that would override the login are removed (see "Things to know").
+
+In the code, each CLI is a `Profile` subclass in `ai_profile.py`:
+
+| Method | Says |
+| --- | --- |
+| `env()` / `dropped_env()` | which variables to set / remove |
+| `create()` | what `new` builds in the profile directory |
+| `prepare()` | what must be true before each use (for `agy`: the keychain is unlocked; for `codex`: credentials go to a file) |
+| `login_argv()` / `login_cwd()` | the command, and folder, that sign in |
+| `status()` | whether the profile is signed in, as one line |
+| `forget()` | what to remove outside the directory on `rm` (for `claude`: its keychain entry) |
+
+To add another CLI: write a subclass with these methods, add it to `PROFILE_CLASSES` and `CLIS`, then check by hand
+that two profiles answer at the same time and that `rm` leaves nothing behind.
+
 ## What was tested
 
 Only on macOS (agy 1.4.12, claude 2.1.316, codex 0.166.0, opencode 1.19.5). Linux, WSL and Windows are
