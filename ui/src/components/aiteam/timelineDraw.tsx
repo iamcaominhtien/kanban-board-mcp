@@ -18,6 +18,29 @@ export const GUTTER = 70;
 const TOP = 12;
 const BAR_W = 18;
 
+/** One label per cluster of marks that sit closer than a mark is tall: "Changed settings ×3", not three texts on top of each other. */
+export function touchLabels<T extends { what: string; at: string }>(
+  touches: T[],
+  yy: (at: string) => number,
+  gap = 15,
+): { t: T; label: string | null }[] {
+  const sorted = [...touches].sort((a, b) => yy(a.at) - yy(b.at));
+  const out: { t: T; label: string | null }[] = [];
+  let start = 0;
+  while (start < sorted.length) {
+    let end = start;
+    while (end + 1 < sorted.length && yy(sorted[end + 1].at) - yy(sorted[end].at) < gap) end++;
+    const group = sorted.slice(start, end + 1);
+    const same = group.every((g) => g.what === group[0].what);
+    const label = same
+      ? `${clip(group[0].what, group.length > 1 ? 22 : 26)}${group.length > 1 ? ` ×${group.length}` : ''}`
+      : `${clip(group[0].what, 18)} +${group.length - 1} more`;
+    group.forEach((t, i) => out.push({ t, label: i === group.length - 1 ? label : null }));
+    start = end + 1;
+  }
+  return out;
+}
+
 export type Pick = { type: 'bar' | 'arrow' | 'wait' | 'touch' | 'doc' | 'pause'; id: string };
 
 /** A stable key for a picked mark. */
@@ -248,8 +271,15 @@ export function TimelineHeader({
               {clip(l.name, l.kind === 'ai' ? 9 : 10)}
             </text>
             {l.kind === 'autopilot' && (
-              <text x={cx - 22} y={34} fontSize={9.5} fill={look.text}>
-                {l.delegate ? `delegate: ${clip(l.delegate, 7)}` : 'no delegate'}
+              <text
+                x={cx - 22}
+                y={34}
+                fontSize={9.5}
+                fill={look.text}
+                // a long name is squeezed to the box instead of running into the next lane
+                {...(l.delegate && l.delegate.length > 3 ? { textLength: 66, lengthAdjust: 'spacingAndGlyphs' } : {})}
+              >
+                {l.delegate ? `delegate: ${clip(l.delegate, 9)}` : 'no delegate'}
               </text>
             )}
             {l.state && (
@@ -763,7 +793,7 @@ export function TimelineBody(props: DrawProps) {
 
       {/* your marks, as in Flow and You stepped in */}
       {!hidden.has('touches') &&
-        data.touches.map((t) => {
+        touchLabels(data.touches, yy).map(({ t, label }) => {
           const x = cx('you');
           if (x < 0) return null;
           const y = yy(t.at);
@@ -780,9 +810,11 @@ export function TimelineBody(props: DrawProps) {
                 stroke={sel('touch', t.id) ? '#1E2A22' : 'none'}
                 strokeWidth={2}
               />
-              <text x={x + 15} y={y + 4} fontSize={10} fontWeight={600} fill="#3A4A3E" className="tl-halo">
-                {clip(t.what, 26)}
-              </text>
+              {label && (
+                <text x={x + 15} y={y + 4} fontSize={10} fontWeight={600} fill="#3A4A3E" className="tl-halo">
+                  {label}
+                </text>
+              )}
             </g>
           );
         })}
