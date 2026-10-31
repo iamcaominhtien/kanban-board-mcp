@@ -6,6 +6,7 @@ import type { AiMember, AiSettings } from '../../types/ai';
 import { useToast } from '../Toast';
 import { AiAvatar, Toggle } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, TrustChip } from './aiSafetyUi';
+import { AutopilotCard } from './AutopilotCard';
 
 const TRUST_ROWS: { source: string; trust: 'trusted' | 'data_only' | 'untrusted'; how: string }[] = [
   {
@@ -116,6 +117,7 @@ export function SafetyView({
       </div>
       <Checklist projectId={projectId} />
       <SafeModeCard s={s} save={save} />
+      <AutopilotCard projectId={projectId} members={members} isOwner={me.data?.role === 'owner'} />
       <AutoTripCard s={s} save={save} />
       <div className="ai-grid2">
         <TrustCard />
@@ -609,6 +611,20 @@ function LoopsCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
             label="No repeats in a chain"
             testId="no-repeat"
             onChange={(v) => void save({ noRepeatChain: v })}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ flex: 1 }}>
+            <b style={{ fontSize: 13 }}>Ask before an AI edits a Docs page</b>
+            <div className="ai-muted">
+              Off: edits are saved as new versions you can restore. Deleting a page always asks
+            </div>
+          </span>
+          <Toggle
+            on={s.docsEditsAsk}
+            label="Ask before an AI edits a Docs page"
+            testId="docs-edits-ask"
+            onChange={(v) => void save({ docsEditsAsk: v })}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

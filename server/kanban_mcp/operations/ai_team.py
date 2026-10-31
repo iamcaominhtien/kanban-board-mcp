@@ -807,7 +807,7 @@ async def api(path: str, body: dict | None = None) -> Any:
                 method,
                 path,
                 json=body if method in ("POST", "PUT", "PATCH") else None,
-                headers={"X-Actor": _by()},
+                headers={"X-Actor": _by(), "X-Origin": "mcp"},
             )
     finally:
         svc_runs.RT.board_url = seen_url

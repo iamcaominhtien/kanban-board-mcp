@@ -696,6 +696,8 @@ def parse_stream_line(line: str, cwd: str) -> dict:
             "tokens_in": int(usage.get("input_tokens") or 0)
             + int(usage.get("cache_creation_input_tokens") or 0)
             + int(usage.get("cache_read_input_tokens") or 0),
+            "tokens_cached": int(usage.get("cache_creation_input_tokens") or 0)
+            + int(usage.get("cache_read_input_tokens") or 0),
             "tokens_out": int(usage.get("output_tokens") or 0),
             "turns": ev.get("num_turns"),
         }
@@ -830,10 +832,11 @@ def antigravity_args(
     add_dirs: list[str],
     effort: str | None = None,
     extra_flags: list[str] | None = None,
+    bypass: bool = False,
 ) -> list[str]:
     """Command line of one headless Antigravity run. Tool permissions travel with the run (`--settings`, never saved):
     what is not allowed is refused, since a headless run cannot ask. `edits` lets it edit files (`--mode accept-edits`).
-    Bypass permissions is not offered for this CLI."""
+    `bypass` (an owner's Bypass permissions) auto-approves every request; the deny rules in `--settings` still refuse."""
     args = [path, "-p", prompt, "--output-format", "stream-json"]
     if conversation:
         args += ["--conversation", conversation]
@@ -845,6 +848,8 @@ def antigravity_args(
         args += ["--mode", "accept-edits"]
     for folder in add_dirs:
         args += ["--add-dir", folder]
+    if bypass:
+        args.append("--dangerously-skip-permissions")
     args += [
         "--settings",
         json.dumps({"permissions": {"allow": allowed, "deny": denied}}),

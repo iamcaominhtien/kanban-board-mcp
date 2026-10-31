@@ -278,6 +278,7 @@ export interface AiSettings {
     factor?: number;
   }[];
   noRepeatChain: boolean;
+  docsEditsAsk: boolean;
   allowedDomains: string[];
   notify: { event: string; label: string; urgent: boolean; inapp: boolean; desktop: boolean }[];
   digest: 'off' | 'daily' | 'weekdays';
@@ -285,6 +286,22 @@ export interface AiSettings {
   pausedCancelled: number;
   pausedHeld: number;
   pausedTokensRevoked: boolean;
+}
+
+/** Autopilot: the AI that decides requests for the owner (server/services/ai/autopilot.py). */
+export interface AiAutopilot {
+  enabled: boolean;
+  delegateId: string | null;
+  delegateName: string | null;
+  maxRisk: 'low' | 'medium' | 'high';
+  approvals: boolean;
+  questions: boolean;
+  graceMin: number;
+  perHourLimit: number;
+  fullRights: boolean;
+  enabledBy: string | null;
+  enabledAt: string | null;
+  usedLastHour: number;
 }
 
 export interface AiOverview {
@@ -444,6 +461,8 @@ export interface AiApproval {
   canDecide?: boolean;
   cannotReason?: string;
   rememberAllowed?: boolean;
+  /** "Always allow" is offered (a Docs edit that is not high risk). */
+  alwaysAllowed?: boolean;
 }
 
 export interface AiAuditEntry {

@@ -110,7 +110,7 @@ function RuleList({
   );
 }
 
-/** Permission mode (Claude Code): only the Allow rules run, or every tool except what a Deny rule stops. */
+/** Permission mode (Claude Code and Antigravity): only the Allow rules run, or every tool except what a Deny rule stops. */
 function PermissionModeBlock() {
   const { member, cfg, setCfg, draft, setDraft, issues } = useCfg();
   const me = useAiMe(member.projectId);
@@ -199,6 +199,7 @@ export function PermissionsCard() {
         mode="documented"
         sub="Which actions it may run without asking. Set in Antigravity’s own settings; Kanban cannot read them."
       >
+        {member.connection === 'local' && <PermissionModeBlock />}
         <textarea
           aria-label="Permission notes"
           className="ai-textarea"

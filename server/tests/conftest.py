@@ -27,6 +27,12 @@ os.environ.setdefault(
 _DEFAULT_DB = os.path.join(tempfile.mkdtemp(prefix="kanban-test-db-"), "kanban.db")
 _DB_FROM_TESTS = "KANBAN_DB_PATH" not in os.environ
 os.environ.setdefault("KANBAN_DB_PATH", _DEFAULT_DB)
+# A data folder chosen in the developer's own ~/.kanban-board/config.json wins over KANBAN_DB_PATH, so `database` must be
+# imported with a config folder of its own, or tests that open their own session would read (and write) the real kanban.db.
+_CONFIG_FROM_TESTS = "KANBAN_CONFIG_DIR" not in os.environ
+os.environ.setdefault(
+    "KANBAN_CONFIG_DIR", tempfile.mkdtemp(prefix="kanban-test-config-")
+)
 
 
 def _migrate_default_db() -> None:
@@ -47,6 +53,8 @@ import database  # noqa: E402,F401
 
 if _DB_FROM_TESTS:
     del os.environ["KANBAN_DB_PATH"]
+if _CONFIG_FROM_TESTS:
+    del os.environ["KANBAN_CONFIG_DIR"]
 
 
 import pytest  # noqa: E402

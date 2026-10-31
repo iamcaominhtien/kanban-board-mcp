@@ -132,7 +132,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
-  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules'>(() =>
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team'>(() =>
     new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board',
   );
   const [docsRequest, setDocsRequest] = useState<string | null>(() =>
@@ -949,6 +949,8 @@ export default function App() {
                       docsRequestedPageId={docsRequest}
                       onDocsRequestHandled={() => setDocsRequest(null)}
                       onOpenSettings={() => setSettingsTarget({ page: 'docs' })}
+                      onOpenAiMember={(id) => setAiPage({ memberId: id, key: Date.now() })}
+                      onOpenDocsPage={openDocsPage}
                       members={members}
                       activeAssignee={activeAssignee}
                       onAssigneeChange={setActiveAssignee}

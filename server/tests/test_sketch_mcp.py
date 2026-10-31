@@ -201,6 +201,7 @@ async def test_bad_calls_say_what_is_wrong_and_the_limits(env, tmp_path):
 async def test_an_ai_run_goes_through_the_guard_and_its_own_project(env, tmp_path):
     ctx, pid, an, m, tid = await _ctx(env)
     c = env["c"]
+    await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": True})
     p = write(tmp_path, "a.png", png())
     args = {"owner_kind": "ticket", "owner_id": tid, "title": "By the AI", "path": p}
     # an ask run only reads and answers
@@ -213,7 +214,7 @@ async def test_an_ai_run_goes_through_the_guard_and_its_own_project(env, tmp_pat
         )  # reading is fine
     finally:
         guard.leave(tokens)
-    # a work run with the default rights ("edit docs" needs a person's approval) is parked, nothing is written
+    # a work run in a project that asks before Docs edits is parked, nothing is written
     tokens = guard.enter(ctx)
     try:
         with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
@@ -239,6 +240,7 @@ async def test_an_ai_run_goes_through_the_guard_and_its_own_project(env, tmp_pat
             await docs_write(action="sketch_create", **args)
     finally:
         guard.leave(tokens)
+    await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": False})
     # allowed: the AI writes, as the AI member, in its own project
     r = await c.patch(
         f"/ai/members/{m['id']}",

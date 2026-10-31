@@ -1,6 +1,7 @@
 """Antigravity as a local runner: the command line it gets (tool rules, mode, conversation), the per-run workspace with
 the board's MCP endpoint, how its stream becomes run steps, and sharing one conversation per ticket."""
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -323,3 +324,56 @@ async def test_an_antigravity_run_that_keeps_being_refused_fails_with_the_reason
     assert run["state"] == "failed", run
     assert "stopped after the board refused" in run["ended_reason"]
     assert len(_calls(agy_env["record"])) == 1 + runs.REFUSAL_RETRIES
+
+
+# --------------------------------------------------------------------------- Bypass permissions
+
+
+def test_bypass_adds_the_skip_permissions_flag_and_keeps_the_deny_rules():
+    common = dict(
+        prompt="p",
+        model=None,
+        allowed=[],
+        denied=["command(rm -rf)"],
+        edits=True,
+        conversation=None,
+        add_dirs=[],
+    )
+    plain = cli.antigravity_args("agy", **common)
+    assert "--dangerously-skip-permissions" not in plain
+    args = cli.antigravity_args("agy", bypass=True, **common)
+    assert "--dangerously-skip-permissions" in args
+    assert "command(rm -rf)" in _flag(args, "--settings")
+    # the flag can still not be smuggled in through the member's own extra flags
+    smuggled = cli.antigravity_args(
+        "agy", extra_flags=["--dangerously-skip-permissions"], **common
+    )
+    assert "--dangerously-skip-permissions" not in smuggled
+
+
+async def test_a_work_run_bypasses_but_an_ask_run_and_safe_mode_do_not(agy_env):
+    c, record = agy_env["c"], agy_env["record"]
+    pid, _ = await _project(c)
+    await _people(c, pid)
+    m = await _agy(c, pid, agy_env["repo"])
+    r = await c.patch(
+        f"/ai/members/{m['id']}",
+        json={
+            "config": {"permission_mode": "bypass"},
+            "confirm_bypass": "bypass permissions",
+        },
+        headers=OWNER,
+    )
+    assert r.status_code == 200, r.text
+    tid = await _ticket(c, pid)
+    await c.post(f"/tickets/{tid}/ai/run", json={"member_id": m["id"]})
+    run = await _wait(c, tid, ("finished", "failed"))
+    assert run["state"] == "finished", run
+    assert "--dangerously-skip-permissions" in _calls(record)[-1]["args"]
+    # an ask run stays read-only whatever the mode
+    await _ask(c, tid, m)
+    for _ in range(100):
+        if len(_calls(record)) >= 2:
+            break
+        await asyncio.sleep(0.1)
+    assert "--dangerously-skip-permissions" not in _calls(record)[-1]["args"]

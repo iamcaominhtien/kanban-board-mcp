@@ -147,10 +147,10 @@ async def test_member_describes_last_call_approvals_and_the_running_ticket(
     d = (await c.get(f"/ai/members/{m['id']}")).json()
     assert d["running"][0]["ticket_title"] == "Add drag handle"
     assert d["running"][0]["ticket_status"] == "in-progress"
-    # Developer template: these actions wait for a person
+    # Developer template: these actions wait for a person (page edits are allowed unless the project asks first)
     assert {a["action"] for a in d["approvals"]} == {
         "change_assignee",
-        "edit_docs",
+        "delete_docs",
     }
     assert d["last_call_at"] is None
     await c.post(f"/ai/runs/{d['running'][0]['run_id']}/cancel", json={})

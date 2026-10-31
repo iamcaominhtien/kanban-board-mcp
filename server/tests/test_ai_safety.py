@@ -756,6 +756,14 @@ async def test_run_limit_box_and_allow_three_more(env):
         run.trigger = "schedule"
         s.add(run)
         await s.commit()
+    # a Claude Code or Antigravity member is not limited, so its scheduled run is not counted either
+    box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
+    assert box["used"] == 0 and box["reached"] is False
+    async with env["maker"]() as s:
+        row = await s.get(AiMember, run.member_id)
+        row.connection = "api_key"  # only an API-key member is held to the limit
+        s.add(row)
+        await s.commit()
     box = (await c.get(f"/tickets/{tid}/ai/run-limit")).json()
     assert box["used"] == 1 and box["limit"] == 1 and box["reached"] is True
     r = await c.post(
@@ -874,3 +882,84 @@ async def test_creating_a_member_follows_the_step_4_rules(env):
         headers=OWNER,
     )
     assert r.status_code == 201 and r.json()["ceiling"] == "testing"
+
+
+async def _docs_create(ctx, pid, title):
+    from kanban_mcp.tools.docs import docs_write
+
+    tokens = guard.enter(ctx)
+    try:
+        return await docs_write(action="create", project_id=pid, title=title)
+    finally:
+        guard.leave(tokens)
+
+
+async def test_docs_edits_are_allowed_by_default_and_deleting_a_page_still_asks(env):
+    from kanban_mcp.tools.docs import docs_write
+
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    page = await _docs_create(ctx, pid, "No request needed")
+    assert page["title"] == "No request needed" and await _pending(c, pid) == []
+    tokens = guard.enter(ctx)
+    try:
+        with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+            await docs_write(action="delete", page_id=page["id"])
+    finally:
+        guard.leave(tokens)
+    [a] = await _pending(c, pid)
+    assert a["action"] == "delete_docs" and a["summary"].startswith("Delete the page")
+    # "Always allow" is only for edits: a deletion is asked every time
+    assert a["always_allowed"] is False
+
+
+async def test_the_project_can_ask_before_every_docs_edit(env):
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    r = await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": True})
+    assert r.json()["docs_edits_ask"] is True
+    with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+        await _docs_create(ctx, pid, "Needs a yes")
+    await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": False})
+    assert (await _docs_create(ctx, pid, "Now it does not"))[
+        "title"
+    ] == "Now it does not"
+
+
+def test_an_approval_wait_ends_before_the_cli_gives_up_on_the_tool_call():
+    assert guard.APPROVAL_WAIT_S < 300
+
+
+async def test_always_allow_lets_an_ai_edit_docs_without_asking_again_until_revoked(
+    env,
+):
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": True})
+    with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+        await _docs_create(ctx, pid, "Brief")
+    [a] = await _pending(c, pid)
+    assert a["action"] == "edit_docs" and a["always_allowed"] is True
+    assert a["summary"] == "Create the page “Brief”"
+    r = await c.post(f"/ai/approvals/{a['id']}/approve", json={"always": True})
+    assert r.status_code == 200
+    [g] = (await c.get(f"/projects/{pid}/ai/grants")).json()
+    assert g["member_id"] == m["id"] and g["action"] == "edit_docs"
+    # the next edit, on any page, goes through without a request
+    assert (await _docs_create(ctx, pid, "Second page"))["title"] == "Second page"
+    assert await _pending(c, pid) == []
+    # revoking makes it ask again
+    assert (await c.delete(f"/ai/grants/{g['id']}")).status_code == 200
+    with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+        await _docs_create(ctx, pid, "Third page")
+    assert (await c.get(f"/projects/{pid}/ai/grants")).json() == []
+
+
+async def test_always_allow_is_only_offered_for_docs_edits(env):
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    await _ask_assignee(env, an, tid, ctx)
+    [a] = await _pending(c, pid)
+    assert a["always_allowed"] is False
+    await c.post(f"/ai/approvals/{a['id']}/approve", json={"always": True})
+    assert (await c.get(f"/projects/{pid}/ai/grants")).json() == []

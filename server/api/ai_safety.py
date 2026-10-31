@@ -8,7 +8,6 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import or_
 from sqlmodel import col, select
 
 import events as board_events
@@ -164,6 +163,13 @@ async def get_approvals_backlog(project_id: str, session: Session) -> dict:
     """Pending approvals per agent against the limits (10 per agent, 25 per project)."""
     await _project(session, project_id)
     return await svc_approvals.backlog(session, project_id)
+
+
+@router.get("/projects/{project_id}/ai/grants")
+async def get_always_grants(project_id: str, session: Session) -> list[dict]:
+    """ "Always allow" decisions of the project: what an AI may do without asking again, revocable."""
+    await _project(session, project_id)
+    return await svc_approvals.always_grants(session, project_id)
 
 
 @router.get("/tickets/{ticket_id}/ai/grants")
@@ -659,18 +665,7 @@ async def get_run_limit(ticket_id: str, session: Session) -> dict:
     """Runs of a ticket today against the limit (G): the box with “Allow 3 more runs”."""
     ticket = await _ticket(session, ticket_id)
     settings = await get_settings(session, ticket.project_id)
-    used = len(
-        (
-            await session.exec(
-                select(AiRun).where(
-                    AiRun.ticket_id == ticket_id,
-                    AiRun.mode == "work",
-                    AiRun.queued_at >= budget.today_start().isoformat(),
-                    or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
-                )
-            )
-        ).all()
-    )
+    used = len(await safety.limited_runs_today(session, ticket_id))
     extra = await safety.extra_runs_today(session, ticket_id)
     limit = settings.runs_per_ticket_per_day + extra
     return {

@@ -502,6 +502,44 @@ async def _member_label(
     return name, provider
 
 
+async def _always_allowed(session: AsyncSession, member_id: str):
+    """The grant that lets this AI member edit pages without review ("Always allow"), if a person made one."""
+    from services.ai import safety
+
+    return await safety.remembered(session, member_id, None, ["edit_docs"])
+
+
+async def allow_always(
+    session: AsyncSession, proposal_id: str, *, by: str
+) -> DocsAiProposal:
+    """ "Always allow": this AI member's page edits go through without a proposal from now on, on any page. The grant is
+    the same one Approvals lists (and can revoke); one per member."""
+    from services.ai import audit, safety
+
+    p = await _get(session, proposal_id)
+    await _require_reviewer(session, p, by)
+    if not await _always_allowed(session, p.member_id):
+        await safety.add_grant(
+            session,
+            project_id=p.project_id,
+            kind="approval",
+            member_id=p.member_id,
+            action="edit_docs",
+            created_by=by,
+        )
+        await audit.record(
+            p.project_id,
+            "always_allow",
+            "info",
+            member_id=p.member_id,
+            on_behalf_of=by,
+            target=p.page_id,
+            detail={"action": "edit_docs", "from": "docs_proposal", "by": by},
+        )
+        await board_events.publish(board_events.INVALIDATE)
+    return p
+
+
 async def view(
     session: AsyncSession, p: DocsAiProposal, *, actor: str | None = None
 ) -> dict[str, Any]:
@@ -531,6 +569,7 @@ async def view(
                 1 for c in changes if c["status"] == "pending" and not c.get("stale")
             ),
             "expires_in_days": days,
+            "always_allowed": bool(await _always_allowed(session, p.member_id)),
             "can_decide": bool(
                 actor
                 and p.status == "waiting"
@@ -980,6 +1019,17 @@ async def intercept(ctx, action: str, params: dict[str, Any]) -> dict[str, Any] 
             raise await guard._refuse(
                 ctx, "edit_docs", page.id, detail, decision.reason
             )
+        if await _always_allowed(session, ctx.member_id):
+            # A person said "Always allow": this AI edits pages directly, as it does when Docs AI holds nothing
+            if not await access.ai_can_read(session, page):
+                raise await guard._refuse(
+                    ctx,
+                    "edit_docs",
+                    page.id,
+                    detail,
+                    "This page is hidden from AI, so AI members cannot change it.",
+                )
+            return None
         if not await access.ai_can_read(session, page):
             raise await guard._refuse(
                 ctx,
