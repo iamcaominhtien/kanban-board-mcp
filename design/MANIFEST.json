@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793441161-d562",
+  "canvas_version": "1793441395-585c",
   "exported": "2026-10-31",
   "files": {
     "AccountMenu.dc.html": {
@@ -52,12 +52,12 @@
       "h": 7980
     },
     "AiAccounts.dc.html": {
-      "bytes": 209427,
-      "sha256": "bf2ba4a1b2b62ebdb827376b116e7c9dc7f5b85fda45614440bb7da2274c5a6c",
+      "bytes": 209463,
+      "sha256": "b1edda600dff7472ba1d3c0dd8e2171b7937593b74020fdcc37b00f6eb723abf",
       "title": "AI accounts — sign in once, share between AI members",
       "page": "screens_ai",
       "w": 1480,
-      "h": 14323
+      "h": 14383
     },
     "AiProviderConfig.dc.html": {
       "bytes": 238168,
