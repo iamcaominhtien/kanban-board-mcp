@@ -489,6 +489,8 @@ class DocsPage(SQLModel, table=True):
     # Docs AI: a page hidden from every AI, and a page every AI run in the project reads (guidance)
     ai_hidden: bool = Field(default=False)
     ai_guidance: bool = Field(default=False)
+    # page | canvas: a canvas page opens the Canvas editor instead of the text editor
+    kind: str = Field(default="page")
 
 
 class DocsVersion(SQLModel, table=True):
@@ -918,6 +920,127 @@ class Sketch(SQLModel, table=True):
     updated_at: str = Field(default_factory=_now_iso)
     deleted_at: Optional[str] = Field(default=None)
     deleted_by: Optional[str] = Field(default=None)
+
+
+class Canvas(SQLModel, table=True):
+    """A canvas: boards (HTML pages, images, Sketches, Diagrams), notes, arrows and labels on one large plane.
+
+    The record holds the owner, a revision counter and the latest version number; the plane itself is one file
+    (``uploads/canvases/<id>/canvas.json``) and the boards' content are attachment files next to it (see
+    docs/specs/canvas.md). Deleting only unlinks (``deleted_at``), as for sketches.
+    """
+
+    __tablename__ = "canvas"
+
+    id: str = Field(
+        default_factory=lambda: f"cv_{uuid.uuid4().hex[:8]}", primary_key=True
+    )
+    project_id: Optional[str] = Field(
+        default=None, foreign_key="project.id", index=True
+    )
+    owner_kind: str = Field(
+        default="doc"
+    )  # idea | ticket | doc | comment | page (its own Docs page)
+    owner_id: str = Field(default="", index=True)
+    page_id: Optional[str] = Field(
+        default=None, index=True
+    )  # the Docs page of a canvas that lives in Docs
+    title: str = Field(default="Canvas")
+    rev: int = Field(
+        default=1
+    )  # +1 on every save: drives the "someone saved in the meantime" check
+    version: int = Field(default=0)  # latest named/checkpoint version (History)
+    board_count: int = Field(default=0)
+    total_bytes: int = Field(default=0)
+    created_by: str = Field(default="user")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_by: str = Field(default="user")
+    updated_at: str = Field(default_factory=_now_iso)
+    deleted_at: Optional[str] = Field(default=None)
+    deleted_by: Optional[str] = Field(default=None)
+
+
+class CanvasVersion(SQLModel, table=True):
+    """A frozen copy of a canvas file (made on Done, on accepting a proposal, and every 10 minutes in Docs)."""
+
+    __tablename__ = "canvas_version"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    canvas_id: str = Field(foreign_key="canvas.id", index=True)
+    version: int
+    name: Optional[str] = Field(default=None)
+    reason: str = Field(
+        default="done"
+    )  # done | proposal | auto | restore | create | named
+    author: str = Field(default="user")
+    note: Optional[str] = Field(default=None)
+    changes: str = Field(
+        default="{}"
+    )  # JSON {added, removed, changed: [board ids]} against the version before
+    summary: str = Field(default="")
+    doc: str = Field(default="{}")  # the canvas file as it was
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class CanvasThread(SQLModel, table=True):
+    """A comment thread pinned to a board (moves with it) or to a point of the plane."""
+
+    __tablename__ = "canvas_thread"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    canvas_id: str = Field(foreign_key="canvas.id", index=True)
+    number: int = Field(default=1)  # pins are numbered in the order they were made
+    board_id: Optional[str] = Field(default=None)
+    x: float = Field(
+        default=0.5
+    )  # 0..1 inside the board, or plane units without a board
+    y: float = Field(default=0.5)
+    page: Optional[str] = Field(default=None)  # page tab of a plane pin
+    status: str = Field(default="open")  # open | resolved
+    created_by: str = Field(default="user")
+    created_at: str = Field(default_factory=_now_iso)
+    resolved_by: Optional[str] = Field(default=None)
+    resolved_at: Optional[str] = Field(default=None)
+
+
+class CanvasComment(SQLModel, table=True):
+    """One comment of a canvas thread (same shape as a Docs comment)."""
+
+    __tablename__ = "canvas_comment"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    thread_id: str = Field(foreign_key="canvas_thread.id", index=True)
+    author: str = Field(default="user")
+    body: str = Field(default="")
+    mentions: str = Field(default="[]")
+    ai: Optional[str] = Field(
+        default=None
+    )  # JSON {member_id, can_propose, proposal_id} on an AI member's comment
+    created_at: str = Field(default_factory=_now_iso)
+    edited_at: Optional[str] = Field(default=None)
+
+
+class CanvasProposal(SQLModel, table=True):
+    """What an AI member proposes for one or more boards. Nothing changes until a person accepts."""
+
+    __tablename__ = "canvas_proposal"
+
+    id: str = Field(
+        default_factory=lambda: f"cp_{uuid.uuid4().hex[:10]}", primary_key=True
+    )
+    canvas_id: str = Field(foreign_key="canvas.id", index=True)
+    author: str = Field(default="AI")
+    member_id: Optional[str] = Field(default=None)
+    job_id: Optional[str] = Field(default=None)
+    request: str = Field(default="")
+    note: str = Field(default="")
+    status: str = Field(default="open")  # open | accepted | rejected | partly
+    # JSON [{board_id, name, base_rev, status: open|accepted|rejected|stale, files: [{path, bytes}], lines}]
+    changes: str = Field(default="[]")
+    version: Optional[int] = Field(default=None)  # version saved when accepted
+    created_at: str = Field(default_factory=_now_iso)
+    decided_by: Optional[str] = Field(default=None)
+    decided_at: Optional[str] = Field(default=None)
 
 
 # ---------------------------------------------------------------------------

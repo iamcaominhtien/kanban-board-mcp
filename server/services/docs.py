@@ -217,6 +217,7 @@ async def list_tree(session: AsyncSession, project_id: str) -> list[dict[str, An
             "updated_at": p.updated_at,
             "ai_hidden": p.ai_hidden,
             "ai_guidance": p.ai_guidance,
+            "kind": p.kind,
         }
         for p in pages
     ]
@@ -329,6 +330,7 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
         "has_unpublished_changes": unpublished,
         "ai_hidden": page.ai_hidden,
         "ai_guidance": page.ai_guidance,
+        "kind": page.kind,
         "draft": (
             {
                 "title": draft.title,
