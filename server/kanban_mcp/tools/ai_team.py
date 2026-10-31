@@ -48,6 +48,8 @@ READS = {
 }
 # Allowed inside an AI run when its member's "Resource tools" setting is Control (checked in the operation)
 RUN_CONTROL = {"restart", "cancel"}
+# Only exist for a member whose "Resource tools" setting is above None: an AI run without it gets "unknown action"
+RESOURCE_ONLY = {"resources", "restart"}
 
 
 async def ai_team(
@@ -124,6 +126,16 @@ async def ai_team(
     and api calls AI endpoints as the person. Not in AI runs."""
     from services.ai import guard
 
+    if (
+        action in RESOURCE_ONLY
+        and await guard.resolve() is not None
+        and await ops._resource_level() == "none"
+    ):
+        # the resource tools do not exist for this member
+        valid = sorted(k for k in AI_TEAM_OPS if k not in RESOURCE_ONLY)
+        raise ValueError(
+            f"Unknown action '{action}'. Valid actions: {', '.join(valid)}."
+        )
     if action not in READS and await guard.resolve() is not None:
         # inside an AI run only a member with the Resource tools set to Control may restart or stop runs
         if action not in RUN_CONTROL or await ops._resource_level() != "control":

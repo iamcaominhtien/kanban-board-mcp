@@ -7,7 +7,15 @@ from datetime import UTC, datetime, timedelta
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiApproval, AiRun, DocsAiProposal, DocsPage, Member, Ticket
+from models import (
+    AiApproval,
+    AiAudit,
+    AiRun,
+    DocsAiProposal,
+    DocsPage,
+    Member,
+    Ticket,
+)
 
 from . import approvals as svc_approvals
 from . import budget
@@ -354,7 +362,20 @@ async def needs_you(
             )
         )
     ).all()
+    dismissed = set(
+        (
+            await session.exec(
+                select(AiAudit.run_id).where(
+                    AiAudit.project_id == project_id,
+                    AiAudit.action == "run_stop_dismissed",
+                    col(AiAudit.run_id).in_([r.id for r in stopped] or [""]),
+                )
+            )
+        ).all()
+    )
     for r in stopped:
+        if r.id in dismissed:
+            continue
         newer = (
             await session.exec(
                 select(AiRun.id).where(

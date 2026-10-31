@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { ResourceRun, ResourceSnapshot } from '../../types/aiResources';
-import { fitEstimate, fmtGb, fmtMb, levelOf, limitPct, linePoints, verdictOf } from './resourcesFormat';
+import {
+  fitEstimate,
+  fmtGb,
+  fmtMb,
+  levelOf,
+  limitPct,
+  linePoints,
+  trendOf,
+  trendText,
+  verdictOf,
+} from './resourcesFormat';
 
 const run = (over: Partial<ResourceRun> = {}): ResourceRun => ({
   runId: 'run_1',
@@ -104,5 +114,35 @@ describe('linePoints', () => {
       100,
     );
     expect(pts).toBe('150.0,50.0 300.0,0.0');
+  });
+});
+
+describe('trend', () => {
+  const points = (from: number, to: number, n = 12) =>
+    Array.from({ length: n }, (_, i) => ({
+      at: new Date(Date.UTC(2026, 9, 31, 10, 0, 0) + i * 25000).toISOString(),
+      rssMb: from + ((to - from) * i) / (n - 1),
+      cpuPct: 10,
+    }));
+
+  it('is null for a flat or short history', () => {
+    expect(trendOf(points(200, 220), 2048)).toBeNull();
+    expect(trendOf(points(200, 900, 3), 2048)).toBeNull();
+  });
+
+  it('says how much it grew and when the limit is reached at that pace', () => {
+    const t = trendOf(points(900, 1500), 2048);
+    expect(t).not.toBeNull();
+    expect(t!.grewMb).toBe(600);
+    expect(t!.toLimitMin).toBeGreaterThan(0);
+    expect(trendText(t!)).toMatch(
+      /^It grew 600 MB in 5 minutes\. At this pace it is restarted in about \d+ minutes?\.$/,
+    );
+  });
+
+  it('adds the sentence to the warning verdict', () => {
+    const v = verdictOf(snap([run({ cliRssMb: 1500, history: points(900, 1500) })]));
+    expect(v.tone).toBe('warn');
+    expect(v.text).toContain('grew 600 MB');
   });
 });

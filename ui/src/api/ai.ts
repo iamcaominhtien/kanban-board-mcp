@@ -322,6 +322,9 @@ export const aiApi = {
   /** Run again as run #n+1; `limitMin` gives that run a longer time limit ("Raise limit"). */
   retry: async (runId: string, limitMin?: number) =>
     (await client.post<AiRun>(`/ai/runs/${runId}/retry`, limitMin ? { limitMin } : undefined)).data,
+  /** Take a "stopped: memory" card out of Needs you without retrying the run. */
+  dismissStop: async (runId: string) =>
+    (await client.post<{ dismissed: boolean }>(`/ai/runs/${runId}/dismiss-stop`)).data,
   startNow: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/start-now`)).data,
   pauseRun: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/pause`)).data,
   resumeRun: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/resume`)).data,

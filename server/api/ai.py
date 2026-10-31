@@ -1436,6 +1436,32 @@ async def post_restart(run_id: str, session: Session) -> dict:
     return {"restarting": True}
 
 
+@router.post("/ai/runs/{run_id}/dismiss-stop")
+async def post_dismiss_stop(run_id: str, session: Session) -> dict:
+    """Take the "stopped: memory" card out of Needs you without retrying the run (kept in the audit log)."""
+    run = await session.get(AiRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found.")
+    if await safety.role_name(session, run.project_id, _by()) == "viewer":
+        raise HTTPException(status_code=403, detail="You can look, not act.")
+    if run.stop_code != "memory":
+        raise HTTPException(
+            status_code=409, detail="This run was not stopped for memory."
+        )
+    await svc_audit.record(
+        run.project_id,
+        "run_stop_dismissed",
+        "info",
+        member_id=run.member_id,
+        member_name=_by(),
+        run_id=run_id,
+        target=run.ticket_id,
+        detail={},
+    )
+    await board_events.publish(board_events.INVALIDATE)
+    return {"dismissed": True}
+
+
 @router.get("/projects/{project_id}/ai/resources")
 async def get_resources(project_id: str, session: Session) -> dict:
     """RAM and CPU of the running AIs and of the machine, with their short history."""

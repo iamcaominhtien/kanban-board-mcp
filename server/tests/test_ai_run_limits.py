@@ -10,6 +10,7 @@ import time
 import pytest
 
 from kanban_mcp.operations import ai_team as ai_ops
+from kanban_mcp.tools.ai_team import ai_team as ai_tool
 from models import AiMember, AiProjectSettings, AiRun
 from services.ai import guard, resources
 from services.ai.context import RunContext
@@ -108,6 +109,12 @@ async def test_a_run_over_the_limit_restarts_in_the_same_run_twice_then_stops(
     card = next(i for i in now["needs_you"] if i["kind"] == "memory_stop")
     assert card["run_id"] == run["id"] and card["limit_mb"] == 1
     assert now["restarted_runs"] == 0  # the run has ended
+    # Dismiss takes the card away and is kept in the audit log
+    assert (await c.post(f"/ai/runs/{run['id']}/dismiss-stop")).status_code == 200
+    now = (await c.get(f"/projects/{pid}/ai/team/now")).json()
+    assert not [i for i in now["needs_you"] if i["kind"] == "memory_stop"]
+    log = (await c.get(f"/projects/{pid}/ai/audit")).json()["entries"]
+    assert any(e["action"] == "run_stop_dismissed" for e in log)
 
 
 async def test_a_person_can_restart_a_running_run(env, monkeypatch, quick_monitor):
@@ -216,6 +223,12 @@ async def test_an_ai_run_sees_and_acts_only_as_far_as_its_access(env):
     try:
         with pytest.raises(ValueError, match="not turned on"):
             await ai_ops.resources(pid)
+        # through the MCP tool the actions do not exist at all for a member with None
+        for act in ("resources", "restart"):
+            with pytest.raises(ValueError) as gone:
+                await ai_tool(act, project_id=pid, run_id="run_other")
+            assert "not turned on" not in str(gone.value)
+            assert "Unknown action" in str(gone.value)
         await set_level("view")
         snap = await ai_ops.resources(pid)
         assert "machine" in snap and all("history" not in r for r in snap["runs"])

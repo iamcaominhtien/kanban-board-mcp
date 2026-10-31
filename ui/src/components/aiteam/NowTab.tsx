@@ -62,6 +62,7 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
     return safetyApi.deny(v.id);
   });
   const retry = useAiMutation((runId: string) => aiApi.retry(runId));
+  const dismiss = useAiMutation((runId: string) => aiApi.dismissStop(runId));
   const wait = item.waitingS != null ? `waiting ${fmtDuration(item.waitingS)}` : '';
   const who = item.memberName ?? 'An AI';
   const open = actions.onOpenTicket;
@@ -187,6 +188,16 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
           </button>
           <button type="button" className="st-btn st-btn-sm" onClick={actions.onSeeResources}>
             See resources
+          </button>
+          <button
+            type="button"
+            className="st-btn st-btn-sm"
+            disabled={dismiss.isPending}
+            onClick={() =>
+              dismiss.mutate(item.runId, { onError: (e) => toast.error("Couldn't dismiss it", extractError(e)) })
+            }
+          >
+            Dismiss
           </button>
         </>
       );

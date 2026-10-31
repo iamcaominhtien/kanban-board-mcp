@@ -1,4 +1,4 @@
-import type { ResourceRun, ResourceSnapshot } from '../../types/aiResources';
+import type { ResourcePoint, ResourceRun, ResourceSnapshot } from '../../types/aiResources';
 
 /** A bar is green below 65% of the limit, amber from 65%, red from 90% (design/screens/ai-resources.md, B2). */
 export type Level = 'ok' | 'warn' | 'bad';
@@ -42,6 +42,37 @@ export interface Verdict {
   runId?: string;
 }
 
+export interface Trend {
+  /** MB gained over the window. */
+  grewMb: number;
+  /** Minutes the window covers. */
+  minutes: number;
+  /** Minutes until the limit at this pace, or null when it is not heading there. */
+  toLimitMin: number | null;
+}
+
+/** How a run's CLI memory moved over its history; null when it did not grow by a noticeable amount (100 MB or more). */
+export function trendOf(history: ResourcePoint[], limitMb: number): Trend | null {
+  if (history.length < 6) return null;
+  const first = history[0];
+  const last = history[history.length - 1];
+  const minutes = (Date.parse(last.at) - Date.parse(first.at)) / 60000;
+  const grewMb = last.rssMb - first.rssMb;
+  if (!(minutes > 0.4) || grewMb < 100) return null;
+  const perMin = grewMb / minutes;
+  const toLimitMin = limitMb > 0 && last.rssMb < limitMb ? (limitMb - last.rssMb) / perMin : null;
+  return { grewMb, minutes, toLimitMin };
+}
+
+/** "grew 0.6 GB in 5 minutes. At this pace it is restarted in about 4 minutes." */
+export function trendText(t: Trend): string {
+  const mins = Math.max(1, Math.round(t.minutes));
+  const grew = `grew ${fmtMb(t.grewMb)} in ${mins} ${mins === 1 ? 'minute' : 'minutes'}`;
+  if (t.toLimitMin == null) return `It ${grew}.`;
+  const left = Math.max(1, Math.round(t.toLimitMin));
+  return `It ${grew}. At this pace it is restarted in about ${left} ${left === 1 ? 'minute' : 'minutes'}.`;
+}
+
 /** The one-line answer of the tab: is the machine OK. Red when free RAM is under 10%, amber when a run is climbing. */
 export function verdictOf(snap: ResourceSnapshot): Verdict {
   const { machine, limits } = snap;
@@ -59,10 +90,12 @@ export function verdictOf(snap: ResourceSnapshot): Verdict {
     .map((r) => ({ run: r, pct: limitPct(r.cliRssMb, limits.runMemoryLimitMb) }))
     .sort((a, b) => b.pct - a.pct)[0];
   if (top && top.pct >= 65) {
+    const trend = trendOf(top.run.history, limits.runMemoryLimitMb);
+    const trendNote = trend ? ` ${trendText(trend)}` : '';
     return {
       tone: 'warn',
       title: 'The machine is fine. One run is climbing.',
-      text: `${top.run.memberName ?? 'An AI'} on ${top.run.ticketId} is at ${fmtMb(top.run.cliRssMb)} of its ${fmtGb(limits.runMemoryLimitMb)} limit (${top.pct}%).`,
+      text: `${top.run.memberName ?? 'An AI'} on ${top.run.ticketId} is at ${fmtMb(top.run.cliRssMb)} of its ${fmtGb(limits.runMemoryLimitMb)} limit (${top.pct}%).${trendNote}`,
       runId: top.run.runId,
     };
   }

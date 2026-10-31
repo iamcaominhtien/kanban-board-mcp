@@ -40,6 +40,7 @@ const ACTIONS = [
   'create_branches',
   'raise_cap',
   'run_control',
+  'run_stop_dismissed',
   'mention',
   'kill_switch',
   'resume_all',

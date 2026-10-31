@@ -50,6 +50,7 @@ export const ACTION_LABEL: Record<string, string> = {
   run_restarted: 'Run restarted',
   run_stopped_memory: 'Run stopped: memory',
   run_control: 'Run control approved',
+  run_stop_dismissed: 'Memory stop dismissed',
   mention: 'Mention',
   settings_updated: 'Project AI settings',
   autopilot_decision: 'Autopilot decided',
