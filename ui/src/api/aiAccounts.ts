@@ -81,14 +81,14 @@ export const accountsApi = {
 /** Create / rename / check / sign out / remove / assign; each refreshes the lists afterwards. */
 export function useAccountActions() {
   const refresh = useRefresh();
-  const wrap = <A extends unknown[], R>(fn: (...a: A) => Promise<R>) =>
+  const useWrap = <A extends unknown[], R>(fn: (...a: A) => Promise<R>) =>
     useMutation({ mutationFn: (a: A) => fn(...a), onSettled: () => void refresh() });
-  const create = wrap(accountsApi.create);
-  const rename = wrap(accountsApi.rename);
-  const check = wrap(accountsApi.check);
-  const signOut = wrap(accountsApi.signOut);
-  const remove = wrap(accountsApi.remove);
-  const assign = wrap(accountsApi.assign);
+  const create = useWrap(accountsApi.create);
+  const rename = useWrap(accountsApi.rename);
+  const check = useWrap(accountsApi.check);
+  const signOut = useWrap(accountsApi.signOut);
+  const remove = useWrap(accountsApi.remove);
+  const assign = useWrap(accountsApi.assign);
   return { create, rename, check, signOut, remove, assign, refresh };
 }
 
