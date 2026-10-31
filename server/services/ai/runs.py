@@ -26,6 +26,7 @@ import events as board_events
 import services.activity as svc_activity
 import services.tickets as svc_tickets
 from models import (
+    AiAccount,
     AiAudit,
     AiMember,
     AiProjectSettings,
@@ -36,7 +37,16 @@ from models import (
     TicketUpdate,
 )
 
-from . import approvals, audit, budget, cli, config_service, guard, safety
+from . import (
+    accounts,
+    approvals,
+    audit,
+    budget,
+    cli,
+    config_service,
+    guard,
+    safety,
+)
 from .context import (
     STATUS_LABELS,
     RunContext,
@@ -557,6 +567,10 @@ async def _blocking_reason(
         return f"{member.name} is paused"
     if profile.token_revoked_at:
         return f"Token revoked by {profile.token_revoked_by or 'a person'} — reconnect {member.name}"
+    if profile.account_id:
+        account = await session.get(AiAccount, profile.account_id)
+        if account is not None and account.status == "needs_sign_in":
+            return f"Account {account.name} needs sign-in"
     if profile.health in (
         "key_invalid",
         "not_logged_in",
@@ -1270,7 +1284,9 @@ def cli_tool_rules(
     return allowed, denied
 
 
-async def _session_for(session, run: AiRun) -> tuple[str | None, str | None]:
+async def _session_for(
+    session, run: AiRun, config_dir: str | None = None
+) -> tuple[str | None, str | None]:
     """The CLI session this run continues: the one already on the run (a run resumed after a question, a re-run
     after "Request changes"), else the last session this member used on this ticket, so one agent keeps one
     conversation per ticket. Returns (session id or None, a note for the run when a new session starts although
@@ -1296,7 +1312,7 @@ async def _session_for(session, run: AiRun) -> tuple[str | None, str | None]:
         ):
             return None, None
         wanted = prev.session_id
-    if wanted and cli.session_exists(wanted):
+    if wanted and cli.session_exists(wanted, config_dir):
         return wanted, None
     return None, "Earlier session not found on this computer: starting a new one"
 
@@ -1335,7 +1351,14 @@ async def _execute_claude(
         system, prompt, config = await _build_prompt(
             session, run, profile, member, resume_note=resume_note
         )
-        session_id, fresh_note = await _session_for(session, run)
+        account = (
+            await session.get(AiAccount, profile.account_id)
+            if profile.account_id
+            else None
+        )
+        session_id, fresh_note = await _session_for(
+            session, run, accounts.claude_config_dir(account)
+        )
         resume = session_id is not None
         session_id = session_id or str(uuid.uuid4())
         mcp = {
@@ -1414,6 +1437,10 @@ async def _execute_claude(
         run.session_id = session_id
         session.add(run)
         await session.commit()
+        account_folder = account.folder if account else None
+        account_snapshot = account
+        if account is not None:
+            session.expunge(account)  # still readable after the session closes
         ceiling_ok = _should_start_move(run, profile) and not resume_note
         compact_at = config.get("compact_at_pct")
     if run_id in RT.cancelled:
@@ -1421,7 +1448,10 @@ async def _execute_claude(
     if ceiling_ok:
         await move_status(run_id, "in-progress")
 
-    proc = cli.CliProcess(args, cwd=cwd, env=cli.child_env(compact_at))
+    env = cli.child_env(compact_at)
+    if account_folder:
+        env = accounts.env_for(account_snapshot, env)
+    proc = cli.CliProcess(args, cwd=cwd, env=env)
     RT.procs[run_id] = proc
     pid = await proc.start()
     if run_id in RT.cancelled:
@@ -1577,6 +1607,17 @@ async def _execute_claude(
                 profile.health_detail = "The CLI is installed but its session expired."
                 session.add(profile)
                 await session.commit()
+                if profile.account_id and (
+                    acct := await session.get(AiAccount, profile.account_id)
+                ):
+                    # Every member on the account is held together, and told once
+                    await accounts.mark_signed_out(
+                        session,
+                        acct,
+                        how="run",
+                        detail="The CLI said it is not signed in.",
+                    )
+                    reason = "Account signed out"
     await _end(run_id, "failed", reason)
 
 

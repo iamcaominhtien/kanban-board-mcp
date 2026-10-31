@@ -241,6 +241,8 @@ class AiMemberBody(BaseModel):
     description: Optional[str] = None
     cli_path: Optional[str] = None
     working_dir: Optional[str] = None
+    # the AI account (own login of the CLI) this member runs as; null = the login already on this computer
+    account_id: Optional[str] = None
     base_url: Optional[str] = None
     model: Optional[str] = None
     api_key: Optional[str] = None

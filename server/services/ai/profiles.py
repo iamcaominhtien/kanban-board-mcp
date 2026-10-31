@@ -20,7 +20,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,7 +46,9 @@ class Status:
     detail: str = ""  # one line, as the CLI words it
     email: str | None = None
     plan: str | None = None
-    method: str | None = None  # subscription | api key | ChatGPT login | Google sign-in ...
+    method: str | None = (
+        None  # subscription | api key | ChatGPT login | Google sign-in ...
+    )
 
 
 def profiles_root(cli: str) -> Path:
@@ -178,6 +179,17 @@ class Profile(ABC):
         """What `new` tells the user to do next."""
         return f"next: {script} {self.cli} login {self.name}"
 
+    def credential_files(self) -> list[Path]:
+        """Files inside the folder that hold the login (deleted by ``sign_out``); empty when the CLI uses a keychain."""
+        return []
+
+    def sign_out(self) -> None:
+        """Make the CLI forget the login but keep the profile: ask the CLI to log out where it can, delete the file
+        that holds the login where it cannot."""
+        self.forget()
+        for path in self.credential_files():
+            path.unlink(missing_ok=True)
+
     def remove(self) -> None:
         """Sign out of a login kept outside the folder, then delete the folder."""
         self.forget()
@@ -207,6 +219,7 @@ class Agy(Profile):
         return self.home / "Library" / "Keychains" / "login.keychain-db"
 
     def env(self) -> dict[str, str]:
+        """HOME is swapped; git and the updater are pointed back at the real ones."""
         env = {
             "HOME": str(self.home),
             # git is configured under HOME too; point it back at the real file or commits lose the user's identity.
@@ -219,6 +232,7 @@ class Agy(Profile):
         return env
 
     def dropped_env(self) -> tuple[str, ...]:
+        """No desktop keyring lookup unless the profile has a keychain of its own."""
         # Without a keychain agy should use its file store, not look for a desktop keyring over D-Bus (Linux, untested).
         return () if self.keychain.exists() else ("DBUS_SESSION_BUS_ADDRESS",)
 
@@ -252,11 +266,16 @@ class Agy(Profile):
             if result.returncode:
                 raise Fail("cannot unlock the keychain of this profile")
 
+    def credential_files(self) -> list[Path]:
+        """The OAuth token file under the profile's HOME."""
+        return [self.home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"]
+
     def login_argv(self, extra: list[str]) -> list[str]:
         """agy has no login subcommand: starting it without a login opens the sign-in itself."""
         return [self.bin()]
 
     def login_hint(self) -> str:
+        """Which Google account to choose."""
         return f"Sign in as the Google account for '{self.name}' (choose it in the browser; a private window helps)."
 
     def login_cwd(self) -> Path:
@@ -266,7 +285,9 @@ class Agy(Profile):
     def check(self) -> Status:
         """`agy models` needs a login and exits non-zero without one; it lists models and does not run one."""
         ok = self.call([self.bin(), "models"], capture=True).returncode == 0
-        return Status(ok, "signed in" if ok else "not signed in", method="Google sign-in")
+        return Status(
+            ok, "signed in" if ok else "not signed in", method="Google sign-in"
+        )
 
 
 class Claude(Profile):
@@ -281,9 +302,11 @@ class Claude(Profile):
     )  # the Claude subscription; Console logins are stored outside the dir
 
     def env(self) -> dict[str, str]:
+        """CLAUDE_CONFIG_DIR is the profile folder."""
         return {"CLAUDE_CONFIG_DIR": str(self.dir)}
 
     def dropped_env(self) -> tuple[str, ...]:
+        """Credential variables that outrank a saved login."""
         # Per Claude Code's docs these outrank a saved login, so one set in the caller's shell would make every
         # profile use that credential instead of its own account.
         return ("CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY")
@@ -324,9 +347,11 @@ class Codex(Profile):
     login_args = ("login",)
 
     def env(self) -> dict[str, str]:
+        """CODEX_HOME is the profile folder."""
         return {"CODEX_HOME": str(self.dir)}
 
     def create(self, flags: set[str]) -> None:
+        """Make the folder and keep the login in a file."""
         super().create(flags)
         self.prepare()
 
@@ -344,12 +369,18 @@ class Codex(Profile):
                 f'{CODEX_STORE_KEY} = "file"\n' + text
             )  # top-level keys must come before any [table]
 
+    def credential_files(self) -> list[Path]:
+        """auth.json in CODEX_HOME."""
+        return [self.dir / "auth.json"]
+
     def check(self) -> Status:
         """The first line of `login status` is "Logged in using ..." or "Not logged in"."""
         out = self.call([self.bin(), "login", "status"], capture=True)
         first = ((out.stdout + out.stderr).strip().splitlines() or ["no answer"])[0]
         ok = first.startswith("Logged in")
-        return Status(ok, first, method=first[len("Logged in using ") :] if ok else None)
+        return Status(
+            ok, first, method=first[len("Logged in using ") :] if ok else None
+        )
 
 
 class Opencode(Profile):
@@ -360,6 +391,7 @@ class Opencode(Profile):
     login_args = ("auth", "login")
 
     def env(self) -> dict[str, str]:
+        """The four XDG folders live inside the profile."""
         return {
             "XDG_DATA_HOME": str(self.dir / "data"),
             "XDG_CONFIG_HOME": str(self.dir / "config"),
@@ -368,10 +400,16 @@ class Opencode(Profile):
         }
 
     def create(self, flags: set[str]) -> None:
+        """Make the four XDG folders."""
         for sub in ("data", "config", "cache", "state"):
             (self.dir / sub).mkdir(parents=True)
 
+    def credential_files(self) -> list[Path]:
+        """auth.json under XDG_DATA_HOME."""
+        return [self.dir / "data" / "opencode" / "auth.json"]
+
     def next_step(self, script: str = "ai_profile.py") -> str:
+        """Free models need no login."""
         return f'free models need no login: {script} opencode run {self.name} run -m opencode/<model>-free "..."'
 
     def check(self) -> Status:

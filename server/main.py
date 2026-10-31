@@ -28,6 +28,7 @@ from api.docs import docs_error_handler, router as docs_router
 from api.diagrams import router as diagrams_router
 from api.sketches import router as sketches_router
 from api.ai import router as ai_router
+from api.ai_accounts import router as ai_accounts_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
 from api.assist import assist_error_handler
@@ -49,6 +50,7 @@ from services.docs_ai import proposals as docs_ai_proposals
 from services.ai import schedules as ai_schedules
 from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
+from services.ai import signin as ai_signin
 from services.docs_text import DocsError
 import database
 from version import version_info
@@ -113,6 +115,7 @@ async def lifespan(app: FastAPI):
             await docs_ai_proposals.stop_scheduler()
             await ai_schedules.stop_scheduler()
             await ai_runs.stop_scheduler()
+            await ai_signin.stop_all()
             sweeper.cancel()
             digests.cancel()
             db_watcher.cancel()
@@ -228,6 +231,7 @@ app.include_router(docs_ai_router)
 app.include_router(diagrams_router)
 app.include_router(sketches_router)
 app.include_router(logs_router)
+app.include_router(ai_accounts_router)
 app.include_router(ai_router)
 app.include_router(ai_safety_router)
 app.include_router(ai_config_router)
