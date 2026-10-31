@@ -20,6 +20,9 @@ from pathlib import Path
 from . import paths
 from .secrets import redact
 
+# The command names of the local runners (Claude Code, Codex, opencode, Antigravity)
+LOCAL_CLIS = ("claude", "codex", "opencode", "agy")
+
 _SEARCH_DIRS = [
     "~/.local/bin",
     "~/.claude/local",
@@ -300,7 +303,7 @@ def suspend_tree(pid: int | None, stop: bool = True) -> bool:
     return True
 
 
-def looks_like_cli(pid: int, binary: str = "claude") -> bool:
+def looks_like_cli(pid: int, binary: str | None = None) -> bool:
     """Is `pid` still one of our CLI processes? Used before killing a run left over from a crash, so a reused
     pid is never killed by mistake."""
     if sys.platform == "win32":
@@ -330,7 +333,10 @@ def looks_like_cli(pid: int, binary: str = "claude") -> bool:
             )
         except OSError:
             return False
-    return binary in cmd and "--output-format" in cmd
+    names = (binary,) if binary else LOCAL_CLIS
+    return any(n in cmd for n in names) and any(
+        f in cmd for f in ("--output-format", "--json", "--format")
+    )
 
 
 # Windows runs the CLI through its `claude.cmd` shim, and cmd.exe refuses a command line over 8191 characters

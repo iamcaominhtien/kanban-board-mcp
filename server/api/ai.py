@@ -29,6 +29,7 @@ from models import (
     TicketUpdate,
 )
 from services.ai import accounts as svc_accounts
+from services.ai import adapters
 from services.ai import approvals as svc_approvals
 from services.ai import audit as svc_audit
 from services.ai import members as svc_members
@@ -206,6 +207,9 @@ async def post_test_run(body: TestRunBody, session: Session) -> dict:
         if account is None:
             return {"ok": False, "error": "AI account not found."}
         env = svc_accounts.env_for(account, cli.child_env())
+    adapter = adapters.for_provider(body.provider)
+    if adapter:
+        return await adapters.test_run(adapter, path, body.model, folder, env)
     return await cli.test_run(path, body.model, folder, env=env)
 
 

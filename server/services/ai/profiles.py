@@ -274,6 +274,29 @@ class Agy(Profile):
         """agy has no login subcommand: starting it without a login opens the sign-in itself."""
         return [self.bin()]
 
+    @property
+    def mcp_config(self) -> Path:
+        """The MCP servers agy starts (``mcpServers``), kept in the profile's HOME."""
+        return self.home / ".gemini" / "config" / "mcp_config.json"
+
+    def ensure_mcp(self, name: str, entry: dict) -> bool:
+        """Make sure the profile's MCP config has the server ``name`` exactly as ``entry`` says; other servers are
+        left alone. Returns True when the file changed. agy has no per-run place for a secret, so the entry names a
+        program that reads it from the environment of the run."""
+        try:
+            data = json.loads(self.mcp_config.read_text())
+        except (OSError, ValueError):
+            data = {}
+        servers = data.setdefault("mcpServers", {})
+        if servers.get(name) == entry:
+            return False
+        servers[name] = entry
+        self.mcp_config.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.mcp_config.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, indent=2))
+        tmp.replace(self.mcp_config)
+        return True
+
     def login_hint(self) -> str:
         """Which Google account to choose."""
         return f"Sign in as the Google account for '{self.name}' (choose it in the browser; a private window helps)."

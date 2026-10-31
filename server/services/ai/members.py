@@ -22,6 +22,7 @@ from models import AiApproval, AiMember, AiRun, Member, Project, Ticket
 
 from . import (
     accounts,
+    adapters,
     audit,
     budget,
     cli,
@@ -936,6 +937,9 @@ async def detect_local(
     spec = PROVIDERS.get(provider) or {}
     env = accounts.env_for(account, cli.child_env()) if account is not None else None
     info = await cli.detect(provider, spec.get("binary") or provider, cli_path, env=env)
+    adapter = adapters.for_provider(provider)
+    if adapter and info["found"] and account is None:
+        info["logged_in"] = await adapters.logged_in(adapter, info["path"], env)
     if account is not None and info["found"]:
         # The answer is about the account's own login, not the one already on this computer
         info["logged_in"] = account.status == "signed_in"
@@ -1069,23 +1073,29 @@ async def test_connection(
                 "message": "The CLI is installed but not signed in. Run it in a terminal and sign in.",
                 **info,
             }
-        elif profile.provider != "claude-code":
-            result = {
-                "ok": True,
-                "health": "ok",
-                "message": "CLI found. Runs are not supported for this CLI yet.",
-                **info,
-            }
         elif full:
             folder = os.path.expanduser(profile.working_dir or "") or None
-            run = await cli.test_run(
-                info["path"],
-                profile.model,
-                folder if folder and Path(folder).is_dir() else None,
-                env=accounts.env_for(account, cli.child_env())
+            test_env = (
+                accounts.env_for(account, cli.child_env())
                 if account is not None
-                else None,
+                else None
             )
+            adapter = adapters.for_provider(profile.provider)
+            if adapter:
+                run = await adapters.test_run(
+                    adapter,
+                    info["path"],
+                    profile.model,
+                    folder if folder and Path(folder).is_dir() else None,
+                    test_env,
+                )
+            else:
+                run = await cli.test_run(
+                    info["path"],
+                    profile.model,
+                    folder if folder and Path(folder).is_dir() else None,
+                    env=test_env,
+                )
             if run["ok"]:
                 result = {
                     "ok": True,

@@ -24,8 +24,6 @@ PROVIDERS: dict[str, dict] = {
         "install": "npm install -g @openai/codex",
         "npm_package": "@openai/codex",
         "guide_url": "https://developers.openai.com/codex/cli",
-        # Runs do not start yet: the member can be made and given an account, like Antigravity
-        "runs": False,
     },
     "opencode": {
         "label": "opencode",
@@ -36,7 +34,6 @@ PROVIDERS: dict[str, dict] = {
         "install": "npm install -g opencode-ai",
         "npm_package": "opencode-ai",
         "guide_url": "https://opencode.ai/docs",
-        "runs": False,
     },
     "antigravity": {
         "label": "Antigravity",
@@ -51,7 +48,6 @@ PROVIDERS: dict[str, dict] = {
             "Enable its command line tool so that “agy” works in a terminal.",
         ],
         "guide_url": "https://antigravity.google",
-        "runs": False,
     },
     "anthropic": {
         "label": "Anthropic",
@@ -179,7 +175,7 @@ MATRIX: dict[str, dict[str, tuple[str, str]]] = {
         for g, _ in GROUPS
     },
 }
-# Codex and opencode members can be made (and given an account) but their runs do not start yet: nothing is synced
+# Codex and opencode members: the board writes nothing into their folders; the run is configured on the command line
 MATRIX["codex"] = MATRIX["opencode"] = {g: ("not_supported", "") for g, _ in GROUPS}
 
 ADAPTER_COLUMNS = [

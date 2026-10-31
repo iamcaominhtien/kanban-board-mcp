@@ -24,6 +24,7 @@ from sqlmodel import col, select
 import database
 import events as board_events
 import services.activity as svc_activity
+import services.mcp_clients as mcp_clients
 import services.tickets as svc_tickets
 from models import (
     AiAccount,
@@ -39,6 +40,7 @@ from models import (
 
 from . import (
     accounts,
+    adapters,
     approvals,
     audit,
     budget,
@@ -1038,8 +1040,10 @@ async def _execute(run_id: str, token: str) -> None:
                     run, profile
                 ) else None
             await api_agent.execute(run_id, token)
-        elif profile.provider == "claude-code":
-            await _execute_claude(run_id, token)
+        elif profile.provider == "claude-code" or adapters.for_provider(
+            profile.provider
+        ):
+            await _execute_cli(run_id, token)
         else:
             await _end(
                 run_id,
@@ -1285,7 +1289,7 @@ def cli_tool_rules(
 
 
 async def _session_for(
-    session, run: AiRun, config_dir: str | None = None
+    session, run: AiRun, config_dir: str | None = None, check: bool = True
 ) -> tuple[str | None, str | None]:
     """The CLI session this run continues: the one already on the run (a run resumed after a question, a re-run
     after "Request changes"), else the last session this member used on this ticket, so one agent keeps one
@@ -1312,27 +1316,28 @@ async def _session_for(
         ):
             return None, None
         wanted = prev.session_id
-    if wanted and cli.session_exists(wanted, config_dir):
+    if wanted and (not check or cli.session_exists(wanted, config_dir)):
         return wanted, None
     return None, "Earlier session not found on this computer: starting a new one"
 
 
-async def _execute_claude(
-    run_id: str, token: str, resume_note: str | None = None
-) -> None:
+async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) -> None:
+    """One run of a local CLI: Claude Code (built here) or Codex, opencode and Antigravity (``adapters.py``)."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         member, profile = await get_profile(session, run.member_id)
-        path, _ = cli.find_cli("claude", profile.cli_path)
+        adapter = adapters.for_provider(profile.provider)
+        binary = adapter.binary if adapter else "claude"
+        path, _ = cli.find_cli(binary, profile.cli_path)
         if not path:
             profile.health = "runner_missing"
-            profile.health_detail = "“claude” was not found on this computer"
+            profile.health_detail = f"“{binary}” was not found on this computer"
             session.add(profile)
             await session.commit()
             await _end(
                 run_id,
                 "failed",
-                "No runner: the claude CLI was not found on this computer.",
+                f"No runner: the {binary} CLI was not found on this computer.",
             )
             return
         cwd = os.path.expanduser(profile.working_dir or "")
@@ -1356,11 +1361,23 @@ async def _execute_claude(
             if profile.account_id
             else None
         )
+        if adapter and adapter.needs_account and account is None:
+            await _end(
+                run_id,
+                "failed",
+                f"{adapter.label} runs need an AI account: its MCP servers are kept per account. "
+                "Add an account for it and choose it for this AI member.",
+            )
+            return
         session_id, fresh_note = await _session_for(
-            session, run, accounts.claude_config_dir(account)
+            session,
+            run,
+            accounts.claude_config_dir(account),
+            check=adapter is None,
         )
         resume = session_id is not None
-        session_id = session_id or str(uuid.uuid4())
+        # Claude Code takes the session id up front; the others tell it in their first event
+        session_id = session_id or (None if adapter else str(uuid.uuid4()))
         mcp = {
             "mcpServers": {
                 "kanban": {
@@ -1414,26 +1431,54 @@ async def _execute_claude(
             config.get("permission_mode") == "bypass"
             and run.mode == "work"
             and not safe
+            and adapter is None
         )
         if bypass:
             denied += [d for d in _WEB_TOOLS if d not in denied]
-        args = cli.claude_args(
-            path,
-            prompt=prompt,
-            system=system,
-            model=profile.model,
-            mcp_config=mcp,
-            allowed=allowed,
-            denied=denied,
-            max_turns=int(config.get("max_turns") or 40),
-            session_id=session_id,
-            resume=resume,
-            effort=config.get("effort"),
-            extra_flags=[
-                f for f in (config.get("extra_flags") or []) if isinstance(f, str)
-            ],
-            bypass=bypass,
-        )
+        extra_flags = [
+            f for f in (config.get("extra_flags") or []) if isinstance(f, str)
+        ]
+        launch = None
+        if adapter:
+            if account is not None and adapter.cli == "agy":
+                # Antigravity keeps its MCP servers in the account's folder: point it at the bridge, which reads
+                # the run's token from the environment of the run
+                accounts.profile_of(account).ensure_mcp(
+                    "kanban", adapters.bridge_entry(*mcp_clients.stdio_command())
+                )
+            launch = adapter.launch(
+                adapters.Spec(
+                    path=path,
+                    cwd=cwd,
+                    prompt=f"{system}\n\n---\n\n{prompt}" if system else prompt,
+                    model=profile.model,
+                    mcp_url=f"{RT.board_url or 'http://127.0.0.1:8000'}/mcp/",
+                    token=token,
+                    allowed=allowed,
+                    denied=denied,
+                    read_only=run.mode == "ask" or safe,
+                    resume_id=session_id if resume else None,
+                    effort=config.get("effort"),
+                    extra_flags=extra_flags,
+                )
+            )
+            args = launch.args
+        else:
+            args = cli.claude_args(
+                path,
+                prompt=prompt,
+                system=system,
+                model=profile.model,
+                mcp_config=mcp,
+                allowed=allowed,
+                denied=denied,
+                max_turns=int(config.get("max_turns") or 40),
+                session_id=session_id,
+                resume=resume,
+                effort=config.get("effort"),
+                extra_flags=extra_flags,
+                bypass=bypass,
+            )
         run.session_id = session_id
         session.add(run)
         await session.commit()
@@ -1451,7 +1496,10 @@ async def _execute_claude(
     env = cli.child_env(compact_at)
     if account_folder:
         env = accounts.env_for(account_snapshot, env)
+    if launch:
+        env.update(launch.env)
     proc = cli.CliProcess(args, cwd=cwd, env=env)
+    parser = adapter.parser(cwd) if adapter else None
     RT.procs[run_id] = proc
     pid = await proc.start()
     if run_id in RT.cancelled:
@@ -1468,6 +1516,10 @@ async def _execute_claude(
                 ),
             },
             *([{"kind": "start", "text": fresh_note}] if fresh_note else []),
+            *(
+                {"kind": "start", "text": note}
+                for note in (launch.notes if launch else [])
+            ),
             *(
                 [
                     {
@@ -1520,7 +1572,7 @@ async def _execute_claude(
             line = finished.result()
         except StopAsyncIteration:
             break
-        parsed = cli.parse_stream_line(line, cwd)
+        parsed = parser.feed(line) if parser else cli.parse_stream_line(line, cwd)
         fields = {}
         if parsed["ready"] and not ready:
             ready = True
@@ -1589,7 +1641,8 @@ async def _execute_claude(
     ):
         return
     said = ((result or {}).get("text") or " ".join(proc.stderr_tail[-5:])).lower()
-    if resume and "no conversation found" in said and await _requeue_fresh(run_id):
+    gone = adapter.resume_missing if adapter else ("no conversation found",)
+    if resume and any(m in said for m in gone) and await _requeue_fresh(run_id):
         return
     reason = None
     if result and result.get("subtype") == "error_max_turns":
@@ -2267,7 +2320,7 @@ async def answer(run_id: str, *, by: str, text: str) -> AiRun:
 
 async def _resume_cli(run_id: str, token: str, note: str) -> None:
     try:
-        await _execute_claude(run_id, token, resume_note=note)
+        await _execute_cli(run_id, token, resume_note=note)
     except Exception as exc:  # noqa: BLE001
         logger.exception("AI run %s crashed on resume", run_id)
         await _end(run_id, "failed", f"The runner failed: {redact(str(exc))[:300]}")

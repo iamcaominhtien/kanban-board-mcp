@@ -39,21 +39,21 @@ ACCOUNT_CLIS: dict[str, dict] = {
         "provider": "codex",
         "binary": "codex",
         "blurb": "OpenAI · ChatGPT login",
-        "runnable": False,
+        "runnable": True,
     },
     "opencode": {
         "label": "opencode",
         "provider": "opencode",
         "binary": "opencode",
         "blurb": "Paid providers only · free models need no account",
-        "runnable": False,
+        "runnable": True,
     },
     "agy": {
         "label": "Antigravity",
         "provider": "antigravity",
         "binary": "agy",
-        "blurb": "Google · runs do not start yet (for now)",
-        "runnable": False,
+        "blurb": "Google · the agy command",
+        "runnable": True,
     },
 }
 CLI_OF_PROVIDER = {v["provider"]: k for k, v in ACCOUNT_CLIS.items()}
