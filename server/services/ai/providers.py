@@ -46,8 +46,9 @@ PROVIDERS: dict[str, dict] = {
         "default_model": None,
         "install": "Install the Antigravity command line tool (agy)",
         "install_steps": [
-            "Install the Antigravity command line tool from its website, so that “agy” works in a terminal.",
-            "Run “agy” once and sign in, or add an AI account for it and sign in there.",
+            "Install Antigravity from its website.",
+            "Open it once and sign in with your account, or add an AI account for it and sign in there.",
+            "Enable its command line tool so that “agy” works in a terminal.",
         ],
         "guide_url": "https://antigravity.google",
         "runs": False,

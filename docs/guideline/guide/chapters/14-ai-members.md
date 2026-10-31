@@ -12,12 +12,23 @@ An AI member is a member of a project that happens to be an AI. You assign it ti
 
 ## What you need
 
-- **Claude Code CLI**, signed in, if you want an AI to change code on your computer. Install Node.js, then `npm install -g @anthropic-ai/claude-code`, run `claude` once and sign in. Check with `claude auth status`. Restart the app so it sees the new PATH. The app starts the CLI as you would by hand; it does not read or store the CLI’s sign-in.
+- **Claude Code CLI**, signed in, if you want an AI to change code on your computer. Install Node.js, then `npm install -g @anthropic-ai/claude-code`, run `claude` once and sign in. Check with `claude auth status`. Restart the app so it sees the new PATH. The app starts the CLI as you would by hand; it does not read or store the CLI’s sign-in. To keep several sign-ins, see AI accounts below.
 - **Or an API key** (Anthropic, OpenAI, Gemini, or an OpenAI-compatible endpoint). These AIs work inside the board, with its tools (read and edit tickets, comments, Docs). They do not edit files on your computer. They suit triage, rewriting descriptions, reviews and the Board AI.
 - A **working folder** for a Claude Code AI: usually the root of a git repository. Commit or stash unfinished work first.
 
 !!! warning "Where the working folder may be"
     For safety the folder must be inside your home folder (not the home folder itself), or inside a folder listed in `KANBAN_AI_ROOTS` ({ch:self-hosting}).
+
+## AI accounts: several sign-ins of one CLI
+
+By default a Claude Code AI uses the login that is already on your computer: one login per CLI. An **AI account** is a separate sign-in of the same CLI. Make one for your work plan and one for your personal plan, and different AIs can use them at the same time. Several AIs can share one account; sign in once, and when it expires fix it in one place.
+
+- **Make an account:** Members › **AI accounts** › **Add account** (also **New account…** in the Connect step of Add AI member). Choose the CLI, give the account a name, then sign in in the terminal that opens in the window. The terminal is the real CLI; the line above it says what it is waiting for (choose a method, finish in the browser, paste a code).
+- **Choose it:** in the Connect step of **Add AI member**, and in the member's profile (**Change**). “The login already on this computer” stays the last choice and works as before.
+- **Claude Code, Codex, opencode and Antigravity** have accounts. Codex, opencode and Antigravity members can be made and given an account, but their runs do not start yet. opencode's free models need no account; some of them may use your prompts to improve the model, so keep confidential data out of them.
+- **Signed out:** if an account's session ends, every AI on it is held, one banner and one notification name the account, and queued runs start by themselves after **Sign in again**. Only a person can sign in; an AI can list accounts and assign a member to one over MCP (`ai_team`, actions `accounts` and `assign_account`), and has no way to sign in.
+- **Where the login is kept:** in the account's own folder (`~/.kanban-board/ai-accounts/<name>`, a file readable only by you, but by any program running as you), not in the system keychain, except Claude Code on macOS, which keeps it in the keychain under an entry of its own. The board starts the CLI and asks it who is signed in; it never reads or shows the login. Keep that folder out of cloud sync and backups.
+- **Desktop app only.** The web build shows the list read only. Antigravity accounts are not available on Windows, where its login belongs to the Windows user and two accounts might share it.
 
 ## A team of four
 

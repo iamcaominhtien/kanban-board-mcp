@@ -1,103 +1,62 @@
-# AI accounts: several logins of the same AI CLI, and the designer brief
+# AI accounts: several logins of the same AI CLI
 
-Draft, 2026-10-31. Context: today an AI member that runs on the person's computer uses whatever login its CLI already
-has (one per CLI per user). This adds **AI accounts**: separate logins of the same CLI that can run at the same time,
-so one lead AI can hand work to members that each use a different account. The first step, a developer script that
-proves the idea, is `.claude/scripts/ai_profile.py` (see `.claude/scripts/ai_profile.md`). Existing designs this builds
-on: `design/screens/ai-members.md`, `design/screens/ai-provider-config.md`, `design/screens/ai-safety-cost.md`,
-`design/components/ai-ticket-work.md`; technical notes: `docs/specs/ai-members.md`.
+Version 3.16.0. Context: an AI member that runs on the person's computer used whatever login its CLI already had (one
+per CLI per user). An **AI account** is a separate login of the same CLI. Several can run at the same time, and several
+AI members can share one. Design: `design/screens/ai-accounts.md`. Related: `design/screens/ai-members.md`,
+`docs/specs/ai-members.md`. The developer script that proved the idea is `.claude/scripts/ai_profile.py`
+(see `.claude/scripts/ai_profile.md`); the server uses the same module, `server/services/ai/profiles.py`.
 
-## Decisions already taken
+## Decisions
 
-1. **Keep what exists.** An AI member can still use the CLI's own login ("my CLI as it is") or an API key. Nothing
-   changes for them.
-2. **An account is its own thing, not part of a member.** There is a list of AI accounts (for example "Claude Max",
-   "Claude Pro", "Codex"). A member picks one from the list. Several members can pick the same account; the login is
-   made once; when it expires, fixing it once fixes every member that uses it.
-3. **Signing in is a human step.** An AI that calls the board through MCP can list accounts, see whether each is
-   signed in and assign a member to one, but cannot sign in. A signed-out account makes a run fail with "needs
-   sign-in" and sends the person a notification.
-4. **The sign-in happens in a real terminal inside the app** (a terminal pane), because each CLI asks things in its
-   own way. Desktop only, like the other local runners (the web build cannot start a CLI on the person's computer).
+1. **Keep what exists.** An AI member can still use the CLI's own login ("the login already on this computer", the
+   default) or an API key. Nothing changes for them.
+2. **An account is its own thing, not part of a member.** A member picks one from the list; several members can pick the
+   same account. When the login expires, fixing it once fixes every member on it.
+3. **Signing in is a human step.** An AI that calls the board through MCP can list accounts and assign a member to one,
+   but cannot sign in, sign out, rename or remove. A signed-out account holds its members' runs ("Account X needs
+   sign-in") and the run that was going fails with "Account signed out".
+4. **The sign-in happens in a real terminal inside the app** (a pseudo-terminal on the server, shown with xterm.js),
+   because each CLI asks in its own way. Desktop only, like the other local runners: every route that changes an account
+   needs the request to come from this computer. Where no pseudo-terminal exists (Windows), the window shows the command
+   to run in the person's own terminal and polls the CLI until it reports signed in.
 5. **One pull request** carries the script, the server, the UI and this document.
 
-## What a sign-in looks like in the CLI
+## How it works
 
-Seen in a terminal for `agy`; for `claude` and `codex` taken from their documentation and `--help` (not run end to end):
+| Piece | Where |
+| --- | --- |
+| What each CLI needs to keep a login apart (environment variables, status command, sign-out) | `server/services/ai/profiles.py` (standard library only) |
+| Accounts: create, check, rename, sign out, remove, assign, per-account members | `server/services/ai/accounts.py` |
+| Sign-in terminal: PTY, output kept in memory only, status polling every 3 s, reading the screen for the status bar | `server/services/ai/signin.py` |
+| REST and the terminal WebSocket | `server/api/ai_accounts.py` |
+| Data | table `ai_account`, column `ai_member.account_id` (null = the login already on this computer) |
+| MCP | `ai_team` actions `accounts` (read) and `assign_account` |
 
-| CLI | Steps | Notes |
-| --- | --- | --- |
-| `agy` (Antigravity) | choose a method (1 Google OAuth, 2 a Google Cloud project) with the arrow keys and Enter; a browser opens; sign in; the page shows a code; paste it into the terminal; then a few options to confirm | needs typing, arrow keys and pasting |
-| `claude` | `claude auth login --claudeai`: a browser opens; if the browser shows a code instead of coming back, paste it at the prompt | |
-| `codex` | `codex login`: a browser opens; `codex login --device-auth` is an option for sign-in without a local browser callback (its help gives no description; assumed to show a link and a code to enter in the browser) | the device-auth behaviour is not run yet |
-| `opencode` | `opencode auth login` (its free models need no login at all) | |
+- **Folders.** `~/.kanban-board/ai-accounts/<slug>` (override with `KANBAN_AI_ACCOUNTS_HOME`). Outside the data folder, so
+  it is not synced with it. Removing an account deletes the folder; for Claude Code on macOS it first logs the account
+  out, which removes its keychain entry.
+- **Running as an account.** The CLI of a run starts with the account's environment: `CLAUDE_CONFIG_DIR` for Claude Code
+  (sessions are resumed from that folder), `HOME` for Antigravity, `CODEX_HOME` for Codex, the `XDG_*` folders for
+  opencode. Variables that would override the login (`ANTHROPIC_API_KEY` ...) are removed for Claude Code.
+- **Status.** Asked of the CLI, never read from a token file: `claude auth status --json` (email and plan),
+  `codex login status`, `agy models`, `opencode auth list`. On opening the page, every few minutes (four) by the health
+  sweep, when a person clicks Check now, and when a run fails with a sign-in error. The account goes to *needs sign-in*
+  once, with how it was found, and every member on it follows.
+- **Who is signed in.** Only Claude Code says (email, plan). For the others the account shows its method and the name the
+  person gave it, so two accounts of the same login cannot be told apart there. Claude Code duplicates are noticed.
+- **Safety of the terminal.** Only a request from this computer can open it; the WebSocket also refuses pages of other
+  websites (origin check). There is no tool or route an AI member can use. Output is kept in memory so a window can attach
+  again and is never logged or stored; closing the window or stopping the board stops the CLI.
 
-Not known yet: whether the options `agy` shows after signing in can be skipped, and whether leaving them unanswered
-stops it from running headless. This needs a quick test before the sign-in screen is final.
+## Not done yet
 
-## What exists in the UI today
-
-- **Add AI member**, four steps: type, connect, identity and limits, permissions and review. In step 2, for a local
-  runner, the board looks for the CLI and shows its path, version and "Signed in as", then asks for a working folder
-  and a model. A note says the login token stays in the CLI's own keychain.
-- **Settings → Board AI**: pick which AI member is the Board AI.
-- **Members page and member profile** with a health chip (`ok`, `not_logged_in`, `runner_missing`, `rate_limited`, ...).
-- Types today: Claude Code, Antigravity (listed, but "no headless mode": it only gets work through MCP), Anthropic,
-  OpenAI, Gemini, Custom (API key) and Other MCP client.
-
-## What to design
-
-Please keep the look of the existing AI screens (the Add AI member modal and stepper, `ai-card`, `ai-chip`).
-
-1. **AI accounts list** (a tab or section next to the AI members; the designer chooses the place). One row per
-   account: name, CLI, "signed in as" (email and plan when the CLI reports them), status chip, number of members using
-   it, actions (sign in again, rename, remove). Group or filter by CLI. Empty state ("No accounts yet"). Removing an
-   account that members use: say which, and ask what happens to them.
-2. **Add account**: choose the CLI → name it → sign in. A short stepper in the style of Add AI member.
-3. **Sign-in panel with a terminal** (the main new screen).
-   - A terminal pane where the CLI runs for real. Keyboard goes to the terminal; Esc must still be able to leave the
-     panel (think about focus). Links printed in the terminal should be clickable (open in the browser) and copyable.
-   - A side area, outside the terminal, that says in plain words what the person is expected to do now and updates
-     with the CLI: "Starting…", "Choose how to sign in", "Finish in your browser", "Paste the code from the browser"
-     (with a Paste button, because pasting into a terminal is awkward), "Signed in as …".
-   - States: starting, waiting for you, signed in (detected by the board; Done button), failed or timed out (Try
-     again), terminal closed early, cancelled. The CLI may take a while; the panel must not look stuck.
-   - A line on where the login is kept: a file inside the account's folder (readable by programs running as the
-     person), not the system keychain; Claude on macOS is the exception, it uses the keychain. Plain wording, no scare.
-4. **Add AI member, step 2**: an account picker above the working folder. Choices: "My CLI as it is (current
-   behaviour)", each account of this CLI, "Add account…" (opens 3). "Signed in as" shows the chosen account. A
-   signed-out account shows an inline Sign in action.
-5. **Step 1 type cards**: new local types Codex and opencode, and Antigravity now runnable (remove the "no headless
-   mode" warning). Each needs its glyph and colour, install steps and models. opencode's free models need a visible
-   note: some of them may use prompts to improve the model, so keep confidential data out of them.
-6. **Member profile and members page**: which account the member uses; the signed-out state with a Sign in action;
-   change account.
-7. **Shared account hint**: when several members use one account, say so ("3 members share this account and its
-   limits"), since they share its rate limits.
-8. **Run blocked by a signed-out account**: the run panel and the Inbox show "needs sign-in" with an action, not a
-   generic failure.
-9. **Copy to fix**: "the login token stays in the CLI's own keychain" is no longer true for every account.
-
-Out of scope: API-key members, the permission model, budgets, schedules.
-
-## Questions for the designer and product
-
-- Where does the accounts list live (Settings, the AI members page, both)?
-- Terminal as a modal, a side panel or a full page? Is a terminal wanted at all for first use, or only as a fallback
-  when the guided steps are not enough?
-- Is a usage indicator per account wanted (runs today, last rate limit)? The board already tracks rate limits per member.
-
-## Build notes (for the developer)
-
-- Server module `server/services/ai/profiles.py`, **standard library only**, next to `cli.py`: profile folders, the
-  environment each CLI needs, login and status commands. `ai_profile.py` shrinks to a thin front that calls it, so
-  the logic lives in one place. The env variables per CLI are in `.claude/scripts/ai_profile.md`.
-- Data: an `ai_account` table (cli, name, folder, last status, label) and `ai_member.account_id` (null = the CLI's own
-  login). The server starts the CLI of a run with that account's environment (today: `child_env()` in `cli.py`).
-- Terminal: a pseudo-terminal on the server (`pty` on macOS and Linux; Windows needs ConPTY, which has to be checked),
-  streamed over a WebSocket to a terminal component (xterm.js) in the UI. The app has no terminal or pty dependency yet.
-- Status: poll the CLI's own status command until it says signed in; do not read the token.
-- MCP: read-only tools (list accounts, status) plus assigning a member to an account; no sign-in tool.
-- `agy` runs: `-p` with `--output-format stream-json` exists, so Antigravity can become a runner like Claude Code,
-  with its own output parser.
-- Order: server module and tests; data and API; MCP tools; UI once the designs are in.
+- **Runs for Codex, opencode and Antigravity.** Members of these types can be made and given an account (the design shows a
+  *Not ready* chip), but their runs do not start. Each needs a runner like the Claude Code one (headless command, output
+  parser, MCP and permission mapping). Antigravity: `agy -p` with `--output-format stream-json` exists.
+- **Linux and Windows** were not tried with real logins. The profile approach follows the vendors' documentation; see
+  `.claude/scripts/ai_profile.md`. Antigravity accounts are refused on Windows (its login belongs to the Windows user).
+  The embedded terminal needs ConPTY on Windows (not built; the fallback command is shown instead).
+- **Moving an existing login** ("Move to an account") signs in again in the new account's folder; it does not copy the old
+  token.
+- **Desktop notification** for a signed-out account: the board shows one banner per account; the system notification is
+  not sent yet.

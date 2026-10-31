@@ -572,3 +572,24 @@ async def test_inside_an_ai_run_the_accounts_can_be_read_but_not_changed(fake_cl
             await ai_team("assign_account", member_id=m["id"], account_id=a["id"])
     finally:
         guard.leave(tokens)
+
+
+@pytestmark_pty
+async def test_a_sign_in_whose_window_was_closed_is_stopped(fake_cli, monkeypatch):
+    monkeypatch.setattr(signin, "ORPHAN_S", 0.3)
+    c = fake_cli["c"]
+    a = await _account(c)
+    await c.post(f"/ai/accounts/{a['id']}/signin")
+    s = signin.active(a["id"])
+    q = signin.attach(s)
+    signin.detach(s, q)  # the tab was closed
+    await _until(lambda: signin.active(a["id"]) is None)
+    assert s.ended == "cancelled" and s.proc.poll() is not None
+    # a window that comes back in time keeps it
+    await c.post(f"/ai/accounts/{a['id']}/signin")
+    s = signin.active(a["id"])
+    signin.detach(s, signin.attach(s))
+    signin.attach(s)
+    await asyncio.sleep(0.6)
+    assert signin.active(a["id"]) is s
+    await signin.stop(s)

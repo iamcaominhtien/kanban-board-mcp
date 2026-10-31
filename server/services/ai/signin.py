@@ -36,6 +36,10 @@ except ImportError:  # pragma: no cover - Windows
 
 KEEP_BYTES = 64 * 1024  # what a window that attaches late replays
 POLL_S = 3.0  # how often the CLI is asked who is signed in
+ORPHAN_S = (
+    90.0  # a sign-in with no window attached this long is stopped (the tab was closed)
+)
+MAX_S = 30 * 60  # no sign-in outlives this
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07|\x1b[()][A-Z0-9]")
 URL = re.compile(r"https?://[^\s\x1b\"'<>)]+")
 
@@ -124,6 +128,7 @@ class SignIn:
     duplicate_of: str | None = None
     account: dict | None = None
     poller: asyncio.Task | None = None
+    orphan: asyncio.TimerHandle | None = None
 
     def publish(self, message: dict) -> None:
         """Send a message to every window attached."""
@@ -295,6 +300,9 @@ async def _poll(session: SignIn) -> None:
         await asyncio.sleep(POLL_S)
         if SESSIONS.get(session.account_id) is not session or session.ended:
             return
+        if time.time() - session.started > MAX_S:
+            await stop(session, "cancelled")
+            return
         with contextlib.suppress(Exception):
             await _check(session)
 
@@ -308,12 +316,27 @@ def attach(session: SignIn) -> asyncio.Queue:
         )
     q.put_nowait(session.state())
     session.watchers.add(q)
+    if session.orphan is not None:
+        session.orphan.cancel()
+        session.orphan = None
     return q
 
 
 def detach(session: SignIn, q: asyncio.Queue) -> None:
-    """A window went away; the sign-in goes on (the person may open the window again)."""
+    """A window went away; the sign-in goes on for a little (a reload attaches again). With no window for ORPHAN_S
+    seconds the CLI is stopped, so a closed tab never leaves one running."""
     session.watchers.discard(q)
+    if session.watchers or session.ended is not None:
+        return
+    loop = asyncio.get_running_loop()
+    session.orphan = loop.call_later(
+        ORPHAN_S, lambda: asyncio.ensure_future(_stop_if_orphaned(session))
+    )
+
+
+async def _stop_if_orphaned(session: SignIn) -> None:
+    if not session.watchers and session.ended is None:
+        await stop(session, "cancelled")
 
 
 def write(session: SignIn, data: str) -> None:
@@ -336,6 +359,8 @@ async def stop(session: SignIn, how: str = "cancelled") -> None:
     if session.proc and session.proc.poll() is None:
         cli.kill_tree(session.proc.pid)
     _close_fd(session)
+    if session.orphan is not None:
+        session.orphan.cancel()
     if session.poller and session.poller is not asyncio.current_task():
         session.poller.cancel()
     if how == "done":
