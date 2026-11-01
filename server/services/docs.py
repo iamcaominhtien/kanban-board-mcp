@@ -975,11 +975,7 @@ async def _commit_version(
     if not commit:
         return {}
     await session.commit()
-    detail = await page_detail(session, page.id)
-    from services import notifications as centre
-
-    await centre.on_page_published(detail, note)
-    return detail
+    return await page_detail(session, page.id)
 
 
 async def _update_aliases(

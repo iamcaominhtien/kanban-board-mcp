@@ -33,7 +33,8 @@
       "updater-helpers.js",
       "preload.js",
       "vscode-setup.js",
-      "export-svg.js"
+      "export-svg.js",
+      "notifier.js"
     ],
     "extraResources": [
       {

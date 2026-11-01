@@ -8,6 +8,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+One place for what needs you and what happened: Notifications ([#253](https://github.com/iamcaominhtien/kanban-board-mcp/issues/253), design `design/screens/notifications.md`, spec `docs/specs/notifications.md`).
+
+### Added
+- **A bell and a panel on every screen.** The red number counts only what needs you (a question, an approval, a failed run, a blocked permission, a signed-out account, a mention, a page proposal, a cap reached); updates show as a blue dot. The panel has two tabs, *Needs you* (oldest waiting first, with Answer, Approve, Retry, Sign in again right on the row) and *Updates*, grouped by day, with Snooze and Mute on hover. Keyboard: N, J/K, Enter, E, S, Esc, Shift N.
+- **All notifications**, a page for every project: search, All · Unread · Needs you · Snoozed · Done · Cleared, days, project and kind filters. Notifications are kept 90 days (a setting); clearing a row is a state, not a delete.
+- **A notification closes itself.** Answer the AI in the ticket, decide the approval in AI Team, sign the account in or retry the run, and the row goes grey with why ("Done — you answered in the ticket") in every open window within a second. A row whose ticket was deleted says so and offers only Dismiss.
+- **Many events at once are one row**: eight AI finishing within ten minutes is "8 AI finished work", expandable, and one desktop notice.
+- **The day in one card** at 18:00 on weekdays (a setting): runs finished and failed, what still waits for you, what it cost, Docs published, tomorrow's schedules. Counted, not written by an AI.
+- **Desktop notifications from the app itself**: the Electron main process follows the notification log, so notifications keep coming with the window closed (macOS), two windows give one, at most one every 20 s (the rest grouped), a notice is withdrawn when its event resolves, clicking opens the thing itself, and the dock or taskbar shows the Needs you number. Permission and *Send a test* in Settings; quiet hours obeyed. The web build shows the count in the tab title.
+- **Follow and mute** a ticket, a Docs page, a Docs space, a project or a kind; a mute never hides something that needs you.
+- **Settings › Notifications**, one app-wide page: In app and Desktop per event (In app is locked on for everything that needs you), quiet hours, Do not disturb, sound, the day card, retention and the Muted list.
+- An event log with increasing ids (`/notifications/log`, `/notifications/feed?since=`) that the panel, the desktop app and later an external AI waiting on the board all read; a recipient is a person or an AI member.
+
+### Changed
+- **Toasts are for the moment only**: a Needs you event while you are looking, a failure of something you just did, or an Undo. At most three at a time; a fourth collapses into "+N more". "Saved", "Copied" and the like are a quiet grey line at the bottom for 2 s.
+- The six features that toasted on their own (AI runs, schedules, Docs publishes, Docs comments, AI accounts, AI safety) now write to the one log; nothing arrives twice.
+- "Off" means quiet, not unrecorded: an AI safety event is always recorded, even when both switches are off.
+- The notification switches moved from each project's AI settings to the app-wide Settings › Notifications; the Docs space Follow is now one case of following.
+
+### Removed
+- The 09:00 AI safety digest: quiet safety events are ordinary Updates rows when they happen, and the day card is the only summary. Board health keeps its own 09:00 digest.
+
 ## [3.18.0] - 2026-11-01
 
 The AI team, tighter: a question has the rights of work, Canvas AI and Autopilot work with it, proof on test cases, and fewer limits stop a team.

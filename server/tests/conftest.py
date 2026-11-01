@@ -92,3 +92,15 @@ def _resource_monitor_starts_empty():
     resources.MON.reset()
     yield
     resources.MON.reset()
+
+
+@pytest.fixture(autouse=True)
+def _notification_queues_are_per_test():
+    """Events queued for the notification log by one test must not be written into the next test's database."""
+    from services import notifications
+
+    notifications._pending.clear()
+    notifications._later.clear()
+    yield
+    notifications._pending.clear()
+    notifications._later.clear()
