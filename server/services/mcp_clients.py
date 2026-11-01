@@ -48,13 +48,10 @@ class BadRequest(Exception):
 def stdio_command() -> tuple[str, list[str]]:
     """Command + args that start the stdio MCP server in this install."""
     if getattr(sys, "frozen", False):
-        # Packaged desktop app: check for fast onedir binary first, fallback to single-file.
+        # Packaged desktop app: both programs sit side by side in one folder that shares its _internal/
+        # (Resources/kanban-mcp-stdio/{kanban-server,kanban-mcp-stdio}, desktop/kanban-backend.spec)
         ext = ".exe" if os.name == "nt" else ""
-        parent = Path(sys.executable).resolve().parent
-        onedir_binary = parent / "kanban-mcp-stdio" / f"kanban-mcp-stdio{ext}"
-        if onedir_binary.is_file():
-            return str(onedir_binary), []
-        return str(parent / f"kanban-mcp-stdio{ext}"), []
+        return str(Path(sys.executable).resolve().parent / f"kanban-mcp-stdio{ext}"), []
     uv = shutil.which("uv") or "uv"
     return uv, ["--directory", str(_SERVER_DIR), "run", "mcp_stdio.py"]
 

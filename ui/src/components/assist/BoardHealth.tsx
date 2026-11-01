@@ -7,6 +7,7 @@ import { useAssist } from './AssistContext';
 import { BoardAiAvatar, DraftTag, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
 import './assist.css';
+import { toggleNumber } from '../../utils/sorted';
 
 const KIND: Record<Insight['kind'], { label: string; bg: string; color: string }> = {
   stuck: { label: 'Stuck', bg: '#FFF1E2', color: '#B4541A' },
@@ -220,7 +221,9 @@ function ScheduleSettings({ projectId, cfg }: { projectId: string; cfg: HealthCo
               type="button"
               className={cfg.days.includes(i) ? 'ai-seg-on' : ''}
               onClick={() =>
-                void save({ days: cfg.days.includes(i) ? cfg.days.filter((x) => x !== i) : [...cfg.days, i].sort() })
+                void save({
+                  days: toggleNumber(cfg.days, i),
+                })
               }
             >
               {d}

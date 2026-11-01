@@ -14,6 +14,8 @@ const {
   buildExportCommand,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  openExternalSafely,
+  openPathSafely,
   parseReadyPort,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
@@ -53,7 +55,7 @@ function startBackend() {
     if (process.platform === 'darwin' && app.isPackaged) {
       try {
         const { execFileSync } = require('child_process');
-        execFileSync('xattr', ['-d', 'com.apple.quarantine', spec.command], { stdio: 'ignore' });
+        execFileSync('/usr/bin/xattr', ['-d', 'com.apple.quarantine', spec.command], { stdio: 'ignore' });
       } catch { /* attribute may not exist — non-fatal */ }
     }
 
@@ -248,7 +250,7 @@ function collectDiagnostics() {
     arch: process.arch,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
-    language: app.getLocale(),
+    language: app.getSystemLocale(), // the OS locale: the app ships only a few Chromium locales (package.json electronLanguages)
   };
 }
 
@@ -342,15 +344,25 @@ ipcMain.handle('select-folder', async () => {
 });
 
 // IPC: open a file with system default application
-ipcMain.handle('open-path', async (_event, filePath) => {
-  if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' };
-  try {
-    const errorMsg = await shell.openPath(filePath);
-    return { success: !errorMsg, error: errorMsg || null };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
+ipcMain.handle('open-path', (_event, filePath) =>
+  openPathSafely(shell, filePath, { confirm: confirmOpenAnyway, realpath: fs.realpathSync }),
+);
+
+/** Ask, in a system dialog the page cannot answer, before opening a file that could run a program. */
+async function confirmOpenAnyway(name) {
+  const options = {
+    type: 'warning',
+    buttons: ['Cancel', 'Open anyway'],
+    defaultId: 0,
+    cancelId: 0,
+    message: `Open ${name}?`,
+    detail: 'This kind of file can run programs on your computer. Open it only if you trust the person who added it.',
+  };
+  const { response } = mainWindow
+    ? await dialog.showMessageBox(mainWindow, options)
+    : await dialog.showMessageBox(options);
+  return response === 1;
+}
 
 // IPC: reveal a file in Finder / Explorer
 ipcMain.handle('show-item-in-folder', async (_event, filePath) => {
@@ -364,15 +376,7 @@ ipcMain.handle('show-item-in-folder', async (_event, filePath) => {
 });
 
 // IPC: open external URL in default browser
-ipcMain.handle('open-external', async (_event, url) => {
-  if (!url || typeof url !== 'string') return { error: 'Invalid URL' };
-  try {
-    await shell.openExternal(url);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
+ipcMain.handle('open-external', (_event, url) => openExternalSafely(shell, url));
 
 function launchBackend() {
   return startBackend()

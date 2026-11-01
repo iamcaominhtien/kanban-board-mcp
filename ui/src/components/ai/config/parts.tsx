@@ -30,9 +30,11 @@ export type SetDraft = (patch: Partial<MemberDraft>) => void;
 
 /** New id for a config item typed in the UI. */
 export function newId(): string {
-  const c = typeof crypto !== 'undefined' ? crypto : undefined;
-  if (c && 'randomUUID' in c) return c.randomUUID().replace(/-/g, '').slice(0, 12);
-  return Math.random().toString(16).slice(2, 14).padEnd(12, '0');
+  // randomUUID needs a secure context; getRandomValues works in every page
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** `value`, but only after it stopped changing for `ms`. */

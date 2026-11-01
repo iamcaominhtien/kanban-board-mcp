@@ -78,13 +78,14 @@ class ScheduleError(ValueError):
 
 
 class _Runtime:
-    task: asyncio.Task | None = None
-    lock = asyncio.Lock()
-    reviews: dict[str, asyncio.Task] = {}
-    events: collections.deque = collections.deque(maxlen=200)
-    seq = itertools.count(
-        int(time.time() * 1000)
-    )  # keeps growing across restarts (clients keep the last id)
+    def __init__(self) -> None:
+        """State of the scheduler in this process; set up when the module loads."""
+        self.task: asyncio.Task | None = None
+        self.lock = asyncio.Lock()
+        self.reviews: dict[str, asyncio.Task] = {}
+        self.events: collections.deque = collections.deque(maxlen=200)
+        # Starts at the clock, so ids keep growing across restarts (clients keep the last id)
+        self.seq = itertools.count(int(time.time() * 1000))
 
 
 RT = _Runtime()

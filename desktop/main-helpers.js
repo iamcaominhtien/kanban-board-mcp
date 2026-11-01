@@ -72,8 +72,9 @@ function buildBackendLaunchSpec({
   const stdio = [apiSecret ? 'pipe' : 'ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
-    // onedir layout: Resources/kanban-server/kanban-server[.exe] (no per-launch temp extraction)
-    const binaryPath = path.join(resourcesPath, 'kanban-server', `kanban-server${getBinaryExtension(platform)}`);
+    // onedir layout (no per-launch temp extraction): the server sits next to kanban-mcp-stdio in one folder whose
+    // _internal/ both share, Resources/kanban-mcp-stdio/kanban-server[.exe] (desktop/kanban-backend.spec)
+    const binaryPath = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-server${getBinaryExtension(platform)}`);
     return {
       command: binaryPath,
       args: [],
@@ -165,6 +166,84 @@ function terminateBackendProcess(processRef) {
   return true;
 }
 
+// File types "Open in app" hands to the system's default app straight away: documents, images, media and archives.
+// Anything else (.exe, .sh, .js, .py, .html, macro-capable .doc/.xls/.ppt, unknown types …) could run code when
+// opened, so the desktop app asks first in a system dialog, which a page that was tricked into asking cannot answer.
+const OPENABLE_EXTENSIONS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.heic', '.heif', '.avif', '.tif', '.tiff',
+  '.txt', '.log', '.csv', '.tsv', '.json', '.xml', '.yaml', '.yml', '.md', '.markdown', '.pdf', '.rtf', '.epub',
+  '.xlsx', '.docx', '.pptx', '.odt', '.ods', '.odp', '.pages', '.numbers', '.key',
+  '.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.mp4', '.m4v', '.webm', '.mov', '.mkv', '.avi',
+  '.zip', '.tar', '.gz', '.tgz', '.rar', '.7z',
+]);
+
+/** A Windows network path (\\host\share\…, also written //host/share/…): opening one can send the user's
+ * credentials to that host, so it is never opened from the app. */
+function isNetworkPath(filePath) {
+  return /^(\\\\|\/\/)/.test(filePath);
+}
+
+/**
+ * Whether `filePath` may be opened with the system's default app without asking.
+ * @param filePath - The path the page asked for.
+ * @param realPath - Where it really points (a symlink's target); a link named report.pdf to a program is not a PDF.
+ */
+function isOpenablePath(filePath, realPath = filePath) {
+  if (typeof filePath !== 'string' || !filePath || isNetworkPath(filePath)) return false;
+  const known = (p) => OPENABLE_EXTENSIONS.has(path.extname(p).toLowerCase());
+  return known(filePath) && known(realPath);
+}
+
+/** Whether `url` may be handed to the system: only web pages and mail links, never file:// or app protocols. */
+function isOpenableUrl(url) {
+  if (typeof url !== 'string' || !url) return false;
+  try {
+    return ['https:', 'http:', 'mailto:'].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The `open-path` IPC: open a file with its default app. A type that is not plainly a document is opened only after
+ * the person says so in `confirm` (a system dialog in the app); a network path never.
+ * @param shell - Electron's shell (or a stand-in in tests).
+ * @param filePath - The path the page asked for.
+ * @param options - `confirm(name)` resolves true to open anyway; `realpath(p)` resolves symlinks.
+ */
+async function openPathSafely(shell, filePath, { confirm = async () => false, realpath = (p) => p } = {}) {
+  if (!filePath || typeof filePath !== 'string') return { success: false, error: 'Invalid path' };
+  if (isNetworkPath(filePath)) {
+    return { success: false, error: 'Files on a network share are not opened from the app. Use Show in folder.' };
+  }
+  let real = filePath;
+  try {
+    real = realpath(filePath);
+  } catch {
+    // a missing file: openPath says so below
+  }
+  if (!isOpenablePath(filePath, real) && !(await confirm(path.basename(filePath)))) {
+    return { success: false, error: 'Not opened' };
+  }
+  try {
+    const errorMsg = await shell.openPath(filePath);
+    return { success: !errorMsg, error: errorMsg || null };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** The `open-external` IPC: hand a web or mail link to the system, nothing else. */
+async function openExternalSafely(shell, url) {
+  if (!isOpenableUrl(url)) return { success: false, error: 'Only web and mail links can be opened' };
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   StartupProfiler,
   buildBackendLaunchSpec,
@@ -172,6 +251,11 @@ module.exports = {
   getBinaryExtension,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  isNetworkPath,
+  isOpenablePath,
+  isOpenableUrl,
+  openExternalSafely,
+  openPathSafely,
   parseReadyPort,
   resolveConfiguredUploadsDir,
   shouldRunVscodeSetup,

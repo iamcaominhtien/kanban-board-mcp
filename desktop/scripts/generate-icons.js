@@ -44,7 +44,7 @@ async function main() {
       ])
     );
 
-    execFileSync('iconutil', ['-c', 'icns', iconsetDir, '-o', ICON_ICNS]);
+    execFileSync('/usr/bin/iconutil', ['-c', 'icns', iconsetDir, '-o', ICON_ICNS]);
     fs.rmSync(iconsetDir, { recursive: true, force: true });
     console.log(`  ✓ ${ICON_ICNS}`);
   } else {

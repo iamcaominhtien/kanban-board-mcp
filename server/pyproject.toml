@@ -17,6 +17,7 @@ dependencies = [
     "pyyaml>=6.0",
     "rapidfuzz>=3.9.0",
     "sqlmodel>=0.0.38",
+    "tzdata>=2026.6",
     "uvicorn>=0.43.0",
     "websockets>=13.0",
 ]
@@ -27,11 +28,19 @@ dev = [
     "httpx>=0.28.1",
     "ruff>=0.9.0",
     "pytest-xdist>=3.8.0",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
+
+# Coverage for SonarQube Cloud (CI runs pytest --cov --cov-report=xml)
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "alembic/*", ".venv/*"]
+# SQLAlchemy async runs code in greenlets; without this, coverage misses everything an endpoint does after its first query
+concurrency = ["greenlet", "thread"]
 
 [tool.ruff.lint]
 # Public classes, methods and functions need a docstring

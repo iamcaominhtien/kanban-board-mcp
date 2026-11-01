@@ -172,14 +172,6 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btnDanger {
-  background: #c4432a;
-  border-color: #c4432a;
-  color: #fff;
-}
-.btnDanger:hover {
-  background: #a93a24 !important;
-}
 .btnDraw {
   background: #6d5dd3;
   border-color: #6d5dd3;
@@ -353,39 +345,6 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 16px;
-}
-
-/* ── Confirm ──────────────────────────────────────────── */
-.confirmBackdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.confirm {
-  width: min(420px, 90%);
-  background: var(--pv-surface);
-  border: 1px solid var(--pv-border);
-  border-radius: 12px;
-  padding: 18px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-}
-.confirm h2 {
-  margin: 0 0 8px;
-  font-size: 15px;
-}
-.confirm p {
-  margin: 0 0 14px;
-  color: var(--pv-muted);
-  line-height: 1.5;
-}
-.confirmActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 /* ── States ───────────────────────────────────────────── */

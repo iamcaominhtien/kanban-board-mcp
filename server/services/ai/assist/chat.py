@@ -1297,6 +1297,23 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             session.add(d)
             await session.commit()
             draft_id = d.id
+    # The cost is booked before the answer reads "done": whoever sees it done (a budget check, the next
+    # question sent at once) must already count it
+    label = (
+        provider.usage_label(scope_info, done, _feature(c))
+        if provider is not None and scope_info is not None
+        else _feature(c)
+    )
+    async with database.async_session() as session:
+        await svc_settings.record_usage(
+            session,
+            c.project_id,
+            label,
+            member.id,
+            c.owner,
+            out,
+        )
+    await _account(message_id, out.cost, out.tokens_in + out.tokens_out)
     cut_short = out.stop_reason == "max_tokens"
     await _set(
         message_id,
@@ -1341,21 +1358,6 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             **({"cut_short": True} if cut_short else {}),
         },
     )
-    label = (
-        provider.usage_label(scope_info, done, _feature(c))
-        if provider is not None and scope_info is not None
-        else _feature(c)
-    )
-    async with database.async_session() as session:
-        await svc_settings.record_usage(
-            session,
-            c.project_id,
-            label,
-            member.id,
-            c.owner,
-            out,
-        )
-    await _account(message_id, out.cost, out.tokens_in + out.tokens_out)
     await _publish()
 
 

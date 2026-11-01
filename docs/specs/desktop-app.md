@@ -14,6 +14,10 @@ Currently, users must: (1) have Python installed, (2) manually run the FastAPI s
 - **Two PyInstaller binaries:**
   - `kanban-server`: FastAPI + uvicorn HTTP server; spawned by Electron on startup
   - `kanban-mcp-stdio`: stdio MCP entry point; registered in VS Code, called by AI agents (Copilot etc.)
+  - Both are built by one spec (`desktop/kanban-backend.spec`) into one onedir folder,
+    `Resources/kanban-mcp-stdio/{kanban-server,kanban-mcp-stdio,_internal/}`, so the Python runtime and the
+    libraries are installed once. The folder keeps the stdio binary's name because MCP clients outside the app store
+    `Resources/kanban-mcp-stdio/kanban-mcp-stdio` as their command.
 - **Dynamic port:** Python server picks a free port (socket trick), prints `READY port=<N>` to stdout, Electron captures it, passes to renderer via contextBridge IPC
 - **Shared SQLite DB:** lives in platform user data dir (`~/Library/Application Support/KanbanBoard/kanban.db` on macOS)
 - **VS Code MCP auto-setup:** On first launch, Electron writes/merges user-level `mcp.json`:
