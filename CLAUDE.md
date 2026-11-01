@@ -30,3 +30,14 @@ Pick the model and effort for each subagent from the task, not by default:
 - **Start cheap and escalate on evidence.** Raise the effort first and the model second, and only when a cheaper run came back wrong or thin. When the result can be checked (tests, a verifier), run at low effort and re-run only the failures at `high`.
 - Keep `max` for a hard problem worked through without the user (a security hunt); on ordinary work it overthinks.
 - An escalation agent is a consultant: give it the code and the facts, ask for a recommendation, and do the implementation yourself (or with a cheaper agent) once the way forward is clear.
+
+# Pull requests
+
+Every pull request you create gets an assignee and labels. If the tool that creates it cannot set them (the GitHub MCP `create_pull_request` cannot), set them right after with `issue_write` (`method: update`, the PR number as `issue_number`):
+
+- **Assignee**: `iamcaominhtien`.
+- **Labels**: every label that fits, from the repo's existing labels first. If none of them fits, create a new one (short, lowercase, in the style of the existing ones) and use it.
+  - `bug`: fixes broken behavior.
+  - `enhancement`: a new feature, an improvement, or a chore or CI change.
+  - `documentation`: design docs, guides, README or other docs.
+  - `dependencies`: adds, removes or bumps a dependency (`pyproject.toml`/`uv.lock`, `package.json`/lockfiles).
