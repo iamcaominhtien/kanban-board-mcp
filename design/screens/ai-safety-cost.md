@@ -1,6 +1,6 @@
 # AI safety & cost
 
-> Screen — v1 · source: [`AiSafetyCost.dc.html`](../source/AiSafetyCost.dc.html) · canvas `1792727511-31c8` · sha256 `fdbaa589d309b09f3f9d52d2c944eacb66c597e314a5896a94c4d9701198cebd`
+> Screen — v1 · source: [`AiSafetyCost.dc.html`](../source/AiSafetyCost.dc.html) · canvas `1793551952-5c55` · sha256 `b76e1a31f4eb34c67b7d9b23c233f4cc4449d73cc81432de017476c1e0de6616`
 
 > **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — failures stop being one kind: hitting a usage window is not a failure at all, and a board fault is told apart from an AI mistake (sections C and E). The approvals inbox and the auto-trip rules are unchanged.
 
@@ -512,7 +512,7 @@ Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › block "H Role
 
 ### H1. Roles, notifications, owner confirmation
 
-![Three-column card: a roles matrix with four role columns, an AI safety notifications grid with a digest select, and an Owner confirmation card for a permission change by Hoa Mai](../images/ai-safety-cost/33-h1-roles-notifications-owner-confirmation.png)
+![Three-column card: a roles matrix with four role columns, an AI safety notifications grid with In-app and Desktop columns, and an Owner confirmation card for a permission change by Hoa Mai](../images/ai-safety-cost/33-h1-roles-notifications-owner-confirmation.png)
 
 - Caption: "H1. Roles, notifications, owner confirmation".
 - "Who can do what"; role columns "AN" "Owner", "HM" "Admin", "TV" "Member", "LP" "Viewer" (a tick means allowed, a dash means not allowed):
@@ -530,15 +530,15 @@ Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › block "H Role
 
 - "AI safety notifications":
 
-| When this happens | In-app | Desktop | Email |
-|---|---|---|---|
-| "Approval requested" | on | on | off |
-| "Auto-trip or Pause all AI" | on | on | on |
-| "Budget at 80% or cap reached" | on | off | on |
-| "Blocked or injection attempt" | on | off | on |
-| "Agent offline, token revoked" | on | on | off |
+| When this happens | In-app | Desktop |
+|---|---|---|
+| "Approval requested" | on | on |
+| "Auto-trip or Pause all AI" | on | on |
+| "Budget at 80% or cap reached" | on | off |
+| "Blocked or injection attempt" | on | off |
+| "Agent offline, token revoked" | on | on |
 
-- "Non-urgent as one digest" select "Daily 09:00, Mon to Fri"; "Urgent ones (approvals, auto-trip) are never held for the digest. Owners and admins get all; members only their own."
+- "Two channels only: nothing is sent by email. Quiet events arrive as ordinary updates when they happen, and the 18:00 day card is the only summary. Owners and admins get all; members only their own."
 - "Owner confirmation of a permission change"; "Shown to An Nguyen. The old setting stays until confirmed; both steps are audited."
 - Card: "HM" "Hoa Mai" "(Admin) wants to change" "Claude Code · Backend › Create branches" chips "Allowed" → "Needs approval"; buttons "Reject", "Confirm change".
 
@@ -645,7 +645,7 @@ Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › block "Note" 
 "Invented: cost, roles, retention":
 
 - "Invented: board budget $200.00 a month and $15.00 a day, token caps, cap per run, queue of 10, “Ask an owner first” at the cap, alerts at 50, 80, 100%, forecast from the 7-day average."
-- "Invented: role matrix, “pause only” for members, notification channels, 09:00 digest, audit retention 30 days, 90 days, 1 year, Forever, blocked entries kept 1 year, hash chaining, entry ids."
+- "Invented: role matrix, “pause only” for members, notification channels, audit retention 30 days, 90 days, 1 year, Forever, blocked entries kept 1 year, hash chaining, entry ids."
 - "Invented: “Run ended” for approvals of a lost run, “approvals full”, token revoke on emergency stop, 5-item first-time checklist."
 - "Sample data only: names, ticket ids, runs, costs, tokens, prices, domains, the guest e-mail, times. Prices are not real quotes."
 
