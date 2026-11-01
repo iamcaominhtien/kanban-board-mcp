@@ -30,6 +30,17 @@ One place for what needs you and what happened: Notifications ([#253](https://gi
 ### Removed
 - The 09:00 AI safety digest: quiet safety events are ordinary Updates rows when they happen, and the day card is the only summary. Board health keeps its own 09:00 digest.
 
+## [3.18.1] - 2026-11-01
+
+A smaller desktop app, and two fixes for the installed app.
+
+### Changed
+- **The desktop app is about 100 MB smaller once installed** (Windows 466 MB → about 366 MB, macOS 398 MB → about 295 MB), and the download about 36 MB smaller (Windows installer 162 MB → about 126 MB, macOS 181–188 MB → about 143–150 MB). The two Python programs (`kanban-server`, `kanban-mcp-stdio`) were two separate folders, each with its own copy of the Python runtime and every library (about 50 MB each); they are now built into one folder that shares them, `Resources/kanban-mcp-stdio/`. The stdio binary keeps its path, so MCP clients set up by an older version keep working. The command-line tools that came with FastAPI and MCP (`fastapi run/deploy`, `mcp dev`, with sentry, rich and pygments) are no longer packed, and only the English and Vietnamese Chromium locales are kept (the other ~50 took 45 MB; a missing one falls back to English).
+
+### Fixed
+- **In the installed app, connecting an MCP client (Claude Code, Codex, Antigravity…) wrote a path that did not exist.** Since 3.1.1 (the onedir layout, `Resources/kanban-server/`) the server looked for `kanban-mcp-stdio` next to itself, in the wrong folder. Both programs now sit in the same folder, so the path is right.
+- **Time zones did not work without the operating system's time zone database** (Windows, trimmed Linux images): a reset time such as “resets 4pm (Asia/Saigon)” and a schedule's time zone were silently ignored. The time zone data now ships with the app.
+
 ## [3.18.0] - 2026-11-01
 
 The AI team, tighter: a question has the rights of work, Canvas AI and Autopilot work with it, proof on test cases, and fewer limits stop a team.

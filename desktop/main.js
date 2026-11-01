@@ -254,7 +254,7 @@ function collectDiagnostics() {
     arch: process.arch,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
-    language: app.getLocale(),
+    language: app.getSystemLocale(), // the OS locale: the app ships only a few Chromium locales (package.json electronLanguages)
   };
 }
 
