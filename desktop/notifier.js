@@ -5,7 +5,7 @@
 // This module does not require Electron: the pure parts (`shouldNotify`, `NotifierCore`, `badgePlan`, ...) are unit
 // tested with plain fakes, and `startNotifier` takes the Electron objects it uses as arguments (main.js passes them).
 
-const http = require('http');
+const http = require('node:http');
 
 const RATE_MS = 20000; // at most one notice every 20 s
 const POLL_MS = 15000; // the feed is polled as a fallback for a dropped /events stream
@@ -21,7 +21,7 @@ const TEST_TITLE = 'Kanban Board — Test notification';
  * held is in the panel). Do not disturb / Focus is left to the OS, which already holds notifications then.
  */
 function shouldNotify(row, ctx = {}) {
-  if (!row || !row.desktop || row.done || row.read || row.gone) return false;
+  if (!row?.desktop || row.done || row.read || row.gone) return false;
   if (ctx.focused || ctx.quiet) return false;
   return true;
 }
@@ -32,7 +32,7 @@ function noticeFor(rows) {
     const row = rows[0];
     const where = row.ticket_id && !(row.body || '').includes(row.ticket_id) ? `${row.ticket_id} · ` : '';
     const actions = (row.actions || [])
-      .filter((a) => a && a.id && a.label && a.id !== 'dismiss' && a.id !== 'expand')
+      .filter((a) => a?.id && a.label && a.id !== 'dismiss' && a.id !== 'expand')
       .slice(0, MAX_ACTIONS);
     return { title: row.title || 'Kanban Board', body: `${where}${row.body || ''}`.trim(), actions, open: row };
   }
@@ -153,25 +153,27 @@ class NotifierCore {
 
     for (const id of feed.resolved || []) this.withdraw(id);
     const ctx = { ...this.context(), quiet: this.quiet };
-    for (const row of feed.items || []) {
-      if (!row || !row.id) continue;
-      if (row.done || row.read) {
-        this.withdraw(row.id);
-        continue;
-      }
-      const last = row.last_event_id ?? row.event_id ?? null;
-      if (this.told.has(row.id) && this.told.get(row.id) === last) continue;
-      this.told.delete(row.id);
-      this.told.set(row.id, last);
-      // what has been told is kept for the newest rows only (insertion order: the oldest go first)
-      while (this.told.size > TOLD_MAX) this.told.delete(this.told.keys().next().value);
-      if (!shouldNotify(row, ctx)) continue;
-      this.enqueue(row);
+    for (const row of feed.items || []) this.applyRow(row, ctx);
+  }
+
+  /** One row of a feed: withdrawn when closed, otherwise told once per last event, and queued when it may notify. */
+  applyRow(row, ctx) {
+    if (!row?.id) return;
+    if (row.done || row.read) {
+      this.withdraw(row.id);
+      return;
     }
+    const last = row.last_event_id ?? row.event_id ?? null;
+    if (this.told.has(row.id) && this.told.get(row.id) === last) return;
+    this.told.delete(row.id);
+    this.told.set(row.id, last);
+    // what has been told is kept for the newest rows only (insertion order: the oldest go first)
+    while (this.told.size > TOLD_MAX) this.told.delete(this.told.keys().next().value);
+    if (shouldNotify(row, ctx)) this.enqueue(row);
   }
 
   context() {
-    return (this.deps.context && this.deps.context()) || {};
+    return this.deps.context?.() || {};
   }
 
   enqueue(row) {
@@ -247,7 +249,7 @@ class NotifierCore {
    * next feed only gives the head again. */
   reset() {
     this.stop();
-    for (const handle of [...this.handleRows.keys()]) this.deps.close(handle);
+    for (const handle of this.handleRows.keys()) this.deps.close(handle);
     this.handleRows.clear();
     this.shown.clear();
     this.told.clear();
@@ -307,12 +309,12 @@ function startNotifier(opts) {
   };
 
   const focused = () => {
-    const win = getWindow && getWindow();
+    const win = getWindow?.();
     return Boolean(win && !win.isDestroyed() && win.isVisible() && win.isFocused());
   };
 
   function makeNotification({ title, body, actions, open }, { silent = false } = {}) {
-    if (!Notification || !Notification.isSupported()) return null;
+    if (!Notification?.isSupported()) return null;
     const n = new Notification({
       title,
       body,
@@ -357,12 +359,15 @@ function startNotifier(opts) {
     const plan = badgePlan(platform, count);
     try {
       if (plan.kind === 'count') {
-        if (app && app.setBadgeCount) app.setBadgeCount(plan.count);
+        if (app?.setBadgeCount) app.setBadgeCount(plan.count);
         return;
       }
-      const win = getWindow && getWindow();
+      const win = getWindow?.();
       if (!win || win.isDestroyed() || !win.setOverlayIcon) return;
-      if (!plan.show) return void win.setOverlayIcon(null, '');
+      if (!plan.show) {
+        win.setOverlayIcon(null, '');
+        return;
+      }
       if (!overlay && nativeImage) overlay = nativeImage.createFromBitmap(redDotBitmap(16), { width: 16, height: 16 });
       win.setOverlayIcon(overlay, plan.description);
     } catch (err) {
@@ -378,7 +383,7 @@ function startNotifier(opts) {
     // already hold every notification an app sends, and Electron cannot read either state.
     core.applyFeed(feed);
     const counts = await getJson(port, '/notifications/counts', headers());
-    setBadge(counts && counts.needs);
+    setBadge(counts?.needs);
   }
 
   /** Fetches the feed and the count; calls made while one runs are folded into one more run after it. */
@@ -405,7 +410,8 @@ function startNotifier(opts) {
     const req = http.get({ host: '127.0.0.1', port, path: '/events', headers: { Accept: 'text/event-stream', ...headers() } }, (res) => {
       if (res.statusCode !== 200) {
         res.resume();
-        return void scheduleReconnect();
+        scheduleReconnect();
+        return;
       }
       streamAttempt = 0;
       refresh(); // anything missed while disconnected
@@ -453,6 +459,20 @@ function startNotifier(opts) {
     connect();
   }
 
+  /** The backend is gone: no request may go to its old port (a process taking it over would get the secret). */
+  function pause() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    if (stream) {
+      const s = stream;
+      stream = null;
+      try { s.destroy(); } catch { /* closed */ }
+    }
+    setBadge(0);
+  }
+
   if (port) start();
 
   return {
@@ -460,7 +480,7 @@ function startNotifier(opts) {
     setPort(p) {
       port = p;
       core.reset();
-      if (!port) return;
+      if (!port) return pause();
       if (!pollTimer) start();
       else {
         refresh();
@@ -476,7 +496,7 @@ function startNotifier(opts) {
       refresh();
     },
     status() {
-      const supported = Boolean(Notification && Notification.isSupported());
+      const supported = Boolean(Notification?.isSupported());
       // Electron has no way to read the OS permission. On macOS a refused app's notifications are dropped silently
       // (no 'failed' event), so 'granted' means "supported and no test failed"; Windows/Linux report a refused or
       // missing notification server through 'failed', which the test turns into 'denied'.
@@ -485,7 +505,7 @@ function startNotifier(opts) {
     /** Shows the test notice now, past the 20 s limit and quiet hours. */
     test() {
       return new Promise((resolve) => {
-        if (!Notification || !Notification.isSupported()) {
+        if (!Notification?.isSupported()) {
           testFailed = true;
           return resolve({ ok: false, reason: 'Notifications are not supported on this computer.' });
         }

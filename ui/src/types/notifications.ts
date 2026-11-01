@@ -41,7 +41,7 @@ export interface NotificationAction {
 /** A row as the API returns it. */
 export interface NotificationRow {
   id: string;
-  kind: NotificationKind | string;
+  kind: NotificationKind | (string & {});
   kindLabel: string;
   needs: boolean;
   projectId: string | null;

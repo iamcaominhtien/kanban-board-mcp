@@ -54,7 +54,10 @@ export function NotificationBellButton() {
 }
 
 /** The All notifications page as a view; it needs `NotificationsHost` above it. */
-export function NotificationsPageView({ onBack, onOpenSettings }: { onBack: () => void; onOpenSettings: () => void }) {
+export function NotificationsPageView({
+  onBack,
+  onOpenSettings,
+}: Readonly<{ onBack: () => void; onOpenSettings: () => void }>) {
   const ctx = useContext(NotificationsContext);
   if (!ctx) return null;
   return (
@@ -81,15 +84,16 @@ export function NotificationsHost({
   onOpenAiMember,
   onOpenPage,
   onOpenSettings,
-}: {
+}: Readonly<{
   children: ReactNode;
   onOpenTicket: (ticketId: string) => void;
-  onOpenDoc: (pageId: string) => void;
-  onOpenAiTab: (tab: 'accounts' | 'approvals') => void;
-  onOpenAiMember: (memberId?: string | null) => void;
+  /** `projectId` is the row's project: a row of another project opens there, never in the one on screen */
+  onOpenDoc: (pageId: string, projectId?: string | null) => void;
+  onOpenAiTab: (tab: 'accounts' | 'approvals', projectId?: string | null) => void;
+  onOpenAiMember: (memberId?: string | null, projectId?: string | null) => void;
   onOpenPage: () => void;
   onOpenSettings: () => void;
-}) {
+}>) {
   const assist = useAssist();
   const counts = useNotificationCounts().data;
   const [panelOpen, setPanelOpen] = useState(false);
@@ -116,18 +120,18 @@ export function NotificationsHost({
       case 'open_run_log':
       case 'open_item':
         if (ticket) p.onOpenTicket(ticket);
-        else if (row.pageId) p.onOpenDoc(row.pageId);
+        else if (row.pageId) p.onOpenDoc(row.pageId, row.projectId);
         break;
       case 'sign_in':
-        p.onOpenAiTab('accounts');
+        p.onOpenAiTab('accounts', row.projectId);
         break;
       case 'review':
-        if (row.kind === 'page_proposal' && row.pageId) p.onOpenDoc(row.pageId);
-        else p.onOpenAiTab('approvals');
+        if (row.kind === 'page_proposal' && row.pageId) p.onOpenDoc(row.pageId, row.projectId);
+        else p.onOpenAiTab('approvals', row.projectId);
         break;
       case 'open_ai':
       case 'change_permission':
-        p.onOpenAiMember(row.memberId);
+        p.onOpenAiMember(row.memberId, row.projectId);
         break;
       case 'open_list':
         setFocusRowId(row.id);
@@ -139,7 +143,7 @@ export function NotificationsHost({
       default:
         // open, reply
         if (row.kind === 'day_card') p.onOpenPage();
-        else if (row.pageId) p.onOpenDoc(row.pageId);
+        else if (row.pageId) p.onOpenDoc(row.pageId, row.projectId);
         else if (ticket) p.onOpenTicket(ticket);
         else p.onOpenPage();
     }

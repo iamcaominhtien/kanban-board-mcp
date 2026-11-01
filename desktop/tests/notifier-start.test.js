@@ -341,6 +341,7 @@ test("the stream reconnects after the server closes it and after a bad status", 
     () => h.b.count("/events") > before && h.b.sse.length === 1,
     4000,
   );
+  assert.strictEqual(h.b.sse.length, 1);
 });
 
 test("feed errors (HTTP status, bad JSON) are logged and do not stop the notifier", async (t) => {
@@ -432,4 +433,18 @@ test("stop ends timers and the stream and later refreshes do nothing", async (t)
   await h.n.refresh();
   await sleep(1200);
   assert.strictEqual(h.b.requests.length, count);
+});
+
+test("setPort(null) when the backend exits: no request reaches the old port, the badge clears, a new port resumes", async (t) => {
+  const h = await setup(t);
+  await ready(h);
+  h.n.setPort(null);
+  assert.strictEqual(h.badges.at(-1), 0);
+  const count = h.b.requests.length;
+  await h.n.refresh();
+  await sleep(1200); // past the stream's 1 s reconnect backoff
+  assert.strictEqual(h.b.requests.length, count);
+  h.n.setPort(h.b.port);
+  await waitFor(() => h.b.requests.length > count && h.b.sse.length >= 2);
+  assert.ok(h.b.count("/notifications/feed") >= 2);
 });

@@ -468,16 +468,33 @@ async def test_unanswered_questions_are_reminded_at_15_min_then_every_2_hours(
         await runs.tick()
         return (await _runs(c, tid))[0]["question"]
 
+    async def question_events():
+        from sqlmodel import select
+
+        from models import NotifyEvent
+
+        async with env["maker"]() as s:
+            rows = await s.exec(
+                select(NotifyEvent).where(
+                    NotifyEvent.kind == "question", NotifyEvent.target_id == run["id"]
+                )
+            )
+            return len(rows.all())
+
+    asked = await question_events()
     q = await asked_ago(10)
     assert q.get("reminders", []) == []
     q = await asked_ago(16)
-    assert [r["level"] for r in q["reminders"]] == [1] and "lead" not in q["reminders"][
-        0
-    ]
+    assert [r["level"] for r in q["reminders"]] == [1]
+    assert "lead" not in q["reminders"][0]
+    # each reminder is one more event on the question's notification: its row comes back and toasts again
+    assert await question_events() == asked + 1
     q = await asked_ago(17)  # nothing new is due
     assert [r["level"] for r in q["reminders"]] == [1]
+    assert await question_events() == asked + 1
     q = await asked_ago(125)
     assert [r["level"] for r in q["reminders"]] == [1, 2]
+    assert await question_events() == asked + 2
     q = await asked_ago(7 * 60)
     assert q["reminders"][-1]["level"] == 4  # 15 min, 2 h, 4 h, 6 h
     assert q["reminders"][-1]["lead"] == [lead["name"]]

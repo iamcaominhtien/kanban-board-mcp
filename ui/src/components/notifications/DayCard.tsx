@@ -15,10 +15,16 @@ const LINE_ICONS: Record<string, IconName> = {
 };
 
 /** Bold the lead of a line: "Kanban Board: 14 ..." and "2 runs failed: ..." read as the design shows them. */
-function Line({ text }: { text: string }) {
+function leadCut(text: string): number {
   const i = text.indexOf(': ');
   const j = text.indexOf(',');
-  const cut = i > 0 && (j < 0 || i < j) ? i : j > 0 && /still wait/.test(text.slice(0, j)) ? j : -1;
+  if (i > 0 && (j < 0 || i < j)) return i;
+  if (j > 0 && /still wait/.test(text.slice(0, j))) return j;
+  return -1;
+}
+
+function Line({ text }: Readonly<{ text: string }>) {
+  const cut = leadCut(text);
   if (cut < 0) return <>{text}</>;
   return (
     <>
@@ -28,16 +34,23 @@ function Line({ text }: { text: string }) {
   );
 }
 
+function retryLabel(retried: number | null, retryable: number): string {
+  if (retried !== null) return `Retried ${retried}`;
+  if (retryable === 1) return 'Retry the failed run';
+  if (retryable === 2) return 'Retry both failed';
+  return `Retry the ${retryable} failed`;
+}
+
 /** The day in one card (design I1): the first row of the Updates tab. */
 export function DayCard({
   row,
   onAction,
   onShowNeeds,
-}: {
+}: Readonly<{
   row: NotificationRow;
   onAction: RowActionHandler;
   onShowNeeds?: () => void;
-}) {
+}>) {
   const d = row.data as DayCardData;
   const failed = d.failed ?? 0;
   // only runs that were not retried yet come in `failedRuns`; one click retries them, then the button rests
@@ -88,8 +101,8 @@ export function DayCard({
         </div>
       )}
       <div className={styles.lines}>
-        {(d.lines ?? []).map((l, i) => (
-          <div key={i} className={styles.line}>
+        {(d.lines ?? []).map((l) => (
+          <div key={`${l.kind}:${l.projectId ?? ''}:${l.text}`} className={styles.line}>
             <span className={styles.lineIcon}>
               <Icon name={LINE_ICONS[l.kind] ?? 'check'} size={13} stroke={2} color="#5B6B60" />
             </span>
@@ -117,13 +130,7 @@ export function DayCard({
                 void onAction(row, 'retry_failed');
               }}
             >
-              {retried !== null
-                ? `Retried ${retried}`
-                : retryable === 1
-                  ? 'Retry the failed run'
-                  : retryable === 2
-                    ? 'Retry both failed'
-                    : `Retry the ${retryable} failed`}
+              {retryLabel(retried, retryable)}
             </button>
           )}
           <button type="button" className={styles.btn} onClick={() => void onAction(row, 'board_health')}>

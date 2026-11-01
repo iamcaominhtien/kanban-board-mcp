@@ -1221,7 +1221,8 @@ def _notify(s: AiSchedule, event: str, text: str, **extra) -> None:
     if event not in ("started", "needs_input"):
         from services import notifications as centre
 
-        needs = event == "failed"
+        # a skipped slot is news, not work: it is told under the information kind, whichever switch let it through
+        needs = event == "failed" and not extra.get("skipped")
         centre.enqueue(
             "run_failed" if needs else "schedule",
             project_id=s.project_id,
@@ -1232,7 +1233,11 @@ def _notify(s: AiSchedule, event: str, text: str, **extra) -> None:
             target_id=extra.get("srun_id") or extra.get("run_id"),
             ticket_id=s.ticket_id,
             member_id=s.member_id,
-            data={"schedule_id": s.id, "event": event, "action": extra.get("action")},
+            data={
+                "schedule_id": s.id,
+                "event": "skipped" if extra.get("skipped") else event,
+                "action": extra.get("action"),
+            },
         )
     RT.events.append(
         {
@@ -1660,6 +1665,7 @@ async def _close(
             f"{s.ticket_id} skipped: {(note or '').removeprefix('Skipped: ').rstrip('.')}",
             srun_id=srun_id,
             action="reschedule",
+            skipped=True,
         )
     elif state == "failed":
         _notify(

@@ -10,7 +10,7 @@ import { useProjects } from '../../api/projects';
 import type { NotificationFamily, NotificationFilter } from '../../types/notifications';
 import { NotificationRow, type RowActionHandler } from './NotificationRow';
 import { EmptyState, LoadingRows, OfflineNotice } from './NotificationStates';
-import { Icon, groupByDay, openActionOf, snoozeChoices } from './notificationUi';
+import { Icon, groupByDay, rowKeyAction } from './notificationUi';
 import { useRowKeys } from './useRowKeys';
 import panel from './NotificationPanel.module.css';
 import styles from './AllNotificationsPage.module.css';
@@ -22,14 +22,15 @@ const KINDS: { id: NotificationFamily; label: string }[] = [
   { id: 'schedules', label: 'Schedules' },
 ];
 
-function Check({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+function Check({ on, onClick, children }: Readonly<{ on: boolean; onClick: () => void; children: ReactNode }>) {
   return (
-    <button type="button" className={styles.check} role="checkbox" aria-checked={on} onClick={onClick}>
+    <label className={styles.check}>
+      <input type="checkbox" className={styles.checkInput} checked={on} onChange={onClick} />
       <span className={`${styles.box} ${on ? styles.boxOn : ''}`}>
         {on && <Icon name="tick" size={11} stroke={2.4} />}
       </span>
       {children}
-    </button>
+    </label>
   );
 }
 
@@ -41,7 +42,7 @@ export function AllNotificationsPage({
   bell,
   panelOpen,
   focusRowId,
-}: {
+}: Readonly<{
   onBack: () => void;
   onOpenSettings: () => void;
   onAction: RowActionHandler;
@@ -51,7 +52,7 @@ export function AllNotificationsPage({
   panelOpen?: boolean;
   /** A grouped row to open expanded, from "Open the list" in the panel. */
   focusRowId?: string | null;
-}) {
+}>) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [search, setSearch] = useState('');
@@ -89,15 +90,7 @@ export function AllNotificationsPage({
   // grouped by the time the page is sorted by: the last activity
   const groups = useMemo(() => groupByDay(rows, Date.now(), (r) => r.updatedAt), [rows]);
   const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
-  const selected = useRowKeys(!panelOpen, ordered, (row, what) => {
-    if (what === 'read') void onAction(row, 'read');
-    else if (what === 'snooze') {
-      if (row.needs && !row.done) void onAction(row, 'snooze', { until: snoozeChoices()[0].until });
-    } else {
-      const id = openActionOf(row);
-      if (id) void onAction(row, id);
-    }
-  });
+  const selected = useRowKeys(!panelOpen, ordered, rowKeyAction(onAction));
   const markAll = async () => {
     await notificationsApi.read({ all: true }).catch(() => undefined);
     void qc.invalidateQueries({ queryKey: notificationKeys.all });

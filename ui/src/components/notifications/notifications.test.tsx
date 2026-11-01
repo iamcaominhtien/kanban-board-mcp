@@ -34,7 +34,7 @@ import { NotificationBell } from './NotificationBell';
 import { NotificationPanel } from './NotificationPanel';
 import { NotificationRow } from './NotificationRow';
 import { openActionOf } from './notificationUi';
-import { toastDetail, useNotificationToasts } from './useNotificationToasts';
+import { toastAction, toastDetail, useNotificationToasts } from './useNotificationToasts';
 
 function row(over: Partial<Row>): Row {
   return {
@@ -441,6 +441,18 @@ describe('useNotificationToasts', () => {
     expect(t.action).toMatchObject({ label: 'Answer' });
     expect(t.secondaryAction).toBeUndefined();
     expect(toastDetail(row({ body: 'KAN-215 failed', ticketId: 'KAN-215' }))).toBe('KAN-215 failed');
+  });
+
+  it("a toast's one button is the safe way in, never a decision taken from under the cursor", () => {
+    const a = (id: string, label = id) => ({ id, label });
+    const pick = (kind: string, ids: string[]) => toastAction(row({ kind, actions: ids.map((i) => a(i)) }))?.id;
+    expect(pick('approval', ['approve', 'deny', 'review'])).toBe('review');
+    expect(pick('run_failed', ['retry', 'open_run_log'])).toBe('open_run_log');
+    expect(pick('run_stopped_memory', ['retry', 'open_run_log'])).toBe('open_run_log');
+    expect(pick('blocked', ['open_ticket', 'change_permission'])).toBe('change_permission');
+    expect(pick('question', ['answer', 'open_ticket'])).toBe('answer');
+    expect(pick('account_signed_out', ['sign_in'])).toBe('sign_in');
+    expect(pick('mention', ['dismiss'])).toBeUndefined();
   });
 
   it('does not toast a loud row that is already done, quiet, or when the window is hidden', async () => {

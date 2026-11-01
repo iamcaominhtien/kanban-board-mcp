@@ -200,7 +200,10 @@
 .days {
   display: flex;
   gap: 4px;
-  margin-top: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
 
 .day {

@@ -36,7 +36,7 @@ and are never reused, even after retention deletes old rows.
 | `id` | increasing integer: the cursor |
 | `project_id` | the project, or null for an app-wide thing (an AI account used in several projects) |
 | `kind` | one of the kinds below |
-| `op` | `new` (it happened) or `resolve` (the thing no longer needs anyone) |
+| `op` | `new` (it happened), `resolve` (the thing no longer needs anyone) or `wake` (a snooze ran out: the row is back) |
 | `needs` | Needs you, or for information |
 | `target_kind`, `target_id` | what it points at: `run`, `approval`, `account`, `ticket`, `page`, `thread`, `schedule_run`, `member`, `day` |
 | `ticket_id`, `page_id`, `member_id` | where it came from (the AI member it is about) |
@@ -88,7 +88,7 @@ it off (422), and muting a ticket or project never makes it quiet.
 | `approval` | An approval request | approved, denied, expired, or its run ended | no |
 | `run_failed` | A run failed or timed out; a scheduled slot failed | a new run starts on the ticket (Retry) | yes |
 | `blocked` | An AI was blocked by a permission (a guard block, a move past its ceiling, Ask owner for access) | — | yes |
-| `account_signed_out` | An AI account was found signed out (one per account, not per member) | the account signs in again | no |
+| `account_signed_out` | An AI account was found signed out (one per account, not per member) | the account is confirmed signed in again (a missing CLI does not close it) | no |
 | `mention` | Someone mentioned you in a Docs thread | you reply in the thread | yes |
 | `run_stopped_memory` | A run was stopped for memory | a new run starts on the ticket | yes |
 | `budget` | A cap was reached (100 %) | the day rolls over, or the cap is raised | yes |
@@ -97,6 +97,16 @@ it off (422), and muting a ticket or project never makes it quiet.
 | `offline` | An AI member's MCP token was revoked | — | yes |
 
 **For information** never interrupts: bell only, and only a blue dot.
+
+**A toast's one button is the safe way in**, never the decision: an approval offers Review (not Approve), a failed run
+Open run log (not Retry), a blocked move Change permission; a question keeps Answer, a signed-out account Sign in
+again. Approve, Deny, Retry and Dismiss are never a toast's only button. Feedback with nothing to do ("Saved") is the
+quiet line for 2 s; feedback that carries an Undo or an Open stays a toast for its own duration.
+
+A row of another project opens there: Review, Sign in again, Change permission and a page switch to the row's project
+first, as a ticket does.
+
+A **skipped** schedule slot is information (`schedule`), never `run_failed`.
 
 | Kind | Event |
 |---|---|
@@ -134,8 +144,9 @@ The person who caused an information event is not told about it.
 - Information events of one kind and one project inside **10 minutes** (from the group's first event) are one row.
   The row keeps counting while the window is open, comes back to the top and is unread again: "8 AI finished work",
   with "Rin, Dev Gem, Dev An, QA Quy and 1 more · AGT-13 to AGT-20". Above 20 the title says **20+**.
-- Needs you rows group only when they are the same request: a question asked again (reminders), and the failures of
-  one ticket (Retry answers them all).
+- Needs you rows group only when they are the same request: a question asked again, and the failures of one ticket
+  (Retry answers them all). A question's **reminders** (15 min, then every 2 h unanswered) are one more event on its
+  row but not one more item: the row comes back to the top, unread, and toasts again, still one question.
 - A group is read as a whole.
 
 ## Delivery
@@ -149,6 +160,13 @@ The person who caused an information event is not told about it.
   approval, a signed-in account, a reply, a new run on a failed ticket, a deleted ticket. Changes made by another
   process (the stdio MCP server) reach it through the database watcher, which publishes too. A row closes for every
   recipient within about a second, and every open window greys it.
+- **A snooze that runs out** writes a `wake` event: the row points at it, is unread again and comes back in the
+  panel, the count, a toast and the desktop notifier.
+- **The desktop notifier** (`desktop/notifier.js`) follows the same feed from the Electron main process. When the
+  backend exits it stops at once (no request goes to the old port, which another process could take, with the
+  window secret) and clears the badge; it follows the new port once the backend is ready again.
+- **After the upgrade**, the first start writes the rows of what was already waiting (pending approvals, runs waiting
+  for an answer, accounts signed out), since the old toast hooks are gone and nothing else would.
 - Synchronous code (the schedules' feed) and Docs comment events (added before their transaction commits) are queued
   and written by the loop within a second.
 

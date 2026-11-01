@@ -296,6 +296,46 @@ def _centre_kind(event: str, ref_kind: str | None, data: dict) -> str:
     return kind
 
 
+async def _recipients(
+    session: AsyncSession, project_id: str, people: list[str]
+) -> list[str]:
+    """Owners and admins of the project, then the people of this event who are not one of them."""
+    from services import notifications as centre
+
+    recipients = await centre.owners_and_admins(session, project_id)
+    for k in await centre.recipient_keys(session, project_id, people):
+        if k not in recipients:
+            recipients.append(k)
+    return recipients
+
+
+async def _ticket_of(
+    session: AsyncSession,
+    ref_kind: str | None,
+    ref_id: str | None,
+    ticket_id: str | None,
+) -> str | None:
+    """The ticket the event is about: the reference itself, or the ticket of its run or approval when not given."""
+    if ref_kind == "ticket":
+        return ref_id
+    if not ref_id or ticket_id:
+        return ticket_id
+    if ref_kind == "run":
+        run = await session.get(AiRun, ref_id)
+        return run.ticket_id if run else None
+    if ref_kind == "approval":
+        a = await session.get(AiApproval, ref_id)
+        return a.ticket_id if a else None
+    return ticket_id
+
+
+async def _member_name(session: AsyncSession, member_id: str | None) -> str | None:
+    if not member_id:
+        return None
+    m = await session.get(Member, member_id)
+    return m.name if m else None
+
+
 async def notify(
     project_id: str,
     event: str,
@@ -312,8 +352,6 @@ async def notify(
     """Record a safety event and tell the notification centre. Owners and admins are recipients of every one;
     `people` also get this one. Nothing is held back and nothing is skipped: whether it shows in the panel or on
     the desktop is each recipient's setting (Settings › Notifications), and "off" means quiet, not unrecorded."""
-    from services import notifications as centre
-
     data = data or {}
     async with database.async_session() as session:
         row = AiNotification(
@@ -333,49 +371,46 @@ async def notify(
         session.add(row)
         await session.commit()
         await session.refresh(row)
-        recipients = await centre.owners_and_admins(session, project_id)
-        for k in await centre.recipient_keys(session, project_id, people or []):
-            if k not in recipients:
-                recipients.append(k)
-        ticket_id = data.get("ticket_id")
-        page_id = data.get("page_id")
-        target_kind, target_id = ref_kind, ref_id
-        if ref_kind == "run" and ref_id and not ticket_id:
-            run = await session.get(AiRun, ref_id)
-            ticket_id = run.ticket_id if run else None
-        if ref_kind == "ticket":
-            ticket_id = ref_id
-        if ref_kind == "approval" and ref_id and not ticket_id:
-            a = await session.get(AiApproval, ref_id)
-            ticket_id = a.ticket_id if a else None
-        if event == "auto_trip" and ref_kind != "member":
+    if to_centre:
+        await tell_centre(row)
+    return row
+
+
+async def tell_centre(row: AiNotification) -> None:
+    """Write a recorded safety event to the notification centre (also used once, after the upgrade, for an approval
+    that was already waiting)."""
+    from services import notifications as centre
+
+    data = json.loads(row.data or "{}")
+    people = json.loads(row.people or "[]")
+    async with database.async_session() as session:
+        recipients = await _recipients(session, row.project_id, people)
+        ticket_id = await _ticket_of(
+            session, row.ref_kind, row.ref_id, data.get("ticket_id")
+        )
+        target_kind, target_id = row.ref_kind, row.ref_id
+        if row.event == "auto_trip" and row.ref_kind != "member":
             # Pause all AI: the project itself (resumed when the project is)
-            target_kind, target_id = "project", project_id
-        kind = _centre_kind(event, ref_kind, data)
-        actor = None
-        if member_id:
-            m = await session.get(Member, member_id)
-            actor = m.name if m else None
-    if not to_centre:
-        return row
+            target_kind, target_id = "project", row.project_id
+        kind = _centre_kind(row.event, row.ref_kind, data)
+        actor = await _member_name(session, row.member_id)
     try:
         await centre.emit(
             kind,
-            project_id=project_id,
+            project_id=row.project_id,
             recipients=recipients,
-            title=title,
-            body=body,
+            title=row.title,
+            body=row.body,
             target_kind=target_kind,
             target_id=target_id,
             ticket_id=ticket_id,
-            page_id=page_id,
-            member_id=member_id,
+            page_id=data.get("page_id"),
+            member_id=row.member_id,
             actor=actor,
-            data={**data, "safety_id": row.id, "event": event},
+            data={**data, "safety_id": row.id, "event": row.event},
         )
     except Exception:  # noqa: BLE001 - the safety record is kept even if the centre cannot write
-        logger.exception("Could not write the %s notification", event)
-    return row
+        logger.exception("Could not write the %s notification", row.event)
 
 
 def notification_to_dict(n: AiNotification) -> dict:

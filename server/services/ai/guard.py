@@ -582,15 +582,16 @@ async def _refuse(
         target=target,
         detail={**detail, "reason": reason, "code": code},
     )
+    # The target is a ticket, a page, a parent or a project: only a ticket key is a ticket
+    ref_kind = None
+    if target:
+        ref_kind = "ticket" if _TICKET_KEY.match(str(target)) else "target"
     await safety.notify(
         ctx.project_id,
         "blocked",
         "AI action blocked",
         f"{ctx.member_name} could not {ACTIONS.get(perm, (perm,))[0].lower()} on {target or 'the board'}: {reason}",
-        # The target is a ticket, a page, a parent or a project: only a ticket key is a ticket
-        ref_kind="ticket"
-        if target and _TICKET_KEY.match(str(target))
-        else ("target" if target else None),
+        ref_kind=ref_kind,
         ref_id=target,
         member_id=ctx.member_id,
         people=[ctx.on_behalf_of],

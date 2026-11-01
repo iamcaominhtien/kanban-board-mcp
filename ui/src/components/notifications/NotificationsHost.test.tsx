@@ -62,7 +62,11 @@ const panel = () => screen.queryByRole('dialog', { name: 'Notifications' });
 
 function nav(row: Record<string, unknown>, id: string, extra?: unknown) {
   act(() =>
-    h.navigate!({ id: 'r', kind: 'question', ticketId: null, pageId: null, memberId: 'm1', ...row }, id, extra),
+    h.navigate!(
+      { id: 'r', kind: 'question', ticketId: null, pageId: null, memberId: 'm1', projectId: 'p1', ...row },
+      id,
+      extra,
+    ),
   );
 }
 
@@ -146,17 +150,19 @@ describe('NotificationsHost navigation', () => {
     nav({ ticketId: 'K-1' }, 'open_ticket');
     expect(cb.onOpenTicket).toHaveBeenLastCalledWith('K-1');
     nav({ pageId: 'pg' }, 'open_run_log');
-    expect(cb.onOpenDoc).toHaveBeenLastCalledWith('pg');
+    expect(cb.onOpenDoc).toHaveBeenLastCalledWith('pg', 'p1');
     nav({ ticketId: 'K-1' }, 'open_item', { ticketId: 'K-7' });
     expect(cb.onOpenTicket).toHaveBeenLastCalledWith('K-7');
     nav({}, 'sign_in');
-    expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('accounts');
+    expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('accounts', 'p1');
     nav({ kind: 'page_proposal', pageId: 'pg2' }, 'review');
-    expect(cb.onOpenDoc).toHaveBeenLastCalledWith('pg2');
+    expect(cb.onOpenDoc).toHaveBeenLastCalledWith('pg2', 'p1');
     nav({}, 'review');
-    expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('approvals');
+    expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('approvals', 'p1');
+    nav({ projectId: 'p2' }, 'review');
+    expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('approvals', 'p2');
     nav({}, 'open_ai');
-    expect(cb.onOpenAiMember).toHaveBeenLastCalledWith('m1');
+    expect(cb.onOpenAiMember).toHaveBeenLastCalledWith('m1', 'p1');
     nav({}, 'change_permission');
     expect(cb.onOpenAiMember).toHaveBeenCalledTimes(2);
     nav({ id: 'row5' }, 'open_list');
@@ -166,7 +172,7 @@ describe('NotificationsHost navigation', () => {
     nav({ kind: 'day_card' }, 'open');
     expect(cb.onOpenPage).toHaveBeenCalledTimes(2);
     nav({ pageId: 'pg3' }, 'open');
-    expect(cb.onOpenDoc).toHaveBeenLastCalledWith('pg3');
+    expect(cb.onOpenDoc).toHaveBeenLastCalledWith('pg3', 'p1');
     nav({ ticketId: 'K-3' }, 'reply');
     expect(cb.onOpenTicket).toHaveBeenLastCalledWith('K-3');
     nav({}, 'open');

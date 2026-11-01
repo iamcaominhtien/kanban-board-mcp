@@ -6,7 +6,12 @@ import styles from './FollowBell.module.css';
 
 const BELL = 'M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15L6 17zM10 21h4';
 
-function Svg({ size, color, children, fill }: { size: number; color?: string; children: ReactNode; fill?: string }) {
+function Svg({
+  size,
+  color,
+  children,
+  fill,
+}: Readonly<{ size: number; color?: string; children: ReactNode; fill?: string }>) {
   return (
     <svg
       width={size}
@@ -40,7 +45,7 @@ interface Props {
 }
 
 /** Bell button with the follow menu; filled when following, struck through when muted. */
-export function FollowBell({ scope, scopeId, projectId, className }: Props) {
+export function FollowBell({ scope, scopeId, projectId, className }: Readonly<Props>) {
   const q = useFollow(scope, scopeId);
   const set = useSetFollow(scope, scopeId);
   const [open, setOpen] = useState(false);
@@ -68,6 +73,15 @@ export function FollowBell({ scope, scopeId, projectId, className }: Props) {
   const muted = level === 'mute';
   const following = level !== null && !muted;
   const noun = scope === 'ticket' ? 'ticket' : 'page';
+  let bellLabel = `Follow this ${noun}`;
+  let bellTitle = bellLabel;
+  if (muted) {
+    bellLabel = `Muted: notifications of this ${noun}`;
+    bellTitle = 'Muted';
+  } else if (following) {
+    bellLabel = `Following this ${noun}`;
+    bellTitle = 'Following';
+  }
 
   function choose(next: FollowLevel | null, minutes?: number) {
     setError(null);
@@ -147,10 +161,8 @@ export function FollowBell({ scope, scopeId, projectId, className }: Props) {
         className={`${styles.bell} ${following ? styles.bellOn : ''} ${className ?? ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={
-          muted ? `Muted: notifications of this ${noun}` : following ? `Following this ${noun}` : `Follow this ${noun}`
-        }
-        title={muted ? 'Muted' : following ? 'Following' : `Follow this ${noun}`}
+        aria-label={bellLabel}
+        title={bellTitle}
         data-testid="follow-bell"
         onClick={() => setOpen((v) => !v)}
       >

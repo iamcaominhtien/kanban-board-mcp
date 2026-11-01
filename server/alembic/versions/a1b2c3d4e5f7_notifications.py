@@ -8,15 +8,15 @@ Create Date: 2026-11-01 12:00:00.000000
 
 import json
 import uuid
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a1b2c3d4e5f7"
-down_revision: Union[str, Sequence[str], None] = "fd73ce3d5800"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "fd73ce3d5800"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # The eight AI safety events and their family (services/notifications.py SAFETY_KINDS)
 _SAFETY_KIND = {
@@ -129,39 +129,58 @@ def upgrade() -> None:
     )
 
     bind = op.get_bind()
-    # DocsFollow becomes one case of following: a Docs space (scope "space", scope_id = the project)
-    insp = sa.inspect(bind)
-    if insp.has_table("docs_follow"):
-        rows = bind.execute(
-            sa.text("SELECT project_id, follower, created_at FROM docs_follow")
-        ).fetchall()
-        for project_id, follower, created_at in rows:
-            key = (follower or "user").strip().lower() or "user"
-            if key == "you":
-                key = "user"
-            bind.execute(
-                sa.text(
-                    "INSERT INTO notify_follow (id, recipient, scope, scope_id, project_id, level, label, created_at) "
-                    "VALUES (:id, :r, 'space', :p, :p, 'follow', 'Docs space', :at)"
-                ),
-                {"id": str(uuid.uuid4()), "r": key, "p": project_id, "at": created_at},
-            )
-        op.drop_index("ix_docs_follow_project_id", table_name="docs_follow")
-        op.drop_table("docs_follow")
+    _move_docs_follows(bind)
+    _carry_safety_desktop_prefs(bind)
+    with op.batch_alter_table("ai_notification") as batch_op:
+        batch_op.drop_column("digest")
+    with op.batch_alter_table("ai_project_settings") as batch_op:
+        batch_op.drop_column("digest")
+        batch_op.drop_column("notify")
 
-    # Safety notifications held for the 09:00 digest are no longer held: they are ordinary rows now. The per-project
-    # switches move to the app-wide settings; an explicit desktop choice of the board's own user is carried over.
+
+def _move_docs_follows(bind) -> None:
+    """DocsFollow becomes one case of following: a Docs space (scope "space", scope_id = the project)."""
+    insp = sa.inspect(bind)
+    if not insp.has_table("docs_follow"):
+        return
+    rows = bind.execute(
+        sa.text("SELECT project_id, follower, created_at FROM docs_follow")
+    ).fetchall()
+    for project_id, follower, created_at in rows:
+        key = (follower or "user").strip().lower() or "user"
+        if key == "you":
+            key = "user"
+        bind.execute(
+            sa.text(
+                "INSERT INTO notify_follow (id, recipient, scope, scope_id, project_id, level, label, created_at) "
+                "VALUES (:id, :r, 'space', :p, :p, 'follow', 'Docs space', :at)"
+            ),
+            {"id": str(uuid.uuid4()), "r": key, "p": project_id, "at": created_at},
+        )
+    op.drop_index("ix_docs_follow_project_id", table_name="docs_follow")
+    op.drop_table("docs_follow")
+
+
+def _safety_desktop_choices(raw: str | None) -> dict[str, bool]:
+    """The explicit desktop choices of one project's notify prefs, by safety family ({} when unreadable)."""
+    try:
+        prefs = json.loads(raw or "{}")
+    except ValueError:
+        return {}
+    return {
+        _SAFETY_KIND[event]: bool(v["desktop"])
+        for event, v in (prefs or {}).items()
+        if isinstance(v, dict) and "desktop" in v and event in _SAFETY_KIND
+    }
+
+
+def _carry_safety_desktop_prefs(bind) -> None:
+    """Safety notifications held for the 09:00 digest are no longer held: they are ordinary rows now. The per-project
+    switches move to the app-wide settings; an explicit desktop choice of the board's own user is carried over."""
     carried: dict[str, dict] = {}
     for (raw,) in bind.execute(sa.text("SELECT notify FROM ai_project_settings")):
-        try:
-            prefs = json.loads(raw or "{}")
-        except ValueError:
-            continue
-        for event, v in (prefs or {}).items():
-            if isinstance(v, dict) and "desktop" in v and event in _SAFETY_KIND:
-                carried.setdefault(_SAFETY_KIND[event], {})["desktop"] = bool(
-                    v["desktop"]
-                )
+        for family, desktop in _safety_desktop_choices(raw).items():
+            carried.setdefault(family, {})["desktop"] = desktop
     if carried:
         bind.execute(
             sa.text(
@@ -169,11 +188,6 @@ def upgrade() -> None:
             ),
             {"p": json.dumps({"events": carried})},
         )
-    with op.batch_alter_table("ai_notification") as batch_op:
-        batch_op.drop_column("digest")
-    with op.batch_alter_table("ai_project_settings") as batch_op:
-        batch_op.drop_column("digest")
-        batch_op.drop_column("notify")
 
 
 def downgrade() -> None:

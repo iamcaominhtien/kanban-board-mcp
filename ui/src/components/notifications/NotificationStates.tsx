@@ -3,18 +3,18 @@ import { Icon, type IconName } from './notificationUi';
 import styles from './NotificationPanel.module.css';
 
 /** Nothing here (design M): an icon, a line and a sentence. */
-export function EmptyState({ icon, title, text }: { icon: IconName; title: string; text: ReactNode }) {
+export function EmptyState({ icon, title, text }: Readonly<{ icon: IconName; title: string; text: ReactNode }>) {
   return (
-    <div className={styles.empty} role="status">
+    <output className={styles.empty}>
       <Icon name={icon} size={24} stroke={1.7} color="#9AA8A0" />
       <b className={styles.emptyTitle}>{title}</b>
       <div className={styles.emptyText}>{text}</div>
-    </div>
+    </output>
   );
 }
 
 /** Grey rows while the list loads: a slow start never shows an empty state. */
-export function LoadingRows({ rows = 3 }: { rows?: number }) {
+export function LoadingRows({ rows = 3 }: Readonly<{ rows?: number }>) {
   return (
     <div
       aria-busy="true"
@@ -29,7 +29,7 @@ export function LoadingRows({ rows = 3 }: { rows?: number }) {
 }
 
 /** "Not connected": the list is what it was at the time of the last answer. */
-export function OfflineNotice({ at, onRetry }: { at: number | null; onRetry: () => void }) {
+export function OfflineNotice({ at, onRetry }: Readonly<{ at: number | null; onRetry: () => void }>) {
   const time = at
     ? new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })
     : null;

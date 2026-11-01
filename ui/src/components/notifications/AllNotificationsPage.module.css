@@ -198,6 +198,7 @@
 }
 
 .check {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -221,12 +222,28 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
 }
 
 .boxOn {
   border-color: #2e6f40;
   background: #2e6f40;
+  color: #fff;
+}
+
+/* the native checkbox stays in the page for keyboards and screen readers; the box draws it */
+.checkInput {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkInput:focus-visible + .box {
+  outline: 2px solid #2e6f40;
+  outline-offset: 2px;
 }
 
 .pdot {

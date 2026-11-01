@@ -14,18 +14,18 @@ export function bellState(
   return { kind: 'none' };
 }
 
+function bellLabel(s: ReturnType<typeof bellState>): string {
+  if (s.kind === 'count') return `Notifications, ${s.n} need${s.n === 1 ? 's' : ''} you`;
+  if (s.kind === 'blue') return 'Notifications, unread updates';
+  if (s.kind === 'grey') return 'Notifications, not connected';
+  return 'Notifications';
+}
+
 /** The bell in the top bar (design C1, M). */
-export function NotificationBell({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+export function NotificationBell({ open, onToggle }: Readonly<{ open: boolean; onToggle: () => void }>) {
   const q = useNotificationCounts();
   const s = bellState(q.data, q.isError);
-  const label =
-    s.kind === 'count'
-      ? `Notifications, ${s.n} need${s.n === 1 ? 's' : ''} you`
-      : s.kind === 'blue'
-        ? 'Notifications, unread updates'
-        : s.kind === 'grey'
-          ? 'Notifications, not connected'
-          : 'Notifications';
+  const label = bellLabel(s);
   return (
     <span className={styles.wrap} data-notification-bell>
       <button

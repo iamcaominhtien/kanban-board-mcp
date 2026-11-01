@@ -28,7 +28,9 @@ def _bad(exc: Exception, status: int = 400):
     raise HTTPException(status_code=status, detail=str(exc)) from exc
 
 
-@router.get("")
+@router.get(
+    "", responses={422: {"description": "`filter` is not one of the known filters"}}
+)
 async def list_notifications(
     session: Session,
     view: str = "page",

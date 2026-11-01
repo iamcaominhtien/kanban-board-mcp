@@ -11,12 +11,50 @@ import type { NotificationRow as Row } from '../../types/notifications';
 import { DayCard } from './DayCard';
 import { NotificationRow, type RowActionHandler } from './NotificationRow';
 import { EmptyState, LoadingRows, OfflineNotice } from './NotificationStates';
-import { Icon, dayLabel, groupByDay, openActionOf, snoozeChoices } from './notificationUi';
+import { Icon, dayLabel, groupByDay, rowKeyAction } from './notificationUi';
 import { useReadWhenVisible } from './useReadWhenVisible';
 import { isTyping, useRowKeys } from './useRowKeys';
 import styles from './NotificationPanel.module.css';
 
 export type PanelTab = 'needs' | 'updates';
+
+/** The layout the rows are shown in: Needs you open rows by when they began, done rows under their own header. */
+function panelGroups(rows: Row[], tab: PanelTab) {
+  if (tab === 'updates') return groupByDay(rows, Date.now(), (r) => r.updatedAt);
+  const openRows = rows.filter((r) => !r.done);
+  const doneRows = rows.filter((r) => r.done);
+  const out = groupByDay(openRows, Date.now(), (r) => r.createdAt);
+  if (doneRows.length > 0) out.push({ key: `done:${out.length}`, label: 'Done today', rows: doneRows });
+  return out;
+}
+
+/** A click that closes the panel: outside it, and not on the bell (which toggles) or on a notice (an alert). */
+function closesPanel(target: EventTarget | null, panel: HTMLElement | null): boolean {
+  const t = target as HTMLElement | null;
+  if (!t) return false;
+  return !panel?.contains(t) && !t.closest('[data-notification-bell]') && !t.closest('[role="alert"]');
+}
+
+/** The empty state of the panel: nothing needs you (with updates in the other tab) or nothing at all. */
+function PanelEmpty({
+  tab,
+  updates,
+  todayUpdates,
+}: Readonly<{ tab: PanelTab; updates: number; todayUpdates: number }>) {
+  if (tab !== 'needs' || updates <= 0)
+    return (
+      <EmptyState
+        icon="bell"
+        title="No notifications yet"
+        text="When an AI member needs an answer, a run fails or a page is published, it shows up here."
+      />
+    );
+  const one = todayUpdates === 1;
+  let text = 'Earlier updates are in the other tab.';
+  if (todayUpdates > 0)
+    text = `${todayUpdates} update${one ? '' : 's'} from today ${one ? 'is' : 'are'} in the other tab.`;
+  return <EmptyState icon="check" title="Nothing needs you" text={text} />;
+}
 
 /**
  * The bell's panel (design C1, C2): it opens over the right side and does not move the page. Needs you first
@@ -29,14 +67,14 @@ export function NotificationPanel({
   onOpenPage,
   onOpenSettings,
   onAction,
-}: {
+}: Readonly<{
   tab: PanelTab;
   onTab: (t: PanelTab) => void;
   onClose: () => void;
   onOpenPage: () => void;
   onOpenSettings: () => void;
   onAction: RowActionHandler;
-}) {
+}>) {
   const qc = useQueryClient();
   const counts = useNotificationCounts();
   const list = useNotificationList({ view: 'panel', tab });
@@ -47,14 +85,7 @@ export function NotificationPanel({
   const rows = useMemo(() => (placeholder ? [] : (list.data?.items ?? [])), [placeholder, list.data]);
   const dayCard = tab === 'updates' && !placeholder ? (list.data?.dayCard ?? null) : null;
   // the layout the rows are shown in: Needs you open rows by when they began, done rows under their own header
-  const groups = useMemo(() => {
-    if (tab === 'updates') return groupByDay(rows, Date.now(), (r) => r.updatedAt);
-    const openRows = rows.filter((r) => !r.done);
-    const doneRows = rows.filter((r) => r.done);
-    const out = groupByDay(openRows, Date.now(), (r) => r.createdAt);
-    if (doneRows.length > 0) out.push({ key: `done:${out.length}`, label: 'Done today', rows: doneRows });
-    return out;
-  }, [rows, tab]);
+  const groups = useMemo(() => panelGroups(rows, tab), [rows, tab]);
   const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
   const scroller = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -65,10 +96,7 @@ export function NotificationPanel({
       if (e.key === 'Escape' && !isTyping(e.target)) onClose();
     };
     const down = (e: MouseEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (!t || panelRef.current?.contains(t) || t.closest('[data-notification-bell]') || t.closest('[role="alert"]'))
-        return;
-      onClose();
+      if (closesPanel(e.target, panelRef.current)) onClose();
     };
     window.addEventListener('keydown', key);
     document.addEventListener('mousedown', down);
@@ -83,15 +111,7 @@ export function NotificationPanel({
   const signature = [dayCard?.id, ...rows.map((r) => `${r.id}:${r.read ? 1 : 0}:${r.lastEventId}`)].join('|');
   useReadWhenVisible(scroller, !list.isError && !placeholder, signature, sendRead);
 
-  const selected = useRowKeys(true, ordered, (row, what) => {
-    if (what === 'read') void onAction(row, 'read');
-    else if (what === 'snooze') {
-      if (row.needs && !row.done) void onAction(row, 'snooze', { until: snoozeChoices()[0].until });
-    } else {
-      const id = openActionOf(row);
-      if (id) void onAction(row, id);
-    }
-  });
+  const selected = useRowKeys(true, ordered, rowKeyAction(onAction));
 
   const markAll = async () => {
     await notificationsApi.read({ all: true, tab }).catch(() => undefined);
@@ -155,24 +175,7 @@ export function NotificationPanel({
         {offline && <OfflineNotice at={list.dataUpdatedAt || null} onRetry={() => void list.refetch()} />}
         {loading && !offline && <LoadingRows />}
         {dayCard && <DayCard row={dayCard} onAction={onAction} onShowNeeds={showNeeds} />}
-        {nothing &&
-          (tab === 'needs' && updates > 0 ? (
-            <EmptyState
-              icon="check"
-              title="Nothing needs you"
-              text={
-                todayUpdates > 0
-                  ? `${todayUpdates} update${todayUpdates === 1 ? '' : 's'} from today ${todayUpdates === 1 ? 'is' : 'are'} in the other tab.`
-                  : 'Earlier updates are in the other tab.'
-              }
-            />
-          ) : (
-            <EmptyState
-              icon="bell"
-              title="No notifications yet"
-              text="When an AI member needs an answer, a run fails or a page is published, it shows up here."
-            />
-          ))}
+        {nothing && <PanelEmpty tab={tab} updates={updates} todayUpdates={todayUpdates} />}
         {groups.map((g) => (
           <div key={g.key} style={{ display: 'contents' }}>
             <div className={styles.dayHead}>

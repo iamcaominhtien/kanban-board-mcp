@@ -62,12 +62,12 @@ function Switch({
   onChange,
   label,
   disabled,
-}: {
+}: Readonly<{
   on: boolean;
   onChange?: (v: boolean) => void;
   label: string;
   disabled?: boolean;
-}) {
+}>) {
   return (
     <button
       type="button"
@@ -83,7 +83,12 @@ function Switch({
   );
 }
 
-function Setting({ name, hint, control, id }: { name: string; hint: ReactNode; control?: ReactNode; id?: string }) {
+function Setting({
+  name,
+  hint,
+  control,
+  id,
+}: Readonly<{ name: string; hint: ReactNode; control?: ReactNode; id?: string }>) {
   return (
     <div className={styles.setting} data-setting={id}>
       <div className={styles.settingText}>
@@ -154,6 +159,16 @@ function mutedText(m: MutedItem): string {
     return `muted until ${new Date(m.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   }
   return date ? `muted on ${date}` : 'muted';
+}
+
+function toggleDay(days: number[], i: number, on: boolean): number[] {
+  return on ? days.filter((d) => d !== i) : [...days, i].sort((a, b) => a - b);
+}
+
+function computerHint(status: DesktopStatus | null): string {
+  if (status?.permission === 'default') return 'Your computer has not been asked yet. ';
+  if (status?.supported === false) return 'Not available on this computer. ';
+  return 'Allowed for this computer. ';
 }
 
 /** The Notifications page of App settings. */
@@ -328,11 +343,7 @@ export function NotificationsSettings() {
             hint={
               inApp ? (
                 <>
-                  {status?.permission === 'default'
-                    ? 'Your computer has not been asked yet. '
-                    : status?.supported === false
-                      ? 'Not available on this computer. '
-                      : 'Allowed for this computer. '}
+                  {computerHint(status)}
                   <button type="button" className={styles.linkBtn} onClick={sendTest}>
                     Send a test
                   </button>
@@ -393,7 +404,7 @@ export function NotificationsSettings() {
           <div className={styles.settingText}>
             <div className={styles.settingName}>The day card</div>
             <div className={styles.hint}>{dayCardHint(s.dayCard)}</div>
-            <div className={styles.days} role="group" aria-label="Days of the day card">
+            <fieldset className={styles.days} aria-label="Days of the day card">
               {DAY_NAMES.map((name, i) => {
                 const on = s.dayCard.days.includes(i);
                 return (
@@ -402,21 +413,13 @@ export function NotificationsSettings() {
                     type="button"
                     aria-pressed={on}
                     className={`${styles.day} ${on ? styles.dayOn : ''}`}
-                    onClick={() =>
-                      save({
-                        dayCard: {
-                          days: on
-                            ? s.dayCard.days.filter((d) => d !== i)
-                            : [...s.dayCard.days, i].sort((a, b) => a - b),
-                        },
-                      })
-                    }
+                    onClick={() => save({ dayCard: { days: toggleDay(s.dayCard.days, i, on) } })}
                   >
                     {name}
                   </button>
                 );
               })}
-            </div>
+            </fieldset>
           </div>
           <div className={styles.input}>
             <SunIcon />

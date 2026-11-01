@@ -870,7 +870,8 @@ async def tick() -> None:
 
 async def _remind(session, run: AiRun, asked: datetime) -> None:
     """Reminders for an unanswered question: after 15 min, then every 2 h; from 6 h the project's admins are told
-    too. They are recorded on the question; the board shows a dot and a toast for each new one."""
+    too. They are recorded on the question, and each one is a new event on the question's notification, so its row
+    comes back to the top and toasts again; from 6 h the admins' notification is that event."""
     q = loads(run.question, {}) or {}
     sent = list(q.get("reminders") or [])
     minutes = (datetime.now(UTC) - asked).total_seconds() / 60
@@ -895,6 +896,11 @@ async def _remind(session, run: AiRun, asked: datetime) -> None:
     run.question = json.dumps(q)
     session.add(run)
     await session.commit()
+    if not entry.get("lead"):
+        # 15 min and every 2 h: the question's row comes back to the top and toasts again (one more event on it)
+        from services import notifications as centre
+
+        await centre.on_run_question(run.id, reminder=True)
     if entry.get("lead"):
         # From 6 h the project's admins are told too, as a notification (not only on the question)
         hours = int(minutes // 60)

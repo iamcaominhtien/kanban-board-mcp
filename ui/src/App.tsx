@@ -472,6 +472,11 @@ export default function App() {
   }
 
   /** Show a ticket from a notification: over whatever is open, switching project when it lives elsewhere. */
+  /** A notification of another project opens there: the panel and the page list every project. */
+  function switchToProject(projectId?: string | null) {
+    if (projectId && projectId !== currentProjectId) setCurrentProjectId(projectId);
+  }
+
   function openTicketFromNotification(ticketId: string) {
     setSettingsTarget(null);
     setAiPage(null);
@@ -778,6 +783,37 @@ export default function App() {
   const insightChips = useInsightChips(currentProjectId);
   const humanMembers = members.filter((m) => (m.kind ?? 'human') === 'human');
 
+  let overlayPage: React.ReactNode = null;
+  if (settingsTarget) {
+    overlayPage = (
+      <SettingsPage
+        onClose={() => setSettingsTarget(null)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        projectId={currentProjectId}
+        target={settingsTarget}
+        onManageAi={() => {
+          setSettingsTarget(null);
+          setAiPage({ key: Date.now() });
+        }}
+        onManageAccounts={() => {
+          setSettingsTarget(null);
+          setAiPage({ tab: 'accounts', key: Date.now() });
+        }}
+      />
+    );
+  } else if (notifPage) {
+    overlayPage = (
+      <NotificationsPageView
+        onBack={() => setNotifPage(false)}
+        onOpenSettings={() => {
+          setNotifPage(false);
+          setSettingsTarget({ page: 'notifications' });
+        }}
+      />
+    );
+  }
+
   return (
     <BoardProviders
       ai={aiState}
@@ -807,21 +843,24 @@ export default function App() {
         <InsightChipsProvider chips={insightChips.data ?? []}>
           <NotificationsHost
             onOpenTicket={openTicketFromNotification}
-            onOpenDoc={(pageId) => {
+            onOpenDoc={(pageId, projectId) => {
               setSettingsTarget(null);
               setAiPage(null);
               setNotifPage(false);
               setActiveBoard('main');
+              switchToProject(projectId);
               openDocsPage(pageId);
             }}
-            onOpenAiTab={(tab) => {
+            onOpenAiTab={(tab, projectId) => {
               setSettingsTarget(null);
               setNotifPage(false);
+              switchToProject(projectId);
               setAiPage({ tab, key: Date.now() });
             }}
-            onOpenAiMember={(memberId) => {
+            onOpenAiMember={(memberId, projectId) => {
               setSettingsTarget(null);
               setNotifPage(false);
+              switchToProject(projectId);
               setAiPage({ memberId, key: Date.now() });
             }}
             onOpenPage={() => {
@@ -952,250 +991,227 @@ export default function App() {
                   <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
                 )}
                 <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  {settingsTarget ? (
-                    <SettingsPage
-                      onClose={() => setSettingsTarget(null)}
-                      theme={theme}
-                      onToggleTheme={toggleTheme}
-                      projectId={currentProjectId}
-                      target={settingsTarget}
-                      onManageAi={() => {
-                        setSettingsTarget(null);
-                        setAiPage({ key: Date.now() });
-                      }}
-                      onManageAccounts={() => {
-                        setSettingsTarget(null);
-                        setAiPage({ tab: 'accounts', key: Date.now() });
-                      }}
-                    />
-                  ) : notifPage ? (
-                    <NotificationsPageView
-                      onBack={() => setNotifPage(false)}
-                      onOpenSettings={() => {
-                        setNotifPage(false);
-                        setSettingsTarget({ page: 'notifications' });
-                      }}
-                    />
-                  ) : aiPage && currentProjectId && !noProjects ? (
-                    <AiMembersPage
-                      key={aiPage.key}
-                      projectId={currentProjectId}
-                      projectName={currentProject?.name ?? ''}
-                      humans={humanMembers}
-                      initialMemberId={aiPage.memberId}
-                      initialAdd={aiPage.add}
-                      initialTab={aiPage.tab}
-                      initialAuditMemberId={aiPage.auditMemberId}
-                      onBack={() => setAiPage(null)}
-                      onOpenTicket={(id) => {
-                        setAiPage(null);
-                        openTicketModal(id);
-                      }}
-                      onOpenMembersModal={() => setMembersPanelOpen(true)}
-                      onOpenSettings={() => openSettings()}
-                      onViewOnBoard={(id) => {
-                        setAiPage(null);
-                        setActiveAssignee(id);
-                      }}
-                    />
-                  ) : noProjects ? (
-                    <FirstRun
-                      onCreate={async (data) => {
-                        const created = await createProjectMutation.mutateAsync(data);
-                        setCurrentProjectId(created.id);
-                      }}
-                    />
-                  ) : activeBoard === 'idea' && !boardLoadState ? (
-                    <IdeaSpace
-                      projects={apiProjects}
-                      currentProjectId={currentProjectId ?? ''}
-                      requestedIdea={ideaRequest}
-                      onRequestHandled={() => setIdeaRequest(null)}
-                      onOpenTicket={(id) => void openTicketFromIdeas(id)}
-                      onOpenSettings={() => setSettingsTarget({ page: 'ideas' })}
-                    />
-                  ) : (
-                    <>
-                      <Board
-                        tickets={filteredTickets}
-                        allTickets={allAvailableTickets}
-                        onDragEnd={handleDragEnd}
-                        onNewTicket={handleOpenCreate}
-                        onCardClick={handleOpenView}
-                        searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
-                        activeType={activeType}
-                        onTypeChange={setActiveType}
-                        activePriority={activePriority}
-                        onPriorityChange={setActivePriority}
+                  {overlayPage ??
+                    (aiPage && currentProjectId && !noProjects ? (
+                      <AiMembersPage
+                        key={aiPage.key}
+                        projectId={currentProjectId}
                         projectName={currentProject?.name ?? ''}
-                        projectId={currentProjectId ?? ''}
-                        viewMode={viewMode}
-                        onViewModeChange={setViewMode}
-                        docsRequestedPageId={docsRequest}
-                        onDocsRequestHandled={() => setDocsRequest(null)}
-                        onOpenSettings={() => setSettingsTarget({ page: 'docs' })}
-                        onOpenAiMember={(id) => setAiPage({ memberId: id, key: Date.now() })}
-                        onOpenDocsPage={openDocsPage}
-                        members={members}
-                        activeAssignee={activeAssignee}
-                        onAssigneeChange={setActiveAssignee}
-                        loadState={boardLoadState}
-                        lanesOverride={lanesOverride}
-                        statusSlot={loadingPill}
-                        headerExtra={
-                          <>
-                            <BoardHealthChip />
-                            {aiState.settings && currentProjectId ? (
-                              <PauseAllButton
-                                projectId={currentProjectId}
-                                settings={aiState.settings}
-                                members={aiOverview.data?.members ?? []}
-                              />
-                            ) : null}
-                            <AskAiButton />
-                            <NotificationBellButton />
-                          </>
-                        }
-                        filterReopened={filterReopened}
-                        onFilterReopenedChange={setFilterReopened}
-                        filterPending={filterPending}
-                        onFilterPendingChange={setFilterPending}
-                        hidePending={hidePending}
-                        onHidePendingChange={setHidePending}
-                        reopenedCount={reopenedCount}
-                        fromIdeaCount={fromIdeaCount}
-                        filterFromIdea={filterFromIdea}
-                        onFilterFromIdeaChange={setFilterFromIdea}
-                        pendingCount={pendingCount}
-                        totalReopens30d={totalReopens30d}
-                        waitingOnTicketsCount={waitingOnTicketsCount}
-                        waitingOnPersonsCount={waitingOnPersonsCount}
-                        onReopen={setReopenTargetTicket}
-                        onPending={setPendingTargetTicket}
-                        onResume={setResumeTargetTicket}
-                        onDelete={(t) => handleDeleteTicket(t.id)}
+                        humans={humanMembers}
+                        initialMemberId={aiPage.memberId}
+                        initialAdd={aiPage.add}
+                        initialTab={aiPage.tab}
+                        initialAuditMemberId={aiPage.auditMemberId}
+                        onBack={() => setAiPage(null)}
+                        onOpenTicket={(id) => {
+                          setAiPage(null);
+                          openTicketModal(id);
+                        }}
+                        onOpenMembersModal={() => setMembersPanelOpen(true)}
+                        onOpenSettings={() => openSettings()}
+                        onViewOnBoard={(id) => {
+                          setAiPage(null);
+                          setActiveAssignee(id);
+                        }}
                       />
-                      {!boardLoadState &&
-                        modalState &&
-                        (modalState.mode === 'create' ? (
-                          <TicketModal
-                            key="create"
-                            mode="create"
-                            onSave={handleCreateTicket}
-                            onClose={closeModal}
-                            allTickets={allAvailableTickets}
-                            onOpenTicket={(t) => openTicketModal(t.id)}
-                            members={members}
-                          />
-                        ) : modalTicket ? (
-                          <TicketModal
-                            key={modalTicket.id}
-                            mode="view"
-                            ticket={modalTicket}
-                            onDelete={handleDeleteTicket}
-                            onClose={closeModal}
-                            onOpenDocsPage={openDocsPage}
-                            allTickets={allAvailableTickets}
-                            onOpenTicket={(t) => openTicketModal(t.id)}
-                            members={members}
-                          />
-                        ) : null)}
-
-                      {/* Standalone Dialogs opened from Card menus */}
-                      {reopenTargetTicket && (
-                        <ReopenDialog
-                          ticket={reopenTargetTicket}
+                    ) : noProjects ? (
+                      <FirstRun
+                        onCreate={async (data) => {
+                          const created = await createProjectMutation.mutateAsync(data);
+                          setCurrentProjectId(created.id);
+                        }}
+                      />
+                    ) : activeBoard === 'idea' && !boardLoadState ? (
+                      <IdeaSpace
+                        projects={apiProjects}
+                        currentProjectId={currentProjectId ?? ''}
+                        requestedIdea={ideaRequest}
+                        onRequestHandled={() => setIdeaRequest(null)}
+                        onOpenTicket={(id) => void openTicketFromIdeas(id)}
+                        onOpenSettings={() => setSettingsTarget({ page: 'ideas' })}
+                      />
+                    ) : (
+                      <>
+                        <Board
+                          tickets={filteredTickets}
                           allTickets={allAvailableTickets}
+                          onDragEnd={handleDragEnd}
+                          onNewTicket={handleOpenCreate}
+                          onCardClick={handleOpenView}
+                          searchQuery={searchQuery}
+                          onSearchChange={setSearchQuery}
+                          activeType={activeType}
+                          onTypeChange={setActiveType}
+                          activePriority={activePriority}
+                          onPriorityChange={setActivePriority}
+                          projectName={currentProject?.name ?? ''}
+                          projectId={currentProjectId ?? ''}
+                          viewMode={viewMode}
+                          onViewModeChange={setViewMode}
+                          docsRequestedPageId={docsRequest}
+                          onDocsRequestHandled={() => setDocsRequest(null)}
+                          onOpenSettings={() => setSettingsTarget({ page: 'docs' })}
+                          onOpenAiMember={(id) => setAiPage({ memberId: id, key: Date.now() })}
+                          onOpenDocsPage={openDocsPage}
                           members={members}
-                          onClose={() => {
-                            setReopenTargetTicket(null);
-                            setReopenError(null);
-                          }}
-                          onConfirm={handleConfirmReopen}
-                          isSubmitting={markerBusy}
-                          error={reopenError}
-                          onRetry={() => lastReopenPayload && handleConfirmReopen(lastReopenPayload)}
-                          onViewTicket={() => {
-                            const t = reopenTargetTicket;
-                            setReopenTargetTicket(null);
-                            setReopenError(null);
-                            openTicketModal(t.id);
-                          }}
-                          initialReason={dropReopen?.reason}
+                          activeAssignee={activeAssignee}
+                          onAssigneeChange={setActiveAssignee}
+                          loadState={boardLoadState}
+                          lanesOverride={lanesOverride}
+                          statusSlot={loadingPill}
+                          headerExtra={
+                            <>
+                              <BoardHealthChip />
+                              {aiState.settings && currentProjectId ? (
+                                <PauseAllButton
+                                  projectId={currentProjectId}
+                                  settings={aiState.settings}
+                                  members={aiOverview.data?.members ?? []}
+                                />
+                              ) : null}
+                              <AskAiButton />
+                              <NotificationBellButton />
+                            </>
+                          }
+                          filterReopened={filterReopened}
+                          onFilterReopenedChange={setFilterReopened}
+                          filterPending={filterPending}
+                          onFilterPendingChange={setFilterPending}
+                          hidePending={hidePending}
+                          onHidePendingChange={setHidePending}
+                          reopenedCount={reopenedCount}
+                          fromIdeaCount={fromIdeaCount}
+                          filterFromIdea={filterFromIdea}
+                          onFilterFromIdeaChange={setFilterFromIdea}
+                          pendingCount={pendingCount}
+                          totalReopens30d={totalReopens30d}
+                          waitingOnTicketsCount={waitingOnTicketsCount}
+                          waitingOnPersonsCount={waitingOnPersonsCount}
+                          onReopen={setReopenTargetTicket}
+                          onPending={setPendingTargetTicket}
+                          onResume={setResumeTargetTicket}
+                          onDelete={(t) => handleDeleteTicket(t.id)}
                         />
-                      )}
-                      {dropReopen && !reopenTargetTicket && (
-                        <ReopenDropPopover
-                          ticket={dropReopen.ticket}
-                          x={dropReopen.x}
-                          y={dropReopen.y}
-                          isSubmitting={markerBusy}
-                          onCancel={() => setDropReopen(null)}
-                          onMoreOptions={(reason) => {
-                            setReopenTargetTicket(dropReopen.ticket);
-                            setDropReopen({ ...dropReopen, reason });
-                          }}
-                          onConfirm={(reason) => handleConfirmReopen({ reason: reason || undefined })}
-                        />
-                      )}
-                      {pendingTargetTicket && (
-                        <SetPendingDialog
-                          ticket={pendingTargetTicket}
-                          allTickets={allAvailableTickets}
-                          members={members}
-                          onClose={() => {
-                            setPendingTargetTicket(null);
-                            setPendingError(null);
-                          }}
-                          onConfirm={handleConfirmPending}
-                          onResumeClick={() => {
-                            const t = pendingTargetTicket;
-                            setPendingTargetTicket(null);
-                            setResumeTargetTicket(t);
-                          }}
-                          isSubmitting={markerBusy}
-                          error={pendingError}
-                        />
-                      )}
-                      {resumeTargetTicket && (
-                        <ResumeDialog
-                          ticket={resumeTargetTicket}
-                          members={members}
-                          onClose={() => {
-                            setResumeTargetTicket(null);
-                            setResumeError(null);
-                          }}
-                          onConfirm={handleConfirmResume}
-                          isSubmitting={markerBusy}
-                          error={resumeError}
-                        />
-                      )}
-                      {closeConfirm &&
-                        (() => {
-                          const t = localTickets.find((x) => x.id === closeConfirm.ticketId);
-                          if (!t) return null;
-                          return (
-                            <PendingCloseConfirm
-                              ticket={t}
-                              targetStatus="done"
+                        {!boardLoadState &&
+                          modalState &&
+                          (modalState.mode === 'create' ? (
+                            <TicketModal
+                              key="create"
+                              mode="create"
+                              onSave={handleCreateTicket}
+                              onClose={closeModal}
                               allTickets={allAvailableTickets}
+                              onOpenTicket={(t) => openTicketModal(t.id)}
                               members={members}
-                              onCancel={() => setCloseConfirm(null)}
-                              onResumeFirst={() => {
-                                setCloseConfirm(null);
-                                setResumeTargetTicket(t);
-                              }}
-                              onProceed={() => {
-                                const c = closeConfirm;
-                                setCloseConfirm(null);
-                                void handleDragEnd(c.ticketId, c.newStatus, true);
-                              }}
                             />
-                          );
-                        })()}
-                    </>
-                  )}
+                          ) : modalTicket ? (
+                            <TicketModal
+                              key={modalTicket.id}
+                              mode="view"
+                              ticket={modalTicket}
+                              onDelete={handleDeleteTicket}
+                              onClose={closeModal}
+                              onOpenDocsPage={openDocsPage}
+                              allTickets={allAvailableTickets}
+                              onOpenTicket={(t) => openTicketModal(t.id)}
+                              members={members}
+                            />
+                          ) : null)}
+
+                        {/* Standalone Dialogs opened from Card menus */}
+                        {reopenTargetTicket && (
+                          <ReopenDialog
+                            ticket={reopenTargetTicket}
+                            allTickets={allAvailableTickets}
+                            members={members}
+                            onClose={() => {
+                              setReopenTargetTicket(null);
+                              setReopenError(null);
+                            }}
+                            onConfirm={handleConfirmReopen}
+                            isSubmitting={markerBusy}
+                            error={reopenError}
+                            onRetry={() => lastReopenPayload && handleConfirmReopen(lastReopenPayload)}
+                            onViewTicket={() => {
+                              const t = reopenTargetTicket;
+                              setReopenTargetTicket(null);
+                              setReopenError(null);
+                              openTicketModal(t.id);
+                            }}
+                            initialReason={dropReopen?.reason}
+                          />
+                        )}
+                        {dropReopen && !reopenTargetTicket && (
+                          <ReopenDropPopover
+                            ticket={dropReopen.ticket}
+                            x={dropReopen.x}
+                            y={dropReopen.y}
+                            isSubmitting={markerBusy}
+                            onCancel={() => setDropReopen(null)}
+                            onMoreOptions={(reason) => {
+                              setReopenTargetTicket(dropReopen.ticket);
+                              setDropReopen({ ...dropReopen, reason });
+                            }}
+                            onConfirm={(reason) => handleConfirmReopen({ reason: reason || undefined })}
+                          />
+                        )}
+                        {pendingTargetTicket && (
+                          <SetPendingDialog
+                            ticket={pendingTargetTicket}
+                            allTickets={allAvailableTickets}
+                            members={members}
+                            onClose={() => {
+                              setPendingTargetTicket(null);
+                              setPendingError(null);
+                            }}
+                            onConfirm={handleConfirmPending}
+                            onResumeClick={() => {
+                              const t = pendingTargetTicket;
+                              setPendingTargetTicket(null);
+                              setResumeTargetTicket(t);
+                            }}
+                            isSubmitting={markerBusy}
+                            error={pendingError}
+                          />
+                        )}
+                        {resumeTargetTicket && (
+                          <ResumeDialog
+                            ticket={resumeTargetTicket}
+                            members={members}
+                            onClose={() => {
+                              setResumeTargetTicket(null);
+                              setResumeError(null);
+                            }}
+                            onConfirm={handleConfirmResume}
+                            isSubmitting={markerBusy}
+                            error={resumeError}
+                          />
+                        )}
+                        {closeConfirm &&
+                          (() => {
+                            const t = localTickets.find((x) => x.id === closeConfirm.ticketId);
+                            if (!t) return null;
+                            return (
+                              <PendingCloseConfirm
+                                ticket={t}
+                                targetStatus="done"
+                                allTickets={allAvailableTickets}
+                                members={members}
+                                onCancel={() => setCloseConfirm(null)}
+                                onResumeFirst={() => {
+                                  setCloseConfirm(null);
+                                  setResumeTargetTicket(t);
+                                }}
+                                onProceed={() => {
+                                  const c = closeConfirm;
+                                  setCloseConfirm(null);
+                                  void handleDragEnd(c.ticketId, c.newStatus, true);
+                                }}
+                              />
+                            );
+                          })()}
+                      </>
+                    ))}
                   {recycleBinOpen && (
                     <RecycleBin
                       tickets={wontDoTickets}

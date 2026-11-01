@@ -118,6 +118,8 @@ function startBackend() {
       console.log(`Backend exited with code ${code} signal ${signal}`);
       backendProcess = null;
       backendPort = null;
+      // The notifier stops calling the old port; launchBackend gives it the new one once the backend is ready
+      if (notifier) notifier.setPort(null);
       refreshMenu();
       if (!settled) {
         settled = true;

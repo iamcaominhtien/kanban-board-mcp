@@ -100,12 +100,12 @@ export function Icon({
   size = 12,
   stroke = 1.7,
   color,
-}: {
+}: Readonly<{
   name: IconName;
   size?: number;
   stroke?: number;
   color?: string;
-}) {
+}>) {
   return (
     <svg
       width={size}
@@ -183,7 +183,7 @@ export function initialsOf(name: string): string {
 /** The colours of a name's avatar, the same each time. */
 export function avatarColors(name: string) {
   let h = 0;
-  for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  for (const c of name) h = (h * 31 + (c.codePointAt(0) ?? 0)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
@@ -234,7 +234,7 @@ export function groupByDay(
   for (const r of rows) {
     const label = dayLabel(timeOf(r), now);
     const last = out[out.length - 1];
-    if (last && last.label === label) last.rows.push(r);
+    if (last?.label === label) last.rows.push(r);
     else out.push({ key: `${label}:${out.length}`, label, rows: [r] });
   }
   return out;
@@ -247,17 +247,27 @@ export function rowTime(r: NotificationRow): string {
 
 /** The ISO times of the snooze menu: 1 hour, this evening 18:00, tomorrow morning 09:00. */
 export function snoozeChoices(now: Date = new Date()): { label: string; until: string }[] {
-  const hour = new Date(now.getTime() + 3600_000);
+  const hour = new Date(now.getTime() + 3_600_000);
   const evening = new Date(now);
   evening.setHours(18, 0, 0, 0);
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(9, 0, 0, 0);
   const out = [{ label: '1 hour', until: hour.toISOString() }];
-  if (evening.getTime() > now.getTime() + 3600_000)
+  if (evening.getTime() > now.getTime() + 3_600_000)
     out.push({ label: 'This evening 18:00', until: evening.toISOString() });
   out.push({ label: 'Tomorrow morning 09:00', until: tomorrow.toISOString() });
   return out;
+}
+
+/** "2 hours": the time left of a snooze, in the biggest fitting unit. */
+function backIn(mins: number): string {
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'}`;
+  if (mins < 60 * 24) {
+    const hours = Math.round(mins / 60);
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+  return `${Math.round(mins / 1440)} days`;
 }
 
 /** "Snoozed until 14:00, back in 2 hours." */
@@ -269,13 +279,7 @@ export function snoozeText(until: string, now: number = Date.now()): string {
     ? clock
     : `${t.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} ${clock}`;
   const mins = Math.max(1, Math.round((t.getTime() - now) / 60000));
-  const back =
-    mins < 60
-      ? `${mins} minute${mins === 1 ? '' : 's'}`
-      : mins < 60 * 24
-        ? `${Math.round(mins / 60)} hour${Math.round(mins / 60) === 1 ? '' : 's'}`
-        : `${Math.round(mins / 1440)} days`;
-  return `Snoozed until ${when}, back in ${back}.`;
+  return `Snoozed until ${when}, back in ${backIn(mins)}.`;
 }
 
 /** The name of the person using this browser: a member name chosen for it, or the board's own user. */
@@ -310,4 +314,20 @@ export function openActionOf(row: NotificationRow): string | null {
   for (const id of OPEN_ORDER) if (row.actions.some((a) => a.id === id)) return id;
   if (row.ticketId) return 'open_ticket';
   return row.kind === 'day_card' ? 'open' : null;
+}
+
+/** What the row keys do to the selected row: E marks it read, S snoozes an open one for an hour, Enter opens it. */
+export function rowKeyAction(
+  onAction: (row: NotificationRow, actionId: string, extra?: { until?: string | null }) => void | Promise<void>,
+): (row: NotificationRow, what: 'open' | 'read' | 'snooze') => void {
+  return (row, what) => {
+    if (what === 'read') {
+      void onAction(row, 'read');
+    } else if (what === 'snooze') {
+      if (row.needs && !row.done) void onAction(row, 'snooze', { until: snoozeChoices()[0].until });
+    } else {
+      const id = openActionOf(row);
+      if (id) void onAction(row, id);
+    }
+  };
 }

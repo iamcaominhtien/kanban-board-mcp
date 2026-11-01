@@ -122,7 +122,8 @@ async def test_read_is_per_recipient_and_reading_is_not_resolving(env):
     assert (await c.get("/notifications/counts")).json()["needs"] == 1
     await c.post("/notifications/read", json={"ids": [row["id"]]})
     [after] = (await _panel(c, "needs"))["items"]
-    assert after["read"] is True and after["done"] is False
+    assert after["read"] is True
+    assert after["done"] is False
     # the red count is open work, not unread rows
     assert (await c.get("/notifications/counts")).json()["needs"] == 1
     [hers] = (await _panel(c, "needs", {"X-Actor": "Hoa Mai"}))["items"]
@@ -144,7 +145,8 @@ async def test_a_question_closes_itself_when_answered_anywhere(env):
     )
     await centre.on_run_question(run_id)
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["kind"] == "question" and row["title"].endswith("asks a question")
+    assert row["kind"] == "question"
+    assert row["title"].endswith("asks a question")
     assert [a["id"] for a in row["actions"]] == ["answer", "open_ticket"]
     assert row["dismissable"] is False
     head = (await c.get("/notifications/counts")).json()["head"]
@@ -165,12 +167,14 @@ async def test_a_question_closes_itself_when_answered_anywhere(env):
     )
     assert await centre.reconcile() == 1
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["done"] and row["done_text"] == "Hoa Mai answered in AI Team"
+    assert row["done"]
+    assert row["done_text"] == "Hoa Mai answered in AI Team"
     assert (await c.get("/notifications/counts")).json()["needs"] == 0
     feed = (await c.get("/notifications/feed", params={"since": head})).json()
     assert row["id"] in feed["resolved"]
     log = (await c.get("/notifications/log", params={"since": head})).json()["events"]
-    assert [e["op"] for e in log] == ["resolve"] and log[0]["target_id"] == run_id
+    assert [e["op"] for e in log] == ["resolve"]
+    assert log[0]["target_id"] == run_id
 
 
 async def test_answering_yourself_says_you(env):
@@ -242,10 +246,12 @@ async def test_a_deleted_ticket_makes_the_row_say_so_and_offer_only_dismiss(env)
         await s.commit()
     await centre.reconcile()
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["gone"] and row["gone_reason"].startswith(f"{tid} was deleted")
+    assert row["gone"]
+    assert row["gone_reason"].startswith(f"{tid} was deleted")
     assert [a["id"] for a in row["actions"]] == ["dismiss"]
     r = await c.post(f"/notifications/{row['id']}/dismiss")
-    assert r.status_code == 200 and r.json()["done_text"] == "Dismissed by you"
+    assert r.status_code == 200
+    assert r.json()["done_text"] == "Dismissed by you"
     assert (await c.get("/notifications/counts")).json()["needs"] == 0
 
 
@@ -258,7 +264,8 @@ async def test_a_failed_run_is_retried_and_failures_of_one_ticket_are_one_row(en
         await _set(env, AiRun, rid, ended_at=datetime.now(UTC).isoformat())
         await centre.on_run_ended(rid)
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["count"] == 2 and row["title"] == f"Run #2 on {tid} failed"
+    assert row["count"] == 2
+    assert row["title"] == f"Run #2 on {tid} failed"
     assert [a["id"] for a in row["actions"]] == ["retry", "open_run_log"]
     await _run(env, pid, m["id"], tid, state="queued", number=3, trigger="retry")
     await centre.reconcile()
@@ -282,10 +289,8 @@ async def test_an_account_signing_out_is_one_row_and_closes_when_it_signs_in(env
     await centre.reconcile()
     await centre.reconcile()  # once per account, not per check
     [row] = (await _panel(c, "needs"))["items"]
-    assert (
-        row["kind"] == "account_signed_out"
-        and row["title"] == "Work Claude is signed out"
-    )
+    assert row["kind"] == "account_signed_out"
+    assert row["title"] == "Work Claude is signed out"
     assert [a["id"] for a in row["actions"]] == ["sign_in"]
     await _set(env, AiAccount, acc_id, status="signed_in")
     await centre.reconcile()
@@ -311,12 +316,15 @@ async def test_eight_ai_finishing_at_once_are_one_row(env):
     items = (await _panel(c, "updates"))["items"]
     assert len(items) == 1
     row = items[0]
-    assert row["title"] == "8 AI finished work" and row["count"] == 8
+    assert row["title"] == "8 AI finished work"
+    assert row["count"] == 8
     assert row["body"] == "Rin, Dev Gem, Dev An, QA Quy and 1 more · AGT-13 to AGT-20"
-    assert len(row["items"]) == 8 and row["actions"][0]["label"] == "Show all 8"
+    assert len(row["items"]) == 8
+    assert row["actions"][0]["label"] == "Show all 8"
     # never interrupts: no Needs you, a blue dot
     counts = (await c.get("/notifications/counts")).json()
-    assert counts["needs"] == 0 and counts["updates_unread"] == 1
+    assert counts["needs"] == 0
+    assert counts["updates_unread"] == 1
 
 
 async def test_more_than_twenty_say_twenty_plus_and_another_project_is_its_own_row(env):
@@ -364,7 +372,8 @@ async def test_snooze_hides_and_brings_back_and_clearing_is_a_state(env):
     assert r.json()["snoozed"] is True
     assert (await _panel(c, "needs"))["items"] == []
     counts = (await c.get("/notifications/counts")).json()
-    assert counts["needs"] == 0 and counts["snoozed"] == 1
+    assert counts["needs"] == 0
+    assert counts["snoozed"] == 1
     page = (
         await c.get("/notifications", params={"view": "page", "filter": "snoozed"})
     ).json()
@@ -399,14 +408,18 @@ async def test_in_app_is_locked_on_for_needs_you_and_off_means_quiet(env):
     c, pid, m, tid = await _setup(env)
     s = (await c.get("/notifications/settings")).json()
     q = next(e for e in s["events"] if e["kind"] == "question")
-    assert q["inapp"] and q["inapp_locked"] and q["desktop"]
+    assert q["inapp"]
+    assert q["inapp_locked"]
+    assert q["desktop"]
     finished = next(e for e in s["events"] if e["kind"] == "ai_finished")
-    assert not finished["inapp_locked"] and not finished["desktop"]
+    assert not finished["inapp_locked"]
+    assert not finished["desktop"]
     r = await c.patch(
         "/notifications/settings",
         json={"events": [{"kind": "question", "inapp": False}]},
     )
-    assert r.status_code == 422 and "In app stays on" in r.json()["detail"]
+    assert r.status_code == 422
+    assert "In app stays on" in r.json()["detail"]
     r = await c.patch(
         "/notifications/settings",
         json={
@@ -414,12 +427,14 @@ async def test_in_app_is_locked_on_for_needs_you_and_off_means_quiet(env):
             "retention_days": 30,
         },
     )
-    assert r.status_code == 200 and r.json()["retention_days"] == 30
+    assert r.status_code == 200
+    assert r.json()["retention_days"] == 30
     await centre.emit("ai_finished", project_id=pid, recipients=["user"], title="quiet")
     # quiet, not unrecorded: not in the panel, still on the page
     assert (await _panel(c, "updates"))["items"] == []
     page = (await c.get("/notifications", params={"view": "page"})).json()["items"]
-    assert [r["title"] for r in page] == ["quiet"] and page[0]["inapp"] is False
+    assert [r["title"] for r in page] == ["quiet"]
+    assert page[0]["inapp"] is False
 
 
 async def test_muting_a_ticket_quiets_updates_but_never_a_needs_you_row(env):
@@ -459,7 +474,8 @@ async def test_following_a_ticket_brings_its_finished_runs(env):
     rid = await _run(env, pid, m["id"], tid, state="finished", summary="Fixed add().")
     await centre.on_run_ended(rid)
     [row] = (await _panel(c, "updates", {"X-Actor": "Hoa Mai"}))["items"]
-    assert row["kind"] == "ai_finished" and row["body"] == "Fixed add()."
+    assert row["kind"] == "ai_finished"
+    assert row["body"] == "Fixed add()."
 
 
 async def test_the_docs_space_follow_is_one_case_of_following(env):
@@ -502,7 +518,8 @@ async def test_the_feed_starts_at_head_and_a_pruned_cursor_is_too_old(env):
     c, pid, m, tid = await _setup(env)
     await centre.emit("ai_finished", project_id=pid, recipients=["user"], title="old")
     first = (await c.get("/notifications/feed")).json()
-    assert first["items"] == [] and first["cursor_too_old"] is False  # no replay
+    assert first["items"] == []  # no replay
+    assert first["cursor_too_old"] is False
     head = first["head"]
     assert head > 0
     await centre.emit(
@@ -514,7 +531,8 @@ async def test_the_feed_starts_at_head_and_a_pruned_cursor_is_too_old(env):
         target_id="r",
     )
     feed = (await c.get("/notifications/feed", params={"since": head})).json()
-    assert [r["kind"] for r in feed["items"]] == ["question"] and feed["head"] > head
+    assert [r["kind"] for r in feed["items"]] == ["question"]
+    assert feed["head"] > head
     # everything older than the retention goes, rows and log; an old cursor is told so
     async with env["maker"]() as s:
         for e in (await s.exec(select(NotifyEvent))).all():
@@ -544,7 +562,8 @@ async def test_the_day_card_counts_the_day_and_says_a_quiet_day(env):
     r = await c.post("/notifications/day-card")
     assert r.json()["written"] == 1
     card = (await c.get("/notifications/day-card")).json()["card"]
-    assert card["kind"] == "day_card" and card["title"] == "Today on your boards"
+    assert card["kind"] == "day_card"
+    assert card["title"] == "Today on your boards"
     assert card["data"]["quiet"] is True
     assert card["data"]["lines"][0]["text"].startswith("A quiet day")
     # with runs and something waiting
@@ -574,7 +593,8 @@ async def test_the_day_card_counts_the_day_and_says_a_quiet_day(env):
         1.84,
     )
     texts = " ".join(line["text"] for line in data["lines"])
-    assert "1 run failed" in texts and "1 still wait for you" in texts
+    assert "1 run failed" in texts
+    assert "1 still wait for you" in texts
     # the card is the first row of the panel, not one of the rows
     panel = await _panel(c, "updates")
     assert panel["day_card"]["kind"] == "day_card"
@@ -599,7 +619,8 @@ async def test_day_cards_are_written_once_at_the_card_time(env):
 async def test_the_old_digest_settings_are_gone(env):
     c, pid, m, tid = await _setup(env)
     s = (await c.get(f"/projects/{pid}/ai/settings")).json()
-    assert "digest" not in s and "notify" not in s
+    assert "digest" not in s
+    assert "notify" not in s
     assert not hasattr(safety, "release_digest")
 
 
@@ -613,7 +634,8 @@ async def test_a_run_ending_writes_through_the_real_end(env):
     rid = await _run(env, pid, m["id"], tid, state="running", number=1)
     await runs._end(rid, "failed", "The CLI exited with code 1 at step 12.")
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["kind"] == "run_failed" and "code 1" in row["body"]
+    assert row["kind"] == "run_failed"
+    assert "code 1" in row["body"]
 
 
 async def test_the_desktop_master_switch_keeps_the_per_kind_choices(env):
@@ -630,7 +652,8 @@ async def test_the_desktop_master_switch_keeps_the_per_kind_choices(env):
         target_id="r",
     )
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["desktop"] is False and row["inapp"] is True
+    assert row["desktop"] is False
+    assert row["inapp"] is True
 
 
 async def test_pause_all_is_one_row_per_project_and_closes_on_resume(env):
@@ -652,7 +675,8 @@ async def test_pause_all_is_one_row_per_project_and_closes_on_resume(env):
         await s.commit()
     await centre.reconcile()
     rows = {r["project_id"]: r for r in (await _panel(c, "needs"))["items"]}
-    assert rows[pid]["done_text"] == "AI was resumed" and not rows[other]["done"]
+    assert rows[pid]["done_text"] == "AI was resumed"
+    assert not rows[other]["done"]
 
 
 async def _project_b(c):
@@ -692,7 +716,8 @@ async def test_a_reply_closes_only_the_mention_of_who_replied(env):
     await centre.reconcile()
     [mine] = (await _panel(c, "needs"))["items"]
     [hers] = (await _panel(c, "needs", {"X-Actor": "Hoa Mai"}))["items"]
-    assert not mine["done"] and hers["done_text"] == "You replied"
+    assert not mine["done"]
+    assert hers["done_text"] == "You replied"
 
 
 async def test_an_ask_run_does_not_count_as_a_retry(env):
@@ -710,7 +735,8 @@ async def test_a_cursor_above_the_head_is_too_old(env):
     c, pid, m, tid = await _setup(env)
     await centre.emit("ai_finished", project_id=pid, recipients=["user"], title="a")
     feed = (await c.get("/notifications/feed", params={"since": 999})).json()
-    assert feed["cursor_too_old"] is True and feed["head"] >= 1
+    assert feed["cursor_too_old"] is True
+    assert feed["head"] >= 1
 
 
 # --------------------------------------------------------------------------- the rest of the writers and readers
@@ -753,7 +779,8 @@ async def test_a_scheduled_slot_is_written_by_the_loop_and_points_at_its_run(env
     )
     assert await centre.flush_pending() == 2
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["target_kind"] == "run" and row["target_id"] == rid
+    assert row["target_kind"] == "run"
+    assert row["target_id"] == rid
     assert row["data"]["srun_id"] == srun_id
     [upd] = (await _panel(c, "updates", {"X-Actor": "Hoa Mai"}))["items"]
     assert upd["kind"] == "schedule"
@@ -796,7 +823,8 @@ async def test_comment_events_make_mentions_and_replies(env):
         }
     )
     [hers] = (await _panel(c, "needs", {"X-Actor": "Hoa Mai"}))["items"]
-    assert hers["kind"] == "mention" and hers["title"] == "Tuan Vo mentioned you"
+    assert hers["kind"] == "mention"
+    assert hers["title"] == "Tuan Vo mentioned you"
     mine = (await _panel(c, "updates"))["items"]
     assert sorted(r["kind"] for r in mine) == ["access_request", "comment"]
     comment = next(r for r in mine if r["kind"] == "comment")
@@ -819,7 +847,8 @@ async def test_a_blocked_move_and_an_archived_run(env):
     rid = await _run(env, pid, m["id"], tid, state="running", number=1)
     await centre.on_blocked_move(rid, "done")
     [row] = (await _panel(c, "needs"))["items"]
-    assert row["kind"] == "blocked" and row["title"].endswith(f"move {tid} to Done")
+    assert row["kind"] == "blocked"
+    assert row["title"].endswith(f"move {tid} to Done")
     assert [a["id"] for a in row["actions"]] == ["open_ticket", "change_permission"]
     assert row["dismissable"] is True
     gone = await _run(
@@ -828,10 +857,8 @@ async def test_a_blocked_move_and_an_archived_run(env):
     await _set(env, AiRun, gone, ended_by="Hoa Mai")
     await centre.on_run_ended(gone)
     [upd] = (await _panel(c, "updates"))["items"]
-    assert (
-        upd["kind"] == "run_cancelled"
-        and upd["title"] == f"{tid} was archived by Hoa Mai"
-    )
+    assert upd["kind"] == "run_cancelled"
+    assert upd["title"] == f"{tid} was archived by Hoa Mai"
     # nothing for a run that does not exist
     await centre.on_run_ended("run_missing")
     await centre.on_blocked_move("run_missing", "done")
@@ -934,11 +961,13 @@ async def test_settings_parts_and_mutes_of_a_project_and_a_kind(env):
     )
     s = r.json()
     assert s["quiet"] == {"on": True, "start": "00:00", "end": "23:59"}
-    assert s["dnd"] is False and s["sound"] is True
+    assert s["dnd"] is False
+    assert s["sound"] is True
     assert s["day_card"] == {"on": False, "time": "17:30", "days": [0, 4]}
     assert next(e for e in s["events"] if e["kind"] == "ai_finished")["desktop"]
     feed = (await c.get("/notifications/feed", params={"since": 0})).json()
-    assert feed["quiet"] is True and feed["sound"] is True
+    assert feed["quiet"] is True
+    assert feed["sound"] is True
     # a kind muted in one project, then the whole project
     await c.put(
         "/notifications/follow",
@@ -1001,7 +1030,8 @@ async def test_the_raw_log_by_project_and_resolve_target(env):
     [row] = (await _panel(c, "needs"))["items"]
     assert row["done_text"] == "Hoa Mai approved it"
     day = (await c.get("/notifications/day-card", params={"preview": True})).json()
-    assert day["card"] is None and "finished" in day["preview"]
+    assert day["card"] is None
+    assert "finished" in day["preview"]
 
 
 async def test_the_loop_starts_reconciles_and_stops(env):

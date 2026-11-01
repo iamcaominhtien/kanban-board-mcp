@@ -39,24 +39,37 @@ test('at most three toasts, a fourth collapses the oldest into "+N more" that op
   expect(screen.queryByTestId('toast-more')).toBeNull();
 });
 
-test('success and info without a second action become one quiet line that a new one replaces', () => {
+test('success and info with nothing to do become one quiet line that a new one replaces', () => {
   mount();
-  const undo = vi.fn();
   act(() => {
     api.success('Saved');
-    api.info('Moved to Done', undefined, undefined, { label: 'Undo', onClick: undo });
+    api.info('Copied');
   });
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.queryByText('Saved')).toBeNull();
   expect(screen.getAllByRole('status')).toHaveLength(1);
-  fireEvent.click(screen.getByText('Undo'));
-  expect(undo).toHaveBeenCalled();
-  act(() => {
-    api.quiet('Copied');
-  });
   expect(screen.getByText('Copied')).toBeTruthy();
+  act(() => {
+    api.quiet('Moved');
+  });
+  expect(screen.getByText('Moved')).toBeTruthy();
   act(() => void vi.advanceTimersByTime(2100));
   expect(screen.queryByRole('status')).toBeNull();
+});
+
+test('feedback that carries an Undo or an Open stays a toast for its own duration, and two do not replace each other', () => {
+  mount();
+  const undo = vi.fn();
+  act(() => {
+    api.success('Reopened', undefined, 8000, { label: 'Undo', onClick: undo });
+    api.info('Created KAN-9', undefined, 8000, { label: 'Open ticket', onClick: () => undefined });
+  });
+  expect(screen.queryByRole('status')).toBeNull();
+  expect(screen.getAllByRole('alert')).toHaveLength(2);
+  act(() => void vi.advanceTimersByTime(5000));
+  fireEvent.click(screen.getByText('Undo'));
+  expect(undo).toHaveBeenCalled();
+  expect(screen.getByText('Created KAN-9')).toBeTruthy();
 });
 
 test('errors, warnings and two-action toasts stay real toasts', () => {
@@ -83,7 +96,7 @@ test('hovering a toast stops its timer', () => {
   act(() => void vi.advanceTimersByTime(600));
   fireEvent.mouseEnter(toast);
   act(() => void vi.advanceTimersByTime(5000));
-  expect(screen.queryByText('Hold on')).toBeTruthy();
+  expect(screen.getByText('Hold on')).toBeTruthy();
   fireEvent.mouseLeave(toast);
   act(() => void vi.advanceTimersByTime(500));
   expect(screen.queryByText('Hold on')).toBeNull();

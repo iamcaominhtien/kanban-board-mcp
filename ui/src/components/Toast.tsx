@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './Toast.module.css';
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
@@ -77,7 +77,7 @@ const ICON_PROPS = {
   'aria-hidden': true,
 } as const;
 
-function VariantIcon({ variant }: { variant: ToastVariant }) {
+function VariantIcon({ variant }: Readonly<{ variant: ToastVariant }>) {
   switch (variant) {
     case 'success':
       return (
@@ -115,7 +115,7 @@ const ICON_CLASS: Record<ToastVariant, string> = {
   info: styles.iconInfo,
 };
 
-function ToastCard({ toast, onClose }: { toast: ToastItem; onClose: (id: string) => void }) {
+function ToastCard({ toast, onClose }: Readonly<{ toast: ToastItem; onClose: (id: string) => void }>) {
   const hover = useHoverTimer(toast.duration ?? 0, () => onClose(toast.id));
   return (
     <div className={styles.toast} role="alert" {...hover}>
@@ -168,10 +168,10 @@ function ToastCard({ toast, onClose }: { toast: ToastItem; onClose: (id: string)
   );
 }
 
-function QuietLine({ item, onClose }: { item: QuietItem; onClose: (id: string) => void }) {
+function QuietLine({ item, onClose }: Readonly<{ item: QuietItem; onClose: (id: string) => void }>) {
   const hover = useHoverTimer(QUIET_MS, () => onClose(item.id));
   return (
-    <div className={styles.quiet} role="status" {...hover}>
+    <output className={styles.quiet} {...hover}>
       <span className={styles.quietText}>{item.text}</span>
       {item.action && (
         <>
@@ -188,7 +188,7 @@ function QuietLine({ item, onClose }: { item: QuietItem; onClose: (id: string) =
           </button>
         </>
       )}
-    </div>
+    </output>
   );
 }
 
@@ -215,7 +215,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setToasts(toastsRef.current);
       gone.onClose?.();
     }
-    setQuietItem((prev) => (prev && prev.id === id ? null : prev));
+    setQuietItem((prev) => (prev?.id === id ? null : prev));
   }, []);
 
   const quiet = useCallback((text: string, action?: ToastAction) => {
@@ -226,8 +226,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const showToast = useCallback(
     ({ variant, title, message, duration, action, secondaryAction, onClose }: Omit<ToastItem, 'id'>) => {
-      if ((variant === 'success' || variant === 'info') && !secondaryAction && duration !== 0) {
-        return quiet(message ? `${title} · ${message}` : title, action);
+      // feedback with nothing to do becomes the quiet line; an Undo or an Open stays a toast, long enough to use
+      if ((variant === 'success' || variant === 'info') && !action && !secondaryAction && duration !== 0) {
+        return quiet(message ? `${title} · ${message}` : title);
       }
       // a toast with an action button stays a little longer so it can be used
       if (duration === undefined) duration = action ? 8000 : 4000;
@@ -274,8 +275,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [showToast],
   );
 
+  const ctxValue = useMemo(
+    () => ({ showToast, removeToast, success, error, warning, info, quiet }),
+    [showToast, removeToast, success, error, warning, info, quiet],
+  );
+
   return (
-    <ToastContext.Provider value={{ showToast, removeToast, success, error, warning, info, quiet }}>
+    <ToastContext.Provider value={ctxValue}>
       {children}
       <div className={styles.toastContainer} aria-live="polite">
         {toasts.map((toast) => (

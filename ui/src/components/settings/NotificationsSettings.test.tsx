@@ -256,7 +256,7 @@ describe('NotificationsSettings', () => {
       cleanup();
       bridge({ supported: false, permission: 'granted' });
       setup();
-      await screen.findByText(/Not available on this computer/);
+      expect(await screen.findByText(/Not available on this computer/)).toBeTruthy();
     });
 
     it('shows the blocked card, opens System Settings and reports a failed test', async () => {
@@ -286,7 +286,7 @@ describe('NotificationsSettings', () => {
       const n = bridge({ supported: true, permission: 'granted' });
       n.status.mockRejectedValue(new Error('x'));
       setup();
-      await screen.findByLabelText('Desktop notifications');
+      expect(await screen.findByLabelText('Desktop notifications')).toBeTruthy();
     });
   });
 });
