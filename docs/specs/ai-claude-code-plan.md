@@ -170,7 +170,9 @@ Hai việc cần người dùng xác nhận trước khi giao designer: #19 đ�
 **Đã thiết kế:**
 - Đợt 1 — [`design/screens/ai-operations.md`](../../design/screens/ai-operations.md) (mục A–M): phủ các hàng 16, 17, 18, 20, 21, 24 (phần chỉ dẫn + trí nhớ), 31, 32.
 - Đợt 2 — [`design/screens/ai-team-process.md`](../../design/screens/ai-team-process.md) (mục A–N): phủ các hàng 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 25, 26, 30.
-- Đợt 3 (hàng 19, 22, 24 phần kho kiến thức, 27, 28, 29) chưa vẽ.
+- Đợt 3 — [`design/screens/ai-board-wave3.md`](../../design/screens/ai-board-wave3.md) (mục A–N): phủ các hàng 19, 22, 24 (phần kho kiến thức), 27, 28, 29.
+
+Cả 32 hàng của mục 5 đã có thiết kế. Mục B của đợt 3 liệt kê đúng 10 chỗ trong `ai-board-assistant` nói "chỉ nháp" và nói rõ cái gì thay thế từng chỗ — đây là việc #19 cần người dùng xác nhận trước khi giao dev.
 
 ## 6. Việc kỹ thuật không có giao diện
 

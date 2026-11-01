@@ -2,6 +2,8 @@
 
 > SCREEN — V1 PROPOSAL · source: [`AiSchedules.dc.html`](../source/AiSchedules.dc.html) · canvas `1793195406-cc1c` · sha256 `30ff6c869fc892606e26321afe8c5c2efd684a5a1403ae400f3d535f1a4cefb2`
 
+> **Extended by [Board AI & beyond](ai-board-wave3.md)** (wave 3 of `docs/specs/ai-claude-code-plan.md`) — the Board AI can read, create, edit, pause and run a schedule — all reversible, so it does them and keeps an Undo; deleting one asks first (section E).
+
 Let an AI member work on a ticket at a set time, once or on repeat. Each schedule says when, which AI, when it counts as done and who reviews it. It starts the same kind of AI run as today. A new Schedules tab shows everything in one place, and each ticket can still set up its own. Desktop only. V1 is one ticket per schedule.
 
 Source: [AiSchedules.dc.html](../source/AiSchedules.dc.html) › header ("SCREEN — V1 PROPOSAL", "AI — schedules" and the intro)

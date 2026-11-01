@@ -2,6 +2,8 @@
 
 > Screen — v1 · source: [`AiBoardAssistant.dc.html`](../source/AiBoardAssistant.dc.html) · canvas `1792727511-31c8` · sha256 `5ca27b0a187cbe7e4ee41f6d4746dfe3d7e416bcb3e897415e2d3cbb7cb33114`
 
+> **Extended by [Board AI & beyond](ai-board-wave3.md)** (wave 3 of `docs/specs/ai-claude-code-plan.md`) — **the invariant this document states in ten places — *AI proposes, a person applies* — is reversed.** The Board AI acts with your permissions, sorted by how hard a thing is to undo: looking happens at once, anything reversible happens at once and keeps an Undo, and anything that cannot be walked back asks first. It also gains six signals about the AIs (the five board insights stay as they are) and standing orders written in plain words (sections B, C, D, F, G, H).
+
 Eyebrow "Screen — v1". The **Board AI** (chosen in AI members and Settings; here **Reviewer (Claude API)**) answers questions about the board, drafts tickets, splits parents, suggests test cases, watches board health and helps in docs. It is not a ticket assignee. It **only proposes drafts**: a person presses Accept or Apply, and only then is anything written. Every answer shows the context it used and a cost chip, and each feature can be turned off. Desktop only. Sample project: Kanban Board (KAN).
 
 Source: [AiBoardAssistant.dc.html](../source/AiBoardAssistant.dc.html) › header ("Screen — v1", "Board AI — assistant & suggestions" and the intro)

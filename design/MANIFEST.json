@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793549179-0849",
+  "canvas_version": "1793549840-5829",
   "exported": "2026-11-01",
   "files": {
     "AccountMenu.dc.html": {
@@ -627,6 +627,14 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 13097
+    },
+    "AiBoardWave3.dc.html": {
+      "bytes": 160941,
+      "sha256": "0009f766d7eeb4814c4deb3d5a94319b8bb70e4c59830c83d216e864b4e194e7",
+      "title": "Board AI & beyond — risk tiers, standing orders, knowledge base, GitHub, marks",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 11147
     }
   }
 }
