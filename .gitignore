@@ -40,6 +40,13 @@ desktop/build/*
 # CodeGraph index (local, rebuilt by .claude/scripts/codegraph.sh)
 .codegraph/
 
+# Test coverage reports (CI uploads them to SonarQube Cloud)
+coverage/
+coverage.xml
+lcov.info
+.coverage
+.coverage.*
+
 # Playwright & test artifacts
 .playwright-mcp/
 comments_*.png

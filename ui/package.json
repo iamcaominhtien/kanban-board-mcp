@@ -10,7 +10,8 @@
     "lint": "eslint src",
     "format": "prettier --write src",
     "format:check": "prettier --check src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text-summary --coverage.include='src/**'"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -55,6 +56,7 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^9.39.5",
     "eslint-plugin-jsdoc": "^50.8.0",
     "eslint-plugin-react-hooks": "^5.2.0",
