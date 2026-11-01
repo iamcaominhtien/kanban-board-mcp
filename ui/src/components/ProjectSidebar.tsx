@@ -16,6 +16,8 @@ interface ProjectSidebarProps {
   onOpenSettings: () => void;
   /** Board AI dock ("Ask AI", badge = unseen insights); hidden when chat is turned off. */
   askAi?: { onClick: () => void; unseen: number; active: boolean } | null;
+  /** All notifications, shown while something needs you (badge = the Needs you count). */
+  notifications?: { onClick: () => void; needs: number } | null;
   wontDoCount: number;
   /** People and AI member counts for the Members pill (“4 · 7 AI”). */
   memberCounts?: { humans: number; ai: number };
@@ -54,6 +56,7 @@ export function ProjectSidebar({
   onOpenRecycleBin,
   onOpenMembers,
   onOpenSettings,
+  notifications,
   askAi,
   wontDoCount,
   memberCounts,
@@ -304,6 +307,32 @@ export function ProjectSidebar({
                 {askAi.unseen}
               </span>
             )}
+          </button>
+        )}
+        {notifications && notifications.needs > 0 && (
+          <button
+            type="button"
+            className={styles.sidebarIconBtn}
+            onClick={notifications.onClick}
+            title={`All notifications (${notifications.needs} need you)`}
+            data-testid="sidebar-notifications"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span className={styles.navLabel}>Notifications</span>
+            <span className={styles.badgeCount}>{notifications.needs}</span>
           </button>
         )}
         <button type="button" className={styles.sidebarIconBtn} onClick={onOpenSettings} title="Settings">

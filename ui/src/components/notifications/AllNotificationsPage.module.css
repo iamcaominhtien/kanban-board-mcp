@@ -1,0 +1,272 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #fff;
+  overflow: hidden;
+  font-family: var(--font-body);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #5b6b60;
+  padding: 0;
+}
+
+.back:hover {
+  background: #eaf0ec;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #1e2a22;
+}
+
+.total {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f3f1;
+  color: #3a4a3e;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn:hover {
+  background: #f6faf7;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #c7d2cb;
+  background: #fff;
+  font-size: 13px;
+  color: #1e2a22;
+  box-sizing: border-box;
+  min-height: 34px;
+  flex: 1;
+  max-width: 360px;
+  color-scheme: light;
+}
+
+.search:focus-within {
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.14);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+
+.pillOn {
+  font-weight: 700;
+  border-color: #2e6f40;
+  background: #e6f2ea;
+  color: #1f5a31;
+}
+
+.pill b {
+  font-weight: 700;
+}
+
+.days {
+  font-family: inherit;
+  font-size: 12px;
+  color: #5b6b60;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.content {
+  display: flex;
+  gap: 22px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.list {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-bottom: 14px;
+}
+
+.side {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.sideHead {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+
+.checks {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #1e2a22;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.box {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1.5px solid #9aa8a0;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.boxOn {
+  border-color: #2e6f40;
+  background: #2e6f40;
+}
+
+.pdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.grow {
+  flex: 1;
+}
+
+.num {
+  font-size: 11px;
+  color: #5b6b60;
+}
+
+.kbd {
+  padding: 18px 20px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.kbdTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+  margin-bottom: 10px;
+}
+
+.kbd ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #3a4a3e;
+}
+
+.kbd li {
+  margin: 0 0 6px;
+}

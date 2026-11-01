@@ -16,6 +16,11 @@ describe('invalidation topics', () => {
     expect(keysFor(null)).toBeNull();
   });
 
+  it('maps the notifications topic to the notifications queries only', () => {
+    expect(topicsOf('{"type":"invalidate","topics":["notifications"],"head":7}')).toEqual(['notifications']);
+    expect(keysFor(new Set(['notifications']))).toEqual([['notifications']]);
+  });
+
   it('refetches everything when a topic is unknown', () => {
     expect(keysFor(new Set(['ai', 'something-new']))).toBeNull();
   });

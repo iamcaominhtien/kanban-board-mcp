@@ -1,0 +1,247 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import camelcaseKeys from 'camelcase-keys';
+import { useNotificationCounts } from '../../api/notifications';
+import type { NotificationRow } from '../../types/notifications';
+import { useAssist } from '../assist/AssistContext';
+import { AllNotificationsPage } from './AllNotificationsPage';
+import { NotificationBell } from './NotificationBell';
+import { NotificationPanel, type PanelTab } from './NotificationPanel';
+import type { RowActionHandler } from './NotificationRow';
+import { currentActor, inElectron, openActionOf } from './notificationUi';
+import { useNotificationActions, type NavigateHandler } from './useNotificationActions';
+import { useNotificationToasts } from './useNotificationToasts';
+import { isTyping } from './useRowKeys';
+import { useTabTitle } from './useTabTitle';
+
+/** The event any part of the app (a toast's "+N more", a settings link) sends to open a notification surface. */
+export const NOTIFICATIONS_EVENT = 'kanban:notifications';
+
+export type NotificationsOpen = 'panel' | 'page' | 'settings';
+
+/** Ask the app to open the panel, the All notifications page or Settings › Notifications. */
+export function requestOpenNotifications(open: NotificationsOpen, tab?: PanelTab): void {
+  window.dispatchEvent(new CustomEvent(NOTIFICATIONS_EVENT, { detail: { open, tab } }));
+}
+
+interface Ctx {
+  panelOpen: boolean;
+  togglePanel: () => void;
+  onAction: RowActionHandler;
+}
+
+const NotificationsContext = createContext<Ctx | null>(null);
+
+/** What the desktop app tells the window about a click on one of its notices. */
+type DesktopOpen =
+  (NotificationRow & { action?: string }) | { group: true; ids: string[]; needs: boolean; title?: string } | undefined;
+
+interface DesktopBridge {
+  setActor?: (name: string) => Promise<boolean> | boolean | void;
+  onOpen?: (cb: (payload: DesktopOpen) => void) => () => void;
+}
+
+function bridge(): DesktopBridge | undefined {
+  return (window.electronAPI as unknown as { notifications?: DesktopBridge } | undefined)?.notifications;
+}
+
+/** The bell for the top bar; it needs `NotificationsHost` above it. */
+export function NotificationBellButton() {
+  const ctx = useContext(NotificationsContext);
+  if (!ctx) return null;
+  return <NotificationBell open={ctx.panelOpen} onToggle={ctx.togglePanel} />;
+}
+
+/** The All notifications page as a view; it needs `NotificationsHost` above it. */
+export function NotificationsPageView({ onBack, onOpenSettings }: { onBack: () => void; onOpenSettings: () => void }) {
+  const ctx = useContext(NotificationsContext);
+  if (!ctx) return null;
+  return <AllNotificationsPage onBack={onBack} onOpenSettings={onOpenSettings} onAction={ctx.onAction} />;
+}
+
+/**
+ * Everything the notifications need from the app, in one place: the panel, the keys (N, Shift N), the toasts, the
+ * tab title and the desktop bridge. The app says how to open a ticket, a page, the AI screens, the page and Settings.
+ */
+export function NotificationsHost({
+  children,
+  onOpenTicket,
+  onOpenDoc,
+  onOpenAiTab,
+  onOpenAiMember,
+  onOpenPage,
+  onOpenSettings,
+}: {
+  children: ReactNode;
+  onOpenTicket: (ticketId: string) => void;
+  onOpenDoc: (pageId: string) => void;
+  onOpenAiTab: (tab: 'accounts' | 'approvals') => void;
+  onOpenAiMember: (memberId?: string | null) => void;
+  onOpenPage: () => void;
+  onOpenSettings: () => void;
+}) {
+  const assist = useAssist();
+  const counts = useNotificationCounts().data;
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [tab, setTab] = useState<PanelTab>('needs');
+  const props = useRef({ onOpenTicket, onOpenDoc, onOpenAiTab, onOpenAiMember, onOpenPage, onOpenSettings });
+  props.current = { onOpenTicket, onOpenDoc, onOpenAiTab, onOpenAiMember, onOpenPage, onOpenSettings };
+  const assistRef = useRef(assist);
+  assistRef.current = assist;
+
+  const openPanel = useCallback((t?: PanelTab) => {
+    if (t) setTab(t);
+    setPanelOpen(true);
+  }, []);
+  const closePanel = useCallback(() => setPanelOpen(false), []);
+  const togglePanel = useCallback(() => setPanelOpen((o) => !o), []);
+
+  const navigate = useCallback<NavigateHandler>((row, actionId, extra) => {
+    const p = props.current;
+    const ticket = extra?.ticketId ?? row.ticketId;
+    setPanelOpen(false);
+    switch (actionId) {
+      case 'open_ticket':
+      case 'open_run_log':
+      case 'open_item':
+        if (ticket) p.onOpenTicket(ticket);
+        else if (row.pageId) p.onOpenDoc(row.pageId);
+        break;
+      case 'sign_in':
+        p.onOpenAiTab('accounts');
+        break;
+      case 'review':
+        if (row.kind === 'page_proposal' && row.pageId) p.onOpenDoc(row.pageId);
+        else p.onOpenAiTab('approvals');
+        break;
+      case 'open_ai':
+      case 'change_permission':
+        p.onOpenAiMember(row.memberId);
+        break;
+      case 'open_list':
+        p.onOpenPage();
+        break;
+      case 'board_health':
+        assistRef.current?.setHealthOpen(true);
+        break;
+      default:
+        // open, reply
+        if (row.kind === 'day_card') p.onOpenPage();
+        else if (row.pageId) p.onOpenDoc(row.pageId);
+        else if (ticket) p.onOpenTicket(ticket);
+        else p.onOpenPage();
+    }
+  }, []);
+  const onAction = useNotificationActions(navigate);
+  const actionRef = useRef(onAction);
+  actionRef.current = onAction;
+
+  useNotificationToasts(onAction, counts?.head);
+  useTabTitle(counts?.needs ?? 0);
+
+  // N opens and closes the panel, Shift N opens the page
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented || isTyping(e.target)) return;
+      // Another dialog or an editor (Canvas uses N for a note) keeps its own keys
+      if (document.querySelector('[role="dialog"]:not([aria-label="Notifications"])')) return;
+      if (e.key === 'n') {
+        e.preventDefault();
+        setPanelOpen((o) => !o);
+      } else if (e.key === 'N') {
+        e.preventDefault();
+        setPanelOpen(false);
+        props.current.onOpenPage();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // The event other parts send (a toast's "+N more", the Settings link)
+  useEffect(() => {
+    const onEvent = (e: Event) => {
+      const d = (e as CustomEvent<{ open?: NotificationsOpen; tab?: PanelTab }>).detail;
+      if (d?.open === 'panel') openPanel(d.tab);
+      else if (d?.open === 'page') {
+        setPanelOpen(false);
+        props.current.onOpenPage();
+      } else if (d?.open === 'settings') {
+        setPanelOpen(false);
+        props.current.onOpenSettings();
+      }
+    };
+    window.addEventListener(NOTIFICATIONS_EVENT, onEvent);
+    return () => window.removeEventListener(NOTIFICATIONS_EVENT, onEvent);
+  }, [openPanel]);
+
+  // Desktop app: tell it who this window acts as, and route a click on its notices
+  useEffect(() => {
+    if (!inElectron()) return;
+    let pushed: string | null = null;
+    const push = async () => {
+      const b = bridge();
+      const me = currentActor();
+      if (!b?.setActor || pushed === me) return;
+      try {
+        const ok = await b.setActor(me);
+        if (ok !== false) pushed = me; // false: the backend is not ready yet, try again
+      } catch {
+        /* try again on the next tick */
+      }
+    };
+    void push();
+    const timer = setInterval(() => void push(), 5000);
+    const offReady = window.electronAPI?.onBackendReady?.(() => {
+      pushed = null;
+      void push();
+    });
+    const off = bridge()?.onOpen?.((raw) => {
+      if (!raw) return; // only focus
+      if ('group' in raw && raw.group) {
+        openPanel(raw.needs ? 'needs' : 'updates');
+        return;
+      }
+      const row = camelcaseKeys(raw as unknown as Record<string, unknown>, {
+        deep: true,
+      }) as unknown as NotificationRow & {
+        action?: string;
+      };
+      if (row.action) {
+        void actionRef.current(row, row.action);
+        return;
+      }
+      const id = openActionOf(row);
+      if (id) void actionRef.current(row, id);
+      else openPanel(row.needs ? 'needs' : 'updates');
+    });
+    return () => {
+      clearInterval(timer);
+      off?.();
+      offReady?.();
+    };
+  }, [openPanel]);
+
+  const ctx = useMemo<Ctx>(() => ({ panelOpen, togglePanel, onAction }), [panelOpen, togglePanel, onAction]);
+
+  return (
+    <NotificationsContext.Provider value={ctx}>
+      {children}
+      {panelOpen && (
+        <NotificationPanel
+          tab={tab}
+          onTab={setTab}
+          onClose={closePanel}
+          onOpenPage={() => {
+            setPanelOpen(false);
+            onOpenPage();
+          }}
+          onOpenSettings={() => {
+            setPanelOpen(false);
+            onOpenSettings();
+          }}
+          onAction={onAction}
+        />
+      )}
+    </NotificationsContext.Provider>
+  );
+}

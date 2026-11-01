@@ -2,7 +2,6 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import type { Ticket } from '../../types';
 import { ScheduleDetailLayer } from './ScheduleDetail';
 import { ScheduleEditor, type EditorOpts } from './ScheduleEditor';
-import { useScheduleNotifications } from './useScheduleNotifications';
 
 /** What any screen can do with schedules: open the editor or one schedule, or show a ticket's schedules. */
 export interface SchedulesApi {
@@ -35,7 +34,7 @@ export function useSchedules(): SchedulesApi {
 
 /**
  * Provides the schedule actions and renders their layers (editor, detail) above the board, so a ticket, a card
- * and the Schedules tab all open the same ones. Also polls the notifications (E4).
+ * and the Schedules tab all open the same ones.
  */
 export function SchedulesProvider({
   projectId,
@@ -64,8 +63,6 @@ export function SchedulesProvider({
     },
     [onShowTab],
   );
-
-  useScheduleNotifications(projectId, { openTicket: onOpenTicket, openDetail, openEditor });
 
   const api = useMemo<SchedulesApi>(
     () => ({ openEditor, openDetail, viewForTicket, ticketFilter, setTicketFilter, openTicket: onOpenTicket }),

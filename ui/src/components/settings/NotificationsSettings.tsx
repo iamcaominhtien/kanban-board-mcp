@@ -344,11 +344,7 @@ export function NotificationsSettings() {
             }
             control={
               inApp ? (
-                <Switch
-                  on={desktopOn}
-                  label="Desktop notifications"
-                  onChange={(v) => save({ desktopOn: v })}
-                />
+                <Switch on={desktopOn} label="Desktop notifications" onChange={(v) => save({ desktopOn: v })} />
               ) : undefined
             }
           />
