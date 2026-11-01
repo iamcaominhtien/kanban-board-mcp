@@ -1437,16 +1437,14 @@ def antigravity_run_rules(
 ) -> tuple[list[str], list[str], bool]:
     """Antigravity's permission rules for a run (`--settings`): (allow, deny, may edit files). A headless run cannot
     ask, so what is not allowed is refused. The person's own `kanban` entry (no run token) is always denied: it would
-    act as that person. A question or safe mode is read-only (no edits, no commands), as for Claude Code."""
+    act as that person. Safe mode is read-only (no edits, no commands). A question gets the same rules as work: a
+    denied command ends the whole run, and the person asked for no limit here (what a question may change on the
+    board is still held by the board's guard, and its prompt says not to change anything)."""
     board = cli.AGY_BOARD_SERVER
     denied = ["mcp(kanban/*)"]
     others = [f"mcp({name}/*)" for name in servers if name not in ("kanban", board)]
-    if mode == "ask" or safe:
-        allowed = (
-            [f"mcp({board}/*)"]
-            if safe
-            else [f"mcp({board}/{tool})" for tool in _AGY_READ_TOOLS]
-        )
+    if safe:
+        allowed = [f"mcp({board}/*)"]
         denied += ["write_file(*)", "command(*)"]
         return allowed + others, denied, False
     allowed = (
@@ -1738,9 +1736,10 @@ async def _execute_cli_held(
         # An owner's "Bypass permissions" (Claude Code and Antigravity): work runs only, never in safe mode. Deny
         # rules and the board's own checks (status ceiling, approvals) still apply; the web stays off because its
         # domain list needs the allow list the mode skips.
+        # Antigravity's questions too: a denied command ends the whole run
         bypass = (
             config.get("permission_mode") == "bypass"
-            and run.mode == "work"
+            and (run.mode == "work" or agy or (adapter and adapter.cli == "agy"))
             and not safe
         )
         if bypass:
@@ -1802,7 +1801,7 @@ async def _execute_cli_held(
                     token=token,
                     allowed=allowed,
                     denied=denied,
-                    read_only=run.mode == "ask" or safe,
+                    read_only=safe or (run.mode == "ask" and adapter.cli != "agy"),
                     resume_id=session_id if resume else None,
                     effort=config.get("effort"),
                     compact_at_tokens=int(config.get("compact_at_tokens") or 0),
@@ -2561,7 +2560,7 @@ async def _end(
         await post_ai_comment(
             run.ticket_id,
             member.name,
-            f"Couldn't answer: {reason or 'the run stopped'}. Nothing was changed.",
+            f"Couldn't answer: {(reason or 'the run stopped').rstrip('. ')}. Nothing was changed.",
             {
                 "kind": "ask_failed",
                 "run_id": run.id,

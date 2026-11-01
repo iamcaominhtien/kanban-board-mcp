@@ -154,6 +154,7 @@ async def test_failed_ask_posts_a_reply(env, monkeypatch):
         await __import__("asyncio").sleep(0.1)
     assert comments[-1]["text"].startswith("Couldn't answer")
     assert comments[-1]["ai"]["kind"] == "ask_failed"
+    assert ".." not in comments[-1]["text"]  # the reason already ends with a full stop
 
 
 def test_mcp_env_and_headers_survive_key_case_conversion():

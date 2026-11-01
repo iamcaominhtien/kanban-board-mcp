@@ -125,23 +125,24 @@ def test_the_board_endpoint_is_named_board_and_the_persons_kanban_is_denied():
         assert "mcp(kanban/*)" in denied
 
 
-def test_a_question_and_safe_mode_cannot_edit_or_run_commands_but_work_can_edit():
-    for mode, safe in (("ask", False), ("work", True)):
-        allow, deny, edits = runs.antigravity_run_rules(
-            mode, {}, ["ba-graph"], safe=safe, domains=[]
-        )
-        assert not edits and {"write_file(*)", "command(*)"} <= set(deny)
-        assert "mcp(ba-graph/*)" in allow
+def test_safe_mode_cannot_edit_or_run_commands_but_a_question_has_the_rules_of_work():
     allow, deny, edits = runs.antigravity_run_rules(
-        "work",
-        {"allow_rules": ["Bash(git diff:*)"], "deny_rules": ["Bash(rm -rf:*)"]},
-        [],
-        safe=False,
-        domains=["github.com"],
+        "work", {}, ["ba-graph"], safe=True, domains=[]
     )
-    assert edits and "mcp(board/*)" in allow and "command(git diff)" in allow
-    assert "read_url(github.com)" in allow and "command(rm -rf)" in deny
-    assert "command(*)" not in deny
+    assert not edits and {"write_file(*)", "command(*)"} <= set(deny)
+    assert "mcp(ba-graph/*)" in allow
+    # a denied command ends the whole run, so a question is not held to a narrower list than work
+    for mode in ("work", "ask"):
+        allow, deny, edits = runs.antigravity_run_rules(
+            mode,
+            {"allow_rules": ["Bash(git diff:*)"], "deny_rules": ["Bash(rm -rf:*)"]},
+            [],
+            safe=False,
+            domains=["github.com"],
+        )
+        assert edits and "mcp(board/*)" in allow and "command(git diff)" in allow
+        assert "read_url(github.com)" in allow and "command(rm -rf)" in deny
+        assert "command(*)" not in deny
 
 
 # --------------------------------------------------------------------------- the runs
@@ -170,14 +171,12 @@ async def test_a_question_runs_in_a_scratch_workspace_with_the_board_endpoint(ag
     (call,) = _calls(agy_env["record"])
     args = call["args"]
     assert args[args.index("-p") + 1].startswith(f"Working folder: {repo}")
-    assert _flag(args, "--output-format") == "stream-json" and "--mode" not in args
+    assert _flag(args, "--output-format") == "stream-json"
+    assert _flag(args, "--mode") == "accept-edits"  # a question has the rules of work
     assert _flag(args, "--add-dir") == repo and "--conversation" not in args
     perms = json.loads(_flag(args, "--settings"))["permissions"]
-    assert (
-        "mcp(board/get_ticket)" in perms["allow"]
-        and "mcp(board/*)" not in perms["allow"]
-    )
-    assert {"mcp(kanban/*)", "write_file(*)", "command(*)"} <= set(perms["deny"])
+    assert "mcp(board/*)" in perms["allow"]
+    assert "mcp(kanban/*)" in perms["deny"] and "command(*)" not in perms["deny"]
     # a scratch folder holds the endpoint with this run's token; the work folder is untouched and the scratch is gone
     assert call["cwd"] != repo
     for _ in range(
@@ -358,7 +357,7 @@ def test_bypass_adds_the_skip_permissions_flag_and_keeps_the_deny_rules():
     assert "--dangerously-skip-permissions" not in smuggled
 
 
-async def test_a_work_run_bypasses_but_an_ask_run_and_safe_mode_do_not(agy_env):
+async def test_a_work_run_and_a_question_bypass_but_safe_mode_does_not(agy_env):
     c, record = agy_env["c"], agy_env["record"]
     pid, _ = await _project(c)
     await _people(c, pid)
@@ -377,10 +376,10 @@ async def test_a_work_run_bypasses_but_an_ask_run_and_safe_mode_do_not(agy_env):
     run = await _wait(c, tid, ("finished", "failed"))
     assert run["state"] == "finished", run
     assert "--dangerously-skip-permissions" in _calls(record)[-1]["args"]
-    # an ask run stays read-only whatever the mode
+    # a question has the same permissions: a denied command would end the whole run
     await _ask(c, tid, m)
     for _ in range(100):
         if len(_calls(record)) >= 2:
             break
         await asyncio.sleep(0.1)
-    assert "--dangerously-skip-permissions" not in _calls(record)[-1]["args"]
+    assert "--dangerously-skip-permissions" in _calls(record)[-1]["args"]
