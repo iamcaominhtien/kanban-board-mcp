@@ -586,6 +586,9 @@ async def update_ticket(
         from services.ai import knowledge as ai_knowledge
 
         ai_knowledge.on_ticket_done(ticket.id)
+        from services.ai import workflow as ai_workflow
+
+        await ai_workflow.on_ticket_done(ticket.id)
     if update_data.get("status") and update_data["status"] != previous_status:
         # hand the code over: Review pushes and opens the draft PR, Done merges, only when a person moved it (D7)
         from services.ai import guard as ai_guard

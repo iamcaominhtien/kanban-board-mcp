@@ -35,6 +35,7 @@ from api.ai_ops import router as ai_ops_router
 from api.ai_knowledge import router as ai_knowledge_router
 from api.ai_code import router as ai_code_router
 from api.ai_tools import router as ai_tools_router
+from api.ai_workflow import router as ai_workflow_router
 from api.ai_accounts import router as ai_accounts_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
@@ -268,6 +269,7 @@ app.include_router(ai_ops_router)
 app.include_router(ai_knowledge_router)
 app.include_router(ai_code_router)
 app.include_router(ai_tools_router)
+app.include_router(ai_workflow_router)
 app.include_router(ai_router)
 app.include_router(ai_safety_router)
 app.include_router(ai_config_router)

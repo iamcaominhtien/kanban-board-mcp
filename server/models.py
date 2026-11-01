@@ -1298,6 +1298,9 @@ class AiRun(SQLModel, table=True):
     retries: str = Field(default="[]")  # JSON [{at, kind, n, detail}]
     # The Claude account this run spends when it is not the member's own (urgent work moved to an account with room)
     account_id: Optional[str] = Field(default=None)
+    # A workflow step's own model and effort for this run (review depth, Opus on a second attempt), over the member's
+    model_override: Optional[str] = Field(default=None)
+    effort_override: Optional[str] = Field(default=None)
 
 
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
@@ -1466,6 +1469,96 @@ class AiRepoScan(SQLModel, table=True):
     trial: str = Field(default="{}")
     applied_at: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
+
+
+class AiWorkflowTemplate(SQLModel, table=True):
+    """A project's own workflow template, or its changed copy of a ready-made one (services/ai/workflow.py) (table)."""
+
+    __tablename__ = "ai_workflow_template"
+
+    id: str = Field(
+        default_factory=lambda: f"wft_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    key: str = Field(index=True)
+    name: str
+    version: int = Field(default=1)
+    body: str = Field(default="{}")  # JSON {name, description, steps: [...]}
+    history: str = Field(default="[]")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    updated_by: Optional[str] = Field(default=None)
+
+
+class AiTicketWorkflow(SQLModel, table=True):
+    """The workflow a ticket follows: the template and version it started on, the review depth, the rounds between
+    roles, the stop and the rulings (table)."""
+
+    __tablename__ = "ai_ticket_workflow"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    template_key: str
+    template_name: str
+    template_version: int = Field(default=1)
+    steps: str = Field(
+        default="[]"
+    )  # the template's steps as they were when the ticket started on it
+    state: str = Field(
+        default="active", index=True
+    )  # active | stopped | done | detached
+    stop_reason: Optional[str] = Field(
+        default=None
+    )  # no_progress | board_fault | quota_cap
+    stop_detail: Optional[str] = Field(default=None)
+    review_depth: Optional[str] = Field(default=None)  # light | standard | deep
+    depth_by: Optional[str] = Field(default=None)  # triage | person
+    depth_note: Optional[str] = Field(default=None)
+    rounds: str = Field(default="{}")  # {"dev|reviewer": n}
+    objections: str = Field(default="[]")  # [{at, by, role, text, diff}]
+    rulings: str = Field(default="[]")  # [{at, by, verdict, reason, run_id}]
+    arbitration_run_id: Optional[str] = Field(default=None)
+    attached_by: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiTicketStep(SQLModel, table=True):
+    """One step of a ticket's workflow, one row per attempt: who did it, its run, what it handed in (table). Never
+    overwritten: a send-back adds a new attempt."""
+
+    __tablename__ = "ai_ticket_step"
+
+    id: str = Field(
+        default_factory=lambda: f"stp_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    ticket_id: str = Field(index=True)
+    seq: int = Field(
+        default=0
+    )  # order of the rows (attempts after a send-back follow the steps already done)
+    idx: int = Field(default=0)  # the step's place in the template
+    key: str
+    label: str
+    kind: str = Field(default="ai")  # ai | code | person
+    role: Optional[str] = Field(default=None)
+    state: str = Field(
+        default="pending", index=True
+    )  # pending | active | waiting | blocked | done | failed | skipped | superseded
+    attempt: int = Field(default=1)
+    member_id: Optional[str] = Field(default=None)
+    run_id: Optional[str] = Field(default=None, index=True)
+    note_in: Optional[str] = Field(
+        default=None
+    )  # what the step was told on top of the template (a send-back, a ruling)
+    note: Optional[str] = Field(default=None)  # what it handed in
+    outcome: Optional[str] = Field(
+        default=None
+    )  # pass | changes | approved | sent_back | failed
+    result: Optional[str] = Field(
+        default=None
+    )  # JSON: the checks' output, the test-first evidence
+    started_at: Optional[str] = Field(default=None)
+    ended_at: Optional[str] = Field(default=None)
 
 
 class AiAccountState(SQLModel, table=True):

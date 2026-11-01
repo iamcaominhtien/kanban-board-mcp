@@ -537,6 +537,7 @@ class CliProcess:
         cwd: str,
         env: dict | None = None,
         spill: bool = True,
+        first_message: str | None = None,
     ):
         """Prepare the command; nothing starts until `start()`. `spill` lets a long prompt travel by stdin (Claude
         Code only)."""
@@ -549,11 +550,17 @@ class CliProcess:
         self._stderr_task: asyncio.Task | None = None
         self.stderr_tail: list[str] = []
         self._temp: str | None = None
+        # Live input (stream-json on stdin): the first message is the prompt; `send` adds one, `end_input` closes it
+        self.first_message = first_message
+        self.live = first_message is not None
+        self._input_open = False
 
     async def start(self) -> int:
         """Launch; returns the pid."""
         args, stdin_text, self._temp = (
-            spill_long_args(self.args) if self.spill else (self.args, None, None)
+            spill_long_args(self.args)
+            if self.spill and not self.live
+            else (self.args, None, None)
         )
         try:
             self.proc = await asyncio.create_subprocess_exec(
@@ -561,7 +568,7 @@ class CliProcess:
                 *args,
                 cwd=self.cwd,
                 stdin=asyncio.subprocess.DEVNULL
-                if stdin_text is None
+                if stdin_text is None and not self.live
                 else asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -572,7 +579,10 @@ class CliProcess:
         except BaseException:
             self._cleanup()
             raise
-        if stdin_text is not None and self.proc.stdin:
+        if self.live and self.proc.stdin:
+            self._input_open = True
+            await self.send(self.first_message or "")
+        elif stdin_text is not None and self.proc.stdin:
             self.proc.stdin.write(stdin_text.encode("utf-8"))
             try:
                 await self.proc.stdin.drain()
@@ -581,6 +591,36 @@ class CliProcess:
                 pass  # the CLI already exited; its exit code and stderr say why
         self._stderr_task = asyncio.create_task(self._drain_stderr())
         return self.proc.pid
+
+    async def send(self, text: str) -> bool:
+        """Write one user message to a live CLI's input; False when it is not live or its input is closed."""
+        if not (self.live and self._input_open and self.proc and self.proc.stdin):
+            return False
+        line = json.dumps(
+            {
+                "type": "user",
+                "message": {
+                    "role": "user",
+                    "content": [{"type": "text", "text": text}],
+                },
+            }
+        )
+        try:
+            self.proc.stdin.write((line + "\n").encode("utf-8"))
+            await self.proc.stdin.drain()
+        except (ConnectionError, OSError):
+            self._input_open = False
+            return False
+        return True
+
+    def end_input(self) -> None:
+        """Close a live CLI's input: it finishes the turn it is on and exits."""
+        if self.live and self._input_open and self.proc and self.proc.stdin:
+            self._input_open = False
+            try:
+                self.proc.stdin.close()
+            except (ConnectionError, OSError):
+                pass
 
     def _cleanup(self) -> None:
         """Remove the temp folder of a spilled system prompt."""
@@ -852,14 +892,21 @@ def claude_args(
     extra_flags: list[str] | None = None,
     bypass: bool = False,
     plugin_dirs: list[str] | None = None,
+    live: bool = False,
 ) -> list[str]:
     """Command line of one headless Claude Code run. By default it never skips the CLI's own permission checks:
     only the Allow rules run, anything else is denied. `bypass` (an owner's explicit choice for the member) lets
     every tool run except what a Deny rule stops."""
+    # `live`: the prompt and later messages travel on stdin as stream-json, so a person can send the running AI a
+    # message it reads at its next turn (spike S6); the CLI ends when the board closes its input
     args = [
         path,
         "-p",
-        prompt,
+        *(
+            ["--input-format", "stream-json", "--replay-user-messages"]
+            if live
+            else [prompt]
+        ),
         "--output-format",
         "stream-json",
         "--verbose",

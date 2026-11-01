@@ -16,6 +16,9 @@ DEFAULTS: dict = {
     # Load a member's skills, subagents and hooks per run through CLI flags instead of writing them into its folder
     # (D5). Always on for a project that uses worktrees; for the rest, a switch (a migration removes what was written).
     "per_run_config": False,
+    # Start Claude Code with its input open (stream-json), so a message reaches a running AI at its next turn (D20,
+    # spike S6). Off: a message rides on the AI's next board call.
+    "live_messages": False,
     # Phase 4 — worktrees and hand-over
     "worktrees": {
         "on": False,

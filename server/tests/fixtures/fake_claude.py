@@ -215,11 +215,20 @@ if mode == "network":
 if mode == "crash":
     sys.stderr.write("Segmentation fault (core dumped)\n")
     sys.exit(139)
-prompt_text = (
-    args[args.index("-p") + 1]
-    if "-p" in args and args.index("-p") + 1 < len(args)
-    else ""
-)
+live = (
+    "--input-format" in args
+)  # the prompt and later messages arrive on stdin as stream-json
+if live:
+    try:
+        prompt_text = json.loads(sys.stdin.readline())["message"]["content"][0]["text"]
+    except (ValueError, KeyError, IndexError):
+        prompt_text = ""
+else:
+    prompt_text = (
+        args[args.index("-p") + 1]
+        if "-p" in args and args.index("-p") + 1 < len(args)
+        else ""
+    )
 if mode == "too_long" and "hand-over" not in prompt_text:
     # the conversation is too long until the board starts a fresh one with a hand-over note
     emit(
@@ -382,14 +391,54 @@ if mode == "wait_question":
     )
     while time.time() < end and not (gate and os.path.exists(gate)):
         time.sleep(0.02)
+final_text = "Fixed add(); tests pass."
+# Workflow roles answer from their prompt: a reviewer's verdicts come in order from FAKE_CLAUDE_REVIEW_FILE (one per
+# line), a coordinator rules with FAKE_CLAUDE_RULING, Triage sets FAKE_CLAUDE_DEPTH
+if "Review depth:" in prompt_text and os.environ.get("FAKE_CLAUDE_REVIEW_FILE"):
+    path = os.environ["FAKE_CLAUDE_REVIEW_FILE"]
+    lines = open(path).read().splitlines() if os.path.exists(path) else []
+    verdict = lines[0] if lines else "PASS"
+    with open(path, "w") as fh:
+        fh.write("\n".join(lines[1:]))
+    final_text = f"Reviewed the change.\nVERDICT: {verdict}"
+elif "You are the coordinator" in prompt_text:
+    final_text = f"Read both sides.\nVERDICT: {os.environ.get('FAKE_CLAUDE_RULING', 'REVIEWER')}\nThe criterion asks for it."
+elif "DEPTH: light" in prompt_text and (
+    os.environ.get("FAKE_CLAUDE_DEPTH") or os.environ.get("FAKE_CLAUDE_WORKFLOW")
+):
+    final_text = f"Sorted it.\nDEPTH: {os.environ.get('FAKE_CLAUDE_DEPTH', 'standard')}"
+    if os.environ.get("FAKE_CLAUDE_WORKFLOW"):
+        final_text += f"\nWORKFLOW: {os.environ['FAKE_CLAUDE_WORKFLOW']}"
 emit(
     {
         "type": "result",
         "subtype": "success",
         "is_error": False,
-        "result": "Fixed add(); tests pass.",
+        "result": final_text,
         "total_cost_usd": 0.01,
         "usage": {"input_tokens": 100, "output_tokens": 20},
         "session_id": session,
     }
 )
+if live:
+    for line in sys.stdin:  # messages a person sent while it worked, each one more turn
+        try:
+            text = json.loads(line)["message"]["content"][0]["text"]
+        except (ValueError, KeyError, IndexError):
+            continue
+        emit(
+            {
+                "type": "user",
+                "isReplay": True,
+                "message": {"content": [{"type": "text", "text": text}]},
+            }
+        )
+        emit(
+            {
+                "type": "result",
+                "subtype": "success",
+                "is_error": False,
+                "result": f"Got it: {text}",
+                "session_id": session,
+            }
+        )

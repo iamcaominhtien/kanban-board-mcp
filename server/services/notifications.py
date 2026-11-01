@@ -75,6 +75,12 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
     "merge_conflict": ("A merge conflict", True, True, False),
     "arbitration": ("Two AIs could not agree", True, True, False),
     "window_urgent": ("Urgent work waits for a usage window", True, True, True),
+    "workflow_step": (
+        "A workflow waits for you (the design to approve)",
+        True,
+        True,
+        False,
+    ),
     # For information: never interrupts.
     "ai_finished": ("An AI finished work", False, False, False),
     "schedule": ("A scheduled run finished or was skipped", False, False, False),
@@ -1118,6 +1124,12 @@ async def _why_closed_by_kind(session: AsyncSession, r: Notification) -> _Why:
         return await _why_window_closed(session, r.target_id)
     if r.kind in ("merge_conflict", "arbitration"):
         return await _why_flag_closed(session, r)
+    if r.kind == "workflow_step" and r.target_id:
+        from models import AiTicketStep
+
+        step = await session.get(AiTicketStep, r.target_id)
+        if step is None or step.state != "waiting":
+            return "{who} decided it.", None, False
     if r.target_kind == "approval" and r.target_id:
         return await _why_approval_closed(session, r.target_id)
     if r.target_kind == "account" and r.target_id:
@@ -1963,6 +1975,12 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
             {"id": "arbitration:dev", "label": "Side with Dev"},
             {"id": "arbitration:split", "label": "Split the ticket"},
             {"id": "open_ticket", "label": "Read the arbitration"},
+        ]
+    if k == "workflow_step":
+        return [
+            {"id": "workflow:approve", "label": "Approve"},
+            {"id": "workflow:send_back", "label": "Send back"},
+            {"id": "open_ticket", "label": "Open ticket"},
         ]
     if k == "window_urgent":
         return [

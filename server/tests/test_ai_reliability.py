@@ -436,3 +436,28 @@ async def test_project_ops_settings_merge_over_defaults(env):
     assert out["worktrees"]["on"] is True
     assert out["worktrees"]["base_port"] == 5180
     assert "nonsense" not in out
+
+
+async def test_a_live_run_reads_a_message_at_its_next_turn(env, monkeypatch, tmp_path):
+    c = env["c"]
+    gate = tmp_path / "gate"
+    monkeypatch.setenv("FAKE_CLAUDE_GATE", str(gate))
+    pid, _ = await _project(c)
+    await c.patch(f"/projects/{pid}/ai/ops", json={"live_messages": True})
+    m = await _runner(c, pid, env["repo"])
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "wait_question")
+    tid = await _ticket(c, pid)
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
+    )
+    run = await _wait(c, tid, ("running",))
+    r = await c.post(f"/ai/runs/{run['id']}/tell", json={"text": "Use the cursor."})
+    assert r.json()["delivered"] == "input"
+    gate.write_text("go")
+    done = await _wait(c, tid, ("finished",))
+    assert "Got it: Use the cursor." in (done["summary"] or "")
+    body = (await c.get(f"/ai/runs/{run['id']}/transcript")).json()
+    assert any(
+        e["type"] == "message" and "Use the cursor." in (e.get("text") or "")
+        for e in body["entries"]
+    )

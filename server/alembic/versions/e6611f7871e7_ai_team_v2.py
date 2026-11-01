@@ -68,6 +68,8 @@ def upgrade() -> None:
             sa.Column("retries", sa.String(), nullable=False, server_default="[]")
         )
         batch.add_column(sa.Column("account_id", sa.String(), nullable=True))
+        batch.add_column(sa.Column("model_override", sa.String(), nullable=True))
+        batch.add_column(sa.Column("effort_override", sa.String(), nullable=True))
 
     op.create_table(
         "ai_account_state",
@@ -206,6 +208,72 @@ def upgrade() -> None:
         sa.Column("created_at", sa.String(), nullable=False),
     )
     op.create_index("ix_ai_repo_scan_project_id", "ai_repo_scan", ["project_id"])
+    op.create_table(
+        "ai_workflow_template",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("key", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column("body", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("history", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("created_at", sa.String(), nullable=False),
+        sa.Column("updated_at", sa.String(), nullable=False),
+        sa.Column("updated_by", sa.String(), nullable=True),
+    )
+    op.create_index(
+        "ix_ai_workflow_template_project_id", "ai_workflow_template", ["project_id"]
+    )
+    op.create_index("ix_ai_workflow_template_key", "ai_workflow_template", ["key"])
+    op.create_table(
+        "ai_ticket_workflow",
+        sa.Column("ticket_id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("template_key", sa.String(), nullable=False),
+        sa.Column("template_name", sa.String(), nullable=False),
+        sa.Column("template_version", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column("steps", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("state", sa.String(), nullable=False, server_default="active"),
+        sa.Column("stop_reason", sa.String(), nullable=True),
+        sa.Column("stop_detail", sa.String(), nullable=True),
+        sa.Column("review_depth", sa.String(), nullable=True),
+        sa.Column("depth_by", sa.String(), nullable=True),
+        sa.Column("depth_note", sa.String(), nullable=True),
+        sa.Column("rounds", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("objections", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("rulings", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("arbitration_run_id", sa.String(), nullable=True),
+        sa.Column("attached_by", sa.String(), nullable=True),
+        sa.Column("created_at", sa.String(), nullable=False),
+        sa.Column("updated_at", sa.String(), nullable=False),
+    )
+    op.create_index(
+        "ix_ai_ticket_workflow_project_id", "ai_ticket_workflow", ["project_id"]
+    )
+    op.create_index("ix_ai_ticket_workflow_state", "ai_ticket_workflow", ["state"])
+    op.create_table(
+        "ai_ticket_step",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("ticket_id", sa.String(), nullable=False),
+        sa.Column("seq", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("idx", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("key", sa.String(), nullable=False),
+        sa.Column("label", sa.String(), nullable=False),
+        sa.Column("kind", sa.String(), nullable=False, server_default="ai"),
+        sa.Column("role", sa.String(), nullable=True),
+        sa.Column("state", sa.String(), nullable=False, server_default="pending"),
+        sa.Column("attempt", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column("member_id", sa.String(), nullable=True),
+        sa.Column("run_id", sa.String(), nullable=True),
+        sa.Column("note_in", sa.String(), nullable=True),
+        sa.Column("note", sa.String(), nullable=True),
+        sa.Column("outcome", sa.String(), nullable=True),
+        sa.Column("result", sa.String(), nullable=True),
+        sa.Column("started_at", sa.String(), nullable=True),
+        sa.Column("ended_at", sa.String(), nullable=True),
+    )
+    for column in ("ticket_id", "state", "run_id"):
+        op.create_index(f"ix_ai_ticket_step_{column}", "ai_ticket_step", [column])
     # NEXT-UPGRADE
 
     bind = op.get_bind()
@@ -218,6 +286,17 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # NEXT-DOWNGRADE
+    for column in ("ticket_id", "state", "run_id"):
+        op.drop_index(f"ix_ai_ticket_step_{column}", table_name="ai_ticket_step")
+    op.drop_table("ai_ticket_step")
+    op.drop_index("ix_ai_ticket_workflow_state", table_name="ai_ticket_workflow")
+    op.drop_index("ix_ai_ticket_workflow_project_id", table_name="ai_ticket_workflow")
+    op.drop_table("ai_ticket_workflow")
+    op.drop_index("ix_ai_workflow_template_key", table_name="ai_workflow_template")
+    op.drop_index(
+        "ix_ai_workflow_template_project_id", table_name="ai_workflow_template"
+    )
+    op.drop_table("ai_workflow_template")
     op.drop_index("ix_ai_repo_scan_project_id", table_name="ai_repo_scan")
     op.drop_table("ai_repo_scan")
     op.drop_index("ix_ai_role_pack_key", table_name="ai_role_pack")
@@ -240,7 +319,14 @@ def downgrade() -> None:
         batch.drop_column("ops")
     op.drop_table("ai_account_state")
     with op.batch_alter_table("ai_run") as batch:
-        for column in ("account_id", "retries", "retry_at", "diagnosis"):
+        for column in (
+            "effort_override",
+            "model_override",
+            "account_id",
+            "retries",
+            "retry_at",
+            "diagnosis",
+        ):
             batch.drop_column(column)
     bind = op.get_bind()
     if bind.dialect.name == "sqlite":

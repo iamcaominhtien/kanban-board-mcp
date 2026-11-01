@@ -9,7 +9,14 @@ from sqlmodel import col, select
 
 from models import AiTicketFlag
 
-KINDS = ("merge_conflict", "arbitration", "no_progress", "board_fault", "quota_cap")
+KINDS = (
+    "merge_conflict",
+    "arbitration",
+    "no_progress",
+    "board_fault",
+    "quota_cap",
+    "no_member",
+)
 
 
 def _now() -> str:

@@ -386,8 +386,11 @@ async def create_run(
     replaces_comment_id: str | None = None,
     report_back: dict | None = None,
     allow_self_hold: bool = False,
+    model_override: str | None = None,
+    effort_override: str | None = None,
 ) -> AiRun:
-    """Queue a run; the scheduler starts it when it can.
+    """Queue a run; the scheduler starts it when it can. `model_override`/`effort_override`: a workflow step's own
+    model and effort for this run (review depth, a second attempt), over the member's.
 
     `allow_self_hold` lets a run queue behind another run of the same member on the ticket (a report-back to a PM
     that is still working on it): it starts when that run ends.
@@ -493,7 +496,9 @@ async def create_run(
         chain=json.dumps(chain or []),
         session_id=resume_session,
         metered=profile.connection == "api_key",
-        model=profile.model,
+        model=model_override or profile.model,
+        model_override=model_override,
+        effort_override=effort_override,
         behind_run_id=behind,
         queue_after_current=queue_after_current,
         limit_min=limit_min,
@@ -2221,6 +2226,7 @@ async def _execute_cli_held(
             )
         if fresh_with_note:
             prompt = f"{prompt}\n\n---\n\n{fresh_with_note}"
+        live = bool(cfg_ops.get("live_messages")) and not (agy or adapter)
         # The member's own plugin folder (per-run configuration) and the plugins installed on the project that it
         # gets (design B: the project default, its role, its own switch)
         plugin_dirs = (
@@ -2373,17 +2379,18 @@ async def _execute_cli_held(
                 path,
                 prompt=prompt,
                 system=system,
-                model=profile.model,
+                model=run.model_override or profile.model,
                 mcp_config=mcp,
                 allowed=allowed,
                 denied=denied,
                 max_turns=None,  # the CLI's own judgement; a person can Stop the run
                 session_id=session_id,
                 resume=resume,
-                effort=config.get("effort"),
+                effort=run.effort_override or config.get("effort"),
                 extra_flags=extra_flags,
                 bypass=bypass,
                 plugin_dirs=plugin_dirs or None,
+                live=live,
             )
         run.session_id = session_id
         session.add(run)
@@ -2439,6 +2446,7 @@ async def _execute_cli_held(
         cwd=workspace if agy else cwd,
         env=env,
         spill=not agy,
+        first_message=prompt if live else None,
     )
     parser = adapter.parser(cwd) if adapter else None
     RT.procs[run_id] = proc
@@ -2554,6 +2562,10 @@ async def _execute_cli_held(
                 )
         if parsed["result"]:
             result = parsed["result"]
+            if proc.live:
+                # a turn ended: with nothing more to say, close the input so the CLI exits (a message sent after this
+                # rides on the next run's board calls instead)
+                proc.end_input()
         if parsed["steps"] or parsed["files"] or parsed["results"] or fields:
             if run_id in RT.cancelled:
                 break
@@ -3295,9 +3307,10 @@ async def _finish(run_id: str, final_text: str) -> None:
         },
     )
     moved = False
-    # A scheduled run moves to Review only when its "done when" checks pass (services/ai/schedules.py)
+    # A scheduled run moves to Review only when its "done when" checks pass (services/ai/schedules.py); a workflow step
+    # never does: the workflow moves the ticket when it reaches its last step (services/ai/workflow.py)
     if (
-        trigger != "schedule"
+        trigger not in ("schedule", "workflow", "arbitration")
         and profile
         and ceiling_rank(profile.ceiling) >= status_rank("review")
     ):
@@ -3555,9 +3568,37 @@ async def _end(
         async with database.async_session() as session:
             if not await active_runs(session, member_id=run.member_id):
                 await svc_members.finalize_removal(session, run.member_id)
+    if run.mode == "work" and run.trigger in (
+        "workflow",
+        "arbitration",
+        "retry",
+        "handoff",
+    ):
+        # the ticket's workflow moves on: next step, a send-back, or a stop (services/ai/workflow.py)
+        _after_workflow_run(run.id, arbitration=run.trigger == "arbitration")
     RT.wake.set()
     await _publish(force=True)
     return run
+
+
+_WORKFLOW_TASKS: set[asyncio.Task] = set()
+
+
+def _after_workflow_run(run_id: str, *, arbitration: bool) -> None:
+    from . import workflow
+
+    async def go() -> None:
+        try:
+            if arbitration:
+                await workflow.on_arbitration_ended(run_id)
+            else:
+                await workflow.on_run_ended(run_id)
+        except Exception:  # noqa: BLE001 - a workflow that fails to move must never break the run's end
+            logger.exception("The workflow could not move after run %s", run_id)
+
+    task = asyncio.get_running_loop().create_task(go())
+    _WORKFLOW_TASKS.add(task)
+    task.add_done_callback(_WORKFLOW_TASKS.discard)
 
 
 _LOG_ROLES = (
