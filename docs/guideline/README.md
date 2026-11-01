@@ -40,7 +40,7 @@ python3 build.py --facts            # print the facts read from the code and che
 
 **Facts from code.** `guide/facts.py` reads values from the code (the number and names of MCP tools, AI defaults, ticket statuses, types and priorities, settings pages, the documented environment variables). A chapter uses `{fact:name}`, so the text follows the code; `python3 build.py --facts` lists every fact with its source and fails when a documented variable no longer exists in the code. A statement that cannot be read from the code and has not been checked gets a `{confirm: …}` marker; a chapter with `status: to-confirm` (today the privacy chapter) is not released.
 
-**Publishing.** The release workflow builds the guide and attaches the full PDF and the stand-alone PDFs to the GitHub release (a problem in that job never blocks the installers). The PDF is not committed.
+**Publishing.** The release workflow builds the guide and attaches two files to the GitHub release: the full PDF (`kanban-board-guide-<version>.pdf`) and the stand-alone PDFs packed into one zip (`kanban-board-guide-sheets-<version>.zip`). A problem in that job never blocks the installers. The PDF is not committed.
 
 ### Facts to re-check in the guide
 
