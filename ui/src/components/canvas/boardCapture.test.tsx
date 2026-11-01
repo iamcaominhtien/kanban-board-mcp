@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 import type { CanvasBoard } from '../../api/canvases';
-import { animationInfo, cleanSvg, fileStem, liveAnimation } from './boardCapture';
+import { animationInfo, cleanSvg, fileStem, frameSource, liveAnimation } from './boardCapture';
 import { BoardMenu } from './EditorParts';
 
 afterEach(cleanup);
@@ -110,4 +110,18 @@ test('no GIF for a page known not to animate, and no SVG or GIF for a picture', 
   expect(screen.getByTestId('canvas-download-png')).toBeTruthy();
   expect(screen.queryByTestId('canvas-download-svg')).toBeNull();
   expect(screen.queryByTestId('canvas-download-gif')).toBeNull();
+});
+
+test("a page is loaded from the app's own address, https, or this computer; other plain http is refused", () => {
+  const here = window.location.origin;
+  expect(frameSource(`${here}/canvases/cv_1/boards/b_1/r/2/index.html?x=1`)).toBe(
+    '/canvases/cv_1/boards/b_1/r/2/index.html?x=1',
+  );
+  expect(frameSource('https://board.example.com/canvases/cv_1/index.html')).toBe(
+    'https://board.example.com/canvases/cv_1/index.html',
+  );
+  expect(frameSource('http://127.0.0.1:8000/canvases/cv_1/index.html')).toBe(
+    'http://127.0.0.1:8000/canvases/cv_1/index.html',
+  );
+  expect(() => frameSource('http://board.example.com/canvases/cv_1/index.html')).toThrow(/secure address/);
 });

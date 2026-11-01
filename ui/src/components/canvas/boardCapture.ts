@@ -34,6 +34,22 @@ const loadImage = (src: string) =>
     img.src = src;
   });
 
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
+
+/**
+ * The address to load a board's page from: a path when it is on the address the app came from, an https address, or an
+ * address on this computer (the desktop app talks to its own server over plain http on the loopback). Any other plain
+ * http address is refused, so a page is never fetched over an unencrypted connection from another machine.
+ * @param url - The page's address.
+ */
+export function frameSource(url: string): string {
+  const target = new URL(url, window.location.href);
+  if (target.origin === window.location.origin) return `${target.pathname}${target.search}`;
+  if (target.protocol === 'https:') return target.href;
+  if (LOOPBACK.has(target.hostname)) return target.href;
+  throw new CaptureError('The page is not on a secure address, so it was not loaded.');
+}
+
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
@@ -62,7 +78,7 @@ async function openPage(canvasId: string, b: CanvasBoard): Promise<OpenPage> {
     frame.addEventListener('load', () => resolve());
     frame.addEventListener('error', () => reject(new CaptureError('The page could not be loaded.')));
   });
-  frame.src = boardFileUrl(canvasId, b.id, b.content.rev, b.content.entry);
+  frame.src = frameSource(boardFileUrl(canvasId, b.id, b.content.rev, b.content.entry));
   document.body.appendChild(frame);
   const close = () => frame.remove();
   try {
