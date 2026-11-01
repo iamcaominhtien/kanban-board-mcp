@@ -10,6 +10,7 @@ import {
   orderedBoards,
   readingOrder,
   resizeRect,
+  widthFor,
   snapMove,
   stepBoard,
   toPlane,
@@ -173,4 +174,11 @@ test('an arrow runs from the edge of one item to the edge of the other', () => {
   expect(arrowLine(a, b)).toEqual({ x1: 100, y1: 50, x2: 300, y2: 50 });
   const c = { x: 0, y: 300, w: 100, h: 100 };
   expect(arrowLine(a, c)).toEqual({ x1: 50, y1: 100, x2: 50, y2: 300 });
+});
+
+test('the large view opens a frame at the width it was made for', () => {
+  expect(widthFor(390)).toBe('phone');
+  expect(widthFor(820)).toBe('tablet');
+  expect(widthFor(1280)).toBe('desktop');
+  expect(widthFor(1920)).toBe('desktop');
 });

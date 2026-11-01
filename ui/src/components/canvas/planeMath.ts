@@ -273,3 +273,11 @@ export function arrowLine(a: Rect, b: Rect): { x1: number; y1: number; x2: numbe
   const q = edgePoint(b, ca);
   return { x1: p.x, y1: p.y, x2: q.x, y2: q.y };
 }
+
+/**
+ * The large view's width switch position that matches a frame's own width, so a phone frame opens as a phone.
+ * @param w - The frame's width in pixels.
+ */
+export function widthFor(w: number): 'desktop' | 'tablet' | 'phone' {
+  return w <= 500 ? 'phone' : w <= 1000 ? 'tablet' : 'desktop';
+}

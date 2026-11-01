@@ -14,6 +14,7 @@ import {
 } from '../../api/canvases';
 import { formatFileSize } from '../../utils/fileIcons';
 import { CanvasIcon } from './CanvasIcon';
+import { widthFor } from './planeMath';
 import { dataUrl, previewDocument } from './sourcePreview';
 import styles from './Canvas.module.css';
 
@@ -58,7 +59,7 @@ export function SourceEditor({
   const [active, setActive] = useState('index.html');
   const [contentRev, setContentRev] = useState<number | null>(null);
   const [assets, setAssets] = useState<Record<string, string>>({});
-  const [width, setWidth] = useState<Width>('desktop');
+  const [width, setWidth] = useState<Width>(() => widthFor(board.w));
   const [error, setError] = useState<CanvasFailure | null>(null);
   const [idleWarn, setIdleWarn] = useState(false);
   const [draftKept, setDraftKept] = useState(false);

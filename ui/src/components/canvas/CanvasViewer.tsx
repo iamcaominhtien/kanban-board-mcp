@@ -6,7 +6,7 @@ import { BoardFrame, boardThumbUrl } from './BoardFrame';
 import { CanvasIcon } from './CanvasIcon';
 import { CommentsPanel } from './CommentsPanel';
 import { NOTE_BG } from './CanvasStatic';
-import { orderedBoards, stepBoard } from './planeMath';
+import { orderedBoards, stepBoard, widthFor } from './planeMath';
 import { useSize } from './useWidth';
 import styles from './Canvas.module.css';
 
@@ -39,7 +39,7 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
   const c = q.data;
   const [page, setPage] = useState<string | undefined>(request.pageId);
   const [current, setCurrent] = useState<string | null>(request.boardId ?? null);
-  const [width, setWidth] = useState<Width>('desktop');
+  const [chosen, setWidth] = useState<Width | null>(null);
   const [grid, setGrid] = useState(false);
   const [side, setSide] = useState(!!request.comments);
   const [notes, setNotes] = useState(false);
@@ -54,6 +54,8 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
   const list = useMemo(() => (c && pageId ? orderedBoards(c.doc, pageId) : []), [c, pageId]);
   const board: CanvasBoard | undefined = list.find((b) => b.id === current) ?? list[0];
   const index = board ? list.findIndex((b) => b.id === board.id) : -1;
+  // until a width is picked, a page is drawn at the width its frame was made for (a phone frame as a phone)
+  const width: Width = chosen ?? (board ? widthFor(board.w) : 'desktop');
   const threads = useCanvasThreads(request.id, !!c && (side || (present && notes)));
 
   const go = useCallback(
