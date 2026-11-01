@@ -711,3 +711,311 @@ async def test_a_cursor_above_the_head_is_too_old(env):
     await centre.emit("ai_finished", project_id=pid, recipients=["user"], title="a")
     feed = (await c.get("/notifications/feed", params={"since": 999})).json()
     assert feed["cursor_too_old"] is True and feed["head"] >= 1
+
+
+# --------------------------------------------------------------------------- the rest of the writers and readers
+
+
+async def test_a_scheduled_slot_is_written_by_the_loop_and_points_at_its_run(env):
+    from models import AiSchedule, AiScheduleRun
+
+    c, pid, m, tid = await _setup(env)
+    rid = await _run(env, pid, m["id"], tid, state="failed", number=1)
+    async with env["maker"]() as s:
+        sch = AiSchedule(project_id=pid, ticket_id=tid, member_id=m["id"])
+        s.add(sch)
+        await s.flush()
+        srun = AiScheduleRun(
+            schedule_id=sch.id,
+            project_id=pid,
+            ticket_id=tid,
+            slot_at="2026-11-01T02:00:00+00:00",
+            run_ids=json.dumps([rid]),
+        )
+        s.add(srun)
+        await s.commit()
+        srun_id = srun.id
+    centre.enqueue(
+        "run_failed",
+        project_id=pid,
+        names=["user"],
+        title=f"{tid} scheduled run failed: checks failed",
+        target_kind="schedule_run",
+        target_id=srun_id,
+        ticket_id=tid,
+    )
+    centre.enqueue(
+        "schedule",
+        project_id=pid,
+        names=["Hoa Mai"],
+        title=f"{tid} scheduled run passed",
+        ticket_id=tid,
+    )
+    assert await centre.flush_pending() == 2
+    [row] = (await _panel(c, "needs"))["items"]
+    assert row["target_kind"] == "run" and row["target_id"] == rid
+    assert row["data"]["srun_id"] == srun_id
+    [upd] = (await _panel(c, "updates", {"X-Actor": "Hoa Mai"}))["items"]
+    assert upd["kind"] == "schedule"
+
+
+async def test_comment_events_make_mentions_and_replies(env):
+    c, pid, m, tid = await _setup(env)
+    base = dict(
+        project_id=pid,
+        page_id=None,
+        thread_id="th1",
+        comment_id="cm1",
+        actor="Tuan Vo",
+        page_title="Login redesign",
+        snippet="Agreed, let us keep the error in the field.",
+    )
+    await centre.on_comment_event(
+        {
+            **base,
+            "kind": "reply",
+            "mentioned": json.dumps(["Hoa Mai"]),
+            "recipients": json.dumps(["Hoa Mai", "user"]),
+        }
+    )
+    await centre.on_comment_event(
+        {
+            **base,
+            "kind": "resolved",
+            "mentioned": "[]",
+            "recipients": json.dumps(["user"]),
+        }
+    )
+    await centre.on_comment_event(
+        {
+            **base,
+            "thread_id": None,
+            "kind": "access_request",
+            "mentioned": "[]",
+            "recipients": json.dumps(["user"]),
+        }
+    )
+    [hers] = (await _panel(c, "needs", {"X-Actor": "Hoa Mai"}))["items"]
+    assert hers["kind"] == "mention" and hers["title"] == "Tuan Vo mentioned you"
+    mine = (await _panel(c, "updates"))["items"]
+    assert sorted(r["kind"] for r in mine) == ["access_request", "comment"]
+    comment = next(r for r in mine if r["kind"] == "comment")
+    assert comment["count"] == 2  # the reply and the resolve, one row
+    # a person's own event does not tell them
+    await centre.on_comment_event(
+        {
+            **base,
+            "actor": "Hoa Mai",
+            "kind": "reply",
+            "mentioned": "[]",
+            "recipients": json.dumps(["Hoa Mai"]),
+        }
+    )
+    assert len((await _panel(c, "updates", {"X-Actor": "Hoa Mai"}))["items"]) == 0
+
+
+async def test_a_blocked_move_and_an_archived_run(env):
+    c, pid, m, tid = await _setup(env)
+    rid = await _run(env, pid, m["id"], tid, state="running", number=1)
+    await centre.on_blocked_move(rid, "done")
+    [row] = (await _panel(c, "needs"))["items"]
+    assert row["kind"] == "blocked" and row["title"].endswith(f"move {tid} to Done")
+    assert [a["id"] for a in row["actions"]] == ["open_ticket", "change_permission"]
+    assert row["dismissable"] is True
+    gone = await _run(
+        env, pid, m["id"], tid, state="cancelled", number=2, stop_code="archive"
+    )
+    await _set(env, AiRun, gone, ended_by="Hoa Mai")
+    await centre.on_run_ended(gone)
+    [upd] = (await _panel(c, "updates"))["items"]
+    assert (
+        upd["kind"] == "run_cancelled"
+        and upd["title"] == f"{tid} was archived by Hoa Mai"
+    )
+    # nothing for a run that does not exist
+    await centre.on_run_ended("run_missing")
+    await centre.on_blocked_move("run_missing", "done")
+    await centre.on_run_question("run_missing")
+
+
+async def test_filters_search_opened_and_clear_read(env):
+    c, pid, m, tid = await _setup(env)
+    await centre.emit(
+        "ai_finished",
+        project_id=pid,
+        recipients=["user"],
+        title=f"Dev finished {tid}",
+        ticket_id=tid,
+        member_id=m["id"],
+    )
+    await centre.emit(
+        "schedule", project_id=pid, recipients=["user"], title="Nightly check"
+    )
+    await centre.emit(
+        "comment", project_id="other", recipients=["user"], title="New reply"
+    )
+    page = lambda **p: c.get("/notifications", params={"view": "page", **p})  # noqa: E731
+    assert [r["title"] for r in (await page(q="nightly")).json()["items"]] == [
+        "Nightly check"
+    ]
+    assert [r["kind"] for r in (await page(family="ai")).json()["items"]] == [
+        "ai_finished"
+    ]
+    assert [r["kind"] for r in (await page(family="schedules")).json()["items"]] == [
+        "schedule"
+    ]
+    assert {r["kind"] for r in (await page(family="people")).json()["items"]} == {
+        "schedule",
+        "comment",
+    }
+    assert len((await page(project_id=pid)).json()["items"]) == 2
+    assert [r["kind"] for r in (await page(kind="comment")).json()["items"]] == [
+        "comment"
+    ]
+    assert len((await page(filter="unread")).json()["items"]) == 3
+    assert (await c.get("/notifications", params={"filter": "nope"})).status_code == 422
+    # opening the ticket reads its row (not done)
+    r = await c.post(
+        "/notifications/opened", json={"target_kind": "ticket", "target_id": tid}
+    )
+    assert r.json()["read"] == 1
+    assert (await c.get("/notifications/counts")).json()["unread"] == 2
+    await c.post("/notifications/read", json={"all": True, "tab": "updates"})
+    assert (await c.post("/notifications/clear-read")).json()["cleared"] == 3
+    assert (await _panel(c, "updates"))["items"] == []
+    # put one back
+    cleared = (await page(filter="cleared")).json()["items"]
+    r = await c.post(f"/notifications/{cleared[0]['id']}/clear", json={"on": False})
+    assert r.json()["cleared"] is False
+
+
+async def test_errors_of_the_api(env):
+    c, pid, m, tid = await _setup(env)
+    assert (await c.post("/notifications/nt_x/dismiss")).status_code == 404
+    assert (
+        await c.post("/notifications/nt_x/snooze", json={"until": None})
+    ).status_code == 404
+    assert (await c.post("/notifications/nt_x/clear")).status_code == 404
+    assert (await c.delete("/notifications/follow/nope")).status_code == 404
+    bad = await c.put(
+        "/notifications/follow",
+        json={"scope": "planet", "scope_id": "x", "level": "mute"},
+    )
+    assert bad.status_code == 422
+    bad = await c.put(
+        "/notifications/follow",
+        json={"scope": "kind", "scope_id": "nope", "level": "mute"},
+    )
+    assert bad.status_code == 422
+    for body in (
+        {"events": [{"kind": "nope"}]},
+        {"retention_days": 0},
+    ):
+        assert (await c.patch("/notifications/settings", json=body)).status_code == 422
+    await centre.emit("ai_finished", project_id=pid, recipients=["user"], title="u")
+    [row] = (await _panel(c, "updates"))["items"]
+    assert (await c.post(f"/notifications/{row['id']}/dismiss")).status_code == 409
+    past = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+    r = await c.post(f"/notifications/{row['id']}/snooze", json={"until": past})
+    assert r.status_code == 422
+
+
+async def test_settings_parts_and_mutes_of_a_project_and_a_kind(env):
+    c, pid, m, tid = await _setup(env)
+    r = await c.patch(
+        "/notifications/settings",
+        json={
+            "quiet": {"on": True, "start": "00:00", "end": "23:59"},
+            "dnd": False,
+            "sound": True,
+            "day_card": {"on": False, "time": "17:30", "days": [4, 0]},
+            "events": [{"kind": "ai_finished", "desktop": True}],
+        },
+    )
+    s = r.json()
+    assert s["quiet"] == {"on": True, "start": "00:00", "end": "23:59"}
+    assert s["dnd"] is False and s["sound"] is True
+    assert s["day_card"] == {"on": False, "time": "17:30", "days": [0, 4]}
+    assert next(e for e in s["events"] if e["kind"] == "ai_finished")["desktop"]
+    feed = (await c.get("/notifications/feed", params={"since": 0})).json()
+    assert feed["quiet"] is True and feed["sound"] is True
+    # a kind muted in one project, then the whole project
+    await c.put(
+        "/notifications/follow",
+        json={
+            "scope": "kind",
+            "scope_id": "schedule",
+            "level": "mute",
+            "project_id": pid,
+        },
+    )
+    await c.put(
+        "/notifications/follow",
+        json={"scope": "project", "scope_id": pid, "level": "mute", "minutes": 60},
+    )
+    labels = sorted(
+        x["label"] for x in (await c.get("/notifications/settings")).json()["muted"]
+    )
+    assert labels == [
+        "A scheduled run finished or was skipped, in Kanban Board",
+        "Kanban Board",
+    ]
+    await centre.emit("schedule", project_id=pid, recipients=["user"], title="s")
+    await centre.emit(
+        "blocked",
+        project_id=pid,
+        recipients=["user"],
+        title="b",
+        target_kind="x",
+        target_id="1",
+    )
+    assert (await _panel(c, "updates"))["items"] == []
+    assert len((await _panel(c, "needs"))["items"]) == 1
+    # forgetting a follow
+    r = await c.put(
+        "/notifications/follow",
+        json={"scope": "project", "scope_id": pid, "level": None},
+    )
+    assert r.json()["level"] is None
+
+
+async def test_the_raw_log_by_project_and_resolve_target(env):
+    c, pid, m, tid = await _setup(env)
+    await centre.emit(
+        "question",
+        project_id=pid,
+        recipients=["user", "hoa mai"],
+        title="?",
+        target_kind="approval",
+        target_id="apr_x",
+    )
+    await centre.emit("ai_finished", project_id="other", recipients=["user"], title="o")
+    log = (await c.get("/notifications/log", params={"project_id": pid})).json()
+    assert [e["kind"] for e in log["events"]] == ["question"]
+    assert (
+        await centre.resolve_target(
+            "approval", "apr_x", "{who} approved it", by="Hoa Mai"
+        )
+        == 2
+    )
+    [row] = (await _panel(c, "needs"))["items"]
+    assert row["done_text"] == "Hoa Mai approved it"
+    day = (await c.get("/notifications/day-card", params={"preview": True})).json()
+    assert day["card"] is None and "finished" in day["preview"]
+
+
+async def test_the_loop_starts_reconciles_and_stops(env):
+    c, pid, m, tid = await _setup(env)
+    import asyncio
+
+    centre.start()
+    try:
+        centre.enqueue("ai_finished", project_id=pid, names=["user"], title="loop")
+        for _ in range(40):
+            await asyncio.sleep(0.1)
+            if (await _panel(c, "updates"))["items"]:
+                break
+        assert [r["title"] for r in (await _panel(c, "updates"))["items"]] == ["loop"]
+    finally:
+        await centre.stop()
+    assert centre._task is None
