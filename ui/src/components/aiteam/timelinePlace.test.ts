@@ -114,12 +114,24 @@ describe('the placer', () => {
     expect(l && l.box.x + l.box.w).toBeLessThanOrEqual(181);
   });
 
-  it('leaves an optional label out rather than cover another label', () => {
+  it('never covers another label: without a free spot it is left out', () => {
     const p = new Placer(500);
     p.place({ key: 'a', text: 'AGT-4 and AGT-5', spots: [right(100, 50)] });
-    expect(p.place({ key: 'b', text: 'AGT-4 and AGT-5', spots: [right(100, 50)], optional: true })).toBeNull();
-    // a label that must stay takes the least bad spot
-    expect(p.place({ key: 'c', text: 'AGT-4 and AGT-5', spots: [right(100, 50), right(105, 56)] })).not.toBeNull();
+    expect(p.place({ key: 'b', text: 'AGT-4 and AGT-5', spots: [right(100, 50), right(105, 56)] })).toBeNull();
+    // an important label may not cover it either, even shortened
+    expect(
+      p.place({ key: 'c', text: 'AGT-4 and AGT-5', spots: [right(100, 50)], shrink: true, crossLines: true }),
+    ).toBeNull();
+  });
+
+  it('cuts the words short only when the shorter words then fit a free spot', () => {
+    const p = new Placer(500);
+    p.addBox('bar', { x: 160, y: 30, w: 18, h: 40 }, 'mark');
+    const l = p.place({ key: 'a', text: 'report back AGT-3', spots: [right(100, 50)], shrink: true });
+    expect(l?.clipped).toBe(true);
+    expect(l && l.box.x + l.box.w).toBeLessThanOrEqual(160);
+    // too little room even for the short words: left out, never a stub on top of the bar
+    expect(p.place({ key: 'b', text: 'report back AGT-3', spots: [right(150, 50)], shrink: true })).toBeNull();
   });
 
   it('does not let a label run off the diagram', () => {
@@ -146,35 +158,34 @@ describe('the placer', () => {
   it('places a dense minute without any two labels on top of each other', () => {
     // five events a minute apart (11 px), each with a label at the design spot right of its badge
     const p = new Placer(900);
-    const placed = [0, 1, 2, 3, 4].map((i) =>
-      p.place({
+    const placed = [0, 1, 2, 3, 4].flatMap((i) => {
+      const l = p.place({
         key: `a${i}`,
         text: ['PM Mai approved after 2 min', 'report back', 'AGT-4', 'run 4', 'hand-off'][i],
         spots: [right(300, 100 + i * 11), right(300, 113 + i * 11), { x: 280, y: 100 + i * 11, anchor: 'end' }],
         shrink: true,
-      }),
-    );
+      });
+      return l ? [l] : [];
+    });
+    expect(placed.length).toBeGreaterThanOrEqual(3);
     for (let i = 0; i < placed.length; i++)
-      for (let j = i + 1; j < placed.length; j++) expect(overlap(placed[i]!.box, placed[j]!.box)).toBe(0);
+      for (let j = i + 1; j < placed.length; j++) expect(overlap(placed[i].box, placed[j].box)).toBe(0);
   });
 });
 
-describe('a strict label', () => {
-  it('takes only a free spot and otherwise says so', () => {
-    const p = new Placer(500);
-    p.addBox('bar', { x: 90, y: 30, w: 200, h: 40 }, 'mark');
-    expect(p.place({ key: 'a', text: 'approved', spots: [right(100, 50)], strict: true })).toBeNull();
-    expect(p.place({ key: 'a', text: 'approved', spots: [right(100, 50), right(100, 90)], strict: true })?.y).toBe(90);
-  });
-});
-
-describe('a clean label (a ticket key)', () => {
-  it('never covers a line: it takes a free spot or is left out', () => {
+describe('lines', () => {
+  it('a label crosses another arrow only when it is important and nothing else is free', () => {
     const p = new Placer(500);
     p.addSeg('arrow', { x1: 0, y1: 47, x2: 400, y2: 47 });
-    expect(p.place({ key: 'bar', text: 'AGT-5', spots: [right(100, 50)], clean: true })).toBeNull();
-    expect(p.place({ key: 'bar', text: 'AGT-5', spots: [right(100, 50), right(100, 70)], clean: true })?.y).toBe(70);
-    // a label that may cross a line or two still takes that spot
-    expect(p.place({ key: 'x', text: 'AGT-5', spots: [right(200, 50)] })?.y).toBe(50);
+    p.addSeg('arrow2', { x1: 0, y1: 67, x2: 400, y2: 67 });
+    expect(p.place({ key: 'bar', text: 'AGT-5', spots: [right(100, 50)] })).toBeNull();
+    expect(p.place({ key: 'bar', text: 'AGT-5', spots: [right(100, 50), right(100, 80)] })?.y).toBe(80);
+    // important: when nothing is free it may cross a line (not run along one)
+    p.addSeg('steep', { x1: 250, y1: 0, x2: 252, y2: 300 });
+    expect(p.place({ key: 'y', text: 'approved after 2 min', spots: [right(220, 120)] })).toBeNull();
+    expect(p.place({ key: 'x', text: 'approved after 2 min', spots: [right(220, 120)], crossLines: true })?.y).toBe(
+      120,
+    );
+    expect(p.place({ key: 'z', text: 'approved after 2 min', spots: [right(200, 50)], crossLines: true })).toBeNull();
   });
 });

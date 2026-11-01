@@ -13,10 +13,11 @@
  *    share a line. Time order is kept: an arrow is only ever moved down, at most three steps.
  * 3. A `Placer` places glyph badges and labels one by one, in a fixed priority, against everything already drawn
  *    (bars, waits, nodes, badges, arrow lines and the labels placed before). Each mark has an ordered list of
- *    candidate spots; the first is the design's spot, so sparse data looks exactly as designed. The first spot that
- *    touches nothing wins; otherwise a shorter text is tried; otherwise an optional label is left out (its words stay
- *    in the hover card, the inspector and the Table), and a label that must stay takes the spot that overlaps least.
- *    A ticket key on a run never covers even a line: without a free spot it is left out.
+ *    candidate spots; the first is the design's spot, so sparse data looks exactly as designed. A label never covers
+ *    another label, a bar, a badge or a node, nor an arrow line other than its own (where the design writes it):
+ *    it takes the first free spot, or shorter words only if those then fit a free spot, or else it is left out (its
+ *    words stay in the hover card, the inspector and the Table). Only an important label (a decision, a question,
+ *    a long wait, a return) may, as a last resort, cross another arrow's line.
  *    Marks of your own lifeline that sit closer than a mark is tall are folded into one label first ("×N",
  *    "+N more", see `touchLabels` in timelineDraw.tsx).
  *
@@ -169,8 +170,6 @@ export function staggerArrows(arrows: (Seg & { id: string })[], step = 12, maxSt
 export type Layer = 'label' | 'glyph' | 'mark' | 'line';
 
 const WEIGHT: Record<Layer, number> = { label: 10, glyph: 8, mark: 3, line: 2 };
-/** Covering these is never acceptable for a label that may be left out. */
-const HARD: ReadonlySet<Layer> = new Set(['label', 'glyph']);
 /** About two arrows crossing a label: acceptable before the words are cut short. */
 const LINE_OK = 240;
 
@@ -182,22 +181,21 @@ interface Item {
 }
 
 export interface LabelRequest {
-  /** The mark it belongs to: obstacles with this key (its own arrow, badge or bar) do not count. */
+  /** The mark it belongs to: obstacles with this key (its own badge or bar) do not count. */
   key: string;
   text: string;
   spots: Spot[];
   size?: number;
   weight?: number;
-  /** May be cut short to fit (the full words stay in the hover card). */
+  /** May be cut short, but only to fit a free spot (the full words stay in the hover card). */
   shrink?: boolean;
-  /** May be left out when every spot would cover another label or a badge. */
-  optional?: boolean;
-  /** Other keys it may cover (for example the bar a wait label sits beside). */
+  /** Other keys it may cover (for example its own arrow's line, where the design puts the words). */
   ignore?: string[];
-  /** Only a free spot (or one that just crosses a line) will do: null otherwise, so the caller can try elsewhere. */
-  strict?: boolean;
-  /** Only a spot that touches nothing at all, not even a line: null otherwise (the label is left out). */
-  clean?: boolean;
+  /**
+   * An important label (a decision, a question, a long wait): when no spot is free it may, as a last resort, sit
+   * across an arrow line or two (never on a label, a bar, a badge or a node). Any other label is then left out.
+   */
+  crossLines?: boolean;
 }
 
 export interface PlacedLabel {
@@ -222,15 +220,19 @@ export class Placer {
     this.items.push({ key, layer, box });
   }
 
+  /** Take back everything placed under `key` (a label that has to move). */
+  remove(key: string): void {
+    this.items = this.items.filter((it) => it.key !== key);
+  }
+
   addSeg(key: string, seg: Seg, layer: Layer = 'line'): void {
     this.items.push({ key, layer, seg });
   }
 
   /** The cost of covering `box`: overlap area (or length of line) times how much that layer matters. */
-  cost(box: Box, skip: ReadonlySet<string>): { cost: number; hard: boolean; lines: number } {
+  cost(box: Box, skip: ReadonlySet<string>): { cost: number; lines: number } {
     let cost = 0;
     let lines = 0;
-    let hard = false;
     if (box.x < 0 || box.x + box.w > this.width) cost += 4000;
     for (const it of this.items) {
       if (skip.has(it.key)) continue;
@@ -238,9 +240,8 @@ export class Placer {
       if (c <= 0) continue;
       if (it.seg) lines += c * WEIGHT[it.layer];
       else cost += c * WEIGHT[it.layer];
-      if (HARD.has(it.layer)) hard = true;
     }
-    return { cost: cost + lines, hard, lines };
+    return { cost: cost + lines, lines };
   }
 
   /** Place a round badge of radius `r` (plus `extraRight` px of ×N pill) somewhere along a line, middle first. */
@@ -251,7 +252,7 @@ export class Placer {
     extraRight = 0,
     ts: number[] = [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82],
   ): { x: number; y: number } {
-    const skip = new Set([key]);
+    const skip = new Set([key, `${key}:line`]);
     let best: { x: number; y: number; cost: number } | null = null;
     for (const t of ts) {
       const x = seg.x1 + t * (seg.x2 - seg.x1);
@@ -269,7 +270,11 @@ export class Placer {
     return { x: at.x, y: at.y };
   }
 
-  /** Place a label at its first free spot (or a shorter text, or the least bad spot); null when it is left out. */
+  /**
+   * Place a label at its first free spot: the full words first, then (when it may shrink) shorter words. A label
+   * never covers another label, a bar, a badge or a node; only an important one may, as a last resort, cross a line
+   * or two. Returns null when there is no such spot: the label is left out.
+   */
   place(req: LabelRequest): PlacedLabel | null {
     const size = req.size ?? 10;
     const weight = req.weight ?? 600;
@@ -279,36 +284,38 @@ export class Placer {
       const full = textWidth(req.text, size, weight);
       for (const share of [0.7, 0.5]) {
         const t = clipToWidth(req.text, Math.max(full * share, 30), size, weight);
-        if (t !== texts[texts.length - 1] && t.length > 3) texts.push(t);
+        if (t !== texts[texts.length - 1] && t.length > 5) texts.push(t);
       }
     }
-    let best: (PlacedLabel & { cost: number; hard: boolean }) | null = null;
-    for (const text of texts) {
-      // a spot that touches nothing; else one that only crosses an arrow or two (the halo keeps both readable,
-      // as the design's own labels sit across lines); only then shorter words
-      let crossing: (PlacedLabel & { cost: number; hard: boolean; lines: number }) | null = null;
-      for (const spot of req.spots) {
-        const box = labelBox(text, spot, size, weight);
-        const { cost, hard, lines } = this.cost(box, skip);
-        const cand = { key: req.key, text, ...spot, box, clipped: text !== req.text, cost, hard };
-        if (cost === 0) {
-          this.addBox(req.key, box, 'label');
-          return strip(cand);
+    const tiers: ('free' | 'lines')[] = req.crossLines ? ['free', 'lines'] : ['free'];
+    for (const tier of tiers) {
+      for (const text of texts) {
+        let crossing: (PlacedLabel & { lines: number }) | null = null;
+        for (const spot of req.spots) {
+          const box = labelBox(text, spot, size, weight);
+          const { cost, lines } = this.cost(box, skip);
+          const cand = { key: req.key, text, ...spot, box, clipped: text !== req.text };
+          if (cost === 0) {
+            this.addBox(req.key, box, 'label');
+            return cand;
+          }
+          if (tier === 'lines' && cost === lines && lines <= LINE_OK && (!crossing || lines < crossing.lines))
+            crossing = { ...cand, lines };
         }
-        if (cost === lines && lines <= LINE_OK && (!crossing || lines < crossing.lines)) crossing = { ...cand, lines };
-        if (!best || cost < best.cost) best = cand;
-      }
-      if (crossing && !req.clean) {
-        this.addBox(req.key, crossing.box, 'label');
-        return strip(crossing);
+        if (crossing) {
+          this.addBox(req.key, crossing.box, 'label');
+          return {
+            key: crossing.key,
+            text: crossing.text,
+            x: crossing.x,
+            y: crossing.y,
+            anchor: crossing.anchor,
+            box: crossing.box,
+            clipped: crossing.clipped,
+          };
+        }
       }
     }
-    if (!best || req.strict || req.clean || (req.optional && best.hard)) return null;
-    this.addBox(req.key, best.box, 'label');
-    return strip(best);
+    return null;
   }
-}
-
-function strip(c: PlacedLabel & { cost: number; hard: boolean }): PlacedLabel {
-  return { key: c.key, text: c.text, x: c.x, y: c.y, anchor: c.anchor, box: c.box, clipped: c.clipped };
 }

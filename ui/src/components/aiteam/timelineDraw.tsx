@@ -701,14 +701,29 @@ export function TimelineBody(props: DrawProps) {
   }
 
   // ---- what sits where: obstacles first, then badges, then labels in priority -----------------------------------
+  // keys of what is on the diagram: an arrow and the run it starts share an id in the data, so each kind has its own
+  const K = {
+    bar: (id: string) => `bar:${id}`,
+    wait: (id: string) => `wait:${id}`,
+    touch: (id: string) => `touch:${id}`,
+    arrow: (id: string) => `arrow:${id}`,
+    line: (id: string) => `arrow:${id}:line`,
+    words: (id: string) => `arrow:${id}:words`,
+  };
+  /** The design writes an arrow's words across its own line when the arrow slopes away; a flat one would hide them. */
+  const ownLine = (g: ArrowGeo) => (isFlat(g) ? [] : [K.line(g.a.id)]);
   const placer = new Placer(W);
   for (const g of bars) {
-    placer.addBox(g.b.id, { x: g.x, y: Math.min(g.qy, g.top), w: g.w, h: g.bottom - Math.min(g.qy, g.top) }, 'mark');
+    placer.addBox(
+      K.bar(g.b.id),
+      { x: g.x, y: Math.min(g.qy, g.top), w: g.w, h: g.bottom - Math.min(g.qy, g.top) },
+      'mark',
+    );
   }
-  for (const v of waits) placer.addBox(v.w.id, { x: v.x, y: v.y0, w: v.bw, h: v.y1 - v.y0 }, 'mark');
+  for (const v of waits) placer.addBox(K.wait(v.w.id), { x: v.x, y: v.y0, w: v.bw, h: v.y1 - v.y0 }, 'mark');
   for (const n of data.docs) {
     const x = cx('docs');
-    if (x >= 0) placer.addBox(n.id, { x: x - 11, y: yy(n.at) - 11, w: 22, h: 22 }, 'mark');
+    if (x >= 0) placer.addBox(`doc:${n.id}`, { x: x - 11, y: yy(n.at) - 11, w: 22, h: 22 }, 'mark');
   }
   const touches = hidden.has('touches') || cx('you') < 0 ? [] : touchLabels(data.touches, (at) => yy(at));
   // marks closer than a diamond is tall are drawn as one (the last of them, which carries the "×N" label)
@@ -721,17 +736,18 @@ export function TimelineBody(props: DrawProps) {
     }
   }
   for (const { t } of touches)
-    if (drawn.has(t.id)) placer.addBox(t.id, { x: cx('you') - 10, y: yy(t.at) - 10, w: 20, h: 20 }, 'mark');
-  for (const l of loops) placer.addBox(l.key, { x: l.x, y: l.y - 24, w: loopPillW(l.n), h: 18 }, 'label');
+    if (drawn.has(t.id)) placer.addBox(K.touch(t.id), { x: cx('you') - 10, y: yy(t.at) - 10, w: 20, h: 20 }, 'mark');
+  for (const l of loops) placer.addBox(`loop:${l.key}`, { x: l.x, y: l.y - 24, w: loopPillW(l.n), h: 18 }, 'label');
   for (const b of axis.breaks) {
     const bw = breakPillW(b.label, W);
     placer.addBox(`br-${b.from}`, { x: (W - bw) / 2, y: TOP + b.y + 9, w: bw, h: 22 }, 'label');
   }
   for (const g of arrows) {
-    placer.addSeg(g.a.id, { x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 });
+    placer.addSeg(K.line(g.a.id), { x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 });
     // the "?" on your lifeline and the purple A on Autopilot's: their own label sits beside them, never on them
-    if (g.askOpen) placer.addBox(`${g.a.id}:?`, { x: cx('you') - 9, y: g.y2 - 9, w: 18, h: 18 }, 'glyph');
-    if (g.autoAt) placer.addBox(`${g.a.id}:A`, { x: g.autoAt.x - 9, y: g.autoAt.y - 9, w: 18, h: 18 }, 'glyph');
+    if (g.askOpen) placer.addBox(`${K.arrow(g.a.id)}:?`, { x: cx('you') - 9, y: g.y2 - 9, w: 18, h: 18 }, 'glyph');
+    if (g.autoAt)
+      placer.addBox(`${K.arrow(g.a.id)}:A`, { x: g.autoAt.x - 9, y: g.autoAt.y - 9, w: 18, h: 18 }, 'glyph');
   }
   const labels: { label: PlacedLabel; color: string; weight: number; size: number; pick: Pick; full: string }[] = [];
   const put = (
@@ -759,10 +775,10 @@ export function TimelineBody(props: DrawProps) {
     const above: Spot = { x: at.x + 15, y: at.y - 9, anchor: 'start' };
     put(
       {
-        key: `${g.a.id}:L`,
-        ignore: [g.a.id],
+        key: `${K.arrow(g.a.id)}:L`,
+        // its own badge and, when the arrow slopes away as in the design, its own line
+        ignore: ownLine(g),
         text: g.label.text,
-        strict: true,
         // beside its circle, as designed, when the arrow slopes away; a flat arrow would run under the words
         spots: isFlat(g) ? [above, below, beside] : [beside, below, above],
       },
@@ -775,8 +791,20 @@ export function TimelineBody(props: DrawProps) {
   for (const g of [...arrows].sort((p, q) => p.y1 - q.y1 || p.x1 - q.x1)) {
     glyphAt.set(
       g.a.id,
-      placer.placeOnLine(g.a.id, { x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 }, 7.5, g.badge ? 23.5 : 0),
+      placer.placeOnLine(K.arrow(g.a.id), { x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 }, 7.5, g.badge ? 22.5 : 0),
     );
+  }
+  // a badge that found no other place than on a decision's words: those words move (step 2 places them again)
+  for (let i = labels.length - 1; i >= 0; i--) {
+    const l = labels[i].label;
+    if (!l.key.endsWith(':L')) continue;
+    const own = l.key.slice(0, -2);
+    const skip = new Set([l.key, `${own}:line`]);
+    if (placer.cost(l.box, skip).cost > 0) {
+      placer.remove(l.key);
+      labels.splice(i, 1);
+      homed.delete(own.slice('arrow:'.length));
+    }
   }
 
   // 1. your marks: they have only your lifeline
@@ -786,9 +814,10 @@ export function TimelineBody(props: DrawProps) {
     const y = yy(t.at);
     put(
       {
-        key: t.id,
+        key: K.touch(t.id),
         text: label,
         shrink: true,
+        crossLines: true,
         spots: [
           { x: x + 15, y: y + 4, anchor: 'start' },
           { x: x + 15, y: y + 17, anchor: 'start' },
@@ -800,9 +829,11 @@ export function TimelineBody(props: DrawProps) {
     );
   }
   // 2. what matters at a glance: long waits, returns, questions, decisions (all of them in Detailed, later)
-  const arrowSpots = (g: ArrowGeo): Spot[] => {
+  // an important label may move further from its badge (up to three rows away) before it gives up
+  const arrowSpots = (g: ArrowGeo, further = false): Spot[] => {
     const at = glyphAt.get(g.a.id) as { x: number; y: number };
-    const right = at.x + 11 + (g.badge ? 21 : 0);
+    // after the ×N pill when there is one (the design writes "sent back, 3rd time" at 32 px)
+    const right = at.x + (g.badge ? 32 : 11);
     const spots: Spot[] = [];
     if (g.askOpen) {
       const yc = g.y2;
@@ -825,15 +856,32 @@ export function TimelineBody(props: DrawProps) {
     // the design's spot is beside the badge, on the line: fine for a sloping arrow, which leaves the words at once;
     // a flat arrow would run under them, so its words go above the line first
     spots.push(...(isFlat(g) ? [...offLine, ...onLine] : [...onLine, ...offLine]));
+    if (further)
+      for (const d of [26, 39]) {
+        spots.push(
+          { x: right, y: at.y + 3.6 - d, anchor: 'start' },
+          { x: right, y: at.y + 3.6 + d, anchor: 'start' },
+          { x: at.x - 11, y: at.y + 3.6 - d, anchor: 'end' },
+          { x: at.x - 11, y: at.y + 3.6 + d, anchor: 'end' },
+        );
+      }
     return spots;
   };
   const byTime = [...arrows].sort((p, q) => p.y1 - q.y1 || p.x1 - q.x1);
   for (const g of byTime) {
     if (!g.label.text || !g.label.important || homed.has(g.a.id)) continue;
-    put({ key: g.a.id, text: g.label.text, shrink: true, spots: arrowSpots(g) }, labelColor(g), {
-      type: 'arrow',
-      id: g.a.id,
-    });
+    put(
+      {
+        key: K.words(g.a.id),
+        ignore: ownLine(g),
+        text: g.label.text,
+        shrink: true,
+        crossLines: true,
+        spots: arrowSpots(g, true),
+      },
+      labelColor(g),
+      { type: 'arrow', id: g.a.id },
+    );
   }
   // 3. waits: how long, beside the wait
   for (const v of waits) {
@@ -856,10 +904,10 @@ export function TimelineBody(props: DrawProps) {
     ];
     put(
       {
-        key: v.w.id,
+        key: K.wait(v.w.id),
         text: word,
+        crossLines: true,
         spots: cap ? capSpots : plain,
-        ignore: [...bars.filter((g) => g.b.id === v.w.runId).map((g) => g.b.id)],
       },
       v.long > 60 ? '#A5321E' : '#7A5A06',
       { type: 'wait', id: v.w.id },
@@ -878,20 +926,14 @@ export function TimelineBody(props: DrawProps) {
       if (h > 28) spots.push(...spots.map(lower));
       if (h > 42) spots.push(...spots.slice(0, 2).map((s2) => lower(lower(s2))));
       // a ticket key never covers a line or a badge: without a free spot it is left out (the hover card has it)
-      put(
-        { key: g.b.id, text, spots, clean: true },
-        endLook(g.b, g.look).text,
-        { type: 'bar', id: g.b.id },
-        { weight: 700 },
-      );
+      put({ key: K.bar(g.b.id), text, spots }, endLook(g.b, g.look).text, { type: 'bar', id: g.b.id }, { weight: 700 });
     }
     const queuedMin = g.queued ? (now - (ms(g.b.queuedAt) ?? now)) / 60000 : 0;
     if (g.queued && queuedMin > 10) {
       const mid = (g.top + g.bottom) / 2 + 4;
       put(
         {
-          key: `${g.b.id}:queued`,
-          ignore: [g.b.id],
+          key: `${K.bar(g.b.id)}:queued`,
           text: `queued ${lengthText(queuedMin * 60000)}${g.b.heldByPause ? ', held until resume' : ''}`,
           shrink: true,
           spots: [
@@ -914,7 +956,12 @@ export function TimelineBody(props: DrawProps) {
   for (const p of data.pauses) {
     const y0 = yy(p.from);
     put(
-      { key: `pause-${p.from}`, text: 'AI paused', spots: [...pauseSpots(y0 + 14), ...pauseSpots(y0 - 5)] },
+      {
+        key: `pause-${p.from}`,
+        text: 'AI paused',
+        crossLines: true,
+        spots: [...pauseSpots(y0 + 14), ...pauseSpots(y0 - 5)],
+      },
       '#8A3F12',
       { type: 'pause', id: p.from },
       { weight: 800 },
@@ -924,6 +971,7 @@ export function TimelineBody(props: DrawProps) {
       put(
         {
           key: `resumed-${p.from}`,
+          crossLines: true,
           text: `Resumed ${clock(ms(p.to) ?? 0)}`,
           spots: [...pauseSpots(y1 - 4), ...pauseSpots(y1 + 13)],
         },
@@ -938,7 +986,7 @@ export function TimelineBody(props: DrawProps) {
     for (const g of byTime) {
       if (!g.label.text || g.label.important) continue;
       put(
-        { key: g.a.id, text: g.label.text, shrink: true, optional: true, spots: arrowSpots(g) },
+        { key: K.words(g.a.id), ignore: ownLine(g), text: g.label.text, shrink: true, spots: arrowSpots(g) },
         g.color === TO_HUMAN ? '#7A5A06' : ARROW[g.a.kind].label,
         { type: 'arrow', id: g.a.id },
       );
