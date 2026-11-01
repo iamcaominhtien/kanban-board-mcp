@@ -146,5 +146,6 @@ returned `markdown` line on its own line in that ticket or page, with the tool t
   `labels` (`{"text", "x", "y", "size"}`). A wrong reference is reported before anything is created.
 - **Change to an existing frame**: write the changed files to a folder and `docs_write(canvas_propose)` with a one-sentence
   note on the design decision; a person accepts or rejects.
-- Leave one `canvas_comment` for the open questions (what you were unsure of), pinned to the frame it is about, and your
-  assumptions in one line.
+- Leave `canvas_comment`s for the open questions (what you were unsure of), each pinned to the element it is about with `at`
+  (a CSS selector, or `text=Add task` for the element showing that text): the pin stays on that element when the page is
+  drawn at another width. Give your assumptions in one line.

@@ -141,6 +141,17 @@ export interface CanvasComment {
   createdAt: string;
   editedAt: string | null;
 }
+/**
+ * The element a pin on a frame was put on: a CSS selector and/or its visible text, where inside it (0..1) and the frame's
+ * width at the time. The pin follows the element when the page is drawn at another width.
+ */
+export interface PinAnchor {
+  sel?: string;
+  text?: string;
+  ox: number;
+  oy: number;
+  w?: number;
+}
 export interface CanvasThread {
   id: string;
   canvasId: string;
@@ -148,6 +159,7 @@ export interface CanvasThread {
   boardId: string | null;
   x: number;
   y: number;
+  anchor: PinAnchor | null;
   page: string | null;
   status: 'open' | 'resolved';
   createdBy: string;
@@ -528,7 +540,14 @@ export async function sourceDiff(id: string, boardId: string, a: number, b: numb
 /** Pin a comment to a board (0 to 1 inside it) or to the plane. */
 export async function addThread(
   id: string,
-  body: { body: string; boardId?: string | null; x?: number; y?: number; page?: string | null },
+  body: {
+    body: string;
+    boardId?: string | null;
+    x?: number;
+    y?: number;
+    page?: string | null;
+    anchor?: PinAnchor | null;
+  },
 ) {
   return (await client.post<CanvasThread>(`/canvases/${id}/threads`, body)).data;
 }

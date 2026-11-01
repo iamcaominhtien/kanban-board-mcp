@@ -7,6 +7,7 @@ import { CanvasIcon } from './CanvasIcon';
 import { CommentsPanel } from './CommentsPanel';
 import { NOTE_BG } from './CanvasStatic';
 import { orderedBoards, stepBoard, widthFor } from './planeMath';
+import { useAnchoredPins } from './pinAnchor';
 import { useSize } from './useWidth';
 import styles from './Canvas.module.css';
 
@@ -117,6 +118,21 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
   const shown = board ? { ...board, w: present ? board.w : shownW } : undefined;
   const scale = shown ? Math.max(0.05, Math.min((size.w - pad * 2) / shown.w, (size.h - pad * 2) / shown.h, 1.6)) : 1;
 
+  // pins on the page: a pin that sits on an element follows it when the page is drawn at another width
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [loadTick, setLoadTick] = useState(0);
+  const bumpLoaded = useCallback(() => setLoadTick((t) => t + 1), []);
+  const boardThreads = useMemo(
+    () => (threads.data ?? []).filter((t) => !!board && t.boardId === board.id),
+    [threads.data, board],
+  );
+  const pinAt = useAnchoredPins({
+    threads: boardThreads,
+    frameFor: () => boardRef.current?.querySelector('iframe') ?? null,
+    sizeOf: () => (shown ? { w: shown.w, h: shown.h } : null),
+    tick: `${loadTick}|${board?.id}|${shown?.w}x${shown?.h}`,
+  });
+
   const near = useMemo(() => {
     if (!c || !board) return [];
     const ids = new Set(
@@ -194,9 +210,28 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
         <div
           className={styles.viewerBoard}
           data-testid="canvas-viewer-board"
+          ref={boardRef}
           style={{ width: shown.w * scale, height: shown.h * scale }}
         >
-          <BoardFrame canvasId={c.id} board={shown} scale={scale} live interactive={interact} />
+          <BoardFrame canvasId={c.id} board={shown} scale={scale} live interactive={interact} onLoaded={bumpLoaded} />
+          {(side || (present && notes)) &&
+            !interact &&
+            boardThreads.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`${styles.pin} ${selThread === t.id ? styles.pinOn : ''} ${t.status === 'resolved' ? styles.pinResolved : t.byAi ? styles.pinAi : ''}`}
+                style={{ left: `${(pinAt[t.id]?.x ?? t.x) * 100}%`, top: `${(pinAt[t.id]?.y ?? t.y) * 100}%` }}
+                onClick={() => {
+                  setSelThread(t.id);
+                  setSide(true);
+                }}
+                aria-label={`Comment ${t.number}`}
+                data-testid="canvas-viewer-pin"
+              >
+                {t.number}
+              </button>
+            ))}
         </div>
         {present && notes && near.length > 0 && (
           <div

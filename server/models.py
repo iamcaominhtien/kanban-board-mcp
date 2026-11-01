@@ -1000,6 +1000,9 @@ class CanvasThread(SQLModel, table=True):
     )  # 0..1 inside the board, or plane units without a board
     y: float = Field(default=0.5)
     page: Optional[str] = Field(default=None)  # page tab of a plane pin
+    # JSON {sel, text, ox, oy, w}: the element a pin was put on (CSS selector or visible text), where inside it, and at
+    # what frame width; x and y stay as the fallback when the element is not found or the frame is only a picture
+    anchor: Optional[str] = Field(default=None)
     status: str = Field(default="open")  # open | resolved
     created_by: str = Field(default="user")
     created_at: str = Field(default_factory=_now_iso)

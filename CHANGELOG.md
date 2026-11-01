@@ -26,6 +26,7 @@ Canvas: boards (called frames) on one large plane, a peer of Sketch and Diagram.
 
 ### Changed
 - Fixed: **Present** in the large view (button and `P`) closed the viewer instead of presenting.
+- **Comment pins follow their element.** A pin put on a frame remembers the element under it (a CSS selector, its text, where inside it and the frame width) and is drawn on that element when the page is laid out at another width: in the editor after a resize and in the large view's Desktop / Tablet / Phone switch (pins are now drawn there too). Without the element (a picture, a missing element) it stays at its saved x and y. `docs_write(canvas_comment)` takes `at` (a CSS selector, or `text=Add task`) so an AI points at a place, not only a frame. New migration `c1d2e3f4a5b7` adds `canvas_thread.anchor`.
 - **Try it** works in the editor too (button on the selected frame, key `I`, a Stop chip). A frame with `fit` (or **Size › Fit height to content**) gets the height of its page, measured once by the editor. `canvas_create` takes `x`, `y` and `fit` per frame and a top-level `canvas.json` with notes, arrows and labels, and orders frames by folder name.
 - The default MCP tool list is about 1,800 characters longer (the five canvas actions); the size test allows for it.
 - `docs_page` has a `kind` (`page` or `canvas`).

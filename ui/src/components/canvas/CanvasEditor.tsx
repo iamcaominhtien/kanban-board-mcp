@@ -17,6 +17,7 @@ import {
   type CanvasBoard,
   type CanvasNote,
   type CanvasThread,
+  type PinAnchor,
   type NoteColor,
 } from '../../api/canvases';
 import { useToast } from '../Toast';
@@ -25,6 +26,7 @@ import { useSketch } from '../sketch/SketchContext';
 import { AskAiPanel, ProposalReview, type WorkingJob } from './CanvasAi';
 import { BoardFrame } from './BoardFrame';
 import { FitProbe } from './FitProbe';
+import { anchorAt, useAnchoredPins } from './pinAnchor';
 import { CanvasIcon } from './CanvasIcon';
 import { useCanvas, type CanvasResult, type OpenCanvasRequest } from './CanvasContext';
 import { NOTE_BG } from './CanvasStatic';
@@ -176,6 +178,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     y: number;
     sx: number;
     sy: number;
+    anchor?: PinAnchor | null;
   } | null>(null);
   const [pinText, setPinText] = useState('');
   const [selThread, setSelThread] = useState<string | null>(null);
@@ -225,6 +228,31 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   const pageArrows = useMemo(() => (doc && pageId ? doc.arrows.filter((n) => n.page === pageId) : []), [doc, pageId]);
   const ordered = useMemo(() => (doc && pageId ? orderedBoards(doc, pageId) : []), [doc, pageId]);
   const boardById = useCallback((id: string) => doc?.boards.find((b) => b.id === id), [doc]);
+  // a pin put on an element of a page follows that element, whatever the width the page is drawn at
+  const [frameTick, setFrameTick] = useState(0);
+  const bumpFrames = useCallback(() => setFrameTick((t) => t + 1), []);
+  const frameOf = useCallback(
+    (id: string) => planeRef.current?.querySelector<HTMLIFrameElement>(`[data-item="${id}"] iframe`) ?? null,
+    [planeRef],
+  );
+  const anchorFor = (b: CanvasBoard, fx: number, fy: number): PinAnchor | null => {
+    try {
+      const d = frameOf(b.id)?.contentDocument;
+      return d ? anchorAt(d, fx * b.w, fy * b.h, b.w) : null;
+    } catch {
+      return null;
+    }
+  };
+  const boardSizes = (doc?.boards ?? []).map((b) => `${b.id}:${b.w}x${b.h}`).join(',');
+  const pinAt = useAnchoredPins({
+    threads,
+    frameFor: frameOf,
+    sizeOf: (id) => {
+      const b = boardById(id);
+      return b ? { w: b.w, h: b.h } : null;
+    },
+    tick: `${frameTick}|${boardSizes}`,
+  });
 
   const rectOf = useCallback(
     (id: string): Rect | null => {
@@ -515,6 +543,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
               y: Math.min(1, Math.max(0, (p.y - b.y) / b.h)),
               sx: s.x,
               sy: s.y,
+              anchor: anchorFor(
+                b,
+                Math.min(1, Math.max(0, (p.x - b.x) / b.w)),
+                Math.min(1, Math.max(0, (p.y - b.y) / b.h)),
+              ),
             }
           : { boardId: null, x: p.x, y: p.y, sx: s.x, sy: s.y },
       );
@@ -1480,6 +1513,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       live={live}
                       reloadKey={reloadKey}
                       interactive={tryId === b.id}
+                      onLoaded={bumpFrames}
                     />
                   </div>
                 </div>
@@ -1770,6 +1804,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                                   y: 0.5,
                                   sx: sx(b.x) + bw / 2,
                                   sy: sy(b.y) + bh / 2,
+                                  anchor: anchorFor(b, 0.5, 0.5),
                                 });
                               }}
                             >
@@ -1868,7 +1903,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                           key={t.id}
                           type="button"
                           className={`${styles.pin} ${selThread === t.id ? styles.pinOn : ''} ${t.status === 'resolved' ? styles.pinResolved : t.byAi ? styles.pinAi : ''}`}
-                          style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, pointerEvents: 'auto' }}
+                          style={{
+                            left: `${(pinAt[t.id]?.x ?? t.x) * 100}%`,
+                            top: `${(pinAt[t.id]?.y ?? t.y) * 100}%`,
+                            pointerEvents: 'auto',
+                          }}
                           data-ui
                           onClick={() => {
                             setSelThread(t.id);
@@ -2290,6 +2329,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       boardId: d.boardId,
                       x: d.x,
                       y: d.y,
+                      anchor: d.anchor,
                       page: d.boardId ? undefined : pageId,
                     })
                       .then((t) => {

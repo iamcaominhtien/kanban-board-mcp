@@ -79,6 +79,7 @@ async def _thread_out(session: AsyncSession, c: Any, t: CanvasThread) -> dict[st
         "x": t.x,
         "y": t.y,
         "page": t.page,
+        "anchor": json.loads(t.anchor) if t.anchor else None,
         "status": t.status,
         "created_by": t.created_by,
         "created_at": t.created_at,
@@ -114,6 +115,41 @@ async def list_threads(
     return [await _thread_out(session, c, t) for t in (await session.exec(stmt)).all()]
 
 
+def clean_anchor(raw: Any) -> dict[str, Any] | None:
+    """The element a pin sits on, as stored: ``sel`` (CSS selector) and/or ``text`` (visible text), where inside it
+    (``ox``, ``oy``, 0..1) and the frame width it was made at (``w``). Nothing usable gives ``None``."""
+    if not isinstance(raw, dict):
+        return None
+    sel = raw.get("sel")
+    text = raw.get("text")
+    sel = sel.strip()[:500] if isinstance(sel, str) and sel.strip() else None
+    text = " ".join(text.split())[:120] if isinstance(text, str) else None
+    if not sel and not text:
+        return None
+
+    def unit(v: Any) -> float:
+        try:
+            return max(0.0, min(1.0, float(v)))
+        except (TypeError, ValueError):
+            return 0.5
+
+    out: dict[str, Any] = {
+        "ox": unit(raw.get("ox", 0.5)),
+        "oy": unit(raw.get("oy", 0.5)),
+    }
+    if sel:
+        out["sel"] = sel
+    if text:
+        out["text"] = text
+    try:
+        w = float(raw.get("w"))
+        if 1 <= w <= 8000:
+            out["w"] = round(w)
+    except (TypeError, ValueError):
+        pass
+    return out
+
+
 async def add_thread(
     session: AsyncSession,
     canvas_id: str,
@@ -123,9 +159,13 @@ async def add_thread(
     x: float = 0.5,
     y: float = 0.5,
     page: str | None = None,
+    anchor: dict[str, Any] | None = None,
     ai: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Start a thread on a frame (``x``/``y`` are 0..1 inside it) or on the plane (plane units, with ``page``).
+
+    ``anchor`` (frames only, see ``clean_anchor``) names the element the pin is on: the editor finds it again whatever the
+    frame's width, and falls back to ``x``/``y``.
 
     Raises:
         DocsError: 403 for viewers; 404 for a frame that is not on the canvas.
@@ -153,6 +193,9 @@ async def add_thread(
         x=x,
         y=y,
         page=page,
+        anchor=json.dumps(clean_anchor(anchor))
+        if board_id and clean_anchor(anchor)
+        else None,
         created_by=actor,
     )
     session.add(t)

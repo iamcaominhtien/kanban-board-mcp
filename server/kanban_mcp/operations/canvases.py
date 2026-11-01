@@ -376,7 +376,7 @@ async def create_canvas_from_files(
     path: Annotated[
         str,
         Field(
-            description='Absolute folder of web pages: each sub-folder with an .html page is one frame (in name order), or pages at the top are one frame. Optional frame.json {name, size: "phone"|"tablet"|"desktop"|[w,h], fit, x, y} per frame and canvas.json {notes, arrows, labels} at the top (see the design guide). Files are kept as written; scripts run.'
+            description='Absolute folder: each sub-folder with an .html page is a frame (name order), or pages at the top are one frame. Optional frame.json {name, size: "phone"|"tablet"|"desktop"|[w,h], fit, x, y} per frame and canvas.json {notes, arrows, labels} at the top (see the design guide).'
         ),
     ],
     owner_kind: Annotated[
@@ -483,13 +483,21 @@ async def comment_on_canvas(
         str | None,
         Field(description="Reply in this thread instead of starting a new one."),
     ] = None,
+    at: Annotated[
+        str | None,
+        Field(
+            description="Pin on this element of the frame: a CSS selector, or 'text=Add task'. The pin follows it at any width."
+        ),
+    ] = None,
     x: Annotated[
         float | None,
-        Field(description="Pin position inside the frame, 0 to 1 (default 0.5)."),
+        Field(
+            description="Where in the frame (0 to 1) when `at` is not given or not found; default 0.5."
+        ),
     ] = None,
     y: Annotated[
         float | None,
-        Field(description="Pin position inside the frame, 0 to 1 (default 0.5)."),
+        Field(description="Like x, down the frame."),
     ] = None,
 ) -> dict:
     """Comment on a canvas under your own name. Returns the thread {id, number, board_id, status, comments}. You never resolve a person's thread."""
@@ -514,11 +522,21 @@ async def comment_on_canvas(
                 if thread["canvas_id"] != canvas_id:
                     raise ValueError("That thread belongs to another canvas.")
                 return await canvas_comments.reply(session, thread_id, body, ai=ai)
+            anchor = None
+            if at and board_id:
+                anchor = {"text": at[5:]} if at.startswith("text=") else {"sel": at}
+            elif at:
+                raise ValueError(
+                    "`at` needs board_id: it names an element of that frame."
+                )
             return await canvas_comments.add_thread(
                 session,
                 canvas_id,
                 body=body,
                 board_id=board_id,
+                x=0.5 if x is None else x,
+                y=0.5 if y is None else y,
+                anchor=anchor,
                 ai=ai,
             )
         except svc_canvases.DocsError as exc:

@@ -14,6 +14,8 @@ interface Props {
   rev?: number;
   /** Let the page take clicks and keys (to try a prototype); false keeps it a picture the plane can move. */
   interactive?: boolean;
+  /** Called when the live page has loaded (pins that sit on an element look for it then). */
+  onLoaded?: () => void;
   /** Called when the page could not be drawn. */
   onBroken?: (broken: boolean) => void;
   /** Changes to draw it again. */
@@ -29,10 +31,21 @@ interface Props {
  * @param props.live - Draw live (zoom from 40%) or show the snapshot.
  * @param props.rev - Show another revision of the content.
  * @param props.interactive - Let the page take clicks and keys.
+ * @param props.onLoaded - Told when the live page has loaded.
  * @param props.onBroken - Told when the page cannot be drawn.
  * @param props.reloadKey - Change to reload.
  */
-export function BoardFrame({ canvasId, board, scale, live, rev, interactive = false, onBroken, reloadKey = 0 }: Props) {
+export function BoardFrame({
+  canvasId,
+  board,
+  scale,
+  live,
+  rev,
+  interactive = false,
+  onLoaded,
+  onBroken,
+  reloadKey = 0,
+}: Props) {
   const w = Math.max(1, board.w * scale);
   const h = Math.max(1, board.h * scale);
   const content = board.content;
@@ -129,6 +142,7 @@ export function BoardFrame({ canvasId, board, scale, live, rev, interactive = fa
             title={board.name}
             src={entryUrl ?? undefined}
             tabIndex={interactive ? 0 : -1}
+            onLoad={onLoaded}
             data-testid="board-iframe"
             style={{
               width: board.w,

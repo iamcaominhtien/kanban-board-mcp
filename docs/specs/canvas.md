@@ -169,7 +169,7 @@ Reuse of the Docs AI machinery (members, permissions, budgets, caps, kill switch
   path])` (frames, notes, arrows, labels, comments, open proposals, locks; with `board_id` a frame's source or, with `path`, its
   files written to a folder), `docs_write(canvas_create, path [, owner_kind, owner_id, title | canvas_id])` (a new canvas, or frames
   added to one, from a folder: a sub-folder with an `.html` page per frame, optional `frame.json` `{"name", "size"}`; every frame
-  is checked before anything is created), `docs_write(canvas_comment, canvas_id, body [, board_id, thread_id])` and
+  is checked before anything is created), `docs_write(canvas_comment, canvas_id, body [, board_id, at, thread_id])` and
   `docs_write(canvas_propose, canvas_id, board_id, path [, note])`. `docs_write` needs the member's **Edit docs** permission, an
   ask run only reads, and an AI run may only touch canvases of its own project.
 
@@ -189,6 +189,18 @@ drawn), contrast and access, things to avoid (gradient washes, left-border cards
 "a small change stays small", and a check before sending (squint test, everything from the scale, holds at 390, 820 and
 1280 px). The skill adds one round of questions for a person who can answer; the Ask AI job and headless agents decide and
 state assumptions in a line. `test_canvas_mcp.py` checks that the brief reaches both places.
+
+## Comment pins on a page
+
+A pin on a frame stores `x` and `y` (0..1 of the frame) and, when the frame was drawn live, an **anchor**
+(`canvas_thread.anchor`, JSON `{sel, text, ox, oy, w}`): the CSS selector of the element under the pin (its id, a stable
+attribute or the path by tag and position), a short piece of its visible text, where inside the element (`ox`, `oy`) and the
+frame width at the time. Frames are same-origin, so the editor and the large view look the element up in the loaded page
+(`pinAnchor.ts`: selector first, then the smallest element holding the text) and draw the pin there; a change of width
+(the Size menu, the large view's Desktop / Tablet / Phone switch) moves the pin with its element. A pin whose element is gone,
+or a frame shown only as a picture (zoom under 40%), uses `x` and `y`. The server only checks and stores the anchor
+(`canvas_comments.clean_anchor`); an AI gives `at` (a CSS selector, or `text=Add task`), and the pin then sits on that element
+as soon as a person's browser draws the page.
 
 ## The editor
 

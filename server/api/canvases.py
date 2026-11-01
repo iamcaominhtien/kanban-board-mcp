@@ -500,6 +500,7 @@ class NewThread(BaseModel):
     x: float = 0.5
     y: float = 0.5
     page: Optional[str] = None
+    anchor: Optional[dict[str, Any]] = None
 
 
 @router.post("/canvases/{canvas_id}/threads", status_code=201)
@@ -515,6 +516,7 @@ async def post_thread(
         x=body.x,
         y=body.y,
         page=body.page,
+        anchor=body.anchor,
     )
     await _changed()
     return out

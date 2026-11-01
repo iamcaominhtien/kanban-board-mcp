@@ -506,3 +506,77 @@ async def test_an_agent_lays_out_a_flow_with_notes_arrows_labels_and_fit(env, tm
             path=str(root),
         )
     assert await docs_read(action="canvases", project_id=pid) == before
+
+
+async def test_a_comment_pins_to_an_element_and_the_rest_is_kept_clean(env, tmp_path):
+    c, pid, tid, cv, b = await _canvas(env)
+    # an agent: on the element showing some text, and on a CSS selector
+    by_text = await docs_write(
+        action="canvas_comment",
+        canvas_id=cv["id"],
+        board_id=b["id"],
+        at="text=Add task",
+        body="Make this button bigger",
+    )
+    by_sel = await docs_write(
+        action="canvas_comment",
+        canvas_id=cv["id"],
+        board_id=b["id"],
+        at="form > button.primary",
+        body="Contrast is low",
+    )
+    assert by_text["anchor"] == {"text": "Add task", "ox": 0.5, "oy": 0.5}
+    assert by_sel["anchor"]["sel"] == "form > button.primary"
+    # no element: the middle of the frame, as before
+    plain = await docs_write(
+        action="canvas_comment", canvas_id=cv["id"], board_id=b["id"], body="Overall"
+    )
+    assert plain["anchor"] is None and (plain["x"], plain["y"]) == (0.5, 0.5)
+    # `at` names an element of a frame
+    with pytest.raises(ValueError, match="needs board_id"):
+        await docs_write(
+            action="canvas_comment", canvas_id=cv["id"], at="text=Go", body="x"
+        )
+    # a person's pin keeps where inside the element and the width it was made at
+    r = await c.post(
+        f"/canvases/{cv['id']}/threads",
+        json={
+            "body": "Here",
+            "board_id": b["id"],
+            "x": 0.25,
+            "y": 0.4,
+            "anchor": {
+                "sel": "#go",
+                "text": "  Go\n now ",
+                "ox": 2,
+                "oy": -1,
+                "w": 390.4,
+            },
+        },
+    )
+    assert r.status_code == 201
+    got = (await c.get(f"/canvases/{cv['id']}/threads")).json()
+    mine = next(t for t in got if t["comments"][0]["body"] == "Here")
+    assert mine["anchor"] == {
+        "ox": 1.0,
+        "oy": 0.0,
+        "sel": "#go",
+        "text": "Go now",
+        "w": 390,
+    }
+    assert (mine["x"], mine["y"]) == (0.25, 0.4)
+    # nothing usable, or a pin on the plane: no anchor
+    for anchor, board in (
+        ({"ox": 0.1}, b["id"]),
+        ("not a dict", b["id"]),
+        ({"sel": "#a"}, None),
+    ):
+        r = await c.post(
+            f"/canvases/{cv['id']}/threads",
+            json={
+                "body": "x",
+                "board_id": board,
+                "anchor": anchor if isinstance(anchor, dict) else None,
+            },
+        )
+        assert r.status_code == 201 and r.json()["anchor"] is None
