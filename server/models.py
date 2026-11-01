@@ -1290,9 +1290,98 @@ class AiRun(SQLModel, table=True):
     last_rss_mb: Optional[float] = Field(default=None)
     # JSON [{at, rss_mb, limit_mb, by, n}]: every time the CLI was started again inside this run, by the system or a person
     restarts: str = Field(default="[]")
+    # JSON {at, trigger, cause, what, means, tried[], actions[], child, by, confidence}: the board's reading of why the
+    # run is in trouble (services/ai/watchdog.py). One text, shown on the run, in Needs you and in the notification.
+    diagnosis: Optional[str] = Field(default=None)
+    # A retry the board scheduled itself (network, 5xx, crash, board fault): when, and every try so far
+    retry_at: Optional[str] = Field(default=None)
+    retries: str = Field(default="[]")  # JSON [{at, kind, n, detail}]
+    # The Claude account this run spends when it is not the member's own (urgent work moved to an account with room)
+    account_id: Optional[str] = Field(default=None)
 
 
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
+
+
+class AiTicketFlag(SQLModel, table=True):
+    """An open condition on a ticket that waits for someone: a merge conflict, an arbitration, a workflow that stopped
+    (services/ai/flags.py) (table)."""
+
+    __tablename__ = "ai_ticket_flag"
+
+    id: str = Field(
+        default_factory=lambda: f"flag_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    ticket_id: str = Field(index=True)
+    project_id: str = Field(index=True)
+    kind: str = Field(
+        index=True
+    )  # merge_conflict | arbitration | no_progress | board_fault | quota_cap
+    data: str = Field(default="{}")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    resolved_at: Optional[str] = Field(default=None)
+    resolved_by: Optional[str] = Field(default=None)
+    resolution: Optional[str] = Field(default=None)
+
+
+class AiAccountState(SQLModel, table=True):
+    """The usage window and run limit of one Claude account, or of "local" (members on the person's own login)
+    (table). Read from the CLI's `rate_limit_event` (services/ai/quota.py)."""
+
+    __tablename__ = "ai_account_state"
+
+    key: str = Field(primary_key=True)  # AiAccount.id, or "local"
+    max_parallel: int = Field(default=2)
+    move_urgent: bool = Field(
+        default=False
+    )  # move High/Urgent work to an account with room, by itself
+    five_hour_used: Optional[float] = Field(default=None)  # 0..1
+    five_hour_resets_at: Optional[str] = Field(default=None)
+    five_hour_status: Optional[str] = Field(default=None)
+    seven_day_used: Optional[float] = Field(default=None)
+    seven_day_resets_at: Optional[str] = Field(default=None)
+    seven_day_status: Optional[str] = Field(default=None)
+    held_until: Optional[str] = Field(
+        default=None
+    )  # every run of the account waits until then
+    held_reason: Optional[str] = Field(default=None)
+    updated_at: Optional[str] = Field(default=None)
+
+
+class AiRunTranscript(SQLModel, table=True):
+    """The board's own copy of a run's conversation: a compressed file in the data folder (services/ai/transcripts.py)
+    (table). The run's summary stays on `AiRun` forever; this file follows the notification retention unless pinned."""
+
+    __tablename__ = "ai_run_transcript"
+
+    run_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    member_id: Optional[str] = Field(default=None, index=True)
+    path: str
+    bytes: int = Field(default=0)
+    events: int = Field(default=0)
+    pinned: bool = Field(default=False)
+    pinned_by: Optional[str] = Field(default=None)
+    started_at: str = Field(default_factory=_now_iso)
+    ended_at: Optional[str] = Field(default=None, index=True)
+    # Set when the retention removed the file; the row stays so the run says "transcript removed after N days"
+    deleted_at: Optional[str] = Field(default=None)
+
+
+class AiSkillUse(SQLModel, table=True):
+    """One time a run used a skill (the CLI's `Skill` tool) or a subagent (`Task`/`Agent`), read from its stream (table)."""
+
+    __tablename__ = "ai_skill_use"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    run_id: str = Field(index=True)
+    project_id: str = Field(index=True)
+    member_id: Optional[str] = Field(default=None, index=True)
+    kind: str = Field(default="skill")  # skill | subagent
+    name: str = Field(index=True)  # "plugin:skill" or "skill"
+    plugin: Optional[str] = Field(default=None, index=True)
+    at: str = Field(default_factory=_now_iso)
 
 
 class AiApproval(SQLModel, table=True):
@@ -1412,6 +1501,8 @@ class AiProjectSettings(SQLModel, table=True):
     paused_safe_before: bool = Field(default=False)
     # JSON list of "What to fix" suggestions a person dismissed in AI Team › Health: [{key, at, by}]
     team_dismissed: str = Field(default="[]")
+    # JSON: the AI team v2 settings of the project, merged over defaults (services/ai/ops.py)
+    ops: str = Field(default="{}")
 
 
 class AiGrant(SQLModel, table=True):

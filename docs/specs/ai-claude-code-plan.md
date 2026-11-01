@@ -186,6 +186,9 @@ Cả 32 hàng của mục 5 đã có thiết kế. Mục B của đợt 3 liệt
 
 ## 7. Thứ tự đề xuất (cập nhật sau các chủ đề mới)
 
+Kế hoạch implement chi tiết (giai đoạn, PR, phụ thuộc): [`ai-claude-code-implementation.md`](ai-claude-code-implementation.md).
+Ở đó lưu log được đưa lên trước độ bền, vì transcript đang mất dần và chẩn đoán treo cần đọc log.
+
 1. **Độ bền:** treo → chẩn đoán → xử lý; lỗi theo loại; giới hạn theo tài khoản (mặc định 2); quota theo khung giờ; sửa hướng dẫn MCP.
 2. **Lưu log của board** (gấp: Claude Code tự xoá transcript sau ~30 ngày, dữ liệu đang mất dần), skill/subagent được dùng, tìm kiếm.
 3. **Trí nhớ dự án + chỉ dẫn** (tiết kiệm quota rõ nhất).

@@ -47,9 +47,11 @@ so use `<meta name="viewport" content="width=device-width, initial-scale=1">`, f
 You never change an existing frame directly: docs_write(canvas_comment) comments under your own name and docs_write(canvas_propose) offers a changed HTML frame \
 from a folder; a person sees before and after and accepts or rejects. You never take the lock on a frame a person is editing.
 - AI team: ai_team looks at the board's AI members (members, member, usage, runs, run, approvals, docs_jobs, resources: RAM and CPU of the running AIs and the machine) and acts on them \
-(ask, cancel, restart (a run's CLI starts again in the same run), retry, answer, pause, resume, create_member, update_member). An @mention in a comment posted through MCP does NOT wake \
-an AI: use ai_team(action='ask', member_id, text, ticket_id) (intent 'work' to assign it the ticket). Approvals are decided by a person \
-in the board, never over MCP; inside an AI run only the read actions work (resources needs the member's Resource tools set to View; restart and cancel need Control).
+(ask, cancel, restart (a run's CLI starts again in the same run), retry, answer, pause, resume, create_member, update_member). From outside an AI run, \
+an @mention in a comment does NOT wake an AI: use ai_team(action='ask', member_id, text, ticket_id) (intent 'work' to assign it the ticket). \
+Inside an AI run it is the other way round: ai_team allows only its read actions there, and an @mention of another AI in a comment you post \
+does wake it (one question, within the board's chain limits); to pass the work itself on, use ai_run(action='handoff'). Approvals are decided by a person \
+in the board, never over MCP (resources needs the member's Resource tools set to View; restart and cancel need Control).
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions

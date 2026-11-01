@@ -659,6 +659,12 @@ def describe_tool(name: str, inp: dict, cwd: str) -> tuple[str, str, dict | None
         return "command", f"Ran {_short(inp.get('command', ''), 120)}", None
     if name in ("Grep", "Glob"):
         return "search", f"Searched {_short(inp.get('pattern', ''), 80)}", None
+    if name == "Skill" and inp.get("skill"):
+        return "skill", f"Used the skill {_short(str(inp['skill']), 80)}", None
+    if name in ("Task", "Agent"):
+        who = inp.get("subagent_type") or "a subagent"
+        what = inp.get("description") or inp.get("prompt") or ""
+        return "subagent", _short(f"Asked {who}: {what}", 160), None
     if name.startswith("mcp__"):
         parts = name.split("__")
         tool = parts[-1]
@@ -808,6 +814,9 @@ def parse_stream_line(line: str, cwd: str) -> dict:
             + int(usage.get("cache_read_input_tokens") or 0),
             "tokens_out": int(usage.get("output_tokens") or 0),
             "turns": ev.get("num_turns"),
+            # Claude Code names the failure: "usage_limit_reached" (the window), and the HTTP status behind it
+            "api_error": ev.get("api_error"),
+            "api_status": ev.get("api_error_status"),
         }
         out["session_id"] = ev.get("session_id")
         windows = [

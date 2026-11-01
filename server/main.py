@@ -30,6 +30,8 @@ from api.diagrams import router as diagrams_router
 from api.canvases import router as canvases_router
 from api.sketches import router as sketches_router
 from api.ai import router as ai_router
+from api.ai_history import router as ai_history_router
+from api.ai_ops import router as ai_ops_router
 from api.ai_accounts import router as ai_accounts_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
@@ -258,6 +260,8 @@ app.include_router(sketches_router)
 app.include_router(canvases_router)
 app.include_router(logs_router)
 app.include_router(ai_accounts_router)
+app.include_router(ai_history_router)
+app.include_router(ai_ops_router)
 app.include_router(ai_router)
 app.include_router(ai_safety_router)
 app.include_router(ai_config_router)

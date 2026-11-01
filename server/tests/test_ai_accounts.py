@@ -274,8 +274,9 @@ async def test_a_run_that_finds_the_account_signed_out_holds_every_member_on_it(
     await c.post(
         f"/tickets/{tid}/ai/assign", json={"member_id": m1["id"], "start": "now"}
     )
-    run = await _wait(c, tid, ("failed",))
-    assert run["state"] == "failed"
+    # held, not failed: nothing is lost and it resumes by itself after a sign-in (design C5)
+    run = await _wait_held(c, tid)
+    assert run["state"] == "queued"
     now = (await c.get(f"/ai/accounts/{a['id']}")).json()
     assert (
         now["status"] == "needs_sign_in"
@@ -291,6 +292,25 @@ async def test_a_run_that_finds_the_account_signed_out_holds_every_member_on_it(
         0
     ]
     assert {x["name"] for x in here["members_here"]} == {"One", "Two"}
+    # signed in again: the same run goes on by itself
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "finish")
+    _login(a)
+    await c.post(f"/ai/accounts/{a['id']}/check")
+    done = await _wait(c, tid, ("finished",))
+    assert done["id"] == run["id"]
+
+
+async def _wait_held(c, tid, timeout=15.0):
+    import asyncio
+
+    deadline = asyncio.get_running_loop().time() + timeout
+    while True:
+        runs_ = (await c.get(f"/tickets/{tid}/ai/runs")).json()
+        if runs_ and any(s.get("kind") == "held" for s in runs_[0]["steps"]):
+            return runs_[0]
+        if asyncio.get_running_loop().time() > deadline:
+            raise AssertionError(f"never held: {runs_[0]['state'] if runs_ else None}")
+        await asyncio.sleep(0.1)
 
 
 async def test_an_account_only_fits_members_of_its_own_cli_and_runner(fake_cli):

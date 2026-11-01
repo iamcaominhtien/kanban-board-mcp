@@ -776,6 +776,51 @@ def reset_approved(token: Token) -> None:
     _approved.reset(token)
 
 
+# Never twice (design/screens/ai-operations.md, C): a run resumed after a crash or a dropped connection may repeat
+# what it had already done (post the same comment, move the same ticket). An identical write from the same run within
+# a few minutes, with a resume in between, is skipped and answered with what the first one returned.
+DUPLICATE_WINDOW_S = 180
+_recent_writes: dict[str, list[tuple[float, str, object]]] = {}
+_resumed_at: dict[str, float] = {}
+
+
+def mark_resumed(run_id: str) -> None:
+    """The run's CLI starts again with its conversation (a retry, a restart): repeats from before now are skipped."""
+    import time
+
+    _resumed_at[run_id] = time.monotonic()
+
+
+def _fingerprint(tool: str, action: str, given: dict) -> str:
+    return json.dumps([tool, action, given], sort_keys=True, default=str)
+
+
+def _repeat_of(run_id: str, fp: str) -> object | None:
+    import time
+
+    resumed = _resumed_at.get(run_id)
+    if resumed is None:
+        return None
+    now = time.monotonic()
+    for at, seen, result in reversed(_recent_writes.get(run_id, [])):
+        if now - at > DUPLICATE_WINDOW_S:
+            break
+        if seen == fp and at < resumed:
+            return result
+    return None
+
+
+def _remember_write(run_id: str, fp: str, result) -> None:
+    import time
+
+    now = time.monotonic()
+    kept = [
+        w for w in _recent_writes.get(run_id, []) if now - w[0] <= DUPLICATE_WINDOW_S
+    ]
+    kept.append((now, fp, result))
+    _recent_writes[run_id] = kept[-50:]
+
+
 async def guarded(tool: str, action: str, given: dict, call):
     """Run `call(given)` for an MCP tool, checked and audited when it comes from an AI run."""
     ctx = await resolve()
@@ -783,6 +828,23 @@ async def guarded(tool: str, action: str, given: dict, call):
         return await call(given)
     # Omitted optional arguments arrive as None and mean "unchanged": they never count as a change
     given = {k: v for k, v in given.items() if v is not None}
+    fp = (
+        _fingerprint(tool, action, given)
+        if ctx.run_id and classify(tool, action, given)
+        else None
+    )
+    if fp is not None:
+        earlier = _repeat_of(ctx.run_id, fp)
+        if earlier is not None:
+            note = (
+                "Not repeated: this run already did exactly this a moment ago, before it was resumed. Here is what it "
+                "returned then; carry on from there."
+            )
+            return (
+                {**earlier, "already_done": note}
+                if isinstance(earlier, dict)
+                else {"already_done": note}
+            )
     tokens = enter(ctx) if current() is None else None
     try:
         if tool == "ticket_items" and action == "comment.add":
@@ -795,7 +857,18 @@ async def guarded(tool: str, action: str, given: dict, call):
             if redirected is not None:
                 return redirected
         detail = await check(ctx, tool, action, given)
-        result = await call(given)
+        try:
+            result = await call(given)
+        except (ValueError, LookupError, PermissionError):
+            raise  # the AI's own mistake (a bad argument, a missing ticket): it reads the error and fixes it
+        except Exception:
+            # The board failed, not the AI (design D11): counted as a board fault for the run, never against the AI
+            from . import runs
+
+            watch = runs.RT.watch.get(ctx.run_id) if ctx.run_id else None
+            if watch is not None:
+                watch.mcp_errors += 1
+            raise
         if (
             tool == "docs_read"
             and action == "get"
@@ -809,6 +882,8 @@ async def guarded(tool: str, action: str, given: dict, call):
             if notes:
                 result = {**result, "your_proposals": notes}
         await after(ctx, detail, result)
+        if fp is not None:
+            _remember_write(ctx.run_id, fp, result)
         if isinstance(result, dict) and ctx.mode == "work":
             # A person edited the ticket during the run: a CLI run hears it on its next board call (T, context refresh)
             from . import runs

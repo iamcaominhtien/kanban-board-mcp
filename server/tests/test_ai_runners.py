@@ -651,8 +651,15 @@ async def test_a_session_that_ended_with_a_login_error_marks_the_member(
     m = await _member(c, pid, fakes["repo"], "codex")
     tid = await _ticket(c, pid)
     await _assign(c, tid, m)
-    run = await _wait(c, tid, ("failed",))
-    assert run["state"] == "failed"
+    # held, not failed: the member shows signed out and the run waits for a sign-in (design C5)
+    deadline = asyncio.get_running_loop().time() + 15
+    while True:
+        run = (await c.get(f"/tickets/{tid}/ai/runs")).json()[0]
+        if any(s.get("kind") == "held" for s in run["steps"]):
+            break
+        assert asyncio.get_running_loop().time() < deadline, run["state"]
+        await asyncio.sleep(0.1)
+    assert run["state"] == "queued"
     assert (await c.get(f"/ai/members/{m['id']}")).json()["health"] == "not_logged_in"
 
 

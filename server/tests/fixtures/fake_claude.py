@@ -130,6 +130,138 @@ if mode == "spawn":
         }
     )
     time.sleep(300)
+quota_used = os.environ.get("FAKE_CLAUDE_QUOTA")
+if quota_used or mode == "window":
+    # Claude Code reports the account's usage window in every run (spike S5)
+    rejected = mode == "window"
+    emit(
+        {
+            "type": "rate_limit_event",
+            "rate_limit_info": {
+                "status": "rejected" if rejected else "allowed",
+                "resetsAt": int(time.time()) + 3600,
+                "rateLimitType": "seven_day" if rejected else "five_hour",
+                "unifiedWindows": {
+                    "five_hour": {
+                        "utilization": float(quota_used or 0.3),
+                        "resetsAt": int(time.time()) + 1800,
+                        "status": "allowed",
+                    },
+                    "seven_day": {
+                        "utilization": 1.0 if rejected else 0.1,
+                        "resetsAt": int(time.time()) + 3600,
+                        "status": "rejected" if rejected else "allowed",
+                    },
+                },
+            },
+        }
+    )
+if mode == "window":
+    emit(
+        {
+            "type": "result",
+            "subtype": "success",
+            "is_error": True,
+            "api_error": "usage_limit_reached",
+            "api_error_status": 429,
+            "result": "You've hit your weekly limit · resets 4pm (Asia/Saigon)",
+        }
+    )
+    sys.exit(1)
+if mode == "network":
+    emit(
+        {
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": True,
+            "api_error_status": 529,
+            "result": "API Error: 529 Overloaded",
+        }
+    )
+    sys.exit(1)
+if mode == "crash":
+    sys.stderr.write("Segmentation fault (core dumped)\n")
+    sys.exit(139)
+prompt_text = (
+    args[args.index("-p") + 1]
+    if "-p" in args and args.index("-p") + 1 < len(args)
+    else ""
+)
+if mode == "too_long" and "hand-over" not in prompt_text:
+    # the conversation is too long until the board starts a fresh one with a hand-over note
+    emit(
+        {
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": True,
+            "result": "Prompt is too long",
+        }
+    )
+    sys.exit(1)
+if mode == "dev_server":
+    # the AI starts a server in the foreground and the tool call never returns
+    emit(
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "srv",
+                        "name": "Bash",
+                        "input": {"command": "npm run dev"},
+                    }
+                ]
+            },
+        }
+    )
+    server = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(300)"])
+    if os.environ.get("FAKE_CLAUDE_PIDFILE"):
+        with open(os.environ["FAKE_CLAUDE_PIDFILE"], "w") as fh:
+            fh.write(str(server.pid))
+    server.wait()  # until the board stops it
+    emit(
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "srv",
+                        "is_error": True,
+                        "content": "Command was killed",
+                    }
+                ]
+            },
+        }
+    )
+if mode == "skill" or os.environ.get("FAKE_CLAUDE_SKILL"):
+    # a run that uses a skill and a subagent (the board counts them from the stream)
+    emit(
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "s1",
+                        "name": "Skill",
+                        "input": {"skill": "tdd:red-green"},
+                    },
+                    {
+                        "type": "tool_use",
+                        "id": "s2",
+                        "name": "Task",
+                        "input": {
+                            "subagent_type": "Explore",
+                            "description": "Find the add() callers",
+                            "prompt": "Where is add() used?",
+                        },
+                    },
+                ]
+            },
+        }
+    )
 if mode == "sleep":
     emit(
         {

@@ -16,6 +16,7 @@ import re
 import secrets as pysecrets
 import shutil
 import tempfile
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -53,8 +54,13 @@ from . import (
     cli,
     config_service,
     guard,
+    failures,
+    ops,
+    quota,
     resources,
     safety,
+    transcripts,
+    watchdog,
 )
 from . import mcp_sources
 from .mcp_sources import folder_servers
@@ -95,6 +101,7 @@ REMINDER_MINUTES = [15, *range(120, NEEDS_INPUT_HOLD_HOURS * 60, 120)]
 REMINDER_LEAD_MINUTES = 360
 AUTO_TRIP_CHECK_S = 30  # spend spike and denials (autotrip.py)
 STARTING_TIMEOUT_S = 30
+WATCH_EVERY_S = 30  # a running CLI that printed nothing for this long is looked at (services/ai/watchdog.py)
 MAX_RATE_REQUEUES = 3  # times one run waits out a rate limit before it fails
 
 
@@ -130,6 +137,10 @@ class _Runtime:
         self.refusal_retries: dict[str, int] = {}
         # run id -> {approval_id, summary, since} while a tool call waits for a person's decision
         self.waiting_approval: dict[str, dict] = {}
+        # run id -> what the board can see of its CLI's stream (services/ai/watchdog.py)
+        self.watch: dict[str, watchdog.RunWatch] = {}
+        # run id -> a note the next start of the run's CLI is given (a retry after a network error, a crash)
+        self.resume_notes: dict[str, str] = {}
         self.wake = asyncio.Event()
         self.scheduler: asyncio.Task | None = None
         self.board_url: str = os.environ.get("KANBAN_BOARD_URL", "").rstrip("/")
@@ -535,7 +546,8 @@ async def resume_interrupted() -> int:
                 select(AiRun).where(
                     AiRun.stop_code
                     == BOARD_CLOSED,  # not BOARD_CLOSED_PAUSED: a person paused it
-                    AiRun.mode == "work",
+                    # every interrupted run goes on, an answer as much as a piece of work (design C5)
+                    col(AiRun.mode).in_(["work", "ask"]),
                     AiRun.ended_at >= since,
                 )
             )
@@ -572,9 +584,10 @@ async def resume_interrupted() -> int:
                     session,
                     ticket_id=old.ticket_id,
                     member_id=old.member_id,
-                    mode="work",
+                    mode=old.mode,
                     trigger="retry",
                     started_by=old.started_by,
+                    source_comment_id=old.source_comment_id,
                     instruction=f"{RESUME_NOTE}\n\n{old.instruction}".strip(),
                     include_context=old.include_context,
                     chain=loads(old.chain, []),
@@ -636,8 +649,14 @@ async def _loop() -> None:
     from . import autotrip
 
     last_health = last_trip = asyncio.get_running_loop().time()
+    wall, mono = time.time(), time.monotonic()
     while True:
         try:
+            # The computer slept: its clock jumped while the loop did not run. Every live CLI is checked (design C5)
+            slept = (time.time() - wall) - (time.monotonic() - mono)
+            wall, mono = time.time(), time.monotonic()
+            if slept > 60:
+                await _after_sleep(slept)
             await tick()
             now = asyncio.get_running_loop().time()
             if now - last_health >= svc_members.HEALTH_INTERVAL_S:
@@ -655,6 +674,18 @@ async def _loop() -> None:
             await asyncio.wait_for(RT.wake.wait(), timeout=2.0)
         except asyncio.TimeoutError:
             pass
+
+
+async def _after_sleep(seconds: float) -> None:
+    """After the computer woke up: say so on every live run and end the ones whose CLI did not survive."""
+    minutes = int(seconds // 60)
+    for run_id, proc in list(RT.procs.items()):
+        alive = proc.proc is not None and proc.proc.returncode is None
+        text = f"The computer was asleep for {minutes} min; " + ("the CLI is still alive." if alive else "the CLI did not survive.")
+        transcripts.note(run_id, "sleep", text)
+        await _append(run_id, steps=[{"kind": "start", "text": text}])
+        if not alive:
+            proc.kill()  # the reader sees the end and the run is resumed or ended by its kind
 
 
 async def recover_on_startup() -> None:
@@ -727,6 +758,16 @@ async def _blocking_reason(
             "runner_missing": "Runner not detected",
             "model_retired": "Model retired — choose another",
         }[profile.health]
+    own_retry = parse_iso(run.retry_at)
+    if own_retry and own_retry > datetime.now(UTC):
+        # a retry the board scheduled itself (network, 5xx, a board fault): not a person's to press
+        secs = max(1, int((own_retry - datetime.now(UTC)).total_seconds()))
+        wait = f"{secs} s" if secs < 120 else f"{round(secs / 60)} min"
+        last = (loads(run.retries, []) or [{}])[-1]
+        return f"Retrying in about {wait} ({last.get('label') or 'after an error'}, try {last.get('n', 1)} of {last.get('of', 3)})"
+    window = await quota.blocking(session, run, profile)
+    if window:
+        return window
     retry_at = parse_iso(profile.retry_at)
     if profile.health == "rate_limited" and retry_at and retry_at > datetime.now(UTC):
         secs = max(1, int((retry_at - datetime.now(UTC)).total_seconds()))
@@ -762,6 +803,7 @@ async def _blocking_reason(
             )
         )
     ).all()
+    # A person's own CLI is held back by its account's slots (services/ai/quota.py), not by the board's
     if profile.connection == "api_key" and len(board_running) >= max(
         1, settings.board_max_parallel
     ):
@@ -803,6 +845,14 @@ async def _housekeeping() -> None:
     for s in projects:
         await safety.check_key_reminders(s.project_id)
     await audit.prune()
+    if loop.time() - _LAST_HOUSEKEEPING.get("transcripts", -3600.0) >= 3600:
+        # Transcripts follow the notification retention (one setting, 90 days by default); pinned runs stay
+        _LAST_HOUSEKEEPING["transcripts"] = loop.time()
+        from services import notifications as centre
+
+        async with database.async_session() as session:
+            days = await centre.retention_days(session)
+        await transcripts.prune(days)
 
 
 async def tick() -> None:
@@ -839,7 +889,8 @@ async def tick() -> None:
                 )
             ).all()
             seen_waiting: dict[str, str] = {}
-            for run in queued:
+            await quota.release_expired(session)
+            for run in await _by_priority(session, queued):
                 member, profile = await get_profile(session, run.member_id)
                 if member is None or profile is None:
                     await _end(run.id, "failed", "The AI member was removed.")
@@ -915,6 +966,23 @@ async def _remind(session, run: AiRun, asked: datetime) -> None:
             people=[*entry["lead"], *([q["to"]] if q.get("to") else [])],
         )
     await _publish(force=True)
+
+
+_PRIORITY = {"critical": 0, "urgent": 0, "high": 1, "medium": 2, "low": 3}
+
+
+async def _by_priority(session, queued: list[AiRun]) -> list[AiRun]:
+    """Queued runs in the order they may start: the ticket's priority first, then the order they were queued."""
+    if len(queued) < 2:
+        return queued
+    ids = {r.ticket_id for r in queued}
+    prio = {
+        t.id: _PRIORITY.get((t.priority or "medium").lower(), 2)
+        for t in (
+            await session.exec(select(Ticket).where(col(Ticket.id).in_(ids)))
+        ).all()
+    }
+    return sorted(queued, key=lambda r: (prio.get(r.ticket_id, 2), r.queued_at or ""))
 
 
 async def _holders(session, ticket_id: str, exclude: str | None = None) -> list[AiRun]:
@@ -1047,6 +1115,251 @@ async def _requeue_fresh(run_id: str) -> bool:
     RT.wake.set()
     await _publish(force=True)
     return True
+
+
+# ---------------------------------------------------------------------------
+# Recovery by kind (design/screens/ai-operations.md, C5)
+# ---------------------------------------------------------------------------
+
+_RETRY_LABEL = {
+    "network": "a dropped connection or an API error",
+    "board_fault": "a board fault",
+    "crash": "the CLI exited with no result",
+    "compact": "the conversation was too long",
+}
+_RETRY_NOTE = {
+    "network": (
+        "Your previous attempt was cut off by a network or API error ({detail}). Your conversation and every file "
+        "are as you left them. Look at `git status` and the last steps, then carry on from where you stopped; do not "
+        "start over and do not repeat an action you already completed."
+    ),
+    "board_fault": (
+        "A board tool failed on the board's side ({detail}); it was not your mistake. Carry on from where you "
+        "stopped; if a board call fails again, say so in your report instead of retrying it in a loop."
+    ),
+    "crash": (
+        "Your CLI process exited unexpectedly ({detail}). The conversation and every file are as you left them. "
+        "Look at `git status` and the last steps, then carry on; do not start over."
+    ),
+}
+
+
+def _handover_note(run: AiRun, why: str) -> str:
+    """What a fresh conversation is told about the work so far (the old conversation is not carried over)."""
+    steps = [s for s in loads(run.steps, []) if s.get("kind") not in ("start", "end")]
+    lines = [f"- {s.get('text')}" for s in steps[-30:] if s.get("text")]
+    files = [f.get("path") for f in loads(run.files, []) if f.get("path")]
+    return (
+        f"{why} This is a new conversation; here is a hand-over of the work so far on this ticket.\n\n"
+        + ("What was done:\n" + "\n".join(lines) + "\n\n" if lines else "")
+        + (f"Files changed so far: {', '.join(files[:40])}\n\n" if files else "")
+        + "Look at `git status` and the files above, then carry on from where the work stopped; do not start over."
+    )
+
+
+_FRESH_STEP = {"kind": "fresh_session", "text": "Starting a new conversation"}
+
+
+async def _requeue(run_id: str, step: dict, fresh: bool = False, **fields) -> None:
+    """Back to the queue, same run: the scheduler starts it again when nothing blocks it. `fresh`: its next start is
+    a new conversation (the old one is not looked up again)."""
+    await _append(
+        run_id,
+        steps=[step, *([_FRESH_STEP] if fresh else [])],
+        state="queued",
+        started_at=None,
+        pid=None,
+        token_hash=None,
+        **fields,
+    )
+    RT.wake.set()
+    await _publish(force=True)
+
+
+async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -> bool:
+    """The plan's usage window is used up: not a failure and not a try. The run waits for the reset; urgent work
+    moves to an account with room when the account says so, otherwise it becomes a Needs you row (design E)."""
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state in ENDED:
+            return True
+        ticket = await session.get(Ticket, run.ticket_id)
+        urgent = (ticket.priority if ticket else "") in ("high", "critical", "urgent")
+        state_row = await quota.state(session, quota_key)
+        room = await quota.room(session, exclude=quota_key) if urgent else []
+        await session.commit()
+    when = ""
+    try:
+        when = datetime.fromisoformat(until).astimezone().strftime("%H:%M")
+    except ValueError:
+        pass
+    if urgent and room and state_row.move_urgent:
+        target = room[0]
+        RT.resume_notes[run_id] = _handover_note(
+            run,
+            f"This ticket is urgent and the account it ran on is out of its usage window until {when}, so it moved to another account.",
+        )
+        transcripts.note(
+            run_id,
+            "moved",
+            f"Moved to the account {target['name']} (urgent; {quota_key} reopens {when})",
+        )
+        await _requeue(
+            run_id,
+            {
+                "kind": "window",
+                "text": f"Urgent: moved to the account {target['name']}, which has room. A new conversation starts with a hand-over note.",
+            },
+            fresh=True,
+            account_id=target["account_id"],
+            session_id=None,
+        )
+        return True
+    await _requeue(
+        run_id,
+        {
+            "kind": "window",
+            "text": f"Waiting for the next window: it reopens at {when}. Not a failure, and not counted as a try.",
+        },
+    )
+    transcripts.note(run_id, "window", f"Held until {until}: {said[:200]}")
+    if urgent:
+        from services import notifications as centre
+
+        await centre.on_window_urgent(run_id, until=until, room=room)
+    return True
+
+
+async def _retry_later(run_id: str, kind: str, detail: str) -> bool:
+    """Resume the same run after a pause (network, 5xx, board fault) or at once (a crash). False once the kind's
+    tries are used up: the caller then fails the run, with what was tried."""
+    limit = failures.TRIES.get(kind, 1)
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state in ENDED:
+            return True
+        tried = [r for r in loads(run.retries, []) if r.get("kind") == kind]
+        if len(tried) >= limit or run_id in RT.cancelled:
+            return False
+        n = len(tried) + 1
+        delay = (
+            0
+            if kind in ("crash", "compact")
+            else failures.NETWORK_DELAYS_S[min(n, len(failures.NETWORK_DELAYS_S)) - 1]
+        )
+        entry = {
+            "at": now_iso(),
+            "kind": kind,
+            "n": n,
+            "of": limit,
+            "label": _RETRY_LABEL.get(kind, kind),
+            "detail": redact(detail)[:300],
+            "delay_s": delay,
+        }
+        retries = loads(run.retries, []) + [entry]
+        retry_at = (
+            (datetime.now(UTC) + timedelta(seconds=delay)).isoformat()
+            if delay
+            else None
+        )
+        handover = (
+            _handover_note(
+                run,
+                "The previous conversation was too long and could not be compacted.",
+            )
+            if kind == "compact"
+            else None
+        )
+    if handover:
+        RT.resume_notes[run_id] = handover
+    else:
+        RT.resume_notes[run_id] = _RETRY_NOTE.get(kind, _RETRY_NOTE["network"]).format(
+            detail=entry["detail"][:160]
+        )
+    wait = (
+        f"in {delay // 60} min"
+        if delay >= 60
+        else (f"in {delay} s" if delay else "now")
+    )
+    text = (
+        f"{entry['label'].capitalize()}: {entry['detail'][:140]}. "
+        f"{'A fresh conversation with a hand-over note' if kind == 'compact' else 'Resuming'} {wait} (try {n} of {limit})."
+    )
+    transcripts.note(run_id, "retry", text)
+    await _requeue(
+        run_id,
+        {"kind": "retry", "text": text},
+        retries=json.dumps(retries),
+        retry_at=retry_at,
+        fresh=kind == "compact",
+        **({"session_id": None} if kind == "compact" else {}),
+    )
+    await audit.record(
+        run.project_id,
+        "run_retry",
+        "info",
+        member_id=run.member_id,
+        run_id=run_id,
+        target=run.ticket_id,
+        detail=entry,
+    )
+    return True
+
+
+async def _hold_signed_out(run_id: str, detail: str) -> None:
+    """The account signed out: the run waits, nothing lost, and resumes by itself once it is signed in again."""
+    await _requeue(
+        run_id,
+        {
+            "kind": "held",
+            "text": f"Held: the account signed out ({detail[:120]}). It resumes by itself after a sign-in.",
+        },
+    )
+
+
+def _stop_diagnosis(kind: str, said: str, run: AiRun, stderr: list[str]) -> dict:
+    """The diagnosis a stopped run carries into Needs you: what happened, what it means, what was tried."""
+    tried = [
+        f"{r.get('label', r.get('kind'))}: resumed {'at once' if not r.get('delay_s') else 'after ' + str(r.get('delay_s')) + ' s'} ({r.get('at', '')[11:16]})"
+        for r in loads(run.retries, [])
+    ]
+    means = {
+        "network": "The network or the API kept failing. Nothing is wrong with the AI's work; try again later.",
+        "board_fault": "A part of the board failed, not the AI. It is not counted against the AI.",
+        "crash": failures.stderr_reading(stderr),
+        "compact": "The conversation grew too long even for a fresh start with a hand-over note.",
+    }.get(kind, "The CLI stopped with an error.")
+    return {
+        "at": now_iso(),
+        "by": "code",
+        "cause": kind,
+        "board_fault": kind == "board_fault",
+        "trigger": "The run stopped",
+        "what": (said or "The CLI stopped.")[:400],
+        "means": means,
+        "tried": tried,
+        "actions": ["retry", "continue_note", "hand_to", "cancel"],
+        "confidence": "high" if kind != "error" else "low",
+    }
+
+
+async def _recover(
+    run_id: str, result: dict | None, code: int | None, proc, watch, quota_key: str
+) -> tuple[bool, str, str]:
+    """Handle a stop by its kind. (handled, kind, what the CLI said): handled runs are back in the queue."""
+    kind, said = failures.classify(
+        result, code, proc.stderr_tail, quota=watch.quota, board_faults=watch.mcp_errors
+    )
+    if kind == "window":
+        until = (watch.quota or {}).get("resets_at")
+        if not until:
+            wait = cli.reset_wait(said) or 3600.0
+            until = (datetime.now(UTC) + timedelta(seconds=wait)).isoformat()
+        await quota.hold_until(quota_key, until, (watch.quota or {}).get("type"))
+        return await _hold_for_window(run_id, until, said, quota_key), kind, said
+    if kind in ("network", "board_fault", "crash", "compact"):
+        return await _retry_later(run_id, kind, said), kind, said
+    return False, kind, said
 
 
 async def _start(session, run: AiRun) -> None:
@@ -1760,14 +2073,15 @@ async def _execute_cli_held(
     """One run of a local CLI: Claude Code (built here) or Codex, opencode and Antigravity with an account
     (``adapters.py``). Antigravity without an account is the person's own login on this computer: it runs in a scratch
     workspace that carries the run's MCP config (``agy`` below)."""
+    if resume_note is None:
+        # a retry the board scheduled itself carries what happened (a dropped connection, a crash)
+        resume_note = RT.resume_notes.pop(run_id, None)
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         member, profile = await get_profile(session, run.member_id)
-        account = (
-            await session.get(AiAccount, profile.account_id)
-            if profile.account_id
-            else None
-        )
+        # urgent work moved to an account with room spends that account for this one run (design E)
+        account_id = run.account_id or profile.account_id
+        account = await session.get(AiAccount, account_id) if account_id else None
         adapter = adapters.for_provider(profile.provider)
         agy = profile.provider == "antigravity" and account is None
         if agy:
@@ -1815,12 +2129,15 @@ async def _execute_cli_held(
         if session_id and not resume_note and profile.connection != "api_key":
             prior = await _prior_context(session, run, session_id)
         sent: dict = {}
+        # A note with no conversation to resume (a fresh start after a crash, a move to another account) comes after
+        # the whole ticket, not instead of it
+        fresh_with_note = resume_note if (resume_note and not session_id) else None
         system, prompt, config = await _build_prompt(
             session,
             run,
             profile,
             member,
-            resume_note=resume_note,
+            resume_note=None if fresh_with_note else resume_note,
             prior=prior,
             record=sent,
         )
@@ -1828,9 +2145,12 @@ async def _execute_cli_held(
             session_id = None
             fresh_note = "The instructions changed since the last answer: starting a new conversation"
             sent = {}
+            fresh_with_note = resume_note
             system, prompt, config = await _build_prompt(
-                session, run, profile, member, resume_note=resume_note, record=sent
+                session, run, profile, member, resume_note=None, record=sent
             )
+        if fresh_with_note:
+            prompt = f"{prompt}\n\n---\n\n{fresh_with_note}"
         resume = session_id is not None
         # Claude Code takes the session id up front; the others tell it in their first event
         if not (agy or adapter):
@@ -1999,6 +2319,23 @@ async def _execute_cli_held(
     if ceiling_ok:
         await move_status(run_id, "in-progress")
 
+    if resume_note:
+        guard.mark_resumed(
+            run_id
+        )  # never twice: an identical write from before the resume is skipped
+    # The board keeps its own copy of the conversation: Claude Code deletes its session files after about 30 days
+    await transcripts.begin(
+        run_id,
+        project_id=run.project_id,
+        member_id=run.member_id,
+        system=system,
+        prompt=prompt,
+        args=args,
+        resume=resume,
+        session_id=session_id,
+        note=resume_note,
+        started_at=run.started_at,
+    )
     env = cli.child_env(compact_at)
     if account_folder:
         env = accounts.env_for(account_snapshot, env)
@@ -2066,11 +2403,18 @@ async def _execute_cli_held(
     remembered = not (agy or adapter) or resume
     ready = False
     pending: asyncio.Future | None = None
+    watch = RT.watch[run_id] = watchdog.RunWatch()
+    quota_key = account_id or quota.LOCAL
     while True:
         if pending is None:
             pending = asyncio.ensure_future(lines.__anext__())
-        done, _ = await asyncio.wait({pending}, timeout=60 if ready else start_s)
+        done, _ = await asyncio.wait(
+            {pending}, timeout=WATCH_EVERY_S if ready else start_s
+        )
         if not done:
+            if ready and not await _is_paused(run_id):
+                # Quiet is not a failure (a long build, the model thinking): notice, diagnose, then act (design C)
+                await _check_trouble(run_id, watch, proc)
             if ready or await _is_paused(run_id):
                 continue  # a quiet CLI is thinking or a tool is running: keep waiting
             timed_out = "The CLI did not start in time."
@@ -2081,6 +2425,17 @@ async def _execute_cli_held(
             line = finished.result()
         except StopAsyncIteration:
             break
+        transcripts.feed(run_id, line)
+        event = watch.observe(line)
+        if event is not None and watch.reported:
+            watch.moved()
+            await _clear_trouble(run_id, "It started moving again.")
+        if (
+            event is not None
+            and event.get("type") == "rate_limit_event"
+            and watch.quota
+        ):
+            await quota.record(quota_key, watch.quota)
         reader = stream or parser
         parsed = reader.feed(line) if reader else cli.parse_stream_line(line, cwd)
         held_tokens = parsed.get("context_used") or held_tokens
@@ -2209,6 +2564,17 @@ async def _execute_cli_held(
         RT.refusal_retries.pop(run_id, None)
         await _finish(run_id, result["text"])
         return
+    said_lower = ((result or {}).get("text") or " ".join(proc.stderr_tail[-5:])).lower()
+    gone_markers = adapter.resume_missing if adapter else ("no conversation found",)
+    if (
+        resume
+        and any(m in said_lower for m in gone_markers)
+        and await _requeue_fresh(run_id)
+    ):
+        return
+    handled, kind, said = await _recover(run_id, result, code, proc, watch, quota_key)
+    if handled:
+        return
     limited = (result or {}).get("text") or " ".join(proc.stderr_tail[-5:])
     rate_wait = cli.rate_limit_wait(limited)
     if rate_wait is not None and await requeue_rate_limited(
@@ -2216,10 +2582,6 @@ async def _execute_cli_held(
         rate_wait,
         f"The provider is limiting the CLI: {cli.rate_limit_line(limited) or '429'}.",
     ):
-        return
-    said = ((result or {}).get("text") or " ".join(proc.stderr_tail[-5:])).lower()
-    gone = adapter.resume_missing if adapter else ("no conversation found",)
-    if resume and any(m in said for m in gone) and await _requeue_fresh(run_id):
         return
     reason = None
     if result and result.get("subtype") == "error_max_turns":
@@ -2259,8 +2621,219 @@ async def _execute_cli_held(
                         how="run",
                         detail="The CLI said it is not signed in.",
                     )
-                    reason = "Account signed out"
-    await _end(run_id, "failed", reason)
+            # Held, not failed: the run resumes by itself the moment the account is signed in again (design C5)
+            await _hold_signed_out(run_id, tail or "not signed in")
+            return
+    async with database.async_session() as session:
+        stopped = await session.get(AiRun, run_id)
+    diagnosis = (
+        _stop_diagnosis(kind, reason or said, stopped, proc.stderr_tail)
+        if stopped
+        else None
+    )
+    await _end(
+        run_id, "failed", reason, diagnosis=json.dumps(diagnosis) if diagnosis else None
+    )
+
+
+# ---------------------------------------------------------------------------
+# An AI in trouble: notice, diagnose, act (design/screens/ai-operations.md, C)
+# ---------------------------------------------------------------------------
+
+WAIT_AGAIN_S = 30 * 60  # "Wait, tell me again at 30 min"
+
+
+async def _check_trouble(run_id: str, watch: "watchdog.RunWatch", proc) -> None:
+    """A quiet run: diagnose it by code, and once per cause write the diagnosis and a Needs you row."""
+    if time.monotonic() < watch.snooze_until:
+        return
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state != "running":
+            return
+        settings = await get_settings(session, run.project_id)
+        cfg = ops.get(settings)
+    pid = proc.proc.pid if getattr(proc, "proc", None) else None
+    try:
+        diag = await watchdog.diagnose(
+            watch, pid, hang_after_s=max(1, int(cfg["hang_after_min"])) * 60
+        )
+    except Exception:  # noqa: BLE001 - a diagnosis that fails must never stop the run
+        logger.exception("Could not diagnose run %s", run_id)
+        return
+    if diag is None or diag["cause"] == watch.reported:
+        return
+    watch.reported = diag["cause"]
+    watch.reported_at = time.monotonic()
+    if diag["cause"] == "unknown" and cfg.get("diagnose_with_model"):
+        reading = await _model_diagnosis(run_id, diag)
+        if reading:
+            diag["model"] = reading
+            diag["means"] = reading.get("means") or diag["means"]
+            if reading.get("lesson"):
+                diag["lesson"] = reading["lesson"]
+    await _set_trouble(run_id, diag)
+
+
+async def _model_diagnosis(run_id: str, diag: dict) -> dict | None:
+    """A light model reads the last steps when the code could not tell (one call, Haiku, on the member's account).
+    Its answer is a proposal: it is shown, never applied by itself."""
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None:
+            return None
+        _, profile = await get_profile(session, run.member_id)
+        account_id = run.account_id or (profile.account_id if profile else None)
+        account = await session.get(AiAccount, account_id) if account_id else None
+        steps = loads(run.steps, [])
+    if profile is None or profile.provider != "claude-code":
+        return None
+    path, _ = cli.find_cli("claude", profile.cli_path)
+    if not path:
+        return None
+    env = cli.child_env(None)
+    if account is not None:
+        env = accounts.env_for(account, env)
+    try:
+        child = await asyncio.create_subprocess_exec(
+            path,
+            "-p",
+            watchdog.model_prompt(diag, steps),
+            "--model",
+            "haiku",
+            "--output-format",
+            "json",
+            "--permission-mode",
+            "dontAsk",
+            "--strict-mcp-config",
+            "--mcp-config",
+            '{"mcpServers": {}}',
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+            cwd=tempfile.gettempdir(),
+        )
+        out, _ = await asyncio.wait_for(child.communicate(), timeout=120)
+    except (OSError, asyncio.TimeoutError):
+        return None
+    try:
+        data = json.loads(out.decode(errors="replace") or "{}")
+    except ValueError:
+        return None
+    return watchdog.parse_model_answer(data.get("result") or "")
+
+
+async def _set_trouble(run_id: str, diag: dict) -> None:
+    """Record a diagnosis on the run (one text: the run, Needs you and the notification read it) and tell."""
+    text = f"{diag.get('trigger', 'In trouble')}: {diag.get('what', '')}"[:240]
+    await _append(
+        run_id, steps=[{"kind": "trouble", "text": text}], diagnosis=json.dumps(diag)
+    )
+    transcripts.note(run_id, "diagnosis", text, cause=diag.get("cause"))
+    from services import notifications as centre
+
+    await centre.on_run_trouble(run_id)
+
+
+async def _clear_trouble(run_id: str, why: str) -> None:
+    """The run moved again (or a person chose to wait): the diagnosis no longer holds; its row closes by itself."""
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or not run.diagnosis or run.state in ENDED:
+            return
+        diag = loads(run.diagnosis, {}) or {}
+        if diag.get("cleared_at") or diag.get("trigger") == "The run stopped":
+            return  # already cleared; a stopped run's diagnosis stays with it
+        diag["cleared_at"] = now_iso()
+        diag["cleared_why"] = why
+        run.diagnosis = json.dumps(diag)
+        session.add(run)
+        await session.commit()
+    await _append(run_id, steps=[{"kind": "start", "text": why}])
+    from services import notifications as centre
+
+    centre.mark_dirty()
+
+
+async def act_on_trouble(
+    run_id: str, action: str, *, by: str, note: str | None = None
+) -> dict:
+    """What a person (or a standing order) chose for a run in trouble: stop the child, tell the AI, wait, continue
+    with a note, or cancel. Returns {done, text}.
+
+    Raises:
+        RunError: The run is not running, or the action does not fit its diagnosis.
+    """
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+    if run is None:
+        raise RunError("Run not found.")
+    diag = loads(run.diagnosis, {}) or {}
+    watch = RT.watch.get(run_id)
+    if action == "cancel":
+        await cancel(
+            run_id,
+            by=by,
+            reason=f"Cancelled by {by} after the board's diagnosis: {diag.get('what', '')[:120]}",
+        )
+        return {"done": True, "text": "Cancelled."}
+    if run.state != "running":
+        raise RunError("Only a running run can be helped this way.")
+    if action == "wait":
+        if watch is not None:
+            watch.snooze_until = time.monotonic() + WAIT_AGAIN_S
+            watch.moved()
+        await _clear_trouble(
+            run_id, f"{by} chose to wait; the board looks again in 30 min."
+        )
+        return {"done": True, "text": "Waiting; the board looks again in 30 minutes."}
+    if action in ("stop_child", "tell_ai"):
+        child = diag.get("child") or {}
+        if not child.get("pid"):
+            raise RunError("The diagnosis names no child process to stop.")
+        stopped = await asyncio.to_thread(watchdog.stop_child, int(child["pid"]))
+        cmd = (child.get("cmd") or "the command")[:100]
+        text = f"Stopped `{cmd}` (by {by}); the run goes on and its tool call returns."
+        transcripts.note(run_id, "stop_child", text)
+        if action == "tell_ai" or note:
+            message = note or (
+                f"The board stopped `{cmd}`: {diag.get('means', 'it was not going to return')}"
+                + (f" {diag['lesson']}" if diag.get("lesson") else "")
+            )
+            await tell(run_id, message, by=by)
+        if watch is not None:
+            watch.moved()
+        await _clear_trouble(run_id, text)
+        return {"done": stopped, "text": text}
+    if action == "continue_note":
+        why = (
+            note
+            or (diag.get("model") or {}).get("note")
+            or (
+                f"The board saw the run stop moving ({diag.get('what', 'no output')}). Carry on with the task; if "
+                "a command does not return, run it in the background or with a timeout."
+            )
+        )
+        await restart_run(run_id, by=by, note=why)
+        return {"done": True, "text": "Continuing with a note."}
+    raise RunError(f"Unknown action: {action}")
+
+
+async def tell(run_id: str, text: str, *, by: str) -> str:
+    """Send a running AI a message (design D20). It arrives through the CLI's input when the run reads one (at the
+    next turn), else with the AI's next board call. Returns how it was delivered: "input" or "next_board_call"."""
+    proc = RT.procs.get(run_id)
+    sent = False
+    if proc is not None and hasattr(proc, "send"):
+        sent = await proc.send(text)
+    if not sent:
+        await add_context_note(run_id, by=by, text=text)
+    transcripts.note(
+        run_id, "message", text, by=by, via="input" if sent else "next_board_call"
+    )
+    await _append(run_id, steps=[{"kind": "message", "text": f"{by}: {text[:200]}"}])
+    return "input" if sent else "next_board_call"
 
 
 RESTART_NOTE = (
@@ -2285,8 +2858,62 @@ async def _memory_breach(run_id: str, rss_mb: float, limit_mb: int) -> None:
 resources.MON.on_breach = _memory_breach
 
 
-async def restart_run(run_id: str, *, by: str) -> AiRun:
-    """Start a running run's CLI again inside the same run (it resumes its conversation); memory is released.
+async def _child_memory_breach(run_id: str, extra_mb: float, limit_mb: int) -> None:
+    """What the CLI started passed the memory limit: stop only the heaviest child process; the run goes on and is told
+    why (design C: diagnose before restarting anything)."""
+    proc = RT.procs.get(run_id)
+    if proc is None or proc.proc is None:
+        return
+    heavy = await asyncio.to_thread(_heaviest_child, proc.proc.pid, extra_mb)
+    if heavy is None or not await asyncio.to_thread(watchdog.stop_child, heavy["pid"]):
+        return
+    text = (
+        f"Memory: `{heavy['cmd'][:100]}` held {heavy['rss_mb'] / 1024:.1f} GB, over the {limit_mb / 1024:.1f} GB "
+        "limit. Only that process was stopped; the run goes on."
+    )
+    transcripts.note(run_id, "memory_child", text)
+    await _append(run_id, steps=[{"kind": "start", "text": text}])
+    await tell(
+        run_id,
+        f"The board stopped `{heavy['cmd'][:100]}` because it used {heavy['rss_mb'] / 1024:.1f} GB of memory. Do not "
+        "start it again the same way; limit its memory or work on a smaller piece.",
+        by="System",
+    )
+    resources.MON._child_breached.discard(run_id)
+
+
+resources.MON.on_child_breach = _child_memory_breach
+
+
+def _heaviest_child(pid: int | None, total_mb: float) -> dict | None:
+    """The child process holding most of a run's memory (over 60% of it), or None when the CLI itself is the cause."""
+    import psutil
+
+    if not pid:
+        return None
+    try:
+        children = psutil.Process(pid).children(recursive=True)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return None
+    best = None
+    for c in children:
+        try:
+            rss = c.memory_info().rss / (1024 * 1024)
+            cmd = " ".join(c.cmdline())[:300] or c.name()
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+        if "claude" in cmd.split(" ")[0].lower():
+            continue  # the CLI's own processes
+        if best is None or rss > best["rss_mb"]:
+            best = {"pid": c.pid, "cmd": cmd, "rss_mb": rss}
+    if best and total_mb and best["rss_mb"] >= 0.6 * total_mb:
+        return best
+    return None
+
+
+async def restart_run(run_id: str, *, by: str, note: str | None = None) -> AiRun:
+    """Start a running run's CLI again inside the same run (it resumes its conversation); memory is released. With
+    `note`, the CLI is told it on resuming ("Continue with a note").
 
     Raises:
         RunError: The run is not running a CLI.
@@ -2303,6 +2930,7 @@ async def restart_run(run_id: str, *, by: str) -> AiRun:
         "by": by,
         "rss_mb": reading.get("cli_rss_mb"),
         "limit_mb": await resources.MON.limit_mb(run.project_id),
+        **({"note": note} if note else {}),
     }
     proc.kill()
     return run
@@ -2432,14 +3060,19 @@ async def _restart_inside_run(
             f"(restart {by_system + 1} of {resources.AUTO_RESTARTS})"
         )
         why = f"it used {rss / 1024:.2f} GB of memory, over the {limit / 1024:.1f} GB limit"
+    elif request.get("note"):
+        text = f"Continuing with a note from {by}"
+        why = f"{by} asked it to continue with a note"
     else:
         text = f"Restarted by {by}"
         why = f"{by} restarted it"
     await _append(run_id, steps=[{"kind": "start", "text": text}])
+    transcripts.note(run_id, "restart", text)
     await _publish(force=True)
-    await _execute_cli_held(
-        run_id, token, resume_note=RESTART_NOTE.format(why=why), scratch=scratch
-    )
+    resume_note = RESTART_NOTE.format(why=why)
+    if request.get("note"):
+        resume_note = f"{resume_note}\n\nNote from {by}: {request['note']}"
+    await _execute_cli_held(run_id, token, resume_note=resume_note, scratch=scratch)
 
 
 # ---------------------------------------------------------------------------
@@ -2732,6 +3365,9 @@ async def _end(
         await session.commit()
         await session.refresh(run)
         member, profile = await get_profile(session, run.member_id)
+    if reason:
+        transcripts.note(run_id, "end", f"{state}: {reason}")
+    await transcripts.finish(run_id)
     if state != "finished":
         await _append(
             run_id,
@@ -3196,6 +3832,125 @@ async def retry(run_id: str, *, by: str, limit_min: int | None = None) -> AiRun:
         )
 
 
+async def continue_run(run_id: str, *, by: str, note: str) -> AiRun:
+    """ "Continue with a note": a running run's CLI resumes its conversation with the note; an ended run goes on in a
+    new run that resumes the same conversation, so nothing is started over (design D).
+
+    Raises:
+        RunError: No note, or the run cannot be continued.
+    """
+    note = (note or "").strip()
+    if not note:
+        raise RunError("Say what the AI should know.")
+    async with database.async_session() as session:
+        old = await session.get(AiRun, run_id)
+        if old is None:
+            raise RunError("Run not found.")
+        if old.state == "running":
+            return await restart_run(run_id, by=by, note=note)
+        if old.state not in ENDED:
+            raise RunError(
+                f"Run #{old.number} is {old.state.replace('_', ' ')}; it cannot be continued now."
+            )
+        return await create_run(
+            session,
+            ticket_id=old.ticket_id,
+            member_id=old.member_id,
+            mode=old.mode,
+            trigger="retry",
+            started_by=by,
+            instruction=(
+                f"Continue the work of run #{old.number}, which stopped ({(old.ended_reason or old.state)[:200]}). "
+                f"Note from {by}: {note}\n\n{old.instruction}"
+            ).strip(),
+            include_context=old.include_context,
+            chain=loads(old.chain, []),
+            resume_session=old.session_id,
+            report_back=loads(old.report_back, None),
+        )
+
+
+async def hand_to(
+    run_id: str, *, member_id: str, by: str, note: str | None = None
+) -> AiRun:
+    """ "Hand to another AI": the ticket goes to another AI member, which starts a fresh conversation with a hand-over
+    note of what was done (design D).
+
+    Raises:
+        RunError: The member cannot take it.
+    """
+    async with database.async_session() as session:
+        old = await session.get(AiRun, run_id)
+        if old is None:
+            raise RunError("Run not found.")
+        if old.state not in ENDED:
+            raise RunError(f"Run #{old.number} is still {old.state}; cancel it first.")
+        member, profile = await get_profile(session, member_id)
+        if member is None or profile is None or member.project_id != old.project_id:
+            raise RunError("Pick an AI member of this project.")
+        if member_id == old.member_id:
+            raise RunError(
+                "That is the AI that stopped; use Try again or Continue with a note."
+            )
+        handover = _handover_note(
+            old, f"{by} handed this ticket to you after run #{old.number} stopped."
+        )
+        ticket = await session.get(Ticket, old.ticket_id)
+        if ticket is not None and ticket.assignee != member_id:
+            await svc_tickets.update_ticket(
+                session, ticket.id, TicketUpdate(assignee=member_id)
+            )
+        return await create_run(
+            session,
+            ticket_id=old.ticket_id,
+            member_id=member_id,
+            mode="work",
+            trigger="handoff",
+            started_by=by,
+            instruction=f"{handover}" + (f"\n\nNote from {by}: {note}" if note else ""),
+            include_context=True,
+            chain=loads(old.chain, []),
+            report_back=loads(old.report_back, None),
+        )
+
+
+async def move_account(run_id: str, *, account_id: str, by: str) -> AiRun:
+    """Move a queued run to another Claude account for this one run (urgent work, design E): the member keeps its
+    model and permissions; the conversation does not carry over, so it starts with a hand-over note.
+
+    Raises:
+        RunError: The run is not waiting, or the account cannot take it.
+    """
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None:
+            raise RunError("Run not found.")
+        if run.state != "queued":
+            raise RunError("Only a waiting run can move to another account.")
+        acct = await session.get(AiAccount, account_id)
+        if acct is None or acct.status != "signed_in" or acct.cli != "claude":
+            raise RunError("Pick a signed-in Claude account.")
+    RT.resume_notes[run_id] = _handover_note(
+        run, f"{by} moved this run to the account {acct.name}."
+    )
+    transcripts.note(run_id, "moved", f"Moved by {by} to the account {acct.name}")
+    await _append(
+        run_id,
+        steps=[
+            {
+                "kind": "window",
+                "text": f"Moved by {by} to the account {acct.name}; a new conversation starts with a hand-over note.",
+            },
+            _FRESH_STEP,
+        ],
+        account_id=account_id,
+        session_id=None,
+    )
+    RT.wake.set()
+    async with database.async_session() as session:
+        return await session.get(AiRun, run_id)
+
+
 async def _is_paused(run_id: str) -> bool:
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
@@ -3637,11 +4392,36 @@ async def take_context_notes(run_id: str) -> str | None:
             }
         ],
     )
-    who = ", ".join(dict.fromkeys(n["by"] for n in fresh))
-    return (
-        f"{who} edited the ticket while you were working. Its text now (people's edits win; do not overwrite them):\n"
-        f"{block}"
+    said = [n for n in fresh if n.get("text")]
+    edits = [n for n in fresh if not n.get("text")]
+    parts = [f"Message from {n['by']} while you work: {n['text']}" for n in said]
+    if edits:
+        who = ", ".join(dict.fromkeys(n["by"] for n in edits))
+        parts.append(
+            f"{who} edited the ticket while you were working. Its text now (people's edits win; do not overwrite "
+            f"them):\n{block}"
+        )
+    return "\n\n".join(parts)
+
+
+async def add_context_note(run_id: str, *, by: str, text: str) -> None:
+    """A message for a running AI that its next board call carries (when its CLI cannot read one directly)."""
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None:
+            return
+    notes = loads(run.context_notes, [])
+    notes.append(
+        {
+            "at": now_iso(),
+            "by": by,
+            "what": "a message",
+            "text": text[:4000],
+            "step": len(loads(run.steps, [])),
+            "delivered": False,
+        }
     )
+    await _append(run_id, context_notes=json.dumps(notes[-20:]))
 
 
 async def refresh_context(run_id: str, *, by: str) -> AiRun:
