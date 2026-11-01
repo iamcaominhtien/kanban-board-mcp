@@ -36,7 +36,7 @@ Pick the model and effort for each subagent from the task, not by default:
 Every pull request you create gets an assignee and labels. If the tool that creates it cannot set them (the GitHub MCP `create_pull_request` cannot), set them right after with `issue_write` (`method: update`, the PR number as `issue_number`):
 
 - **Assignee**: `iamcaominhtien`.
-- **Labels**: every label that fits, chosen only from the repo's existing labels; do not create new ones.
+- **Labels**: every label that fits, from the repo's existing labels first. If none of them fits, create a new one (short, lowercase, in the style of the existing ones) and use it.
   - `bug`: fixes broken behavior.
   - `enhancement`: a new feature, an improvement, or a chore or CI change.
   - `documentation`: design docs, guides, README or other docs.
