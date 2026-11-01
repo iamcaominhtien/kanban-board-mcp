@@ -189,7 +189,10 @@
 }
 .so-grid {
   display: grid;
-  grid-template-columns: minmax(150px, 238px) minmax(0, 1fr) 128px 100px minmax(160px, 240px) 180px;
+  /* the design's proportions (238 · 1fr · 128 · 100 · 240 · 180), so the table also fits the settings column */
+  grid-template-columns:
+    minmax(110px, 1.6fr) minmax(120px, 2fr) minmax(56px, 0.8fr) minmax(44px, 0.6fr) minmax(90px, 1.5fr)
+    180px;
   gap: 14px;
   align-items: center;
 }

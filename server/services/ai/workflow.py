@@ -1155,7 +1155,10 @@ async def on_run_ended(run_id: str) -> None:
         if row is None or row.state != "active" or wf.state != "active":
             return
         report = loads(run.report, {}) or {}
-        text = "\n".join(x for x in (report.get("summary"), run.summary) if x) or ""
+        # the run's summary is often the report's own: each distinct text once
+        text = "\n".join(
+            dict.fromkeys(x for x in (report.get("summary"), run.summary) if x)
+        )
         if run.state != "finished":
             diag = loads(run.diagnosis, {}) or {}
             row.state = "failed"
@@ -1576,6 +1579,14 @@ def _test_file(command: str, output: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _step_iso(run: AiRun, at: str | None) -> str | None:
+    """A step's time ("HH:MM:SS", UTC) as a full ISO time on its run's day, so the page can show it in local time."""
+    day = (run.started_at or run.queued_at or "")[:10]
+    if not at or len(at) != 8 or not day:
+        return at
+    return f"{day}T{at}+00:00"
+
+
 async def tdd_evidence(ticket_id: str) -> dict:
     """A red run and a later green one, matched by command, test file and test name, red only on an assertion (a run
     that died on an import error or a typo never ran the test, so it proves nothing). Read from the runs' own command
@@ -1596,7 +1607,7 @@ async def tdd_evidence(ticket_id: str) -> dict:
                     {
                         "run_id": run.id,
                         "number": run.number,
-                        "at": st.get("at"),
+                        "at": _step_iso(run, st.get("at")),
                         "command": st.get("text", "")[4:],
                         "tests": st["tests"],
                         "output": st.get("output") or "",

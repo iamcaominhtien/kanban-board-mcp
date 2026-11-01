@@ -25,7 +25,9 @@ export const VIEW_STATES: Record<HistoryFilters['view'], string | undefined> = {
 
 /** The start of "last N days" as an ISO time (the server reads snake_case names, so the query is built by hand). */
 export function sinceOf(days: number, now: number = Date.now()): string | undefined {
-  return days > 0 ? new Date(now - days * 86400000).toISOString() : undefined;
+  // To the minute: the time is part of the query key, and a key that changes on every render refetches for ever
+  const minute = Math.floor(now / 60000) * 60000;
+  return days > 0 ? new Date(minute - days * 86400000).toISOString() : undefined;
 }
 
 /**

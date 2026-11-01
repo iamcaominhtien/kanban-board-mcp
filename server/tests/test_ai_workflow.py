@@ -342,6 +342,7 @@ async def test_red_then_green_counts_only_a_failure_on_an_assertion(env):
     await add_run(1, [import_error])
     assert (await c.get(f"/tickets/{tid}/ai/tdd")).json()["proven"] is False
     red = {
+        "at": "09:41:35",
         "kind": "command",
         "text": "Ran pytest -q tests/test_calc.py",
         "tests": {
@@ -361,6 +362,11 @@ async def test_red_then_green_counts_only_a_failure_on_an_assertion(env):
     await add_run(3, [green])
     got = (await c.get(f"/tickets/{tid}/ai/tdd")).json()
     assert got["proven"] is True
+    from datetime import datetime
+
+    datetime.fromisoformat(
+        got["red"]["at"]
+    )  # a full time, which the page shows in local time
     assert got["red"]["why"] == "failed on an assertion"
     assert got["file"] == "tests/test_calc.py"
 

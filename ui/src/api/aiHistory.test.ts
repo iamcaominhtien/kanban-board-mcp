@@ -42,4 +42,9 @@ describe('sinceOf', () => {
   it('is undefined for all time', () => {
     expect(sinceOf(0, NOW)).toBeUndefined();
   });
+
+  it('stays the same within a minute, so the list query keeps one key', () => {
+    expect(sinceOf(30, NOW + 1)).toBe(sinceOf(30, NOW + 59_000));
+    expect(sinceOf(30, NOW + 1)).not.toBe(sinceOf(30, NOW + 60_000));
+  });
 });

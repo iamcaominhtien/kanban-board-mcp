@@ -223,7 +223,7 @@ export function StandingOrdersSection({ projectId }: { projectId: string }) {
 
       <div className="so-grid so-gridhead">
         {['Rule', 'When it looks', 'State', 'Fired', 'Last time', ''].map((h, i) => (
-          <div key={i} className="ai-label" style={{ whiteSpace: 'nowrap' }}>
+          <div key={i} className="ai-label">
             {h}
           </div>
         ))}
