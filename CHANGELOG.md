@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Changed
+- **The release page lists two guide files instead of eight**: the full guide PDF, and `kanban-board-guide-sheets-<version>.zip` with the stand-alone PDFs (quick start, shortcut sheet, administration, MCP, self-hosting, troubleshooting, desktop menu).
+
 ## [3.18.1] - 2026-11-01
 
 A smaller desktop app, and two fixes for the installed app.
