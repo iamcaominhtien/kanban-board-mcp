@@ -251,7 +251,7 @@ async def docs_write(
     markdown: Annotated[
         str | None,
         Field(
-            description="create: initial body. update: the FULL new Markdown body (not a patch)."
+            description="create: initial body. update: the FULL new Markdown body (not a patch). In an AI run, a picture may be named by its path in your working folder (![TC-1](qa/evidence/TC-1.png); the file must exist): the board keeps a copy and rewrites it to /uploads/…."
         ),
     ] = None,
     parent_id: Annotated[

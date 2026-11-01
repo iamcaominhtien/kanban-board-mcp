@@ -8,6 +8,7 @@ Conventions (kept in sync with the server `instructions` in `instructions.py`):
 """
 
 import json
+import os
 import re
 from datetime import datetime, timezone
 from functools import wraps
@@ -20,6 +21,7 @@ import services.activity as svc_activity
 import services.tickets as svc_tickets
 import database
 from models import (
+    AiMember,
     IdeaTicketRead,
     Ticket,
     TicketRead,
@@ -29,6 +31,19 @@ from models import (
 def async_session():
     """A database session. Looked up on every call so a re-initialised database (and the tests) is picked up."""
     return database.async_session()
+
+
+async def run_folder() -> str | None:
+    """The working folder of the AI run making this call (None for a person or another client)."""
+    from services.ai import guard
+
+    ctx = await guard.resolve()
+    if ctx is None:
+        return None
+    async with async_session() as session:
+        member = await session.get(AiMember, ctx.member_id)
+    folder = os.path.expanduser(member.working_dir or "") if member else ""
+    return folder or None
 
 
 # ---------------------------------------------------------------------------
