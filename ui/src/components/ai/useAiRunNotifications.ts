@@ -8,31 +8,45 @@ interface Seen {
   blocked: string | null;
 }
 
+interface Watch {
+  projectId: string;
+  /** When this tab started watching the project (ms). */
+  since: number;
+  runs: Map<string, Seen>;
+}
+
 /**
  * Toasts for run changes on the board: the AI needs an answer (Answer / Open ticket), a reminder for a question
  * still open, a run finished, failed, was archived away, or tried to move a ticket past its permission (AI work on
- * tickets, E2, F3, H6). The first load only records the states, so opening the board never replays old news.
+ * tickets, E2, F3, H6). The first load of a project only records the states, so opening the board or switching to
+ * another project never replays old news; a run first seen later is news only when it was queued after that.
  */
 export function useAiRunNotifications(
+  projectId: string,
   runs: AiRun[] | undefined,
   openTicket: (ticketId: string) => void,
   openAiPage?: (memberId?: string) => void,
 ) {
   const toast = useToast();
-  const seen = useRef<Map<string, Seen> | null>(null);
+  const seen = useRef<Watch | null>(null);
   useEffect(() => {
     if (!runs) return;
-    const prev = seen.current;
-    const next = new Map<string, Seen>(
-      runs.map((r) => [
-        r.id,
-        { state: r.state, reminders: r.question?.reminders?.length ?? 0, blocked: r.blockedMove },
-      ]),
-    );
-    seen.current = next;
+    const prev = seen.current?.projectId === projectId ? seen.current : null;
+    const since = prev?.since ?? Date.now();
+    seen.current = {
+      projectId,
+      since,
+      runs: new Map<string, Seen>(
+        runs.map((r) => [
+          r.id,
+          { state: r.state, reminders: r.question?.reminders?.length ?? 0, blocked: r.blockedMove },
+        ]),
+      ),
+    };
     if (!prev) return;
     for (const r of runs) {
-      const before = prev.get(r.id);
+      const before = prev.runs.get(r.id);
+      if (!before && Date.parse(r.queuedAt) < since) continue;
       const open = { label: 'Open ticket', onClick: () => openTicket(r.ticketId) };
       if (before && before.blocked !== r.blockedMove && r.blockedMove) {
         const target = r.blockedMove === 'done' ? 'Done' : r.blockedMove;
@@ -82,5 +96,5 @@ export function useAiRunNotifications(
           open,
         );
     }
-  }, [runs, toast, openTicket, openAiPage]);
+  }, [projectId, runs, toast, openTicket, openAiPage]);
 }
