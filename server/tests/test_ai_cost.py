@@ -280,12 +280,12 @@ async def test_digest_releases_held_notifications_once(env, monkeypatch):
 # --------------------------------------------------------------------------- usage dashboard
 
 
-async def _seed_runs(env, pid, m, days_back, cost, n=1, tokens=1000):
+async def _seed_runs(env, pid, m, days_back, cost, n=1, tokens=1000, now=None):
     async with env["maker"]() as s:
         tid = await _ticket(env["c"], pid, f"Seed {days_back}")
         for i in range(n):
             when = (
-                datetime.now(UTC) - timedelta(days=days_back, minutes=i)
+                (now or datetime.now(UTC)) - timedelta(days=days_back, minutes=i)
             ).isoformat()
             s.add(
                 AiRun(
@@ -307,7 +307,21 @@ async def _seed_runs(env, pid, m, days_back, cost, n=1, tokens=1000):
     return tid
 
 
-async def test_usage_dashboard_ranges_forecast_stack_and_csv(env):
+async def test_usage_dashboard_ranges_forecast_stack_and_csv(env, monkeypatch):
+    # "today" is fixed at the 15th of the month, so the runs of "yesterday" and "3 days ago" are in the month whatever
+    # day the test runs on (on the 1st or 2nd they would fall in the month before)
+    ref = (
+        datetime.now()
+        .astimezone()
+        .replace(day=15, hour=12, minute=0, second=0, microsecond=0)
+    )
+    monkeypatch.setattr(
+        budget, "today_start", lambda: ref.replace(hour=0).astimezone(UTC)
+    )
+    monkeypatch.setattr(
+        budget, "month_start", lambda: ref.replace(day=1, hour=0).astimezone(UTC)
+    )
+    now = ref.astimezone(UTC)
     c = env["c"]
     pid, _ = await _project(c)
     api = await _api_member(c, pid, monthly_cap=100)
@@ -316,9 +330,9 @@ async def test_usage_dashboard_ranges_forecast_stack_and_csv(env):
         f"/projects/{pid}/ai/settings",
         json={"board_daily_cap": 15, "board_monthly_budget": 200},
     )
-    t_today = await _seed_runs(env, pid, api, 0, 1.5, n=2)
-    await _seed_runs(env, pid, api, 3, 2.0)
-    await _seed_runs(env, pid, local, 1, 0.0, n=3)
+    t_today = await _seed_runs(env, pid, api, 0, 1.5, n=2, now=now)
+    await _seed_runs(env, pid, api, 3, 2.0, now=now)
+    await _seed_runs(env, pid, local, 1, 0.0, n=3, now=now)
     month = (await c.get(f"/projects/{pid}/ai/usage")).json()
     assert month["range"]["key"] == "month"
     tiles = month["tiles"]
