@@ -109,7 +109,8 @@ def test_a_carriage_return_cannot_add_a_fake_record_either(
         logging.getLogger("t").warning("run %s", forged)
         app_logging._handler.flush()
         records = list(app_logging.iter_records())
-        assert len(records) == 1 and "admin password changed" in records[0]
+        assert len(records) == 1
+        assert "admin password changed" in records[0]
     finally:
         for h in list(root.handlers):
             if h not in before:
