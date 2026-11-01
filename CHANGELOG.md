@@ -8,6 +8,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.18.2] - 2026-11-01
+
+Two fixes for AI members: pictures on the Docs pages they write, and no replay of old "finished" toasts.
+
 ### Changed
 - **The release page lists two guide files instead of eight**: the full guide PDF, and `kanban-board-guide-sheets-<version>.zip` with the stand-alone PDFs (quick start, shortcut sheet, administration, MCP, self-hosting, troubleshooting, desktop menu).
 
